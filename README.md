@@ -1,51 +1,58 @@
 ![badge-labs](https://user-images.githubusercontent.com/327285/230928932-7c75f8ed-e57b-41db-9fb7-a292a13a1e58.svg)
 
-<img align="right" width="40%" src="https://www.finos.org/hubfs/FINOS/finos-logo/FINOS_Icon_Wordmark_Name_RGB_horizontal.png">
+# architecture-as-code
 
-# FINOS Software Project Blueprint
+Short blurb about what your project does.
 
-Project blueprint is a GitHub repository template for all [Fintech Open Source Foundation (FINOS)](https://www.finos.org/) hosted GitHub repositories, contributed and maintained by FINOS as part of the [Open Developer Platform (ODP)](https://odp.finos.org) initiative.
+## Installation
 
+OS X & Linux:
 
-## Using DCO to sign your commits
-
-All commits must be signed with a DCO signature to avoid being flagged by the DCO Bot. This means that your commit log message must contain a line that looks like the following one, with your actual name and email address:
-
-```
-Signed-off-by: John Doe <john.doe@example.com>
+```sh
+npm install my-crazy-module --save
 ```
 
-Adding the `-s` flag to your `git commit` will add that line automatically. You can also add it manually as part of your commit log message or add it afterwards with `git commit --amend -s`.
+Windows:
 
-### Helpful DCO Resources
-- [Git Tools - Signing Your Work](https://git-scm.com/book/en/v2/Git-Tools-Signing-Your-Work)
-- [Signing commits
-](https://docs.github.com/en/github/authenticating-to-github/signing-commits)
+```sh
+edit autoexec.bat
+```
 
+## Usage example
 
-## How to use this blueprint
+A few motivating and useful examples of how your project can be used. Spice this up with code blocks and potentially screenshots / videos ([LiceCap](https://www.cockos.com/licecap/) is great for this kind of thing).
 
-1. Clone this repository locally (`git clone https://github.com/finos-labs/project-blueprint.git`)
-2. Copy the `LICENSE`, `LICENSE.spdx`, and `NOTICE` files, as well as the entire `.github` directory, to your own repository (do _not_ copy this `README.md` file).
-3. Copy the `README.template.md` file to your repository, and rename it to `README.md`.
-4. Search and replace the following tokens in the newly copied files:
+_For more examples and usage, please refer to the [Wiki][wiki]._
 
-  | Token                        | Replace with                                                      |
-  | ---------------------------- | ----------------------------------------------------------------- |
-  | `{project name}`             | The name of the GitHub repository the project resides in.         |
-  | `{yyyy}`                     | The year you started working on the code.                         |
-  | `{current_year}`             | The current year.                                                 |
-  | `{name of copyright owner}`  | The copyright owner of the code (typically you or your employer). |
-  | `{email of copyright owner}` | The email address of the copyright owner of the code (if known).  |
+## Development setup
 
-5. Open the `NOTICE` file in a text editor and either remove the `{Other notices, as necessary}` token, or [add attributions if required by your code's dependencies](https://finosfoundation.atlassian.net/wiki/spaces/FINOS/pages/75530255/License+Categories).
-6. Open the `README.md` file in a text editor and complete the content as appropriate for your project.
-7. Add the [Apache license header to all of your source files](https://www.apache.org/licenses/LICENSE-2.0.html#apply).
-8. Commit all of your changes.
+Describe how to install all development dependencies and how to run an automated test-suite of some kind. Potentially do this for multiple platforms.
+
+```sh
+make install
+npm test
+```
+
+## Roadmap
+
+List the roadmap steps; alternatively link the Confluence Wiki page where the project roadmap is published.
+
+1. Item 1
+2. Item 2
+3. ....
+
+## Contributing
+
+1. Fork it (<https://github.com/finos/architecture-as-code/fork>)
+2. Create your feature branch (`git checkout -b feature/fooBar`)
+3. Read our [contribution guidelines](.github/CONTRIBUTING.md) and [Community Code of Conduct](https://www.finos.org/code-of-conduct)
+4. Commit your changes (`git commit -am 'Add some fooBar'`)
+5. Push to the branch (`git push origin feature/fooBar`)
+6. Create a new Pull Request
 
 ## License
 
-Copyright 2020 Fintech Open Source Foundation
+Copyright 2023 FINOS
 
 Distributed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
