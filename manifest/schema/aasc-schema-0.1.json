@@ -1,0 +1,142 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "http://devops.finos.org/devops-automation/aasc/0.1",
+  "title": "Architecture As Code 0.1",
+  "type": "object",
+  "defs": {
+    "definitions": {
+      "dataClassification": {
+        "enum": [
+          "Public",
+          "Confidential",
+          "Highly Restricted",
+          "MNPI",
+          "PII"
+        ]
+      },
+      "protocol": {
+        "enum": [
+          "HTTP",
+          "HTTPS",
+          "FTP",
+          "SFTP",
+          "JDBC",
+          "WebSocket",
+          "SocketIO",
+          "LDAP",
+          "AMQP"
+        ]
+      },
+      "authentication": {
+        "enum": [
+          "Basic",
+          "OAuth2",
+          "Kerberos",
+          "SPNEGO",
+          "SiteMinder/Isolated"
+        ]
+      },
+      "type": {
+        "enum": [
+          "actor",
+          "system",
+          "service",
+          "database",
+          "internal-network",
+          "ldap",
+          "webclient"
+        ]
+      }
+    }
+  },
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "uniqueId": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/defs/definitions/type"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "data-classification": {
+            "$ref": "#/defs/definitions/dataClassification"
+          },
+          "run-as": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "uniqueId",
+          "type",
+          "name",
+          "description"
+        ]
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "uniqueId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "parties": {
+            "type": "object",
+            "properties": {
+              "actor": {
+                "type": "string"
+              },
+              "nodes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "source": {
+                "type": "string"
+              },
+              "destination": {
+                "type": "string"
+              },
+              "container": {
+                "type": "string"
+              }
+            },
+            "required": []
+          },
+          "protocol": {
+            "$ref": "#/defs/definitions/protocol"
+          },
+          "authentication": {
+            "$ref": "#/defs/definitions/authentication"
+          }
+        },
+        "required": [
+          "uniqueId",
+          "type",
+          "parties"
+        ]
+      }
+    }
+  },
+  "required": [
+    "nodes",
+    "relationships"
+  ]
+}
