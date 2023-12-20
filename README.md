@@ -16,7 +16,8 @@ your project.
 
 ## Projects
 
-* [AasC Manifest Specification](./manifest/README.md)
+* [AasC Manifest Specification](./manifest)
+* [Docs](./docs)
 
 ## Contributing
 
