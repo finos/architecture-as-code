@@ -55,9 +55,9 @@ const config = {
         [
             '@docusaurus/plugin-content-docs',
             {
-                id: 'manifest',
-                path: 'manifest',
-                routeBasePath: 'manifest',
+                id: 'calm',
+                path: 'calm',
+                routeBasePath: 'calm',
                 sidebarPath: require.resolve('./sidebars.js'),
             },
         ],
@@ -71,6 +71,11 @@ const config = {
             },
         ],
     ],
+
+    markdown: {
+        mermaid: true
+    },
+    themes: ['@docusaurus/theme-mermaid'],
 
     themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
@@ -91,10 +96,10 @@ const config = {
                         label: 'Docs',
                     },
                     {
-                        to: '/manifest/',
-                        label: 'Manifest',
+                        to: '/calm/',
+                        label: 'CALM',
                         position: 'left',
-                        activeBaseRegex: `/manifest/`,
+                        activeBaseRegex: `/calm/`,
                     },
                     {
                         to: '/community/',
@@ -113,11 +118,11 @@ const config = {
                 style: 'dark',
                 links: [
                     {
-                        title: 'Manifest',
+                        title: 'CALM',
                         items: [
                             {
                                 label: 'Core',
-                                href: 'http://github.com/finos-labs/architecture-as-code/blob/master/manifest/',
+                                href: 'http://github.com/finos-labs/architecture-as-code/blob/master/calm/',
                             },
                         ],
                     },
