@@ -2,11 +2,11 @@
 
 # Architecture as Code
 
-"Architecture as Code" (AasC) aims to devise and manage software architecture via a readable and version-controlled
+**Architecture as Code (AasC)** aims to devise and manage software architecture via a readable and version-controlled
 codebase, fostering a robust understanding, efficient development, and seamless maintenance of complex software
 architectures.
 
-This repository contains the AasC manifest specification, as well as capabilities being built to utilize the
+This repository contains the Common Architecture Language Model (CALM) Specification, as well as capabilities being built to utilize the
 specification. This page lists the domains and capabilities being built by the official AasC community.
 
 Whilst others are welcome to build their own capabilities, away from the AasC monorepo, we encourage you to join the
@@ -16,7 +16,8 @@ your project.
 
 ## Projects
 
-* [AasC Manifest Specification](./manifest/README.md)
+* [Common Architecture Language Model](./calm)
+* [Docs](./docs)
 
 ## Contributing
 
