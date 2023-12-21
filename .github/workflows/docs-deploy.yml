@@ -1,4 +1,4 @@
-name: Deploy Docs to GitHub Pages
+name: Build Docs for GitHub Pages
 
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
@@ -8,11 +8,10 @@ on:
   pull_request:
     branches: [ "main" ]
     paths: [ "docs/**" ]
-  workflow_dispatch:
 
 jobs:
   deploy:
-    name: Deploy to GitHub Pages
+    name: Build for GitHub Pages
     runs-on: ubuntu-latest
     defaults:
       run:
