@@ -28,7 +28,7 @@ src/
 │   ├── panels/                   # Palette, properties, assets, templates
 │   └── utils/                    # Webview validation and helpers
 ├── core/                         # CALM types, helpers, bundled schemas
-├── extensions/                   # Palette pack definitions and registry
+├── packs/                        # Palette pack definitions and registry
 └── test/__mocks__/vscode.ts       # VS Code API mock for unit tests
 ```
 
