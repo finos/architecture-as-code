@@ -44,7 +44,7 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "$ref": "#/definitions/relationship-type"
         },
         "parties": {
           "type": "object",
@@ -123,6 +123,14 @@
         "internal-network",
         "ldap",
         "webclient"
+      ]
+    },
+    "relationship-type": {
+      "enum": [
+        "interacts",
+        "connects",
+        "deployed-in",
+        "composed-of"
       ]
     }
   },
