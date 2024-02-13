@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "id": "http://devops.finos.org/devops-automation/calm/core/0.0.1",
+  "id": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/schema/core.json",
   "title": "Common Architecture Language Model",
   "type": "object",
   "definitions": {
