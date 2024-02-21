@@ -28,7 +28,7 @@
   "relationships": [
     {
       "uniqueId": "api-consumer-api-gateway",
-      "relationship-type": "interacts",
+      "relationship-type": "connects",
       "parties": {
         "destination": "api-gateway",
         "source": "api-consumer"
@@ -36,7 +36,7 @@
     },
     {
       "uniqueId": "api-gateway-idp",
-      "relationship-type": "interacts",
+      "relationship-type": "connects",
       "parties": {
         "destination": "idp",
         "source": "api-gateway"
@@ -44,7 +44,7 @@
     },
     {
       "uniqueId": "api-gateway-api-producer",
-      "relationship-type": "interacts",
+      "relationship-type": "connects",
       "parties": {
         "destination": "api-producer",
         "source": "api-gateway"
