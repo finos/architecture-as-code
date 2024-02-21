@@ -1,6 +1,3 @@
-Sure, here is the YAML version of the `traderx.json`:
-
-  ```yaml
 $schema: https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-02/meta/calm.json
 nodes:
   - uniqueId: traderx-system
