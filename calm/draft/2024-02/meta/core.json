@@ -131,7 +131,8 @@
         "Basic",
         "OAuth2",
         "Kerberos",
-        "SPNEGO"
+        "SPNEGO",
+        "Certificate"
       ]
     },
     "node-type-definition": {
