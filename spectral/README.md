@@ -21,3 +21,9 @@ Run checks against a file with the following command:
 ```bash
 spectral lint --ruleset aac.yaml implementation.json
 ```
+
+For example, to run the rulesets against the sample spec, which should produce several errors:
+
+```bash
+spectral lint --ruleset aac.yaml examples/bad-rest-api.json
+```
