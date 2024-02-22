@@ -1,3 +1,6 @@
+/**
+ * Checks that the given input, a unique ID, is referenced by at least one relationship.
+ */
 export default (input, _, context) => {
     let nodeName = input;
     let relationshipLabels = context.document.data.relationships?.map(relationship => [

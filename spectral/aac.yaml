@@ -1,5 +1,5 @@
 functions: 
-  - relationship-nodes-defined
+  - node-id-exists
   - node-has-relationship
 rules:
   has-nodes-relationships:
@@ -28,13 +28,13 @@ rules:
     given: "$.relationships[*].parties"
     then:
       - field: source
-        function: relationship-nodes-defined
+        function: node-id-exists
       - field: destination
-        function: relationship-nodes-defined
+        function: node-id-exists
       - field: actor
-        function: relationship-nodes-defined
+        function: node-id-exists
       - field: container 
-        function: relationship-nodes-defined
+        function: node-id-exists
   
   composition-relationships-reference-existing-nodes:
     description: All nodes in a composition relationship must reference existing nodes.
@@ -42,7 +42,7 @@ rules:
     message: "{{error}}"
     given: "$.relationships[*].parties.nodes[*]"
     then:
-      function: relationship-nodes-defined
+      function: node-id-exists
 
   nodes-must-be-referenced:
     description: Nodes must be referenced by at least one relationship.
