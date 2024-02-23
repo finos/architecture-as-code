@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-02/meta/core.json",
+  "$id": "calm/draft/2024-02/meta/core.json",
   "title": "Common Architecture Language Model (CALM) Vocab",
   "properties": {
     "nodes": {
@@ -61,31 +61,21 @@
           "type": "string"
         },
         "relationship-type": {
-          "$ref": "#/defs/relationship-type-definition"
-        },
-        "parties": {
           "type": "object",
           "properties": {
-            "actor": {
-              "type": "string"
+            "interacts": {
+              "$ref": "#/defs/interacts-type"
             },
-            "nodes": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
+            "connects": {
+              "$ref": "#/defs/connects-type"
             },
-            "source": {
-              "type": "string"
+            "deployed-in": {
+              "$ref": "#/defs/deployed-in-type"
             },
-            "destination": {
-              "type": "string"
-            },
-            "container": {
-              "type": "string"
+            "composed-of": {
+              "$ref": "#/defs/composed-of-type"
             }
-          },
-          "required": []
+          }
         },
         "protocol": {
           "$ref": "#/defs/protocol"
@@ -96,8 +86,7 @@
       },
       "required": [
         "uniqueId",
-        "relationship-type",
-        "parties"
+        "relationship-type"
       ],
       "additionalProperties": true
     },
@@ -146,13 +135,70 @@
         "webclient"
       ]
     },
-    "relationship-type-definition": {
-      "enum": [
-        "interacts",
-        "connects",
-        "deployed-in",
-        "composed-of"
-      ]
+    "interacts-type": {
+      "type": "object",
+      "required": [
+        "actor",
+        "nodes"
+      ],
+      "properties": {
+        "actor": {
+          "type": "string"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "connects-type": {
+      "type": "object",
+      "required": [
+        "source",
+        "destination"
+      ],
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "destination": {
+          "type": "string"
+        }
+      }
+    },
+    "deployed-in-type": {
+      "type": "object",
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "container": {
+          "type": "string"
+        }
+      }
+    },
+    "composed-of-type": {
+      "required": [
+        "nodes",
+        "container"
+      ],
+      "type": "object",
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "container": {
+          "type": "string"
+        }
+      }
     }
   }
 }
