@@ -16,6 +16,6 @@
   "title": "Common Architecture Language Model (CALM) Schema",
   "allOf": [
     {"$ref": "https://json-schema.org/draft/2020-12/schema"},
-    {"$ref": "core.json"}
+    {"$ref": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-02/meta/core.json"}
   ]
 }

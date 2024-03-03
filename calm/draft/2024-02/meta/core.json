@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "calm/draft/2024-02/meta/core.json",
+  "$id": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-02/meta/core.json",
   "title": "Common Architecture Language Model (CALM) Vocab",
   "properties": {
     "nodes": {
@@ -75,7 +75,29 @@
             "composed-of": {
               "$ref": "#/defs/composed-of-type"
             }
-          }
+          },
+          "oneOf": [
+            {
+              "required": [
+                "deployed-in"
+              ]
+            },
+            {
+              "required": [
+                "composed-of"
+              ]
+            },
+            {
+              "required": [
+                "interacts"
+              ]
+            },
+            {
+              "required": [
+                "connects"
+              ]
+            }
+          ]
         },
         "protocol": {
           "$ref": "#/defs/protocol"
@@ -147,6 +169,7 @@
         },
         "nodes": {
           "type": "array",
+          "minItems": 0,
           "items": {
             "type": "string"
           }
@@ -171,32 +194,34 @@
     "deployed-in-type": {
       "type": "object",
       "properties": {
+        "container": {
+          "type": "string"
+        },
         "nodes": {
           "type": "array",
+          "minItems": 0,
           "items": {
             "type": "string"
           }
-        },
-        "container": {
-          "type": "string"
         }
       }
     },
     "composed-of-type": {
       "required": [
-        "nodes",
-        "container"
+        "container",
+        "nodes"
       ],
       "type": "object",
       "properties": {
+        "container": {
+          "type": "string"
+        },
         "nodes": {
           "type": "array",
+          "minItems": 0,
           "items": {
             "type": "string"
           }
-        },
-        "container": {
-          "type": "string"
         }
       }
     }

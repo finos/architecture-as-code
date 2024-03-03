@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../calm/draft/2024-02/meta/calm.json",
+  "$schema": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-02/meta/calm.json",
   "nodes": [
     {
       "uniqueId": "traderx-system",
@@ -112,14 +112,14 @@
   "relationships": [
     {
       "uniqueId": "trader-uses-web-client",
-      "relationship-type": "interacts",
-      "parties": {
-        "actor": "traderx-trader",
-        "nodes": [
-          "web-client"
-        ]
-      },
-      "relationship-t": ""
+      "relationship-type": {
+        "interacts": {
+          "actor": "traderx-trader",
+          "nodes": [
+            "web-client"
+          ]
+        }
+      }
     },
     {
       "uniqueId": "web-client-uses-web-gui",
@@ -136,9 +136,9 @@
       "uniqueId": "web-gui-uses-position-service",
       "relationship-type": {
         "connects": {
-
-        },  "source": "web-gui-process",
-        "destination": "position-service"
+          "source": "web-gui-process",
+          "destination": "position-service"
+        }
       },
       "protocol": "HTTPS",
       "authentication": "SPNEGO"
@@ -158,10 +158,10 @@
       "uniqueId": "traderx-system-is-deployed-in-internal-bank-network",
       "relationship-type": {
         "deployed-in": {
+          "container": "internal-bank-network",
           "nodes": [
             "traderx-system"
-          ],
-          "container": "internal-bank-network"
+          ]
         }
       }
     },
@@ -169,29 +169,29 @@
       "uniqueId": "traderx-system-is-composed-of",
       "relationship-type": {
         "composed-of": {
+          "container": "traderx-system",
           "nodes": [
             "web-client",
             "web-gui-process",
             "position-service",
             "traderx-db"
-          ],
-          "container": "traderx-system"
+          ]
         }
-      },
+      }
     },
     {
       "uniqueId": "traderx-system-components-are-deployed-in-internal-bank-network",
       "relationship-type": {
         "deployed-in": {
+          "container": "internal-bank-network",
           "nodes": [
             "web-client",
             "web-gui-process",
             "position-service",
             "traderx-db"
-          ],
-          "container": "internal-bank-network"
+          ]
         }
-      },
+      }
     },
     {
       "uniqueId": "webgui-process-uses-reference-data-service",
@@ -201,7 +201,6 @@
           "destination": "reference-data-service"
         }
       },
-
       "protocol": "HTTPS",
       "authentication": "SPNEGO"
     },

@@ -113,13 +113,14 @@
               "const": "api-consumer-api-gateway"
             },
             "relationship-type": {
-              "const": "connects"
+              "const": {
+                "connects": {
+                  "source": "api-consumer",
+                  "destination": "api-gateway"
+                }
+              }
             },
             "parties": {
-              "const": {
-                "source": "api-consumer",
-                "destination": "api-gateway"
-              }
             },
             "protocol": {
               "const": "HTTPS"
@@ -136,12 +137,11 @@
               "const": "api-gateway-idp"
             },
             "relationship-type": {
-              "const": "connects"
-            },
-            "parties": {
               "const": {
-                "source": "api-gateway",
-                "destination": "idp"
+                "connects": {
+                  "source": "api-gateway",
+                  "destination": "idp"
+                }
               }
             },
             "protocol": {
@@ -156,12 +156,11 @@
               "const": "api-gateway-api-producer"
             },
             "relationship-type": {
-              "const": "connects"
-            },
-            "parties": {
               "const": {
-                "source": "api-gateway",
-                "destination": "api-producer"
+                "connects": {
+                  "source": "api-gateway",
+                  "destination": "api-producer"
+                }
               }
             },
             "protocol": {
