@@ -18,6 +18,8 @@ your project.
 
 * [Common Architecture Language Model](./calm)
 * [Docs](./docs)
+* [Spectral](./spectral) rules validator
+* Visualizer](./visualizer)
 
 ## Contributing
 
