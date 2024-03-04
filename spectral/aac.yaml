@@ -1,0 +1,53 @@
+functions: 
+  - node-id-exists
+  - node-has-relationship
+rules:
+  has-nodes-relationships:
+    description: "Has key top level nodes"
+    message: Should have nodes and relationships at top level
+    severity: error
+    given: "$"
+    then:
+      - field: nodes
+        function: truthy
+      - field: relationships
+        function: truthy
+  
+  no-empty-properties:
+    description: Must not contain string properties set to the empty string or numerical properties set to zero
+    message: All properties must be set to a nonempty, nonzero value.
+    severity: error
+    given: "$..*"
+    then:
+      function: truthy
+
+  relationship-references-existing-nodes:
+    description: Relationships must reference existing nodes.
+    severity: error 
+    message: "{{error}}"
+    given: "$.relationships[*].parties"
+    then:
+      - field: source
+        function: node-id-exists
+      - field: destination
+        function: node-id-exists
+      - field: actor
+        function: node-id-exists
+      - field: container 
+        function: node-id-exists
+  
+  composition-relationships-reference-existing-nodes:
+    description: All nodes in a composition relationship must reference existing nodes.
+    severity: error 
+    message: "{{error}}"
+    given: "$.relationships[*].parties.nodes[*]"
+    then:
+      function: node-id-exists
+
+  nodes-must-be-referenced:
+    description: Nodes must be referenced by at least one relationship.
+    severity: warn
+    message: "{{error}}"
+    given: "$.nodes[*].uniqueId"
+    then:
+      function: node-has-relationship
