@@ -33,7 +33,7 @@ Understand Architecture as Code in **5 minutes**:
     {
       "uniqueId": "web-client",
       "type": "webclient",
-      "name": "Web  Client",
+      "name": "Web Client",
       "description": "Browser based web interface",
       "data-classification": "Confidential",
       "run-as": "user"

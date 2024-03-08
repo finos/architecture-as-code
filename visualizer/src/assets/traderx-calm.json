@@ -16,7 +16,7 @@
       {
         "uniqueId": "web-client",
         "node-type": "webclient",
-        "name": "Web  Client",
+        "name": "Web Client",
         "description": "Browser based web interface for TraderX",
         "data-classification": "Confidential",
         "run-as": "user"

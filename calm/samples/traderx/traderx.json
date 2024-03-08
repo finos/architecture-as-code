@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-02/meta/calm.json",
+  "$schema": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-03/meta/calm.json",
   "nodes": [
     {
       "uniqueId": "traderx-system",
@@ -16,7 +16,7 @@
     {
       "uniqueId": "web-client",
       "node-type": "webclient",
-      "name": "Web  Client",
+      "name": "Web Client",
       "description": "Browser based web interface for TraderX",
       "data-classification": "Confidential",
       "run-as": "user"
@@ -112,156 +112,171 @@
   "relationships": [
     {
       "uniqueId": "trader-uses-web-client",
-      "relationship-type": "interacts",
-      "parties": {
-        "actor": "traderx-trader",
-        "nodes": [
-          "web-client"
-        ]
+      "relationship-type": {
+        "interacts": {
+          "actor": "traderx-trader",
+          "nodes": [
+            "web-client"
+          ]
+        }
       }
     },
     {
       "uniqueId": "web-client-uses-web-gui",
-      "relationship-type": "connects",
-      "parties": {
-        "source": "web-client",
-        "destination": "web-gui-process"
+      "relationship-type": {
+        "connects": {
+          "source": "web-client",
+          "destination": "web-gui-process"
+        }
       },
       "protocol": "HTTPS",
       "authentication": "OAuth2"
     },
     {
       "uniqueId": "web-gui-uses-position-service",
-      "relationship-type": "connects",
-      "parties": {
-        "source": "web-gui-process",
-        "destination": "position-service"
+      "relationship-type": {
+        "connects": {
+          "source": "web-gui-process",
+          "destination": "position-service"
+        }
       },
       "protocol": "HTTPS",
       "authentication": "SPNEGO"
     },
     {
       "uniqueId": "position-service-uses-traderx-db",
-      "relationship-type": "connects",
-      "parties": {
-        "source": "position-service",
-        "destination": "traderx-db"
+      "relationship-type": {
+        "connects": {
+          "source": "position-service",
+          "destination": "traderx-db"
+        }
       },
       "protocol": "JDBC",
       "authentication": "Kerberos"
     },
     {
       "uniqueId": "traderx-system-is-deployed-in-internal-bank-network",
-      "relationship-type": "deployed-in",
-      "parties": {
-        "nodes": [
-          "traderx-system"
-        ],
-        "container": "internal-bank-network"
+      "relationship-type": {
+        "deployed-in": {
+          "container": "internal-bank-network",
+          "nodes": [
+            "traderx-system"
+          ]
+        }
       }
     },
     {
       "uniqueId": "traderx-system-is-composed-of",
-      "relationship-type": "composed-of",
-      "parties": {
-        "nodes": [
-          "web-client",
-          "web-gui-process",
-          "position-service",
-          "traderx-db"
-        ],
-        "container": "traderx-system"
+      "relationship-type": {
+        "composed-of": {
+          "container": "traderx-system",
+          "nodes": [
+            "web-client",
+            "web-gui-process",
+            "position-service",
+            "traderx-db"
+          ]
+        }
       }
     },
     {
       "uniqueId": "traderx-system-components-are-deployed-in-internal-bank-network",
-      "relationship-type": "deployed-in",
-      "parties": {
-        "nodes": [
-          "web-client",
-          "web-gui-process",
-          "position-service",
-          "traderx-db"
-        ],
-        "container": "internal-bank-network"
+      "relationship-type": {
+        "deployed-in": {
+          "container": "internal-bank-network",
+          "nodes": [
+            "web-client",
+            "web-gui-process",
+            "position-service",
+            "traderx-db"
+          ]
+        }
       }
     },
     {
       "uniqueId": "webgui-process-uses-reference-data-service",
-      "relationship-type": "connects",
-      "parties": {
-        "source": "web-gui-process",
-        "destination": "reference-data-service"
+      "relationship-type": {
+        "connects": {
+          "source": "web-gui-process",
+          "destination": "reference-data-service"
+        }
       },
       "protocol": "HTTPS",
       "authentication": "SPNEGO"
     },
     {
       "uniqueId": "webgui-process-uses-trading-services",
-      "relationship-type": "connects",
-      "parties": {
-        "source": "web-gui-process",
-        "destination": "trading-services"
+      "relationship-type": {
+        "connects": {
+          "source": "web-gui-process",
+          "destination": "trading-services"
+        }
       },
       "protocol": "HTTPS",
       "authentication": "SPNEGO"
     },
     {
       "uniqueId": "webgui-process-uses-trade-feed",
-      "relationship-type": "connects",
-      "parties": {
-        "source": "web-gui-process",
-        "destination": "trade-feed"
+      "relationship-type": {
+        "connects": {
+          "source": "web-gui-process",
+          "destination": "trade-feed"
+        }
       },
       "protocol": "WebSocket",
       "authentication": "Kerberos"
     },
     {
       "uniqueId": "trade-feed-connects-to-trade-processor",
-      "relationship-type": "connects",
-      "parties": {
-        "source": "trade-feed",
-        "destination": "trade-processor"
+      "relationship-type": {
+        "connects": {
+          "source": "trade-feed",
+          "destination": "trade-processor"
+        }
       },
       "protocol": "AMQP",
       "authentication": "Kerberos"
     },
     {
       "uniqueId": "trade-processor-connects-to-traderx-db",
-      "relationship-type": "connects",
-      "parties": {
-        "source": "trade-processor",
-        "destination": "traderx-db"
+      "relationship-type": {
+        "connects": {
+          "source": "trade-processor",
+          "destination": "traderx-db"
+        }
       },
       "protocol": "JDBC",
       "authentication": "Kerberos"
     },
     {
       "uniqueId": "webgui-process-uses-accounts-service",
-      "relationship-type": "connects",
-      "parties": {
-        "source": "web-gui-process",
-        "destination": "accounts-service"
+      "relationship-type": {
+        "connects": {
+          "source": "web-gui-process",
+          "destination": "accounts-service"
+        }
       },
       "protocol": "HTTPS",
       "authentication": "SPNEGO"
     },
     {
       "uniqueId": "webgui-process-uses-people-service",
-      "relationship-type": "connects",
-      "parties": {
-        "source": "web-gui-process",
-        "destination": "people-service"
+      "relationship-type": {
+        "connects": {
+          "source": "web-gui-process",
+          "destination": "people-service"
+        }
       },
       "protocol": "HTTPS",
       "authentication": "SPNEGO"
     },
     {
       "uniqueId": "people-service-connects-to-user-directory",
-      "relationship-type": "connects",
-      "parties": {
-        "source": "people-service",
-        "destination": "user-directory"
+      "relationship-type": {
+        "connects": {
+          "source": "people-service",
+          "destination": "user-directory"
+        }
       },
       "protocol": "LDAP",
       "authentication": "Kerberos"

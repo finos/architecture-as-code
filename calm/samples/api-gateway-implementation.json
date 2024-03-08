@@ -28,7 +28,12 @@
   "relationships": [
     {
       "uniqueId": "api-consumer-api-gateway",
-      "relationship-type": "connects",
+      "relationship-type": {
+        "connects": {
+          "destination": "api-gateway",
+          "source": "api-consumer"
+        }
+      },
       "parties": {
         "destination": "api-gateway",
         "source": "api-consumer"
@@ -36,18 +41,20 @@
     },
     {
       "uniqueId": "api-gateway-idp",
-      "relationship-type": "connects",
-      "parties": {
-        "destination": "idp",
-        "source": "api-gateway"
+      "relationship-type": {
+        "connects": {
+          "destination": "idp",
+          "source": "api-gateway"
+        }
       }
     },
     {
       "uniqueId": "api-gateway-api-producer",
-      "relationship-type": "connects",
-      "parties": {
-        "destination": "api-producer",
-        "source": "api-gateway"
+      "relationship-type": {
+        "connects": {
+          "destination": "api-producer",
+          "source": "api-gateway"
+        }
       }
     }
   ]
