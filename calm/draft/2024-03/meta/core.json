@@ -24,7 +24,7 @@
     "node": {
       "type": "object",
       "properties": {
-        "uniqueId": {
+        "unique-id": {
           "type": "string"
         },
         "node-type": {
@@ -37,7 +37,7 @@
           "type": "string"
         },
         "data-classification": {
-          "$ref": "#/defs/dataClassification"
+          "$ref": "#/defs/data-classification"
         },
         "run-as": {
           "type": "string"
@@ -47,7 +47,7 @@
         }
       },
       "required": [
-        "uniqueId",
+        "unique-id",
         "node-type",
         "name",
         "description"
@@ -57,7 +57,7 @@
     "relationship": {
       "type": "object",
       "properties": {
-        "uniqueId": {
+        "unique-id": {
           "type": "string"
         },
         "relationship-type": {
@@ -107,12 +107,12 @@
         }
       },
       "required": [
-        "uniqueId",
+        "unique-id",
         "relationship-type"
       ],
       "additionalProperties": true
     },
-    "dataClassification": {
+    "data-classification": {
       "enum": [
         "Public",
         "Confidential",
