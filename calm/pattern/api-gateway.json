@@ -29,7 +29,7 @@
             "name": {
               "const": "API Gateway"
             },
-            "uniqueId": {
+            "unique-id": {
               "const": "api-gateway"
             }
           },
@@ -51,7 +51,7 @@
             "name": {
               "const": "Python Based API Consumer"
             },
-            "uniqueId": {
+            "unique-id": {
               "const": "api-consumer"
             }
           }
@@ -74,7 +74,7 @@
             "name": {
               "const": "Java Based API Producer"
             },
-            "uniqueId": {
+            "unique-id": {
               "const": "api-producer"
             }
           },
@@ -95,7 +95,7 @@
             "name": {
               "const": "Identity Provider"
             },
-            "uniqueId": {
+            "unique-id": {
               "const": "idp"
             }
           }
@@ -109,7 +109,7 @@
         {
           "$ref": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-03/meta/core.json#/defs/relationship",
           "properties": {
-            "uniqueId": {
+            "unique-id": {
               "const": "api-consumer-api-gateway"
             },
             "relationship-type": {
@@ -133,7 +133,7 @@
         {
           "$ref": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-03/meta/core.json#/defs/relationship",
           "properties": {
-            "uniqueId": {
+            "unique-id": {
               "const": "api-gateway-idp"
             },
             "relationship-type": {
@@ -152,7 +152,7 @@
         {
           "$ref": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-03/meta/core.json#/defs/relationship",
           "properties": {
-            "uniqueId": {
+            "unique-id": {
               "const": "api-gateway-api-producer"
             },
             "relationship-type": {
