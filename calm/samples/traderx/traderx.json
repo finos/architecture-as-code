@@ -25,7 +25,7 @@
       "unique-id": "web-gui-process",
       "node-type": "service",
       "name": "Web GUI",
-      "description": "Backend service for the Web Client",
+      "description": "Allows employees to manage accounts and book trades",
       "data-classification": "Confidential",
       "run-as": "systemId"
     },
@@ -111,7 +111,32 @@
   ],
   "relationships": [
     {
-      "unique-id": "trader-uses-web-client",
+      "unique-id": "trader-executes-trades",
+      "description": "Executes Trades",
+      "relationship-type": {
+        "interacts": {
+          "actor": "traderx-trader",
+          "nodes": [
+            "web-client"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "trader-manages-accounts",
+      "description": "Manage Accounts",
+      "relationship-type": {
+        "interacts": {
+          "actor": "traderx-trader",
+          "nodes": [
+            "web-client"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "trader-views-trade-status",
+      "description": "View Trade Status / Positions",
       "relationship-type": {
         "interacts": {
           "actor": "traderx-trader",
@@ -123,36 +148,58 @@
     },
     {
       "unique-id": "web-client-uses-web-gui",
+      "description": "Web client interacts with the Web GUI process.",
       "relationship-type": {
         "connects": {
           "source": "web-client",
           "destination": "web-gui-process"
         }
       },
-      "protocol": "HTTPS",
-      "authentication": "OAuth2"
+      "protocol": "HTTPS"
     },
     {
-      "unique-id": "web-gui-uses-position-service",
+      "unique-id": "web-gui-uses-position-service-for-position-queries",
+      "description": "Load positions for account.",
       "relationship-type": {
         "connects": {
           "source": "web-gui-process",
           "destination": "position-service"
         }
       },
-      "protocol": "HTTPS",
-      "authentication": "SPNEGO"
+      "protocol": "HTTPS"
     },
     {
-      "unique-id": "position-service-uses-traderx-db",
+      "unique-id": "web-gui-uses-position-service-for-trade-queries",
+      "description": "Load trades for account.",
+      "relationship-type": {
+        "connects": {
+          "source": "web-gui-process",
+          "destination": "position-service"
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "position-service-uses-traderx-db-for-positions",
+      "description": "Looks up default positions for a given account.",
       "relationship-type": {
         "connects": {
           "source": "position-service",
           "destination": "traderx-db"
         }
       },
-      "protocol": "JDBC",
-      "authentication": "Kerberos"
+      "protocol": "JDBC"
+    },
+    {
+      "unique-id": "position-service-uses-traderx-db-for-trades",
+      "description": "Looks up all trades for a given account.",
+      "relationship-type": {
+        "connects": {
+          "source": "position-service",
+          "destination": "traderx-db"
+        }
+      },
+      "protocol": "JDBC"
     },
     {
       "unique-id": "traderx-system-is-deployed-in-internal-bank-network",
@@ -174,7 +221,13 @@
             "web-client",
             "web-gui-process",
             "position-service",
-            "traderx-db"
+            "traderx-db",
+            "people-service",
+            "reference-data-service",
+            "trading-services",
+            "trade-feed",
+            "trade-processor",
+            "accounts-service"
           ]
         }
       }
@@ -188,98 +241,138 @@
             "web-client",
             "web-gui-process",
             "position-service",
-            "traderx-db"
+            "traderx-db",
+            "people-service",
+            "reference-data-service",
+            "trading-services",
+            "trade-feed",
+            "trade-processor",
+            "accounts-service",
+            "user-directory"
           ]
         }
       }
     },
     {
-      "unique-id": "webgui-process-uses-reference-data-service",
+      "unique-id": "web-gui-process-uses-reference-data-service",
+      "description": "Looks up securities to assist with creating a trade ticket.",
       "relationship-type": {
         "connects": {
           "source": "web-gui-process",
           "destination": "reference-data-service"
         }
       },
-      "protocol": "HTTPS",
-      "authentication": "SPNEGO"
+      "protocol": "HTTPS"
     },
     {
-      "unique-id": "webgui-process-uses-trading-services",
+      "unique-id": "web-gui-process-uses-trading-services",
+      "description": "Creates new trades and cancels existing trades.",
       "relationship-type": {
         "connects": {
           "source": "web-gui-process",
           "destination": "trading-services"
         }
       },
-      "protocol": "HTTPS",
-      "authentication": "SPNEGO"
+      "protocol": "HTTPS"
     },
     {
-      "unique-id": "webgui-process-uses-trade-feed",
+      "unique-id": "web-gui-process-uses-trade-feed",
+      "description": "Subscribes to trade/position updates feed for currently viewed account.",
       "relationship-type": {
         "connects": {
           "source": "web-gui-process",
           "destination": "trade-feed"
         }
       },
-      "protocol": "WebSocket",
-      "authentication": "Kerberos"
+      "protocol": "WebSocket"
     },
     {
-      "unique-id": "trade-feed-connects-to-trade-processor",
+      "unique-id": "trade-processor-connects-to-trade-feed",
+      "description": "Processes incoming trade requests, persist and publish updates.",
       "relationship-type": {
         "connects": {
-          "source": "trade-feed",
-          "destination": "trade-processor"
+          "source": "trade-processor",
+          "destination": "trade-feed"
         }
       },
-      "protocol": "AMQP",
-      "authentication": "Kerberos"
+      "protocol": "SocketIO"
     },
     {
       "unique-id": "trade-processor-connects-to-traderx-db",
+      "description": "Looks up current positions when bootstrapping state, persist trade state and position state.",
       "relationship-type": {
         "connects": {
           "source": "trade-processor",
           "destination": "traderx-db"
         }
       },
-      "protocol": "JDBC",
-      "authentication": "Kerberos"
+      "protocol": "JDBC"
     },
     {
-      "unique-id": "webgui-process-uses-accounts-service",
+      "unique-id": "web-gui-process-uses-accounts-service",
+      "description": "Creates/Updates accounts. Gets list of accounts.",
       "relationship-type": {
         "connects": {
           "source": "web-gui-process",
           "destination": "accounts-service"
         }
       },
-      "protocol": "HTTPS",
-      "authentication": "SPNEGO"
+      "protocol": "HTTPS"
     },
     {
-      "unique-id": "webgui-process-uses-people-service",
+      "unique-id": "web-gui-process-uses-people-service",
+      "description": "Looks up people data based on typeahead from GUI.",
       "relationship-type": {
         "connects": {
           "source": "web-gui-process",
           "destination": "people-service"
         }
       },
-      "protocol": "HTTPS",
-      "authentication": "SPNEGO"
+      "protocol": "HTTPS"
     },
     {
       "unique-id": "people-service-connects-to-user-directory",
+      "description": "Looks up people data.",
       "relationship-type": {
         "connects": {
           "source": "people-service",
           "destination": "user-directory"
         }
       },
-      "protocol": "LDAP",
-      "authentication": "Kerberos"
+      "protocol": "LDAP"
+    },
+    {
+      "unique-id": "trading-services-connects-to-reference-data-service",
+      "description": "Validates securities when creating trades.",
+      "relationship-type": {
+        "connects": {
+          "source": "trading-services",
+          "destination": "reference-data-service"
+        },
+        "protocol": "HTTPS"
+      }
+    },
+    {
+      "unique-id": "trading-services-uses-trade-feed",
+      "description": "Publishes updates to trades and positions after persisting in the DB.",
+      "relationship-type": {
+        "connects": {
+          "source": "trading-services",
+          "destination": "trade-feed"
+        },
+        "protocol": "HTTPS"
+      }
+    },
+    {
+      "unique-id": "trading-services-uses-account-service",
+      "description": "Validates accounts when creating trades.",
+      "relationship-type": {
+        "connects": {
+          "source": "trading-services",
+          "destination": "accounts-service"
+        },
+        "protocol": "HTTPS"
+      }
     }
   ]
 }
