@@ -2,19 +2,19 @@
   "$schema": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-03/meta/calm.json",
   "nodes": [
     {
-      "uniqueId": "traderx-system",
+      "unique-id": "traderx-system",
       "node-type": "system",
       "name": "TraderX",
       "description": "Simple Trading System"
     },
     {
-      "uniqueId": "traderx-trader",
+      "unique-id": "traderx-trader",
       "node-type": "actor",
       "name": "Trader",
       "description": "Person who manages accounts and executes trades"
     },
     {
-      "uniqueId": "web-client",
+      "unique-id": "web-client",
       "node-type": "webclient",
       "name": "Web Client",
       "description": "Browser based web interface for TraderX",
@@ -22,7 +22,7 @@
       "run-as": "user"
     },
     {
-      "uniqueId": "web-gui-process",
+      "unique-id": "web-gui-process",
       "node-type": "service",
       "name": "Web GUI",
       "description": "Backend service for the Web Client",
@@ -30,7 +30,7 @@
       "run-as": "systemId"
     },
     {
-      "uniqueId": "position-service",
+      "unique-id": "position-service",
       "node-type": "service",
       "name": "Position Service",
       "description": "Server process which processes trading activity and updates positions",
@@ -38,7 +38,7 @@
       "run-as": "systemId"
     },
     {
-      "uniqueId": "traderx-db",
+      "unique-id": "traderx-db",
       "node-type": "database",
       "name": "TraderX DB",
       "description": "Database which stores account, trade and position state",
@@ -46,14 +46,14 @@
       "run-as": "systemId"
     },
     {
-      "uniqueId": "internal-bank-network",
+      "unique-id": "internal-bank-network",
       "node-type": "internal-network",
       "name": "Bank ABC Internal Network",
       "description": "Internal network for Bank ABC",
       "instance": "Internal Network"
     },
     {
-      "uniqueId": "reference-data-service",
+      "unique-id": "reference-data-service",
       "node-type": "service",
       "name": "Reference Data Service",
       "description": "Service which provides reference data",
@@ -61,7 +61,7 @@
       "run-as": "systemId"
     },
     {
-      "uniqueId": "trading-services",
+      "unique-id": "trading-services",
       "node-type": "service",
       "name": "Trading Services",
       "description": "Service which provides trading services",
@@ -69,7 +69,7 @@
       "run-as": "systemId"
     },
     {
-      "uniqueId": "trade-feed",
+      "unique-id": "trade-feed",
       "node-type": "service",
       "name": "Trade Feed",
       "description": "Message bus for streaming updates to trades and positions",
@@ -77,7 +77,7 @@
       "run-as": "systemId"
     },
     {
-      "uniqueId": "trade-processor",
+      "unique-id": "trade-processor",
       "node-type": "service",
       "name": "Trade Processor",
       "description": "Process incoming trade requests, settle and persist",
@@ -85,7 +85,7 @@
       "run-as": "systemId"
     },
     {
-      "uniqueId": "accounts-service",
+      "unique-id": "accounts-service",
       "node-type": "service",
       "name": "Accounts Service",
       "description": "Service which provides account management",
@@ -93,7 +93,7 @@
       "run-as": "systemId"
     },
     {
-      "uniqueId": "people-service",
+      "unique-id": "people-service",
       "node-type": "service",
       "name": "People Service",
       "description": "Service which provides user details management",
@@ -101,7 +101,7 @@
       "run-as": "systemId"
     },
     {
-      "uniqueId": "user-directory",
+      "unique-id": "user-directory",
       "node-type": "ldap",
       "name": "User Directory",
       "description": "Golden source of user data",
@@ -111,7 +111,7 @@
   ],
   "relationships": [
     {
-      "uniqueId": "trader-uses-web-client",
+      "unique-id": "trader-uses-web-client",
       "relationship-type": {
         "interacts": {
           "actor": "traderx-trader",
@@ -122,7 +122,7 @@
       }
     },
     {
-      "uniqueId": "web-client-uses-web-gui",
+      "unique-id": "web-client-uses-web-gui",
       "relationship-type": {
         "connects": {
           "source": "web-client",
@@ -133,7 +133,7 @@
       "authentication": "OAuth2"
     },
     {
-      "uniqueId": "web-gui-uses-position-service",
+      "unique-id": "web-gui-uses-position-service",
       "relationship-type": {
         "connects": {
           "source": "web-gui-process",
@@ -144,7 +144,7 @@
       "authentication": "SPNEGO"
     },
     {
-      "uniqueId": "position-service-uses-traderx-db",
+      "unique-id": "position-service-uses-traderx-db",
       "relationship-type": {
         "connects": {
           "source": "position-service",
@@ -155,7 +155,7 @@
       "authentication": "Kerberos"
     },
     {
-      "uniqueId": "traderx-system-is-deployed-in-internal-bank-network",
+      "unique-id": "traderx-system-is-deployed-in-internal-bank-network",
       "relationship-type": {
         "deployed-in": {
           "container": "internal-bank-network",
@@ -166,7 +166,7 @@
       }
     },
     {
-      "uniqueId": "traderx-system-is-composed-of",
+      "unique-id": "traderx-system-is-composed-of",
       "relationship-type": {
         "composed-of": {
           "container": "traderx-system",
@@ -180,7 +180,7 @@
       }
     },
     {
-      "uniqueId": "traderx-system-components-are-deployed-in-internal-bank-network",
+      "unique-id": "traderx-system-components-are-deployed-in-internal-bank-network",
       "relationship-type": {
         "deployed-in": {
           "container": "internal-bank-network",
@@ -194,7 +194,7 @@
       }
     },
     {
-      "uniqueId": "webgui-process-uses-reference-data-service",
+      "unique-id": "webgui-process-uses-reference-data-service",
       "relationship-type": {
         "connects": {
           "source": "web-gui-process",
@@ -205,7 +205,7 @@
       "authentication": "SPNEGO"
     },
     {
-      "uniqueId": "webgui-process-uses-trading-services",
+      "unique-id": "webgui-process-uses-trading-services",
       "relationship-type": {
         "connects": {
           "source": "web-gui-process",
@@ -216,7 +216,7 @@
       "authentication": "SPNEGO"
     },
     {
-      "uniqueId": "webgui-process-uses-trade-feed",
+      "unique-id": "webgui-process-uses-trade-feed",
       "relationship-type": {
         "connects": {
           "source": "web-gui-process",
@@ -227,7 +227,7 @@
       "authentication": "Kerberos"
     },
     {
-      "uniqueId": "trade-feed-connects-to-trade-processor",
+      "unique-id": "trade-feed-connects-to-trade-processor",
       "relationship-type": {
         "connects": {
           "source": "trade-feed",
@@ -238,7 +238,7 @@
       "authentication": "Kerberos"
     },
     {
-      "uniqueId": "trade-processor-connects-to-traderx-db",
+      "unique-id": "trade-processor-connects-to-traderx-db",
       "relationship-type": {
         "connects": {
           "source": "trade-processor",
@@ -249,7 +249,7 @@
       "authentication": "Kerberos"
     },
     {
-      "uniqueId": "webgui-process-uses-accounts-service",
+      "unique-id": "webgui-process-uses-accounts-service",
       "relationship-type": {
         "connects": {
           "source": "web-gui-process",
@@ -260,7 +260,7 @@
       "authentication": "SPNEGO"
     },
     {
-      "uniqueId": "webgui-process-uses-people-service",
+      "unique-id": "webgui-process-uses-people-service",
       "relationship-type": {
         "connects": {
           "source": "web-gui-process",
@@ -271,7 +271,7 @@
       "authentication": "SPNEGO"
     },
     {
-      "uniqueId": "people-service-connects-to-user-directory",
+      "unique-id": "people-service-connects-to-user-directory",
       "relationship-type": {
         "connects": {
           "source": "people-service",
