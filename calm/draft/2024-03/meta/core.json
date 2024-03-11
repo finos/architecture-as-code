@@ -60,6 +60,9 @@
         "uniqueId": {
           "type": "string"
         },
+        "description": {
+          "type": "string"
+        },
         "relationship-type": {
           "type": "object",
           "properties": {
