@@ -8,7 +8,7 @@ permissions:
   checks: write
 
 jobs:
-  build:
+  spectrals:
     name: Run Spectral
     runs-on: ubuntu-latest
     steps:
