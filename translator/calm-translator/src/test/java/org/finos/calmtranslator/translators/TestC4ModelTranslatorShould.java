@@ -53,13 +53,12 @@ class TestC4ModelTranslatorShould {
 	@Test
 	void addCalmContainedServicesAsC4Containers() {
 		final SoftwareSystem expectedWorkspace = new Workspace("", "").getModel().addSoftwareSystem("exectedSystem");
-		final SoftwareSystem expectedSoftwareSystem = expectedWorkspace;
-		expectedSoftwareSystem.addContainer("Web GUI", "Allows employees to manage accounts and book trades", "service");
-		expectedSoftwareSystem.addContainer("Web Client", "Browser based web interface for TraderX", "webclient");
-		expectedSoftwareSystem.addContainer("Position Service", "Server process which processes trading activity and updates positions", "service");
-		expectedSoftwareSystem.addContainer("TraderX DB", "Database which stores account, trade and position state", "database");
+		expectedWorkspace.addContainer("Web GUI", "Allows employees to manage accounts and book trades", "service");
+		expectedWorkspace.addContainer("Web Client", "Browser based web interface for TraderX", "webclient");
+		expectedWorkspace.addContainer("Position Service", "Server process which processes trading activity and updates positions", "service");
+		expectedWorkspace.addContainer("TraderX DB", "Database which stores account, trade and position state", "database");
 
-		final Set<Container> exectedContainerSet = expectedSoftwareSystem.getContainers();
+		final Set<Container> exectedContainerSet = expectedWorkspace.getContainers();
 
 		final Workspace workspace = translator.translate(traderxCalmModel);
 

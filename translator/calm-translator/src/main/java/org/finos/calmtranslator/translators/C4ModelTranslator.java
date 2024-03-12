@@ -43,22 +43,18 @@ public class C4ModelTranslator implements ModelTranslator<Workspace> {
 		systemMap.forEach((systemNode, relationshipNodes) -> {
 			this.softwareSystem = c4Model.addSoftwareSystem(systemNode.getName(), systemNode.getDescription());
 			nodeNameToC4Id.put(softwareSystem.getName(), softwareSystem.getId());
-			relationshipNodes.stream()
-					.forEach(node -> {
-						addNodeAsContainer(node, softwareSystem, nodeNameToC4Id);
-					});
+			relationshipNodes
+					.forEach(node -> addNodeAsContainer(node, softwareSystem, nodeNameToC4Id));
 		});
 
-		calmModel.getNodes().stream().forEach(node -> {
-			switch (node.getNodeType()) {
-			case ACTOR -> {
+		calmModel.getNodes().forEach(node -> {
+			if (Objects.requireNonNull(node.getNodeType()) == Node.NodeTypeDefinition.ACTOR) {
 				final Person person = c4Model.addPerson(node.getName(), node.getDescription());
 				nodeNameToC4Id.put(person.getName(), person.getId());
 			}
-			}
 		});
 
-		calmModel.getRelationships().stream()
+		calmModel.getRelationships()
 				.forEach(relationship -> {
 					final RelationshipType relationshipType = relationship.getRelationshipType();
 					if (Objects.nonNull(relationshipType.getInteracts())) {
@@ -113,12 +109,6 @@ public class C4ModelTranslator implements ModelTranslator<Workspace> {
 		return c4Workspace;
 	}
 
-	private void addNodeAsExternalContainer(final Node node, final SoftwareSystem softwareSystem, final Map<String, String> nodeNameToC4Id) {
-//		final Container container = softwareSystem.addContainer(node.getName(), node.getDescription(), node.getNodeType().value());
-		final SoftwareSystem softwareSystem1 = softwareSystem.getModel().addSoftwareSystem(node.getName(), node.getDescription());
-		nodeNameToC4Id.put(softwareSystem1.getName(), softwareSystem1.getId());
-	}
-
 	private static void addNodeAsContainer(final Node node, final SoftwareSystem softwareSystem, final Map<String, String> nodeNameToC4Id) {
 		final Container container = softwareSystem.addContainer(node.getName(), node.getDescription(), node.getNodeType().value());
 		nodeNameToC4Id.put(container.getName(), container.getId());
@@ -130,7 +120,7 @@ public class C4ModelTranslator implements ModelTranslator<Workspace> {
 		final List<Relationship> deployedIn = new ArrayList<>();
 		final List<Relationship> composedOf = new ArrayList<>();
 
-		calmModel.getRelationships().stream().forEach(relationship -> {
+		calmModel.getRelationships().forEach(relationship -> {
 			final RelationshipType relationshipType = relationship.getRelationshipType();
 			if (Objects.nonNull(relationshipType.getInteracts())) {
 				interacts.add(relationship);
@@ -149,16 +139,14 @@ public class C4ModelTranslator implements ModelTranslator<Workspace> {
 			}
 		});
 
-		final Map<Node, List<Node>> topLevelSystemMap = containsSystem(composedOf);
-		return topLevelSystemMap;
+		return containsSystem(composedOf);
 	}
 
 	private Map<Node, List<Node>> containsSystem(final List<Relationship> composedOf) {
 		final Map<Node, List<Node>> systemComposedOf = new HashMap<>();
-		composedOf.stream().forEach(relationship -> {
+		composedOf.forEach(relationship -> {
 			final String systemContainerName = relationship.getRelationshipType().getComposedOf().getContainer();
 			final Node systemContainerNode = getNodeFromUniqueName(systemContainerName);
-			relationship.getRelationshipType().getComposedOf().getNodes();
 			final List<Node> containedInNodes = relationship.getRelationshipType().getComposedOf().getNodes().stream()
 					.map(this::getNodeFromUniqueName)
 					.collect(Collectors.toList());

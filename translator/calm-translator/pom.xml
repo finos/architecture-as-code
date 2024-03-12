@@ -27,6 +27,13 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+<!--		OpenAPI-->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.4.0</version>
+		</dependency>
 <!--		C4 dependencies-->
 		<dependency>
 			<groupId>com.structurizr</groupId>
@@ -39,7 +46,7 @@
 			<artifactId>structurizr-export</artifactId>
 			<version>1.19.0</version>
 		</dependency>
-
+<!--		K8s dependencies-->
 		<dependency>
 			<groupId>io.fabric8</groupId>
 			<artifactId>kubernetes-client</artifactId>
