@@ -1,8 +1,7 @@
 name: Run Spectral Validation on all samples
 
 on:
-  push:
-    branches: [ "main" ]
+  - pull_request
     # TODO run only when schema or patterns change 
 
 permissions:
