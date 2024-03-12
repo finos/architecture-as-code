@@ -14,5 +14,6 @@ jobs:
       # Run Spectral
       - uses: stoplightio/spectral-action@latest
         with:
-          file_glob: 'calm/samples/**/*.(yaml|json)'
+          file_glob: 'spectral/examples/bad-rest-api.json'
+          # file_glob: 'calm/samples/**/*.(yaml|json)'
           spectral_ruleset: 'spectral/calm-validation-rules.yaml'
