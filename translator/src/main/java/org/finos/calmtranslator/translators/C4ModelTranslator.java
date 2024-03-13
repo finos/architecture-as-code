@@ -106,7 +106,12 @@ public class C4ModelTranslator implements ModelTranslator<Workspace> {
 						throw new RuntimeException("Unknown relationship type");
 					}
 				});
+		addViewsToWorkspace(c4Workspace);
 		return c4Workspace;
+	}
+
+	private void addViewsToWorkspace(final Workspace workspace) {
+		workspace.getViews().createDefaultViews();
 	}
 
 	private static void addNodeAsContainer(final Node node, final SoftwareSystem softwareSystem, final Map<String, String> nodeNameToC4Id) {
@@ -156,7 +161,7 @@ public class C4ModelTranslator implements ModelTranslator<Workspace> {
 	}
 
 	private Node getNodeFromUniqueName(final String systemContainer) {
-		LOG.info("Looking up container [{}]", systemContainer);
+		LOG.debug("Looking up container [{}]", systemContainer);
 		return calmModel.getNodes().stream()
 				.filter(node -> systemContainer.equals(node.getUniqueId()))
 				.findFirst().get();
