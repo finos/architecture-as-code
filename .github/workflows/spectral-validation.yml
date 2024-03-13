@@ -1,0 +1,27 @@
+name: Run Spectral Validation on all samples
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths: [ "calm/draft/**", "calm/pattern/**" ]
+  push:
+    branches: [ "main" ]
+    paths: [ "calm/draft/**", "calm/pattern/**" ]
+
+permissions:
+  checks: write
+
+jobs:
+  spectrals:
+    name: Run Spectral
+    runs-on: ubuntu-latest
+    steps:
+      # Check out the repository
+      - uses: actions/checkout@v4
+
+      # Run Spectral
+      - uses: stoplightio/spectral-action@latest
+        with:
+          file_glob: 'spectral/examples/bad-rest-api.json'
+          # file_glob: 'calm/samples/**/*.(yaml|json)'
+          spectral_ruleset: 'spectral/calm-validation-rules.yaml'
