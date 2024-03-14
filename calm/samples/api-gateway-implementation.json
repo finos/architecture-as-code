@@ -30,7 +30,7 @@
       "unique-id": "api-consumer-api-gateway",
       "relationship-type": {
         "connects": {
-          "destination": "api-gateway",
+          "destination": "api-gateway2",
           "source": "api-consumer"
         }
       },
