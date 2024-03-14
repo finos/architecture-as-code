@@ -3,7 +3,6 @@
   "$id": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/pattern/api-gateway",
   "title": "API Gateway Pattern",
   "type": "object",
-  "test": "test line",
   "properties": {
     "nodes": {
       "type": "array",
