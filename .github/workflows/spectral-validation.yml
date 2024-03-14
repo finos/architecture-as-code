@@ -1,7 +1,7 @@
 name: Run Spectral Validation on all samples
 
 on:
-  - pull_request
+  - pull_request_target
   # pull_request:
   #   branches: [ "main" ]
   #   paths: [ "calm/draft/**", "calm/pattern/**" ]
