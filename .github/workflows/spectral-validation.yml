@@ -3,10 +3,10 @@ name: Run Spectral Validation on all samples
 on:
   pull_request:
     branches: [ "main" ]
-    paths: [ "calm/draft/**", "calm/pattern/**" ]
+    paths: [ "calm/**" ]
   push:
     branches: [ "main" ]
-    paths: [ "calm/draft/**", "calm/pattern/**" ]
+    paths: [ "calm/**" ]
 
 permissions:
   checks: write
