@@ -52,7 +52,7 @@
       "unique-id": "api-gateway-api-producer",
       "relationship-type": {
         "connects": {
-          "destination": "api-producer",
+          "destination": "bad-id",
           "source": "api-gateway"
         }
       }
