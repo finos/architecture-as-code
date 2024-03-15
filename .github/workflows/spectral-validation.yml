@@ -13,12 +13,12 @@ jobs:
     name: Run Spectral
     runs-on: ubuntu-latest
     steps:
-      # Check out the repository
-      - uses: actions/checkout@v4
+    # Check out the repository
+    - uses: actions/checkout@v4
 
-      # Run Spectral
-      - uses: stoplightio/spectral-action@latest
-        with:
-          file_glob: 'spectral/examples/bad-rest-api.json'
-          # file_glob: 'calm/samples/**/*.(yaml|json)'
-          spectral_ruleset: 'spectral/calm-validation-rules.yaml'
+    # Run Spectral
+    - uses: stoplightio/spectral-action@latest
+      with:
+        file_glob: 'spectral/examples/bad-rest-api.json'
+        # file_glob: 'calm/samples/**/*.(yaml|json)'
+        spectral_ruleset: 'spectral/calm-validation-rules.yaml'
