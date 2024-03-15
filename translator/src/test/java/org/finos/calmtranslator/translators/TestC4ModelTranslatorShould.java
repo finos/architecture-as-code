@@ -110,4 +110,11 @@ class TestC4ModelTranslatorShould {
 		final Workspace workspace = translator.translate(traderxCalmModel);
 		WorkspaceUtils.saveWorkspaceToJson(workspace, new File("workspace.json"));
 	}
+
+	// This test is to demonstrate how to break the build via the GitHub action
+	// It will be removed before merge.
+	@Test
+	void breakingTest() throws Exception {
+		assertThat(false).isTrue();
+	}
 }
