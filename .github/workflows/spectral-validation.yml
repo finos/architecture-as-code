@@ -2,14 +2,21 @@ name: Run Spectral Validation on all samples
 
 on:
   pull_request:
-    branches: [ "main" ]
-    paths: [ "calm/draft/**", "calm/pattern/**" ]
+    branches: 
+      - "main"
+    paths: 
+      - "calm/draft/**"
+      - "calm/pattern/**"
+      - "calm/samples/**"
+      - "spectral/**" 
   push:
-    branches: [ "main" ]
-    paths: [ "calm/draft/**", "calm/pattern/**" ]
-
-permissions:
-  checks: write
+    branches: 
+      - "main"
+    paths: 
+      - "calm/draft/**"
+      - "calm/pattern/**"
+      - "calm/samples/**"
+      - "spectral/**" 
 
 jobs:
   spectrals:
@@ -20,8 +27,8 @@ jobs:
       - uses: actions/checkout@v4
 
       # Run Spectral
-      - uses: stoplightio/spectral-action@latest
+      - uses: actions/setup-node@v4
         with:
-          file_glob: 'spectral/examples/bad-rest-api.json'
-          # file_glob: 'calm/samples/**/*.(yaml|json)'
-          spectral_ruleset: 'spectral/calm-validation-rules.yaml'
+          node-version: v20
+      - run: npm install @stoplight/spectral-cli
+      - run: npx spectral lint --ruleset spectral/calm-validation-rules.yaml 'calm/samples/**'
