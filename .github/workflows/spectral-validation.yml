@@ -8,6 +8,11 @@ on:
     branches: [ "main" ]
     paths: [ "calm/**" ]
 
+permissions:
+  contents: write
+  pull-requests: write
+  repository-projects: write
+      
 jobs:
   spectrals:
     name: Run Spectral
