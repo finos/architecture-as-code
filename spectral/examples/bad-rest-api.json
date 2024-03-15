@@ -128,8 +128,7 @@
       "parties": {
         "nodes": [
           "bad-1",
-          "bad-2",
-          "bad-3"
+          "bad-2"
         ]
       }
     }
