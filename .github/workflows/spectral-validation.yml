@@ -20,8 +20,8 @@ jobs:
       - uses: actions/checkout@v4
 
       # Run Spectral
-      - uses: stoplightio/spectral-action@latest
-        with:
-          file_glob: 'spectral/examples/bad-rest-api.json'
-          # file_glob: 'calm/samples/**/*.(yaml|json)'
-          spectral_ruleset: 'spectral/calm-validation-rules.yaml'
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 18
+    - run: npm install @stoplight/spectral-cli
+    - run: npx spectral lint --ruleset spectral/calm-validation-rules.yaml spectral/examples/bad-rest-api.json
