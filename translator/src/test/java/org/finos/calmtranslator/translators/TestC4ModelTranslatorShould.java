@@ -104,10 +104,4 @@ class TestC4ModelTranslatorShould {
 				.usingRecursiveFieldByFieldElementComparatorOnFields("description","source.name", "destination.name", "source.description", "destination.description")
 				.containsAll(expectedRelationship);
 	}
-
-	@Test
-	void sampleGenerate() throws Exception {
-		final Workspace workspace = translator.translate(traderxCalmModel);
-		WorkspaceUtils.saveWorkspaceToJson(workspace, new File("workspace.json"));
-	}
 }
