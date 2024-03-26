@@ -4,11 +4,14 @@
 export default (input, _, context) => {
     let nodeName = input;
     let relationshipLabels = context.document.data.relationships?.map(relationship => [
-        relationship?.parties?.source, 
-        relationship?.parties?.destination,
-        relationship?.parties?.container,
-        relationship?.parties?.actor,
-        relationship?.parties?.nodes
+        relationship?.["relationship-type"]?.connects?.source, 
+        relationship?.["relationship-type"]?.connects?.destination, 
+        relationship?.["relationship-type"]?.interacts?.actor,
+        relationship?.["relationship-type"]?.interacts?.nodes,
+        relationship?.["relationship-type"]?.["composed-of"]?.container,
+        relationship?.["relationship-type"]?.["composed-of"]?.nodes,
+        relationship?.["relationship-type"]?.["deployed-in"]?.container,
+        relationship?.["relationship-type"]?.["deployed-in"]?.nodes,
     ]).flat(3); // flatten down to an array
     let results = [];
     if (!relationshipLabels) {

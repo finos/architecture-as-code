@@ -6,12 +6,12 @@ export default (input, _, context) => {
         return [];
     }
     // get uniqueIds of all nodes
-    let names = context.document.data.nodes.map(node => node.uniqueId);
+    let names = context.document.data.nodes.map(node => node["unique-id"]);
     let results = [];
 
     if (!names.includes(input)) {
         results.push({
-            message: `'${input}' does not refer to the uniqueId of an existing node.`,
+            message: `'${input}' does not refer to the unique-id of an existing node.`,
             path: [...context.path]
         });
     }
