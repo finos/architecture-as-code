@@ -31,4 +31,5 @@ jobs:
         with:
           node-version: v20
       - run: npm install @stoplight/spectral-cli
-      - run: npx spectral lint --ruleset spectral/calm-validation-rules.yaml 'calm/samples/**'
+      - run: npx spectral lint --ruleset spectral/calm-validation-rules.yaml 'calm/samples/**/*(*.json|*.yaml)'
+
