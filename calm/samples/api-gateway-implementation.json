@@ -33,10 +33,6 @@
           "destination": "api-gateway",
           "source": "api-consumer"
         }
-      },
-      "parties": {
-        "destination": "api-gateway",
-        "source": "api-consumer"
       }
     },
     {
