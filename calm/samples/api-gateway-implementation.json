@@ -3,7 +3,7 @@
   "nodes": [
     {
       "ingress-host": "{{ INGRESS_HOST }}",
-      "well-known-endpoint": "{{ INGRESS_PORT }}",
+      "well-known-endpoint": "{{ WELL_KNOWN_ENDPOINT }}",
       "name": "API Gateway",
       "description": "The API Gateway used to verify authorization and access to downstream system",
       "node-type": "system",
@@ -21,7 +21,7 @@
       "host": "{{ HOST }}",
       "description": "The API Producer serving content",
       "node-type": "system",
-      "port": 1,
+      "port": -1,
       "unique-id": "api-producer"
     }
   ],
@@ -33,10 +33,6 @@
           "destination": "api-gateway",
           "source": "api-consumer"
         }
-      },
-      "parties": {
-        "destination": "api-gateway",
-        "source": "api-consumer"
       }
     },
     {
