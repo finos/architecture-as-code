@@ -1,8 +1,8 @@
 #! /usr/bin/env node
 
 import { program } from 'commander';
-import visualize from './visualize/visualize.js';
-import { runGenerate } from './generate/generate.js';
+import visualize from './commands/visualize/visualize.js';
+import { runGenerate } from './commands/generate/generate.js';
 
 program
     .version('0.1.0')

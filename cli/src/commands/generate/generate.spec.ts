@@ -1,4 +1,3 @@
-import "jasmine"
 import { exportedForTesting } from "./generate"
 
 const { getPropertyValue } = exportedForTesting;
