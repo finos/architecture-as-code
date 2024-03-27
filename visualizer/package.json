@@ -1,0 +1,22 @@
+{
+  "name": "calm-visualizer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc && vite build && tsc && npm run copy-types-to-dist",
+    "copy-types-to-dist": "cp src/index.d.ts dist/index.d.ts",
+    "package": "npm pack"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "vite": "^5.2.0",
+    "vite-plugin-singlefile": "^2.0.1"
+  },
+  "dependencies": {
+    "mermaid": "^10.9.0",
+    "puppeteer": "^22.6.0"
+  }
+}

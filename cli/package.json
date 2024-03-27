@@ -13,6 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "calm-visualizer": "file:../visualizer/calm-visualizer-0.1.0.tgz",
     "commander": "^12.0.0"
   },
   "devDependencies": {
