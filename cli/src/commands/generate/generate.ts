@@ -4,7 +4,7 @@ import { mkdirp } from 'mkdirp'
 
 import * as winston from 'winston'
 
-let logger; // defined later at startup
+let logger: winston.Logger; // defined later at startup
 
 function loadFile(path: string): any {
     logger.info("Loading pattern from file: " + path)
@@ -18,11 +18,11 @@ function loadFile(path: string): any {
 }
 
 
-function getStringPlaceholder(name) {
+function getStringPlaceholder(name: string): string {
     return "{{ " + name.toUpperCase().replaceAll("-", "_") + " }}"
 }
 
-function getPropertyValue(keyName, detail) {
+function getPropertyValue(keyName: string, detail: any) : any {
     if (detail.hasOwnProperty("const")) {
         return detail["const"]
     }
@@ -39,7 +39,7 @@ function getPropertyValue(keyName, detail) {
     }
 }
 
-function instantiateNodes(pattern) {
+function instantiateNodes(pattern: any): any {
     const nodes = pattern?.properties?.nodes?.prefixItems
     if (!nodes) {
         console.error("Warning: pattern has no nodes defined.")
@@ -62,7 +62,7 @@ function instantiateNodes(pattern) {
     return outputNodes
 }
 
-function getRelationships(pattern) {
+function getRelationships(pattern: any): any {
     const relationships = pattern?.properties?.relationships?.prefixItems
 
     if (!relationships) {
@@ -96,7 +96,7 @@ export const exportedForTesting = {
     getPropertyValue
 }
 
-export function runGenerate (patternPath: string, outputPath: string, debug: boolean) {
+export function runGenerate (patternPath: string, outputPath: string, debug: boolean): void {
     const level = debug ? 'debug' : 'info'
     logger = winston.createLogger({
         transports: [
