@@ -24,7 +24,6 @@ import org.springframework.stereotype.Service;
 /**
  *
  */
-@SuppressWarnings("ALL")
 @Service
 public class C4ModelTranslator implements ModelTranslator<Workspace> {
 
