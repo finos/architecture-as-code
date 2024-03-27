@@ -21,11 +21,14 @@ class TestC4ModelTranslatorShould {
 
 	private C4ModelTranslator translator;
 	private Core traderxCalmModel;
+	private Core crossCommunicationModel;
 
 	@BeforeEach
 	void setUp() throws IOException {
 		this.translator = new C4ModelTranslator();
 		this.traderxCalmModel = new ObjectMapper().readValue(this.getClass().getClassLoader().getResourceAsStream("traderx-calm.json"), Core.class);
+		this.crossCommunicationModel = new ObjectMapper().readValue(this.getClass().getClassLoader()
+				.getResourceAsStream("cross-communication.json"), Core.class);
 	}
 
 	@Test
@@ -44,9 +47,10 @@ class TestC4ModelTranslatorShould {
 	void addCalmSystemAsC4System() {
 		final Workspace workspace = translator.translate(traderxCalmModel);
 		assertThat(workspace.getModel().getSoftwareSystems())
-				.singleElement()
-				.matches(softwareSystem -> softwareSystem.getDescription().equals("Simple Trading System") &&
-						softwareSystem.getName().equals("TraderX"), "System compare")
+				.anyMatch(
+						softwareSystem -> softwareSystem.getDescription().equals("Simple Trading System") &&
+						softwareSystem.getName().equals("TraderX"))
+
 		;
 	}
 
@@ -82,7 +86,6 @@ class TestC4ModelTranslatorShould {
 		final Container tradeProcessor = expectedSoftwareSystem.addContainer("Trade Processor", "Process incoming trade requests, settle and persist");
 		tradeProcessor.uses(tradeFeed, "Processes incoming trade requests, persist and publish updates.", "SocketIO");
 
-
 		final Iterable<Relationship> expectedRelationship = model.getRelationships();
 		final Workspace workspace = translator.translate(traderxCalmModel);
 		assertThat(workspace.getModel().getRelationships())
@@ -101,7 +104,7 @@ class TestC4ModelTranslatorShould {
 		final Iterable<Relationship> expectedRelationship = model.getRelationships();
 		final Workspace workspace = translator.translate(traderxCalmModel);
 		assertThat(workspace.getModel().getRelationships())
-				.usingRecursiveFieldByFieldElementComparatorOnFields("description","source.name", "destination.name", "source.description", "destination.description")
+				.usingRecursiveFieldByFieldElementComparatorOnFields("description", "source.name", "destination.name", "source.description", "destination.description")
 				.containsAll(expectedRelationship);
 	}
 
@@ -109,5 +112,23 @@ class TestC4ModelTranslatorShould {
 	void sampleGenerate() throws Exception {
 		final Workspace workspace = translator.translate(traderxCalmModel);
 		WorkspaceUtils.saveWorkspaceToJson(workspace, new File("workspace.json"));
+	}
+
+	@Test
+	void processMultipleSystems() {
+		final Model model = new Workspace("", "").getModel();
+		final SoftwareSystem system1 = model.addSoftwareSystem("System1");
+		final Container service1 = system1.addContainer("Service1", "service1", "service");
+		final SoftwareSystem system2 = model.addSoftwareSystem("System2");
+		final Container service2 = system2.addContainer("Service2", "service2", "service");
+		final Container service3 = system2.addContainer("Service3", "service3", "service");
+
+		service1.uses(service2, "Service 1 to Service 2");
+		service2.uses(service3, "Service 2 to Service 3");
+		final Iterable<Relationship> expectedRelationship = model.getRelationships();
+		final Workspace workspace = translator.translate(crossCommunicationModel);
+		assertThat(workspace.getModel().getRelationships())
+				.usingRecursiveFieldByFieldElementComparatorOnFields("description", "source.name", "destination.name", "source.description", "destination.description")
+				.containsAll(expectedRelationship);
 	}
 }
