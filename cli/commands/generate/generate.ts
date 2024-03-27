@@ -18,7 +18,7 @@ function loadFile(path: string): any {
 }
 
 
-function get_string_placeholder(name) {
+function getStringPlaceholder(name) {
     return "{{ " + name.toUpperCase().replaceAll("-", "_") + " }}"
 }
 
@@ -31,7 +31,7 @@ function getBasicPropertyValue(keyName, detail) {
         const propertyType = detail["type"]
 
         if (propertyType === "string") {
-            return get_string_placeholder(keyName)
+            return getStringPlaceholder(keyName)
         }
         if (propertyType === "integer") {
             return -1
@@ -98,7 +98,12 @@ function getRelationships(pattern) {
     return outputRelationships
 }
 
-export default function (patternPath: string, outputPath: string, debug: boolean) {
+export const exportedForTesting = {
+    getBasicPropertyValue,
+    getRelationshipTypePropertyValue 
+}
+
+export function runGenerate (patternPath: string, outputPath: string, debug: boolean) {
     const level = debug ? 'debug' : 'info'
     logger = winston.createLogger({
         transports: [
