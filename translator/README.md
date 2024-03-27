@@ -9,6 +9,6 @@ The OpenAPI Specification is available at </v3/api-docs> (<http://localhost:8080
 
 ## Supported translations
 
-| Format         | Endpoint      | Description                                                                                                       |
-|----------------|---------------|-------------------------------------------------------------------------------------------------------------------|
-| Structurizr-C4 | /translate/c4 | Produces a Workspace json object with generated default views that can be imported into <https://structurizr.com> |
+| Format         | Endpoint      | Description                                                                                                        |
+|----------------|---------------|--------------------------------------------------------------------------------------------------------------------|
+| Structurizr-C4 | /translate/c4 | Produces a Workspace json object with generated default views that can be imported into <https://structurizr.com/> |
