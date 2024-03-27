@@ -1,0 +1,11 @@
+{
+  "spec_dir": "src",
+  "spec_files": [
+    "**/*.spec.ts"
+  ],
+  "helpers": ["../node_modules/ts-node/register/type-check.js"],
+  "env": {
+    "stopSpecOnExpectationFailure": false,
+    "random": true
+  }
+}
