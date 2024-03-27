@@ -1,27 +1,44 @@
 import "jasmine"
 import { exportedForTesting } from "./generate"
 
-const { getBasicPropertyValue } = exportedForTesting;
+const { getPropertyValue } = exportedForTesting;
 
-describe("getBasicPropertyValue", () => {
+describe("getPropertyValue", () => {
     it("generates string placeholder name from variable", () => {
-        expect(getBasicPropertyValue("key-name", {
+        expect(getPropertyValue("key-name", {
             "type": "string"
         }))
-        .toBe("{{ KEY_NAME }}")
+            .toBe("{{ KEY_NAME }}")
     })
-    
+
     it("generates integer placeholder from variable", () => {
-        expect(getBasicPropertyValue("key-name", {
+        expect(getPropertyValue("key-name", {
             "type": "integer"
         }))
-        .toBe(-1)
+            .toBe(-1)
     })
 
     it("generates const value if const is provided", () => {
-        expect(getBasicPropertyValue("key-name", {
+        expect(getPropertyValue("key-name", {
             "const": "Example value"
         }))
-        .toBe("Example value")
+            .toBe("Example value")
+    })
+
+    it("generates const value with entire subtree if const is provided", () => {
+        expect(getPropertyValue("key-name", {
+            "const": {
+                "connects": {
+                    "source": "source",
+                    "destination": "destination"
+                }
+            }
+        }))
+            .toEqual({
+                "connects": {
+                    "source": "source",
+                    "destination": "destination"
+                }
+            })
     })
 })

@@ -22,7 +22,7 @@ function getStringPlaceholder(name) {
     return "{{ " + name.toUpperCase().replaceAll("-", "_") + " }}"
 }
 
-function getBasicPropertyValue(keyName, detail) {
+function getPropertyValue(keyName, detail) {
     if (detail.hasOwnProperty("const")) {
         return detail["const"]
     }
@@ -36,12 +36,6 @@ function getBasicPropertyValue(keyName, detail) {
         if (propertyType === "integer") {
             return -1
         }
-    }
-}
-
-function getRelationshipTypePropertyValue(keyName, detail) {
-    if (detail.hasOwnProperty("const")) {
-        return detail["const"]
     }
 }
 
@@ -60,7 +54,7 @@ function instantiateNodes(pattern) {
 
         let out = {}
         for (const [key, detail] of Object.entries(node["properties"])) {
-            out[key] = getBasicPropertyValue(key, detail)
+            out[key] = getPropertyValue(key, detail)
         }
 
         outputNodes.push(out)
@@ -85,10 +79,10 @@ function getRelationships(pattern) {
         let out = {}
         for (const [key, detail] of Object.entries(relationship["properties"])) {
             if (key === 'relationship-type') {
-                out[key] = getRelationshipTypePropertyValue(key, detail)
+                out[key] = getPropertyValue(key, detail)
             }
             else {
-                out[key] = getBasicPropertyValue(key, detail)
+                out[key] = getPropertyValue(key, detail)
             }
         }
 
@@ -99,8 +93,7 @@ function getRelationships(pattern) {
 }
 
 export const exportedForTesting = {
-    getBasicPropertyValue,
-    getRelationshipTypePropertyValue 
+    getPropertyValue
 }
 
 export function runGenerate (patternPath: string, outputPath: string, debug: boolean) {
