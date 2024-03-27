@@ -1,47 +1,61 @@
+export interface CALMManifest {
+    nodes: Node[],
+    relationships: Relationship[]
+}
+
+export type NodeType = 'actor' | 'system' | 'service' | 'database' | 'internal-network' | 'ldap' | 'dataclient';
+
 export interface Node {
     name: string, 
-    class: string,
-    uniqueId: string,
-    nodeType: string,
-    extras?: {[field: string]: unknown}
+    class?: string,
+    'unique-id': string,
+    'node-type': NodeType,
+    description: string,
+    'data-classification'?: string,
+    'run-as'?: string,
+    instance?: string
 }
 
 export type Relationship = InteractsRelationship | ConnectsRelationship | DeployedInRelationship | ComposedOfRelationship;
 
 export interface InteractsRelationship {
-    relationshipType: 'interacts',
+    'relationship-type': {
+        'interacts': {
+            actor: string,
+            nodes: string[]
+        }
+    },
     uniqueId: string,
-    parties: {
-        actor: string,
-        nodes: string[]
-    }
 }
 
 export interface ConnectsRelationship {
-    relationshipType: 'connects',
+    'relationship-type': {
+        'connects': {
+            source: string,
+            destination: string
+        }
+    },
     uniqueId: string,
-    protocol?: string,
-    authentication?: string,
-    parties: {
-        source: string,
-        destination: string
-    }
+    protocol: string,
+    authentication: string,
 }
 
 export interface DeployedInRelationship {
-    relationshipType: 'deployed-in',
+    'relationship-type': {
+        'deployed-in': {
+            container: string,
+            nodes: string[]
+        }
+    },
     uniqueId: string,
-    parties: {
-        container: string,
-        nodes: string[]
-    }
 }
 
 export interface ComposedOfRelationship {
-    relationshipType: 'composed-of',
-    uniqueId: string,
-    parties: {
-        container: string,
-        nodes: string[]
+    'relationship-type': {
+        'composed-of': {
+            container: string,
+            nodes: string[]
+        },
     }
+    uniqueId: string,
 }

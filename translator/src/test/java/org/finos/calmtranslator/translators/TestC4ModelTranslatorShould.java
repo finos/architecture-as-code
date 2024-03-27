@@ -109,12 +109,6 @@ class TestC4ModelTranslatorShould {
 	}
 
 	@Test
-	void sampleGenerate() throws Exception {
-		final Workspace workspace = translator.translate(traderxCalmModel);
-		WorkspaceUtils.saveWorkspaceToJson(workspace, new File("workspace.json"));
-	}
-
-	@Test
 	void processMultipleSystems() {
 		final Model model = new Workspace("", "").getModel();
 		final SoftwareSystem system1 = model.addSoftwareSystem("System1");

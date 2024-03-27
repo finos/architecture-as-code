@@ -1,29 +1,32 @@
-# CALM Specification Visualizer
+# CALM Visualizer
 
-This is a tool for visualizing a CALM Specification.
-The tool will create a directed graph which represents the architecture that you've laid out in your spec.
+This tool will take a CALM specification and convert the nodes and relationships into the [Mermaid](https://mermaid.js.org) format.
+It then renders the Mermaid string into an SVG and outputs the file, which you can then open in a browser to view for example.
 
-## Features
+In order to render Mermaid, we need to have a browser context which isn't usually available in a Node environment.
+The way we achieve this is by using the [Puppeteer](https://pptr.dev) library to create a headless browser in the background to render the Mermaid.
 
-- The nodes of the graph can be dragged around to create a better layout if you need it.
-- You can right click on a node to get a json representation of the node which could contain details that aren't shown in the graph.
+## Getting Started
 
-## How to use
+This project is intended to be consumed as a library.
+To test out your changes, you'll need to run the following commands:
 
-- Clone the project
-- Run `npm install`
-- Edit the following line of App.tsx to point to your CALM specification:
-
-```typescript
-import * as calmSpec from "./assets/traderx-calm.json";
+```
+npm install
+npm run build
+npm run package
 ```
 
-- Start the app with `npm start`
-- Follow the link in the terminal output to open the app in a browser and view the graph
+This will output a file called `calm-visualizer-<version>.tgz` which you can then import into a project to use.
 
-## Example
+The library exports a single function called `visualize` which takes a string that represents the file containing the CALM specification, and outputs an svg file with the visualization.
 
-There is an example CALM Specification at `src/assets/traderx-calm.json`.
-By default, the app will use this spec to create the graph, which looks like this:
+### Example Usage
 
-![Example CALM Spec](example-graph.png "Example CALM Spec")
+```typescript
+import { visualize } from "calm-visualizer";
+
+const calm = "<insert-calm-spec-here>";
+const svg = await visualize(calm);
+console.log(svg);
+```
