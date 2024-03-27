@@ -1,7 +1,14 @@
 package org.finos.calmtranslator.translators;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.fabric8.kubernetes.api.model.KubernetesResource;
+import io.fabric8.kubernetes.api.model.Namespace;
+import io.fabric8.kubernetes.api.model.Service;
+
 import java.io.IOException;
+import java.util.List;
+
 import org.finos.calmtranslator.calm.Core;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,16 +28,17 @@ class TestK8sModelTranslatorShould {
 
     @Test
     void generateServices() {
-        String k8sManifest =  translator.translate(traderxCalmModel);
+        List<KubernetesResource> k8sResources =  translator.translate(traderxCalmModel);
         
+		Namespace namespace = this.translator.createNamespace( "traderx-system");
         //Simple namespace generation check
-        assertThat(k8sManifest).contains("Namespace");
-        assertThat(k8sManifest).contains("traderx-system");
+        assertThat(k8sResources).contains(namespace);
 
-        //Simple service generation check
-        assertThat(k8sManifest).contains("Service");
-        assertThat(k8sManifest).contains("position-service");
+        Service service = this.translator.createService("position-service" , "traderx-system");
+		assertThat(k8sResources).contains(service);
 
+		Service randomService = this.translator.createService("random-service" , "traderx-system");
+		assertThat(k8sResources).doesNotContain(randomService);
     }
 
 }

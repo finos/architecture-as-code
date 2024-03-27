@@ -1,24 +1,25 @@
 package org.finos.calmtranslator.translators;
 
+import io.fabric8.kubernetes.api.model.KubernetesResource;
 import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.api.model.ServicePort;
-import io.fabric8.kubernetes.client.utils.Serialization;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import org.finos.calmtranslator.calm.Core;
 import org.finos.calmtranslator.calm.Node;
 import org.finos.calmtranslator.calm.RelationshipType;
 
-public class K8sModelTranslator implements ModelTranslator<String> {
+public class K8sModelTranslator implements ModelTranslator<List<KubernetesResource>> {
     @Override
-    public String translate(final Core calmModel) {
+    public List<KubernetesResource> translate(final Core calmModel) {
+
+		List<KubernetesResource> response = new ArrayList<>();
 
         // List of namespaces in calm model
         List<String> namespaces = new ArrayList<>();
@@ -38,32 +39,29 @@ public class K8sModelTranslator implements ModelTranslator<String> {
             }
         });
 
-        StringBuilder response = new StringBuilder();
 
         //Build Namespaces
-        response.append(
-            namespaces.stream().map(ns -> createNamespace(ns)).collect(Collectors.joining("")));
+        response.addAll(namespaces.stream().map(ns -> createNamespace(ns)).toList());
 
         //Build Services 
-        response.append(
+        response.addAll(
         calmModel.getNodes().stream()
             .filter(node -> node.getNodeType() == Node.NodeTypeDefinition.SERVICE)
             .map(service -> createService(
-                    service,serviceToNamespaceMap)).collect(Collectors.joining("")));
-        return response.toString();
+				formatName(service.getName()),
+				serviceToNamespaceMap.get(service.getUniqueId())
+			)).toList());
+        return response;
     }
 
-    private String createNamespace(String namespaceAsString) {
+    Namespace createNamespace(String namespaceAsString) {
         Namespace namespace = new NamespaceBuilder().withNewMetadata()
             .withName(formatName(namespaceAsString))
             .endMetadata().build();
-        return Serialization.asYaml(namespace);
+        return namespace;
     }
 
-    private String createService(Node serviceNode, Map <String,String> serviceToNamespaceMap ) {
-
-        String serviceName = formatName(serviceNode.getName());
-        String namespace = serviceToNamespaceMap.get(serviceNode.getUniqueId());
+    Service createService(String serviceName , String namespace ) {
 
         //TODO: need to revisit where this information is derived from as not everything runs from 8080!
         ServicePort servicePort = new ServicePort();
@@ -78,7 +76,7 @@ public class K8sModelTranslator implements ModelTranslator<String> {
             .addToPorts(servicePort)
             .endSpec()
             .build();
-        return Serialization.asYaml(service);
+        return service;
     }
 
     private String formatName (String input) {

@@ -1,6 +1,5 @@
 package org.finos.calmtranslator.translators;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
@@ -11,7 +10,6 @@ import com.structurizr.model.Model;
 import com.structurizr.model.Person;
 import com.structurizr.model.Relationship;
 import com.structurizr.model.SoftwareSystem;
-import com.structurizr.util.WorkspaceUtils;
 import org.finos.calmtranslator.calm.Core;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
