@@ -12,6 +12,10 @@ on:
     paths: 
       - "cli/**"
 
+defaults:
+  run:
+    working-directory: ./cli
+
 jobs:
   cli-tests:
     name: Run unit tests and lint
@@ -19,11 +23,6 @@ jobs:
     steps:
       # Check out the repository
       - uses: actions/checkout@v4
-        with:
-          # only checkout cli folder
-          sparse-checkout: 'cli'
-          sparse-checkout-cone-mode: false
-
       - uses: actions/setup-node@v4
         with:
           node-version: v20
