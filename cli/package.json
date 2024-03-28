@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "test": "jest --verbose"
+    "test": "jest --verbose",
+    "lint": "eslint src"
   },
   "bin": {
     "calm": "dist/index.js"

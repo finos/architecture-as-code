@@ -20,9 +20,9 @@ program
     .description('Generate an instantiation from a CALM pattern file.')
     .requiredOption('-s, --source <source>', 'Path to the pattern file to use. May be a file path or a URL.')
     .requiredOption('-o, --output <output>', 'Path location at which to output the generated file.')
-    .option('-v, --verbose', "Enable verbose logging.")
+    .option('-v, --verbose', 'Enable verbose logging.')
     .action((options) => {
-        runGenerate(options.source, options.output, !!options.verbose)
-    })
+        runGenerate(options.source, options.output, !!options.verbose);
+    });
 
 program.parse(process.argv);
