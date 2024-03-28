@@ -88,8 +88,4 @@ describe('runGenerate', () => {
         expect(parsed) 
             .toHaveProperty('relationships');
     });
-
-    it('should fail', () => {
-        expect(true).toBe(false);
-    })
 });
