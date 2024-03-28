@@ -19,13 +19,15 @@ jobs:
     steps:
       # Check out the repository
       - uses: actions/checkout@v4
+        with:
+          # only checkout cli folder
+          sparse-checkout: 'cli'
+          sparse-checkout-cone-mode: false
 
       # Run Spectral
       - uses: actions/setup-node@v4
         with:
           node-version: v20
-      - run: cd cli
-      - run: ls -al
       - run: npm ci
       - run: npm run test
       - run: npm run lint 
