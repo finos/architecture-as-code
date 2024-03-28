@@ -25,6 +25,7 @@ jobs:
         with:
           node-version: v20
       - run: cd cli
+      - run: ls -al
       - run: npm ci
       - run: npm run test
       - run: npm run lint 
