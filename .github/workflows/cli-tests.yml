@@ -26,7 +26,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: v20
-      - run: ls -al
       - run: npm ci
       - run: npm run test
       - run: npm run lint 
