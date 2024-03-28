@@ -1,5 +1,5 @@
 import { visualize } from 'calm-visualizer';
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 
 export default async function({input, output}: {input: string, output: string}) {
     const calm = fs.readFileSync(input, 'utf-8');
