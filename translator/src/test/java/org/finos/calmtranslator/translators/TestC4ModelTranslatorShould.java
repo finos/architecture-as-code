@@ -123,4 +123,5 @@ class TestC4ModelTranslatorShould {
 				.usingRecursiveFieldByFieldElementComparatorOnFields("description", "source.name", "destination.name", "source.description", "destination.description")
 				.containsAll(expectedRelationship);
 	}
+
 }
