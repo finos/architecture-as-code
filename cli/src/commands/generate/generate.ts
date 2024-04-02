@@ -38,6 +38,11 @@ function getPropertyValue(keyName: string, detail: any) : any {
         if (propertyType === 'integer') {
             return -1;
         }
+        if (propertyType === 'array') {
+            return [ 
+                getStringPlaceholder(keyName) 
+            ];
+        }
     }
 }
 
@@ -45,6 +50,9 @@ function instantiateNodes(pattern: any): any {
     const nodes = pattern?.properties?.nodes?.prefixItems;
     if (!nodes) {
         console.error('Warning: pattern has no nodes defined.');
+        if (pattern?.properties?.nodes?.items) {
+            logger.warn('Note: properties.relationships.items is deprecated: please use prefixItems instead.');
+        }
         return [];
     }
     const outputNodes = [];
@@ -64,11 +72,14 @@ function instantiateNodes(pattern: any): any {
     return outputNodes;
 }
 
-function getRelationships(pattern: any): any {
+function instantiateRelationships(pattern: any): any {
     const relationships = pattern?.properties?.relationships?.prefixItems;
 
     if (!relationships) {
-        console.error('Warning: pattern has no relationships defined');
+        logger.error('Warning: pattern has no relationships defined');
+        if (pattern?.properties?.relationships?.items) {
+            logger.warn('Note: properties.relationships.items is deprecated: please use prefixItems instead.');
+        }
         return [];
     }
 
@@ -94,8 +105,31 @@ function getRelationships(pattern: any): any {
     return outputRelationships;
 }
 
+function instantiateAdditionalTopLevelProperties(pattern: any): any {
+    const properties = pattern?.properties;
+    if (!properties) {
+        console.error('Warning: pattern has no properties defined.');
+        return [];
+    }
+
+    const extraProperties = {};
+    for (const [additionalProperty, detail] of Object.entries(properties)) {
+        // additional properties only
+        if (['nodes', 'relationships'].includes(additionalProperty)) {
+            continue;
+        }
+
+        extraProperties[additionalProperty] = getPropertyValue(additionalProperty, detail);
+    }
+
+    return extraProperties;
+}
+
 export const exportedForTesting = {
-    getPropertyValue
+    getPropertyValue,
+    instantiateNodes,
+    instantiateRelationships,
+    instantiateAdditionalTopLevelProperties
 };
 
 export function runGenerate (patternPath: string, outputPath: string, debug: boolean): void {
@@ -111,13 +145,16 @@ export function runGenerate (patternPath: string, outputPath: string, debug: boo
 
     const pattern = loadFile(patternPath);
     const outputNodes = instantiateNodes(pattern);
-    const relationshipNodes = getRelationships(pattern);
+    const relationshipNodes = instantiateRelationships(pattern);
 
+    const additionalProperties = instantiateAdditionalTopLevelProperties(pattern);
 
     const final = {
         'nodes': outputNodes,
-        'relationships': relationshipNodes
+        'relationships': relationshipNodes,
+        ...additionalProperties // object spread operator to insert additional props at top level
     };
+
     const output = JSON.stringify(final, null, 2);
     logger.debug('Generated instantiation: ' + output);
 
