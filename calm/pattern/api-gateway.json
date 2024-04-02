@@ -23,7 +23,7 @@
             "description": {
               "const": "The API Gateway used to verify authorization and access to downstream system"
             },
-            "type": {
+            "node-type": {
               "const": "system"
             },
             "name": {
@@ -45,7 +45,7 @@
             "description": {
               "const": "The API Consumer making an authenticated and authorized request"
             },
-            "type": {
+            "node-type": {
               "const": "system"
             },
             "name": {
@@ -68,7 +68,7 @@
             "description": {
               "const": "The API Producer serving content"
             },
-            "type": {
+            "node-type": {
               "const": "system"
             },
             "name": {
@@ -89,7 +89,7 @@
             "description": {
               "const": "The Identity Provider used to verify the bearer token"
             },
-            "type": {
+            "node-type": {
               "const": "system"
             },
             "name": {
