@@ -4,7 +4,12 @@ import { tmpdir } from 'node:os';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 
-const { getPropertyValue } = exportedForTesting;
+const { 
+    getPropertyValue,
+    instantiateNodes,
+    instantiateRelationships,
+    instantiateAdditionalTopLevelProperties
+} = exportedForTesting;
 
 describe('getPropertyValue', () => {
     it('generates string placeholder name from variable', () => {
@@ -42,6 +47,228 @@ describe('getPropertyValue', () => {
                     'source': 'source',
                     'destination': 'destination'
                 }
+            });
+    });
+
+    it('generates array with single string placeholder', () => {
+        expect(getPropertyValue('key-name', {
+            'type': 'array'
+        }))
+            .toEqual([
+                '{{ KEY_NAME }}'
+            ]);
+    });
+});
+
+describe('instantiateNodes', () => {
+    it('return instantiated node with array property', () => {
+        const pattern = {
+            properties: {
+                nodes: {
+                    type: 'array',
+                    prefixItems: [
+                        {
+                            properties: {
+                                'property-name': {
+                                    type: 'array'
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        };
+
+        expect(instantiateNodes(pattern))
+            .toEqual(
+                [{
+                    'property-name': [
+                        '{{ PROPERTY_NAME }}'
+                    ]
+                }]
+            );
+    });
+
+    it('return instantiated node with string property', () => {
+        const pattern = {
+            properties: {
+                nodes: {
+                    type: 'array',
+                    prefixItems: [
+                        {
+                            properties: {
+                                'property-name': {
+                                    type: 'string'
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        };
+
+        expect(instantiateNodes(pattern))
+            .toEqual([
+                {
+                    'property-name': '{{ PROPERTY_NAME }}'
+                }
+            ]);
+    });
+    
+    it('return instantiated node with const property', () => {
+        const pattern = {
+            properties: {
+                nodes: {
+                    type: 'array',
+                    prefixItems: [
+                        {
+                            properties: {
+                                'property-name': {
+                                    const: 'value here'
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        };
+
+        expect(instantiateNodes(pattern))
+            .toEqual([
+                {
+                    'property-name': 'value here'
+                }
+            ]);
+    });
+});
+
+describe('instantiateRelationships', () => {
+    it('return instantiated relationship with array property', () => {
+        const pattern = {
+            properties: {
+                relationships: {
+                    type: 'array',
+                    prefixItems: [
+                        {
+                            properties: {
+                                'property-name': {
+                                    type: 'array'
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        };
+
+        expect(instantiateRelationships(pattern))
+            .toEqual(
+                [{
+                    'property-name': [
+                        '{{ PROPERTY_NAME }}'
+                    ]
+                }]
+            );
+    });
+
+    it('return instantiated relationship with string property', () => {
+        const pattern = {
+            properties: {
+                relationships: {
+                    type: 'array',
+                    prefixItems: [
+                        {
+                            properties: {
+                                'property-name': {
+                                    type: 'string'
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        };
+
+        expect(instantiateRelationships(pattern))
+            .toEqual([
+                {
+                    'property-name': '{{ PROPERTY_NAME }}'
+                }
+            ]);
+    });
+    
+    it('return instantiated relationship with const property', () => {
+        const pattern = {
+            properties: {
+                relationships: {
+                    type: 'array',
+                    prefixItems: [
+                        {
+                            properties: {
+                                'property-name': {
+                                    const: 'value here'
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        };
+
+        expect(instantiateRelationships(pattern))
+            .toEqual([
+                {
+                    'property-name': 'value here'
+                }
+            ]);
+    });
+});
+
+describe('instantiateAdditionalTopLevelProperties', () => {
+    it('instantiate an additional top level array property', () => {
+        const pattern = {
+            properties: {
+                'extra-property': {
+                    type: 'array' 
+                }
+            }
+        };
+
+        expect(instantiateAdditionalTopLevelProperties(pattern))
+            .toEqual({
+                'extra-property': [
+                    '{{ EXTRA_PROPERTY }}'
+                ]
+            });
+    });
+    
+    it('instantiate an additional top level const property', () => {
+        const pattern = {
+            properties: {
+                'extra-property': {
+                    const: 'value here'
+                }
+            }
+        };
+
+        expect(instantiateAdditionalTopLevelProperties(pattern))
+            .toEqual({
+                'extra-property': 'value here'
+            });
+    });
+    
+    it('instantiate an additional top level string property', () => {
+        const pattern = {
+            properties: {
+                'extra-property': {
+                    'type': 'string'
+                }
+            }
+        };
+
+        expect(instantiateAdditionalTopLevelProperties(pattern))
+            .toEqual({
+                'extra-property': '{{ EXTRA_PROPERTY }}'
             });
     });
 });
