@@ -3,6 +3,7 @@
 import { program } from 'commander';
 import visualize from './commands/visualize/visualize.js';
 import { runGenerate } from './commands/generate/generate.js';
+import validate  from './commands/validate/validate.js';
 
 program
     .version('0.1.0')
@@ -24,5 +25,11 @@ program
     .action((options) => {
         runGenerate(options.pattern, options.output, !!options.verbose);
     });
+
+program
+    .command("validate")
+    .requiredOption("-p, --pattern <pattern>", "The location of the JSON Schema Pattern")
+    .requiredOption("-i, --instantiation <instantiation>", "The location of the instantiation of the Pattern")
+    .action(async (options)=> await validate(options.instantiation, options.pattern))
 
 program.parse(process.argv);
