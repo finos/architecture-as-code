@@ -49,7 +49,7 @@ function getPropertyValue(keyName: string, detail: any) : any {
 function instantiateNodes(pattern: any): any {
     const nodes = pattern?.properties?.nodes?.prefixItems;
     if (!nodes) {
-        console.error('Warning: pattern has no nodes defined.');
+        logger.error('Warning: pattern has no nodes defined.');
         if (pattern?.properties?.nodes?.items) {
             logger.warn('Note: properties.relationships.items is deprecated: please use prefixItems instead.');
         }
@@ -108,7 +108,7 @@ function instantiateRelationships(pattern: any): any {
 function instantiateAdditionalTopLevelProperties(pattern: any): any {
     const properties = pattern?.properties;
     if (!properties) {
-        console.error('Warning: pattern has no properties defined.');
+        logger.error('Warning: pattern has no properties defined.');
         return [];
     }
 
