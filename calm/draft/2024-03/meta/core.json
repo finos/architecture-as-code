@@ -14,11 +14,7 @@
       "items": {
         "$ref": "#/defs/relationship"
       }
-    },
-    "required": [
-      "nodes",
-      "relationships"
-    ]
+    }
   },
   "defs": {
     "node": {
