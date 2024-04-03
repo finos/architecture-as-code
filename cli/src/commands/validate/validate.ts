@@ -1,23 +1,23 @@
 import Ajv2020 from 'ajv/dist/2020.js';
-import { existsSync, promises as fs } from 'fs';
+import { access, existsSync, promises as fs, readFileSync, readdirSync } from 'fs';
 import pkg from '@stoplight/spectral-core';
 const { Spectral } = pkg;
 import { getRuleset } from '@stoplight/spectral-cli/dist/services/linter/utils/getRuleset.js';
 
-export default async function validate(jsonSchemaInstantiationLocation: string, jsonSchemaPath: string) {
+export default async function validate(jsonSchemaInstantiationLocation: string, jsonSchemaPath: string, metaSchemaLocation: string) {
     let exitCode = 0;
     try {
-        const ajv = (new Ajv2020({ strict: false, loadSchema: loadFileFromUrl}));
+        const ajv = new Ajv2020({ strict: false});
 
-        
+        loadMetaSchemas(ajv, metaSchemaLocation);
 
         console.info(`Loading pattern from : ${jsonSchemaPath}`);
         const jsonSchema = await getFileFromUrlOrPath(jsonSchemaPath);
 
         console.info(`Loading pattern instantiation from : ${jsonSchemaInstantiationLocation}`);
         const jsonSchemaInstantiation = await getFileFromUrlOrPath(jsonSchemaInstantiationLocation);
-        
-        const validateSchema = await ajv.compileAsync(jsonSchema);
+
+        const validateSchema = ajv.compile(jsonSchema);
 
         if (!validateSchema(jsonSchemaInstantiation)) {
             console.error('The instantiation does not match the JSON schema pattern. Errors: ', validateSchema.errors);
@@ -32,6 +32,16 @@ export default async function validate(jsonSchemaInstantiationLocation: string, 
         process.exit(1);
     }
     process.exit(exitCode);
+}
+
+function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
+    console.log(`Loading meta schema(s) from ${metaSchemaLocation}`)
+    readdirSync(metaSchemaLocation)
+        .forEach(filename => {
+            console.log("Adding meta schema : " + filename);
+            const meta = JSON.parse(readFileSync(metaSchemaLocation + "/" + filename, 'utf8'));
+            ajv.addMetaSchema(meta);
+        });
 }
 
 async function runSpectralValidations(jsonSchemaInstantiation: any) {

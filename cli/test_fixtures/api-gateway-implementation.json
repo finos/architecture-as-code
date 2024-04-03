@@ -8,7 +8,7 @@
       "description": "The API Gateway used to verify authorization and access to downstream system",
       "node-type": "system",
       "unique-id": "api-gateway",
-      "ingress-port": "gsgsgsg"
+      "ingress-port": -1
     },
     {
       "unique-id": "api-consumer",

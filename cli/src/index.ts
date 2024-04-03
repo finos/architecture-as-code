@@ -30,6 +30,7 @@ program
     .command('validate')
     .requiredOption('-p, --pattern <pattern>', 'The location of the JSON Schema Pattern')
     .requiredOption('-i, --instantiation <instantiation>', 'The location of the instantiation of the Pattern')
-    .action(async (options)=> await validate(options.instantiation, options.pattern));
+    .option('-m, --metaSchemasLocation <metaSchemaLocation>', 'The location of the directory of the meta schemas to be loaded', "../calm/draft/2024-03/meta")
+    .action(async (options)=> await validate(options.instantiation, options.pattern, options['metaSchemasLocation']));
 
 program.parse(process.argv);
