@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-04/meta/interface.json",
+  "title": "Common Architecture Language Model Interfaces",
+
+  "defs": {
+    "interface-type": {
+      "type": "object",
+      "properties": {
+        "unique-id": {
+          "type": "string"
+        }
+      },
+      "required": ["unique-id"]
+    },
+    "node-interface": {
+      "type": "object",
+      "node": {
+        "type": "string"
+      },
+      "interface": {
+        "type": "string"
+      },
+      "required": ["node"]
+    },
+    "host-port-interface": {
+      "ref": "#/defs/interface-type",
+      "properties": {
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer"
+        }
+      },
+      "required": ["host", "port"]
+    }
+  }
+}
