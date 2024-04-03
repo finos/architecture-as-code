@@ -1,9 +1,11 @@
 * @finos-labs/architecture-as-code-maintainers
 
-/calm/ @rocketstack-matt @yt-ms @jpgough-ms @dc-ms
+/calm/ @finos-labs/architecture-as-code-maintainers
 
-/spectral/ @willosborne
+/cli/ @aidanm3341 @lbulanti-ms @willosborne
 
-/visualizer/ @aidanm3341
+/spectral/ @willosborne @lbulanti-ms
 
-/translator/ @Budlee @matthewgardner
+/translator/ @Budlee @matthewgardner @jpgough-ms
+
+/visualizer/ @aidanm3341 @Budlee @willosborne
