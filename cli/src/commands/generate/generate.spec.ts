@@ -1,3 +1,5 @@
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+
 import { exportedForTesting } from './generate';
 import { runGenerate } from './generate';
 import { tmpdir } from 'node:os';
@@ -79,14 +81,14 @@ function getSamplePatternNode(properties: any): any {
 describe('instantiateNodes', () => {
     beforeEach(() => {
         initLogger(false);
-    })
+    });
 
     it('return instantiated node with array property', () => {
         const pattern = getSamplePatternNode({
             'property-name': {
                 type: 'array'
             }
-        })
+        });
         expect(instantiateNodes(pattern))
             .toEqual(
                 [{
@@ -102,7 +104,7 @@ describe('instantiateNodes', () => {
             'property-name': {
                 type: 'string'
             }
-        })
+        });
 
         expect(instantiateNodes(pattern))
             .toEqual([
@@ -117,7 +119,7 @@ describe('instantiateNodes', () => {
             'property-name': {
                 const: 'value here'
             }
-        })
+        });
 
         expect(instantiateNodes(pattern))
             .toEqual([
@@ -147,14 +149,14 @@ function getSamplePatternRelationship(properties: any): any {
 describe('instantiateRelationships', () => {
     beforeEach(() => {
         initLogger(false);
-    })
+    });
 
     it('return instantiated relationship with array property', () => {
         const pattern = getSamplePatternRelationship({
             'property-name': {
                 type: 'array'
             }
-        })
+        });
 
         expect(instantiateRelationships(pattern))
             .toEqual(
@@ -171,7 +173,7 @@ describe('instantiateRelationships', () => {
             'property-name': {
                 type: 'string'
             }
-        })
+        });
 
         expect(instantiateRelationships(pattern))
             .toEqual([
@@ -186,7 +188,7 @@ describe('instantiateRelationships', () => {
             'property-name': {
                 const: 'value here'
             }
-        })
+        });
 
         expect(instantiateRelationships(pattern))
             .toEqual([
