@@ -38,13 +38,21 @@ function getPropertyValue(keyName: string, detail: any) : any {
         if (propertyType === 'integer') {
             return -1;
         }
+        if (propertyType === 'array') {
+            return [ 
+                getStringPlaceholder(keyName) 
+            ];
+        }
     }
 }
 
 function instantiateNodes(pattern: any): any {
     const nodes = pattern?.properties?.nodes?.prefixItems;
     if (!nodes) {
-        console.error('Warning: pattern has no nodes defined.');
+        logger.error('Warning: pattern has no nodes defined.');
+        if (pattern?.properties?.nodes?.items) {
+            logger.warn('Note: properties.relationships.items is deprecated: please use prefixItems instead.');
+        }
         return [];
     }
     const outputNodes = [];
@@ -64,11 +72,14 @@ function instantiateNodes(pattern: any): any {
     return outputNodes;
 }
 
-function getRelationships(pattern: any): any {
+function instantiateRelationships(pattern: any): any {
     const relationships = pattern?.properties?.relationships?.prefixItems;
 
     if (!relationships) {
-        console.error('Warning: pattern has no relationships defined');
+        logger.error('Warning: pattern has no relationships defined');
+        if (pattern?.properties?.relationships?.items) {
+            logger.warn('Note: properties.relationships.items is deprecated: please use prefixItems instead.');
+        }
         return [];
     }
 
@@ -94,11 +105,7 @@ function getRelationships(pattern: any): any {
     return outputRelationships;
 }
 
-export const exportedForTesting = {
-    getPropertyValue
-};
-
-export function runGenerate (patternPath: string, outputPath: string, debug: boolean): void {
+function initLogger(debug: boolean): void {
     const level = debug ? 'debug' : 'info';
     logger = winston.createLogger({
         transports: [
@@ -107,17 +114,27 @@ export function runGenerate (patternPath: string, outputPath: string, debug: boo
         level: level,
         format: winston.format.cli()
     });
+}
 
+export const exportedForTesting = {
+    getPropertyValue,
+    instantiateNodes,
+    instantiateRelationships,
+    initLogger
+};
+
+export function runGenerate (patternPath: string, outputPath: string, debug: boolean): void {
+    initLogger(debug);
 
     const pattern = loadFile(patternPath);
     const outputNodes = instantiateNodes(pattern);
-    const relationshipNodes = getRelationships(pattern);
-
+    const relationshipNodes = instantiateRelationships(pattern);
 
     const final = {
         'nodes': outputNodes,
-        'relationships': relationshipNodes
+        'relationships': relationshipNodes,
     };
+
     const output = JSON.stringify(final, null, 2);
     logger.debug('Generated instantiation: ' + output);
 
