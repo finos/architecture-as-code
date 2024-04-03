@@ -1,84 +1,74 @@
 import Ajv2020 from 'ajv/dist/2020.js';
-import { existsSync, promises as fs } from "fs";
+import { existsSync, promises as fs } from 'fs';
 import pkg from '@stoplight/spectral-core';
 const { Spectral } = pkg;
-import { getRuleset } from '@stoplight/spectral-cli/dist/services/linter/utils/getRuleset.js'
+import { getRuleset } from '@stoplight/spectral-cli/dist/services/linter/utils/getRuleset.js';
 
-
-export default async function validate(jsonSchemaInstantiationPath: string, jsonSchemaPath: string) {
-    // load schema method is needed to resolve URIs
-    const ajv = (new Ajv2020({ strict: false, loadSchema: loadSchema }));
-
-    const jsonSchemaInstantiation = await getFileFromUrlOrPath(jsonSchemaInstantiationPath);
-    const jsonSchema = await getFileFromUrlOrPath(jsonSchemaPath);
-
+export default async function validate(jsonSchemaInstantiationLocation: string, jsonSchemaPath: string) {
+    let exitCode = 0;
     try {
-        const validate = await ajv.compileAsync(jsonSchema);
+        const ajv = (new Ajv2020({ strict: false, loadSchema: loadFileFromUrl}));
 
-        if (validate(jsonSchemaInstantiation)) {
-            console.log("The schema instantiation matches the json schema");
+        
+
+        console.info(`Loading pattern from : ${jsonSchemaPath}`);
+        const jsonSchema = await getFileFromUrlOrPath(jsonSchemaPath);
+
+        console.info(`Loading pattern instantiation from : ${jsonSchemaInstantiationLocation}`);
+        const jsonSchemaInstantiation = await getFileFromUrlOrPath(jsonSchemaInstantiationLocation);
+        
+        const validateSchema = await ajv.compileAsync(jsonSchema);
+
+        if (!validateSchema(jsonSchemaInstantiation)) {
+            console.error('The instantiation does not match the JSON schema pattern. Errors: ', validateSchema.errors);
+            exitCode = 1;
         } else {
-            console.log("The schema instantiation does not match the json schema");
-            console.log("Problems: ")
-            console.log(validate.errors);
+            console.info('The schema instantiation matches the json schema');
         }
 
         await runSpectralValidations(jsonSchemaInstantiation);
     } catch (error) {
-        console.error(`An error occured during the validation: `, error.message);
+        console.error(`An error occured: ${error}`);
         process.exit(1);
+    }
+    process.exit(exitCode);
+}
+
+async function runSpectralValidations(jsonSchemaInstantiation: any) {
+    const spectralRulesetUrl = 'https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/spectral/calm-validation-rules.yaml';
+    const spectral = new Spectral();
+    spectral.setRuleset(await getRuleset(spectralRulesetUrl));
+    const issues = await spectral.run(jsonSchemaInstantiation);
+    if (issues !== undefined && issues.length !== 0) {
+        console.info('Spectral issues: ', issues);
+        if (issues.filter(issue => issue.severity === 0).length !== 0) {
+            //Exit with 1 if any of the Spectral issues is severity error 
+            process.exit(1);
+        }
     }
 }
 
 async function getFileFromUrlOrPath(input: string) {
     const urlPattern = new RegExp('^https?://');
     if (urlPattern.test(input)) {
-        return await getFileFromUrl(input);
-    } else {
-        return await getFileFromPath(input);
+        return await loadFileFromUrl(input);
     }
-}
-
-async function getFileFromUrl(fileUrl: string) {
-    try {
-        const res = await fetch(fileUrl);
-        const body = await res.json();
-        return body;
-    } catch {
-        console.error(`An issue occured while trying to retrieve JSON at ${fileUrl}`);
-        process.exit(1);
-    }
+    return await getFileFromPath(input);
 }
 
 async function getFileFromPath(filePath: string) {
-    if (existsSync(filePath)) {
-        const file = await fs.readFile(filePath, 'utf-8');
-        return JSON.parse(file);
-    } else {
-        console.error(`File could not be found at ${filePath}`);
-        process.exit(1);
+    if (!existsSync(filePath)) {
+        throw new Error(`File could not be found at ${filePath}`);
     }
+    const file = await fs.readFile(filePath, 'utf-8');
+    return JSON.parse(file);
 }
 
-async function runSpectralValidations(jsonSchemaInstantiation: any) {
-    const spectralRulesetUrl = "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/spectral/calm-validation-rules.yaml";
-    const spectral = new Spectral();
-    spectral.setRuleset(await getRuleset(spectralRulesetUrl));
-    const issues = await spectral.run(jsonSchemaInstantiation);
-    if (issues.length !== 0) {
-        console.log('Spectral issues: ', issues);
-        if (issues.filter(issue => issue.severity === 0).length !== 0) {
-            process.exit(1);
-        }
+async function loadFileFromUrl(fileUrl: string) {
+    const res = await fetch(fileUrl);
+    if (!res.ok) {
+        throw new Error(`The http request to ${fileUrl} did not succeed. Status code ${res.status}`);
     }
-}
-async function loadSchema(uri) {
-    try {
-        const res = await fetch(uri);
-        const body = await res.json();
-        return body;
-    } catch (error) {
-        console.error(`Error occured while trying to load the schema at ${uri}. Error : ${error.message}`);
-        process.exit(1);
-    }
+    const body = await res.json();
+    return body;
 }

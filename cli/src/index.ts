@@ -27,9 +27,9 @@ program
     });
 
 program
-    .command("validate")
-    .requiredOption("-p, --pattern <pattern>", "The location of the JSON Schema Pattern")
-    .requiredOption("-i, --instantiation <instantiation>", "The location of the instantiation of the Pattern")
-    .action(async (options)=> await validate(options.instantiation, options.pattern))
+    .command('validate')
+    .requiredOption('-p, --pattern <pattern>', 'The location of the JSON Schema Pattern')
+    .requiredOption('-i, --instantiation <instantiation>', 'The location of the instantiation of the Pattern')
+    .action(async (options)=> await validate(options.instantiation, options.pattern));
 
 program.parse(process.argv);
