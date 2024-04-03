@@ -21,7 +21,7 @@
       "interface": {
         "type": "string"
       },
-      "required": ["node", "interface"]
+      "required": ["node"]
     },
     "host-port-interface": {
       "ref": "#/defs/interface-type",
