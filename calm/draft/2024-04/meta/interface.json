@@ -13,6 +13,16 @@
       },
       "required": ["unique-id"]
     },
+    "node-interface": {
+      "type": "object",
+      "node": {
+        "type": "string"
+      },
+      "interface": {
+        "type": "string"
+      },
+      "required": ["node", "interface"]
+    },
     "host-port-interface": {
       "ref": "#/defs/interface-type",
       "properties": {

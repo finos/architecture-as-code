@@ -183,18 +183,18 @@
     },
     "connects-type": {
       "type": "object",
+      "properties": {
+        "source": {
+          "ref": "/interface/node-interface"
+        },
+        "destination": {
+          "ref": "/interface/node-interface"
+        }
+      },
       "required": [
         "source",
         "destination"
-      ],
-      "properties": {
-        "source": {
-          "type": "string"
-        },
-        "destination": {
-          "type": "string"
-        }
-      }
+      ]
     },
     "deployed-in-type": {
       "type": "object",
