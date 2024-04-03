@@ -40,6 +40,12 @@
         },
         "instance": {
           "type": "string"
+        },
+        "interfaces": {
+          "type": "array",
+          "items": {
+            "$ref": "/interface/interface-type"
+          }
         }
       },
       "required": [
