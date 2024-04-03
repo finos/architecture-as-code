@@ -1,7 +1,7 @@
 import { CALMManifest } from './Types';
 import { MermaidBuilder } from './MermaidBuilder.js';
 import mermaid, { Mermaid } from 'mermaid';
-import puppeteer, { Browser, Page } from 'puppeteer';
+import { chromium } from 'playwright';
 import path from 'path';
 import url from 'url';
 
@@ -41,29 +41,22 @@ export async function visualize(calmString: string): Promise<string> {
     mermaid.initialize({ startOnLoad: false });
 
     console.debug('Launching headless browser to render Mermaid');
-    const browser: Browser = await puppeteer.launch({
-        args: ['--no-sandbox', '--disable-web-security'],
-    });
+    
+    // setup
+    const browser = await chromium.launch();
+    const context = await browser.newContext();
+    const page = await context.newPage();
 
-    try {
-        const page: Page = await browser.newPage();
-        try {
-            page.on('console', (msg) => {
-                console.log(msg.text());
-            });
+    // navigate to page with mermaid preloaded
+    const __dirname = url.fileURLToPath(new url.URL('.', import.meta.url));
+    const mermaidHTMLPath = path.join(__dirname, '..', 'dist', 'index.html');
+    await page.goto(url.pathToFileURL(mermaidHTMLPath).href);
 
-            const __dirname = url.fileURLToPath(new url.URL('.', import.meta.url));
-            const mermaidHTMLPath = path.join(__dirname, '..', 'dist', 'index.html');
-            await page.goto(url.pathToFileURL(mermaidHTMLPath).href);
-            
-            console.log('Rendering the Mermaid string to SVG');
-            const svg = await page.$eval('#container', renderMermaid, mermaidString);
+    const svg = await page.$eval('#container', renderMermaid, mermaidString);
 
-            return svg;
-        } finally {
-            await page.close();
-        }
-    } finally {
-        await browser.close();
-    }
+    // teardown
+    await context.close();
+    await browser.close();
+
+    return svg;
 }

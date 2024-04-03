@@ -6,9 +6,10 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc && vite build && tsc && npm run copy-types-to-dist",
+    "build": "npm run setup-playwright && tsc && vite build && tsc && npm run copy-types-to-dist",
     "copy-types-to-dist": "cp src/index.d.ts dist/index.d.ts",
-    "package": "npm pack"
+    "package": "npm pack",
+    "setup-playwright": "playwright install"
   },
   "devDependencies": {
     "typescript": "^5.2.2",
@@ -17,6 +18,6 @@
   },
   "dependencies": {
     "mermaid": "^10.9.0",
-    "puppeteer": "^22.6.0"
+    "playwright": "^1.42.1"
   }
 }
