@@ -4,10 +4,11 @@ import { tmpdir } from 'node:os';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 
-const { 
+const {
     getPropertyValue,
     instantiateNodes,
     instantiateRelationships,
+    initLogger
 } = exportedForTesting;
 
 describe('getPropertyValue', () => {
@@ -59,25 +60,33 @@ describe('getPropertyValue', () => {
     });
 });
 
-describe('instantiateNodes', () => {
-    it('return instantiated node with array property', () => {
-        const pattern = {
-            properties: {
-                nodes: {
-                    type: 'array',
-                    prefixItems: [
-                        {
-                            properties: {
-                                'property-name': {
-                                    type: 'array'
-                                }
-                            }
-                        }
-                    ]
-                }
+function getSamplePatternNode(properties: any): any {
+    return {
+        properties: {
+            nodes: {
+                type: 'array',
+                prefixItems: [
+                    {
+                        properties: properties
+                    }
+                ]
             }
-        };
+        }
+    };
+}
 
+
+describe('instantiateNodes', () => {
+    beforeEach(() => {
+        initLogger(false);
+    })
+
+    it('return instantiated node with array property', () => {
+        const pattern = getSamplePatternNode({
+            'property-name': {
+                type: 'array'
+            }
+        })
         expect(instantiateNodes(pattern))
             .toEqual(
                 [{
@@ -89,22 +98,11 @@ describe('instantiateNodes', () => {
     });
 
     it('return instantiated node with string property', () => {
-        const pattern = {
-            properties: {
-                nodes: {
-                    type: 'array',
-                    prefixItems: [
-                        {
-                            properties: {
-                                'property-name': {
-                                    type: 'string'
-                                }
-                            }
-                        }
-                    ]
-                }
+        const pattern = getSamplePatternNode({
+            'property-name': {
+                type: 'string'
             }
-        };
+        })
 
         expect(instantiateNodes(pattern))
             .toEqual([
@@ -113,24 +111,13 @@ describe('instantiateNodes', () => {
                 }
             ]);
     });
-    
+
     it('return instantiated node with const property', () => {
-        const pattern = {
-            properties: {
-                nodes: {
-                    type: 'array',
-                    prefixItems: [
-                        {
-                            properties: {
-                                'property-name': {
-                                    const: 'value here'
-                                }
-                            }
-                        }
-                    ]
-                }
+        const pattern = getSamplePatternNode({
+            'property-name': {
+                const: 'value here'
             }
-        };
+        })
 
         expect(instantiateNodes(pattern))
             .toEqual([
@@ -141,24 +128,33 @@ describe('instantiateNodes', () => {
     });
 });
 
-describe('instantiateRelationships', () => {
-    it('return instantiated relationship with array property', () => {
-        const pattern = {
-            properties: {
-                relationships: {
-                    type: 'array',
-                    prefixItems: [
-                        {
-                            properties: {
-                                'property-name': {
-                                    type: 'array'
-                                }
-                            }
-                        }
-                    ]
-                }
+
+function getSamplePatternRelationship(properties: any): any {
+    return {
+        properties: {
+            relationships: {
+                type: 'array',
+                prefixItems: [
+                    {
+                        properties: properties
+                    }
+                ]
             }
-        };
+        }
+    };
+}
+
+describe('instantiateRelationships', () => {
+    beforeEach(() => {
+        initLogger(false);
+    })
+
+    it('return instantiated relationship with array property', () => {
+        const pattern = getSamplePatternRelationship({
+            'property-name': {
+                type: 'array'
+            }
+        })
 
         expect(instantiateRelationships(pattern))
             .toEqual(
@@ -171,22 +167,11 @@ describe('instantiateRelationships', () => {
     });
 
     it('return instantiated relationship with string property', () => {
-        const pattern = {
-            properties: {
-                relationships: {
-                    type: 'array',
-                    prefixItems: [
-                        {
-                            properties: {
-                                'property-name': {
-                                    type: 'string'
-                                }
-                            }
-                        }
-                    ]
-                }
+        const pattern = getSamplePatternRelationship({
+            'property-name': {
+                type: 'string'
             }
-        };
+        })
 
         expect(instantiateRelationships(pattern))
             .toEqual([
@@ -195,24 +180,13 @@ describe('instantiateRelationships', () => {
                 }
             ]);
     });
-    
+
     it('return instantiated relationship with const property', () => {
-        const pattern = {
-            properties: {
-                relationships: {
-                    type: 'array',
-                    prefixItems: [
-                        {
-                            properties: {
-                                'property-name': {
-                                    const: 'value here'
-                                }
-                            }
-                        }
-                    ]
-                }
+        const pattern = getSamplePatternRelationship({
+            'property-name': {
+                const: 'value here'
             }
-        };
+        })
 
         expect(instantiateRelationships(pattern))
             .toEqual([
@@ -251,7 +225,7 @@ describe('runGenerate', () => {
         expect(existsSync(outPath))
             .toBeTruthy();
     });
-    
+
     it('instantiates to calm instantiation file', () => {
         const outPath = path.join(tempDirectoryPath, 'output.json');
         runGenerate(testPath, outPath, false);
@@ -263,7 +237,7 @@ describe('runGenerate', () => {
         const parsed = JSON.parse(spec);
         expect(parsed)
             .toHaveProperty('nodes');
-        expect(parsed) 
+        expect(parsed)
             .toHaveProperty('relationships');
     });
 });

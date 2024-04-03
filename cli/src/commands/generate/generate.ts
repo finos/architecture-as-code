@@ -105,13 +105,7 @@ function instantiateRelationships(pattern: any): any {
     return outputRelationships;
 }
 
-export const exportedForTesting = {
-    getPropertyValue,
-    instantiateNodes,
-    instantiateRelationships,
-};
-
-export function runGenerate (patternPath: string, outputPath: string, debug: boolean): void {
+function initLogger(debug: boolean): void {
     const level = debug ? 'debug' : 'info';
     logger = winston.createLogger({
         transports: [
@@ -120,7 +114,17 @@ export function runGenerate (patternPath: string, outputPath: string, debug: boo
         level: level,
         format: winston.format.cli()
     });
+}
 
+export const exportedForTesting = {
+    getPropertyValue,
+    instantiateNodes,
+    instantiateRelationships,
+    initLogger
+};
+
+export function runGenerate (patternPath: string, outputPath: string, debug: boolean): void {
+    initLogger(debug);
 
     const pattern = loadFile(patternPath);
     const outputNodes = instantiateNodes(pattern);
