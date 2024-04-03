@@ -8,7 +8,6 @@ const {
     getPropertyValue,
     instantiateNodes,
     instantiateRelationships,
-    instantiateAdditionalTopLevelProperties
 } = exportedForTesting;
 
 describe('getPropertyValue', () => {
@@ -224,54 +223,6 @@ describe('instantiateRelationships', () => {
     });
 });
 
-describe('instantiateAdditionalTopLevelProperties', () => {
-    it('instantiate an additional top level array property', () => {
-        const pattern = {
-            properties: {
-                'extra-property': {
-                    type: 'array' 
-                }
-            }
-        };
-
-        expect(instantiateAdditionalTopLevelProperties(pattern))
-            .toEqual({
-                'extra-property': [
-                    '{{ EXTRA_PROPERTY }}'
-                ]
-            });
-    });
-    
-    it('instantiate an additional top level const property', () => {
-        const pattern = {
-            properties: {
-                'extra-property': {
-                    const: 'value here'
-                }
-            }
-        };
-
-        expect(instantiateAdditionalTopLevelProperties(pattern))
-            .toEqual({
-                'extra-property': 'value here'
-            });
-    });
-    
-    it('instantiate an additional top level string property', () => {
-        const pattern = {
-            properties: {
-                'extra-property': {
-                    'type': 'string'
-                }
-            }
-        };
-
-        expect(instantiateAdditionalTopLevelProperties(pattern))
-            .toEqual({
-                'extra-property': '{{ EXTRA_PROPERTY }}'
-            });
-    });
-});
 
 describe('runGenerate', () => {
     let tempDirectoryPath;
