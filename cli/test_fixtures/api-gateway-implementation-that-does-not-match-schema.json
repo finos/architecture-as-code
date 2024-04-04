@@ -1,0 +1,57 @@
+{
+  "$schema": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/pattern/api-gateway.json",
+  "nodes": [
+    {
+      "ingress-host": "{{ INGRESS_HOST }}",
+      "well-known-endpoint": "{{ WELL_KNOWN_ENDPOINT }}",
+      "name": "API Gateway",
+      "description": "The API Gateway used to verify authorization and access to downstream system",
+      "node-type": "system",
+      "unique-id": "api-gateway",
+      "ingress-port": "Wrong port type"
+    },
+    {
+      "unique-id": "api-consumer",
+      "node-type": "system",
+      "name": "Python Based API Consumer",
+      "description": "The API Consumer making an authenticated and authorized request"
+    },
+    {
+      "name": "Java Based API Producer",
+      "host": "{{ HOST }}",
+      "description": "The API Producer serving content",
+      "node-type": "system",
+      "port": -1,
+      "unique-id": "api-producer"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "api-consumer-api-gateway",
+      "relationship-type": {
+        "connects": {
+          "destination": "api-gateway",
+          "source": "api-consumer"
+        }
+      }
+    },
+    {
+      "unique-id": "api-gateway-idp",
+      "relationship-type": {
+        "connects": {
+          "destination": "idp",
+          "source": "api-gateway"
+        }
+      }
+    },
+    {
+      "unique-id": "api-gateway-api-producer",
+      "relationship-type": {
+        "connects": {
+          "destination": "api-producer",
+          "source": "api-gateway"
+        }
+      }
+    }
+  ]
+}

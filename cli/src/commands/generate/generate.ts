@@ -46,6 +46,30 @@ function getPropertyValue(keyName: string, detail: any) : any {
     }
 }
 
+function instantiateNodeInterfaces(detail: any): any[] {
+    const interfaces = [];
+    if (!('prefixItems' in detail)) {
+        console.error('No items in interfaces block.');
+        return [];
+    }
+
+    const interfaceDefs = detail.prefixItems;
+    for (const interfaceDef of interfaceDefs) {
+        if (!('properties' in interfaceDef)) {
+            continue;
+        }
+
+        const out = {};
+        for (const [key, detail] of Object.entries(interfaceDef['properties'])) {
+            out[key] = getPropertyValue(key, detail);
+        }
+
+        interfaces.push(out);
+    }
+
+    return interfaces;
+}
+
 function instantiateNodes(pattern: any): any {
     const nodes = pattern?.properties?.nodes?.prefixItems;
     if (!nodes) {
@@ -64,7 +88,13 @@ function instantiateNodes(pattern: any): any {
 
         const out = {};
         for (const [key, detail] of Object.entries(node['properties'])) {
-            out[key] = getPropertyValue(key, detail);
+            if (key === 'interfaces') {
+                const interfaces = instantiateNodeInterfaces(detail);
+                out['interfaces'] = interfaces;
+            }
+            else {
+                out[key] = getPropertyValue(key, detail);
+            }
         }
 
         outputNodes.push(out);
@@ -91,12 +121,7 @@ function instantiateRelationships(pattern: any): any {
 
         const out = {};
         for (const [key, detail] of Object.entries(relationship['properties'])) {
-            if (key === 'relationship-type') {
-                out[key] = getPropertyValue(key, detail);
-            }
-            else {
-                out[key] = getPropertyValue(key, detail);
-            }
+            out[key] = getPropertyValue(key, detail);
         }
 
         outputRelationships.push(out);
@@ -120,6 +145,7 @@ export const exportedForTesting = {
     getPropertyValue,
     instantiateNodes,
     instantiateRelationships,
+    instantiateNodeInterfaces,
     initLogger
 };
 
