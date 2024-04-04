@@ -60,9 +60,9 @@ async function runSpectralValidations(jsonSchemaInstantiation: string) {
     const spectral = new Spectral();
     spectral.setRuleset(await getRuleset('../spectral/calm-validation-rules.yaml'));
     const issues = await spectral.run(jsonSchemaInstantiation);
-    if (issues !== undefined && issues.length !== 0) {
+    if (issues && issues.length > 0) {
         console.info('Spectral issues: ', issues);
-        if (issues.filter(issue => issue.severity === 0).length !== 0) {
+        if (issues.filter(issue => issue.severity === 0).length > 0) {
             //Exit with 1 if any of the Spectral issues is an error
             process.exit(1);
         }
@@ -70,7 +70,7 @@ async function runSpectralValidations(jsonSchemaInstantiation: string) {
 }
 
 async function getFileFromUrlOrPath(input: string) {
-    const urlPattern = new RegExp('^https?://');
+    const urlPattern = /^https?:\/\//;
     if (urlPattern.test(input)) {
         return await loadFileFromUrl(input);
     }

@@ -35,7 +35,7 @@ describe('validate', () => {
     });
 
 
-    it('The JSON Schema pattern cannot be found in set path', async () => {
+    it('exits with error when the JSON Schema pattern cannot be found in the input path', async () => {
         await expect(validate('../test_fixtures/api-gateway-implementation.json', 'thisFolderDoesNotExist/api-gateway.json', metaSchemaLocation))
             .rejects
             .toThrow();
@@ -43,7 +43,7 @@ describe('validate', () => {
         expect(mockExit).toHaveBeenCalledWith(1);
     });
 
-    it('The pattern instantiation file cannot be found in set path', async () => {
+    it('exits with error when the pattern instantiation file cannot be found in the input path', async () => {
         await expect(validate('../doesNotExists/api-gateway-implementation.json', 'test_fixtures/api-gateway.json', metaSchemaLocation))
             .rejects
             .toThrow();
@@ -51,7 +51,7 @@ describe('validate', () => {
         expect(mockExit).toHaveBeenCalledWith(1);
     });
 
-    it('The pattern instantiation file does not contain JSON', async () => {
+    it('exits with error when the pattern instantiation file does not contain JSON', async () => {
         await expect(validate('test_fixtures/api-gateway-implementation.json', 'test_fixtures/markdown.md', metaSchemaLocation))
             .rejects
             .toThrow();
@@ -59,7 +59,7 @@ describe('validate', () => {
         expect(mockExit).toHaveBeenCalledWith(1);
     });
 
-    it('The JSON Schema pattern URL returns a 404', async () => {
+    it('exits with error when the JSON Schema pattern URL returns a 404', async () => {
         fetchMock.mock('http://does-not-exist/api-gateway.json', 404);
 
         await expect(validate('https://does-not-exist/api-gateway-implementation.json', 'http://does-not-exist/api-gateway.json', metaSchemaLocation))
@@ -70,7 +70,7 @@ describe('validate', () => {
         fetchMock.restore();
     });
 
-    it('The pattern instantiation URL returns a 404', async () => {
+    it('exits with error when the pattern instantiation URL returns a 404', async () => {
         const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
 
         fetchMock.mock('http://exist/api-gateway.json', apiGateway);
@@ -84,7 +84,7 @@ describe('validate', () => {
         fetchMock.restore();
     });
 
-    it('The pattern instantiation file at given URL returns non JSON response', async () => {
+    it('exits with error when the pattern instantiation file at given URL returns non JSON response', async () => {
         const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
 
         const markdown = ' #This is markdown';
@@ -100,7 +100,7 @@ describe('validate', () => {
     });
 
 
-    it('The pattern instantiation does not match the json schema', async () => {
+    it('exits with error when the pattern instantiation does not match the json schema', async () => {
         const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
         
 
@@ -116,7 +116,7 @@ describe('validate', () => {
         fetchMock.restore();
     });
 
-    it('The pattern instantiation does not pass all the spectral rules', async () => {
+    it('exits with error when the pattern instantiation does not pass all the spectral validations', async () => {
 
         const expectedSpectralOutput: ISpectralDiagnostic[] = [
             {
@@ -144,7 +144,7 @@ describe('validate', () => {
         fetchMock.restore();
     });
 
-    it('The meta schema location is not a directory', async () => {
+    it('exits with error when the meta schema location is not a directory', async () => {
         await expect(validate('https://url/with/non/json/response', 'http://exist/api-gateway.json', 'test_fixtures/api-gateway.json'))
             .rejects
             .toThrow();
@@ -152,7 +152,7 @@ describe('validate', () => {
         expect(mockExit).toHaveBeenCalledWith(1);
     });
 
-    it('The pattern instantiation validates against the pattern json schema', async () => {
+    it('complete successfully when the pattern instantiation validates against the pattern json schema', async () => {
         const mockExit = jest.spyOn(process, 'exit')
             .mockImplementation((code) => {
                 if (code != 0) {
