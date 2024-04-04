@@ -63,7 +63,7 @@ async function runSpectralValidations(jsonSchemaInstantiation: string) {
     if (issues !== undefined && issues.length !== 0) {
         console.info('Spectral issues: ', issues);
         if (issues.filter(issue => issue.severity === 0).length !== 0) {
-            //Exit with 1 if any of the Spectral issues is severity error 
+            //Exit with 1 if any of the Spectral issues is an error
             process.exit(1);
         }
     }
@@ -75,10 +75,6 @@ async function getFileFromUrlOrPath(input: string) {
         return await loadFileFromUrl(input);
     }
     return await getFileFromPath(input);
-}
-
-async function getSpectralRulest(location: string) {
-    return await fs.readFile(location, 'utf-8');
 }
 
 async function getFileFromPath(filePath: string) {
