@@ -1,5 +1,5 @@
 import Ajv2020 from 'ajv/dist/2020.js';
-import { access, existsSync, promises as fs, readFileSync, readdirSync, statSync } from 'fs';
+import { existsSync, promises as fs, readFileSync, readdirSync, statSync } from 'fs';
 import pkg from '@stoplight/spectral-core';
 const { Spectral } = pkg;
 import { getRuleset } from '@stoplight/spectral-cli/dist/services/linter/utils/getRuleset.js';
@@ -35,7 +35,7 @@ export default async function validate(jsonSchemaInstantiationLocation: string, 
 }
 
 function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
-    console.log(`Loading meta schema(s) from ${metaSchemaLocation}`)
+    console.log(`Loading meta schema(s) from ${metaSchemaLocation}`);
 
     if (!statSync(metaSchemaLocation).isDirectory()) {
         throw new Error(`The metaSchemaLocation: ${metaSchemaLocation} is not a directory`);
@@ -49,14 +49,14 @@ function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
 
     filenames.forEach(filename => {
         if (filename.endsWith('.json')) {
-            console.log("Adding meta schema : " + filename);
-            const meta = JSON.parse(readFileSync(metaSchemaLocation + "/" + filename, 'utf8'));
+            console.log('Adding meta schema : ' + filename);
+            const meta = JSON.parse(readFileSync(metaSchemaLocation + '/' + filename, 'utf8'));
             ajv.addMetaSchema(meta);
         }
     });
 }
 
-async function runSpectralValidations(jsonSchemaInstantiation: any) {
+async function runSpectralValidations(jsonSchemaInstantiation: string) {
     const spectralRulesetUrl = 'https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/spectral/calm-validation-rules.yaml';
     const spectral = new Spectral();
     spectral.setRuleset(await getRuleset(spectralRulesetUrl));
