@@ -4,15 +4,15 @@ import pkg from '@stoplight/spectral-core';
 const { Spectral } = pkg;
 import { getRuleset } from '@stoplight/spectral-cli/dist/services/linter/utils/getRuleset.js';
 
-export default async function validate(jsonSchemaInstantiationLocation: string, jsonSchemaPath: string, metaSchemaLocation: string) {
+export default async function validate(jsonSchemaInstantiationLocation: string, jsonSchemaLocation: string, metaSchemaPath: string) {
     let exitCode = 0;
     try {
         const ajv = new Ajv2020({ strict: false });
 
-        loadMetaSchemas(ajv, metaSchemaLocation);
+        loadMetaSchemas(ajv, metaSchemaPath);
 
-        console.info(`Loading pattern from : ${jsonSchemaPath}`);
-        const jsonSchema = await getFileFromUrlOrPath(jsonSchemaPath);
+        console.info(`Loading pattern from : ${jsonSchemaLocation}`);
+        const jsonSchema = await getFileFromUrlOrPath(jsonSchemaLocation);
 
         console.info(`Loading pattern instantiation from : ${jsonSchemaInstantiationLocation}`);
         const jsonSchemaInstantiation = await getFileFromUrlOrPath(jsonSchemaInstantiationLocation);
@@ -57,9 +57,8 @@ function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
 }
 
 async function runSpectralValidations(jsonSchemaInstantiation: string) {
-    const spectralRulesetUrl = 'https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/spectral/calm-validation-rules.yaml';
     const spectral = new Spectral();
-    spectral.setRuleset(await getRuleset(spectralRulesetUrl));
+    spectral.setRuleset(await getRuleset('../spectral/calm-validation-rules.yaml'));
     const issues = await spectral.run(jsonSchemaInstantiation);
     if (issues !== undefined && issues.length !== 0) {
         console.info('Spectral issues: ', issues);
@@ -76,6 +75,10 @@ async function getFileFromUrlOrPath(input: string) {
         return await loadFileFromUrl(input);
     }
     return await getFileFromPath(input);
+}
+
+async function getSpectralRulest(location: string) {
+    return await fs.readFile(location, 'utf-8');
 }
 
 async function getFileFromPath(filePath: string) {
