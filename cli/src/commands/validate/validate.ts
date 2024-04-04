@@ -1,5 +1,5 @@
 import Ajv2020 from 'ajv/dist/2020.js';
-import { access, existsSync, promises as fs, readFileSync, readdirSync } from 'fs';
+import { access, existsSync, promises as fs, readFileSync, readdirSync, statSync } from 'fs';
 import pkg from '@stoplight/spectral-core';
 const { Spectral } = pkg;
 import { getRuleset } from '@stoplight/spectral-cli/dist/services/linter/utils/getRuleset.js';
@@ -7,7 +7,7 @@ import { getRuleset } from '@stoplight/spectral-cli/dist/services/linter/utils/g
 export default async function validate(jsonSchemaInstantiationLocation: string, jsonSchemaPath: string, metaSchemaLocation: string) {
     let exitCode = 0;
     try {
-        const ajv = new Ajv2020({ strict: false});
+        const ajv = new Ajv2020({ strict: false });
 
         loadMetaSchemas(ajv, metaSchemaLocation);
 
@@ -36,12 +36,24 @@ export default async function validate(jsonSchemaInstantiationLocation: string, 
 
 function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
     console.log(`Loading meta schema(s) from ${metaSchemaLocation}`)
-    readdirSync(metaSchemaLocation)
-        .forEach(filename => {
+
+    if (!statSync(metaSchemaLocation).isDirectory()) {
+        throw new Error(`The metaSchemaLocation: ${metaSchemaLocation} is not a directory`);
+    }
+
+    const filenames = readdirSync(metaSchemaLocation);
+
+    if (filenames.length === 0) {
+        throw new Error(`The metaSchemaLocation: ${metaSchemaLocation} is an empty directory`);
+    }
+
+    filenames.forEach(filename => {
+        if (filename.endsWith('.json')) {
             console.log("Adding meta schema : " + filename);
             const meta = JSON.parse(readFileSync(metaSchemaLocation + "/" + filename, 'utf8'));
             ajv.addMetaSchema(meta);
-        });
+        }
+    });
 }
 
 async function runSpectralValidations(jsonSchemaInstantiation: any) {
