@@ -17,7 +17,7 @@ npm run build
 npm run package
 ```
 
-This will output a file called `calm-visualizer-<version>.tgz` which you can then import into a project to use.
+This will output a file called `finos-calm-visualizer-<version>.tgz` which you can then import into a project to use.
 
 The library exports a single function called `visualize` which takes a string that represents the file containing the CALM specification, and outputs an svg file with the visualization.
 

@@ -10,17 +10,20 @@ program
 
 program
     .command('visualize')
-    .requiredOption('-i, --input <file>', 'The full path to the CALM Specification.')
-    .requiredOption('-o, --output <file>', 'The name of the file to output the SVG in.', 'calm-visualization.svg')
     .description('Produces an SVG file representing a visualization of the CALM Specification.')
-    .action(visualize);
+    .requiredOption('-i, --instantiation <file>', 'Path to an instantiation of a CALM pattern.')
+    .requiredOption('-o, --output <file>', 'Path location at which to output the SVG.', 'calm-visualization.svg')
+    .option('-v, --verbose', 'Enable verbose logging.', false)
+    .action((options) => { 
+        visualize(options.instantiation, options.output, !!options.verbose);
+    });
 
 program
     .command('generate')
     .description('Generate an instantiation from a CALM pattern file.')
     .requiredOption('-p, --pattern <source>', 'Path to the pattern file to use. May be a file path or a URL.')
     .requiredOption('-o, --output <output>', 'Path location at which to output the generated file.')
-    .option('-v, --verbose', 'Enable verbose logging.')
+    .option('-v, --verbose', 'Enable verbose logging.', false)
     .action((options) => {
         runGenerate(options.pattern, options.output, !!options.verbose);
     });
