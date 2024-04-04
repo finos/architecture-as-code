@@ -44,7 +44,7 @@
         "interfaces": {
           "type": "array",
           "items": {
-            "$ref": "/interface/interface-type"
+            "$ref": "interface.json#/defs/interface-type"
           }
         }
       },
