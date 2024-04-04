@@ -4,8 +4,8 @@
 export default (input, _, context) => {
     let nodeName = input;
     let relationshipLabels = context.document.data.relationships?.map(relationship => [
-        relationship?.["relationship-type"]?.connects?.source, 
-        relationship?.["relationship-type"]?.connects?.destination, 
+        relationship?.["relationship-type"]?.connects?.source?.node, 
+        relationship?.["relationship-type"]?.connects?.destination?.node, 
         relationship?.["relationship-type"]?.interacts?.actor,
         relationship?.["relationship-type"]?.interacts?.nodes,
         relationship?.["relationship-type"]?.["composed-of"]?.container,
