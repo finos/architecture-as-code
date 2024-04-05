@@ -151,8 +151,12 @@
       "description": "Web client interacts with the Web GUI process.",
       "relationship-type": {
         "connects": {
-          "source": "web-client",
-          "destination": "web-gui-process"
+          "source": {
+            "node": "web-client"
+          },
+          "destination": {
+            "node": "web-gui-process"
+          }
         }
       },
       "protocol": "HTTPS"
@@ -162,8 +166,12 @@
       "description": "Load positions for account.",
       "relationship-type": {
         "connects": {
-          "source": "web-gui-process",
-          "destination": "position-service"
+          "source": {
+            "node": "web-gui-process"
+          },
+          "destination": {
+            "node": "position-service"
+          }
         }
       },
       "protocol": "HTTPS"
@@ -173,8 +181,12 @@
       "description": "Load trades for account.",
       "relationship-type": {
         "connects": {
-          "source": "web-gui-process",
-          "destination": "position-service"
+          "source": {
+            "node": "web-gui-process"
+          },
+          "destination": {
+            "node": "position-service"
+          }
         }
       },
       "protocol": "HTTPS"
@@ -184,8 +196,12 @@
       "description": "Looks up default positions for a given account.",
       "relationship-type": {
         "connects": {
-          "source": "position-service",
-          "destination": "traderx-db"
+          "source": {
+            "node": "position-service"
+          },
+          "destination": {
+            "node": "traderx-db"
+          }
         }
       },
       "protocol": "JDBC"
@@ -195,8 +211,12 @@
       "description": "Looks up all trades for a given account.",
       "relationship-type": {
         "connects": {
-          "source": "position-service",
-          "destination": "traderx-db"
+          "source": {
+            "node": "position-service"
+          },
+          "destination": {
+            "node": "traderx-db"
+          }
         }
       },
       "protocol": "JDBC"
@@ -258,8 +278,12 @@
       "description": "Looks up securities to assist with creating a trade ticket.",
       "relationship-type": {
         "connects": {
-          "source": "web-gui-process",
-          "destination": "reference-data-service"
+          "source": {
+            "node": "web-gui-process"
+          },
+          "destination": {
+            "node": "reference-data-service"
+          }
         }
       },
       "protocol": "HTTPS"
@@ -269,8 +293,12 @@
       "description": "Creates new trades and cancels existing trades.",
       "relationship-type": {
         "connects": {
-          "source": "web-gui-process",
-          "destination": "trading-services"
+          "source": {
+            "node": "web-gui-process"
+          },
+          "destination": {
+            "node": "trading-services"
+          }
         }
       },
       "protocol": "HTTPS"
@@ -280,8 +308,12 @@
       "description": "Subscribes to trade/position updates feed for currently viewed account.",
       "relationship-type": {
         "connects": {
-          "source": "web-gui-process",
-          "destination": "trade-feed"
+          "source": {
+            "nodes": "web-gui-process"
+          },
+          "destination": {
+            "nodes": "trade-feed"
+          }
         }
       },
       "protocol": "WebSocket"
@@ -291,8 +323,12 @@
       "description": "Processes incoming trade requests, persist and publish updates.",
       "relationship-type": {
         "connects": {
-          "source": "trade-processor",
-          "destination": "trade-feed"
+          "source": {
+            "nodes": "trade-processor"
+          },
+          "destination": {
+            "nodes": "trade-feed"
+          }
         }
       },
       "protocol": "SocketIO"
@@ -302,8 +338,12 @@
       "description": "Looks up current positions when bootstrapping state, persist trade state and position state.",
       "relationship-type": {
         "connects": {
-          "source": "trade-processor",
-          "destination": "traderx-db"
+          "source": {
+            "nodes": "trade-processor"
+          },
+          "destination": {
+            "nodes": "traderx-db"
+          }
         }
       },
       "protocol": "JDBC"
@@ -313,8 +353,12 @@
       "description": "Creates/Updates accounts. Gets list of accounts.",
       "relationship-type": {
         "connects": {
-          "source": "web-gui-process",
-          "destination": "accounts-service"
+          "source": {
+            "nodes": "web-gui-process"
+          },
+          "destination": {
+            "nodes": "accounts-service"
+          }
         }
       },
       "protocol": "HTTPS"
@@ -324,8 +368,12 @@
       "description": "Looks up people data based on typeahead from GUI.",
       "relationship-type": {
         "connects": {
-          "source": "web-gui-process",
-          "destination": "people-service"
+          "source": {
+            "nodes": "web-gui-process"
+          },
+          "destination": {
+            "nodes": "people-service"
+          }
         }
       },
       "protocol": "HTTPS"
@@ -335,8 +383,12 @@
       "description": "Looks up people data.",
       "relationship-type": {
         "connects": {
-          "source": "people-service",
-          "destination": "user-directory"
+          "source": {
+            "nodes": "people-service"
+          },
+          "destination": {
+            "nodes": "user-directory"
+          }
         }
       },
       "protocol": "LDAP"
@@ -346,33 +398,45 @@
       "description": "Validates securities when creating trades.",
       "relationship-type": {
         "connects": {
-          "source": "trading-services",
-          "destination": "reference-data-service"
-        },
-        "protocol": "HTTPS"
-      }
+          "source": {
+            "nodes": "trading-services"
+          },
+          "destination": {
+            "nodes": "reference-data-service"
+          }
+        }
+      },
+      "protocol": "HTTPS"
     },
     {
       "unique-id": "trading-services-uses-trade-feed",
       "description": "Publishes updates to trades and positions after persisting in the DB.",
       "relationship-type": {
         "connects": {
-          "source": "trading-services",
-          "destination": "trade-feed"
-        },
-        "protocol": "HTTPS"
-      }
+          "source": {
+            "nodes": "trading-services"
+          },
+          "destination": {
+            "nodes": "trade-feed"
+          }
+        }
+      },
+      "protocol": "HTTPS"
     },
     {
       "unique-id": "trading-services-uses-account-service",
       "description": "Validates accounts when creating trades.",
       "relationship-type": {
         "connects": {
-          "source": "trading-services",
-          "destination": "accounts-service"
-        },
-        "protocol": "HTTPS"
-      }
+          "source": {
+            "nodes": "trading-services"
+          },
+          "destination": {
+            "nodes": "accounts-service"
+          }
+        }
+      },
+      "protocol": "HTTPS"
     }
   ]
 }
