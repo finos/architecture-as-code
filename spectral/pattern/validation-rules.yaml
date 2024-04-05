@@ -1,0 +1,93 @@
+functions: 
+  - node-id-exists
+  - interface-id-exists
+  - node-has-relationship
+  - numerical-placeholder
+
+rules:
+  has-nodes-relationships:
+    description: "Has key top level nodes"
+    message: Should have nodes and relationships at top level
+    severity: error
+    given: "$.properties"
+    then:
+      - field: nodes
+        function: truthy
+      - field: relationships
+        function: truthy
+  
+  no-empty-properties:
+    description: Must not contain string properties set to the empty string or numerical properties set to zero
+    message: All properties must be set to a nonempty, nonzero value.
+    severity: error
+    given: "$..*"
+    then:
+      function: truthy
+
+  
+  no-placeholder-properties-numerical:
+    description: Should not contain numerical placeholder properties set to -1
+    message: Numerical placeholder (-1) detected in instantiated pattern.
+    severity: warn
+    given: "$..*"
+    then:
+      function: numerical-placeholder
+      
+  
+  no-placeholder-properties-string:
+    description: Should not contain placeholder values with pattern {{ PLACEHOLDER_NAME }}
+    message: String placeholder detected in instantiated pattern.
+    severity: warn
+    given: "$..*"
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: "^{{\\s*[A-Z_]+\\s*}}$"
+
+  relationship-references-existing-nodes:
+    description: Relationships with const properties must reference existing nodes.
+    severity: error 
+    message: "{{error}}"
+    given: "$.properties.relationships.prefixItems[*].properties.relationship-type.*"
+    then:
+      # only container and actor are in scope, since source/destination use interfaces now
+      - field: actor
+        function: node-id-exists
+      - field: container 
+        function: node-id-exists
+
+  # connects-relationship-references-existing-nodes:
+  #   description: Connects relationships must reference existing nodes.
+  #   severity: error 
+  #   message: "{{error}}"
+  #   given: "$.relationships[*].relationship-type.connects.*" # both source and destination
+  #   then:
+  #     # node uses the interface structure so has a sub object
+  #     - field: node
+  #       function: node-id-exists
+
+  # referenced-interfaces-defined:
+  #   description: Referenced interfaces must be defined 
+  #   severity: error 
+  #   message: "{{error}}"
+  #   given: "$.relationships[*].relationship-type.connects.*" # both source and destination
+  #   then:
+  #     # node uses the interface structure so has a sub object
+  #     - field: interface
+  #       function: interface-id-exists
+  
+  # composition-relationships-reference-existing-nodes:
+  #   description: All nodes in a composition relationship must reference existing nodes.
+  #   severity: error 
+  #   message: "{{error}}"
+  #   given: "$.relationships[*].relationship-type.*.nodes[*]"
+  #   then:
+  #     function: node-id-exists
+
+  # nodes-must-be-referenced:
+  #   description: Nodes must be referenced by at least one relationship.
+  #   severity: warn
+  #   message: "{{error}}"
+  #   given: "$.nodes[*].unique-id"
+  #   then:
+  #     function: node-has-relationship
