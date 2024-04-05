@@ -3,6 +3,7 @@
 import { program } from 'commander';
 import visualize from './commands/visualize/visualize.js';
 import { runGenerate } from './commands/generate/generate.js';
+import validate  from './commands/validate/validate.js';
 
 program
     .version('0.1.0')
@@ -27,5 +28,12 @@ program
     .action((options) => {
         runGenerate(options.pattern, options.output, !!options.verbose);
     });
+
+program
+    .command('validate')
+    .requiredOption('-p, --pattern <pattern>', 'Path to the pattern file to use. May be a file path or a URL.')
+    .requiredOption('-i, --instantiation <instantiation>', 'Path to the pattern instantiation file to use. May be a file path or a URL.')
+    .option('-m, --metaSchemasLocation <metaSchemaLocation>', 'The location of the directory of the meta schemas to be loaded', '../calm/draft/2024-03/meta')
+    .action(async (options)=> await validate(options.instantiation, options.pattern, options.metaSchemasLocation));
 
 program.parse(process.argv);
