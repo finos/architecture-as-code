@@ -1,5 +1,0 @@
-{
-    "yaml.schemas": {
-        "https://json.schemastore.org/yamllint.json": "file:///home/will/code/architecture-as-code/spectral/instantiation/validation-rules.yaml"
-    }
-}
