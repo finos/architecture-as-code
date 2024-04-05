@@ -1,8 +1,11 @@
 {
-  "name": "cli",
+  "name": "@finos/calm-cli",
   "version": "1.0.0",
   "description": "",
   "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "jest --verbose",
@@ -16,10 +19,10 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@finos/calm-visualizer": "file:../visualizer/finos-calm-visualizer-0.1.0.tgz",
     "@stoplight/spectral-cli": "^6.11.0",
     "@stoplight/spectral-core": "^1.18.3",
     "ajv": "^8.12.0",
-    "calm-visualizer": "file:../visualizer/calm-visualizer-0.1.0.tgz",
     "commander": "^12.0.0",
     "fetch-mock": "^9.11.0",
     "mkdirp": "^3.0.1",

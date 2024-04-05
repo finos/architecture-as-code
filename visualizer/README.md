@@ -4,7 +4,7 @@ This tool will take a CALM specification and convert the nodes and relationships
 It then renders the Mermaid string into an SVG and outputs the file, which you can then open in a browser to view for example.
 
 In order to render Mermaid, we need to have a browser context which isn't usually available in a Node environment.
-The way we achieve this is by using the [Puppeteer](https://pptr.dev) library to create a headless browser in the background to render the Mermaid.
+The way we achieve this is by using the [Playwright](https://playwright.dev) library to create a headless browser in the background to render the Mermaid.
 
 ## Getting Started
 
@@ -17,7 +17,7 @@ npm run build
 npm run package
 ```
 
-This will output a file called `calm-visualizer-<version>.tgz` which you can then import into a project to use.
+This will output a file called `finos-calm-visualizer-<version>.tgz` which you can then import into a project to use.
 
 The library exports a single function called `visualize` which takes a string that represents the file containing the CALM specification, and outputs an svg file with the visualization.
 
