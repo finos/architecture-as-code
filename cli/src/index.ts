@@ -34,6 +34,7 @@ program
     .requiredOption('-p, --pattern <pattern>', 'Path to the pattern file to use. May be a file path or a URL.')
     .requiredOption('-i, --instantiation <instantiation>', 'Path to the pattern instantiation file to use. May be a file path or a URL.')
     .option('-m, --metaSchemasLocation <metaSchemaLocation>', 'The location of the directory of the meta schemas to be loaded', '../calm/draft/2024-03/meta')
-    .action(async (options)=> await validate(options.instantiation, options.pattern, options.metaSchemasLocation));
+    .option('-v, --verbose', 'Enable verbose logging.', false)
+    .action(async (options)=> await validate(options.instantiation, options.pattern, options.metaSchemasLocation, options.verbose));
 
 program.parse(process.argv);

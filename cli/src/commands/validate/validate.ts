@@ -3,39 +3,56 @@ import { existsSync, promises as fs, readFileSync, readdirSync, statSync } from 
 import pkg from '@stoplight/spectral-core';
 const { Spectral } = pkg;
 import { getRuleset } from '@stoplight/spectral-cli/dist/services/linter/utils/getRuleset.js';
+import * as winston from 'winston';
 
-export default async function validate(jsonSchemaInstantiationLocation: string, jsonSchemaLocation: string, metaSchemaPath: string) {
+let logger: winston.Logger; // defined later at startup
+
+export default async function validate(jsonSchemaInstantiationLocation: string, jsonSchemaLocation: string, metaSchemaPath: string, debug: boolean) {
+    initLogger(debug);
     let exitCode = 0;
     try {
         const ajv = new Ajv2020({ strict: false });
 
         loadMetaSchemas(ajv, metaSchemaPath);
 
-        console.info(`Loading pattern from : ${jsonSchemaLocation}`);
+        logger.info(`Loading pattern from : ${jsonSchemaLocation}`);
         const jsonSchema = await getFileFromUrlOrPath(jsonSchemaLocation);
 
-        console.info(`Loading pattern instantiation from : ${jsonSchemaInstantiationLocation}`);
+        logger.info(`Loading pattern instantiation from : ${jsonSchemaInstantiationLocation}`);
         const jsonSchemaInstantiation = await getFileFromUrlOrPath(jsonSchemaInstantiationLocation);
 
         const validateSchema = ajv.compile(jsonSchema);
 
         if (!validateSchema(jsonSchemaInstantiation)) {
-            console.error('The instantiation does not match the JSON schema pattern. Errors: ', validateSchema.errors);
+            logger.error(`The instantiation does not match the JSON schema pattern. Errors: ${prettifyJson(validateSchema.errors)}'`);
             exitCode = 1;
         } else {
-            console.info('The schema instantiation matches the json schema');
+            logger.info('The schema instantiation matches the json schema');
         }
 
         await runSpectralValidations(jsonSchemaInstantiation);
     } catch (error) {
-        console.error(`An error occured: ${error}`);
+        logger.error(`An error occured: ${error}`);
         process.exit(1);
     }
     process.exit(exitCode);
 }
 
+function initLogger(debug: boolean): void {
+    const level = debug ? 'debug' : 'info';
+    logger = winston.createLogger({
+        transports: [
+            new winston.transports.Console()
+        ],
+        level: level,
+        format: winston.format.combine(
+            winston.format.cli(),
+        )
+    });
+}
+
 function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
-    console.log(`Loading meta schema(s) from ${metaSchemaLocation}`);
+    logger.info(`Loading meta schema(s) from ${metaSchemaLocation}`);
 
     if (!statSync(metaSchemaLocation).isDirectory()) {
         throw new Error(`The metaSchemaLocation: ${metaSchemaLocation} is not a directory`);
@@ -49,7 +66,7 @@ function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
 
     filenames.forEach(filename => {
         if (filename.endsWith('.json')) {
-            console.log('Adding meta schema : ' + filename);
+            logger.info('Adding meta schema : ' + filename);
             const meta = JSON.parse(readFileSync(metaSchemaLocation + '/' + filename, 'utf8'));
             ajv.addMetaSchema(meta);
         }
@@ -61,7 +78,7 @@ async function runSpectralValidations(jsonSchemaInstantiation: string) {
     spectral.setRuleset(await getRuleset('../spectral/calm-validation-rules.yaml'));
     const issues = await spectral.run(jsonSchemaInstantiation);
     if (issues && issues.length > 0) {
-        console.info('Spectral issues: ', issues);
+        logger.info(`Spectral issues: ${prettifyJson(issues)}`);
         if (issues.filter(issue => issue.severity === 0).length > 0) {
             //Exit with 1 if any of the Spectral issues is an error
             process.exit(1);
@@ -92,4 +109,8 @@ async function loadFileFromUrl(fileUrl: string) {
     }
     const body = await res.json();
     return body;
+}
+
+function prettifyJson(json){
+    return JSON.stringify(json, null, 4);
 }
