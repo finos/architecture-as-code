@@ -46,6 +46,9 @@
           "items": {
             "$ref": "interface.json#/defs/interface-type"
           }
+        },
+        "detailed-architecture": {
+          "$ref": "#"
         }
       },
       "required": [
