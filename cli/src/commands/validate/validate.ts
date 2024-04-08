@@ -66,7 +66,7 @@ function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
 
     filenames.forEach(filename => {
         if (filename.endsWith('.json')) {
-            logger.info('Adding meta schema : ' + filename);
+            logger.debug('Adding meta schema : ' + filename);
             const meta = JSON.parse(readFileSync(metaSchemaLocation + '/' + filename, 'utf8'));
             ajv.addMetaSchema(meta);
         }
