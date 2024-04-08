@@ -1,17 +1,16 @@
 package org.finos.calmtranslator.translators;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import com.structurizr.Workspace;
 import com.structurizr.model.Container;
 import com.structurizr.model.Model;
 import com.structurizr.model.Person;
 import com.structurizr.model.SoftwareSystem;
+import org.finos.calmtranslator.calm.ComposedOfType;
 import org.finos.calmtranslator.calm.ConnectsType;
 import org.finos.calmtranslator.calm.Core;
 import org.finos.calmtranslator.calm.InteractsType;
@@ -23,30 +22,20 @@ import org.slf4j.LoggerFactory;
 
 import org.springframework.stereotype.Service;
 /**
- * Convert CALM to a C4 Model
+ *
  */
 @Service
 public class C4ModelTranslator implements ModelTranslator<Workspace> {
 
 	private static final Logger LOG = LoggerFactory.getLogger(C4ModelTranslator.class);
 
-	private Core calmModel;
-	private SoftwareSystem softwareSystem;
-
 	@Override
 	public Workspace translate(final Core calmModel) {
-		this.calmModel = calmModel;
-		final Workspace c4Workspace = new Workspace("calm-to-c4", "calm to c4");
+		final Workspace c4Workspace = new Workspace("calm-to-c4", "CALM model to c4 model");
 		final Model c4Model = c4Workspace.getModel();
-		Map<String, String> nodeNameToC4Id = new HashMap<>();
-		final Map<Node, List<Node>> systemMap = this.getSystemNodeRelationships(calmModel);
-		systemMap.forEach((systemNode, relationshipNodes) -> {
-			this.softwareSystem = c4Model.addSoftwareSystem(systemNode.getName(), systemNode.getDescription());
-			nodeNameToC4Id.put(softwareSystem.getName(), softwareSystem.getId());
-			relationshipNodes
-					.forEach(node -> addNodeAsContainer(node, softwareSystem, nodeNameToC4Id));
-		});
+		Map<String, String> nodeNameToC4Id = new HashMap<>(calmModel.getNodes().size());
 
+		// Add all persons
 		calmModel.getNodes().forEach(node -> {
 			if (Objects.requireNonNull(node.getNodeType()) == Node.NodeTypeDefinition.ACTOR) {
 				final Person person = c4Model.addPerson(node.getName(), node.getDescription());
@@ -54,116 +43,121 @@ public class C4ModelTranslator implements ModelTranslator<Workspace> {
 			}
 		});
 
-		calmModel.getRelationships()
-				.forEach(relationship -> {
-					final RelationshipType relationshipType = relationship.getRelationshipType();
-					if (Objects.nonNull(relationshipType.getInteracts())) {
-						final InteractsType interacts = relationshipType.getInteracts();
-						final String actorStr = interacts.getActor();
-						final List<String> nodes = interacts.getNodes();
-						final Node actorNode = getNodeFromUniqueName(actorStr);
-						final Person actor = c4Model.getPersonWithName(actorNode.getName());
-						for (String node : nodes) {
-							final String id = nodeNameToC4Id.get(this.getNodeFromUniqueName(node).getName());
-							actor.uses((Container) c4Model.getElement(id), relationship.getDescription());
-						}
-					}
-					else if (Objects.nonNull(relationshipType.getConnects())) {
+		// Add all containers to the software systems
+		for (var relationships : calmModel.getRelationships()) {
+			final ComposedOfType composedOf = relationships.getRelationshipType().getComposedOf();
+			if (composedOf == null) {
+				continue;
+			}
 
-						final ConnectsType connects = relationshipType.getConnects();
-						final Node sourceNode = getNodeFromUniqueName(connects.getSource());
-						final Node destinationNode = getNodeFromUniqueName(connects.getDestination());
+			final Node containerSystemNode = getNodeFromUniqueName(calmModel, composedOf.getContainer());
+			LOG.info("Add new Software system [{}], unique-id [{}]", containerSystemNode.getName(), containerSystemNode.getUniqueId());
+			final SoftwareSystem softwareSystem = addNodeAsSoftwareSystem(containerSystemNode, c4Model, nodeNameToC4Id);
+			final List<String> containedNodes = composedOf.getNodes();
+			for (String containedNodeStr : containedNodes) {
+				final Node containedNode = getNodeFromUniqueName(calmModel, containedNodeStr);
+				LOG.info("Adding node [{}] with unique-id [{}] to software system [{}]", containedNode.getName(), containedNode.getUniqueId(), containerSystemNode.getName());
+				addNodeAsContainer(containedNode, softwareSystem, nodeNameToC4Id);
+			}
+		}
 
-						String srcC4Id = nodeNameToC4Id.get(sourceNode.getName());
-						if (Objects.isNull(srcC4Id)) {
-							LOG.warn("Adding new source node that does not exist in composed-of [{}]", sourceNode);
-							addNodeAsContainer(sourceNode, softwareSystem, nodeNameToC4Id);
-							srcC4Id = nodeNameToC4Id.get(sourceNode.getName());
-						}
-						String dstC4Id = nodeNameToC4Id.get(destinationNode.getName());
-						if (Objects.isNull(dstC4Id)) {
-							LOG.warn("Adding new destination node that does not exist in composed-of [{}]", destinationNode);
-							addNodeAsContainer(destinationNode, softwareSystem, nodeNameToC4Id);
-							dstC4Id = nodeNameToC4Id.get(destinationNode.getName());
-						}
-						final Container sContainer = (Container) c4Model.getElement(srcC4Id);
-						final Container dContainer = (Container) c4Model.getElement(dstC4Id);
-
-						if (Objects.isNull(relationship.getProtocol())) {
-							sContainer.uses(dContainer, relationship.getDescription());
-						}
-						else {
-							sContainer.uses(dContainer, relationship.getDescription(), relationship.getProtocol().value());
-						}
-					}
-					else if (Objects.nonNull(relationshipType.getComposedOf())) {
-						// The top level is defined ahead of time
-					}
-					else if (Objects.nonNull(relationshipType.getDeployedIn())) {
-						// We don't use the network boundaries in C4
-					}
-					else {
-						throw new RuntimeException("Unknown relationship type");
-					}
-				});
+		// Add all the relationships
+		for (var relationship : calmModel.getRelationships()) {
+			final RelationshipType relationshipType = relationship.getRelationshipType();
+			if (Objects.nonNull(relationshipType.getInteracts())) {
+				addInteractsRelationship(relationship, calmModel, c4Model, nodeNameToC4Id);
+			}
+			else if (Objects.nonNull(relationshipType.getConnects())) {
+				addConnectsRelationship(relationship, calmModel, c4Model, nodeNameToC4Id);
+			}
+		}
 		addViewsToWorkspace(c4Workspace);
 		return c4Workspace;
+	}
+
+	private void addConnectsRelationship(Relationship relationship, final Core calmModel, final Model c4Model, final Map<String, String> nodeNameToC4Id) {
+		final RelationshipType relationshipType = relationship.getRelationshipType();
+		final ConnectsType connects = relationshipType.getConnects();
+		final Node sourceNode = getNodeFromUniqueName(calmModel, connects.getSource());
+		final Node destinationNode = getNodeFromUniqueName(calmModel, connects.getDestination());
+
+		String srcC4Id = nodeNameToC4Id.get(sourceNode.getName());
+		if (Objects.isNull(srcC4Id)) {
+			LOG.warn("Adding unknown source node as a new Software System [{}]", sourceNode.getName());
+			addNodeAsSoftwareSystem(sourceNode, c4Model, nodeNameToC4Id);
+			srcC4Id = nodeNameToC4Id.get(destinationNode.getName());
+		}
+		String dstC4Id = nodeNameToC4Id.get(destinationNode.getName());
+		if (Objects.isNull(dstC4Id)) {
+			LOG.warn("Adding unknown destination node as a new Software System [{}]", destinationNode.getName());
+			addNodeAsSoftwareSystem(destinationNode, c4Model, nodeNameToC4Id);
+			dstC4Id = nodeNameToC4Id.get(destinationNode.getName());
+		}
+
+		//Add relationship
+		final SoftwareSystem sourceSoftwareSystem = c4Model.getSoftwareSystemWithId(srcC4Id);
+		final SoftwareSystem destinationSoftwareSystem = c4Model.getSoftwareSystemWithId(dstC4Id);
+		if (sourceSoftwareSystem == null) {
+			final Container sContainer = (Container) c4Model.getElement(srcC4Id);
+			if (destinationSoftwareSystem == null) {
+				final Container dContainer = (Container) c4Model.getElement(dstC4Id);
+				sContainer.uses(dContainer,
+						relationship.getDescription(),
+						Objects.isNull(relationship.getProtocol()) ? null : relationship.getProtocol().value());
+			}
+			else {
+				sContainer.uses(destinationSoftwareSystem,
+						relationship.getDescription(),
+						Objects.isNull(relationship.getProtocol()) ? null : relationship.getProtocol().value());
+			}
+		}
+		else {
+			if (destinationSoftwareSystem == null) {
+				final Container dContainer = (Container) c4Model.getElement(dstC4Id);
+				sourceSoftwareSystem.uses(dContainer,
+						relationship.getDescription(),
+						Objects.isNull(relationship.getProtocol()) ? null : relationship.getProtocol().value());
+			}
+			else {
+				sourceSoftwareSystem.uses(destinationSoftwareSystem,
+						relationship.getDescription(),
+						Objects.isNull(relationship.getProtocol()) ? null : relationship.getProtocol().value());
+			}
+		}
+	}
+
+	private SoftwareSystem addNodeAsSoftwareSystem(final Node node, Model c4Model, final Map<String, String> nodeNameToC4Id) {
+		final SoftwareSystem softwareSystem = c4Model.addSoftwareSystem(node.getName(), node.getDescription());
+		nodeNameToC4Id.put(softwareSystem.getName(), softwareSystem.getId());
+		return softwareSystem;
+	}
+
+	private void addInteractsRelationship(Relationship relationship, final Core calmModel, final Model c4Model, final Map<String, String> nodeNameToC4Id) {
+		final InteractsType interacts = relationship.getRelationshipType().getInteracts();
+		final String actorStr = interacts.getActor();
+		final List<String> nodes = interacts.getNodes();
+		final Node actorNode = getNodeFromUniqueName(calmModel, actorStr);
+		final Person actor = c4Model.getPersonWithName(actorNode.getName());
+		for (String node : nodes) {
+			final String id = nodeNameToC4Id.get(this.getNodeFromUniqueName(calmModel, node).getName());
+			actor.uses((Container) c4Model.getElement(id), relationship.getDescription());
+		}
 	}
 
 	private void addViewsToWorkspace(final Workspace workspace) {
 		workspace.getViews().createDefaultViews();
 	}
 
-	private static void addNodeAsContainer(final Node node, final SoftwareSystem softwareSystem, final Map<String, String> nodeNameToC4Id) {
+	private static Container addNodeAsContainer(final Node node, final SoftwareSystem softwareSystem, final Map<String, String> nodeNameToC4Id) {
 		final Container container = softwareSystem.addContainer(node.getName(), node.getDescription(), node.getNodeType().value());
 		nodeNameToC4Id.put(container.getName(), container.getId());
+		return container;
 	}
 
-	private Map<Node, List<Node>> getSystemNodeRelationships(final Core calmModel) {
-		final List<Relationship> connections = new ArrayList<>();
-		final List<Relationship> interacts = new ArrayList<>();
-		final List<Relationship> deployedIn = new ArrayList<>();
-		final List<Relationship> composedOf = new ArrayList<>();
-
-		calmModel.getRelationships().forEach(relationship -> {
-			final RelationshipType relationshipType = relationship.getRelationshipType();
-			if (Objects.nonNull(relationshipType.getInteracts())) {
-				interacts.add(relationship);
-			}
-			else if (Objects.nonNull(relationshipType.getConnects())) {
-				connections.add(relationship);
-			}
-			else if (Objects.nonNull(relationshipType.getComposedOf())) {
-				composedOf.add(relationship);
-			}
-			else if (Objects.nonNull(relationshipType.getDeployedIn())) {
-				deployedIn.add(relationship);
-			}
-			else {
-				throw new RuntimeException("Unknown relationship type");
-			}
-		});
-
-		return containsSystem(composedOf);
-	}
-
-	private Map<Node, List<Node>> containsSystem(final List<Relationship> composedOf) {
-		final Map<Node, List<Node>> systemComposedOf = new HashMap<>();
-		composedOf.forEach(relationship -> {
-			final String systemContainerName = relationship.getRelationshipType().getComposedOf().getContainer();
-			final Node systemContainerNode = getNodeFromUniqueName(systemContainerName);
-			final List<Node> containedInNodes = relationship.getRelationshipType().getComposedOf().getNodes().stream()
-					.map(this::getNodeFromUniqueName)
-					.collect(Collectors.toList());
-			systemComposedOf.put(systemContainerNode, containedInNodes);
-		});
-		return systemComposedOf;
-	}
-
-	private Node getNodeFromUniqueName(final String systemContainer) {
-		LOG.debug("Looking up container [{}]", systemContainer);
+	private Node getNodeFromUniqueName(final Core calmModel, final String nodeUniqueName) {
+		LOG.debug("Looking up container [{}]", nodeUniqueName);
 		return calmModel.getNodes().stream()
-				.filter(node -> systemContainer.equals(node.getUniqueId()))
+				.filter(node -> nodeUniqueName.equals(node.getUniqueId()))
 				.findFirst().get();
 	}
 }

@@ -1,0 +1,86 @@
+{
+  "$schema": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-03/meta/calm.json",
+  "nodes": [
+    {
+      "unique-id": "system1",
+      "node-type": "system",
+      "name": "System1",
+      "description": "System1"
+    },
+    {
+      "unique-id": "system2",
+      "node-type": "system",
+      "name": "System2",
+      "description": "System2"
+    },
+    {
+      "unique-id": "service1",
+      "node-type": "service",
+      "name": "Service1",
+      "description": "service1",
+      "data-classification": "Confidential",
+      "run-as": "systemId"
+    },
+    {
+      "unique-id": "service2",
+      "node-type": "service",
+      "name": "Service2",
+      "description": "service2",
+      "data-classification": "Confidential",
+      "run-as": "systemId"
+    },
+    {
+      "unique-id": "service3",
+      "node-type": "service",
+      "name": "Service3",
+      "description": "service3",
+      "data-classification": "Confidential",
+      "run-as": "systemId"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "system1-composed-of",
+      "relationship-type": {
+        "composed-of": {
+          "container": "system1",
+          "nodes": [
+            "service1"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "system2-composed-of",
+      "relationship-type": {
+        "composed-of": {
+          "container": "system2",
+          "nodes": [
+            "service2",
+            "service3"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "service1-to-service2",
+      "description": "Service 1 to Service 2",
+      "relationship-type": {
+        "connects": {
+          "source": "service1",
+          "destination": "service2"
+        }
+      }
+    },
+    {
+      "unique-id": "service2-to-service3",
+      "description": "Service 2 to Service 3",
+      "relationship-type": {
+        "connects": {
+          "source": "service2",
+          "destination": "service3"
+        }
+      }
+    }
+  ]
+}
