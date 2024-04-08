@@ -1,7 +1,6 @@
 package org.finos.calmtranslator.controller;
 
 import com.structurizr.Workspace;
-import com.structurizr.util.WorkspaceUtils;
 import org.finos.calmtranslator.calm.Core;
 import org.finos.calmtranslator.translators.C4ModelTranslator;
 
@@ -24,12 +23,7 @@ public class Translator {
 
 	@PostMapping("/c4")
 	@ResponseStatus(HttpStatus.CREATED)
-	public String c4Translation(
-			@RequestBody Core calmModel
-
-	) throws Exception {
-		// Currently a Structurizr json format
-		final Workspace workspace = c4ModelTranslator.translate(calmModel);
-		return WorkspaceUtils.toJson(workspace, true);
+	public Workspace c4Translation(@RequestBody Core calmModel) {
+		return c4ModelTranslator.translate(calmModel);
 	}
 }
