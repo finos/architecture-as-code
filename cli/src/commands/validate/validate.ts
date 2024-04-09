@@ -4,11 +4,12 @@ import pkg from '@stoplight/spectral-core';
 const { Spectral } = pkg;
 import { getRuleset } from '@stoplight/spectral-cli/dist/services/linter/utils/getRuleset.js';
 import * as winston from 'winston';
+import { initLogger } from '../helper.js';
 
 let logger: winston.Logger; // defined later at startup
 
 export default async function validate(jsonSchemaInstantiationLocation: string, jsonSchemaLocation: string, metaSchemaPath: string, debug: boolean) {
-    initLogger(debug);
+    logger = initLogger(debug);
     let exitCode = 0;
     try {
         const ajv = new Ajv2020({ strict: false });
@@ -36,19 +37,6 @@ export default async function validate(jsonSchemaInstantiationLocation: string, 
         process.exit(1);
     }
     process.exit(exitCode);
-}
-
-function initLogger(debug: boolean): void {
-    const level = debug ? 'debug' : 'info';
-    logger = winston.createLogger({
-        transports: [
-            new winston.transports.Console()
-        ],
-        level: level,
-        format: winston.format.combine(
-            winston.format.cli(),
-        )
-    });
 }
 
 function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
