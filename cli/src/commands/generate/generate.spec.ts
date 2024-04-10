@@ -6,12 +6,22 @@ import { tmpdir } from 'node:os';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 
+jest.mock('../helper', () => {
+    return {
+        initLogger: () => {
+            return {
+                info: () => {},
+                debug: () => {}
+            };
+        }
+    };
+});
+
 const {
     getPropertyValue,
     instantiateNodes,
     instantiateRelationships,
-    instantiateNodeInterfaces,
-    initLogger
+    instantiateNodeInterfaces
 } = exportedForTesting;
 
 describe('getPropertyValue', () => {
@@ -80,10 +90,6 @@ function getSamplePatternNode(properties: any): any {
 
 
 describe('instantiateNodes', () => {
-    beforeEach(() => {
-        initLogger(false);
-    });
-
     it('return instantiated node with array property', () => {
         const pattern = getSamplePatternNode({
             'property-name': {
@@ -193,9 +199,6 @@ function getSampleNodeInterfaces(properties: any): any {
 
 
 describe('instantiateNodeInterfaces', () => {
-    beforeEach(() => {
-        initLogger(false);
-    });
 
     it('return instantiated node with array property', () => {
         const pattern = getSampleNodeInterfaces({
@@ -261,9 +264,6 @@ function getSamplePatternRelationship(properties: any): any {
 }
 
 describe('instantiateRelationships', () => {
-    beforeEach(() => {
-        initLogger(false);
-    });
 
     it('return instantiated relationship with array property', () => {
         const pattern = getSamplePatternRelationship({
