@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import { mkdirp } from 'mkdirp';
 
 import * as winston from 'winston';
+import { initLogger } from '../helper.js';
 
 let logger: winston.Logger; // defined later at startup
 
@@ -130,27 +131,15 @@ function instantiateRelationships(pattern: any): any {
     return outputRelationships;
 }
 
-function initLogger(debug: boolean): void {
-    const level = debug ? 'debug' : 'info';
-    logger = winston.createLogger({
-        transports: [
-            new winston.transports.Console()
-        ],
-        level: level,
-        format: winston.format.cli()
-    });
-}
-
 export const exportedForTesting = {
     getPropertyValue,
     instantiateNodes,
     instantiateRelationships,
-    instantiateNodeInterfaces,
-    initLogger
+    instantiateNodeInterfaces
 };
 
 export function runGenerate (patternPath: string, outputPath: string, debug: boolean): void {
-    initLogger(debug);
+    logger = initLogger(debug);
 
     const pattern = loadFile(patternPath);
     const outputNodes = instantiateNodes(pattern);

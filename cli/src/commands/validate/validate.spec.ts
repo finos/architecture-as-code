@@ -20,6 +20,7 @@ jest.mock('@stoplight/spectral-core', () => {
 });
 
 const metaSchemaLocation = 'test_fixtures/calm';
+const debugDisabled = false;
 
 describe('validate', () => {
     let mockExit;
@@ -36,7 +37,7 @@ describe('validate', () => {
 
 
     it('exits with error when the JSON Schema pattern cannot be found in the input path', async () => {
-        await expect(validate('../test_fixtures/api-gateway-implementation.json', 'thisFolderDoesNotExist/api-gateway.json', metaSchemaLocation))
+        await expect(validate('../test_fixtures/api-gateway-implementation.json', 'thisFolderDoesNotExist/api-gateway.json', metaSchemaLocation, debugDisabled))
             .rejects
             .toThrow();
 
@@ -44,7 +45,7 @@ describe('validate', () => {
     });
 
     it('exits with error when the pattern instantiation file cannot be found in the input path', async () => {
-        await expect(validate('../doesNotExists/api-gateway-implementation.json', 'test_fixtures/api-gateway.json', metaSchemaLocation))
+        await expect(validate('../doesNotExists/api-gateway-implementation.json', 'test_fixtures/api-gateway.json', metaSchemaLocation, debugDisabled))
             .rejects
             .toThrow();
 
@@ -52,7 +53,7 @@ describe('validate', () => {
     });
 
     it('exits with error when the pattern instantiation file does not contain JSON', async () => {
-        await expect(validate('test_fixtures/api-gateway-implementation.json', 'test_fixtures/markdown.md', metaSchemaLocation))
+        await expect(validate('test_fixtures/api-gateway-implementation.json', 'test_fixtures/markdown.md', metaSchemaLocation, debugDisabled))
             .rejects
             .toThrow();
 
@@ -62,7 +63,7 @@ describe('validate', () => {
     it('exits with error when the JSON Schema pattern URL returns a 404', async () => {
         fetchMock.mock('http://does-not-exist/api-gateway.json', 404);
 
-        await expect(validate('https://does-not-exist/api-gateway-implementation.json', 'http://does-not-exist/api-gateway.json', metaSchemaLocation))
+        await expect(validate('https://does-not-exist/api-gateway-implementation.json', 'http://does-not-exist/api-gateway.json', metaSchemaLocation, debugDisabled))
             .rejects
             .toThrow();
 
@@ -76,7 +77,7 @@ describe('validate', () => {
         fetchMock.mock('http://exist/api-gateway.json', apiGateway);
         fetchMock.mock('https://does-not-exist/api-gateway-implementation.json', 404);
 
-        await expect(validate('https://does-not-exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation))
+        await expect(validate('https://does-not-exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
             .rejects
             .toThrow();
 
@@ -91,7 +92,7 @@ describe('validate', () => {
         fetchMock.mock('http://exist/api-gateway.json', apiGateway);
         fetchMock.mock('https://url/with/non/json/response', markdown);
 
-        await expect(validate('https://url/with/non/json/response', 'http://exist/api-gateway.json', metaSchemaLocation))
+        await expect(validate('https://url/with/non/json/response', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
             .rejects
             .toThrow();
 
@@ -108,7 +109,7 @@ describe('validate', () => {
         const apiGatewayInstantiation = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation-that-does-not-match-schema.json'), 'utf8');
         fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayInstantiation);
 
-        await expect(validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation))
+        await expect(validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
             .rejects
             .toThrow();
 
@@ -136,7 +137,7 @@ describe('validate', () => {
         const apiGatewayInstantiation = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation-that-does-not-pass-the-spectral-validation.json'), 'utf8');
         fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayInstantiation);
 
-        await expect(validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation))
+        await expect(validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
             .rejects
             .toThrow();
 
@@ -145,7 +146,7 @@ describe('validate', () => {
     });
 
     it('exits with error when the meta schema location is not a directory', async () => {
-        await expect(validate('https://url/with/non/json/response', 'http://exist/api-gateway.json', 'test_fixtures/api-gateway.json'))
+        await expect(validate('https://url/with/non/json/response', 'http://exist/api-gateway.json', 'test_fixtures/api-gateway.json', debugDisabled))
             .rejects
             .toThrow();
 
@@ -167,7 +168,7 @@ describe('validate', () => {
         const apiGatewayInstantiation = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8');
         fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayInstantiation);
 
-        await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation);
+        await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled);
 
         expect(mockExit).toHaveBeenCalledWith(0);
         fetchMock.restore();
