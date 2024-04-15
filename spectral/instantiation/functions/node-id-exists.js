@@ -1,3 +1,5 @@
+import { JSONPath } from 'jsonpath-plus';
+
 /**
  * Checks that the input value exists as a node with a matching unique ID.
  */
@@ -6,7 +8,7 @@ export default (input, _, context) => {
         return [];
     }
     // get uniqueIds of all nodes
-    let names = context.document.data.nodes.map(node => node["unique-id"]);
+    const names = JSONPath({path: '$.nodes[*].unique-id', json: context.document.data});
     let results = [];
 
     if (!names.includes(input)) {

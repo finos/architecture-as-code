@@ -60,8 +60,12 @@
       "unique-id": "api-gateway-idp",
       "relationship-type": {
         "connects": {
-          "destination": "idp",
-          "source": "api-gateway"
+          "destination": {
+            "node": "idp"
+          },
+          "source": {
+            "node": "api-gateway"
+          }
         }
       }
     },
