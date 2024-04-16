@@ -8,7 +8,7 @@ import { initLogger } from '../helper.js';
 
 let logger: winston.Logger; // defined later at startup
 
-export default async function validate(jsonSchemaInstantiationLocation: string, jsonSchemaLocation: string, metaSchemaPath: string, debug: boolean) {
+export default async function validate(jsonSchemaInstantiationLocation: string, jsonSchemaLocation: string, metaSchemaPath: string, debug: boolean = false) {
     logger = initLogger(debug);
     let exitCode = 0;
     try {
