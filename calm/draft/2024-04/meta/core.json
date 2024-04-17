@@ -32,6 +32,9 @@
         "description": {
           "type": "string"
         },
+        "detailed-architecture": {
+          "type": "string"
+        },
         "data-classification": {
           "$ref": "#/defs/data-classification"
         },
