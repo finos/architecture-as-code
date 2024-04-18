@@ -64,7 +64,7 @@ rules:
       function: node-id-exists
 
   relationship-references-existing-nodes:
-    description: Relationships with const properties must reference existing nodes.
+    description: Relationships with const properties must reference existing nodes
     severity: error 
     message: "{{error}}"
     given: "$..relationship-type.*.*"

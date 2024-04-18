@@ -45,7 +45,7 @@ rules:
         notMatch: "^{{\\s*[A-Z_]+\\s*}}$"
 
   relationship-references-existing-nodes:
-    description: Relationships must reference existing nodes.
+    description: Relationships must reference existing nodes
     severity: error 
     message: "{{error}}"
     given: "$.relationships[*].relationship-type.*"
