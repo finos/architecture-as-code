@@ -89,10 +89,10 @@ rules:
       - field: interface
         function: interface-id-exists
 
-  # nodes-must-be-referenced:
-  #   description: Nodes must be referenced by at least one relationship.
-  #   severity: warn
-  #   message: "{{error}}"
-  #   given: "$.nodes[*].unique-id"
-  #   then:
-  #     function: node-has-relationship
+  nodes-must-be-referenced:
+    description: Nodes must be referenced by at least one relationship.
+    severity: warn
+    message: "{{error}}"
+    given: "$.properties.nodes.prefixItems[*].properties.unique-id.const"
+    then:
+      function: node-has-relationship
