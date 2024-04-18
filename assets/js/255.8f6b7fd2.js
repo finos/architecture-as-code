@@ -1,9 +1,9 @@
 "use strict";
-exports.id = 943;
-exports.ids = [943];
+exports.id = 255;
+exports.ids = [255];
 exports.modules = {
 
-/***/ 41644:
+/***/ 1644:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -15,21 +15,21 @@ __webpack_require__.d(__webpack_exports__, {
 // UNUSED EXPORTS: acyclic, normalize, rank
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/forEach.js
-var forEach = __webpack_require__(70870);
+var forEach = __webpack_require__(870);
 // EXTERNAL MODULE: ./node_modules/lodash-es/uniqueId.js
-var uniqueId = __webpack_require__(66749);
+var uniqueId = __webpack_require__(6749);
 // EXTERNAL MODULE: ./node_modules/lodash-es/has.js + 1 modules
-var has = __webpack_require__(17452);
+var has = __webpack_require__(7452);
 // EXTERNAL MODULE: ./node_modules/lodash-es/constant.js
-var constant = __webpack_require__(62002);
+var constant = __webpack_require__(2002);
 // EXTERNAL MODULE: ./node_modules/lodash-es/flatten.js
-var flatten = __webpack_require__(27961);
+var flatten = __webpack_require__(7961);
 // EXTERNAL MODULE: ./node_modules/lodash-es/map.js
-var map = __webpack_require__(43836);
+var map = __webpack_require__(3836);
 // EXTERNAL MODULE: ./node_modules/lodash-es/range.js + 2 modules
-var range = __webpack_require__(74379);
+var range = __webpack_require__(4379);
 // EXTERNAL MODULE: ./node_modules/dagre-d3-es/src/graphlib/index.js
-var graphlib = __webpack_require__(45625);
+var graphlib = __webpack_require__(5625);
 ;// CONCATENATED MODULE: ./node_modules/dagre-d3-es/src/dagre/data/list.js
 /*
  * Simple doubly linked list implementation derived from Cormen, et al.,
@@ -278,13 +278,13 @@ function undo(g) {
 }
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/merge.js + 6 modules
-var merge = __webpack_require__(59236);
+var merge = __webpack_require__(9236);
 // EXTERNAL MODULE: ./node_modules/lodash-es/pick.js + 4 modules
-var pick = __webpack_require__(61666);
+var pick = __webpack_require__(1666);
 // EXTERNAL MODULE: ./node_modules/lodash-es/defaults.js
 var defaults = __webpack_require__(3688);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isSymbol.js
-var isSymbol = __webpack_require__(72714);
+var isSymbol = __webpack_require__(2714);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_baseExtremum.js
 
 
@@ -336,7 +336,7 @@ function baseGt(value, other) {
 /* harmony default export */ const _baseGt = (baseGt);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/identity.js
-var identity = __webpack_require__(69203);
+var identity = __webpack_require__(9203);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/max.js
 
 
@@ -391,11 +391,11 @@ function last(array) {
 /* harmony default export */ const lodash_es_last = (last);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseAssignValue.js
-var _baseAssignValue = __webpack_require__(74752);
+var _baseAssignValue = __webpack_require__(4752);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseForOwn.js
 var _baseForOwn = __webpack_require__(2693);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseIteratee.js + 16 modules
-var _baseIteratee = __webpack_require__(74765);
+var _baseIteratee = __webpack_require__(4765);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/mapValues.js
 
 
@@ -442,7 +442,7 @@ function mapValues(object, iteratee) {
 /* harmony default export */ const lodash_es_mapValues = (mapValues);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/isUndefined.js
-var isUndefined = __webpack_require__(49360);
+var isUndefined = __webpack_require__(9360);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_baseLt.js
 /**
  * The base implementation of `_.lt` which doesn't coerce arguments.
@@ -491,7 +491,7 @@ function min(array) {
 /* harmony default export */ const lodash_es_min = (min);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_root.js
-var _root = __webpack_require__(66092);
+var _root = __webpack_require__(6092);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/now.js
 
 
@@ -1153,9 +1153,9 @@ function shiftRanks(t, g, delta) {
 }
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/isArrayLike.js
-var isArrayLike = __webpack_require__(50585);
+var isArrayLike = __webpack_require__(585);
 // EXTERNAL MODULE: ./node_modules/lodash-es/keys.js
-var keys = __webpack_require__(17179);
+var keys = __webpack_require__(7179);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_createFind.js
 
 
@@ -1184,9 +1184,9 @@ function createFind(findIndexFunc) {
 /* harmony default export */ const _createFind = (createFind);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseFindIndex.js
-var _baseFindIndex = __webpack_require__(21692);
+var _baseFindIndex = __webpack_require__(1692);
 // EXTERNAL MODULE: ./node_modules/lodash-es/toFinite.js + 3 modules
-var toFinite = __webpack_require__(94099);
+var toFinite = __webpack_require__(4099);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/toInteger.js
 
 
@@ -1327,7 +1327,7 @@ var find = _createFind(lodash_es_findIndex);
 /* harmony default export */ const lodash_es_find = (find);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/filter.js + 1 modules
-var filter = __webpack_require__(13445);
+var filter = __webpack_require__(3445);
 ;// CONCATENATED MODULE: ./node_modules/dagre-d3-es/src/graphlib/alg/dijkstra.js
 
 
@@ -1469,15 +1469,15 @@ function runFloydWarshall(g, weightFn, edgeFn) {
 }
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseKeys.js + 1 modules
-var _baseKeys = __webpack_require__(39473);
+var _baseKeys = __webpack_require__(9473);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_getTag.js + 3 modules
-var _getTag = __webpack_require__(83970);
+var _getTag = __webpack_require__(3970);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseGetTag.js + 2 modules
-var _baseGetTag = __webpack_require__(93589);
+var _baseGetTag = __webpack_require__(3589);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isArray.js
-var isArray = __webpack_require__(27771);
+var isArray = __webpack_require__(7771);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isObjectLike.js
-var isObjectLike = __webpack_require__(18533);
+var isObjectLike = __webpack_require__(8533);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/isString.js
 
 
@@ -1511,7 +1511,7 @@ function isString(value) {
 /* harmony default export */ const lodash_es_isString = (isString);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseProperty.js
-var _baseProperty = __webpack_require__(54193);
+var _baseProperty = __webpack_require__(4193);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_asciiSize.js
 
 
@@ -1790,7 +1790,7 @@ function preorder(g, vs) {
 }
 
 // EXTERNAL MODULE: ./node_modules/dagre-d3-es/src/graphlib/graph.js + 9 modules
-var graph = __webpack_require__(52544);
+var graph = __webpack_require__(2544);
 ;// CONCATENATED MODULE: ./node_modules/dagre-d3-es/src/graphlib/alg/prim.js
 
 
@@ -2153,9 +2153,9 @@ function networkSimplexRanker(g) {
 }
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/values.js + 1 modules
-var values = __webpack_require__(34148);
+var values = __webpack_require__(4148);
 // EXTERNAL MODULE: ./node_modules/lodash-es/reduce.js + 2 modules
-var reduce = __webpack_require__(92344);
+var reduce = __webpack_require__(2344);
 ;// CONCATENATED MODULE: ./node_modules/dagre-d3-es/src/dagre/nesting-graph.js
 
 
@@ -2296,7 +2296,7 @@ function cleanup(g) {
 }
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseClone.js + 15 modules
-var _baseClone = __webpack_require__(48451);
+var _baseClone = __webpack_require__(8451);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/cloneDeep.js
 
 
@@ -2462,7 +2462,7 @@ function createRootNode(g) {
 }
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_assignValue.js
-var _assignValue = __webpack_require__(72954);
+var _assignValue = __webpack_require__(2954);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_baseZipObject.js
 /**
  * This base implementation of `_.zipObject` which assigns values using `assignFunc`.
@@ -2515,13 +2515,13 @@ function zipObject(props, values) {
 /* harmony default export */ const lodash_es_zipObject = (zipObject);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseFlatten.js + 1 modules
-var _baseFlatten = __webpack_require__(10626);
+var _baseFlatten = __webpack_require__(626);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_arrayMap.js
-var _arrayMap = __webpack_require__(74073);
+var _arrayMap = __webpack_require__(7679);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseGet.js
-var _baseGet = __webpack_require__(13317);
+var _baseGet = __webpack_require__(8033);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseMap.js
-var _baseMap = __webpack_require__(21018);
+var _baseMap = __webpack_require__(1018);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_baseSortBy.js
 /**
  * The base implementation of `_.sortBy` which uses `comparer` to define the
@@ -2546,7 +2546,7 @@ function baseSortBy(array, comparer) {
 /* harmony default export */ const _baseSortBy = (baseSortBy);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseUnary.js
-var _baseUnary = __webpack_require__(21162);
+var _baseUnary = __webpack_require__(1162);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_compareAscending.js
 
 
@@ -2688,9 +2688,9 @@ function baseOrderBy(collection, iteratees, orders) {
 /* harmony default export */ const _baseOrderBy = (baseOrderBy);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseRest.js
-var _baseRest = __webpack_require__(69581);
+var _baseRest = __webpack_require__(9581);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_isIterateeCall.js
-var _isIterateeCall = __webpack_require__(50439);
+var _isIterateeCall = __webpack_require__(439);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/sortBy.js
 
 
@@ -3343,7 +3343,7 @@ function parent_dummy_chains_postorder(g) {
 }
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_castFunction.js
-var _castFunction = __webpack_require__(68882);
+var _castFunction = __webpack_require__(8882);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/forOwn.js
 
 
@@ -3383,9 +3383,9 @@ function forOwn(object, iteratee) {
 /* harmony default export */ const lodash_es_forOwn = (forOwn);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseFor.js + 1 modules
-var _baseFor = __webpack_require__(61395);
+var _baseFor = __webpack_require__(1395);
 // EXTERNAL MODULE: ./node_modules/lodash-es/keysIn.js + 2 modules
-var keysIn = __webpack_require__(32957);
+var keysIn = __webpack_require__(2957);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/forIn.js
 
 
@@ -4353,7 +4353,7 @@ function canonicalize(attrs) {
 
 /***/ }),
 
-/***/ 52544:
+/***/ 2544:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -4363,29 +4363,29 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/has.js + 1 modules
-var has = __webpack_require__(17452);
+var has = __webpack_require__(7452);
 // EXTERNAL MODULE: ./node_modules/lodash-es/constant.js
-var constant = __webpack_require__(62002);
+var constant = __webpack_require__(2002);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isFunction.js
-var isFunction = __webpack_require__(73234);
+var isFunction = __webpack_require__(3234);
 // EXTERNAL MODULE: ./node_modules/lodash-es/keys.js
-var keys = __webpack_require__(17179);
+var keys = __webpack_require__(7179);
 // EXTERNAL MODULE: ./node_modules/lodash-es/filter.js + 1 modules
-var filter = __webpack_require__(13445);
+var filter = __webpack_require__(3445);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isEmpty.js
-var isEmpty = __webpack_require__(79697);
+var isEmpty = __webpack_require__(9697);
 // EXTERNAL MODULE: ./node_modules/lodash-es/forEach.js
-var forEach = __webpack_require__(70870);
+var forEach = __webpack_require__(870);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isUndefined.js
-var isUndefined = __webpack_require__(49360);
+var isUndefined = __webpack_require__(9360);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseFlatten.js + 1 modules
-var _baseFlatten = __webpack_require__(10626);
+var _baseFlatten = __webpack_require__(626);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseRest.js
-var _baseRest = __webpack_require__(69581);
+var _baseRest = __webpack_require__(9581);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_SetCache.js + 2 modules
-var _SetCache = __webpack_require__(63001);
+var _SetCache = __webpack_require__(3001);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseFindIndex.js
-var _baseFindIndex = __webpack_require__(21692);
+var _baseFindIndex = __webpack_require__(1692);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_baseIsNaN.js
 /**
  * The base implementation of `_.isNaN` without support for number objects.
@@ -4491,9 +4491,9 @@ function arrayIncludesWith(array, value, comparator) {
 /* harmony default export */ const _arrayIncludesWith = (arrayIncludesWith);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_cacheHas.js
-var _cacheHas = __webpack_require__(59548);
+var _cacheHas = __webpack_require__(9548);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_Set.js
-var _Set = __webpack_require__(93203);
+var _Set = __webpack_require__(3203);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/noop.js
 /**
  * This method returns `undefined`.
@@ -4641,9 +4641,9 @@ var union = (0,_baseRest/* default */.Z)(function(arrays) {
 /* harmony default export */ const lodash_es_union = (union);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/values.js + 1 modules
-var values = __webpack_require__(34148);
+var values = __webpack_require__(4148);
 // EXTERNAL MODULE: ./node_modules/lodash-es/reduce.js + 2 modules
-var reduce = __webpack_require__(92344);
+var reduce = __webpack_require__(2344);
 ;// CONCATENATED MODULE: ./node_modules/dagre-d3-es/src/graphlib/graph.js
 
 
@@ -5159,14 +5159,14 @@ function edgeObjToId(isDirected, edgeObj) {
 
 /***/ }),
 
-/***/ 45625:
+/***/ 5625:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   k: () => (/* reexport safe */ _graph_js__WEBPACK_IMPORTED_MODULE_0__.k)
 /* harmony export */ });
 /* unused harmony export version */
-/* harmony import */ var _graph_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(52544);
+/* harmony import */ var _graph_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2544);
 // Includes only the "core" of graphlib
 
 
@@ -5178,7 +5178,7 @@ const version = '2.1.9-pre';
 
 /***/ }),
 
-/***/ 39354:
+/***/ 9354:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -5190,9 +5190,9 @@ __webpack_require__.d(__webpack_exports__, {
 // UNUSED EXPORTS: read
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/isUndefined.js
-var isUndefined = __webpack_require__(49360);
+var isUndefined = __webpack_require__(9360);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseClone.js + 15 modules
-var _baseClone = __webpack_require__(48451);
+var _baseClone = __webpack_require__(8451);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/clone.js
 
 
@@ -5232,9 +5232,9 @@ function clone(value) {
 /* harmony default export */ const lodash_es_clone = (clone);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/map.js
-var map = __webpack_require__(43836);
+var map = __webpack_require__(3836);
 // EXTERNAL MODULE: ./node_modules/dagre-d3-es/src/graphlib/graph.js + 9 modules
-var graph = __webpack_require__(52544);
+var graph = __webpack_require__(2544);
 ;// CONCATENATED MODULE: ./node_modules/dagre-d3-es/src/graphlib/json.js
 
 
@@ -5303,7 +5303,7 @@ function read(json) {
 
 /***/ }),
 
-/***/ 63001:
+/***/ 3001:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -5313,7 +5313,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_MapCache.js + 14 modules
-var _MapCache = __webpack_require__(37834);
+var _MapCache = __webpack_require__(7834);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_setCacheAdd.js
 /** Used to stand-in for `undefined` hash values. */
 var HASH_UNDEFINED = '__lodash_hash_undefined__';
@@ -5383,7 +5383,7 @@ SetCache.prototype.has = _setCacheHas;
 
 /***/ }),
 
-/***/ 76579:
+/***/ 6579:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -5415,7 +5415,7 @@ function arrayEach(array, iteratee) {
 
 /***/ }),
 
-/***/ 68774:
+/***/ 8774:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -5450,7 +5450,7 @@ function arrayFilter(array, predicate) {
 
 /***/ }),
 
-/***/ 74073:
+/***/ 7679:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -5481,7 +5481,7 @@ function arrayMap(array, iteratee) {
 
 /***/ }),
 
-/***/ 58694:
+/***/ 8694:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -5511,7 +5511,7 @@ function arrayPush(array, values) {
 
 /***/ }),
 
-/***/ 48451:
+/***/ 8451:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -5521,15 +5521,15 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_Stack.js + 5 modules
-var _Stack = __webpack_require__(31667);
+var _Stack = __webpack_require__(1667);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_arrayEach.js
-var _arrayEach = __webpack_require__(76579);
+var _arrayEach = __webpack_require__(6579);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_assignValue.js
-var _assignValue = __webpack_require__(72954);
+var _assignValue = __webpack_require__(2954);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_copyObject.js
-var _copyObject = __webpack_require__(31899);
+var _copyObject = __webpack_require__(1899);
 // EXTERNAL MODULE: ./node_modules/lodash-es/keys.js
-var keys = __webpack_require__(17179);
+var keys = __webpack_require__(7179);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_baseAssign.js
 
 
@@ -5550,7 +5550,7 @@ function baseAssign(object, source) {
 /* harmony default export */ const _baseAssign = (baseAssign);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/keysIn.js + 2 modules
-var keysIn = __webpack_require__(32957);
+var keysIn = __webpack_require__(2957);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_baseAssignIn.js
 
 
@@ -5571,11 +5571,11 @@ function baseAssignIn(object, source) {
 /* harmony default export */ const _baseAssignIn = (baseAssignIn);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_cloneBuffer.js
-var _cloneBuffer = __webpack_require__(91050);
+var _cloneBuffer = __webpack_require__(1050);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_copyArray.js
-var _copyArray = __webpack_require__(87215);
+var _copyArray = __webpack_require__(7215);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_getSymbols.js
-var _getSymbols = __webpack_require__(95695);
+var _getSymbols = __webpack_require__(5695);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_copySymbols.js
 
 
@@ -5595,11 +5595,11 @@ function copySymbols(source, object) {
 /* harmony default export */ const _copySymbols = (copySymbols);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_arrayPush.js
-var _arrayPush = __webpack_require__(58694);
+var _arrayPush = __webpack_require__(8694);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_getPrototype.js
-var _getPrototype = __webpack_require__(12513);
+var _getPrototype = __webpack_require__(2513);
 // EXTERNAL MODULE: ./node_modules/lodash-es/stubArray.js
-var stubArray = __webpack_require__(60532);
+var stubArray = __webpack_require__(532);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_getSymbolsIn.js
 
 
@@ -5648,7 +5648,7 @@ function copySymbolsIn(source, object) {
 // EXTERNAL MODULE: ./node_modules/lodash-es/_getAllKeys.js
 var _getAllKeys = __webpack_require__(1808);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseGetAllKeys.js
-var _baseGetAllKeys = __webpack_require__(63327);
+var _baseGetAllKeys = __webpack_require__(3327);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_getAllKeysIn.js
 
 
@@ -5669,7 +5669,7 @@ function getAllKeysIn(object) {
 /* harmony default export */ const _getAllKeysIn = (getAllKeysIn);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_getTag.js + 3 modules
-var _getTag = __webpack_require__(83970);
+var _getTag = __webpack_require__(3970);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_initCloneArray.js
 /** Used for built-in method references. */
 var objectProto = Object.prototype;
@@ -5699,7 +5699,7 @@ function initCloneArray(array) {
 /* harmony default export */ const _initCloneArray = (initCloneArray);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_cloneArrayBuffer.js
-var _cloneArrayBuffer = __webpack_require__(41884);
+var _cloneArrayBuffer = __webpack_require__(1884);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_cloneDataView.js
 
 
@@ -5738,7 +5738,7 @@ function cloneRegExp(regexp) {
 /* harmony default export */ const _cloneRegExp = (cloneRegExp);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_Symbol.js
-var _Symbol = __webpack_require__(17685);
+var _Symbol = __webpack_require__(7685);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_cloneSymbol.js
 
 
@@ -5760,7 +5760,7 @@ function cloneSymbol(symbol) {
 /* harmony default export */ const _cloneSymbol = (cloneSymbol);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_cloneTypedArray.js
-var _cloneTypedArray = __webpack_require__(12701);
+var _cloneTypedArray = __webpack_require__(2701);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_initCloneByTag.js
 
 
@@ -5841,13 +5841,13 @@ function initCloneByTag(object, tag, isDeep) {
 /* harmony default export */ const _initCloneByTag = (initCloneByTag);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_initCloneObject.js + 1 modules
-var _initCloneObject = __webpack_require__(73658);
+var _initCloneObject = __webpack_require__(3658);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isArray.js
-var isArray = __webpack_require__(27771);
+var isArray = __webpack_require__(7771);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isBuffer.js + 1 modules
-var isBuffer = __webpack_require__(77008);
+var isBuffer = __webpack_require__(7008);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isObjectLike.js
-var isObjectLike = __webpack_require__(18533);
+var isObjectLike = __webpack_require__(8533);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_baseIsMap.js
 
 
@@ -5869,9 +5869,9 @@ function baseIsMap(value) {
 /* harmony default export */ const _baseIsMap = (baseIsMap);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseUnary.js
-var _baseUnary = __webpack_require__(21162);
+var _baseUnary = __webpack_require__(1162);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_nodeUtil.js
-var _nodeUtil = __webpack_require__(98351);
+var _nodeUtil = __webpack_require__(8351);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/isMap.js
 
 
@@ -5902,7 +5902,7 @@ var isMap = nodeIsMap ? (0,_baseUnary/* default */.Z)(nodeIsMap) : _baseIsMap;
 /* harmony default export */ const lodash_es_isMap = (isMap);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/isObject.js
-var isObject = __webpack_require__(77226);
+var isObject = __webpack_require__(7226);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_baseIsSet.js
 
 
@@ -6123,7 +6123,7 @@ function baseClone(value, bitmask, customizer, key, object, stack) {
 
 /***/ }),
 
-/***/ 49811:
+/***/ 9811:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -6135,7 +6135,7 @@ __webpack_require__.d(__webpack_exports__, {
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseForOwn.js
 var _baseForOwn = __webpack_require__(2693);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isArrayLike.js
-var isArrayLike = __webpack_require__(50585);
+var isArrayLike = __webpack_require__(585);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_createBaseEach.js
 
 
@@ -6189,7 +6189,7 @@ var baseEach = _createBaseEach(_baseForOwn/* default */.Z);
 
 /***/ }),
 
-/***/ 21692:
+/***/ 1692:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -6223,7 +6223,7 @@ function baseFindIndex(array, predicate, fromIndex, fromRight) {
 
 /***/ }),
 
-/***/ 10626:
+/***/ 626:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -6233,13 +6233,13 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_arrayPush.js
-var _arrayPush = __webpack_require__(58694);
+var _arrayPush = __webpack_require__(8694);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_Symbol.js
-var _Symbol = __webpack_require__(17685);
+var _Symbol = __webpack_require__(7685);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isArguments.js + 1 modules
-var isArguments = __webpack_require__(29169);
+var isArguments = __webpack_require__(9169);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isArray.js
-var isArray = __webpack_require__(27771);
+var isArray = __webpack_require__(7771);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_isFlattenable.js
 
 
@@ -6311,8 +6311,8 @@ function baseFlatten(array, depth, predicate, isStrict, result) {
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _baseFor_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(61395);
-/* harmony import */ var _keys_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(17179);
+/* harmony import */ var _baseFor_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1395);
+/* harmony import */ var _keys_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7179);
 
 
 
@@ -6333,14 +6333,14 @@ function baseForOwn(object, iteratee) {
 
 /***/ }),
 
-/***/ 13317:
+/***/ 8033:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _castPath_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(22823);
-/* harmony import */ var _toKey_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(62281);
+/* harmony import */ var _castPath_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2823);
+/* harmony import */ var _toKey_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(2656);
 
 
 
@@ -6369,14 +6369,14 @@ function baseGet(object, path) {
 
 /***/ }),
 
-/***/ 63327:
+/***/ 3327:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _arrayPush_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(58694);
-/* harmony import */ var _isArray_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(27771);
+/* harmony import */ var _arrayPush_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(8694);
+/* harmony import */ var _isArray_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7771);
 
 
 
@@ -6401,7 +6401,7 @@ function baseGetAllKeys(object, keysFunc, symbolsFunc) {
 
 /***/ }),
 
-/***/ 74765:
+/***/ 4765:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -6411,9 +6411,9 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_Stack.js + 5 modules
-var _Stack = __webpack_require__(31667);
+var _Stack = __webpack_require__(1667);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_SetCache.js + 2 modules
-var _SetCache = __webpack_require__(63001);
+var _SetCache = __webpack_require__(3001);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_arraySome.js
 /**
  * A specialized version of `_.some` for arrays without support for iteratee
@@ -6440,7 +6440,7 @@ function arraySome(array, predicate) {
 /* harmony default export */ const _arraySome = (arraySome);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_cacheHas.js
-var _cacheHas = __webpack_require__(59548);
+var _cacheHas = __webpack_require__(9548);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_equalArrays.js
 
 
@@ -6528,11 +6528,11 @@ function equalArrays(array, other, bitmask, customizer, equalFunc, stack) {
 /* harmony default export */ const _equalArrays = (equalArrays);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_Symbol.js
-var _Symbol = __webpack_require__(17685);
+var _Symbol = __webpack_require__(7685);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_Uint8Array.js
-var _Uint8Array = __webpack_require__(84073);
+var _Uint8Array = __webpack_require__(4073);
 // EXTERNAL MODULE: ./node_modules/lodash-es/eq.js
-var eq = __webpack_require__(79651);
+var eq = __webpack_require__(9651);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_mapToArray.js
 /**
  * Converts `map` to its key-value pairs.
@@ -6764,13 +6764,13 @@ function equalObjects(object, other, bitmask, customizer, equalFunc, stack) {
 /* harmony default export */ const _equalObjects = (equalObjects);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_getTag.js + 3 modules
-var _getTag = __webpack_require__(83970);
+var _getTag = __webpack_require__(3970);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isArray.js
-var isArray = __webpack_require__(27771);
+var isArray = __webpack_require__(7771);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isBuffer.js + 1 modules
-var isBuffer = __webpack_require__(77008);
+var isBuffer = __webpack_require__(7008);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isTypedArray.js + 1 modules
-var isTypedArray = __webpack_require__(18843);
+var isTypedArray = __webpack_require__(8843);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_baseIsEqualDeep.js
 
 
@@ -6857,7 +6857,7 @@ function baseIsEqualDeep(object, other, bitmask, customizer, equalFunc, stack) {
 /* harmony default export */ const _baseIsEqualDeep = (baseIsEqualDeep);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/isObjectLike.js
-var isObjectLike = __webpack_require__(18533);
+var isObjectLike = __webpack_require__(8533);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_baseIsEqual.js
 
 
@@ -6953,7 +6953,7 @@ function baseIsMatch(object, source, matchData, customizer) {
 /* harmony default export */ const _baseIsMatch = (baseIsMatch);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/isObject.js
-var isObject = __webpack_require__(77226);
+var isObject = __webpack_require__(7226);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_isStrictComparable.js
 
 
@@ -6972,7 +6972,7 @@ function isStrictComparable(value) {
 /* harmony default export */ const _isStrictComparable = (isStrictComparable);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/keys.js
-var keys = __webpack_require__(17179);
+var keys = __webpack_require__(7179);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_getMatchData.js
 
 
@@ -7046,7 +7046,7 @@ function baseMatches(source) {
 /* harmony default export */ const _baseMatches = (baseMatches);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseGet.js
-var _baseGet = __webpack_require__(13317);
+var _baseGet = __webpack_require__(8033);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/get.js
 
 
@@ -7083,11 +7083,11 @@ function get(object, path, defaultValue) {
 /* harmony default export */ const lodash_es_get = (get);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/hasIn.js + 1 modules
-var hasIn = __webpack_require__(75487);
+var hasIn = __webpack_require__(5487);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_isKey.js
-var _isKey = __webpack_require__(99365);
+var _isKey = __webpack_require__(9365);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_toKey.js
-var _toKey = __webpack_require__(62281);
+var _toKey = __webpack_require__(2656);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_baseMatchesProperty.js
 
 
@@ -7124,9 +7124,9 @@ function baseMatchesProperty(path, srcValue) {
 /* harmony default export */ const _baseMatchesProperty = (baseMatchesProperty);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/identity.js
-var identity = __webpack_require__(69203);
+var identity = __webpack_require__(9203);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseProperty.js
-var _baseProperty = __webpack_require__(54193);
+var _baseProperty = __webpack_require__(4193);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_basePropertyDeep.js
 
 
@@ -7215,14 +7215,14 @@ function baseIteratee(value) {
 
 /***/ }),
 
-/***/ 21018:
+/***/ 1018:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _baseEach_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(49811);
-/* harmony import */ var _isArrayLike_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(50585);
+/* harmony import */ var _baseEach_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(9811);
+/* harmony import */ var _isArrayLike_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(585);
 
 
 
@@ -7249,7 +7249,7 @@ function baseMap(collection, iteratee) {
 
 /***/ }),
 
-/***/ 54193:
+/***/ 4193:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -7273,7 +7273,7 @@ function baseProperty(key) {
 
 /***/ }),
 
-/***/ 59548:
+/***/ 9548:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -7296,13 +7296,13 @@ function cacheHas(cache, key) {
 
 /***/ }),
 
-/***/ 68882:
+/***/ 8882:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _identity_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(69203);
+/* harmony import */ var _identity_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(9203);
 
 
 /**
@@ -7321,7 +7321,7 @@ function castFunction(value) {
 
 /***/ }),
 
-/***/ 22823:
+/***/ 2823:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -7331,11 +7331,11 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/isArray.js
-var isArray = __webpack_require__(27771);
+var isArray = __webpack_require__(7771);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_isKey.js
-var _isKey = __webpack_require__(99365);
+var _isKey = __webpack_require__(9365);
 // EXTERNAL MODULE: ./node_modules/lodash-es/memoize.js
-var memoize = __webpack_require__(42454);
+var memoize = __webpack_require__(2454);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_memoizeCapped.js
 
 
@@ -7394,7 +7394,7 @@ var stringToPath = _memoizeCapped(function(string) {
 /* harmony default export */ const _stringToPath = (stringToPath);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/toString.js + 1 modules
-var lodash_es_toString = __webpack_require__(50751);
+var lodash_es_toString = __webpack_require__(751);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_castPath.js
 
 
@@ -7427,9 +7427,9 @@ function castPath(value, object) {
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _baseGetAllKeys_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(63327);
-/* harmony import */ var _getSymbols_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(95695);
-/* harmony import */ var _keys_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(17179);
+/* harmony import */ var _baseGetAllKeys_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3327);
+/* harmony import */ var _getSymbols_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(5695);
+/* harmony import */ var _keys_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7179);
 
 
 
@@ -7450,14 +7450,14 @@ function getAllKeys(object) {
 
 /***/ }),
 
-/***/ 95695:
+/***/ 5695:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _arrayFilter_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(68774);
-/* harmony import */ var _stubArray_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(60532);
+/* harmony import */ var _arrayFilter_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(8774);
+/* harmony import */ var _stubArray_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(532);
 
 
 
@@ -7492,18 +7492,18 @@ var getSymbols = !nativeGetSymbols ? _stubArray_js__WEBPACK_IMPORTED_MODULE_0__/
 
 /***/ }),
 
-/***/ 16174:
+/***/ 5196:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _castPath_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(22823);
-/* harmony import */ var _isArguments_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(29169);
-/* harmony import */ var _isArray_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(27771);
-/* harmony import */ var _isIndex_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(56009);
+/* harmony import */ var _castPath_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2823);
+/* harmony import */ var _isArguments_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(9169);
+/* harmony import */ var _isArray_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(7771);
+/* harmony import */ var _isIndex_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(6009);
 /* harmony import */ var _isLength_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(1656);
-/* harmony import */ var _toKey_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(62281);
+/* harmony import */ var _toKey_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(2656);
 
 
 
@@ -7547,14 +7547,14 @@ function hasPath(object, path, hasFunc) {
 
 /***/ }),
 
-/***/ 99365:
+/***/ 9365:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _isArray_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(27771);
-/* harmony import */ var _isSymbol_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(72714);
+/* harmony import */ var _isArray_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7771);
+/* harmony import */ var _isSymbol_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(2714);
 
 
 
@@ -7616,13 +7616,13 @@ function setToArray(set) {
 
 /***/ }),
 
-/***/ 62281:
+/***/ 2656:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _isSymbol_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(72714);
+/* harmony import */ var _isSymbol_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2714);
 
 
 /** Used as references for various `Number` constants. */
@@ -7654,10 +7654,10 @@ function toKey(value) {
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _baseRest_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(69581);
-/* harmony import */ var _eq_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(79651);
-/* harmony import */ var _isIterateeCall_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(50439);
-/* harmony import */ var _keysIn_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(32957);
+/* harmony import */ var _baseRest_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(9581);
+/* harmony import */ var _eq_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(9651);
+/* harmony import */ var _isIterateeCall_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(439);
+/* harmony import */ var _keysIn_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(2957);
 
 
 
@@ -7726,7 +7726,7 @@ var defaults = (0,_baseRest_js__WEBPACK_IMPORTED_MODULE_0__/* ["default"] */ .Z)
 
 /***/ }),
 
-/***/ 13445:
+/***/ 3445:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -7736,9 +7736,9 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_arrayFilter.js
-var _arrayFilter = __webpack_require__(68774);
+var _arrayFilter = __webpack_require__(8774);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseEach.js + 1 modules
-var _baseEach = __webpack_require__(49811);
+var _baseEach = __webpack_require__(9811);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_baseFilter.js
 
 
@@ -7763,9 +7763,9 @@ function baseFilter(collection, predicate) {
 /* harmony default export */ const _baseFilter = (baseFilter);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseIteratee.js + 16 modules
-var _baseIteratee = __webpack_require__(74765);
+var _baseIteratee = __webpack_require__(4765);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isArray.js
-var isArray = __webpack_require__(27771);
+var isArray = __webpack_require__(7771);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/filter.js
 
 
@@ -7823,13 +7823,13 @@ function filter(collection, predicate) {
 
 /***/ }),
 
-/***/ 27961:
+/***/ 7961:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _baseFlatten_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(10626);
+/* harmony import */ var _baseFlatten_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(626);
 
 
 /**
@@ -7856,16 +7856,16 @@ function flatten(array) {
 
 /***/ }),
 
-/***/ 70870:
+/***/ 870:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _arrayEach_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(76579);
-/* harmony import */ var _baseEach_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(49811);
-/* harmony import */ var _castFunction_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(68882);
-/* harmony import */ var _isArray_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(27771);
+/* harmony import */ var _arrayEach_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(6579);
+/* harmony import */ var _baseEach_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(9811);
+/* harmony import */ var _castFunction_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(8882);
+/* harmony import */ var _isArray_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7771);
 
 
 
@@ -7911,7 +7911,7 @@ function forEach(collection, iteratee) {
 
 /***/ }),
 
-/***/ 17452:
+/***/ 7452:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -7942,7 +7942,7 @@ function baseHas(object, key) {
 /* harmony default export */ const _baseHas = (baseHas);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_hasPath.js
-var _hasPath = __webpack_require__(16174);
+var _hasPath = __webpack_require__(5196);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/has.js
 
 
@@ -7983,7 +7983,7 @@ function has(object, path) {
 
 /***/ }),
 
-/***/ 75487:
+/***/ 5487:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -8008,7 +8008,7 @@ function baseHasIn(object, key) {
 /* harmony default export */ const _baseHasIn = (baseHasIn);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_hasPath.js
-var _hasPath = __webpack_require__(16174);
+var _hasPath = __webpack_require__(5196);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/hasIn.js
 
 
@@ -8048,14 +8048,14 @@ function hasIn(object, path) {
 
 /***/ }),
 
-/***/ 72714:
+/***/ 2714:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _baseGetTag_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(93589);
-/* harmony import */ var _isObjectLike_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(18533);
+/* harmony import */ var _baseGetTag_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(3589);
+/* harmony import */ var _isObjectLike_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(8533);
 
 
 
@@ -8089,7 +8089,7 @@ function isSymbol(value) {
 
 /***/ }),
 
-/***/ 49360:
+/***/ 9360:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -8121,15 +8121,15 @@ function isUndefined(value) {
 
 /***/ }),
 
-/***/ 17179:
+/***/ 7179:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _arrayLikeKeys_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(87668);
-/* harmony import */ var _baseKeys_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(39473);
-/* harmony import */ var _isArrayLike_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(50585);
+/* harmony import */ var _arrayLikeKeys_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7668);
+/* harmony import */ var _baseKeys_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(9473);
+/* harmony import */ var _isArrayLike_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(585);
 
 
 
@@ -8171,16 +8171,16 @@ function keys(object) {
 
 /***/ }),
 
-/***/ 43836:
+/***/ 3836:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _arrayMap_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(74073);
-/* harmony import */ var _baseIteratee_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(74765);
-/* harmony import */ var _baseMap_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(21018);
-/* harmony import */ var _isArray_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(27771);
+/* harmony import */ var _arrayMap_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7679);
+/* harmony import */ var _baseIteratee_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(4765);
+/* harmony import */ var _baseMap_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(1018);
+/* harmony import */ var _isArray_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7771);
 
 
 
@@ -8238,7 +8238,7 @@ function map(collection, iteratee) {
 
 /***/ }),
 
-/***/ 61666:
+/***/ 1666:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -8248,17 +8248,17 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseGet.js
-var _baseGet = __webpack_require__(13317);
+var _baseGet = __webpack_require__(8033);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_assignValue.js
-var _assignValue = __webpack_require__(72954);
+var _assignValue = __webpack_require__(2954);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_castPath.js + 2 modules
-var _castPath = __webpack_require__(22823);
+var _castPath = __webpack_require__(2823);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_isIndex.js
-var _isIndex = __webpack_require__(56009);
+var _isIndex = __webpack_require__(6009);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isObject.js
-var isObject = __webpack_require__(77226);
+var isObject = __webpack_require__(7226);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_toKey.js
-var _toKey = __webpack_require__(62281);
+var _toKey = __webpack_require__(2656);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_baseSet.js
 
 
@@ -8345,7 +8345,7 @@ function basePickBy(object, paths, predicate) {
 /* harmony default export */ const _basePickBy = (basePickBy);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/hasIn.js + 1 modules
-var hasIn = __webpack_require__(75487);
+var hasIn = __webpack_require__(5487);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_basePick.js
 
 
@@ -8368,11 +8368,11 @@ function basePick(object, paths) {
 /* harmony default export */ const _basePick = (basePick);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/flatten.js
-var flatten = __webpack_require__(27961);
+var flatten = __webpack_require__(7961);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_overRest.js + 1 modules
-var _overRest = __webpack_require__(81211);
+var _overRest = __webpack_require__(1211);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_setToString.js + 2 modules
-var _setToString = __webpack_require__(27227);
+var _setToString = __webpack_require__(7227);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_flatRest.js
 
 
@@ -8421,7 +8421,7 @@ var pick = _flatRest(function(object, paths) {
 
 /***/ }),
 
-/***/ 74379:
+/***/ 4379:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -8461,9 +8461,9 @@ function baseRange(start, end, step, fromRight) {
 /* harmony default export */ const _baseRange = (baseRange);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_isIterateeCall.js
-var _isIterateeCall = __webpack_require__(50439);
+var _isIterateeCall = __webpack_require__(439);
 // EXTERNAL MODULE: ./node_modules/lodash-es/toFinite.js + 3 modules
-var toFinite = __webpack_require__(94099);
+var toFinite = __webpack_require__(4099);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_createRange.js
 
 
@@ -8547,7 +8547,7 @@ var range = _createRange();
 
 /***/ }),
 
-/***/ 92344:
+/***/ 2344:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -8585,9 +8585,9 @@ function arrayReduce(array, iteratee, accumulator, initAccum) {
 /* harmony default export */ const _arrayReduce = (arrayReduce);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseEach.js + 1 modules
-var _baseEach = __webpack_require__(49811);
+var _baseEach = __webpack_require__(9811);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_baseIteratee.js + 16 modules
-var _baseIteratee = __webpack_require__(74765);
+var _baseIteratee = __webpack_require__(4765);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_baseReduce.js
 /**
  * The base implementation of `_.reduce` and `_.reduceRight`, without support
@@ -8614,7 +8614,7 @@ function baseReduce(collection, iteratee, accumulator, initAccum, eachFunc) {
 /* harmony default export */ const _baseReduce = (baseReduce);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/isArray.js
-var isArray = __webpack_require__(27771);
+var isArray = __webpack_require__(7771);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/reduce.js
 
 
@@ -8671,7 +8671,7 @@ function reduce(collection, iteratee, accumulator) {
 
 /***/ }),
 
-/***/ 60532:
+/***/ 532:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -8704,7 +8704,7 @@ function stubArray() {
 
 /***/ }),
 
-/***/ 94099:
+/***/ 4099:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -8756,9 +8756,9 @@ function baseTrim(string) {
 /* harmony default export */ const _baseTrim = (baseTrim);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/isObject.js
-var isObject = __webpack_require__(77226);
+var isObject = __webpack_require__(7226);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isSymbol.js
-var isSymbol = __webpack_require__(72714);
+var isSymbol = __webpack_require__(2714);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/toNumber.js
 
 
@@ -8872,7 +8872,7 @@ function toFinite(value) {
 
 /***/ }),
 
-/***/ 50751:
+/***/ 751:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -8882,13 +8882,13 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_Symbol.js
-var _Symbol = __webpack_require__(17685);
+var _Symbol = __webpack_require__(7685);
 // EXTERNAL MODULE: ./node_modules/lodash-es/_arrayMap.js
-var _arrayMap = __webpack_require__(74073);
+var _arrayMap = __webpack_require__(7679);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isArray.js
-var isArray = __webpack_require__(27771);
+var isArray = __webpack_require__(7771);
 // EXTERNAL MODULE: ./node_modules/lodash-es/isSymbol.js
-var isSymbol = __webpack_require__(72714);
+var isSymbol = __webpack_require__(2714);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_baseToString.js
 
 
@@ -8961,13 +8961,13 @@ function toString_toString(value) {
 
 /***/ }),
 
-/***/ 66749:
+/***/ 6749:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _toString_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(50751);
+/* harmony import */ var _toString_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(751);
 
 
 /** Used to generate unique IDs. */
@@ -9000,7 +9000,7 @@ function uniqueId(prefix) {
 
 /***/ }),
 
-/***/ 34148:
+/***/ 4148:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -9010,7 +9010,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/_arrayMap.js
-var _arrayMap = __webpack_require__(74073);
+var _arrayMap = __webpack_require__(7679);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_baseValues.js
 
 
@@ -9033,7 +9033,7 @@ function baseValues(object, props) {
 /* harmony default export */ const _baseValues = (baseValues);
 
 // EXTERNAL MODULE: ./node_modules/lodash-es/keys.js
-var keys = __webpack_require__(17179);
+var keys = __webpack_require__(7179);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/values.js
 
 
@@ -9073,7 +9073,323 @@ function values(object) {
 
 /***/ }),
 
-/***/ 69583:
+/***/ 6255:
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   diagram: () => (/* binding */ diagram)
+/* harmony export */ });
+/* harmony import */ var _styles_4ba6ed67_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(4706);
+/* harmony import */ var d3__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4218);
+/* harmony import */ var dagre_d3_es_src_graphlib_index_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(5625);
+/* harmony import */ var _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(5322);
+/* harmony import */ var _index_67a42d7d_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(7936);
+/* harmony import */ var dayjs__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(7484);
+/* harmony import */ var _braintree_sanitize_url__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(7967);
+/* harmony import */ var dompurify__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(683);
+/* harmony import */ var dagre_d3_es_src_dagre_index_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(1644);
+/* harmony import */ var dagre_d3_es_src_graphlib_json_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(9354);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const sanitizeText = (txt) => _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.e.sanitizeText(txt, (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.c)());
+let conf = {
+  dividerMargin: 10,
+  padding: 5,
+  textHeight: 10,
+  curve: void 0
+};
+const addNamespaces = function(namespaces, g, _id, diagObj) {
+  const keys = Object.keys(namespaces);
+  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.l.info("keys:", keys);
+  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.l.info(namespaces);
+  keys.forEach(function(id) {
+    var _a, _b;
+    const vertex = namespaces[id];
+    const shape = "rect";
+    const node = {
+      shape,
+      id: vertex.id,
+      domId: vertex.domId,
+      labelText: sanitizeText(vertex.id),
+      labelStyle: "",
+      style: "fill: none; stroke: black",
+      // TODO V10: Flowchart ? Keeping flowchart for backwards compatibility. Remove in next major release
+      padding: ((_a = (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.c)().flowchart) == null ? void 0 : _a.padding) ?? ((_b = (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.c)().class) == null ? void 0 : _b.padding)
+    };
+    g.setNode(vertex.id, node);
+    addClasses(vertex.classes, g, _id, diagObj, vertex.id);
+    _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.l.info("setNode", node);
+  });
+};
+const addClasses = function(classes, g, _id, diagObj, parent) {
+  const keys = Object.keys(classes);
+  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.l.info("keys:", keys);
+  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.l.info(classes);
+  keys.filter((id) => classes[id].parent == parent).forEach(function(id) {
+    var _a, _b;
+    const vertex = classes[id];
+    const cssClassStr = vertex.cssClasses.join(" ");
+    const styles2 = { labelStyle: "", style: "" };
+    const vertexText = vertex.label ?? vertex.id;
+    const radius = 0;
+    const shape = "class_box";
+    const node = {
+      labelStyle: styles2.labelStyle,
+      shape,
+      labelText: sanitizeText(vertexText),
+      classData: vertex,
+      rx: radius,
+      ry: radius,
+      class: cssClassStr,
+      style: styles2.style,
+      id: vertex.id,
+      domId: vertex.domId,
+      tooltip: diagObj.db.getTooltip(vertex.id, parent) || "",
+      haveCallback: vertex.haveCallback,
+      link: vertex.link,
+      width: vertex.type === "group" ? 500 : void 0,
+      type: vertex.type,
+      // TODO V10: Flowchart ? Keeping flowchart for backwards compatibility. Remove in next major release
+      padding: ((_a = (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.c)().flowchart) == null ? void 0 : _a.padding) ?? ((_b = (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.c)().class) == null ? void 0 : _b.padding)
+    };
+    g.setNode(vertex.id, node);
+    if (parent) {
+      g.setParent(vertex.id, parent);
+    }
+    _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.l.info("setNode", node);
+  });
+};
+const addNotes = function(notes, g, startEdgeId, classes) {
+  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.l.info(notes);
+  notes.forEach(function(note, i) {
+    var _a, _b;
+    const vertex = note;
+    const cssNoteStr = "";
+    const styles2 = { labelStyle: "", style: "" };
+    const vertexText = vertex.text;
+    const radius = 0;
+    const shape = "note";
+    const node = {
+      labelStyle: styles2.labelStyle,
+      shape,
+      labelText: sanitizeText(vertexText),
+      noteData: vertex,
+      rx: radius,
+      ry: radius,
+      class: cssNoteStr,
+      style: styles2.style,
+      id: vertex.id,
+      domId: vertex.id,
+      tooltip: "",
+      type: "note",
+      // TODO V10: Flowchart ? Keeping flowchart for backwards compatibility. Remove in next major release
+      padding: ((_a = (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.c)().flowchart) == null ? void 0 : _a.padding) ?? ((_b = (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.c)().class) == null ? void 0 : _b.padding)
+    };
+    g.setNode(vertex.id, node);
+    _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.l.info("setNode", node);
+    if (!vertex.class || !(vertex.class in classes)) {
+      return;
+    }
+    const edgeId = startEdgeId + i;
+    const edgeData = {
+      id: `edgeNote${edgeId}`,
+      //Set relationship style and line type
+      classes: "relation",
+      pattern: "dotted",
+      // Set link type for rendering
+      arrowhead: "none",
+      //Set edge extra labels
+      startLabelRight: "",
+      endLabelLeft: "",
+      //Set relation arrow types
+      arrowTypeStart: "none",
+      arrowTypeEnd: "none",
+      style: "fill:none",
+      labelStyle: "",
+      curve: (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.n)(conf.curve, d3__WEBPACK_IMPORTED_MODULE_0__/* .curveLinear */ .c_6)
+    };
+    g.setEdge(vertex.id, vertex.class, edgeData, edgeId);
+  });
+};
+const addRelations = function(relations, g) {
+  const conf2 = (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.c)().flowchart;
+  let cnt = 0;
+  relations.forEach(function(edge) {
+    var _a;
+    cnt++;
+    const edgeData = {
+      //Set relationship style and line type
+      classes: "relation",
+      pattern: edge.relation.lineType == 1 ? "dashed" : "solid",
+      id: "id" + cnt,
+      // Set link type for rendering
+      arrowhead: edge.type === "arrow_open" ? "none" : "normal",
+      //Set edge extra labels
+      startLabelRight: edge.relationTitle1 === "none" ? "" : edge.relationTitle1,
+      endLabelLeft: edge.relationTitle2 === "none" ? "" : edge.relationTitle2,
+      //Set relation arrow types
+      arrowTypeStart: getArrowMarker(edge.relation.type1),
+      arrowTypeEnd: getArrowMarker(edge.relation.type2),
+      style: "fill:none",
+      labelStyle: "",
+      curve: (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.n)(conf2 == null ? void 0 : conf2.curve, d3__WEBPACK_IMPORTED_MODULE_0__/* .curveLinear */ .c_6)
+    };
+    _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.l.info(edgeData, edge);
+    if (edge.style !== void 0) {
+      const styles2 = (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.k)(edge.style);
+      edgeData.style = styles2.style;
+      edgeData.labelStyle = styles2.labelStyle;
+    }
+    edge.text = edge.title;
+    if (edge.text === void 0) {
+      if (edge.style !== void 0) {
+        edgeData.arrowheadStyle = "fill: #333";
+      }
+    } else {
+      edgeData.arrowheadStyle = "fill: #333";
+      edgeData.labelpos = "c";
+      if (((_a = (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.c)().flowchart) == null ? void 0 : _a.htmlLabels) ?? (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.c)().htmlLabels) {
+        edgeData.labelType = "html";
+        edgeData.label = '<span class="edgeLabel">' + edge.text + "</span>";
+      } else {
+        edgeData.labelType = "text";
+        edgeData.label = edge.text.replace(_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.e.lineBreakRegex, "\n");
+        if (edge.style === void 0) {
+          edgeData.style = edgeData.style || "stroke: #333; stroke-width: 1.5px;fill:none";
+        }
+        edgeData.labelStyle = edgeData.labelStyle.replace("color:", "fill:");
+      }
+    }
+    g.setEdge(edge.id1, edge.id2, edgeData, cnt);
+  });
+};
+const setConf = function(cnf) {
+  conf = {
+    ...conf,
+    ...cnf
+  };
+};
+const draw = async function(text, id, _version, diagObj) {
+  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.l.info("Drawing class - ", id);
+  const conf2 = (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.c)().flowchart ?? (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.c)().class;
+  const securityLevel = (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.c)().securityLevel;
+  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.l.info("config:", conf2);
+  const nodeSpacing = (conf2 == null ? void 0 : conf2.nodeSpacing) ?? 50;
+  const rankSpacing = (conf2 == null ? void 0 : conf2.rankSpacing) ?? 50;
+  const g = new dagre_d3_es_src_graphlib_index_js__WEBPACK_IMPORTED_MODULE_1__/* .Graph */ .k({
+    multigraph: true,
+    compound: true
+  }).setGraph({
+    rankdir: diagObj.db.getDirection(),
+    nodesep: nodeSpacing,
+    ranksep: rankSpacing,
+    marginx: 8,
+    marginy: 8
+  }).setDefaultEdgeLabel(function() {
+    return {};
+  });
+  const namespaces = diagObj.db.getNamespaces();
+  const classes = diagObj.db.getClasses();
+  const relations = diagObj.db.getRelations();
+  const notes = diagObj.db.getNotes();
+  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.l.info(relations);
+  addNamespaces(namespaces, g, id, diagObj);
+  addClasses(classes, g, id, diagObj);
+  addRelations(relations, g);
+  addNotes(notes, g, relations.length + 1, classes);
+  let sandboxElement;
+  if (securityLevel === "sandbox") {
+    sandboxElement = (0,d3__WEBPACK_IMPORTED_MODULE_0__/* .select */ .Ys)("#i" + id);
+  }
+  const root = securityLevel === "sandbox" ? (0,d3__WEBPACK_IMPORTED_MODULE_0__/* .select */ .Ys)(sandboxElement.nodes()[0].contentDocument.body) : (0,d3__WEBPACK_IMPORTED_MODULE_0__/* .select */ .Ys)("body");
+  const svg = root.select(`[id="${id}"]`);
+  const element = root.select("#" + id + " g");
+  await (0,_index_67a42d7d_js__WEBPACK_IMPORTED_MODULE_8__.r)(
+    element,
+    g,
+    ["aggregation", "extension", "composition", "dependency", "lollipop"],
+    "classDiagram",
+    id
+  );
+  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.u.insertTitle(svg, "classTitleText", (conf2 == null ? void 0 : conf2.titleTopMargin) ?? 5, diagObj.db.getDiagramTitle());
+  (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_7__.o)(g, svg, conf2 == null ? void 0 : conf2.diagramPadding, conf2 == null ? void 0 : conf2.useMaxWidth);
+  if (!(conf2 == null ? void 0 : conf2.htmlLabels)) {
+    const doc = securityLevel === "sandbox" ? sandboxElement.nodes()[0].contentDocument : document;
+    const labels = doc.querySelectorAll('[id="' + id + '"] .edgeLabel .label');
+    for (const label of labels) {
+      const dim = label.getBBox();
+      const rect = doc.createElementNS("http://www.w3.org/2000/svg", "rect");
+      rect.setAttribute("rx", 0);
+      rect.setAttribute("ry", 0);
+      rect.setAttribute("width", dim.width);
+      rect.setAttribute("height", dim.height);
+      label.insertBefore(rect, label.firstChild);
+    }
+  }
+};
+function getArrowMarker(type) {
+  let marker;
+  switch (type) {
+    case 0:
+      marker = "aggregation";
+      break;
+    case 1:
+      marker = "extension";
+      break;
+    case 2:
+      marker = "composition";
+      break;
+    case 3:
+      marker = "dependency";
+      break;
+    case 4:
+      marker = "lollipop";
+      break;
+    default:
+      marker = "none";
+  }
+  return marker;
+}
+const renderer = {
+  setConf,
+  draw
+};
+const diagram = {
+  parser: _styles_4ba6ed67_js__WEBPACK_IMPORTED_MODULE_9__.p,
+  db: _styles_4ba6ed67_js__WEBPACK_IMPORTED_MODULE_9__.d,
+  renderer,
+  styles: _styles_4ba6ed67_js__WEBPACK_IMPORTED_MODULE_9__.s,
+  init: (cnf) => {
+    if (!cnf.class) {
+      cnf.class = {};
+    }
+    cnf.class.arrowMarkerAbsolute = cnf.arrowMarkerAbsolute;
+    _styles_4ba6ed67_js__WEBPACK_IMPORTED_MODULE_9__.d.clear();
+  }
+};
+
+
+
+/***/ }),
+
+/***/ 9583:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 
@@ -9099,7 +9415,7 @@ __webpack_require__.d(constructs_namespaceObject, {
 });
 
 // EXTERNAL MODULE: ./node_modules/mermaid/dist/mermaid-934d9bea.js + 8 modules
-var mermaid_934d9bea = __webpack_require__(85322);
+var mermaid_934d9bea = __webpack_require__(5322);
 ;// CONCATENATED MODULE: ./node_modules/mermaid/node_modules/mdast-util-to-string/lib/index.js
 /**
  * @typedef {import('mdast').Root|import('mdast').Content} Node
@@ -21624,7 +21940,7 @@ function defaultOnError(left, right) {
 }
 
 // EXTERNAL MODULE: ./node_modules/ts-dedent/esm/index.js
-var esm = __webpack_require__(18464);
+var esm = __webpack_require__(8464);
 ;// CONCATENATED MODULE: ./node_modules/mermaid/dist/createText-aebacdfe.js
 
 
@@ -21877,7 +22193,7 @@ const createText = (el, text = "", {
 
 /***/ }),
 
-/***/ 25269:
+/***/ 5269:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -21896,9 +22212,9 @@ const createText = (el, text = "", {
 /* harmony export */   s: () => (/* binding */ setNodeElem),
 /* harmony export */   u: () => (/* binding */ updateNodeBounds)
 /* harmony export */ });
-/* harmony import */ var _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(85322);
-/* harmony import */ var d3__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(64218);
-/* harmony import */ var _createText_aebacdfe_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(69583);
+/* harmony import */ var _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(5322);
+/* harmony import */ var d3__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4218);
+/* harmony import */ var _createText_aebacdfe_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(9583);
 
 
 
@@ -23540,19 +23856,19 @@ const insertEdge = function(elem, e, edge, clusterDb, diagramType, graph, id) {
 
 /***/ }),
 
-/***/ 87936:
+/***/ 7936:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   r: () => (/* binding */ render)
 /* harmony export */ });
-/* harmony import */ var dagre_d3_es_src_dagre_index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(41644);
-/* harmony import */ var dagre_d3_es_src_graphlib_json_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(39354);
-/* harmony import */ var _edges_80f1ebb6_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(25269);
-/* harmony import */ var _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(85322);
-/* harmony import */ var dagre_d3_es_src_graphlib_index_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(45625);
-/* harmony import */ var _createText_aebacdfe_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(69583);
-/* harmony import */ var d3__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(64218);
+/* harmony import */ var dagre_d3_es_src_dagre_index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1644);
+/* harmony import */ var dagre_d3_es_src_graphlib_json_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(9354);
+/* harmony import */ var _edges_80f1ebb6_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(5269);
+/* harmony import */ var _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(5322);
+/* harmony import */ var dagre_d3_es_src_graphlib_index_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(5625);
+/* harmony import */ var _createText_aebacdfe_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(9583);
+/* harmony import */ var d3__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(4218);
 
 
 
@@ -24149,499 +24465,250 @@ const render = async (elem, graph, markers, diagramtype, id) => {
 
 /***/ }),
 
-/***/ 45943:
+/***/ 4706:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   diagram: () => (/* binding */ diagram)
-/* harmony export */ });
-/* harmony import */ var _styles_bbc3fe3b_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(41504);
-/* harmony import */ var dagre_d3_es_src_graphlib_index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(45625);
-/* harmony import */ var d3__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(64218);
-/* harmony import */ var _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(85322);
-/* harmony import */ var _index_67a42d7d_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(87936);
-/* harmony import */ var dayjs__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(27484);
-/* harmony import */ var _braintree_sanitize_url__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(17967);
-/* harmony import */ var dompurify__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(20683);
-/* harmony import */ var dagre_d3_es_src_dagre_index_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(41644);
-/* harmony import */ var dagre_d3_es_src_graphlib_json_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(39354);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const SHAPE_STATE = "rect";
-const SHAPE_STATE_WITH_DESC = "rectWithTitle";
-const SHAPE_START = "start";
-const SHAPE_END = "end";
-const SHAPE_DIVIDER = "divider";
-const SHAPE_GROUP = "roundedWithTitle";
-const SHAPE_NOTE = "note";
-const SHAPE_NOTEGROUP = "noteGroup";
-const CSS_DIAGRAM = "statediagram";
-const CSS_STATE = "state";
-const CSS_DIAGRAM_STATE = `${CSS_DIAGRAM}-${CSS_STATE}`;
-const CSS_EDGE = "transition";
-const CSS_NOTE = "note";
-const CSS_NOTE_EDGE = "note-edge";
-const CSS_EDGE_NOTE_EDGE = `${CSS_EDGE} ${CSS_NOTE_EDGE}`;
-const CSS_DIAGRAM_NOTE = `${CSS_DIAGRAM}-${CSS_NOTE}`;
-const CSS_CLUSTER = "cluster";
-const CSS_DIAGRAM_CLUSTER = `${CSS_DIAGRAM}-${CSS_CLUSTER}`;
-const CSS_CLUSTER_ALT = "cluster-alt";
-const CSS_DIAGRAM_CLUSTER_ALT = `${CSS_DIAGRAM}-${CSS_CLUSTER_ALT}`;
-const PARENT = "parent";
-const NOTE = "note";
-const DOMID_STATE = "state";
-const DOMID_TYPE_SPACER = "----";
-const NOTE_ID = `${DOMID_TYPE_SPACER}${NOTE}`;
-const PARENT_ID = `${DOMID_TYPE_SPACER}${PARENT}`;
-const G_EDGE_STYLE = "fill:none";
-const G_EDGE_ARROWHEADSTYLE = "fill: #333";
-const G_EDGE_LABELPOS = "c";
-const G_EDGE_LABELTYPE = "text";
-const G_EDGE_THICKNESS = "normal";
-let nodeDb = {};
-let graphItemCount = 0;
-const setConf = function(cnf) {
-  const keys = Object.keys(cnf);
-  for (const key of keys) {
-    cnf[key];
-  }
-};
-const getClasses = function(text, diagramObj) {
-  diagramObj.db.extract(diagramObj.db.getRootDocV2());
-  return diagramObj.db.getClasses();
-};
-function getClassesFromDbInfo(dbInfoItem) {
-  if (dbInfoItem === void 0 || dbInfoItem === null) {
-    return "";
-  } else {
-    if (dbInfoItem.classes) {
-      return dbInfoItem.classes.join(" ");
-    } else {
-      return "";
-    }
-  }
-}
-function stateDomId(itemId = "", counter = 0, type = "", typeSpacer = DOMID_TYPE_SPACER) {
-  const typeStr = type !== null && type.length > 0 ? `${typeSpacer}${type}` : "";
-  return `${DOMID_STATE}-${itemId}${typeStr}-${counter}`;
-}
-const setupNode = (g, parent, parsedItem, diagramStates, diagramDb, altFlag) => {
-  const itemId = parsedItem.id;
-  const classStr = getClassesFromDbInfo(diagramStates[itemId]);
-  if (itemId !== "root") {
-    let shape = SHAPE_STATE;
-    if (parsedItem.start === true) {
-      shape = SHAPE_START;
-    }
-    if (parsedItem.start === false) {
-      shape = SHAPE_END;
-    }
-    if (parsedItem.type !== _styles_bbc3fe3b_js__WEBPACK_IMPORTED_MODULE_7__.D) {
-      shape = parsedItem.type;
-    }
-    if (!nodeDb[itemId]) {
-      nodeDb[itemId] = {
-        id: itemId,
-        shape,
-        description: _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_8__.e.sanitizeText(itemId, (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_8__.c)()),
-        classes: `${classStr} ${CSS_DIAGRAM_STATE}`
-      };
-    }
-    const newNode = nodeDb[itemId];
-    if (parsedItem.description) {
-      if (Array.isArray(newNode.description)) {
-        newNode.shape = SHAPE_STATE_WITH_DESC;
-        newNode.description.push(parsedItem.description);
-      } else {
-        if (newNode.description.length > 0) {
-          newNode.shape = SHAPE_STATE_WITH_DESC;
-          if (newNode.description === itemId) {
-            newNode.description = [parsedItem.description];
-          } else {
-            newNode.description = [newNode.description, parsedItem.description];
-          }
-        } else {
-          newNode.shape = SHAPE_STATE;
-          newNode.description = parsedItem.description;
-        }
-      }
-      newNode.description = _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_8__.e.sanitizeTextOrArray(newNode.description, (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_8__.c)());
-    }
-    if (newNode.description.length === 1 && newNode.shape === SHAPE_STATE_WITH_DESC) {
-      newNode.shape = SHAPE_STATE;
-    }
-    if (!newNode.type && parsedItem.doc) {
-      _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_8__.l.info("Setting cluster for ", itemId, getDir(parsedItem));
-      newNode.type = "group";
-      newNode.dir = getDir(parsedItem);
-      newNode.shape = parsedItem.type === _styles_bbc3fe3b_js__WEBPACK_IMPORTED_MODULE_7__.a ? SHAPE_DIVIDER : SHAPE_GROUP;
-      newNode.classes = newNode.classes + " " + CSS_DIAGRAM_CLUSTER + " " + (altFlag ? CSS_DIAGRAM_CLUSTER_ALT : "");
-    }
-    const nodeData = {
-      labelStyle: "",
-      shape: newNode.shape,
-      labelText: newNode.description,
-      // typeof newNode.description === 'object'
-      //   ? newNode.description[0]
-      //   : newNode.description,
-      classes: newNode.classes,
-      style: "",
-      //styles.style,
-      id: itemId,
-      dir: newNode.dir,
-      domId: stateDomId(itemId, graphItemCount),
-      type: newNode.type,
-      padding: 15
-      //getConfig().flowchart.padding
-    };
-    nodeData.centerLabel = true;
-    if (parsedItem.note) {
-      const noteData = {
-        labelStyle: "",
-        shape: SHAPE_NOTE,
-        labelText: parsedItem.note.text,
-        classes: CSS_DIAGRAM_NOTE,
-        // useHtmlLabels: false,
-        style: "",
-        // styles.style,
-        id: itemId + NOTE_ID + "-" + graphItemCount,
-        domId: stateDomId(itemId, graphItemCount, NOTE),
-        type: newNode.type,
-        padding: 15
-        //getConfig().flowchart.padding
-      };
-      const groupData = {
-        labelStyle: "",
-        shape: SHAPE_NOTEGROUP,
-        labelText: parsedItem.note.text,
-        classes: newNode.classes,
-        style: "",
-        // styles.style,
-        id: itemId + PARENT_ID,
-        domId: stateDomId(itemId, graphItemCount, PARENT),
-        type: "group",
-        padding: 0
-        //getConfig().flowchart.padding
-      };
-      graphItemCount++;
-      const parentNodeId = itemId + PARENT_ID;
-      g.setNode(parentNodeId, groupData);
-      g.setNode(noteData.id, noteData);
-      g.setNode(itemId, nodeData);
-      g.setParent(itemId, parentNodeId);
-      g.setParent(noteData.id, parentNodeId);
-      let from = itemId;
-      let to = noteData.id;
-      if (parsedItem.note.position === "left of") {
-        from = noteData.id;
-        to = itemId;
-      }
-      g.setEdge(from, to, {
-        arrowhead: "none",
-        arrowType: "",
-        style: G_EDGE_STYLE,
-        labelStyle: "",
-        classes: CSS_EDGE_NOTE_EDGE,
-        arrowheadStyle: G_EDGE_ARROWHEADSTYLE,
-        labelpos: G_EDGE_LABELPOS,
-        labelType: G_EDGE_LABELTYPE,
-        thickness: G_EDGE_THICKNESS
-      });
-    } else {
-      g.setNode(itemId, nodeData);
-    }
-  }
-  if (parent && parent.id !== "root") {
-    _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_8__.l.trace("Setting node ", itemId, " to be child of its parent ", parent.id);
-    g.setParent(itemId, parent.id);
-  }
-  if (parsedItem.doc) {
-    _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_8__.l.trace("Adding nodes children ");
-    setupDoc(g, parsedItem, parsedItem.doc, diagramStates, diagramDb, !altFlag);
-  }
-};
-const setupDoc = (g, parentParsedItem, doc, diagramStates, diagramDb, altFlag) => {
-  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_8__.l.trace("items", doc);
-  doc.forEach((item) => {
-    switch (item.stmt) {
-      case _styles_bbc3fe3b_js__WEBPACK_IMPORTED_MODULE_7__.b:
-        setupNode(g, parentParsedItem, item, diagramStates, diagramDb, altFlag);
-        break;
-      case _styles_bbc3fe3b_js__WEBPACK_IMPORTED_MODULE_7__.D:
-        setupNode(g, parentParsedItem, item, diagramStates, diagramDb, altFlag);
-        break;
-      case _styles_bbc3fe3b_js__WEBPACK_IMPORTED_MODULE_7__.S:
-        {
-          setupNode(g, parentParsedItem, item.state1, diagramStates, diagramDb, altFlag);
-          setupNode(g, parentParsedItem, item.state2, diagramStates, diagramDb, altFlag);
-          const edgeData = {
-            id: "edge" + graphItemCount,
-            arrowhead: "normal",
-            arrowTypeEnd: "arrow_barb",
-            style: G_EDGE_STYLE,
-            labelStyle: "",
-            label: _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_8__.e.sanitizeText(item.description, (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_8__.c)()),
-            arrowheadStyle: G_EDGE_ARROWHEADSTYLE,
-            labelpos: G_EDGE_LABELPOS,
-            labelType: G_EDGE_LABELTYPE,
-            thickness: G_EDGE_THICKNESS,
-            classes: CSS_EDGE
-          };
-          g.setEdge(item.state1.id, item.state2.id, edgeData, graphItemCount);
-          graphItemCount++;
-        }
-        break;
-    }
-  });
-};
-const getDir = (parsedItem, defaultDir = _styles_bbc3fe3b_js__WEBPACK_IMPORTED_MODULE_7__.c) => {
-  let dir = defaultDir;
-  if (parsedItem.doc) {
-    for (let i = 0; i < parsedItem.doc.length; i++) {
-      const parsedItemDoc = parsedItem.doc[i];
-      if (parsedItemDoc.stmt === "dir") {
-        dir = parsedItemDoc.value;
-      }
-    }
-  }
-  return dir;
-};
-const draw = async function(text, id, _version, diag) {
-  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_8__.l.info("Drawing state diagram (v2)", id);
-  nodeDb = {};
-  diag.db.getDirection();
-  const { securityLevel, state: conf } = (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_8__.c)();
-  const nodeSpacing = conf.nodeSpacing || 50;
-  const rankSpacing = conf.rankSpacing || 50;
-  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_8__.l.info(diag.db.getRootDocV2());
-  diag.db.extract(diag.db.getRootDocV2());
-  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_8__.l.info(diag.db.getRootDocV2());
-  const diagramStates = diag.db.getStates();
-  const g = new dagre_d3_es_src_graphlib_index_js__WEBPACK_IMPORTED_MODULE_0__/* .Graph */ .k({
-    multigraph: true,
-    compound: true
-  }).setGraph({
-    rankdir: getDir(diag.db.getRootDocV2()),
-    nodesep: nodeSpacing,
-    ranksep: rankSpacing,
-    marginx: 8,
-    marginy: 8
-  }).setDefaultEdgeLabel(function() {
-    return {};
-  });
-  setupNode(g, void 0, diag.db.getRootDocV2(), diagramStates, diag.db, true);
-  let sandboxElement;
-  if (securityLevel === "sandbox") {
-    sandboxElement = (0,d3__WEBPACK_IMPORTED_MODULE_1__/* .select */ .Ys)("#i" + id);
-  }
-  const root = securityLevel === "sandbox" ? (0,d3__WEBPACK_IMPORTED_MODULE_1__/* .select */ .Ys)(sandboxElement.nodes()[0].contentDocument.body) : (0,d3__WEBPACK_IMPORTED_MODULE_1__/* .select */ .Ys)("body");
-  const svg = root.select(`[id="${id}"]`);
-  const element = root.select("#" + id + " g");
-  await (0,_index_67a42d7d_js__WEBPACK_IMPORTED_MODULE_9__.r)(element, g, ["barb"], CSS_DIAGRAM, id);
-  const padding = 8;
-  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_8__.u.insertTitle(svg, "statediagramTitleText", conf.titleTopMargin, diag.db.getDiagramTitle());
-  const bounds = svg.node().getBBox();
-  const width = bounds.width + padding * 2;
-  const height = bounds.height + padding * 2;
-  svg.attr("class", CSS_DIAGRAM);
-  const svgBounds = svg.node().getBBox();
-  (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_8__.i)(svg, height, width, conf.useMaxWidth);
-  const vBox = `${svgBounds.x - padding} ${svgBounds.y - padding} ${width} ${height}`;
-  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_8__.l.debug(`viewBox ${vBox}`);
-  svg.attr("viewBox", vBox);
-  const labels = document.querySelectorAll('[id="' + id + '"] .edgeLabel .label');
-  for (const label of labels) {
-    const dim = label.getBBox();
-    const rect = document.createElementNS("http://www.w3.org/2000/svg", SHAPE_STATE);
-    rect.setAttribute("rx", 0);
-    rect.setAttribute("ry", 0);
-    rect.setAttribute("width", dim.width);
-    rect.setAttribute("height", dim.height);
-    label.insertBefore(rect, label.firstChild);
-  }
-};
-const renderer = {
-  setConf,
-  getClasses,
-  draw
-};
-const diagram = {
-  parser: _styles_bbc3fe3b_js__WEBPACK_IMPORTED_MODULE_7__.p,
-  db: _styles_bbc3fe3b_js__WEBPACK_IMPORTED_MODULE_7__.d,
-  renderer,
-  styles: _styles_bbc3fe3b_js__WEBPACK_IMPORTED_MODULE_7__.s,
-  init: (cnf) => {
-    if (!cnf.state) {
-      cnf.state = {};
-    }
-    cnf.state.arrowMarkerAbsolute = cnf.arrowMarkerAbsolute;
-    _styles_bbc3fe3b_js__WEBPACK_IMPORTED_MODULE_7__.d.clear();
-  }
-};
-
-
-
-/***/ }),
-
-/***/ 41504:
-/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
-
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   D: () => (/* binding */ DEFAULT_STATE_TYPE),
-/* harmony export */   S: () => (/* binding */ STMT_RELATION),
-/* harmony export */   a: () => (/* binding */ DIVIDER_TYPE),
-/* harmony export */   b: () => (/* binding */ STMT_STATE),
-/* harmony export */   c: () => (/* binding */ DEFAULT_NESTED_DOC_DIR),
 /* harmony export */   d: () => (/* binding */ db),
 /* harmony export */   p: () => (/* binding */ parser$1),
 /* harmony export */   s: () => (/* binding */ styles)
 /* harmony export */ });
-/* harmony import */ var _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(85322);
+/* harmony import */ var d3__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4218);
+/* harmony import */ var _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(5322);
+
 
 var parser = function() {
   var o = function(k, v, o2, l) {
     for (o2 = o2 || {}, l = k.length; l--; o2[k[l]] = v)
       ;
     return o2;
-  }, $V0 = [1, 2], $V1 = [1, 3], $V2 = [1, 4], $V3 = [2, 4], $V4 = [1, 9], $V5 = [1, 11], $V6 = [1, 15], $V7 = [1, 16], $V8 = [1, 17], $V9 = [1, 18], $Va = [1, 30], $Vb = [1, 19], $Vc = [1, 20], $Vd = [1, 21], $Ve = [1, 22], $Vf = [1, 23], $Vg = [1, 25], $Vh = [1, 26], $Vi = [1, 27], $Vj = [1, 28], $Vk = [1, 29], $Vl = [1, 32], $Vm = [1, 33], $Vn = [1, 34], $Vo = [1, 35], $Vp = [1, 31], $Vq = [1, 4, 5, 15, 16, 18, 20, 21, 23, 24, 25, 26, 27, 28, 32, 34, 36, 37, 41, 44, 45, 46, 47, 50], $Vr = [1, 4, 5, 13, 14, 15, 16, 18, 20, 21, 23, 24, 25, 26, 27, 28, 32, 34, 36, 37, 41, 44, 45, 46, 47, 50], $Vs = [4, 5, 15, 16, 18, 20, 21, 23, 24, 25, 26, 27, 28, 32, 34, 36, 37, 41, 44, 45, 46, 47, 50];
+  }, $V0 = [1, 16], $V1 = [1, 17], $V2 = [1, 18], $V3 = [1, 37], $V4 = [1, 38], $V5 = [1, 24], $V6 = [1, 22], $V7 = [1, 23], $V8 = [1, 29], $V9 = [1, 30], $Va = [1, 31], $Vb = [1, 32], $Vc = [1, 33], $Vd = [1, 34], $Ve = [1, 25], $Vf = [1, 26], $Vg = [1, 27], $Vh = [1, 28], $Vi = [1, 42], $Vj = [1, 39], $Vk = [1, 40], $Vl = [1, 41], $Vm = [1, 43], $Vn = [1, 9], $Vo = [1, 8, 9], $Vp = [1, 54], $Vq = [1, 55], $Vr = [1, 56], $Vs = [1, 57], $Vt = [1, 58], $Vu = [1, 59], $Vv = [1, 60], $Vw = [1, 8, 9, 38], $Vx = [1, 71], $Vy = [1, 8, 9, 12, 13, 21, 36, 38, 41, 58, 59, 60, 61, 62, 63, 64, 69, 71], $Vz = [1, 8, 9, 12, 13, 19, 21, 36, 38, 41, 45, 58, 59, 60, 61, 62, 63, 64, 69, 71, 84, 86, 87, 88, 89], $VA = [13, 84, 86, 87, 88, 89], $VB = [13, 63, 64, 84, 86, 87, 88, 89], $VC = [13, 58, 59, 60, 61, 62, 84, 86, 87, 88, 89], $VD = [1, 90], $VE = [1, 8, 9, 36, 38, 41], $VF = [1, 8, 9, 21];
   var parser2 = {
     trace: function trace() {
     },
     yy: {},
-    symbols_: { "error": 2, "start": 3, "SPACE": 4, "NL": 5, "SD": 6, "document": 7, "line": 8, "statement": 9, "classDefStatement": 10, "cssClassStatement": 11, "idStatement": 12, "DESCR": 13, "-->": 14, "HIDE_EMPTY": 15, "scale": 16, "WIDTH": 17, "COMPOSIT_STATE": 18, "STRUCT_START": 19, "STRUCT_STOP": 20, "STATE_DESCR": 21, "AS": 22, "ID": 23, "FORK": 24, "JOIN": 25, "CHOICE": 26, "CONCURRENT": 27, "note": 28, "notePosition": 29, "NOTE_TEXT": 30, "direction": 31, "acc_title": 32, "acc_title_value": 33, "acc_descr": 34, "acc_descr_value": 35, "acc_descr_multiline_value": 36, "classDef": 37, "CLASSDEF_ID": 38, "CLASSDEF_STYLEOPTS": 39, "DEFAULT": 40, "class": 41, "CLASSENTITY_IDS": 42, "STYLECLASS": 43, "direction_tb": 44, "direction_bt": 45, "direction_rl": 46, "direction_lr": 47, "eol": 48, ";": 49, "EDGE_STATE": 50, "STYLE_SEPARATOR": 51, "left_of": 52, "right_of": 53, "$accept": 0, "$end": 1 },
-    terminals_: { 2: "error", 4: "SPACE", 5: "NL", 6: "SD", 13: "DESCR", 14: "-->", 15: "HIDE_EMPTY", 16: "scale", 17: "WIDTH", 18: "COMPOSIT_STATE", 19: "STRUCT_START", 20: "STRUCT_STOP", 21: "STATE_DESCR", 22: "AS", 23: "ID", 24: "FORK", 25: "JOIN", 26: "CHOICE", 27: "CONCURRENT", 28: "note", 30: "NOTE_TEXT", 32: "acc_title", 33: "acc_title_value", 34: "acc_descr", 35: "acc_descr_value", 36: "acc_descr_multiline_value", 37: "classDef", 38: "CLASSDEF_ID", 39: "CLASSDEF_STYLEOPTS", 40: "DEFAULT", 41: "class", 42: "CLASSENTITY_IDS", 43: "STYLECLASS", 44: "direction_tb", 45: "direction_bt", 46: "direction_rl", 47: "direction_lr", 49: ";", 50: "EDGE_STATE", 51: "STYLE_SEPARATOR", 52: "left_of", 53: "right_of" },
-    productions_: [0, [3, 2], [3, 2], [3, 2], [7, 0], [7, 2], [8, 2], [8, 1], [8, 1], [9, 1], [9, 1], [9, 1], [9, 2], [9, 3], [9, 4], [9, 1], [9, 2], [9, 1], [9, 4], [9, 3], [9, 6], [9, 1], [9, 1], [9, 1], [9, 1], [9, 4], [9, 4], [9, 1], [9, 2], [9, 2], [9, 1], [10, 3], [10, 3], [11, 3], [31, 1], [31, 1], [31, 1], [31, 1], [48, 1], [48, 1], [12, 1], [12, 1], [12, 3], [12, 3], [29, 1], [29, 1]],
+    symbols_: { "error": 2, "start": 3, "mermaidDoc": 4, "statements": 5, "graphConfig": 6, "CLASS_DIAGRAM": 7, "NEWLINE": 8, "EOF": 9, "statement": 10, "classLabel": 11, "SQS": 12, "STR": 13, "SQE": 14, "namespaceName": 15, "alphaNumToken": 16, "className": 17, "classLiteralName": 18, "GENERICTYPE": 19, "relationStatement": 20, "LABEL": 21, "namespaceStatement": 22, "classStatement": 23, "memberStatement": 24, "annotationStatement": 25, "clickStatement": 26, "cssClassStatement": 27, "noteStatement": 28, "direction": 29, "acc_title": 30, "acc_title_value": 31, "acc_descr": 32, "acc_descr_value": 33, "acc_descr_multiline_value": 34, "namespaceIdentifier": 35, "STRUCT_START": 36, "classStatements": 37, "STRUCT_STOP": 38, "NAMESPACE": 39, "classIdentifier": 40, "STYLE_SEPARATOR": 41, "members": 42, "CLASS": 43, "ANNOTATION_START": 44, "ANNOTATION_END": 45, "MEMBER": 46, "SEPARATOR": 47, "relation": 48, "NOTE_FOR": 49, "noteText": 50, "NOTE": 51, "direction_tb": 52, "direction_bt": 53, "direction_rl": 54, "direction_lr": 55, "relationType": 56, "lineType": 57, "AGGREGATION": 58, "EXTENSION": 59, "COMPOSITION": 60, "DEPENDENCY": 61, "LOLLIPOP": 62, "LINE": 63, "DOTTED_LINE": 64, "CALLBACK": 65, "LINK": 66, "LINK_TARGET": 67, "CLICK": 68, "CALLBACK_NAME": 69, "CALLBACK_ARGS": 70, "HREF": 71, "CSSCLASS": 72, "commentToken": 73, "textToken": 74, "graphCodeTokens": 75, "textNoTagsToken": 76, "TAGSTART": 77, "TAGEND": 78, "==": 79, "--": 80, "PCT": 81, "DEFAULT": 82, "SPACE": 83, "MINUS": 84, "keywords": 85, "UNICODE_TEXT": 86, "NUM": 87, "ALPHA": 88, "BQUOTE_STR": 89, "$accept": 0, "$end": 1 },
+    terminals_: { 2: "error", 7: "CLASS_DIAGRAM", 8: "NEWLINE", 9: "EOF", 12: "SQS", 13: "STR", 14: "SQE", 19: "GENERICTYPE", 21: "LABEL", 30: "acc_title", 31: "acc_title_value", 32: "acc_descr", 33: "acc_descr_value", 34: "acc_descr_multiline_value", 36: "STRUCT_START", 38: "STRUCT_STOP", 39: "NAMESPACE", 41: "STYLE_SEPARATOR", 43: "CLASS", 44: "ANNOTATION_START", 45: "ANNOTATION_END", 46: "MEMBER", 47: "SEPARATOR", 49: "NOTE_FOR", 51: "NOTE", 52: "direction_tb", 53: "direction_bt", 54: "direction_rl", 55: "direction_lr", 58: "AGGREGATION", 59: "EXTENSION", 60: "COMPOSITION", 61: "DEPENDENCY", 62: "LOLLIPOP", 63: "LINE", 64: "DOTTED_LINE", 65: "CALLBACK", 66: "LINK", 67: "LINK_TARGET", 68: "CLICK", 69: "CALLBACK_NAME", 70: "CALLBACK_ARGS", 71: "HREF", 72: "CSSCLASS", 75: "graphCodeTokens", 77: "TAGSTART", 78: "TAGEND", 79: "==", 80: "--", 81: "PCT", 82: "DEFAULT", 83: "SPACE", 84: "MINUS", 85: "keywords", 86: "UNICODE_TEXT", 87: "NUM", 88: "ALPHA", 89: "BQUOTE_STR" },
+    productions_: [0, [3, 1], [3, 1], [4, 1], [6, 4], [5, 1], [5, 2], [5, 3], [11, 3], [15, 1], [15, 2], [17, 1], [17, 1], [17, 2], [17, 2], [17, 2], [10, 1], [10, 2], [10, 1], [10, 1], [10, 1], [10, 1], [10, 1], [10, 1], [10, 1], [10, 1], [10, 2], [10, 2], [10, 1], [22, 4], [22, 5], [35, 2], [37, 1], [37, 2], [37, 3], [23, 1], [23, 3], [23, 4], [23, 6], [40, 2], [40, 3], [25, 4], [42, 1], [42, 2], [24, 1], [24, 2], [24, 1], [24, 1], [20, 3], [20, 4], [20, 4], [20, 5], [28, 3], [28, 2], [29, 1], [29, 1], [29, 1], [29, 1], [48, 3], [48, 2], [48, 2], [48, 1], [56, 1], [56, 1], [56, 1], [56, 1], [56, 1], [57, 1], [57, 1], [26, 3], [26, 4], [26, 3], [26, 4], [26, 4], [26, 5], [26, 3], [26, 4], [26, 4], [26, 5], [26, 4], [26, 5], [26, 5], [26, 6], [27, 3], [73, 1], [73, 1], [74, 1], [74, 1], [74, 1], [74, 1], [74, 1], [74, 1], [74, 1], [76, 1], [76, 1], [76, 1], [76, 1], [16, 1], [16, 1], [16, 1], [16, 1], [18, 1], [50, 1]],
     performAction: function anonymous(yytext, yyleng, yylineno, yy, yystate, $$, _$) {
       var $0 = $$.length - 1;
       switch (yystate) {
-        case 3:
-          yy.setRootDoc($$[$0]);
-          return $$[$0];
-        case 4:
-          this.$ = [];
-          break;
-        case 5:
-          if ($$[$0] != "nl") {
-            $$[$0 - 1].push($$[$0]);
-            this.$ = $$[$0 - 1];
-          }
-          break;
-        case 6:
-        case 7:
-          this.$ = $$[$0];
-          break;
         case 8:
-          this.$ = "nl";
+          this.$ = $$[$0 - 1];
           break;
+        case 9:
         case 11:
+        case 12:
           this.$ = $$[$0];
           break;
-        case 12:
-          const stateStmt = $$[$0 - 1];
-          stateStmt.description = yy.trimColon($$[$0]);
-          this.$ = stateStmt;
-          break;
+        case 10:
         case 13:
-          this.$ = { stmt: "relation", state1: $$[$0 - 2], state2: $$[$0] };
+          this.$ = $$[$0 - 1] + $$[$0];
           break;
         case 14:
-          const relDescription = yy.trimColon($$[$0]);
-          this.$ = { stmt: "relation", state1: $$[$0 - 3], state2: $$[$0 - 1], description: relDescription };
+        case 15:
+          this.$ = $$[$0 - 1] + "~" + $$[$0] + "~";
           break;
-        case 18:
-          this.$ = { stmt: "state", id: $$[$0 - 3], type: "default", description: "", doc: $$[$0 - 1] };
+        case 16:
+          yy.addRelation($$[$0]);
           break;
-        case 19:
-          var id = $$[$0];
-          var description = $$[$0 - 2].trim();
-          if ($$[$0].match(":")) {
-            var parts = $$[$0].split(":");
-            id = parts[0];
-            description = [description, parts[1]];
-          }
-          this.$ = { stmt: "state", id, type: "default", description };
+        case 17:
+          $$[$0 - 1].title = yy.cleanupLabel($$[$0]);
+          yy.addRelation($$[$0 - 1]);
           break;
-        case 20:
-          this.$ = { stmt: "state", id: $$[$0 - 3], type: "default", description: $$[$0 - 5], doc: $$[$0 - 1] };
-          break;
-        case 21:
-          this.$ = { stmt: "state", id: $$[$0], type: "fork" };
-          break;
-        case 22:
-          this.$ = { stmt: "state", id: $$[$0], type: "join" };
-          break;
-        case 23:
-          this.$ = { stmt: "state", id: $$[$0], type: "choice" };
-          break;
-        case 24:
-          this.$ = { stmt: "state", id: yy.getDividerId(), type: "divider" };
-          break;
-        case 25:
-          this.$ = { stmt: "state", id: $$[$0 - 1].trim(), note: { position: $$[$0 - 2].trim(), text: $$[$0].trim() } };
-          break;
-        case 28:
+        case 26:
           this.$ = $$[$0].trim();
           yy.setAccTitle(this.$);
           break;
-        case 29:
-        case 30:
+        case 27:
+        case 28:
           this.$ = $$[$0].trim();
           yy.setAccDescription(this.$);
           break;
+        case 29:
+          yy.addClassesToNamespace($$[$0 - 3], $$[$0 - 1]);
+          break;
+        case 30:
+          yy.addClassesToNamespace($$[$0 - 4], $$[$0 - 1]);
+          break;
         case 31:
+          this.$ = $$[$0];
+          yy.addNamespace($$[$0]);
+          break;
         case 32:
-          this.$ = { stmt: "classDef", id: $$[$0 - 1].trim(), classes: $$[$0].trim() };
+          this.$ = [$$[$0]];
           break;
         case 33:
-          this.$ = { stmt: "applyClass", id: $$[$0 - 1].trim(), styleClass: $$[$0].trim() };
+          this.$ = [$$[$0 - 1]];
           break;
         case 34:
-          yy.setDirection("TB");
-          this.$ = { stmt: "dir", value: "TB" };
-          break;
-        case 35:
-          yy.setDirection("BT");
-          this.$ = { stmt: "dir", value: "BT" };
+          $$[$0].unshift($$[$0 - 2]);
+          this.$ = $$[$0];
           break;
         case 36:
-          yy.setDirection("RL");
-          this.$ = { stmt: "dir", value: "RL" };
+          yy.setCssClass($$[$0 - 2], $$[$0]);
           break;
         case 37:
-          yy.setDirection("LR");
-          this.$ = { stmt: "dir", value: "LR" };
+          yy.addMembers($$[$0 - 3], $$[$0 - 1]);
+          break;
+        case 38:
+          yy.setCssClass($$[$0 - 5], $$[$0 - 3]);
+          yy.addMembers($$[$0 - 5], $$[$0 - 1]);
+          break;
+        case 39:
+          this.$ = $$[$0];
+          yy.addClass($$[$0]);
           break;
         case 40:
+          this.$ = $$[$0 - 1];
+          yy.addClass($$[$0 - 1]);
+          yy.setClassLabel($$[$0 - 1], $$[$0]);
+          break;
         case 41:
-          this.$ = { stmt: "state", id: $$[$0].trim(), type: "default", description: "" };
+          yy.addAnnotation($$[$0], $$[$0 - 2]);
           break;
         case 42:
-          this.$ = { stmt: "state", id: $$[$0 - 2].trim(), classes: [$$[$0].trim()], type: "default", description: "" };
+          this.$ = [$$[$0]];
           break;
         case 43:
-          this.$ = { stmt: "state", id: $$[$0 - 2].trim(), classes: [$$[$0].trim()], type: "default", description: "" };
+          $$[$0].push($$[$0 - 1]);
+          this.$ = $$[$0];
+          break;
+        case 44:
+          break;
+        case 45:
+          yy.addMember($$[$0 - 1], yy.cleanupLabel($$[$0]));
+          break;
+        case 46:
+          break;
+        case 47:
+          break;
+        case 48:
+          this.$ = { "id1": $$[$0 - 2], "id2": $$[$0], relation: $$[$0 - 1], relationTitle1: "none", relationTitle2: "none" };
+          break;
+        case 49:
+          this.$ = { id1: $$[$0 - 3], id2: $$[$0], relation: $$[$0 - 1], relationTitle1: $$[$0 - 2], relationTitle2: "none" };
+          break;
+        case 50:
+          this.$ = { id1: $$[$0 - 3], id2: $$[$0], relation: $$[$0 - 2], relationTitle1: "none", relationTitle2: $$[$0 - 1] };
+          break;
+        case 51:
+          this.$ = { id1: $$[$0 - 4], id2: $$[$0], relation: $$[$0 - 2], relationTitle1: $$[$0 - 3], relationTitle2: $$[$0 - 1] };
+          break;
+        case 52:
+          yy.addNote($$[$0], $$[$0 - 1]);
+          break;
+        case 53:
+          yy.addNote($$[$0]);
+          break;
+        case 54:
+          yy.setDirection("TB");
+          break;
+        case 55:
+          yy.setDirection("BT");
+          break;
+        case 56:
+          yy.setDirection("RL");
+          break;
+        case 57:
+          yy.setDirection("LR");
+          break;
+        case 58:
+          this.$ = { type1: $$[$0 - 2], type2: $$[$0], lineType: $$[$0 - 1] };
+          break;
+        case 59:
+          this.$ = { type1: "none", type2: $$[$0], lineType: $$[$0 - 1] };
+          break;
+        case 60:
+          this.$ = { type1: $$[$0 - 1], type2: "none", lineType: $$[$0] };
+          break;
+        case 61:
+          this.$ = { type1: "none", type2: "none", lineType: $$[$0] };
+          break;
+        case 62:
+          this.$ = yy.relationType.AGGREGATION;
+          break;
+        case 63:
+          this.$ = yy.relationType.EXTENSION;
+          break;
+        case 64:
+          this.$ = yy.relationType.COMPOSITION;
+          break;
+        case 65:
+          this.$ = yy.relationType.DEPENDENCY;
+          break;
+        case 66:
+          this.$ = yy.relationType.LOLLIPOP;
+          break;
+        case 67:
+          this.$ = yy.lineType.LINE;
+          break;
+        case 68:
+          this.$ = yy.lineType.DOTTED_LINE;
+          break;
+        case 69:
+        case 75:
+          this.$ = $$[$0 - 2];
+          yy.setClickEvent($$[$0 - 1], $$[$0]);
+          break;
+        case 70:
+        case 76:
+          this.$ = $$[$0 - 3];
+          yy.setClickEvent($$[$0 - 2], $$[$0 - 1]);
+          yy.setTooltip($$[$0 - 2], $$[$0]);
+          break;
+        case 71:
+          this.$ = $$[$0 - 2];
+          yy.setLink($$[$0 - 1], $$[$0]);
+          break;
+        case 72:
+          this.$ = $$[$0 - 3];
+          yy.setLink($$[$0 - 2], $$[$0 - 1], $$[$0]);
+          break;
+        case 73:
+          this.$ = $$[$0 - 3];
+          yy.setLink($$[$0 - 2], $$[$0 - 1]);
+          yy.setTooltip($$[$0 - 2], $$[$0]);
+          break;
+        case 74:
+          this.$ = $$[$0 - 4];
+          yy.setLink($$[$0 - 3], $$[$0 - 2], $$[$0]);
+          yy.setTooltip($$[$0 - 3], $$[$0 - 1]);
+          break;
+        case 77:
+          this.$ = $$[$0 - 3];
+          yy.setClickEvent($$[$0 - 2], $$[$0 - 1], $$[$0]);
+          break;
+        case 78:
+          this.$ = $$[$0 - 4];
+          yy.setClickEvent($$[$0 - 3], $$[$0 - 2], $$[$0 - 1]);
+          yy.setTooltip($$[$0 - 3], $$[$0]);
+          break;
+        case 79:
+          this.$ = $$[$0 - 3];
+          yy.setLink($$[$0 - 2], $$[$0]);
+          break;
+        case 80:
+          this.$ = $$[$0 - 4];
+          yy.setLink($$[$0 - 3], $$[$0 - 1], $$[$0]);
+          break;
+        case 81:
+          this.$ = $$[$0 - 4];
+          yy.setLink($$[$0 - 3], $$[$0 - 1]);
+          yy.setTooltip($$[$0 - 3], $$[$0]);
+          break;
+        case 82:
+          this.$ = $$[$0 - 5];
+          yy.setLink($$[$0 - 4], $$[$0 - 2], $$[$0]);
+          yy.setTooltip($$[$0 - 4], $$[$0 - 1]);
+          break;
+        case 83:
+          yy.setCssClass($$[$0 - 1], $$[$0]);
           break;
       }
     },
-    table: [{ 3: 1, 4: $V0, 5: $V1, 6: $V2 }, { 1: [3] }, { 3: 5, 4: $V0, 5: $V1, 6: $V2 }, { 3: 6, 4: $V0, 5: $V1, 6: $V2 }, o([1, 4, 5, 15, 16, 18, 21, 23, 24, 25, 26, 27, 28, 32, 34, 36, 37, 41, 44, 45, 46, 47, 50], $V3, { 7: 7 }), { 1: [2, 1] }, { 1: [2, 2] }, { 1: [2, 3], 4: $V4, 5: $V5, 8: 8, 9: 10, 10: 12, 11: 13, 12: 14, 15: $V6, 16: $V7, 18: $V8, 21: $V9, 23: $Va, 24: $Vb, 25: $Vc, 26: $Vd, 27: $Ve, 28: $Vf, 31: 24, 32: $Vg, 34: $Vh, 36: $Vi, 37: $Vj, 41: $Vk, 44: $Vl, 45: $Vm, 46: $Vn, 47: $Vo, 50: $Vp }, o($Vq, [2, 5]), { 9: 36, 10: 12, 11: 13, 12: 14, 15: $V6, 16: $V7, 18: $V8, 21: $V9, 23: $Va, 24: $Vb, 25: $Vc, 26: $Vd, 27: $Ve, 28: $Vf, 31: 24, 32: $Vg, 34: $Vh, 36: $Vi, 37: $Vj, 41: $Vk, 44: $Vl, 45: $Vm, 46: $Vn, 47: $Vo, 50: $Vp }, o($Vq, [2, 7]), o($Vq, [2, 8]), o($Vq, [2, 9]), o($Vq, [2, 10]), o($Vq, [2, 11], { 13: [1, 37], 14: [1, 38] }), o($Vq, [2, 15]), { 17: [1, 39] }, o($Vq, [2, 17], { 19: [1, 40] }), { 22: [1, 41] }, o($Vq, [2, 21]), o($Vq, [2, 22]), o($Vq, [2, 23]), o($Vq, [2, 24]), { 29: 42, 30: [1, 43], 52: [1, 44], 53: [1, 45] }, o($Vq, [2, 27]), { 33: [1, 46] }, { 35: [1, 47] }, o($Vq, [2, 30]), { 38: [1, 48], 40: [1, 49] }, { 42: [1, 50] }, o($Vr, [2, 40], { 51: [1, 51] }), o($Vr, [2, 41], { 51: [1, 52] }), o($Vq, [2, 34]), o($Vq, [2, 35]), o($Vq, [2, 36]), o($Vq, [2, 37]), o($Vq, [2, 6]), o($Vq, [2, 12]), { 12: 53, 23: $Va, 50: $Vp }, o($Vq, [2, 16]), o($Vs, $V3, { 7: 54 }), { 23: [1, 55] }, { 23: [1, 56] }, { 22: [1, 57] }, { 23: [2, 44] }, { 23: [2, 45] }, o($Vq, [2, 28]), o($Vq, [2, 29]), { 39: [1, 58] }, { 39: [1, 59] }, { 43: [1, 60] }, { 23: [1, 61] }, { 23: [1, 62] }, o($Vq, [2, 13], { 13: [1, 63] }), { 4: $V4, 5: $V5, 8: 8, 9: 10, 10: 12, 11: 13, 12: 14, 15: $V6, 16: $V7, 18: $V8, 20: [1, 64], 21: $V9, 23: $Va, 24: $Vb, 25: $Vc, 26: $Vd, 27: $Ve, 28: $Vf, 31: 24, 32: $Vg, 34: $Vh, 36: $Vi, 37: $Vj, 41: $Vk, 44: $Vl, 45: $Vm, 46: $Vn, 47: $Vo, 50: $Vp }, o($Vq, [2, 19], { 19: [1, 65] }), { 30: [1, 66] }, { 23: [1, 67] }, o($Vq, [2, 31]), o($Vq, [2, 32]), o($Vq, [2, 33]), o($Vr, [2, 42]), o($Vr, [2, 43]), o($Vq, [2, 14]), o($Vq, [2, 18]), o($Vs, $V3, { 7: 68 }), o($Vq, [2, 25]), o($Vq, [2, 26]), { 4: $V4, 5: $V5, 8: 8, 9: 10, 10: 12, 11: 13, 12: 14, 15: $V6, 16: $V7, 18: $V8, 20: [1, 69], 21: $V9, 23: $Va, 24: $Vb, 25: $Vc, 26: $Vd, 27: $Ve, 28: $Vf, 31: 24, 32: $Vg, 34: $Vh, 36: $Vi, 37: $Vj, 41: $Vk, 44: $Vl, 45: $Vm, 46: $Vn, 47: $Vo, 50: $Vp }, o($Vq, [2, 20])],
-    defaultActions: { 5: [2, 1], 6: [2, 2], 44: [2, 44], 45: [2, 45] },
+    table: [{ 3: 1, 4: 2, 5: 3, 6: 4, 7: [1, 6], 10: 5, 16: 35, 17: 19, 18: 36, 20: 7, 22: 8, 23: 9, 24: 10, 25: 11, 26: 12, 27: 13, 28: 14, 29: 15, 30: $V0, 32: $V1, 34: $V2, 35: 20, 39: $V3, 40: 21, 43: $V4, 44: $V5, 46: $V6, 47: $V7, 49: $V8, 51: $V9, 52: $Va, 53: $Vb, 54: $Vc, 55: $Vd, 65: $Ve, 66: $Vf, 68: $Vg, 72: $Vh, 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl, 89: $Vm }, { 1: [3] }, { 1: [2, 1] }, { 1: [2, 2] }, { 1: [2, 3] }, o($Vn, [2, 5], { 8: [1, 44] }), { 8: [1, 45] }, o($Vo, [2, 16], { 21: [1, 46] }), o($Vo, [2, 18]), o($Vo, [2, 19]), o($Vo, [2, 20]), o($Vo, [2, 21]), o($Vo, [2, 22]), o($Vo, [2, 23]), o($Vo, [2, 24]), o($Vo, [2, 25]), { 31: [1, 47] }, { 33: [1, 48] }, o($Vo, [2, 28]), o($Vo, [2, 44], { 48: 49, 56: 52, 57: 53, 13: [1, 50], 21: [1, 51], 58: $Vp, 59: $Vq, 60: $Vr, 61: $Vs, 62: $Vt, 63: $Vu, 64: $Vv }), { 36: [1, 61] }, o($Vw, [2, 35], { 36: [1, 63], 41: [1, 62] }), o($Vo, [2, 46]), o($Vo, [2, 47]), { 16: 64, 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl }, { 16: 35, 17: 65, 18: 36, 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl, 89: $Vm }, { 16: 35, 17: 66, 18: 36, 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl, 89: $Vm }, { 16: 35, 17: 67, 18: 36, 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl, 89: $Vm }, { 13: [1, 68] }, { 16: 35, 17: 69, 18: 36, 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl, 89: $Vm }, { 13: $Vx, 50: 70 }, o($Vo, [2, 54]), o($Vo, [2, 55]), o($Vo, [2, 56]), o($Vo, [2, 57]), o($Vy, [2, 11], { 16: 35, 18: 36, 17: 72, 19: [1, 73], 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl, 89: $Vm }), o($Vy, [2, 12], { 19: [1, 74] }), { 15: 75, 16: 76, 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl }, { 16: 35, 17: 77, 18: 36, 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl, 89: $Vm }, o($Vz, [2, 97]), o($Vz, [2, 98]), o($Vz, [2, 99]), o($Vz, [2, 100]), o([1, 8, 9, 12, 13, 19, 21, 36, 38, 41, 58, 59, 60, 61, 62, 63, 64, 69, 71], [2, 101]), o($Vn, [2, 6], { 10: 5, 20: 7, 22: 8, 23: 9, 24: 10, 25: 11, 26: 12, 27: 13, 28: 14, 29: 15, 17: 19, 35: 20, 40: 21, 16: 35, 18: 36, 5: 78, 30: $V0, 32: $V1, 34: $V2, 39: $V3, 43: $V4, 44: $V5, 46: $V6, 47: $V7, 49: $V8, 51: $V9, 52: $Va, 53: $Vb, 54: $Vc, 55: $Vd, 65: $Ve, 66: $Vf, 68: $Vg, 72: $Vh, 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl, 89: $Vm }), { 5: 79, 10: 5, 16: 35, 17: 19, 18: 36, 20: 7, 22: 8, 23: 9, 24: 10, 25: 11, 26: 12, 27: 13, 28: 14, 29: 15, 30: $V0, 32: $V1, 34: $V2, 35: 20, 39: $V3, 40: 21, 43: $V4, 44: $V5, 46: $V6, 47: $V7, 49: $V8, 51: $V9, 52: $Va, 53: $Vb, 54: $Vc, 55: $Vd, 65: $Ve, 66: $Vf, 68: $Vg, 72: $Vh, 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl, 89: $Vm }, o($Vo, [2, 17]), o($Vo, [2, 26]), o($Vo, [2, 27]), { 13: [1, 81], 16: 35, 17: 80, 18: 36, 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl, 89: $Vm }, { 48: 82, 56: 52, 57: 53, 58: $Vp, 59: $Vq, 60: $Vr, 61: $Vs, 62: $Vt, 63: $Vu, 64: $Vv }, o($Vo, [2, 45]), { 57: 83, 63: $Vu, 64: $Vv }, o($VA, [2, 61], { 56: 84, 58: $Vp, 59: $Vq, 60: $Vr, 61: $Vs, 62: $Vt }), o($VB, [2, 62]), o($VB, [2, 63]), o($VB, [2, 64]), o($VB, [2, 65]), o($VB, [2, 66]), o($VC, [2, 67]), o($VC, [2, 68]), { 8: [1, 86], 23: 87, 37: 85, 40: 21, 43: $V4 }, { 16: 88, 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl }, { 42: 89, 46: $VD }, { 45: [1, 91] }, { 13: [1, 92] }, { 13: [1, 93] }, { 69: [1, 94], 71: [1, 95] }, { 16: 96, 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl }, { 13: $Vx, 50: 97 }, o($Vo, [2, 53]), o($Vo, [2, 102]), o($Vy, [2, 13]), o($Vy, [2, 14]), o($Vy, [2, 15]), { 36: [2, 31] }, { 15: 98, 16: 76, 36: [2, 9], 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl }, o($VE, [2, 39], { 11: 99, 12: [1, 100] }), o($Vn, [2, 7]), { 9: [1, 101] }, o($VF, [2, 48]), { 16: 35, 17: 102, 18: 36, 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl, 89: $Vm }, { 13: [1, 104], 16: 35, 17: 103, 18: 36, 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl, 89: $Vm }, o($VA, [2, 60], { 56: 105, 58: $Vp, 59: $Vq, 60: $Vr, 61: $Vs, 62: $Vt }), o($VA, [2, 59]), { 38: [1, 106] }, { 23: 87, 37: 107, 40: 21, 43: $V4 }, { 8: [1, 108], 38: [2, 32] }, o($Vw, [2, 36], { 36: [1, 109] }), { 38: [1, 110] }, { 38: [2, 42], 42: 111, 46: $VD }, { 16: 35, 17: 112, 18: 36, 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl, 89: $Vm }, o($Vo, [2, 69], { 13: [1, 113] }), o($Vo, [2, 71], { 13: [1, 115], 67: [1, 114] }), o($Vo, [2, 75], { 13: [1, 116], 70: [1, 117] }), { 13: [1, 118] }, o($Vo, [2, 83]), o($Vo, [2, 52]), { 36: [2, 10] }, o($VE, [2, 40]), { 13: [1, 119] }, { 1: [2, 4] }, o($VF, [2, 50]), o($VF, [2, 49]), { 16: 35, 17: 120, 18: 36, 84: $Vi, 86: $Vj, 87: $Vk, 88: $Vl, 89: $Vm }, o($VA, [2, 58]), o($Vo, [2, 29]), { 38: [1, 121] }, { 23: 87, 37: 122, 38: [2, 33], 40: 21, 43: $V4 }, { 42: 123, 46: $VD }, o($Vw, [2, 37]), { 38: [2, 43] }, o($Vo, [2, 41]), o($Vo, [2, 70]), o($Vo, [2, 72]), o($Vo, [2, 73], { 67: [1, 124] }), o($Vo, [2, 76]), o($Vo, [2, 77], { 13: [1, 125] }), o($Vo, [2, 79], { 13: [1, 127], 67: [1, 126] }), { 14: [1, 128] }, o($VF, [2, 51]), o($Vo, [2, 30]), { 38: [2, 34] }, { 38: [1, 129] }, o($Vo, [2, 74]), o($Vo, [2, 78]), o($Vo, [2, 80]), o($Vo, [2, 81], { 67: [1, 130] }), o($VE, [2, 8]), o($Vw, [2, 38]), o($Vo, [2, 82])],
+    defaultActions: { 2: [2, 1], 3: [2, 2], 4: [2, 3], 75: [2, 31], 98: [2, 10], 101: [2, 4], 111: [2, 43], 122: [2, 34] },
     parseError: function parseError(str, hash) {
       if (hash.recoverable) {
         this.trace(str);
@@ -25060,223 +25127,222 @@ var parser = function() {
       stateStackSize: function stateStackSize() {
         return this.conditionStack.length;
       },
-      options: { "case-insensitive": true },
+      options: {},
       performAction: function anonymous(yy, yy_, $avoiding_name_collisions, YY_START) {
         switch ($avoiding_name_collisions) {
           case 0:
-            return 40;
+            return 52;
           case 1:
-            return 44;
+            return 53;
           case 2:
-            return 45;
+            return 54;
           case 3:
-            return 46;
+            return 55;
           case 4:
-            return 47;
+            break;
           case 5:
             break;
           case 6:
-            break;
-          case 7:
-            return 5;
-          case 8:
-            break;
-          case 9:
-            break;
-          case 10:
-            break;
-          case 11:
-            break;
-          case 12:
-            this.pushState("SCALE");
-            return 16;
-          case 13:
-            return 17;
-          case 14:
-            this.popState();
-            break;
-          case 15:
             this.begin("acc_title");
-            return 32;
-          case 16:
+            return 30;
+          case 7:
             this.popState();
             return "acc_title_value";
-          case 17:
+          case 8:
             this.begin("acc_descr");
-            return 34;
-          case 18:
+            return 32;
+          case 9:
             this.popState();
             return "acc_descr_value";
-          case 19:
+          case 10:
             this.begin("acc_descr_multiline");
+            break;
+          case 11:
+            this.popState();
+            break;
+          case 12:
+            return "acc_descr_multiline_value";
+          case 13:
+            return 8;
+          case 14:
+            break;
+          case 15:
+            return 7;
+          case 16:
+            return 7;
+          case 17:
+            return "EDGE_STATE";
+          case 18:
+            this.begin("callback_name");
+            break;
+          case 19:
+            this.popState();
             break;
           case 20:
             this.popState();
+            this.begin("callback_args");
             break;
           case 21:
-            return "acc_descr_multiline_value";
+            return 69;
           case 22:
-            this.pushState("CLASSDEF");
-            return 37;
-          case 23:
             this.popState();
-            this.pushState("CLASSDEFID");
-            return "DEFAULT_CLASSDEF_ID";
+            break;
+          case 23:
+            return 70;
           case 24:
             this.popState();
-            this.pushState("CLASSDEFID");
-            return 38;
+            break;
           case 25:
-            this.popState();
-            return 39;
+            return "STR";
           case 26:
-            this.pushState("CLASS");
-            return 41;
+            this.begin("string");
+            break;
           case 27:
-            this.popState();
-            this.pushState("CLASS_STYLE");
-            return 42;
+            this.begin("namespace");
+            return 39;
           case 28:
             this.popState();
-            return 43;
+            return 8;
           case 29:
-            this.pushState("SCALE");
-            return 16;
+            break;
           case 30:
-            return 17;
+            this.begin("namespace-body");
+            return 36;
           case 31:
             this.popState();
-            break;
+            return 38;
           case 32:
-            this.pushState("STATE");
-            break;
+            return "EOF_IN_STRUCT";
           case 33:
-            this.popState();
-            yy_.yytext = yy_.yytext.slice(0, -8).trim();
-            return 24;
+            return 8;
           case 34:
-            this.popState();
-            yy_.yytext = yy_.yytext.slice(0, -8).trim();
-            return 25;
+            break;
           case 35:
-            this.popState();
-            yy_.yytext = yy_.yytext.slice(0, -10).trim();
-            return 26;
+            return "EDGE_STATE";
           case 36:
-            this.popState();
-            yy_.yytext = yy_.yytext.slice(0, -8).trim();
-            return 24;
+            this.begin("class");
+            return 43;
           case 37:
             this.popState();
-            yy_.yytext = yy_.yytext.slice(0, -8).trim();
-            return 25;
+            return 8;
           case 38:
-            this.popState();
-            yy_.yytext = yy_.yytext.slice(0, -10).trim();
-            return 26;
+            break;
           case 39:
-            return 44;
+            this.popState();
+            this.popState();
+            return 38;
           case 40:
-            return 45;
+            this.begin("class-body");
+            return 36;
           case 41:
-            return 46;
+            this.popState();
+            return 38;
           case 42:
-            return 47;
+            return "EOF_IN_STRUCT";
           case 43:
-            this.pushState("STATE_STRING");
-            break;
+            return "EDGE_STATE";
           case 44:
-            this.pushState("STATE_ID");
-            return "AS";
+            return "OPEN_IN_STRUCT";
           case 45:
-            this.popState();
-            return "ID";
+            break;
           case 46:
-            this.popState();
-            break;
+            return "MEMBER";
           case 47:
-            return "STATE_DESCR";
+            return 72;
           case 48:
-            return 18;
+            return 65;
           case 49:
-            this.popState();
-            break;
+            return 66;
           case 50:
-            this.popState();
-            this.pushState("struct");
-            return 19;
+            return 68;
           case 51:
-            break;
+            return 49;
           case 52:
-            this.popState();
-            return 20;
+            return 51;
           case 53:
-            break;
+            return 44;
           case 54:
-            this.begin("NOTE");
-            return 28;
+            return 45;
           case 55:
-            this.popState();
-            this.pushState("NOTE_ID");
-            return 52;
+            return 71;
           case 56:
             this.popState();
-            this.pushState("NOTE_ID");
-            return 53;
-          case 57:
-            this.popState();
-            this.pushState("FLOATING_NOTE");
             break;
+          case 57:
+            return "GENERICTYPE";
           case 58:
-            this.popState();
-            this.pushState("FLOATING_NOTE_ID");
-            return "AS";
+            this.begin("generic");
+            break;
           case 59:
+            this.popState();
             break;
           case 60:
-            return "NOTE_TEXT";
+            return "BQUOTE_STR";
           case 61:
-            this.popState();
-            return "ID";
+            this.begin("bqstring");
+            break;
           case 62:
-            this.popState();
-            this.pushState("NOTE_TEXT");
-            return 23;
+            return 67;
           case 63:
-            this.popState();
-            yy_.yytext = yy_.yytext.substr(2).trim();
-            return 30;
+            return 67;
           case 64:
-            this.popState();
-            yy_.yytext = yy_.yytext.slice(0, -8).trim();
-            return 30;
+            return 67;
           case 65:
-            return 6;
+            return 67;
           case 66:
-            return 6;
+            return 59;
           case 67:
-            return 15;
+            return 59;
           case 68:
-            return 50;
+            return 61;
           case 69:
-            return 23;
+            return 61;
           case 70:
-            yy_.yytext = yy_.yytext.trim();
-            return 13;
+            return 60;
           case 71:
-            return 14;
+            return 58;
           case 72:
-            return 27;
+            return 62;
           case 73:
-            return 51;
+            return 63;
           case 74:
-            return 5;
+            return 64;
           case 75:
-            return "INVALID";
+            return 21;
+          case 76:
+            return 41;
+          case 77:
+            return 84;
+          case 78:
+            return "DOT";
+          case 79:
+            return "PLUS";
+          case 80:
+            return 81;
+          case 81:
+            return "EQUALS";
+          case 82:
+            return "EQUALS";
+          case 83:
+            return 88;
+          case 84:
+            return 12;
+          case 85:
+            return 14;
+          case 86:
+            return "PUNCTUATION";
+          case 87:
+            return 87;
+          case 88:
+            return 86;
+          case 89:
+            return 83;
+          case 90:
+            return 9;
         }
       },
-      rules: [/^(?:default\b)/i, /^(?:.*direction\s+TB[^\n]*)/i, /^(?:.*direction\s+BT[^\n]*)/i, /^(?:.*direction\s+RL[^\n]*)/i, /^(?:.*direction\s+LR[^\n]*)/i, /^(?:%%(?!\{)[^\n]*)/i, /^(?:[^\}]%%[^\n]*)/i, /^(?:[\n]+)/i, /^(?:[\s]+)/i, /^(?:((?!\n)\s)+)/i, /^(?:#[^\n]*)/i, /^(?:%[^\n]*)/i, /^(?:scale\s+)/i, /^(?:\d+)/i, /^(?:\s+width\b)/i, /^(?:accTitle\s*:\s*)/i, /^(?:(?!\n||)*[^\n]*)/i, /^(?:accDescr\s*:\s*)/i, /^(?:(?!\n||)*[^\n]*)/i, /^(?:accDescr\s*\{\s*)/i, /^(?:[\}])/i, /^(?:[^\}]*)/i, /^(?:classDef\s+)/i, /^(?:DEFAULT\s+)/i, /^(?:\w+\s+)/i, /^(?:[^\n]*)/i, /^(?:class\s+)/i, /^(?:(\w+)+((,\s*\w+)*))/i, /^(?:[^\n]*)/i, /^(?:scale\s+)/i, /^(?:\d+)/i, /^(?:\s+width\b)/i, /^(?:state\s+)/i, /^(?:.*<<fork>>)/i, /^(?:.*<<join>>)/i, /^(?:.*<<choice>>)/i, /^(?:.*\[\[fork\]\])/i, /^(?:.*\[\[join\]\])/i, /^(?:.*\[\[choice\]\])/i, /^(?:.*direction\s+TB[^\n]*)/i, /^(?:.*direction\s+BT[^\n]*)/i, /^(?:.*direction\s+RL[^\n]*)/i, /^(?:.*direction\s+LR[^\n]*)/i, /^(?:["])/i, /^(?:\s*as\s+)/i, /^(?:[^\n\{]*)/i, /^(?:["])/i, /^(?:[^"]*)/i, /^(?:[^\n\s\{]+)/i, /^(?:\n)/i, /^(?:\{)/i, /^(?:%%(?!\{)[^\n]*)/i, /^(?:\})/i, /^(?:[\n])/i, /^(?:note\s+)/i, /^(?:left of\b)/i, /^(?:right of\b)/i, /^(?:")/i, /^(?:\s*as\s*)/i, /^(?:["])/i, /^(?:[^"]*)/i, /^(?:[^\n]*)/i, /^(?:\s*[^:\n\s\-]+)/i, /^(?:\s*:[^:\n;]+)/i, /^(?:[\s\S]*?end note\b)/i, /^(?:stateDiagram\s+)/i, /^(?:stateDiagram-v2\s+)/i, /^(?:hide empty description\b)/i, /^(?:\[\*\])/i, /^(?:[^:\n\s\-\{]+)/i, /^(?:\s*:[^:\n;]+)/i, /^(?:-->)/i, /^(?:--)/i, /^(?::::)/i, /^(?:$)/i, /^(?:.)/i],
-      conditions: { "LINE": { "rules": [9, 10], "inclusive": false }, "struct": { "rules": [9, 10, 22, 26, 32, 39, 40, 41, 42, 51, 52, 53, 54, 68, 69, 70, 71, 72], "inclusive": false }, "FLOATING_NOTE_ID": { "rules": [61], "inclusive": false }, "FLOATING_NOTE": { "rules": [58, 59, 60], "inclusive": false }, "NOTE_TEXT": { "rules": [63, 64], "inclusive": false }, "NOTE_ID": { "rules": [62], "inclusive": false }, "NOTE": { "rules": [55, 56, 57], "inclusive": false }, "CLASS_STYLE": { "rules": [28], "inclusive": false }, "CLASS": { "rules": [27], "inclusive": false }, "CLASSDEFID": { "rules": [25], "inclusive": false }, "CLASSDEF": { "rules": [23, 24], "inclusive": false }, "acc_descr_multiline": { "rules": [20, 21], "inclusive": false }, "acc_descr": { "rules": [18], "inclusive": false }, "acc_title": { "rules": [16], "inclusive": false }, "SCALE": { "rules": [13, 14, 30, 31], "inclusive": false }, "ALIAS": { "rules": [], "inclusive": false }, "STATE_ID": { "rules": [45], "inclusive": false }, "STATE_STRING": { "rules": [46, 47], "inclusive": false }, "FORK_STATE": { "rules": [], "inclusive": false }, "STATE": { "rules": [9, 10, 33, 34, 35, 36, 37, 38, 43, 44, 48, 49, 50], "inclusive": false }, "ID": { "rules": [9, 10], "inclusive": false }, "INITIAL": { "rules": [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 15, 17, 19, 22, 26, 29, 32, 50, 54, 65, 66, 67, 68, 69, 70, 71, 73, 74, 75], "inclusive": true } }
+      rules: [/^(?:.*direction\s+TB[^\n]*)/, /^(?:.*direction\s+BT[^\n]*)/, /^(?:.*direction\s+RL[^\n]*)/, /^(?:.*direction\s+LR[^\n]*)/, /^(?:%%(?!\{)*[^\n]*(\r?\n?)+)/, /^(?:%%[^\n]*(\r?\n)*)/, /^(?:accTitle\s*:\s*)/, /^(?:(?!\n||)*[^\n]*)/, /^(?:accDescr\s*:\s*)/, /^(?:(?!\n||)*[^\n]*)/, /^(?:accDescr\s*\{\s*)/, /^(?:[\}])/, /^(?:[^\}]*)/, /^(?:\s*(\r?\n)+)/, /^(?:\s+)/, /^(?:classDiagram-v2\b)/, /^(?:classDiagram\b)/, /^(?:\[\*\])/, /^(?:call[\s]+)/, /^(?:\([\s]*\))/, /^(?:\()/, /^(?:[^(]*)/, /^(?:\))/, /^(?:[^)]*)/, /^(?:["])/, /^(?:[^"]*)/, /^(?:["])/, /^(?:namespace\b)/, /^(?:\s*(\r?\n)+)/, /^(?:\s+)/, /^(?:[{])/, /^(?:[}])/, /^(?:$)/, /^(?:\s*(\r?\n)+)/, /^(?:\s+)/, /^(?:\[\*\])/, /^(?:class\b)/, /^(?:\s*(\r?\n)+)/, /^(?:\s+)/, /^(?:[}])/, /^(?:[{])/, /^(?:[}])/, /^(?:$)/, /^(?:\[\*\])/, /^(?:[{])/, /^(?:[\n])/, /^(?:[^{}\n]*)/, /^(?:cssClass\b)/, /^(?:callback\b)/, /^(?:link\b)/, /^(?:click\b)/, /^(?:note for\b)/, /^(?:note\b)/, /^(?:<<)/, /^(?:>>)/, /^(?:href\b)/, /^(?:[~])/, /^(?:[^~]*)/, /^(?:~)/, /^(?:[`])/, /^(?:[^`]+)/, /^(?:[`])/, /^(?:_self\b)/, /^(?:_blank\b)/, /^(?:_parent\b)/, /^(?:_top\b)/, /^(?:\s*<\|)/, /^(?:\s*\|>)/, /^(?:\s*>)/, /^(?:\s*<)/, /^(?:\s*\*)/, /^(?:\s*o\b)/, /^(?:\s*\(\))/, /^(?:--)/, /^(?:\.\.)/, /^(?::{1}[^:\n;]+)/, /^(?::{3})/, /^(?:-)/, /^(?:\.)/, /^(?:\+)/, /^(?:%)/, /^(?:=)/, /^(?:=)/, /^(?:\w+)/, /^(?:\[)/, /^(?:\])/, /^(?:[!"#$%&'*+,-.`?\\/])/, /^(?:[0-9]+)/, /^(?:[\u00AA\u00B5\u00BA\u00C0-\u00D6\u00D8-\u00F6]|[\u00F8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0370-\u0374\u0376\u0377]|[\u037A-\u037D\u0386\u0388-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5]|[\u03F7-\u0481\u048A-\u0527\u0531-\u0556\u0559\u0561-\u0587\u05D0-\u05EA]|[\u05F0-\u05F2\u0620-\u064A\u066E\u066F\u0671-\u06D3\u06D5\u06E5\u06E6\u06EE]|[\u06EF\u06FA-\u06FC\u06FF\u0710\u0712-\u072F\u074D-\u07A5\u07B1\u07CA-\u07EA]|[\u07F4\u07F5\u07FA\u0800-\u0815\u081A\u0824\u0828\u0840-\u0858\u08A0]|[\u08A2-\u08AC\u0904-\u0939\u093D\u0950\u0958-\u0961\u0971-\u0977]|[\u0979-\u097F\u0985-\u098C\u098F\u0990\u0993-\u09A8\u09AA-\u09B0\u09B2]|[\u09B6-\u09B9\u09BD\u09CE\u09DC\u09DD\u09DF-\u09E1\u09F0\u09F1\u0A05-\u0A0A]|[\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33\u0A35\u0A36\u0A38\u0A39]|[\u0A59-\u0A5C\u0A5E\u0A72-\u0A74\u0A85-\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8]|[\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABD\u0AD0\u0AE0\u0AE1\u0B05-\u0B0C]|[\u0B0F\u0B10\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B35-\u0B39\u0B3D\u0B5C]|[\u0B5D\u0B5F-\u0B61\u0B71\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99]|[\u0B9A\u0B9C\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB9\u0BD0]|[\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C33\u0C35-\u0C39\u0C3D]|[\u0C58\u0C59\u0C60\u0C61\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3]|[\u0CB5-\u0CB9\u0CBD\u0CDE\u0CE0\u0CE1\u0CF1\u0CF2\u0D05-\u0D0C\u0D0E-\u0D10]|[\u0D12-\u0D3A\u0D3D\u0D4E\u0D60\u0D61\u0D7A-\u0D7F\u0D85-\u0D96\u0D9A-\u0DB1]|[\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0E01-\u0E30\u0E32\u0E33\u0E40-\u0E46\u0E81]|[\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F\u0EA1-\u0EA3]|[\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB0\u0EB2\u0EB3\u0EBD\u0EC0-\u0EC4\u0EC6]|[\u0EDC-\u0EDF\u0F00\u0F40-\u0F47\u0F49-\u0F6C\u0F88-\u0F8C\u1000-\u102A]|[\u103F\u1050-\u1055\u105A-\u105D\u1061\u1065\u1066\u106E-\u1070\u1075-\u1081]|[\u108E\u10A0-\u10C5\u10C7\u10CD\u10D0-\u10FA\u10FC-\u1248\u124A-\u124D]|[\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1288\u128A-\u128D\u1290-\u12B0]|[\u12B2-\u12B5\u12B8-\u12BE\u12C0\u12C2-\u12C5\u12C8-\u12D6\u12D8-\u1310]|[\u1312-\u1315\u1318-\u135A\u1380-\u138F\u13A0-\u13F4\u1401-\u166C]|[\u166F-\u167F\u1681-\u169A\u16A0-\u16EA\u1700-\u170C\u170E-\u1711]|[\u1720-\u1731\u1740-\u1751\u1760-\u176C\u176E-\u1770\u1780-\u17B3\u17D7]|[\u17DC\u1820-\u1877\u1880-\u18A8\u18AA\u18B0-\u18F5\u1900-\u191C]|[\u1950-\u196D\u1970-\u1974\u1980-\u19AB\u19C1-\u19C7\u1A00-\u1A16]|[\u1A20-\u1A54\u1AA7\u1B05-\u1B33\u1B45-\u1B4B\u1B83-\u1BA0\u1BAE\u1BAF]|[\u1BBA-\u1BE5\u1C00-\u1C23\u1C4D-\u1C4F\u1C5A-\u1C7D\u1CE9-\u1CEC]|[\u1CEE-\u1CF1\u1CF5\u1CF6\u1D00-\u1DBF\u1E00-\u1F15\u1F18-\u1F1D]|[\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D]|[\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC\u1FD0-\u1FD3]|[\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC\u2071\u207F]|[\u2090-\u209C\u2102\u2107\u210A-\u2113\u2115\u2119-\u211D\u2124\u2126\u2128]|[\u212A-\u212D\u212F-\u2139\u213C-\u213F\u2145-\u2149\u214E\u2183\u2184]|[\u2C00-\u2C2E\u2C30-\u2C5E\u2C60-\u2CE4\u2CEB-\u2CEE\u2CF2\u2CF3]|[\u2D00-\u2D25\u2D27\u2D2D\u2D30-\u2D67\u2D6F\u2D80-\u2D96\u2DA0-\u2DA6]|[\u2DA8-\u2DAE\u2DB0-\u2DB6\u2DB8-\u2DBE\u2DC0-\u2DC6\u2DC8-\u2DCE]|[\u2DD0-\u2DD6\u2DD8-\u2DDE\u2E2F\u3005\u3006\u3031-\u3035\u303B\u303C]|[\u3041-\u3096\u309D-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312D]|[\u3131-\u318E\u31A0-\u31BA\u31F0-\u31FF\u3400-\u4DB5\u4E00-\u9FCC]|[\uA000-\uA48C\uA4D0-\uA4FD\uA500-\uA60C\uA610-\uA61F\uA62A\uA62B]|[\uA640-\uA66E\uA67F-\uA697\uA6A0-\uA6E5\uA717-\uA71F\uA722-\uA788]|[\uA78B-\uA78E\uA790-\uA793\uA7A0-\uA7AA\uA7F8-\uA801\uA803-\uA805]|[\uA807-\uA80A\uA80C-\uA822\uA840-\uA873\uA882-\uA8B3\uA8F2-\uA8F7\uA8FB]|[\uA90A-\uA925\uA930-\uA946\uA960-\uA97C\uA984-\uA9B2\uA9CF\uAA00-\uAA28]|[\uAA40-\uAA42\uAA44-\uAA4B\uAA60-\uAA76\uAA7A\uAA80-\uAAAF\uAAB1\uAAB5]|[\uAAB6\uAAB9-\uAABD\uAAC0\uAAC2\uAADB-\uAADD\uAAE0-\uAAEA\uAAF2-\uAAF4]|[\uAB01-\uAB06\uAB09-\uAB0E\uAB11-\uAB16\uAB20-\uAB26\uAB28-\uAB2E]|[\uABC0-\uABE2\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFA6D]|[\uFA70-\uFAD9\uFB00-\uFB06\uFB13-\uFB17\uFB1D\uFB1F-\uFB28\uFB2A-\uFB36]|[\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D]|[\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFB\uFE70-\uFE74\uFE76-\uFEFC]|[\uFF21-\uFF3A\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF]|[\uFFD2-\uFFD7\uFFDA-\uFFDC])/, /^(?:\s)/, /^(?:$)/],
+      conditions: { "namespace-body": { "rules": [26, 31, 32, 33, 34, 35, 36, 47, 48, 49, 50, 51, 52, 53, 54, 55, 58, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90], "inclusive": false }, "namespace": { "rules": [26, 27, 28, 29, 30, 47, 48, 49, 50, 51, 52, 53, 54, 55, 58, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90], "inclusive": false }, "class-body": { "rules": [26, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 58, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90], "inclusive": false }, "class": { "rules": [26, 37, 38, 39, 40, 47, 48, 49, 50, 51, 52, 53, 54, 55, 58, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90], "inclusive": false }, "acc_descr_multiline": { "rules": [11, 12, 26, 47, 48, 49, 50, 51, 52, 53, 54, 55, 58, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90], "inclusive": false }, "acc_descr": { "rules": [9, 26, 47, 48, 49, 50, 51, 52, 53, 54, 55, 58, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90], "inclusive": false }, "acc_title": { "rules": [7, 26, 47, 48, 49, 50, 51, 52, 53, 54, 55, 58, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90], "inclusive": false }, "callback_args": { "rules": [22, 23, 26, 47, 48, 49, 50, 51, 52, 53, 54, 55, 58, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90], "inclusive": false }, "callback_name": { "rules": [19, 20, 21, 26, 47, 48, 49, 50, 51, 52, 53, 54, 55, 58, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90], "inclusive": false }, "href": { "rules": [26, 47, 48, 49, 50, 51, 52, 53, 54, 55, 58, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90], "inclusive": false }, "struct": { "rules": [26, 47, 48, 49, 50, 51, 52, 53, 54, 55, 58, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90], "inclusive": false }, "generic": { "rules": [26, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90], "inclusive": false }, "bqstring": { "rules": [26, 47, 48, 49, 50, 51, 52, 53, 54, 55, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90], "inclusive": false }, "string": { "rules": [24, 25, 26, 47, 48, 49, 50, 51, 52, 53, 54, 55, 58, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90], "inclusive": false }, "INITIAL": { "rules": [0, 1, 2, 3, 4, 5, 6, 8, 10, 13, 14, 15, 16, 17, 18, 26, 27, 36, 47, 48, 49, 50, 51, 52, 53, 54, 55, 58, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90], "inclusive": true } }
     };
     return lexer2;
   }();
@@ -25290,41 +25356,301 @@ var parser = function() {
 }();
 parser.parser = parser;
 const parser$1 = parser;
-const DEFAULT_DIAGRAM_DIRECTION = "LR";
-const DEFAULT_NESTED_DOC_DIR = "TB";
-const STMT_STATE = "state";
-const STMT_RELATION = "relation";
-const STMT_CLASSDEF = "classDef";
-const STMT_APPLYCLASS = "applyClass";
-const DEFAULT_STATE_TYPE = "default";
-const DIVIDER_TYPE = "divider";
-const START_NODE = "[*]";
-const START_TYPE = "start";
-const END_NODE = START_NODE;
-const END_TYPE = "end";
-const COLOR_KEYWORD = "color";
-const FILL_KEYWORD = "fill";
-const BG_FILL = "bgFill";
-const STYLECLASS_SEP = ",";
-function newClassesList() {
-  return {};
+const visibilityValues = ["#", "+", "~", "-", ""];
+class ClassMember {
+  constructor(input, memberType) {
+    this.memberType = memberType;
+    this.visibility = "";
+    this.classifier = "";
+    const sanitizedInput = (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.d)(input, (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.c)());
+    this.parseMember(sanitizedInput);
+  }
+  getDisplayDetails() {
+    let displayText = this.visibility + (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.v)(this.id);
+    if (this.memberType === "method") {
+      displayText += `(${(0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.v)(this.parameters.trim())})`;
+      if (this.returnType) {
+        displayText += " : " + (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.v)(this.returnType);
+      }
+    }
+    displayText = displayText.trim();
+    const cssStyle = this.parseClassifier();
+    return {
+      displayText,
+      cssStyle
+    };
+  }
+  parseMember(input) {
+    let potentialClassifier = "";
+    if (this.memberType === "method") {
+      const methodRegEx = /([#+~-])?(.+)\((.*)\)([\s$*])?(.*)([$*])?/;
+      const match = input.match(methodRegEx);
+      if (match) {
+        const detectedVisibility = match[1] ? match[1].trim() : "";
+        if (visibilityValues.includes(detectedVisibility)) {
+          this.visibility = detectedVisibility;
+        }
+        this.id = match[2].trim();
+        this.parameters = match[3] ? match[3].trim() : "";
+        potentialClassifier = match[4] ? match[4].trim() : "";
+        this.returnType = match[5] ? match[5].trim() : "";
+        if (potentialClassifier === "") {
+          const lastChar = this.returnType.substring(this.returnType.length - 1);
+          if (lastChar.match(/[$*]/)) {
+            potentialClassifier = lastChar;
+            this.returnType = this.returnType.substring(0, this.returnType.length - 1);
+          }
+        }
+      }
+    } else {
+      const length = input.length;
+      const firstChar = input.substring(0, 1);
+      const lastChar = input.substring(length - 1);
+      if (visibilityValues.includes(firstChar)) {
+        this.visibility = firstChar;
+      }
+      if (lastChar.match(/[*?]/)) {
+        potentialClassifier = lastChar;
+      }
+      this.id = input.substring(
+        this.visibility === "" ? 0 : 1,
+        potentialClassifier === "" ? length : length - 1
+      );
+    }
+    this.classifier = potentialClassifier;
+  }
+  parseClassifier() {
+    switch (this.classifier) {
+      case "*":
+        return "font-style:italic;";
+      case "$":
+        return "text-decoration:underline;";
+      default:
+        return "";
+    }
+  }
 }
-let direction = DEFAULT_DIAGRAM_DIRECTION;
-let rootDoc = [];
-let classes = newClassesList();
-const newDoc = () => {
-  return {
-    relations: [],
-    states: {},
-    documents: {}
+const MERMAID_DOM_ID_PREFIX = "classId-";
+let relations = [];
+let classes = {};
+let notes = [];
+let classCounter = 0;
+let namespaces = {};
+let namespaceCounter = 0;
+let functions = [];
+const sanitizeText = (txt) => _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.e.sanitizeText(txt, (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.c)());
+const splitClassNameAndType = function(_id) {
+  const id = _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.e.sanitizeText(_id, (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.c)());
+  let genericType = "";
+  let className = id;
+  if (id.indexOf("~") > 0) {
+    const split = id.split("~");
+    className = sanitizeText(split[0]);
+    genericType = sanitizeText(split[1]);
+  }
+  return { className, type: genericType };
+};
+const setClassLabel = function(_id, label) {
+  const id = _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.e.sanitizeText(_id, (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.c)());
+  if (label) {
+    label = sanitizeText(label);
+  }
+  const { className } = splitClassNameAndType(id);
+  classes[className].label = label;
+};
+const addClass = function(_id) {
+  const id = _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.e.sanitizeText(_id, (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.c)());
+  const { className, type } = splitClassNameAndType(id);
+  if (Object.hasOwn(classes, className)) {
+    return;
+  }
+  const name = _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.e.sanitizeText(className, (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.c)());
+  classes[name] = {
+    id: name,
+    type,
+    label: name,
+    cssClasses: [],
+    methods: [],
+    members: [],
+    annotations: [],
+    domId: MERMAID_DOM_ID_PREFIX + name + "-" + classCounter
   };
+  classCounter++;
 };
-let documents = {
-  root: newDoc()
+const lookUpDomId = function(_id) {
+  const id = _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.e.sanitizeText(_id, (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.c)());
+  if (id in classes) {
+    return classes[id].domId;
+  }
+  throw new Error("Class not found: " + id);
 };
-let currentDocument = documents.root;
-let startEndCount = 0;
-let dividerCnt = 0;
+const clear = function() {
+  relations = [];
+  classes = {};
+  notes = [];
+  functions = [];
+  functions.push(setupToolTips);
+  namespaces = {};
+  namespaceCounter = 0;
+  (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.t)();
+};
+const getClass = function(id) {
+  return classes[id];
+};
+const getClasses = function() {
+  return classes;
+};
+const getRelations = function() {
+  return relations;
+};
+const getNotes = function() {
+  return notes;
+};
+const addRelation = function(relation) {
+  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.l.debug("Adding relation: " + JSON.stringify(relation));
+  addClass(relation.id1);
+  addClass(relation.id2);
+  relation.id1 = splitClassNameAndType(relation.id1).className;
+  relation.id2 = splitClassNameAndType(relation.id2).className;
+  relation.relationTitle1 = _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.e.sanitizeText(relation.relationTitle1.trim(), (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.c)());
+  relation.relationTitle2 = _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.e.sanitizeText(relation.relationTitle2.trim(), (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.c)());
+  relations.push(relation);
+};
+const addAnnotation = function(className, annotation) {
+  const validatedClassName = splitClassNameAndType(className).className;
+  classes[validatedClassName].annotations.push(annotation);
+};
+const addMember = function(className, member) {
+  addClass(className);
+  const validatedClassName = splitClassNameAndType(className).className;
+  const theClass = classes[validatedClassName];
+  if (typeof member === "string") {
+    const memberString = member.trim();
+    if (memberString.startsWith("<<") && memberString.endsWith(">>")) {
+      theClass.annotations.push(sanitizeText(memberString.substring(2, memberString.length - 2)));
+    } else if (memberString.indexOf(")") > 0) {
+      theClass.methods.push(new ClassMember(memberString, "method"));
+    } else if (memberString) {
+      theClass.members.push(new ClassMember(memberString, "attribute"));
+    }
+  }
+};
+const addMembers = function(className, members) {
+  if (Array.isArray(members)) {
+    members.reverse();
+    members.forEach((member) => addMember(className, member));
+  }
+};
+const addNote = function(text, className) {
+  const note = {
+    id: `note${notes.length}`,
+    class: className,
+    text
+  };
+  notes.push(note);
+};
+const cleanupLabel = function(label) {
+  if (label.startsWith(":")) {
+    label = label.substring(1);
+  }
+  return sanitizeText(label.trim());
+};
+const setCssClass = function(ids, className) {
+  ids.split(",").forEach(function(_id) {
+    let id = _id;
+    if (_id[0].match(/\d/)) {
+      id = MERMAID_DOM_ID_PREFIX + id;
+    }
+    if (classes[id] !== void 0) {
+      classes[id].cssClasses.push(className);
+    }
+  });
+};
+const setTooltip = function(ids, tooltip) {
+  ids.split(",").forEach(function(id) {
+    if (tooltip !== void 0) {
+      classes[id].tooltip = sanitizeText(tooltip);
+    }
+  });
+};
+const getTooltip = function(id, namespace) {
+  if (namespace) {
+    return namespaces[namespace].classes[id].tooltip;
+  }
+  return classes[id].tooltip;
+};
+const setLink = function(ids, linkStr, target) {
+  const config = (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.c)();
+  ids.split(",").forEach(function(_id) {
+    let id = _id;
+    if (_id[0].match(/\d/)) {
+      id = MERMAID_DOM_ID_PREFIX + id;
+    }
+    if (classes[id] !== void 0) {
+      classes[id].link = _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.u.formatUrl(linkStr, config);
+      if (config.securityLevel === "sandbox") {
+        classes[id].linkTarget = "_top";
+      } else if (typeof target === "string") {
+        classes[id].linkTarget = sanitizeText(target);
+      } else {
+        classes[id].linkTarget = "_blank";
+      }
+    }
+  });
+  setCssClass(ids, "clickable");
+};
+const setClickEvent = function(ids, functionName, functionArgs) {
+  ids.split(",").forEach(function(id) {
+    setClickFunc(id, functionName, functionArgs);
+    classes[id].haveCallback = true;
+  });
+  setCssClass(ids, "clickable");
+};
+const setClickFunc = function(_domId, functionName, functionArgs) {
+  const domId = _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.e.sanitizeText(_domId, (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.c)());
+  const config = (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.c)();
+  if (config.securityLevel !== "loose") {
+    return;
+  }
+  if (functionName === void 0) {
+    return;
+  }
+  const id = domId;
+  if (classes[id] !== void 0) {
+    const elemId = lookUpDomId(id);
+    let argList = [];
+    if (typeof functionArgs === "string") {
+      argList = functionArgs.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+      for (let i = 0; i < argList.length; i++) {
+        let item = argList[i].trim();
+        if (item.charAt(0) === '"' && item.charAt(item.length - 1) === '"') {
+          item = item.substr(1, item.length - 2);
+        }
+        argList[i] = item;
+      }
+    }
+    if (argList.length === 0) {
+      argList.push(elemId);
+    }
+    functions.push(function() {
+      const elem = document.querySelector(`[id="${elemId}"]`);
+      if (elem !== null) {
+        elem.addEventListener(
+          "click",
+          function() {
+            _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.u.runFunc(functionName, ...argList);
+          },
+          false
+        );
+      }
+    });
+  }
+};
+const bindFunctions = function(element) {
+  functions.forEach(function(fun) {
+    fun(element);
+  });
+};
 const lineType = {
   LINE: 0,
   DOTTED_LINE: 1
@@ -25333,534 +25659,251 @@ const relationType = {
   AGGREGATION: 0,
   EXTENSION: 1,
   COMPOSITION: 2,
-  DEPENDENCY: 3
+  DEPENDENCY: 3,
+  LOLLIPOP: 4
 };
-const clone = (o) => JSON.parse(JSON.stringify(o));
-const setRootDoc = (o) => {
-  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.l.info("Setting root doc", o);
-  rootDoc = o;
-};
-const getRootDoc = () => rootDoc;
-const docTranslator = (parent, node, first) => {
-  if (node.stmt === STMT_RELATION) {
-    docTranslator(parent, node.state1, true);
-    docTranslator(parent, node.state2, false);
-  } else {
-    if (node.stmt === STMT_STATE) {
-      if (node.id === "[*]") {
-        node.id = first ? parent.id + "_start" : parent.id + "_end";
-        node.start = first;
-      } else {
-        node.id = node.id.trim();
-      }
-    }
-    if (node.doc) {
-      const doc = [];
-      let currentDoc = [];
-      let i;
-      for (i = 0; i < node.doc.length; i++) {
-        if (node.doc[i].type === DIVIDER_TYPE) {
-          const newNode = clone(node.doc[i]);
-          newNode.doc = clone(currentDoc);
-          doc.push(newNode);
-          currentDoc = [];
-        } else {
-          currentDoc.push(node.doc[i]);
-        }
-      }
-      if (doc.length > 0 && currentDoc.length > 0) {
-        const newNode = {
-          stmt: STMT_STATE,
-          id: (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.G)(),
-          type: "divider",
-          doc: clone(currentDoc)
-        };
-        doc.push(clone(newNode));
-        node.doc = doc;
-      }
-      node.doc.forEach((docNode) => docTranslator(node, docNode, true));
-    }
+const setupToolTips = function(element) {
+  let tooltipElem = (0,d3__WEBPACK_IMPORTED_MODULE_0__/* .select */ .Ys)(".mermaidTooltip");
+  if ((tooltipElem._groups || tooltipElem)[0][0] === null) {
+    tooltipElem = (0,d3__WEBPACK_IMPORTED_MODULE_0__/* .select */ .Ys)("body").append("div").attr("class", "mermaidTooltip").style("opacity", 0);
   }
-};
-const getRootDocV2 = () => {
-  docTranslator({ id: "root" }, { id: "root", doc: rootDoc }, true);
-  return { id: "root", doc: rootDoc };
-};
-const extract = (_doc) => {
-  let doc;
-  if (_doc.doc) {
-    doc = _doc.doc;
-  } else {
-    doc = _doc;
-  }
-  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.l.info(doc);
-  clear(true);
-  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.l.info("Extract", doc);
-  doc.forEach((item) => {
-    switch (item.stmt) {
-      case STMT_STATE:
-        addState(
-          item.id.trim(),
-          item.type,
-          item.doc,
-          item.description,
-          item.note,
-          item.classes,
-          item.styles,
-          item.textStyles
-        );
-        break;
-      case STMT_RELATION:
-        addRelation(item.state1, item.state2, item.description);
-        break;
-      case STMT_CLASSDEF:
-        addStyleClass(item.id.trim(), item.classes);
-        break;
-      case STMT_APPLYCLASS:
-        setCssClass(item.id.trim(), item.styleClass);
-        break;
+  const svg = (0,d3__WEBPACK_IMPORTED_MODULE_0__/* .select */ .Ys)(element).select("svg");
+  const nodes = svg.selectAll("g.node");
+  nodes.on("mouseover", function() {
+    const el = (0,d3__WEBPACK_IMPORTED_MODULE_0__/* .select */ .Ys)(this);
+    const title = el.attr("title");
+    if (title === null) {
+      return;
     }
+    const rect = this.getBoundingClientRect();
+    tooltipElem.transition().duration(200).style("opacity", ".9");
+    tooltipElem.text(el.attr("title")).style("left", window.scrollX + rect.left + (rect.right - rect.left) / 2 + "px").style("top", window.scrollY + rect.top - 14 + document.body.scrollTop + "px");
+    tooltipElem.html(tooltipElem.html().replace(/&lt;br\/&gt;/g, "<br/>"));
+    el.classed("hover", true);
+  }).on("mouseout", function() {
+    tooltipElem.transition().duration(500).style("opacity", 0);
+    const el = (0,d3__WEBPACK_IMPORTED_MODULE_0__/* .select */ .Ys)(this);
+    el.classed("hover", false);
   });
 };
-const addState = function(id, type = DEFAULT_STATE_TYPE, doc = null, descr = null, note = null, classes2 = null, styles2 = null, textStyles = null) {
-  const trimmedId = id == null ? void 0 : id.trim();
-  if (currentDocument.states[trimmedId] === void 0) {
-    _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.l.info("Adding state ", trimmedId, descr);
-    currentDocument.states[trimmedId] = {
-      id: trimmedId,
-      descriptions: [],
-      type,
-      doc,
-      note,
-      classes: [],
-      styles: [],
-      textStyles: []
-    };
-  } else {
-    if (!currentDocument.states[trimmedId].doc) {
-      currentDocument.states[trimmedId].doc = doc;
-    }
-    if (!currentDocument.states[trimmedId].type) {
-      currentDocument.states[trimmedId].type = type;
-    }
-  }
-  if (descr) {
-    _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.l.info("Setting state description", trimmedId, descr);
-    if (typeof descr === "string") {
-      addDescription(trimmedId, descr.trim());
-    }
-    if (typeof descr === "object") {
-      descr.forEach((des) => addDescription(trimmedId, des.trim()));
-    }
-  }
-  if (note) {
-    currentDocument.states[trimmedId].note = note;
-    currentDocument.states[trimmedId].note.text = _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.e.sanitizeText(
-      currentDocument.states[trimmedId].note.text,
-      (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.c)()
-    );
-  }
-  if (classes2) {
-    _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.l.info("Setting state classes", trimmedId, classes2);
-    const classesList = typeof classes2 === "string" ? [classes2] : classes2;
-    classesList.forEach((klass) => setCssClass(trimmedId, klass.trim()));
-  }
-  if (styles2) {
-    _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.l.info("Setting state styles", trimmedId, styles2);
-    const stylesList = typeof styles2 === "string" ? [styles2] : styles2;
-    stylesList.forEach((style) => setStyle(trimmedId, style.trim()));
-  }
-  if (textStyles) {
-    _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.l.info("Setting state styles", trimmedId, styles2);
-    const textStylesList = typeof textStyles === "string" ? [textStyles] : textStyles;
-    textStylesList.forEach((textStyle) => setTextStyle(trimmedId, textStyle.trim()));
-  }
-};
-const clear = function(saveCommon) {
-  documents = {
-    root: newDoc()
-  };
-  currentDocument = documents.root;
-  startEndCount = 0;
-  classes = newClassesList();
-  if (!saveCommon) {
-    (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.t)();
-  }
-};
-const getState = function(id) {
-  return currentDocument.states[id];
-};
-const getStates = function() {
-  return currentDocument.states;
-};
-const logDocuments = function() {
-  _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.l.info("Documents = ", documents);
-};
-const getRelations = function() {
-  return currentDocument.relations;
-};
-function startIdIfNeeded(id = "") {
-  let fixedId = id;
-  if (id === START_NODE) {
-    startEndCount++;
-    fixedId = `${START_TYPE}${startEndCount}`;
-  }
-  return fixedId;
-}
-function startTypeIfNeeded(id = "", type = DEFAULT_STATE_TYPE) {
-  return id === START_NODE ? START_TYPE : type;
-}
-function endIdIfNeeded(id = "") {
-  let fixedId = id;
-  if (id === END_NODE) {
-    startEndCount++;
-    fixedId = `${END_TYPE}${startEndCount}`;
-  }
-  return fixedId;
-}
-function endTypeIfNeeded(id = "", type = DEFAULT_STATE_TYPE) {
-  return id === END_NODE ? END_TYPE : type;
-}
-function addRelationObjs(item1, item2, relationTitle) {
-  let id1 = startIdIfNeeded(item1.id.trim());
-  let type1 = startTypeIfNeeded(item1.id.trim(), item1.type);
-  let id2 = startIdIfNeeded(item2.id.trim());
-  let type2 = startTypeIfNeeded(item2.id.trim(), item2.type);
-  addState(
-    id1,
-    type1,
-    item1.doc,
-    item1.description,
-    item1.note,
-    item1.classes,
-    item1.styles,
-    item1.textStyles
-  );
-  addState(
-    id2,
-    type2,
-    item2.doc,
-    item2.description,
-    item2.note,
-    item2.classes,
-    item2.styles,
-    item2.textStyles
-  );
-  currentDocument.relations.push({
-    id1,
-    id2,
-    relationTitle: _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.e.sanitizeText(relationTitle, (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.c)())
-  });
-}
-const addRelation = function(item1, item2, title) {
-  if (typeof item1 === "object") {
-    addRelationObjs(item1, item2, title);
-  } else {
-    const id1 = startIdIfNeeded(item1.trim());
-    const type1 = startTypeIfNeeded(item1);
-    const id2 = endIdIfNeeded(item2.trim());
-    const type2 = endTypeIfNeeded(item2);
-    addState(id1, type1);
-    addState(id2, type2);
-    currentDocument.relations.push({
-      id1,
-      id2,
-      title: _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.e.sanitizeText(title, (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.c)())
-    });
-  }
-};
-const addDescription = function(id, descr) {
-  const theState = currentDocument.states[id];
-  const _descr = descr.startsWith(":") ? descr.replace(":", "").trim() : descr;
-  theState.descriptions.push(_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.e.sanitizeText(_descr, (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.c)()));
-};
-const cleanupLabel = function(label) {
-  if (label.substring(0, 1) === ":") {
-    return label.substr(2).trim();
-  } else {
-    return label.trim();
-  }
-};
-const getDividerId = () => {
-  dividerCnt++;
-  return "divider-id-" + dividerCnt;
-};
-const addStyleClass = function(id, styleAttributes = "") {
-  if (classes[id] === void 0) {
-    classes[id] = { id, styles: [], textStyles: [] };
-  }
-  const foundClass = classes[id];
-  if (styleAttributes !== void 0 && styleAttributes !== null) {
-    styleAttributes.split(STYLECLASS_SEP).forEach((attrib) => {
-      const fixedAttrib = attrib.replace(/([^;]*);/, "$1").trim();
-      if (attrib.match(COLOR_KEYWORD)) {
-        const newStyle1 = fixedAttrib.replace(FILL_KEYWORD, BG_FILL);
-        const newStyle2 = newStyle1.replace(COLOR_KEYWORD, FILL_KEYWORD);
-        foundClass.textStyles.push(newStyle2);
-      }
-      foundClass.styles.push(fixedAttrib);
-    });
-  }
-};
-const getClasses = function() {
-  return classes;
-};
-const setCssClass = function(itemIds, cssClassName) {
-  itemIds.split(",").forEach(function(id) {
-    let foundState = getState(id);
-    if (foundState === void 0) {
-      const trimmedId = id.trim();
-      addState(trimmedId);
-      foundState = getState(trimmedId);
-    }
-    foundState.classes.push(cssClassName);
-  });
-};
-const setStyle = function(itemId, styleText) {
-  const item = getState(itemId);
-  if (item !== void 0) {
-    item.textStyles.push(styleText);
-  }
-};
-const setTextStyle = function(itemId, cssClassName) {
-  const item = getState(itemId);
-  if (item !== void 0) {
-    item.textStyles.push(cssClassName);
-  }
-};
+functions.push(setupToolTips);
+let direction = "TB";
 const getDirection = () => direction;
 const setDirection = (dir) => {
   direction = dir;
 };
-const trimColon = (str) => str && str[0] === ":" ? str.substr(1).trim() : str.trim();
+const addNamespace = function(id) {
+  if (namespaces[id] !== void 0) {
+    return;
+  }
+  namespaces[id] = {
+    id,
+    classes: {},
+    children: {},
+    domId: MERMAID_DOM_ID_PREFIX + id + "-" + namespaceCounter
+  };
+  namespaceCounter++;
+};
+const getNamespace = function(name) {
+  return namespaces[name];
+};
+const getNamespaces = function() {
+  return namespaces;
+};
+const addClassesToNamespace = function(id, classNames) {
+  if (namespaces[id] !== void 0) {
+    classNames.map((className) => {
+      classes[className].parent = id;
+      namespaces[id].classes[className] = classes[className];
+    });
+  }
+};
 const db = {
-  getConfig: () => (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.c)().state,
-  addState,
+  setAccTitle: _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.s,
+  getAccTitle: _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.g,
+  getAccDescription: _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.a,
+  setAccDescription: _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.b,
+  getConfig: () => (0,_mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.c)().class,
+  addClass,
+  bindFunctions,
   clear,
-  getState,
-  getStates,
-  getRelations,
+  getClass,
   getClasses,
-  getDirection,
+  getNotes,
+  addAnnotation,
+  addNote,
+  getRelations,
   addRelation,
-  getDividerId,
+  getDirection,
   setDirection,
+  addMember,
+  addMembers,
   cleanupLabel,
   lineType,
   relationType,
-  logDocuments,
-  getRootDoc,
-  setRootDoc,
-  getRootDocV2,
-  extract,
-  trimColon,
-  getAccTitle: _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.g,
-  setAccTitle: _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.s,
-  getAccDescription: _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.a,
-  setAccDescription: _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.b,
-  addStyleClass,
+  setClickEvent,
   setCssClass,
-  addDescription,
-  setDiagramTitle: _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.q,
-  getDiagramTitle: _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_0__.r
+  setLink,
+  getTooltip,
+  setTooltip,
+  lookUpDomId,
+  setDiagramTitle: _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.q,
+  getDiagramTitle: _mermaid_934d9bea_js__WEBPACK_IMPORTED_MODULE_1__.r,
+  setClassLabel,
+  addNamespace,
+  addClassesToNamespace,
+  getNamespace,
+  getNamespaces
 };
-const getStyles = (options) => `
-defs #statediagram-barbEnd {
-    fill: ${options.transitionColor};
-    stroke: ${options.transitionColor};
+const getStyles = (options) => `g.classGroup text {
+  fill: ${options.nodeBorder || options.classText};
+  stroke: none;
+  font-family: ${options.fontFamily};
+  font-size: 10px;
+
+  .title {
+    font-weight: bolder;
   }
-g.stateGroup text {
-  fill: ${options.nodeBorder};
-  stroke: none;
-  font-size: 10px;
-}
-g.stateGroup text {
-  fill: ${options.textColor};
-  stroke: none;
-  font-size: 10px;
 
 }
-g.stateGroup .state-title {
+
+.nodeLabel, .edgeLabel {
+  color: ${options.classText};
+}
+.edgeLabel .label rect {
+  fill: ${options.mainBkg};
+}
+.label text {
+  fill: ${options.classText};
+}
+.edgeLabel .label span {
+  background: ${options.mainBkg};
+}
+
+.classTitle {
   font-weight: bolder;
-  fill: ${options.stateLabelColor};
+}
+.node rect,
+  .node circle,
+  .node ellipse,
+  .node polygon,
+  .node path {
+    fill: ${options.mainBkg};
+    stroke: ${options.nodeBorder};
+    stroke-width: 1px;
+  }
+
+
+.divider {
+  stroke: ${options.nodeBorder};
+  stroke-width: 1;
 }
 
-g.stateGroup rect {
+g.clickable {
+  cursor: pointer;
+}
+
+g.classGroup rect {
   fill: ${options.mainBkg};
   stroke: ${options.nodeBorder};
 }
 
-g.stateGroup line {
-  stroke: ${options.lineColor};
+g.classGroup line {
+  stroke: ${options.nodeBorder};
   stroke-width: 1;
 }
 
-.transition {
-  stroke: ${options.transitionColor};
-  stroke-width: 1;
-  fill: none;
-}
-
-.stateGroup .composit {
-  fill: ${options.background};
-  border-bottom: 1px
-}
-
-.stateGroup .alt-composit {
-  fill: #e0e0e0;
-  border-bottom: 1px
-}
-
-.state-note {
-  stroke: ${options.noteBorderColor};
-  fill: ${options.noteBkgColor};
-
-  text {
-    fill: ${options.noteTextColor};
-    stroke: none;
-    font-size: 10px;
-  }
-}
-
-.stateLabel .box {
+.classLabel .box {
   stroke: none;
   stroke-width: 0;
   fill: ${options.mainBkg};
   opacity: 0.5;
 }
 
-.edgeLabel .label rect {
-  fill: ${options.labelBackgroundColor};
-  opacity: 0.5;
-}
-.edgeLabel .label text {
-  fill: ${options.transitionLabelColor || options.tertiaryTextColor};
-}
-.label div .edgeLabel {
-  color: ${options.transitionLabelColor || options.tertiaryTextColor};
-}
-
-.stateLabel text {
-  fill: ${options.stateLabelColor};
+.classLabel .label {
+  fill: ${options.nodeBorder};
   font-size: 10px;
-  font-weight: bold;
 }
 
-.node circle.state-start {
-  fill: ${options.specialStateColor};
-  stroke: ${options.specialStateColor};
-}
-
-.node .fork-join {
-  fill: ${options.specialStateColor};
-  stroke: ${options.specialStateColor};
-}
-
-.node circle.state-end {
-  fill: ${options.innerEndBackground};
-  stroke: ${options.background};
-  stroke-width: 1.5
-}
-.end-state-inner {
-  fill: ${options.compositeBackground || options.background};
-  // stroke: ${options.background};
-  stroke-width: 1.5
-}
-
-.node rect {
-  fill: ${options.stateBkg || options.mainBkg};
-  stroke: ${options.stateBorder || options.nodeBorder};
-  stroke-width: 1px;
-}
-.node polygon {
-  fill: ${options.mainBkg};
-  stroke: ${options.stateBorder || options.nodeBorder};;
-  stroke-width: 1px;
-}
-#statediagram-barbEnd {
-  fill: ${options.lineColor};
-}
-
-.statediagram-cluster rect {
-  fill: ${options.compositeTitleBackground};
-  stroke: ${options.stateBorder || options.nodeBorder};
-  stroke-width: 1px;
-}
-
-.cluster-label, .nodeLabel {
-  color: ${options.stateLabelColor};
-}
-
-.statediagram-cluster rect.outer {
-  rx: 5px;
-  ry: 5px;
-}
-.statediagram-state .divider {
-  stroke: ${options.stateBorder || options.nodeBorder};
-}
-
-.statediagram-state .title-state {
-  rx: 5px;
-  ry: 5px;
-}
-.statediagram-cluster.statediagram-cluster .inner {
-  fill: ${options.compositeBackground || options.background};
-}
-.statediagram-cluster.statediagram-cluster-alt .inner {
-  fill: ${options.altBackground ? options.altBackground : "#efefef"};
-}
-
-.statediagram-cluster .inner {
-  rx:0;
-  ry:0;
-}
-
-.statediagram-state rect.basic {
-  rx: 5px;
-  ry: 5px;
-}
-.statediagram-state rect.divider {
-  stroke-dasharray: 10,10;
-  fill: ${options.altBackground ? options.altBackground : "#efefef"};
-}
-
-.note-edge {
-  stroke-dasharray: 5;
-}
-
-.statediagram-note rect {
-  fill: ${options.noteBkgColor};
-  stroke: ${options.noteBorderColor};
-  stroke-width: 1px;
-  rx: 0;
-  ry: 0;
-}
-.statediagram-note rect {
-  fill: ${options.noteBkgColor};
-  stroke: ${options.noteBorderColor};
-  stroke-width: 1px;
-  rx: 0;
-  ry: 0;
-}
-
-.statediagram-note text {
-  fill: ${options.noteTextColor};
-}
-
-.statediagram-note .nodeLabel {
-  color: ${options.noteTextColor};
-}
-.statediagram .edgeLabel {
-  color: red; // ${options.noteTextColor};
-}
-
-#dependencyStart, #dependencyEnd {
-  fill: ${options.lineColor};
+.relation {
   stroke: ${options.lineColor};
+  stroke-width: 1;
+  fill: none;
+}
+
+.dashed-line{
+  stroke-dasharray: 3;
+}
+
+.dotted-line{
+  stroke-dasharray: 1 2;
+}
+
+#compositionStart, .composition {
+  fill: ${options.lineColor} !important;
+  stroke: ${options.lineColor} !important;
   stroke-width: 1;
 }
 
-.statediagramTitleText {
+#compositionEnd, .composition {
+  fill: ${options.lineColor} !important;
+  stroke: ${options.lineColor} !important;
+  stroke-width: 1;
+}
+
+#dependencyStart, .dependency {
+  fill: ${options.lineColor} !important;
+  stroke: ${options.lineColor} !important;
+  stroke-width: 1;
+}
+
+#dependencyStart, .dependency {
+  fill: ${options.lineColor} !important;
+  stroke: ${options.lineColor} !important;
+  stroke-width: 1;
+}
+
+#extensionStart, .extension {
+  fill: transparent !important;
+  stroke: ${options.lineColor} !important;
+  stroke-width: 1;
+}
+
+#extensionEnd, .extension {
+  fill: transparent !important;
+  stroke: ${options.lineColor} !important;
+  stroke-width: 1;
+}
+
+#aggregationStart, .aggregation {
+  fill: transparent !important;
+  stroke: ${options.lineColor} !important;
+  stroke-width: 1;
+}
+
+#aggregationEnd, .aggregation {
+  fill: transparent !important;
+  stroke: ${options.lineColor} !important;
+  stroke-width: 1;
+}
+
+#lollipopStart, .lollipop {
+  fill: ${options.mainBkg} !important;
+  stroke: ${options.lineColor} !important;
+  stroke-width: 1;
+}
+
+#lollipopEnd, .lollipop {
+  fill: ${options.mainBkg} !important;
+  stroke: ${options.lineColor} !important;
+  stroke-width: 1;
+}
+
+.edgeTerminals {
+  font-size: 11px;
+}
+
+.classTitleText {
   text-anchor: middle;
   font-size: 18px;
   fill: ${options.textColor};
