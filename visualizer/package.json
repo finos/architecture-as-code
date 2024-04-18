@@ -22,5 +22,8 @@
     "mermaid": "^10.9.0",
     "playwright": "^1.42.1",
     "winston": "^3.13.0"
+  },
+  "overrides": {
+    "katex": "^0.16.10"
   }
 }
