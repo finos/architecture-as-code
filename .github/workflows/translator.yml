@@ -1,4 +1,4 @@
-name: translator build with maven
+name: Build Translators
 
 on:
   push:
