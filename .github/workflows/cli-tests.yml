@@ -1,4 +1,4 @@
-name: Run CLI unit tests and lint
+name: Build CLI
 
 on:
   pull_request:
