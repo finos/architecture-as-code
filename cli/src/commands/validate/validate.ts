@@ -12,7 +12,7 @@ export default async function validate(jsonSchemaInstantiationLocation: string, 
     logger = initLogger(debug);
     let exitCode = 0;
     try {
-        const ajv = new Ajv2020({ strict: false });
+        const ajv = new Ajv2020({ strict: false , allErrors: true});
 
         loadMetaSchemas(ajv, metaSchemaPath);
 
@@ -63,7 +63,7 @@ function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
 
 async function runSpectralValidations(jsonSchemaInstantiation: string) {
     const spectral = new Spectral();
-    spectral.setRuleset(await getRuleset('../spectral/calm-validation-rules.yaml'));
+    spectral.setRuleset(await getRuleset('../spectral/instantiation/validation-rules.yaml'));
     const issues = await spectral.run(jsonSchemaInstantiation);
     if (issues && issues.length > 0) {
         logger.info(`Spectral issues: ${prettifyJson(issues)}`);
