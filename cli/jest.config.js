@@ -2,5 +2,8 @@
 export default {
     preset: 'ts-jest',
     testEnvironment: 'node',
-    testMatch: ['<rootDir>/src/**/*.spec.ts']
+    testMatch: ['<rootDir>/src/**/*.spec.ts'],
+    moduleNameMapper: {
+        '(.+)\\.js': '$1'
+    },
 };
