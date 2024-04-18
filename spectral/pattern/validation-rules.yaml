@@ -48,7 +48,6 @@ rules:
     description: Connect relationships with const properties must reference existing nodes
     severity: error 
     message: "{{error}}"
-    # given: "$.properties.relationships.prefixItems[*].properties.relationship-type.const.connects.*.node"
     given: "$..connects.source.node"
     then:
       # only container and actor are in scope, since source/destination use interfaces now
@@ -59,7 +58,6 @@ rules:
     description: All nodes referenced by a grouping relationship must reference existing nodes
     severity: error 
     message: "{{error}}"
-    # given: "$.properties.relationships.prefixItems[*].properties.relationship-type.const.connects.*.node"
     given: "$..relationship-type..nodes[*]"
     then:
       # only container and actor are in scope, since source/destination use interfaces now
@@ -69,7 +67,6 @@ rules:
     description: Relationships with const properties must reference existing nodes.
     severity: error 
     message: "{{error}}"
-    # given: "$.properties.relationships.prefixItems[*].properties.relationship-type.const.connects.*.node"
     given: "$..relationship-type.*.*"
     then:
       # only container and actor are in scope, since source/destination use interfaces now

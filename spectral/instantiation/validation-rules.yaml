@@ -85,7 +85,7 @@ rules:
       function: node-id-exists
 
   nodes-must-be-referenced:
-    description: Nodes must be referenced by at least one relationship.=
+    description: Nodes must be referenced by at least one relationship.
     severity: warn
     message: "{{error}}"
     given: "$.nodes[*].unique-id"
