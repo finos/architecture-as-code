@@ -1,5 +1,6 @@
 functions: 
   - node-id-exists
+  - interface-id-exists
   - node-has-relationship
   - numerical-placeholder
 
@@ -47,22 +48,39 @@ rules:
     description: Relationships must reference existing nodes.
     severity: error 
     message: "{{error}}"
-    given: "$.relationships[*].parties"
+    given: "$.relationships[*].relationship-type.*"
     then:
-      - field: source
-        function: node-id-exists
-      - field: destination
-        function: node-id-exists
+      # only container and actor are in scope, since source/destination use interfaces now
       - field: actor
         function: node-id-exists
       - field: container 
         function: node-id-exists
+
+  connects-relationship-references-existing-nodes:
+    description: Connects relationships must reference existing nodes.
+    severity: error 
+    message: "{{error}}"
+    given: "$.relationships[*].relationship-type.connects.*" # both source and destination
+    then:
+      # node uses the interface structure so has a sub object
+      - field: node
+        function: node-id-exists
+
+  referenced-interfaces-defined:
+    description: Referenced interfaces must be defined 
+    severity: error 
+    message: "{{error}}"
+    given: "$.relationships[*].relationship-type.connects.*" # both source and destination
+    then:
+      # node uses the interface structure so has a sub object
+      - field: interface
+        function: interface-id-exists
   
   composition-relationships-reference-existing-nodes:
     description: All nodes in a composition relationship must reference existing nodes.
     severity: error 
     message: "{{error}}"
-    given: "$.relationships[*].parties.nodes[*]"
+    given: "$.relationships[*].relationship-type.*.nodes[*]"
     then:
       function: node-id-exists
 
