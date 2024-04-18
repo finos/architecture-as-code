@@ -2,20 +2,20 @@ name: License Scanning for Node.js
 
 on:
   schedule:
-    - cron: "0 8,18 * * 1-5"
+    - cron: '0 8,18 * * 1-5'
   push:
     paths:
-      - "**/package-json.lock"
-      - "**/package.json"
-      - ".github/workflows/license-scanning-node.yml"
+      - '**/package-json.lock'
+      - '**/package.json'
+      - '.github/workflows/license-scanning-node.yml'
 
 jobs:
   scan:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: ["20.x"]
-        module-folder: ["cli", "docs"]
+        node-version: ['20.x']
+        module-folder: ['cli', 'docs']
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
