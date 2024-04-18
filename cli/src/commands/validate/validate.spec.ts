@@ -19,6 +19,18 @@ jest.mock('@stoplight/spectral-core', () => {
     };
 });
 
+jest.mock('../helper.js', () => {
+    return {
+        initLogger: () => {
+            return {
+                info: jest.fn(),
+                debug: jest.fn(),
+                error: jest.fn()
+            };
+        }
+    };
+});
+
 const metaSchemaLocation = 'test_fixtures/calm';
 const debugDisabled = false;
 

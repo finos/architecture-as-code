@@ -3,11 +3,13 @@ import { CALMInstantiation, CALMComposedOfRelationship, CALMConnectsRelationship
 import { initLogger } from '../helper.js';
 import winston from 'winston';
 
-const logger: winston.Logger = initLogger(true);
+let logger: winston.Logger;
 
 const idToNode: {[id: string]: Node} = {};
 
-export function calmToDot(calm: CALMInstantiation): string {
+export default function(calm: CALMInstantiation, debug: boolean = false): string {
+    logger = initLogger(debug);
+
     const G = new Digraph({
         nodesep: 0.5
     });
@@ -20,13 +22,14 @@ export function calmToDot(calm: CALMInstantiation): string {
         addRelationship(G, relationship);
     });
 
-    return toDot(G);
+    return toDot(G)
+        .replace(/\n/g, ' ');
 }
 
 function addNode(G: Digraph, node: CALMNode) {
     if (node['node-type'] === 'actor') {
         createNode(G, node, 'ellipse');
-    }else if (node['node-type'] === 'internal-network') {
+    } else if (node['node-type'] === 'internal-network') {
         // do not create node as this will be a subgraph later
     } else {
         createNode(G, node, 'box');

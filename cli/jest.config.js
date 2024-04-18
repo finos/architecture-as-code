@@ -4,6 +4,6 @@ export default {
     testEnvironment: 'node',
     testMatch: ['<rootDir>/src/**/*.spec.ts'],
     moduleNameMapper: {
-        '(.+)\\.js': '$1'
-    },
+        '^(.+)\\.js$': '$1'
+    }
 };
