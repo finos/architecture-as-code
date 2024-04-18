@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/pattern/api-gateway.json",
   "nodes": [
     {
-      "well-known-endpoint": "{{ WELL_KNOWN_ENDPOINT }}",
+      "well-known-endpoint": "https://identity-provider.com/.well-known/openid-configuration",
       "name": "API Gateway",
       "description": "The API Gateway used to verify authorization and access to downstream system",
       "node-type": "system",
@@ -10,8 +10,8 @@
       "interfaces": [
         {
           "unique-id": "api-gateway-ingress",
-          "host": "{{ INGRESS_HOST }}",
-          "port": -1
+          "host": "https://api-gateway-ingress.example.com",
+          "port": 443
         }
       ]
     },
@@ -25,8 +25,8 @@
       "interfaces": [
         {
           "unique-id": "producer-ingress",
-          "host": "{{ INGRESS_HOST }}",
-          "port": -1
+          "host": "https://api-producer.example.com",
+          "port": 443
         }
       ],
       "node-type": "system",
