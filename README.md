@@ -31,7 +31,7 @@ Architecture as Code is part of the [DevOps Automation Special Interest Group](h
 Have an idea or feedback? [Raise an issue](https://github.com/finos-labs/architecture-as-code/issues/new/choose) in this repository.
 
 ## Contributing
-Architecture as Codee operates as a monorepo, in here you will find both the CALM JSON Schema and the various projects that are being built to utilize the CALM specification.
+Architecture as Code operates as a monorepo, in here you will find both the CALM JSON Schema and the various projects that are being built to utilize the CALM specification.
 
 We accept contributions via Pull Request, to make a contribution:
 1. Pick an issue you are interested in contributing to (or raise one yourself) and speak to the lead maintainers about what you plan to do either in the issue itself or come to a meetup.
