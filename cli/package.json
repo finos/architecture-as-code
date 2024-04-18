@@ -19,7 +19,6 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@finos/calm-visualizer": "file:../visualizer/finos-calm-visualizer-0.1.0.tgz",
     "@stoplight/spectral-cli": "^6.11.0",
     "@stoplight/spectral-core": "^1.18.3",
     "ajv": "^8.12.0",

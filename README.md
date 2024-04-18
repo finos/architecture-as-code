@@ -24,13 +24,13 @@ your project.
 ## Projects
 
 | Project                                      | Lead Maintainers                        | Builds                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-|----------------------------------------------|-----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| -------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [Common Architecture Language Model](./calm) | @rocketstack-matt, @jpgough-ms          | [![Validation of CALM Samples](https://github.com/finos-labs/architecture-as-code/actions/workflows/spectral-validation.yml/badge.svg)](https://github.com/finos-labs/architecture-as-code/actions/workflows/spectral-validation.yml)                                                                                                                                                                                                             |
 | [Docs](./docs)                               | @rocketstack-matt                       | [![Build Docs](https://github.com/finos-labs/architecture-as-code/actions/workflows/docs-deploy.yml/badge.svg)](https://github.com/finos-labs/architecture-as-code/actions/workflows/docs-deploy.yml) [![pages-build-deployment](https://github.com/finos-labs/architecture-as-code/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/finos-labs/architecture-as-code/actions/workflows/pages/pages-build-deployment) |
 | [CLI](./cli)                                 | @aidanm3341, @lbulanti-ms, @willosborne | [![Build CLI](https://github.com/finos-labs/architecture-as-code/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/finos-labs/architecture-as-code/actions/workflows/cli-tests.yml)                                                                                                                                                                                                                                                  |
 | [Spectral](./spectral)                       | @willosborne, @lbulanti-ms              | [![Validation of CALM Samples](https://github.com/finos-labs/architecture-as-code/actions/workflows/spectral-validation.yml/badge.svg)](https://github.com/finos-labs/architecture-as-code/actions/workflows/spectral-validation.yml)                                                                                                                                                                                                             |
 | [Translators](./translator)                  | @Budlee @matthewgardner @jpgough-ms     | [![Build Translators](https://github.com/finos-labs/architecture-as-code/actions/workflows/translator.yml/badge.svg)](https://github.com/finos-labs/architecture-as-code/actions/workflows/translator.yml)                                                                                                                                                                                                                                        |
-| [Visualizer](./visualizer)                   | @aidanm3341, @Budlee, @willosborne      |                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| [Visualizer](./cli/visualizer)               | @aidanm3341, @Budlee, @willosborne      |                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 ## Getting Involved
 
@@ -53,12 +53,12 @@ We accept contributions via Pull Request, to make a contribution:
 1. Pick an issue you are interested in contributing to (or raise one yourself) and speak to the lead maintainers about
    what you plan to do either in the issue itself or come to a meetup.
 2. Fork the repo (<https://github.com/finos-labs/architecture-as-code/fork>)
-2. Create your feature branch (`git checkout -b feature/fooBar`)
-3. Read our [contribution guidelines](.github/CONTRIBUTING.md)
+3. Create your feature branch (`git checkout -b feature/fooBar`)
+4. Read our [contribution guidelines](.github/CONTRIBUTING.md)
    and [Community Code of Conduct](https://www.finos.org/code-of-conduct)
-4. Commit your changes (`git commit -am 'Add some fooBar'`)
-5. Push to the branch (`git push origin feature/fooBar`)
-6. Create a new Pull Request
+5. Commit your changes (`git commit -am 'Add some fooBar'`)
+6. Push to the branch (`git push origin feature/fooBar`)
+7. Create a new Pull Request
 
 ## License
 
