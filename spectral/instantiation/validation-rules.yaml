@@ -6,8 +6,8 @@ functions:
 
 rules:
   has-nodes-relationships:
-    description: "Has key top level nodes"
-    message: Should have nodes and relationships at top level
+    description: Has top level nodes and relationships
+    message: Should have nodes and relationships as top level properties on the CALM document
     severity: error
     given: "$"
     then:
@@ -57,7 +57,7 @@ rules:
         function: node-id-exists
 
   connects-relationship-references-existing-nodes:
-    description: Connects relationships must reference existing nodes.
+    description: Connects relationships must reference existing nodes
     severity: error 
     message: "{{error}}"
     given: "$.relationships[*].relationship-type.connects.*" # both source and destination
@@ -77,7 +77,7 @@ rules:
         function: interface-id-exists
   
   composition-relationships-reference-existing-nodes:
-    description: All nodes in a composition relationship must reference existing nodes.
+    description: All nodes in a composition relationship must reference existing nodes
     severity: error 
     message: "{{error}}"
     given: "$.relationships[*].relationship-type.*.nodes[*]"
@@ -85,7 +85,7 @@ rules:
       function: node-id-exists
 
   nodes-must-be-referenced:
-    description: Nodes must be referenced by at least one relationship.
+    description: Nodes must be referenced by at least one relationship.=
     severity: warn
     message: "{{error}}"
     given: "$.nodes[*].unique-id"

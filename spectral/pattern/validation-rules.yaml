@@ -6,8 +6,8 @@ functions:
 
 rules:
   has-nodes-relationships:
-    description: "Has key top level nodes"
-    message: Should have nodes and relationships at top level
+    description: Has top level nodes and relationships
+    message: Should have nodes and relationships as top level properties on the CALM document
     severity: error
     given: "$.properties"
     then:
@@ -45,7 +45,7 @@ rules:
         notMatch: "^{{\\s*[A-Z_]+\\s*}}$"
 
   connects-relationship-references-existing-nodes:
-    description: Connect relationships with const properties must reference existing nodes.
+    description: Connect relationships with const properties must reference existing nodes
     severity: error 
     message: "{{error}}"
     # given: "$.properties.relationships.prefixItems[*].properties.relationship-type.const.connects.*.node"
@@ -56,7 +56,7 @@ rules:
 
 
   group-relationship-references-existing-nodes:
-    description: All nodes referenced by a grouping relationship must reference existing nodes.
+    description: All nodes referenced by a grouping relationship must reference existing nodes
     severity: error 
     message: "{{error}}"
     # given: "$.properties.relationships.prefixItems[*].properties.relationship-type.const.connects.*.node"
@@ -90,7 +90,7 @@ rules:
         function: interface-id-exists
 
   nodes-must-be-referenced:
-    description: Nodes must be referenced by at least one relationship.
+    description: Nodes must be referenced by at least one relationship
     severity: warn
     message: "{{error}}"
     given: "$.properties.nodes.prefixItems[*].properties.unique-id.const"
