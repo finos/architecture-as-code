@@ -1,4 +1,4 @@
-name: Run Spectral Validation on all samples
+name: Validation of CALM Samples
 
 on:
   pull_request:
