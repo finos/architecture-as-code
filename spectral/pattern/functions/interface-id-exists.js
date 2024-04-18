@@ -1,3 +1,5 @@
+import { JSONPath } from 'jsonpath-plus'
+
 /**
  * Checks that the input value exists as an interface with matching unique ID defined under a node in the document.
  */
@@ -6,10 +8,10 @@ export default (input, _, context) => {
         return [];
     }
     // get uniqueIds of all interfaces 
-    let names = context.document.data.nodes.flatMap(node => node?.interfaces?.map(inter => inter['unique-id']));
+    const uniqueIds = JSONPath({path: '$..interfaces.prefixItems[*].properties.unique-id.const', json: context.document.data});
     let results = [];
 
-    if (!names.includes(input)) {
+    if (!uniqueIds.includes(input)) {
         results.push({
             message: `'${input}' does not refer to the unique-id of an existing interface.`,
             path: [...context.path]
