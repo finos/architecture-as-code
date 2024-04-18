@@ -15,31 +15,37 @@ env:
 jobs:
   scan:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java-version: ['11']
+        module-folder: [
+          'translator'
+        ]
     steps:
       - uses: actions/checkout@v3
-      - name: Set up JDK 11
+      - name: Set up JDK
         uses: actions/setup-java@v3
         with:
-          java-version: 11
+          java-version: ${{ matrix.java-version }}
           cache: maven
           distribution: 'adopt'
       - name: Install XQ
         run: pip install xq
       - name: Build with Maven
         run: mvn clean install -Dmaven.test.skip=true
-        working-directory: maven
+        working-directory: ${{ matrix.module-folder }}
       - name: License XML report
         run: mvn org.codehaus.mojo:license-maven-plugin:2.0.0:download-licenses
-        working-directory: maven
+        working-directory: ${{ matrix.module-folder }}
       - name: Validate XML report
         run: |
           LICENSE_REPORT=`xq "//dependency[licenses/license/name!=${{ env.ALLOW_LICENSES }}]" ./${{ env.REPORT_PATH }}`
           LINES_FOUND=`echo $LICENSE_REPORT | wc -l`
           echo "License issues found ..."
           if [ $LINES_FOUND -gt 1 ]; then echo $LICENSE_REPORT ; exit -1; fi
-        working-directory: maven
+        working-directory: ${{ matrix.module-folder }}
       - name: Upload license XML reports
         uses: actions/upload-artifact@v3
         with:
           name: license-xml-report
-          path: 'maven/**/${{ env.REPORT_PATH }}'
+          path: '${{ matrix.module-folder }}/**/${{ env.REPORT_PATH }}'
