@@ -1,4 +1,4 @@
-import { CALMInstantiation } from './Types';
+import { CALMInstantiation } from '../../types';
 import calmToDot from './calmToDot';
 
 jest.mock('../helper.js', () => {
