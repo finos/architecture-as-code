@@ -127,8 +127,9 @@ function addComposedOfRelationship(g: Digraph, relationship: CALMComposedOfRelat
 
 function getNode(id: string) {
     const node = idToNode[id];
-    if (!node)
+    if (!node) {
         throw new Error(`There does not exist a node with ID [${id}]`);
-    else
+    } else {
         return node;
+    }
 }
