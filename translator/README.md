@@ -31,8 +31,7 @@ available at [/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.htm
     <td>Produces a Workspace json object with generated default views that can be imported into <a href="https://structurizr.com/">https://structurizr.com/</a></td>
   </tr>
     <tr>
-        <th>Command</th>
-        <td colspan="2"><pre><code class="shell">curl -X 'POST' 'http://localhost:8080/translate/c4' -H 'accept: */*' -H 'Content-Type: application/json' -d "@./src/test/resources/traderx-calm.json"</code></pre></td>
+        <td colspan="3"><pre><code class="shell">curl -X 'POST' 'http://localhost:8080/translate/c4' -H 'accept: */*' -H 'Content-Type: application/json' -d "@./src/test/resources/traderx-calm.json"</code></pre></td>
     </tr>
   <tr>
     <td>k8s Manifest</td>
