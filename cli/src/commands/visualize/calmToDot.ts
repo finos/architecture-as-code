@@ -1,5 +1,5 @@
 import { Digraph, Subgraph, Node, Edge, toDot, attribute } from 'ts-graphviz';
-import { CALMInstantiation, CALMComposedOfRelationship, CALMConnectsRelationship, CALMDeployedInRelationship, CALMInteractsRelationship, CALMRelationship, CALMNode } from './Types';
+import { CALMInstantiation, CALMComposedOfRelationship, CALMConnectsRelationship, CALMDeployedInRelationship, CALMInteractsRelationship, CALMRelationship, CALMNode } from '../../types';
 import { initLogger } from '../helper.js';
 import winston from 'winston';
 
@@ -68,10 +68,10 @@ function addConnectsRelationship(g: Digraph, relationship: CALMConnectsRelations
     const r = relationship['relationship-type'];
     logger.debug(`${JSON.stringify(r)}`);
     logger.debug(`Creating a connects relationship from [${sourceId}] to [${destinationId}]`);
-    
+
     g.addEdge(new Edge([
-        idToNode[sourceId],
-        idToNode[destinationId]
+        getNode(sourceId),
+        getNode(destinationId)
     ], {
         label: `connects ${relationship.protocol || ''} ${relationship.authentication || ''}`
     }));
@@ -84,8 +84,8 @@ function addInteractsRelationship(g: Digraph, relationship: CALMInteractsRelatio
         const targetId = maybeId;
 
         g.addEdge(new Edge([
-            idToNode[sourceId],
-            idToNode[targetId]
+            getNode(sourceId),
+            getNode(targetId)
         ], {
             label: 'interacts'
         }));
@@ -100,11 +100,10 @@ function addDeployedInRelationship(g: Digraph, relationship: CALMDeployedInRelat
         label: containerId
     });
 
-    targetIds.forEach(maybeId => {
-        const targetId = maybeId;
+    targetIds.forEach(targetId => {
         logger.debug(`Creating a deployed-in relationship from [${containerId}] to [${targetId}]`);
 
-        subgraph.addNode(idToNode[targetId]);
+        subgraph.addNode(getNode(targetId));
     });
   
     g.addSubgraph(subgraph);
@@ -118,11 +117,18 @@ function addComposedOfRelationship(g: Digraph, relationship: CALMComposedOfRelat
         label: containerId
     });
 
-    targetIds.forEach(maybeId => {
-        const targetId = maybeId;
+    targetIds.forEach(targetId => {
         logger.debug(`Creating a composed-of relationship from [${containerId}] to [${targetId}]`);
 
-        subgraph.addNode(idToNode[targetId]);
+        subgraph.addNode(getNode(targetId));
     });
     g.addSubgraph(subgraph);
 } 
+
+function getNode(id: string) {
+    const node = idToNode[id];
+    if (!node)
+        throw new Error(`There does not exist a node with ID [${id}]`);
+    else
+        return node;
+}

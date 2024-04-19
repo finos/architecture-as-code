@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 
-import { program } from 'commander';
-import visualize from './commands/visualize/visualize.js';
+import { Option, program } from 'commander';
+import { visualizeInstantiation, visualizePattern } from './commands/visualize/visualize.js';
 import { runGenerate } from './commands/generate/generate.js';
 import validate  from './commands/validate/validate.js';
 
@@ -12,11 +12,18 @@ program
 program
     .command('visualize')
     .description('Produces an SVG file representing a visualization of the CALM Specification.')
-    .requiredOption('-i, --instantiation <file>', 'Path to an instantiation of a CALM pattern.')
+    .addOption(new Option('-i, --instantiation <file>', 'Path to an instantiation of a CALM pattern.').conflicts('pattern'))
+    .addOption(new Option('-p, --pattern <file>', 'Path to a CALM pattern.').conflicts('instantiation'))
     .requiredOption('-o, --output <file>', 'Path location at which to output the SVG.', 'calm-visualization.svg')
     .option('-v, --verbose', 'Enable verbose logging.', false)
-    .action((options) => { 
-        visualize(options.instantiation, options.output, !!options.verbose);
+    .action(async (options) => { 
+        if (!options.instantiation && ! options.pattern) {
+            throw new Error('You must provide either a pattern or an instantiation');
+        } else if (options.instantiation) {
+            await visualizeInstantiation(options.instantiation, options.output, !!options.verbose);
+        } else if (options.pattern) {
+            await visualizePattern(options.pattern, options.output, !!options.verbose);
+        }
     });
 
 program

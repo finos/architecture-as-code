@@ -309,10 +309,10 @@
       "relationship-type": {
         "connects": {
           "source": {
-            "nodes": "web-gui-process"
+            "node": "web-gui-process"
           },
           "destination": {
-            "nodes": "trade-feed"
+            "node": "trade-feed"
           }
         }
       },
@@ -324,10 +324,10 @@
       "relationship-type": {
         "connects": {
           "source": {
-            "nodes": "trade-processor"
+            "node": "trade-processor"
           },
           "destination": {
-            "nodes": "trade-feed"
+            "node": "trade-feed"
           }
         }
       },
@@ -339,10 +339,10 @@
       "relationship-type": {
         "connects": {
           "source": {
-            "nodes": "trade-processor"
+            "node": "trade-processor"
           },
           "destination": {
-            "nodes": "traderx-db"
+            "node": "traderx-db"
           }
         }
       },
@@ -354,10 +354,10 @@
       "relationship-type": {
         "connects": {
           "source": {
-            "nodes": "web-gui-process"
+            "node": "web-gui-process"
           },
           "destination": {
-            "nodes": "accounts-service"
+            "node": "accounts-service"
           }
         }
       },
@@ -369,10 +369,10 @@
       "relationship-type": {
         "connects": {
           "source": {
-            "nodes": "web-gui-process"
+            "node": "web-gui-process"
           },
           "destination": {
-            "nodes": "people-service"
+            "node": "people-service"
           }
         }
       },
@@ -384,10 +384,10 @@
       "relationship-type": {
         "connects": {
           "source": {
-            "nodes": "people-service"
+            "node": "people-service"
           },
           "destination": {
-            "nodes": "user-directory"
+            "node": "user-directory"
           }
         }
       },
@@ -399,10 +399,10 @@
       "relationship-type": {
         "connects": {
           "source": {
-            "nodes": "trading-services"
+            "node": "trading-services"
           },
           "destination": {
-            "nodes": "reference-data-service"
+            "node": "reference-data-service"
           }
         }
       },
@@ -414,10 +414,10 @@
       "relationship-type": {
         "connects": {
           "source": {
-            "nodes": "trading-services"
+            "node": "trading-services"
           },
           "destination": {
-            "nodes": "trade-feed"
+            "node": "trade-feed"
           }
         }
       },
@@ -429,10 +429,10 @@
       "relationship-type": {
         "connects": {
           "source": {
-            "nodes": "trading-services"
+            "node": "trading-services"
           },
           "destination": {
-            "nodes": "accounts-service"
+            "node": "accounts-service"
           }
         }
       },
