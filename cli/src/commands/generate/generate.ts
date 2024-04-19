@@ -6,12 +6,13 @@ import { mkdirp } from 'mkdirp';
 
 import * as winston from 'winston';
 import { initLogger } from '../helper.js';
+import { CALMInstantiation } from '../../types.js';
 
 let logger: winston.Logger; // defined later at startup
 
 function loadFile(path: string): any {
     logger.info('Loading pattern from file: ' + path);
-    const raw = fs.readFileSync(path, { encoding: 'utf8' });
+    const raw = fs.readFileSync(path, 'utf-8');
 
     logger.debug('Attempting to load pattern file: ' + raw);
     const pattern = JSON.parse(raw);
@@ -138,9 +139,8 @@ export const exportedForTesting = {
     instantiateNodeInterfaces
 };
 
-export function runGenerate (patternPath: string, outputPath: string, debug: boolean): void {
+export function generate(patternPath: string, debug: boolean): CALMInstantiation {
     logger = initLogger(debug);
-
     const pattern = loadFile(patternPath);
     const outputNodes = instantiateNodes(pattern);
     const relationshipNodes = instantiateRelationships(pattern);
@@ -149,6 +149,12 @@ export function runGenerate (patternPath: string, outputPath: string, debug: boo
         'nodes': outputNodes,
         'relationships': relationshipNodes,
     };
+
+    return final;
+}
+
+export function runGenerate(patternPath: string, outputPath: string, debug: boolean): void {
+    const final = generate(patternPath, debug);
 
     const output = JSON.stringify(final, null, 2);
     logger.debug('Generated instantiation: ' + output);
