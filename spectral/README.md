@@ -27,3 +27,6 @@ For example, to run the rulesets against the sample spec, which should produce s
 ```bash
 spectral lint --ruleset ./instantiation/validation-rules.yaml ./examples/bad-rest-api.json
 ```
+
+## Learn more
+See the [Spectral documentation](https://docs.stoplight.io/docs/spectral/674b27b261c3c-overview) for more information on how to configure the Spectral rules.
