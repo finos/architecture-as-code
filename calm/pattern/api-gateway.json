@@ -157,8 +157,12 @@
             "relationship-type": {
               "const": {
                 "connects": {
-                  "source": "api-gateway",
-                  "destination": "idp"
+                    "source": {
+                        "node": "api-gateway"
+                    },
+                    "destination": { 
+                        "node": "idp"
+                    }
                 }
               }
             },
