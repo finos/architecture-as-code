@@ -4,5 +4,7 @@
         "revealOn": "run",
         "revealWithFocus": "none",
         "clearOnRun": "none"
-    }
+    },
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.configuration.updateBuildConfiguration": "automatic"
 }
