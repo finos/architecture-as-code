@@ -1,5 +1,5 @@
-# Spectral validation rules for AasC implementations
-These rules perform simple structural checks on Architecture-as-Code implementation files to verify that they make sense semantically.
+# Spectral validation rules for CALM implementations
+These rules perform simple structural checks on CALM implementation files to verify that they make sense semantically.
 For example, if a relationship references a node, then that node should exist in the file.
 
 ## Installing spectral
@@ -25,5 +25,5 @@ spectral lint --ruleset aac.yaml implementation.json
 For example, to run the rulesets against the sample spec, which should produce several errors:
 
 ```bash
-spectral lint --ruleset aac.yaml examples/bad-rest-api.json
+spectral lint --ruleset ./instantiation/validation-rules.yaml ./examples/bad-rest-api.json
 ```
