@@ -48,6 +48,7 @@ Produces an SVG file representing a visualization of the CALM Specification.
 
 Options:
   -i, --instantiation <file>  Path to an instantiation of a CALM pattern.
+  -p, --pattern <file>        Path to a CALM pattern.
   -o, --output <file>         Path location at which to output the SVG. (default: "calm-visualization.svg")
   -v, --verbose               Enable verbose logging. (default: false)
   -h, --help                  display help for command
