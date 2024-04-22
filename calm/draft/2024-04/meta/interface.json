@@ -42,7 +42,7 @@
           "type": "string"
         }
       },
-      "required": "hostname"
+      "required": ["hostname"]
     },
     "path-interface": {
       "$ref": "#/defs/interface-type",
@@ -51,7 +51,7 @@
           "type": "string"
         }
       },
-      "required": "path"
+      "required": ["path"]
     },
     "oauth2-audience-interface": {
       "$ref": "#/defs/interface-type",
@@ -64,7 +64,7 @@
           }
         }
       },
-      "required": "audiences"
+      "required": ["audiences"]
     }
   }
 }
