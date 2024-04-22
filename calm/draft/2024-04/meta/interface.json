@@ -24,7 +24,7 @@
       "required": ["node"]
     },
     "host-port-interface": {
-      "ref": "#/defs/interface-type",
+      "$ref": "#/defs/interface-type",
       "properties": {
         "host": {
           "type": "string"
@@ -36,25 +36,25 @@
       "required": ["host", "port"]
     },
     "hostname-interface": {
-      "ref": "#/defs/interface-type",
+      "$ref": "#/defs/interface-type",
       "properties": {
         "hostname": {
           "type": "string"
         }
       },
-      "required": "hostname"
+      "required": ["hostname"]
     },
     "path-interface": {
-      "ref": "#/defs/interface-type",
+      "$ref": "#/defs/interface-type",
       "properties": {
         "path": {
           "type": "string"
         }
       },
-      "required": "path"
+      "required": ["path"]
     },
     "oauth2-audience-interface": {
-      "ref": "#/defs/interface-type",
+      "$ref": "#/defs/interface-type",
       "properties": {
         "audiences": {
           "type": "array",
@@ -63,7 +63,8 @@
             "type": "string"
           }
         }
-      }
+      },
+      "required": ["audiences"]
     }
   }
 }
