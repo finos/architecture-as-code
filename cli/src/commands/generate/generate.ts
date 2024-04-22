@@ -26,7 +26,7 @@ function getStringPlaceholder(name: string): string {
     return '{{ ' + name.toUpperCase().replaceAll('-', '_') + ' }}';
 }
 
-function getPropertyValue(keyName: string, detail: any) : any {
+function getPropertyValue(keyName: string, detail: any): any {
     if ('const' in detail) {
         return detail['const'];
     }
@@ -41,8 +41,8 @@ function getPropertyValue(keyName: string, detail: any) : any {
             return -1;
         }
         if (propertyType === 'array') {
-            return [ 
-                getStringPlaceholder(keyName) 
+            return [
+                getStringPlaceholder(keyName)
             ];
         }
     }
@@ -51,7 +51,7 @@ function getPropertyValue(keyName: string, detail: any) : any {
 function instantiateNodeInterfaces(detail: any): any[] {
     const interfaces = [];
     if (!('prefixItems' in detail)) {
-        console.error('No items in interfaces block.');
+        logger.error('No items in interfaces block.');
         return [];
     }
 
@@ -72,6 +72,20 @@ function instantiateNodeInterfaces(detail: any): any[] {
     return interfaces;
 }
 
+function instantiateNode(node: any): any {
+    const out = {};
+    for (const [key, detail] of Object.entries(node['properties'])) {
+        if (key === 'interfaces') {
+            const interfaces = instantiateNodeInterfaces(detail);
+            out['interfaces'] = interfaces;
+        }
+        else {
+            out[key] = getPropertyValue(key, detail);
+        }
+    }
+    return out;
+}
+
 function instantiateNodes(pattern: any): any {
     const nodes = pattern?.properties?.nodes?.prefixItems;
     if (!nodes) {
@@ -88,18 +102,7 @@ function instantiateNodes(pattern: any): any {
             continue;
         }
 
-        const out = {};
-        for (const [key, detail] of Object.entries(node['properties'])) {
-            if (key === 'interfaces') {
-                const interfaces = instantiateNodeInterfaces(detail);
-                out['interfaces'] = interfaces;
-            }
-            else {
-                out[key] = getPropertyValue(key, detail);
-            }
-        }
-
-        outputNodes.push(out);
+        outputNodes.push(instantiateNode(node));
     }
     return outputNodes;
 }
@@ -132,11 +135,33 @@ function instantiateRelationships(pattern: any): any {
     return outputRelationships;
 }
 
+function instantiateAdditionalTopLevelProperties(pattern: any): any {
+    const properties = pattern?.properties;
+    if (!properties) {
+        logger.error('Warning: pattern has no properties defined.');
+        return [];
+    }
+
+    const extraProperties = {};
+    for (const [additionalProperty, detail] of Object.entries(properties)) {
+        // additional properties only
+        if (['nodes', 'relationships'].includes(additionalProperty)) {
+            continue;
+        }
+
+        // TODO
+        extraProperties[additionalProperty] = instantiateNode(detail);
+    }
+
+    return extraProperties;
+}
+
 export const exportedForTesting = {
     getPropertyValue,
     instantiateNodes,
     instantiateRelationships,
-    instantiateNodeInterfaces
+    instantiateNodeInterfaces,
+    instantiateAdditionalTopLevelProperties
 };
 
 export function generate(patternPath: string, debug: boolean): CALMInstantiation {
@@ -144,10 +169,12 @@ export function generate(patternPath: string, debug: boolean): CALMInstantiation
     const pattern = loadFile(patternPath);
     const outputNodes = instantiateNodes(pattern);
     const relationshipNodes = instantiateRelationships(pattern);
+    const additionalProperties = instantiateAdditionalTopLevelProperties(pattern);
 
     const final = {
         'nodes': outputNodes,
         'relationships': relationshipNodes,
+        ...additionalProperties // object spread operator to insert additional props at top level
     };
 
     return final;
