@@ -1,8 +1,10 @@
 import fetchMock from 'fetch-mock';
-import validate from './validate';
+import validate, { exportedForTesting } from './validate';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { ISpectralDiagnostic } from '@stoplight/spectral-core';
+import { ValidationOutput } from './validation.output';
+import { ErrorObject } from 'ajv';
 
 const mockRunFunction = jest.fn();
 
@@ -184,6 +186,126 @@ describe('validate', () => {
 
         expect(mockExit).toHaveBeenCalledWith(0);
         fetchMock.restore();
+    });
+
+});
+
+const {
+    formatSpectralOutput,
+    formatJsonSchemaOutput
+} = exportedForTesting;
+
+describe('formatSpectralOutput', () => {
+
+    it('should convert the spectral output in the ValidationOutput format', () => {
+        const given: ISpectralDiagnostic[] = [
+            {
+                code: 'no-empty-properties',
+                message: 'Must not contain string properties set to the empty string or numerical properties set to zero',
+                severity: 0,
+                path: [
+                    'relationships',
+                    '0',
+                    'relationship-type',
+                    'connects',
+                    'destination',
+                    'interface'
+                ],
+                range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
+            }
+        ];
+
+        const expected : ValidationOutput[] = [new ValidationOutput(
+            'no-empty-properties',
+            'error',
+            'Must not contain string properties set to the empty string or numerical properties set to zero',
+            'relationships.0.relationship-type.connects.destination.interface')]; 
+
+        const actual = formatSpectralOutput(given);
+
+        expect(actual).toStrictEqual(expected);
+    });
+
+    it('should convert the spectral output when path is an empty array in the ValidationOutput format', () => {
+        const given: ISpectralDiagnostic[] = [
+            {
+                code: 'no-empty-properties',
+                message: 'Must not contain string properties set to the empty string or numerical properties set to zero',
+                severity: 0,
+                path: [],
+                range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
+            }
+        ];
+
+        const expected : ValidationOutput[] = [new ValidationOutput(
+            'no-empty-properties',
+            'error',
+            'Must not contain string properties set to the empty string or numerical properties set to zero',
+            '')]; 
+
+        const actual = formatSpectralOutput(given);
+
+        expect(actual).toStrictEqual(expected);
+    });
+
+});
+
+describe('formatJsonSchemaOutput', () => {
+
+    it('should convert the json schema output in the ValidationOutput format', () => {
+        const given: ErrorObject[] = [
+            {
+                'instancePath': '/nodes/0/interfaces/0/port',
+                'schemaPath': 'https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/host-port-interface/properties/port/type',
+                'keyword': 'type',
+                'params': {
+                    'type': 'integer'
+                },
+                'message': 'must be integer'
+            }
+        ];
+        
+        const expected : ValidationOutput[] = [
+            new ValidationOutput(
+                'json-schema',
+                'error',
+                'must be integer',
+                '/nodes/0/interfaces/0/port',
+                'https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/host-port-interface/properties/port/type'
+            )
+        ]; 
+
+        const actual = formatJsonSchemaOutput(given);
+
+        expect(actual).toStrictEqual(expected);
+    });
+
+    it('should convert the json schema output when instancePath is empty in the ValidationOutput format', () => {
+        const given: ErrorObject[] = [
+            {
+                'instancePath': '',
+                'schemaPath': '#/required',
+                'keyword': 'required',
+                'params': {
+                    'missingProperty': 'nodes'
+                },
+                'message': 'must have required property \'nodes\''
+            }
+        ];
+        
+        const expected : ValidationOutput[] = [
+            new ValidationOutput(
+                'json-schema',
+                'error',
+                'must have required property \'nodes\'',
+                '',
+                '#/required'
+            )
+        ]; 
+
+        const actual = formatJsonSchemaOutput(given);
+
+        expect(actual).toStrictEqual(expected);
     });
 
 });

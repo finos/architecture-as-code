@@ -1,16 +1,20 @@
-import Ajv2020 from 'ajv/dist/2020.js';
+import Ajv2020, { ErrorObject } from 'ajv/dist/2020.js';
 import { existsSync, promises as fs, readFileSync, readdirSync, statSync } from 'fs';
-import pkg from '@stoplight/spectral-core';
+import pkg, { ISpectralDiagnostic } from '@stoplight/spectral-core';
 const { Spectral } = pkg;
 import { getRuleset } from '@stoplight/spectral-cli/dist/services/linter/utils/getRuleset.js';
+import { DiagnosticSeverity} from '@stoplight/types';
 import * as winston from 'winston';
 import { initLogger } from '../helper.js';
+import { ValidationOutput as ValidationOutput } from './validation.output.js';
+import { SpectralResult } from './spectral.result.js';
 
 let logger: winston.Logger; // defined later at startup
 
 export default async function validate(jsonSchemaInstantiationLocation: string, jsonSchemaLocation: string, metaSchemaPath: string, debug: boolean = false) {
     logger = initLogger(debug);
-    let exitCode = 0;
+    let errors = false;
+    let validations: ValidationOutput[] = [];
     try {
         const ajv = new Ajv2020({ strict: false , allErrors: true});
 
@@ -24,19 +28,32 @@ export default async function validate(jsonSchemaInstantiationLocation: string, 
 
         const validateSchema = ajv.compile(jsonSchema);
 
+        const spectralResult: SpectralResult = await runSpectralValidations(jsonSchemaInstantiation);
+        errors = spectralResult.errors;
+        validations = validations.concat(spectralResult.spectralIssues);
+
         if (!validateSchema(jsonSchemaInstantiation)) {
-            logger.error(`The instantiation does not match the JSON schema pattern. Errors: ${prettifyJson(validateSchema.errors)}'`);
-            exitCode = 1;
-        } else {
-            logger.info('The schema instantiation matches the json schema');
+            logger.debug(`JSON Schema validation raw output: ${prettifyJson(validateSchema.errors)}`);
+            errors = true;
+            validations = validations.concat(formatJsonSchemaOutput(validateSchema.errors));
+        } 
+
+        if(errors){
+            logger.error(`The following issues have been found on the JSON Schema instantiation ${prettifyJson(validations)}`);
+            process.exit(1);
         }
 
-        await runSpectralValidations(jsonSchemaInstantiation);
+        if(validations.length > 0){
+            logger.info(`The following issues (not errors) have been found on the JSON Schema Instantiation ${prettifyJson(validations)}`);
+        }else{
+            logger.info('The schema validation is valid');
+        }
+        process.exit(0);
+
     } catch (error) {
         logger.error(`An error occured: ${error}`);
         process.exit(1);
     }
-    process.exit(exitCode);
 }
 
 function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
@@ -61,16 +78,71 @@ function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
     });
 }
 
-async function runSpectralValidations(jsonSchemaInstantiation: string) {
+async function runSpectralValidations(jsonSchemaInstantiation: string): Promise<SpectralResult> {
+    
+    let errors = false;
+    let spectralIssues: ValidationOutput[] = [];
     const spectral = new Spectral();
+
     spectral.setRuleset(await getRuleset('../spectral/instantiation/validation-rules.yaml'));
     const issues = await spectral.run(jsonSchemaInstantiation);
+
     if (issues && issues.length > 0) {
-        logger.info(`Spectral issues: ${prettifyJson(issues)}`);
+        logger.debug(`Spectral raw output: ${prettifyJson(issues)}`);
+        spectralIssues = formatSpectralOutput(issues);
         if (issues.filter(issue => issue.severity === 0).length > 0) {
-            //Exit with 1 if any of the Spectral issues is an error
-            process.exit(1);
+            logger.debug('Spectral output contains errors');
+            errors = true;
         }
+    }
+    return new SpectralResult(errors, spectralIssues);
+}
+
+function formatJsonSchemaOutput(jsonSchemaIssues: ErrorObject[]): ValidationOutput[]{
+    const validationOutput : ValidationOutput[] = [];
+
+    jsonSchemaIssues.forEach(issue => {
+        const formattedIssue = new ValidationOutput(
+            'json-schema', 
+            'error', 
+            issue.message, 
+            issue.instancePath, 
+            issue.schemaPath
+        );
+        validationOutput.push(formattedIssue);
+    });
+
+    return validationOutput;
+}
+
+function formatSpectralOutput(spectralIssues: ISpectralDiagnostic[]): ValidationOutput[] {
+    const validationOutput : ValidationOutput[] = [];
+
+    spectralIssues.forEach(issue => {
+        const formattedIssue = new ValidationOutput(
+            issue.code,
+            getSeverity(issue.severity), 
+            issue.message, 
+            issue.path.join('.')
+        );
+        validationOutput.push(formattedIssue);
+    });
+
+    return validationOutput;
+}
+
+function getSeverity(spectralSeverity: DiagnosticSeverity): string {
+    switch(spectralSeverity){
+    case 0:
+        return 'error';
+    case 1:
+        return 'warning';
+    case 2:
+        return 'info';
+    case 3:
+        return 'hint';
+    default:
+        throw Error('uknown severity type returned by spectral');
     }
 }
 
@@ -102,3 +174,9 @@ async function loadFileFromUrl(fileUrl: string) {
 function prettifyJson(json){
     return JSON.stringify(json, null, 4);
 }
+
+
+export const exportedForTesting = {
+    formatSpectralOutput,
+    formatJsonSchemaOutput
+};
