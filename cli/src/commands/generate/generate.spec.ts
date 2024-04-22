@@ -21,7 +21,8 @@ const {
     getPropertyValue,
     instantiateNodes,
     instantiateRelationships,
-    instantiateNodeInterfaces
+    instantiateNodeInterfaces,
+    instantiateAdditionalTopLevelProperties
 } = exportedForTesting;
 
 describe('getPropertyValue', () => {
@@ -72,6 +73,8 @@ describe('getPropertyValue', () => {
             ]);
     });
 });
+
+
 
 function getSamplePatternNode(properties: any): any {
     return {
@@ -310,6 +313,71 @@ describe('instantiateRelationships', () => {
                     'property-name': 'value here'
                 }
             ]);
+    });
+});
+
+describe('instantiateAdditionalTopLevelProperties', () => {
+    it('instantiate an additional top level array property', () => {
+        const pattern = {
+            properties: {
+                'extra-property': {
+                    properties: {
+                        values: {
+                            type: 'array' 
+                        }
+                    }
+                }
+            }
+        };
+
+        expect(instantiateAdditionalTopLevelProperties(pattern))
+            .toEqual({
+                'extra-property': {
+                    values: [ '{{ VALUES }}' ]
+                }
+            });
+    });
+    
+    it('instantiate an additional top level const property', () => {
+        const pattern = {
+            properties: {
+                'extra': {
+                    properties: {
+                        'extra-property': {
+                            const: 'value here'
+                        }
+                    }
+                }
+            }
+        };
+
+        expect(instantiateAdditionalTopLevelProperties(pattern))
+            .toEqual({
+                'extra': {
+                    'extra-property': 'value here'
+                }
+            });
+    });
+    
+    it('instantiate an additional top level string property', () => {
+        const pattern = {
+            properties: {
+                'extra': {
+                    properties: {
+                        'extra-property': {
+                            'type': 'string'
+                        }
+                    }
+                }
+            }
+        };
+
+        expect(instantiateAdditionalTopLevelProperties(pattern))
+            .toEqual({
+                extra: {
+                    'extra-property': '{{ EXTRA_PROPERTY }}'
+                }
+            });
     });
 });
 

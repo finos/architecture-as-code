@@ -9,7 +9,7 @@ rules:
     description: Has top level nodes and relationships
     message: Should have nodes and relationships as top level properties on the CALM document
     severity: error
-    given: "$"
+    given: "$.properties"
     then:
       - field: nodes
         function: truthy
@@ -44,50 +44,52 @@ rules:
       functionOptions:
         notMatch: "^{{\\s*[A-Z_]+\\s*}}$"
 
-  relationship-references-existing-nodes:
-    description: Relationships must reference existing nodes
+  connects-relationship-references-existing-nodes:
+    description: Connect relationships with const properties must reference existing nodes
     severity: error 
     message: "{{error}}"
-    given: "$.relationships[*].relationship-type.*"
+    given: "$..connects.source.node"
     then:
       # only container and actor are in scope, since source/destination use interfaces now
-      - field: actor
-        function: node-id-exists
-      - field: container 
-        function: node-id-exists
+      function: node-id-exists
 
-  connects-relationship-references-existing-nodes:
-    description: Connects relationships must reference existing nodes
+
+  group-relationship-references-existing-nodes:
+    description: All nodes referenced by a grouping relationship must reference existing nodes
     severity: error 
     message: "{{error}}"
-    given: "$.relationships[*].relationship-type.connects.*" # both source and destination
+    given: "$..relationship-type..nodes[*]"
     then:
-      # node uses the interface structure so has a sub object
-      - field: node
-        function: node-id-exists
+      # only container and actor are in scope, since source/destination use interfaces now
+      function: node-id-exists
+
+  relationship-references-existing-nodes:
+    description: Relationships with const properties must reference existing nodes
+    severity: error 
+    message: "{{error}}"
+    given: "$..relationship-type.*.*"
+    then:
+      # only container and actor are in scope, since source/destination use interfaces now
+      - function: node-id-exists
+        field: actor 
+      - function: node-id-exists
+        field: container
+
 
   referenced-interfaces-defined:
     description: Referenced interfaces must be defined 
     severity: error 
     message: "{{error}}"
-    given: "$.relationships[*].relationship-type.connects.*" # both source and destination
+    given: "$..relationship-type.const.connects.*" # both source and destination
     then:
       # node uses the interface structure so has a sub object
       - field: interface
         function: interface-id-exists
-  
-  composition-relationships-reference-existing-nodes:
-    description: All nodes in a composition relationship must reference existing nodes
-    severity: error 
-    message: "{{error}}"
-    given: "$.relationships[*].relationship-type.*.nodes[*]"
-    then:
-      function: node-id-exists
 
   nodes-must-be-referenced:
-    description: Nodes must be referenced by at least one relationship.
+    description: Nodes must be referenced by at least one relationship
     severity: warn
     message: "{{error}}"
-    given: "$.nodes[*].unique-id"
+    given: "$.properties.nodes.prefixItems[*].properties.unique-id.const"
     then:
       function: node-has-relationship
