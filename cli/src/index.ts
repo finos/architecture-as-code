@@ -31,9 +31,10 @@ program
     .description('Generate an instantiation from a CALM pattern file.')
     .requiredOption('-p, --pattern <source>', 'Path to the pattern file to use. May be a file path or a URL.')
     .requiredOption('-o, --output <output>', 'Path location at which to output the generated file.')
+    .option('-s, --schemaDirectory <path>', 'Path to directory containing schemas to use in instantiation')
     .option('-v, --verbose', 'Enable verbose logging.', false)
-    .action((options) => {
-        runGenerate(options.pattern, options.output, !!options.verbose);
+    .action(async (options) => {
+        await runGenerate(options.pattern, options.output, options.schemaDirectory, !!options.verbose);
     });
 
 program

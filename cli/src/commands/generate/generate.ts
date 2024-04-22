@@ -7,6 +7,7 @@ import { mkdirp } from 'mkdirp';
 import * as winston from 'winston';
 import { initLogger } from '../helper.js';
 import { CALMInstantiation } from '../../types.js';
+import { SchemaDirectory } from './schema-directory.js';
 
 let logger: winston.Logger; // defined later at startup
 
@@ -180,7 +181,13 @@ export function generate(patternPath: string, debug: boolean): CALMInstantiation
     return final;
 }
 
-export function runGenerate(patternPath: string, outputPath: string, debug: boolean): void {
+export async function runGenerate(patternPath: string, outputPath: string, schemaDirectoryPath: string, debug: boolean): Promise<void> {
+    const schemaDirectory = new SchemaDirectory(schemaDirectoryPath);
+
+    await schemaDirectory.loadSchemas();
+
+    // console.log(schemaDirectory.getDefinition( "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/node"))
+    
     const final = generate(patternPath, debug);
 
     const output = JSON.stringify(final, null, 2);
