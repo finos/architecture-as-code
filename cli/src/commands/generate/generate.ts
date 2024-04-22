@@ -51,7 +51,7 @@ function getPropertyValue(keyName: string, detail: any): any {
 function instantiateNodeInterfaces(detail: any): any[] {
     const interfaces = [];
     if (!('prefixItems' in detail)) {
-        console.error('No items in interfaces block.');
+        logger.error('No items in interfaces block.');
         return [];
     }
 
@@ -138,7 +138,7 @@ function instantiateRelationships(pattern: any): any {
 function instantiateAdditionalTopLevelProperties(pattern: any): any {
     const properties = pattern?.properties;
     if (!properties) {
-        console.error('Warning: pattern has no properties defined.');
+        logger.error('Warning: pattern has no properties defined.');
         return [];
     }
 
