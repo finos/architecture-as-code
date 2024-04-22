@@ -8,6 +8,8 @@ import * as winston from 'winston';
 import { initLogger } from '../helper.js';
 import { CALMInstantiation } from '../../types.js';
 import { SchemaDirectory } from './schema-directory.js';
+import { instantiateNode, instantiateNodes } from './components/node.js';
+import { instantiateRelationships } from './components/relationship.js';
 
 let logger: winston.Logger; // defined later at startup
 
@@ -22,119 +24,6 @@ function loadFile(path: string): any {
     return pattern;
 }
 
-
-function getStringPlaceholder(name: string): string {
-    return '{{ ' + name.toUpperCase().replaceAll('-', '_') + ' }}';
-}
-
-function getPropertyValue(keyName: string, detail: any): any {
-    if ('const' in detail) {
-        return detail['const'];
-    }
-
-    if ('type' in detail) {
-        const propertyType = detail['type'];
-
-        if (propertyType === 'string') {
-            return getStringPlaceholder(keyName);
-        }
-        if (propertyType === 'integer') {
-            return -1;
-        }
-        if (propertyType === 'array') {
-            return [
-                getStringPlaceholder(keyName)
-            ];
-        }
-    }
-}
-
-function instantiateNodeInterfaces(detail: any): any[] {
-    const interfaces = [];
-    if (!('prefixItems' in detail)) {
-        logger.error('No items in interfaces block.');
-        return [];
-    }
-
-    const interfaceDefs = detail.prefixItems;
-    for (const interfaceDef of interfaceDefs) {
-        if (!('properties' in interfaceDef)) {
-            continue;
-        }
-
-        const out = {};
-        for (const [key, detail] of Object.entries(interfaceDef['properties'])) {
-            out[key] = getPropertyValue(key, detail);
-        }
-
-        interfaces.push(out);
-    }
-
-    return interfaces;
-}
-
-function instantiateNode(node: any): any {
-    const out = {};
-    for (const [key, detail] of Object.entries(node['properties'])) {
-        if (key === 'interfaces') {
-            const interfaces = instantiateNodeInterfaces(detail);
-            out['interfaces'] = interfaces;
-        }
-        else {
-            out[key] = getPropertyValue(key, detail);
-        }
-    }
-    return out;
-}
-
-function instantiateNodes(pattern: any): any {
-    const nodes = pattern?.properties?.nodes?.prefixItems;
-    if (!nodes) {
-        logger.error('Warning: pattern has no nodes defined.');
-        if (pattern?.properties?.nodes?.items) {
-            logger.warn('Note: properties.relationships.items is deprecated: please use prefixItems instead.');
-        }
-        return [];
-    }
-    const outputNodes = [];
-
-    for (const node of nodes) {
-        if (!('properties' in node)) {
-            continue;
-        }
-
-        outputNodes.push(instantiateNode(node));
-    }
-    return outputNodes;
-}
-
-function instantiateRelationships(pattern: any): any {
-    const relationships = pattern?.properties?.relationships?.prefixItems;
-
-    if (!relationships) {
-        logger.error('Warning: pattern has no relationships defined');
-        if (pattern?.properties?.relationships?.items) {
-            logger.warn('Note: properties.relationships.items is deprecated: please use prefixItems instead.');
-        }
-        return [];
-    }
-
-    const outputRelationships = [];
-    for (const relationship of relationships) {
-        if (!('properties' in relationship)) {
-            continue;
-        }
-
-        const out = {};
-        for (const [key, detail] of Object.entries(relationship['properties'])) {
-            out[key] = getPropertyValue(key, detail);
-        }
-
-        outputRelationships.push(out);
-    }
-
-    return outputRelationships;
-}
 
 function instantiateAdditionalTopLevelProperties(pattern: any): any {
     const properties = pattern?.properties;
@@ -158,18 +47,14 @@ function instantiateAdditionalTopLevelProperties(pattern: any): any {
 }
 
 export const exportedForTesting = {
-    getPropertyValue,
-    instantiateNodes,
-    instantiateRelationships,
-    instantiateNodeInterfaces,
     instantiateAdditionalTopLevelProperties
 };
 
 export function generate(patternPath: string, debug: boolean): CALMInstantiation {
     logger = initLogger(debug);
     const pattern = loadFile(patternPath);
-    const outputNodes = instantiateNodes(pattern);
-    const relationshipNodes = instantiateRelationships(pattern);
+    const outputNodes = instantiateNodes(pattern, debug);
+    const relationshipNodes = instantiateRelationships(pattern, debug);
     const additionalProperties = instantiateAdditionalTopLevelProperties(pattern);
 
     const final = {
@@ -184,7 +69,7 @@ export function generate(patternPath: string, debug: boolean): CALMInstantiation
 export async function runGenerate(patternPath: string, outputPath: string, schemaDirectoryPath: string, debug: boolean): Promise<void> {
     const schemaDirectory = new SchemaDirectory(schemaDirectoryPath);
 
-    await schemaDirectory.loadSchemas();
+    // await schemaDirectory.loadSchemas();
 
     // console.log(schemaDirectory.getDefinition( "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/node"))
     
