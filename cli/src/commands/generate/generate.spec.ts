@@ -321,46 +321,62 @@ describe('instantiateAdditionalTopLevelProperties', () => {
         const pattern = {
             properties: {
                 'extra-property': {
-                    type: 'array' 
+                    properties: {
+                        values: {
+                            type: 'array' 
+                        }
+                    }
                 }
             }
         };
 
         expect(instantiateAdditionalTopLevelProperties(pattern))
             .toEqual({
-                'extra-property': [
-                    '{{ EXTRA_PROPERTY }}'
-                ]
+                'extra-property': {
+                    values: [ '{{ VALUES }}' ]
+                }
             });
     });
     
     it('instantiate an additional top level const property', () => {
         const pattern = {
             properties: {
-                'extra-property': {
-                    const: 'value here'
+                'extra': {
+                    properties: {
+                        'extra-property': {
+                            const: 'value here'
+                        }
+                    }
                 }
             }
         };
 
         expect(instantiateAdditionalTopLevelProperties(pattern))
             .toEqual({
-                'extra-property': 'value here'
+                'extra': {
+                    'extra-property': 'value here'
+                }
             });
     });
     
     it('instantiate an additional top level string property', () => {
         const pattern = {
             properties: {
-                'extra-property': {
-                    'type': 'string'
+                'extra': {
+                    properties: {
+                        'extra-property': {
+                            'type': 'string'
+                        }
+                    }
                 }
             }
         };
 
         expect(instantiateAdditionalTopLevelProperties(pattern))
             .toEqual({
-                'extra-property': '{{ EXTRA_PROPERTY }}'
+                    extra: {
+                    'extra-property': '{{ EXTRA_PROPERTY }}'
+                }
             });
     });
 });

@@ -26,7 +26,7 @@ function getStringPlaceholder(name: string): string {
     return '{{ ' + name.toUpperCase().replaceAll('-', '_') + ' }}';
 }
 
-function getPropertyValue(keyName: string, detail: any) : any {
+function getPropertyValue(keyName: string, detail: any): any {
     if ('const' in detail) {
         return detail['const'];
     }
@@ -41,8 +41,8 @@ function getPropertyValue(keyName: string, detail: any) : any {
             return -1;
         }
         if (propertyType === 'array') {
-            return [ 
-                getStringPlaceholder(keyName) 
+            return [
+                getStringPlaceholder(keyName)
             ];
         }
     }
@@ -72,6 +72,20 @@ function instantiateNodeInterfaces(detail: any): any[] {
     return interfaces;
 }
 
+function instantiateNode(node: any): any {
+    const out = {};
+    for (const [key, detail] of Object.entries(node['properties'])) {
+        if (key === 'interfaces') {
+            const interfaces = instantiateNodeInterfaces(detail);
+            out['interfaces'] = interfaces;
+        }
+        else {
+            out[key] = getPropertyValue(key, detail);
+        }
+    }
+    return out;
+}
+
 function instantiateNodes(pattern: any): any {
     const nodes = pattern?.properties?.nodes?.prefixItems;
     if (!nodes) {
@@ -88,18 +102,7 @@ function instantiateNodes(pattern: any): any {
             continue;
         }
 
-        const out = {};
-        for (const [key, detail] of Object.entries(node['properties'])) {
-            if (key === 'interfaces') {
-                const interfaces = instantiateNodeInterfaces(detail);
-                out['interfaces'] = interfaces;
-            }
-            else {
-                out[key] = getPropertyValue(key, detail);
-            }
-        }
-
-        outputNodes.push(out);
+        outputNodes.push(instantiateNode(node));
     }
     return outputNodes;
 }
@@ -146,7 +149,8 @@ function instantiateAdditionalTopLevelProperties(pattern: any): any {
             continue;
         }
 
-        extraProperties[additionalProperty] = getPropertyValue(additionalProperty, detail);
+        // TODO
+        extraProperties[additionalProperty] = instantiateNode(detail);
     }
 
     return extraProperties;
