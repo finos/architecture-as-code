@@ -132,11 +132,32 @@ function instantiateRelationships(pattern: any): any {
     return outputRelationships;
 }
 
+function instantiateAdditionalTopLevelProperties(pattern: any): any {
+    const properties = pattern?.properties;
+    if (!properties) {
+        console.error('Warning: pattern has no properties defined.');
+        return [];
+    }
+
+    const extraProperties = {};
+    for (const [additionalProperty, detail] of Object.entries(properties)) {
+        // additional properties only
+        if (['nodes', 'relationships'].includes(additionalProperty)) {
+            continue;
+        }
+
+        extraProperties[additionalProperty] = getPropertyValue(additionalProperty, detail);
+    }
+
+    return extraProperties;
+}
+
 export const exportedForTesting = {
     getPropertyValue,
     instantiateNodes,
     instantiateRelationships,
-    instantiateNodeInterfaces
+    instantiateNodeInterfaces,
+    instantiateAdditionalTopLevelProperties
 };
 
 export function generate(patternPath: string, debug: boolean): CALMInstantiation {
@@ -144,10 +165,12 @@ export function generate(patternPath: string, debug: boolean): CALMInstantiation
     const pattern = loadFile(patternPath);
     const outputNodes = instantiateNodes(pattern);
     const relationshipNodes = instantiateRelationships(pattern);
+    const additionalProperties = instantiateAdditionalTopLevelProperties(pattern);
 
     const final = {
         'nodes': outputNodes,
         'relationships': relationshipNodes,
+        ...additionalProperties // object spread operator to insert additional props at top level
     };
 
     return final;
