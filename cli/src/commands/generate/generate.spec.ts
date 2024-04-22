@@ -374,7 +374,7 @@ describe('instantiateAdditionalTopLevelProperties', () => {
 
         expect(instantiateAdditionalTopLevelProperties(pattern))
             .toEqual({
-                    extra: {
+                extra: {
                     'extra-property': '{{ EXTRA_PROPERTY }}'
                 }
             });
