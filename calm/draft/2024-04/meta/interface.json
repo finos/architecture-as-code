@@ -93,7 +93,9 @@
           "type": "string"
         }
       },
-      "required": "url"
+      "required": [
+        "url"
+      ]
     },
     "rate-limit-interface": {
       "$ref": "#/defs/interface-type",
