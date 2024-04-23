@@ -29,6 +29,9 @@ export class SchemaDirectory {
 
     private lookupDefinition(schemaId: string, ref: string) {
         const schema = this.getSchema(schemaId)
+        if (!schema) {
+            return undefined
+        }
         // TODO propagate the required fields
         return pointer.get(schema, ref)
     }
@@ -42,6 +45,11 @@ export class SchemaDirectory {
         }
         this.logger.debug(`Recursively resolving the reference, ref: ${ref}`)
         const definition = this.lookupDefinition(newSchemaId, ref);
+        if (!definition) {
+            // schema not defined
+            // TODO enforce this once we can guarantee we always have schemas available
+            return {}
+        }
         if (!definition['$ref']) {
             this.logger.debug("Reached a definition with no ref, terminating recursive lookup.")
             return definition
@@ -60,8 +68,8 @@ export class SchemaDirectory {
     public getSchema(schemaId: string) {
         if (!this.schemas.has(schemaId)) {
             const registered = [...this.schemas.keys()];
-            this.logger.error(`Schema with $id ${schemaId} not found. Registered schemas: ${registered}`)
-            throw new Error(`Schema with $id ${schemaId} not found.`)
+            this.logger.warn(`Schema with $id ${schemaId} not found. Returning empty object. Registered schemas: ${registered}`)
+            return undefined;
         }
         return this.schemas.get(schemaId)
     }
