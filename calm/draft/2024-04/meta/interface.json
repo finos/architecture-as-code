@@ -28,6 +28,7 @@
     },
     "host-port-interface": {
       "$ref": "#/defs/interface-type",
+      "type": "object",
       "properties": {
         "host": {
           "type": "string"
@@ -40,6 +41,7 @@
     },
     "hostname-interface": {
       "$ref": "#/defs/interface-type",
+      "type": "object",
       "properties": {
         "hostname": {
           "type": "string"
@@ -49,6 +51,7 @@
     },
     "path-interface": {
       "$ref": "#/defs/interface-type",
+      "type": "object",
       "properties": {
         "path": {
           "type": "string"
@@ -58,6 +61,7 @@
     },
     "oauth2-audience-interface": {
       "$ref": "#/defs/interface-type",
+      "type": "object",
       "properties": {
         "audiences": {
           "type": "array",
@@ -69,5 +73,15 @@
       },
       "required": ["audiences"]
     }
+  },
+  "url-interface": {
+    "$ref": "#/defs/interface-type",
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string"
+      }
+    },
+    "required": "url"
   }
 }
