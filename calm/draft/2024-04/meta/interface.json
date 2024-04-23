@@ -18,8 +18,11 @@
       "node": {
         "type": "string"
       },
-      "interface": {
-        "type": "string"
+      "interfaces": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
       },
       "required": ["node"]
     },
