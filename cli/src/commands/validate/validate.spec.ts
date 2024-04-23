@@ -197,7 +197,7 @@ const {
 
 describe('formatSpectralOutput', () => {
 
-    it('should convert the spectral output in the ValidationOutput format', () => {
+    it('should convert the spectral output to the ValidationOutput format', () => {
         const given: ISpectralDiagnostic[] = [
             {
                 code: 'no-empty-properties',
@@ -219,14 +219,14 @@ describe('formatSpectralOutput', () => {
             'no-empty-properties',
             'error',
             'Must not contain string properties set to the empty string or numerical properties set to zero',
-            'relationships.0.relationship-type.connects.destination.interface')]; 
+            '/relationships/0/relationship-type/connects/destination/interface')]; 
 
         const actual = formatSpectralOutput(given);
 
         expect(actual).toStrictEqual(expected);
     });
 
-    it('should convert the spectral output when path is an empty array in the ValidationOutput format', () => {
+    it('should convert the spectral output to the ValidationOutput format when path is an empty array', () => {
         const given: ISpectralDiagnostic[] = [
             {
                 code: 'no-empty-properties',
@@ -241,18 +241,24 @@ describe('formatSpectralOutput', () => {
             'no-empty-properties',
             'error',
             'Must not contain string properties set to the empty string or numerical properties set to zero',
-            '')]; 
+            '/')]; 
 
         const actual = formatSpectralOutput(given);
 
         expect(actual).toStrictEqual(expected);
     });
 
+    it('should return an empty array when spectral reports no issues', () => {
+        const given: ISpectralDiagnostic[] = [];
+        const expected : ValidationOutput[] = []; 
+        const actual = formatSpectralOutput(given);
+        expect(actual).toStrictEqual(expected);
+    });
+
 });
 
 describe('formatJsonSchemaOutput', () => {
-
-    it('should convert the json schema output in the ValidationOutput format', () => {
+    it('should convert the json schema output to the ValidationOutput format', () => {
         const given: ErrorObject[] = [
             {
                 'instancePath': '/nodes/0/interfaces/0/port',
@@ -280,7 +286,7 @@ describe('formatJsonSchemaOutput', () => {
         expect(actual).toStrictEqual(expected);
     });
 
-    it('should convert the json schema output when instancePath is empty in the ValidationOutput format', () => {
+    it('should convert the json schema output to the ValidationOutput format when instancePath is empty', () => {
         const given: ErrorObject[] = [
             {
                 'instancePath': '',
@@ -305,6 +311,13 @@ describe('formatJsonSchemaOutput', () => {
 
         const actual = formatJsonSchemaOutput(given);
 
+        expect(actual).toStrictEqual(expected);
+    });
+
+    it('should return an empty array when no JSON Schema issues have been reported', () => {
+        const given: ErrorObject[] = [];
+        const expected : ValidationOutput[] = [];
+        const actual = formatJsonSchemaOutput(given);
         expect(actual).toStrictEqual(expected);
     });
 

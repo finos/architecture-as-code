@@ -16,7 +16,7 @@ export default async function validate(jsonSchemaInstantiationLocation: string, 
     let errors = false;
     let validations: ValidationOutput[] = [];
     try {
-        const ajv = new Ajv2020({ strict: false , allErrors: true});
+        const ajv = buildAjv2020(debug);
 
         loadMetaSchemas(ajv, metaSchemaPath);
 
@@ -46,7 +46,7 @@ export default async function validate(jsonSchemaInstantiationLocation: string, 
         if(validations.length > 0){
             logger.info(`The following issues (not errors) have been found on the JSON Schema Instantiation ${prettifyJson(validations)}`);
         }else{
-            logger.info('The schema validation is valid');
+            logger.info('The JSON Schema instantiation is valid');
         }
         process.exit(0);
 
@@ -54,6 +54,13 @@ export default async function validate(jsonSchemaInstantiationLocation: string, 
         logger.error(`An error occured: ${error}`);
         process.exit(1);
     }
+}
+
+function buildAjv2020(debug: boolean): Ajv2020 {
+    if (debug){
+        return new Ajv2020({strict: "log", allErrors: true});
+    }
+    return new Ajv2020({strict: false, allErrors: true});
 }
 
 function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
@@ -123,7 +130,7 @@ function formatSpectralOutput(spectralIssues: ISpectralDiagnostic[]): Validation
             issue.code,
             getSeverity(issue.severity), 
             issue.message, 
-            issue.path.join('.')
+            '/'+issue.path.join('/')
         );
         validationOutput.push(formattedIssue);
     });
@@ -142,7 +149,7 @@ function getSeverity(spectralSeverity: DiagnosticSeverity): string {
     case 3:
         return 'hint';
     default:
-        throw Error('uknown severity type returned by spectral');
+        throw Error('The spectralSeverity does not match the known values');
     }
 }
 
