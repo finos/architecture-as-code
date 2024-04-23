@@ -1,5 +1,6 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 
+import { SchemaDirectory } from "../schema-directory";
 import { instantiateNodeInterfaces, instantiateNodes } from "./node";
 
 jest.mock('../../helper', () => {
@@ -12,6 +13,14 @@ jest.mock('../../helper', () => {
         }
     };
 });
+
+jest.mock('../schema-directory')
+
+let mockSchemaDir;
+
+beforeEach(() => {
+    mockSchemaDir = new SchemaDirectory("directory");
+})
 
 function getSamplePatternNode(properties: any): any {
     return {
@@ -36,7 +45,7 @@ describe('instantiateNodes', () => {
                 type: 'array'
             }
         });
-        expect(instantiateNodes(pattern))
+        expect(instantiateNodes(pattern, mockSchemaDir))
             .toEqual(
                 [{
                     'property-name': [
@@ -53,7 +62,7 @@ describe('instantiateNodes', () => {
             }
         });
 
-        expect(instantiateNodes(pattern))
+        expect(instantiateNodes(pattern, mockSchemaDir))
             .toEqual([
                 {
                     'property-name': '{{ PROPERTY_NAME }}'
@@ -68,7 +77,7 @@ describe('instantiateNodes', () => {
             }
         });
 
-        expect(instantiateNodes(pattern))
+        expect(instantiateNodes(pattern, mockSchemaDir))
             .toEqual([
                 {
                     'property-name': 'value here'
@@ -120,7 +129,7 @@ describe('instantiateNodes', () => {
             }
         ];
 
-        expect(instantiateNodes(pattern))
+        expect(instantiateNodes(pattern, mockSchemaDir))
             .toEqual(expected);
 
     });
@@ -146,7 +155,7 @@ describe('instantiateNodeInterfaces', () => {
                 type: 'array'
             }
         });
-        expect(instantiateNodeInterfaces(pattern))
+        expect(instantiateNodeInterfaces(pattern, mockSchemaDir))
             .toEqual(
                 [{
                     'property-name': [
@@ -163,7 +172,7 @@ describe('instantiateNodeInterfaces', () => {
             }
         });
 
-        expect(instantiateNodeInterfaces(pattern))
+        expect(instantiateNodeInterfaces(pattern, mockSchemaDir))
             .toEqual([
                 {
                     'property-name': '{{ PROPERTY_NAME }}'
@@ -178,7 +187,7 @@ describe('instantiateNodeInterfaces', () => {
             }
         });
 
-        expect(instantiateNodeInterfaces(pattern))
+        expect(instantiateNodeInterfaces(pattern, mockSchemaDir))
             .toEqual([
                 {
                     'property-name': 'value here'

@@ -1,5 +1,6 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 
+import { SchemaDirectory } from '../schema-directory';
 import { instantiateRelationships } from './relationship';
 
 jest.mock('../../helper', () => {
@@ -13,6 +14,13 @@ jest.mock('../../helper', () => {
     };
 });
 
+jest.mock('../schema-directory')
+
+let mockSchemaDir;
+
+beforeEach(() => {
+    mockSchemaDir = new SchemaDirectory("directory");
+})
 
 function getSamplePatternRelationship(properties: any): any {
     return {
@@ -38,7 +46,7 @@ describe('instantiateRelationships', () => {
             }
         });
 
-        expect(instantiateRelationships(pattern))
+        expect(instantiateRelationships(pattern, mockSchemaDir))
             .toEqual(
                 [{
                     'property-name': [
@@ -55,7 +63,7 @@ describe('instantiateRelationships', () => {
             }
         });
 
-        expect(instantiateRelationships(pattern))
+        expect(instantiateRelationships(pattern, mockSchemaDir))
             .toEqual([
                 {
                     'property-name': '{{ PROPERTY_NAME }}'
@@ -70,7 +78,7 @@ describe('instantiateRelationships', () => {
             }
         });
 
-        expect(instantiateRelationships(pattern))
+        expect(instantiateRelationships(pattern, mockSchemaDir))
             .toEqual([
                 {
                     'property-name': 'value here'

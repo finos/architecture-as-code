@@ -25,7 +25,7 @@ function loadFile(path: string): any {
 }
 
 
-function instantiateAdditionalTopLevelProperties(pattern: any): any {
+function instantiateAdditionalTopLevelProperties(pattern: any, schemaDirectory: SchemaDirectory): any {
     const properties = pattern?.properties;
     if (!properties) {
         logger.error('Warning: pattern has no properties defined.');
@@ -40,7 +40,7 @@ function instantiateAdditionalTopLevelProperties(pattern: any): any {
         }
 
         // TODO
-        extraProperties[additionalProperty] = instantiateNode(detail);
+        extraProperties[additionalProperty] = instantiateNode(detail, schemaDirectory);
     }
 
     return extraProperties;
@@ -50,12 +50,12 @@ export const exportedForTesting = {
     instantiateAdditionalTopLevelProperties
 };
 
-export function generate(patternPath: string, debug: boolean): CALMInstantiation {
+export function generate(patternPath: string, schemaDirectory: SchemaDirectory, debug: boolean): CALMInstantiation {
     logger = initLogger(debug);
     const pattern = loadFile(patternPath);
-    const outputNodes = instantiateNodes(pattern, debug);
-    const relationshipNodes = instantiateRelationships(pattern, debug);
-    const additionalProperties = instantiateAdditionalTopLevelProperties(pattern);
+    const outputNodes = instantiateNodes(pattern, schemaDirectory, debug);
+    const relationshipNodes = instantiateRelationships(pattern, schemaDirectory, debug);
+    const additionalProperties = instantiateAdditionalTopLevelProperties(pattern, schemaDirectory);
 
     const final = {
         'nodes': outputNodes,
@@ -69,11 +69,11 @@ export function generate(patternPath: string, debug: boolean): CALMInstantiation
 export async function runGenerate(patternPath: string, outputPath: string, schemaDirectoryPath: string, debug: boolean): Promise<void> {
     const schemaDirectory = new SchemaDirectory(schemaDirectoryPath);
 
-    // await schemaDirectory.loadSchemas();
-
-    // console.log(schemaDirectory.getDefinition( "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/node"))
+    if (!!schemaDirectoryPath) {
+        await schemaDirectory.loadSchemas();
+    }
     
-    const final = generate(patternPath, debug);
+    const final = generate(patternPath, schemaDirectory, debug);
 
     const output = JSON.stringify(final, null, 2);
     logger.debug('Generated instantiation: ' + output);

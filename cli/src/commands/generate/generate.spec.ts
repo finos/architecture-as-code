@@ -5,6 +5,7 @@ import { runGenerate } from './generate';
 import { tmpdir } from 'node:os';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
+import { SchemaDirectory } from './schema-directory';
 
 jest.mock('../helper', () => {
     return {
@@ -16,6 +17,14 @@ jest.mock('../helper', () => {
         }
     };
 });
+
+jest.mock('./schema-directory')
+
+let mockSchemaDir;
+
+beforeEach(() => {
+    mockSchemaDir = new SchemaDirectory("directory");
+})
 
 const {
     instantiateAdditionalTopLevelProperties
@@ -36,7 +45,7 @@ describe('instantiateAdditionalTopLevelProperties', () => {
             }
         };
 
-        expect(instantiateAdditionalTopLevelProperties(pattern))
+        expect(instantiateAdditionalTopLevelProperties(pattern, mockSchemaDir))
             .toEqual({
                 'extra-property': {
                     values: [ '{{ VALUES }}' ]
@@ -57,7 +66,7 @@ describe('instantiateAdditionalTopLevelProperties', () => {
             }
         };
 
-        expect(instantiateAdditionalTopLevelProperties(pattern))
+        expect(instantiateAdditionalTopLevelProperties(pattern, mockSchemaDir))
             .toEqual({
                 'extra': {
                     'extra-property': 'value here'
@@ -78,7 +87,7 @@ describe('instantiateAdditionalTopLevelProperties', () => {
             }
         };
 
-        expect(instantiateAdditionalTopLevelProperties(pattern))
+        expect(instantiateAdditionalTopLevelProperties(pattern, mockSchemaDir))
             .toEqual({
                 extra: {
                     'extra-property': '{{ EXTRA_PROPERTY }}'
