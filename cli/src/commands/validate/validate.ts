@@ -58,7 +58,7 @@ export default async function validate(jsonSchemaInstantiationLocation: string, 
 
 function buildAjv2020(debug: boolean): Ajv2020 {
     if (debug){
-        return new Ajv2020({strict: "log", allErrors: true});
+        return new Ajv2020({strict: 'log', allErrors: true});
     }
     return new Ajv2020({strict: false, allErrors: true});
 }
