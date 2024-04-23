@@ -36,6 +36,7 @@ export class SchemaDirectory {
         return pointer.get(schema, ref)
     }
 
+    // TODO handle circular references
     private getDefinitionRecursive(definitionReference: string, currentSchemaId: string) {
         let [newSchemaId, ref] = definitionReference.split("#")
 
@@ -65,9 +66,13 @@ export class SchemaDirectory {
         // // TODO propagate the required fields
     }
 
+    public getLoadedSchemas() {
+        return [...this.schemas.keys()]
+    }
+
     public getSchema(schemaId: string) {
         if (!this.schemas.has(schemaId)) {
-            const registered = [...this.schemas.keys()];
+            const registered = this.getLoadedSchemas();
             this.logger.warn(`Schema with $id ${schemaId} not found. Returning empty object. Registered schemas: ${registered}`)
             return undefined;
         }
