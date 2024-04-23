@@ -39,4 +39,6 @@ describe('SchemaDirectory', () => {
         expect(interfaceDef.properties).toHaveProperty('port')
         expect(interfaceDef.properties).toHaveProperty('unique-id')
     })
+    
+    // TODO recursive refs
 })

@@ -7,8 +7,8 @@ jest.mock('../../helper', () => {
     return {
         initLogger: () => {
             return {
-                info: () => {},
-                debug: () => {}
+                info: () => { },
+                debug: () => { }
             };
         }
     };
@@ -83,6 +83,39 @@ describe('instantiateNodes', () => {
                     'property-name': 'value here'
                 }
             ]);
+    });
+
+    it('call schema directory to resolve $ref nodes`', () => {
+        const reference = 'https://calm.com/core.json#/node';
+        const pattern = {
+            properties: {
+                nodes: {
+                    type: 'array',
+                    prefixItems: [
+                        {
+                            '$ref': reference
+                        }
+                    ]
+                }
+            }
+        };
+
+        const spy = jest.spyOn(mockSchemaDir, 'getDefinition');
+        spy.mockReturnValue({
+            properties: {
+                'property-name': {
+                    const: 'value here'
+                }
+            }
+        })
+
+        expect(instantiateNodes(pattern, mockSchemaDir))
+            .toEqual([
+                {
+                    'property-name': 'value here'
+                }
+            ]);
+        expect(spy).toHaveBeenCalledWith(reference)
     });
 
     it('return instantiated node with interface', () => {
@@ -193,5 +226,34 @@ describe('instantiateNodeInterfaces', () => {
                     'property-name': 'value here'
                 }
             ]);
+    });
+
+    it('call schema directory to resolve $ref interfaces`', () => {
+        const reference = 'https://calm.com/core.json#/interface';
+
+        const pattern = {
+            prefixItems: [
+                {
+                    '$ref': reference
+                }
+            ]
+        };
+
+        const spy = jest.spyOn(mockSchemaDir, 'getDefinition');
+        spy.mockReturnValue({
+            properties: {
+                'property-name': {
+                    const: 'value here'
+                }
+            }
+        })
+
+        expect(instantiateNodeInterfaces(pattern, mockSchemaDir))
+            .toEqual([
+                {
+                    'property-name': 'value here'
+                }
+            ]);
+        expect(spy).toHaveBeenCalledWith(reference)
     });
 });

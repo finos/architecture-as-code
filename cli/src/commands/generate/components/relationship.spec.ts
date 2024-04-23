@@ -85,4 +85,37 @@ describe('instantiateRelationships', () => {
                 }
             ]);
     });
+
+    it('call schema directory to resolve $ref relationships`', () => {
+        const reference = 'https://calm.com/core.json#/relationship';
+        const pattern = {
+            properties: {
+                relationships: {
+                    type: 'array',
+                    prefixItems: [
+                        {
+                            '$ref': reference
+                        }
+                    ]
+                }
+            }
+        };
+
+        const spy = jest.spyOn(mockSchemaDir, 'getDefinition');
+        spy.mockReturnValue({
+            properties: {
+                'property-name': {
+                    const: 'value here'
+                }
+            }
+        })
+
+        expect(instantiateRelationships(pattern, mockSchemaDir))
+            .toEqual([
+                {
+                    'property-name': 'value here'
+                }
+            ]);
+        expect(spy).toHaveBeenCalledWith(reference)
+    });
 });
