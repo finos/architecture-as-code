@@ -25,7 +25,7 @@ function instantiateRelationship(relationshipDef: object, schemaDirectory: Schem
         return {}
     }
 
-    logger.info("generating interface from " + JSON.stringify(fullDefinition, undefined, 2))
+    logger.debug("Generating interface from " + JSON.stringify(fullDefinition, undefined, 2))
 
     const out = {};
     for (const [key, detail] of Object.entries(fullDefinition['properties'])) {

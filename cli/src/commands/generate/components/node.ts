@@ -19,7 +19,7 @@ export function instantiateNode(nodeDef: any, schemaDirectory: SchemaDirectory, 
 
         fullDefinition = mergeSchemas(schemaDef, nodeDef)
     }
-    logger.info("Generating node from " + JSON.stringify(fullDefinition))
+    logger.debug("Generating node from " + JSON.stringify(fullDefinition))
     
     if (!('properties' in fullDefinition)) {
         return {}
@@ -80,7 +80,7 @@ export function instantiateInterface(interfaceDef: object, schemaDirectory: Sche
         fullDefinition = mergeSchemas(schemaDef, interfaceDef)
     }
 
-    logger.info("generating interface from " + JSON.stringify(fullDefinition, undefined, 2))
+    logger.debug("Generating interface from " + JSON.stringify(fullDefinition, undefined, 2))
     
     if (!('properties' in fullDefinition)) {
         return {}
