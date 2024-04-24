@@ -39,7 +39,7 @@ function instantiateAdditionalTopLevelProperties(pattern: any, schemaDirectory: 
             continue;
         }
 
-        // TODO
+        // TODO handle generic top level properties, not just nodes
         extraProperties[additionalProperty] = instantiateNode(detail, schemaDirectory);
     }
 

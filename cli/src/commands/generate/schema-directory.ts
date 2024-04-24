@@ -5,14 +5,26 @@ import { mergeSchemas } from "./util.js";
 import { Logger } from "winston";
 import { initLogger } from "../helper.js";
 
+/**
+ * Stores a directory of schemas and resolves references against that directory.
+ * Can merge objects recursively and will handle circular references.
+ */
 export class SchemaDirectory {
     private readonly schemas: Map<string, any> = new Map<string, any>();
     private readonly logger: Logger;
 
+    /**
+     * Initialise the SchemaDirectory. Does not load the schemas until loadSchemas is called.
+     * @param directoryPath The directory path from which to load schemas. All JSON and YAML files under this path will be loaded, including subfolders.
+     * @param debug Whether to log at debug level.
+     */
     constructor(private directoryPath: string, debug: boolean = false) {
         this.logger = initLogger(debug);
     }
 
+    /**
+     * Load the schemas from the configured directory path.
+     */
     public async loadSchemas() {
         this.logger.debug("Loading schemas from " + this.directoryPath)
         const files = await readdir(this.directoryPath, { recursive: true });
@@ -32,11 +44,9 @@ export class SchemaDirectory {
         if (!schema) {
             return undefined
         }
-        // TODO propagate the required fields
         return pointer.get(schema, ref)
     }
 
-    // TODO handle circular references
     private getDefinitionRecursive(definitionReference: string, currentSchemaId: string, visitedDefinitions: string[]) {
         let [newSchemaId, ref] = definitionReference.split("#")
         visitedDefinitions.push(definitionReference)
@@ -65,16 +75,29 @@ export class SchemaDirectory {
         return mergeSchemas(innerDef, definition)
     }
 
+    /**
+     * 
+     * @param definitionReference The reference to resolve. May be an absolute reference including a schema ID prefix, or a local reference.
+     * @returns The resolved object, or an empty object if the object could not be resolved.
+     */
     public getDefinition(definitionReference: string) {
         this.logger.debug(`Resolving ${definitionReference} from schema directory.`)
         return this.getDefinitionRecursive(definitionReference, "pattern", [])
-        // // TODO propagate the required fields
+        // TODO propagate the required fields
     }
 
+    /**
+     * Return the list of all loaded schemas.
+     */
     public getLoadedSchemas() {
         return [...this.schemas.keys()]
     }
 
+    /**
+     * Return the entire schema from the provided directory.
+     * @param schemaId The ID of the schema to load.
+     * @returns An entire schema as an object.
+     */
     public getSchema(schemaId: string) {
         if (!this.schemas.has(schemaId)) {
             const registered = this.getLoadedSchemas();
