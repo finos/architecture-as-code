@@ -112,7 +112,7 @@ export class SchemaDirectory {
     }
 
     private async loadSchema(schemaPath: string) {
-        console.log('Loading ' + schemaPath);
+        this.logger.debug('Loading ' + schemaPath);
         const str = await readFile(schemaPath, 'utf-8');
         const parsed = JSON.parse(str);
         const schemaId = parsed['$id'];
@@ -121,6 +121,11 @@ export class SchemaDirectory {
             this.logger.warn('Warning: bad schema found, no $id property was defined. Path: ', schemaPath);
             return;
         }
+
+        if (!parsed['$schema']) {
+            this.logger.warn('Warning, loaded schema does not have $schema set and therefore may be invalid. Path: ', schemaPath)
+        }
+
         this.logger.debug('Loaded schema with $id: ' + schemaId);
         
         this.schemas.set(schemaId, parsed);
