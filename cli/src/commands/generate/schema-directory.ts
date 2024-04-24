@@ -37,8 +37,9 @@ export class SchemaDirectory {
     }
 
     // TODO handle circular references
-    private getDefinitionRecursive(definitionReference: string, currentSchemaId: string) {
+    private getDefinitionRecursive(definitionReference: string, currentSchemaId: string, visitedDefinitions: string[]) {
         let [newSchemaId, ref] = definitionReference.split("#")
+        visitedDefinitions.push(definitionReference)
 
         if (!newSchemaId) {
             newSchemaId = currentSchemaId;
@@ -56,13 +57,17 @@ export class SchemaDirectory {
             return definition
         }
         const newRef: string = definition['$ref']
-        const innerDef = this.getDefinitionRecursive(newRef, newSchemaId)
+        if (visitedDefinitions.includes(newRef)) {
+            this.logger.warning("Circular reference detected. Terminating reference lookup. Visited definitions: " + visitedDefinitions);
+            return definition;
+        }
+        const innerDef = this.getDefinitionRecursive(newRef, newSchemaId, visitedDefinitions)
         return mergeSchemas(innerDef, definition)
     }
 
     public getDefinition(definitionReference: string) {
         this.logger.debug(`Resolving ${definitionReference} from schema directory.`)
-        return this.getDefinitionRecursive(definitionReference, "pattern")
+        return this.getDefinitionRecursive(definitionReference, "pattern", [])
         // // TODO propagate the required fields
     }
 
