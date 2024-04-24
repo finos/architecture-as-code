@@ -16,13 +16,15 @@
     },
     "node-interface": {
       "type": "object",
-      "node": {
-        "type": "string"
-      },
-      "interfaces": {
-        "type": "array",
-        "items": {
+      "properties": {
+        "node": {
           "type": "string"
+        },
+        "interfaces": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [
