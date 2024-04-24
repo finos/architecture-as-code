@@ -1,4 +1,4 @@
-import _ from 'lodash'
+import _ from 'lodash';
 
 /**
  * Recursively merge two schemas into a new object, without modifying either.
@@ -8,5 +8,5 @@ import _ from 'lodash'
  * @returns A new merged schema
  */
 export function mergeSchemas(s1: object, s2: object) {
-    return _.merge({}, s1, s2)
+    return _.merge({}, s1, s2);
 }

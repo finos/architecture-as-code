@@ -1,7 +1,9 @@
-import { initLogger } from "../../helper.js";
-import { SchemaDirectory } from "../schema-directory.js";
-import { mergeSchemas } from "../util.js";
-import { getPropertyValue } from "./property.js";
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+
+import { initLogger } from '../../helper.js';
+import { SchemaDirectory } from '../schema-directory.js';
+import { mergeSchemas } from '../util.js';
+import { getPropertyValue } from './property.js';
 
 /**
  * Instantiate an individual node from its definition, resolving $refs if appropriate. 
@@ -13,16 +15,16 @@ import { getPropertyValue } from "./property.js";
 export function instantiateNode(nodeDef: any, schemaDirectory: SchemaDirectory, debug: boolean = false): any {
     const logger = initLogger(debug);
     let fullDefinition = nodeDef;
-    if (!!nodeDef['$ref']) {
-        const ref = nodeDef['$ref']
-        const schemaDef = schemaDirectory.getDefinition(ref) 
+    if (nodeDef['$ref']) {
+        const ref = nodeDef['$ref'];
+        const schemaDef = schemaDirectory.getDefinition(ref); 
 
-        fullDefinition = mergeSchemas(schemaDef, nodeDef)
+        fullDefinition = mergeSchemas(schemaDef, nodeDef);
     }
-    logger.debug("Generating node from " + JSON.stringify(fullDefinition))
+    logger.debug('Generating node from ' + JSON.stringify(fullDefinition));
     
     if (!('properties' in fullDefinition)) {
-        return {}
+        return {};
     }
 
     const out = {};
@@ -73,17 +75,17 @@ export function instantiateNodes(pattern: any, schemaDirectory: SchemaDirectory,
 export function instantiateInterface(interfaceDef: object, schemaDirectory: SchemaDirectory, debug: boolean = false): object {
     const logger = initLogger(debug);
     let fullDefinition = interfaceDef;
-    if (!!interfaceDef['$ref']) {
-        const ref = interfaceDef['$ref']
-        const schemaDef = schemaDirectory.getDefinition(ref) 
+    if (interfaceDef['$ref']) {
+        const ref = interfaceDef['$ref'];
+        const schemaDef = schemaDirectory.getDefinition(ref); 
 
-        fullDefinition = mergeSchemas(schemaDef, interfaceDef)
+        fullDefinition = mergeSchemas(schemaDef, interfaceDef);
     }
 
-    logger.debug("Generating interface from " + JSON.stringify(fullDefinition, undefined, 2))
+    logger.debug('Generating interface from ' + JSON.stringify(fullDefinition, undefined, 2));
     
     if (!('properties' in fullDefinition)) {
-        return {}
+        return {};
     }
 
     const out = {};

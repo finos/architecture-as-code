@@ -1,3 +1,5 @@
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+
 export function getStringPlaceholder(name: string): string {
     return '{{ ' + name.toUpperCase().replaceAll('-', '_') + ' }}';
 }
@@ -27,6 +29,6 @@ export function getPropertyValue(keyName: string, detail: any): any {
     }
 
     if ('$ref' in detail) {
-        console.log("Not following $ref on property, implementation TODO")
+        console.log('Not following $ref on property, implementation TODO');
     }
 }

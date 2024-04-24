@@ -14,13 +14,13 @@ jest.mock('../../helper', () => {
     };
 });
 
-jest.mock('../schema-directory')
+jest.mock('../schema-directory');
 
 let mockSchemaDir;
 
 beforeEach(() => {
-    mockSchemaDir = new SchemaDirectory("directory");
-})
+    mockSchemaDir = new SchemaDirectory('directory');
+});
 
 function getSamplePatternRelationship(properties: any): any {
     return {
@@ -108,7 +108,7 @@ describe('instantiateRelationships', () => {
                     const: 'value here'
                 }
             }
-        })
+        });
 
         expect(instantiateRelationships(pattern, mockSchemaDir))
             .toEqual([
@@ -116,6 +116,6 @@ describe('instantiateRelationships', () => {
                     'property-name': 'value here'
                 }
             ]);
-        expect(spy).toHaveBeenCalledWith(reference)
+        expect(spy).toHaveBeenCalledWith(reference);
     });
 });

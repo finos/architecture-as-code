@@ -69,7 +69,7 @@ export function generate(patternPath: string, schemaDirectory: SchemaDirectory, 
 export async function runGenerate(patternPath: string, outputPath: string, schemaDirectoryPath: string, debug: boolean): Promise<void> {
     const schemaDirectory = new SchemaDirectory(schemaDirectoryPath);
 
-    if (!!schemaDirectoryPath) {
+    if (schemaDirectoryPath) {
         await schemaDirectory.loadSchemas();
     }
     

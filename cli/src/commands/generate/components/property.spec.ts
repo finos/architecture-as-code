@@ -1,6 +1,6 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 
-import { getPropertyValue } from "./property";
+import { getPropertyValue } from './property';
 
 jest.mock('../../helper', () => {
     return {

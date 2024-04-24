@@ -1,7 +1,9 @@
-import { initLogger } from "../../helper.js";
-import { SchemaDirectory } from "../schema-directory.js";
-import { mergeSchemas } from "../util.js";
-import { getPropertyValue } from "./property.js";
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+
+import { initLogger } from '../../helper.js';
+import { SchemaDirectory } from '../schema-directory.js';
+import { mergeSchemas } from '../util.js';
+import { getPropertyValue } from './property.js';
 
 
 /**
@@ -14,18 +16,18 @@ import { getPropertyValue } from "./property.js";
 function instantiateRelationship(relationshipDef: object, schemaDirectory: SchemaDirectory, debug: boolean = false): object {
     const logger = initLogger(debug);
     let fullDefinition = relationshipDef;
-    if (!!relationshipDef['$ref']) {
-        const ref = relationshipDef['$ref']
-        const schemaDef = schemaDirectory.getDefinition(ref)
+    if (relationshipDef['$ref']) {
+        const ref = relationshipDef['$ref'];
+        const schemaDef = schemaDirectory.getDefinition(ref);
 
-        fullDefinition = mergeSchemas(schemaDef, relationshipDef)
+        fullDefinition = mergeSchemas(schemaDef, relationshipDef);
     }
 
     if (!('properties' in fullDefinition)) {
-        return {}
+        return {};
     }
 
-    logger.debug("Generating interface from " + JSON.stringify(fullDefinition, undefined, 2))
+    logger.debug('Generating interface from ' + JSON.stringify(fullDefinition, undefined, 2));
 
     const out = {};
     for (const [key, detail] of Object.entries(fullDefinition['properties'])) {
@@ -43,7 +45,7 @@ function instantiateRelationship(relationshipDef: object, schemaDirectory: Schem
  * @returns An array of instantiated relationships.
  */
 export function instantiateRelationships(pattern: any, schemaDirectory: SchemaDirectory, debug: boolean = false): any {
-    const logger = initLogger(debug)
+    const logger = initLogger(debug);
     const relationships = pattern?.properties?.relationships?.prefixItems;
 
     if (!relationships) {

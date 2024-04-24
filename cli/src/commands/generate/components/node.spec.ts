@@ -1,7 +1,7 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 
-import { SchemaDirectory } from "../schema-directory";
-import { instantiateNodeInterfaces, instantiateNodes } from "./node";
+import { SchemaDirectory } from '../schema-directory';
+import { instantiateNodeInterfaces, instantiateNodes } from './node';
 
 jest.mock('../../helper', () => {
     return {
@@ -14,13 +14,13 @@ jest.mock('../../helper', () => {
     };
 });
 
-jest.mock('../schema-directory')
+jest.mock('../schema-directory');
 
 let mockSchemaDir;
 
 beforeEach(() => {
-    mockSchemaDir = new SchemaDirectory("directory");
-})
+    mockSchemaDir = new SchemaDirectory('directory');
+});
 
 function getSamplePatternNode(properties: any): any {
     return {
@@ -107,7 +107,7 @@ describe('instantiateNodes', () => {
                     const: 'value here'
                 }
             }
-        })
+        });
 
         expect(instantiateNodes(pattern, mockSchemaDir))
             .toEqual([
@@ -115,7 +115,7 @@ describe('instantiateNodes', () => {
                     'property-name': 'value here'
                 }
             ]);
-        expect(spy).toHaveBeenCalledWith(reference)
+        expect(spy).toHaveBeenCalledWith(reference);
     });
 
     it('return instantiated node with interface', () => {
@@ -246,7 +246,7 @@ describe('instantiateNodeInterfaces', () => {
                     const: 'value here'
                 }
             }
-        })
+        });
 
         expect(instantiateNodeInterfaces(pattern, mockSchemaDir))
             .toEqual([
@@ -254,6 +254,6 @@ describe('instantiateNodeInterfaces', () => {
                     'property-name': 'value here'
                 }
             ]);
-        expect(spy).toHaveBeenCalledWith(reference)
+        expect(spy).toHaveBeenCalledWith(reference);
     });
 });
