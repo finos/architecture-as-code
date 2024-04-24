@@ -134,7 +134,9 @@
                   },
                   "destination": {
                     "node": "api-gateway",
-                    "interface": "api-gateway-ingress"
+                    "interfaces": [
+                      "api-gateway-ingress"
+                    ]
                   }
                 }
               }
@@ -157,12 +159,12 @@
             "relationship-type": {
               "const": {
                 "connects": {
-                    "source": {
-                        "node": "api-gateway"
-                    },
-                    "destination": { 
-                        "node": "idp"
-                    }
+                  "source": {
+                    "node": "api-gateway"
+                  },
+                  "destination": {
+                    "node": "idp"
+                  }
                 }
               }
             },
@@ -185,7 +187,9 @@
                   },
                   "destination": {
                     "node": "api-producer",
-                    "interface": "producer-ingress"
+                    "interfaces": [
+                      "producer-ingress"
+                    ]
                   }
                 }
               }

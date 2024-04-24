@@ -80,11 +80,10 @@ rules:
     description: Referenced interfaces must be defined 
     severity: error 
     message: "{{error}}"
-    given: "$..relationship-type.const.connects.*" # both source and destination
+    given: "$..relationship-type.const.connects.*.interfaces[*]" # both source and destination
     then:
       # node uses the interface structure so has a sub object
-      - field: interface
-        function: interface-id-exists
+      function: interface-id-exists
 
   nodes-must-be-referenced:
     description: Nodes must be referenced by at least one relationship

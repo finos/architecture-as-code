@@ -48,7 +48,9 @@
         "connects": {
           "destination": {
             "node": "api-gateway",
-            "interface": "api-gateway-ingress"
+            "interfaces": [
+              "api-gateway-ingress"
+            ]
           },
           "source": {
             "node": "api-consumer"
@@ -75,7 +77,9 @@
         "connects": {
           "destination": {
             "node": "api-producer",
-            "interface": "producer-ingress"
+            "interfaces": [
+              "producer-ingress"
+            ]
           },
           "source": {
             "node": "api-gateway"
