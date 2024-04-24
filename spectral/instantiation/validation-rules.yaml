@@ -70,11 +70,9 @@ rules:
     description: Referenced interfaces must be defined 
     severity: error 
     message: "{{error}}"
-    given: "$.relationships[*].relationship-type.connects.*" # both source and destination
+    given: "$.relationships[*].relationship-type.connects.*.interfaces[*]" # both source and destination
     then:
-      # node uses the interface structure so has a sub object
-      - field: interface
-        function: interface-id-exists
+      function: interface-id-exists
   
   composition-relationships-reference-existing-nodes:
     description: All nodes in a composition relationship must reference existing nodes
