@@ -1,54 +1,53 @@
-import junitReportBuilder from 'junit-report-builder';
+import junitReportBuilder, { TestSuite } from 'junit-report-builder';
 import { ValidationOutput } from '../validation.output';
 
-export default function createJUnitReport(jsonSchemaValidationOutput: ValidationOutput[], runSpectralValidations: ValidationOutput[], location: string){
-    
-    const suite = junitReportBuilder
-        .testSuite()
-        .name('JSON Schema Validation');
+export default function createJUnitReport(
+    jsonSchemaValidationOutput: ValidationOutput[], 
+    spectralValidationOutput: ValidationOutput[], 
+    spectralRules: string[],
+    outputLocation: string
+){
+
+    const jsonSchemaSuite = createTestSuite('JSON Schema Validation');
     
     if (jsonSchemaValidationOutput.length <= 0) {
-
-        suite.testCase()
-            .name('JSON Schema Validation succeeded');
-
+        createTestCase(jsonSchemaSuite, 'JSON Schema Validation succeeded');
     } else {
-
         jsonSchemaValidationOutput.forEach(jsonSchemaError => {
-            suite.testCase()
+            jsonSchemaSuite.testCase()
                 .name(jsonSchemaError.message)
                 .failure();
         });
-        
     }
 
-    const spectralSuite = junitReportBuilder
-        .testSuite()
-        .name('Spectral Suite');
+    const spectralSuite = createTestSuite('Spectral Suite');
 
-    if (runSpectralValidations.length <= 0) {
-        
-        spectralSuite
-            .testCase()
-            .name('Spectral Validation');
-
+    if (spectralValidationOutput.length <= 0) {
+        spectralRules.forEach(ruleName => createTestCase(spectralSuite,ruleName));
     } else {
-        
-        runSpectralValidations.forEach(spectralIssue => {
-            if(spectralIssue.severity == 'error'){
+        spectralRules.forEach(ruleName => {
+            console.log(ruleName);
+            if (spectralValidationOutput.filter(item => (item.code === ruleName) && item.severity === 'error').length > 0) {
                 spectralSuite.testCase()
-                    .name(spectralIssue.message)
+                    .name(ruleName)
                     .failure();
-            }else{
-                spectralSuite.testCase()
-                    .name(spectralIssue.message);
+            } else {
+                createTestCase(spectralSuite, ruleName);
             }
         });
-
     }
 
-    junitReportBuilder.writeTo(location);
-
+    junitReportBuilder.writeTo(outputLocation);
 }
 
+function createTestSuite(testSuiteName: string){
+    return junitReportBuilder
+        .testSuite()
+        .name(testSuiteName);
+}
+
+function createTestCase(testSuite: TestSuite, testName: string){
+    testSuite.testCase()
+        .name(testName);
+}
 

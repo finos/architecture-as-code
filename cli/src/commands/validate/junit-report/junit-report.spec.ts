@@ -29,12 +29,14 @@ const spectralValidationOutput: ValidationOutput[] = [
     )
 ]; 
 
+const ruleset = [];
+
 describe('createJUnitReport', () => {
 
     it('should create a report with only JSON Schema Validations errors', async () => {
         const tmpDir = fs.mkdtempSync(path.join(os.tmpdir()));
         const jUnitReportLocation = tmpDir + '/test-report.xml';
-        createJUnitReport(jsonSchemaValidationOutput, [], jUnitReportLocation);
+        createJUnitReport(jsonSchemaValidationOutput, [], ruleset, jUnitReportLocation);
         expect(fs.existsSync(tmpDir + '/test-report.xml')).toBe(true);
         fs.rmSync(tmpDir, {recursive: true});
     });
@@ -42,7 +44,7 @@ describe('createJUnitReport', () => {
     it('should create a report with only Spectral issues', async () => {
         const tmpDir = fs.mkdtempSync(path.join(os.tmpdir()));
         const jUnitReportLocation = tmpDir + '/test-report.xml';
-        createJUnitReport([], spectralValidationOutput, jUnitReportLocation);
+        createJUnitReport([], spectralValidationOutput, ruleset, jUnitReportLocation);
         expect(fs.existsSync(tmpDir + '/test-report.xml')).toBe(true);
         fs.rmSync(tmpDir, {recursive: true});
     });
@@ -50,7 +52,7 @@ describe('createJUnitReport', () => {
     it('should create a report with Spectral issues and JSON Schema errors', async () => {
         const tmpDir = fs.mkdtempSync(path.join(os.tmpdir()));
         const jUnitReportLocation = tmpDir + '/test-report.xml';
-        createJUnitReport(jsonSchemaValidationOutput, spectralValidationOutput, jUnitReportLocation);
+        createJUnitReport(jsonSchemaValidationOutput, spectralValidationOutput, ruleset, jUnitReportLocation);
         expect(fs.existsSync(tmpDir + '/test-report.xml')).toBe(true);
         fs.rmSync(tmpDir, {recursive: true});
     });
@@ -58,7 +60,7 @@ describe('createJUnitReport', () => {
     it('should create a report with no Spectral issues and no JSON Schema errors', async () => {
         const tmpDir = fs.mkdtempSync(path.join(os.tmpdir()));
         const jUnitReportLocation = tmpDir + '/test-report.xml';
-        createJUnitReport([], [], jUnitReportLocation);
+        createJUnitReport([], [], ruleset, jUnitReportLocation);
         expect(fs.existsSync(tmpDir + '/test-report.xml')).toBe(true);
         fs.rmSync(tmpDir, {recursive: true});
     });

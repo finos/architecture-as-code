@@ -9,6 +9,7 @@ import { initLogger } from '../helper.js';
 import { ValidationOutput as ValidationOutput } from './validation.output.js';
 import { SpectralResult } from './spectral.result.js';
 import  createJUnitReport  from './junit-report/junit.report.js';
+import yaml from 'js-yaml';
 
 let logger: winston.Logger; // defined later at startup
 
@@ -29,7 +30,9 @@ export default async function validate(jsonSchemaInstantiationLocation: string, 
 
         const validateSchema = ajv.compile(jsonSchema);
 
-        const spectralResult: SpectralResult = await runSpectralValidations(jsonSchemaInstantiation, stripRefs(jsonSchema));
+        const spectralRuleset = '../spectral/instantiation/validation-rules.yaml';
+        const spectralResult: SpectralResult = await runSpectralValidations(jsonSchemaInstantiation, stripRefs(jsonSchema), spectralRuleset);
+
         errors = spectralResult.errors;
         validations = validations.concat(spectralResult.spectralIssues);
 
@@ -40,10 +43,12 @@ export default async function validate(jsonSchemaInstantiationLocation: string, 
             jsonSchemaValidations = formatJsonSchemaOutput(validateSchema.errors);
             validations = validations.concat(jsonSchemaValidations);
         }
-        logger.info(junitReportLocation);
+        
+        
         if(junitReportLocation) {
-            logger.debug("Generating test report file");
-            createJUnitReport(jsonSchemaValidations, spectralResult.spectralIssues, 'test-report.xml');
+            logger.debug('Generating test report file');
+            const spectralRules = extractRulesFromSpectralRuleset(spectralRuleset);
+            createJUnitReport(jsonSchemaValidations, spectralResult.spectralIssues, spectralRules, 'test-report.xml');
         }
 
         if(errors){
@@ -93,13 +98,13 @@ function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
     });
 }
 
-async function runSpectralValidations(jsonSchemaInstantiation: string, jsonSchema: string): Promise<SpectralResult> {
+async function runSpectralValidations(jsonSchemaInstantiation: string, jsonSchema: string, spectralRuleset: string): Promise<SpectralResult> {
     
     let errors = false;
     let spectralIssues: ValidationOutput[] = [];
     const spectral = new Spectral();
 
-    spectral.setRuleset(await getRuleset('../spectral/instantiation/validation-rules.yaml'));
+    spectral.setRuleset(await getRuleset(spectralRuleset));
     let issues = await spectral.run(jsonSchemaInstantiation);
     spectral.setRuleset(await getRuleset('../spectral/pattern/validation-rules.yaml'));
     issues = issues.concat(await spectral.run(jsonSchema));
@@ -186,6 +191,11 @@ async function loadFileFromUrl(fileUrl: string) {
     }
     const body = await res.json();
     return body;
+}
+
+function extractRulesFromSpectralRuleset(spectralRuleset: string){
+    const yamlData = yaml.load(readFileSync(spectralRuleset, 'utf-8'));
+    return Object.keys(yamlData['rules']);
 }
 
 function prettifyJson(json){

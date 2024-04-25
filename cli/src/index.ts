@@ -44,9 +44,8 @@ program
     .option('-m, --metaSchemasLocation <metaSchemaLocation>', 'The location of the directory of the meta schemas to be loaded', '../calm/draft/2024-03/meta')
     .option('-tr, --test-report <testReport>', 'Path location at which to output the generated test report.')
     .option('-v, --verbose', 'Enable verbose logging.', false)
-    .action(async (options)=>{
-        console.log(options)
-        await validate(options.instantiation, options.pattern, options.metaSchemasLocation, options.verbose, options.testReport)
-    } );
+    .action(async (options) =>
+        await validate(options.instantiation, options.pattern, options.metaSchemasLocation, options.verbose, options.testReport) 
+    );
 
 program.parse(process.argv);
