@@ -8,10 +8,11 @@ import * as winston from 'winston';
 import { initLogger } from '../helper.js';
 import { ValidationOutput as ValidationOutput } from './validation.output.js';
 import { SpectralResult } from './spectral.result.js';
+import  createJUnitReport  from './junit-report/junit.report.js';
 
 let logger: winston.Logger; // defined later at startup
 
-export default async function validate(jsonSchemaInstantiationLocation: string, jsonSchemaLocation: string, metaSchemaPath: string, debug: boolean = false) {
+export default async function validate(jsonSchemaInstantiationLocation: string, jsonSchemaLocation: string, metaSchemaPath: string, debug: boolean = false, junitReportLocation?: string) {
     logger = initLogger(debug);
     let errors = false;
     let validations: ValidationOutput[] = [];
@@ -32,11 +33,18 @@ export default async function validate(jsonSchemaInstantiationLocation: string, 
         errors = spectralResult.errors;
         validations = validations.concat(spectralResult.spectralIssues);
 
+        let jsonSchemaValidations = [];
         if (!validateSchema(jsonSchemaInstantiation)) {
             logger.debug(`JSON Schema validation raw output: ${prettifyJson(validateSchema.errors)}`);
             errors = true;
-            validations = validations.concat(formatJsonSchemaOutput(validateSchema.errors));
-        } 
+            jsonSchemaValidations = formatJsonSchemaOutput(validateSchema.errors);
+            validations = validations.concat(jsonSchemaValidations);
+        }
+        logger.info(junitReportLocation);
+        if(junitReportLocation) {
+            logger.debug("Generating test report file");
+            createJUnitReport(jsonSchemaValidations, spectralResult.spectralIssues, 'test-report.xml');
+        }
 
         if(errors){
             logger.error(`The following issues have been found on the JSON Schema instantiation ${prettifyJson(validations)}`);
