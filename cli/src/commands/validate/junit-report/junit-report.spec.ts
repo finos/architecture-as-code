@@ -51,7 +51,7 @@ describe('createJUnitReport', () => {
         const expected = `<?xml version="1.0" encoding="UTF-8"?>
         <testsuites tests="5" failures="1" errors="0" skipped="0">
           <testsuite name="JSON Schema Validation" tests="1" failures="1" errors="0" skipped="0">
-            <testcase name="must be integer">
+            <testcase name="must be integer at #/node">
               <failure/>
             </testcase>
           </testsuite>
@@ -100,7 +100,7 @@ describe('createJUnitReport', () => {
         const expected = `<?xml version="1.0" encoding="UTF-8"?>
         <testsuites tests="5" failures="2" errors="0" skipped="0">
           <testsuite name="JSON Schema Validation" tests="1" failures="1" errors="0" skipped="0">
-            <testcase name="must be integer">
+            <testcase name="must be integer at #/node">
               <failure/>
             </testcase>
           </testsuite>

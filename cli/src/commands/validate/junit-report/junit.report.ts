@@ -16,7 +16,7 @@ export default function createJUnitReport(
     } else {
         jsonSchemaValidationOutput.forEach(jsonSchemaError => {
             jsonSchemaSuite.testCase()
-                .name(jsonSchemaError.message)
+                .name(`${jsonSchemaError.message} at ${jsonSchemaError.schemaPath}`)
                 .failure();
         });
     }

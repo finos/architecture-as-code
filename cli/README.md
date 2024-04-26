@@ -78,6 +78,7 @@ Options:
   -p, --pattern <pattern>                         Path to the pattern file to use. May be a file path or a URL.
   -i, --instantiation <instantiation>             Path to the pattern instantiation file to use. May be a file path or a URL.
   -m, --metaSchemasLocation <metaSchemaLocation>  The location of the directory of the meta schemas to be loaded (default: "../calm/draft/2024-03/meta")
+  -tr, --test-report <testReport>                 Path location at which to output the generated test report.
   -v, --verbose                                   Enable verbose logging. (default: false)
   -h, --help                                      display help for command
 
