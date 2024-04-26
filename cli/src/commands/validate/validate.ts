@@ -92,7 +92,7 @@ async function runSpectralValidations(jsonSchemaInstantiation: string, jsonSchem
     const spectral = new Spectral();
 
     spectral.setRuleset(await getRuleset('../spectral/instantiation/validation-rules.yaml'));
-    var issues = await spectral.run(jsonSchemaInstantiation);
+    let issues = await spectral.run(jsonSchemaInstantiation);
     spectral.setRuleset(await getRuleset('../spectral/pattern/validation-rules.yaml'));
     issues = issues.concat(await spectral.run(jsonSchema));
 
@@ -185,7 +185,7 @@ function prettifyJson(json){
 }
 
 function stripRefs(obj: object) : string {
-    return JSON.stringify(obj).replaceAll("$ref", "ref");
+    return JSON.stringify(obj).replaceAll('$ref', 'ref');
 }
 
 export const exportedForTesting = {

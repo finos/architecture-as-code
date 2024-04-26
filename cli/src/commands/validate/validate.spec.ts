@@ -343,7 +343,7 @@ describe('stripRefs', () => {
     const expectedString = '{"ref":123,"abc":{"ref":321}}';
 
     expect(exportedForTesting.stripRefs(objectWithRefs))
-    .toBe(expectedString);
+        .toBe(expectedString);
 });
 
 
