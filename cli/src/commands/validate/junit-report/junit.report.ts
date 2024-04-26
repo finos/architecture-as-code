@@ -7,8 +7,9 @@ export default function createJUnitReport(
     spectralRules: string[],
     outputLocation: string
 ){
+    const builder = junitReportBuilder.newBuilder();
 
-    const jsonSchemaSuite = createTestSuite('JSON Schema Validation');
+    const jsonSchemaSuite = createTestSuite(builder, 'JSON Schema Validation');
     
     if (jsonSchemaValidationOutput.length <= 0) {
         createTestCase(jsonSchemaSuite, 'JSON Schema Validation succeeded');
@@ -20,13 +21,12 @@ export default function createJUnitReport(
         });
     }
 
-    const spectralSuite = createTestSuite('Spectral Suite');
+    const spectralSuite = createTestSuite(builder, 'Spectral Suite');
 
     if (spectralValidationOutput.length <= 0) {
         spectralRules.forEach(ruleName => createTestCase(spectralSuite,ruleName));
     } else {
         spectralRules.forEach(ruleName => {
-            console.log(ruleName);
             if (spectralValidationOutput.filter(item => (item.code === ruleName) && item.severity === 'error').length > 0) {
                 spectralSuite.testCase()
                     .name(ruleName)
@@ -37,11 +37,11 @@ export default function createJUnitReport(
         });
     }
 
-    junitReportBuilder.writeTo(outputLocation);
+    builder.writeTo(outputLocation);
 }
 
-function createTestSuite(testSuiteName: string){
-    return junitReportBuilder
+function createTestSuite(builder, testSuiteName: string){
+    return builder
         .testSuite()
         .name(testSuiteName);
 }
