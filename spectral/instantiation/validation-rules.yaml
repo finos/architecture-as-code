@@ -5,7 +5,7 @@ functions:
   - numerical-placeholder
 
 rules:
-  has-nodes-relationships:
+  instantiation-has-nodes-relationships:
     description: Has top level nodes and relationships
     message: Should have nodes and relationships as top level properties on the CALM document
     severity: error
@@ -16,7 +16,7 @@ rules:
       - field: relationships
         function: truthy
   
-  no-empty-properties:
+  no-empty-properties-instantiation:
     description: Must not contain string properties set to the empty string or numerical properties set to zero
     message: All properties must be set to a nonempty, nonzero value.
     severity: error
@@ -25,7 +25,7 @@ rules:
       function: truthy
 
   
-  no-placeholder-properties-numerical:
+  no-placeholder-properties-numerical-in-instantiation:
     description: Should not contain numerical placeholder properties set to -1
     message: Numerical placeholder (-1) detected in instantiated pattern.
     severity: warn
@@ -34,7 +34,7 @@ rules:
       function: numerical-placeholder
       
   
-  no-placeholder-properties-string:
+  no-placeholder-properties-string-in-instantiation:
     description: Should not contain placeholder values with pattern {{ PLACEHOLDER_NAME }}
     message: String placeholder detected in instantiated pattern.
     severity: warn
@@ -44,7 +44,7 @@ rules:
       functionOptions:
         notMatch: "^{{\\s*[A-Z_]+\\s*}}$"
 
-  relationship-references-existing-nodes:
+  relationship-references-existing-nodes-in-instantiation:
     description: Relationships must reference existing nodes
     severity: error 
     message: "{{error}}"
@@ -56,7 +56,7 @@ rules:
       - field: container 
         function: node-id-exists
 
-  connects-relationship-references-existing-nodes:
+  connects-relationship-references-existing-nodes-in-instantiation:
     description: Connects relationships must reference existing nodes
     severity: error 
     message: "{{error}}"
@@ -66,7 +66,7 @@ rules:
       - field: node
         function: node-id-exists
 
-  referenced-interfaces-defined:
+  referenced-interfaces-defined-in-instantiation:
     description: Referenced interfaces must be defined 
     severity: error 
     message: "{{error}}"
@@ -74,7 +74,7 @@ rules:
     then:
       function: interface-id-exists
   
-  composition-relationships-reference-existing-nodes:
+  composition-relationships-reference-existing-nodes-in-instantiation:
     description: All nodes in a composition relationship must reference existing nodes
     severity: error 
     message: "{{error}}"
@@ -82,7 +82,7 @@ rules:
     then:
       function: node-id-exists
 
-  nodes-must-be-referenced:
+  instantiation-nodes-must-be-referenced:
     description: Nodes must be referenced by at least one relationship.
     severity: warn
     message: "{{error}}"
