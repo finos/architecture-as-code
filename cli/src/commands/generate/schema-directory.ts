@@ -64,7 +64,7 @@ export class SchemaDirectory {
         if (!definition) {
             // schema not defined
             // TODO enforce this once we can guarantee we always have schemas available
-            return {};
+            return this.getMissingSchemaPlaceholder(definitionReference);
         }
         if (!definition['$ref']) {
             this.logger.debug('Reached a definition with no ref, terminating recursive lookup.');
@@ -72,11 +72,19 @@ export class SchemaDirectory {
         }
         const newRef: string = definition['$ref'];
         if (visitedDefinitions.includes(newRef)) {
-            this.logger.warning('Circular reference detected. Terminating reference lookup. Visited definitions: ' + visitedDefinitions);
+            this.logger.warn('Circular reference detected. Terminating reference lookup. Visited definitions: ' + visitedDefinitions);
             return definition;
         }
         const innerDef = this.getDefinitionRecursive(newRef, newSchemaId, visitedDefinitions);
         return mergeSchemas(innerDef, definition);
+    }
+
+    private getMissingSchemaPlaceholder(reference: string): object {
+        return {
+            properties: {
+                'missing-value': `MISSING OBJECT, ref: ${reference} could not be resolved`
+            }
+        };
     }
 
     /**
@@ -123,7 +131,7 @@ export class SchemaDirectory {
         }
 
         if (!parsed['$schema']) {
-            this.logger.warn('Warning, loaded schema does not have $schema set and therefore may be invalid. Path: ', schemaPath)
+            this.logger.warn('Warning, loaded schema does not have $schema set and therefore may be invalid. Path: ', schemaPath);
         }
 
         this.logger.debug('Loaded schema with $id: ' + schemaId);

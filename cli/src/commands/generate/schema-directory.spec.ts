@@ -6,7 +6,7 @@ jest.mock('../helper', () => {
             return {
                 info: () => {},
                 debug: () => {},
-                warning: () => {},
+                warn: () => {},
                 error: () => {}
             };
         }
@@ -45,6 +45,17 @@ describe('SchemaDirectory', () => {
         expect(interfaceDef.properties).toHaveProperty('unique-id');
     });
 
+    it('resolve to warning message if schema is missing', async () => {
+        const schemaDir = new SchemaDirectory('../calm/draft/2024-04');
+        
+        const interfaceRef = 'https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/host-port-interface';
+        const interfaceDef = schemaDir.getDefinition(interfaceRef);
+
+        // this should include host and port, but also recursively include unique-id
+        expect(interfaceDef.properties).toHaveProperty('missing-value');
+        expect(interfaceDef.properties['missing-value']).toEqual('MISSING OBJECT, ref: ' + interfaceRef + ' could not be resolved');
+    });
+
     it('terminate early in the case of a circular reference', async () => {
         const schemaDir = new SchemaDirectory('test_fixtures/recursive_refs');
         
@@ -52,7 +63,7 @@ describe('SchemaDirectory', () => {
         const interfaceRef = 'https://calm.com/recursive.json#/$defs/top-level';
         const interfaceDef = schemaDir.getDefinition(interfaceRef);
 
-        // this should include host and port, but also recursively include unique-id
+        // this should include top-level and port. If circular refs are not handled properly this will crash the whole test by stack overflow
         expect(interfaceDef.properties).toHaveProperty('top-level');
         expect(interfaceDef.properties).toHaveProperty('prop');
     });

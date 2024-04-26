@@ -62,10 +62,11 @@ Usage: calm generate [options]
 Generate an instantiation from a CALM pattern file.
 
 Options:
-  -p, --pattern <source>  Path to the pattern file to use. May be a file path or a URL.
-  -o, --output <output>   Path location at which to output the generated file.
-  -v, --verbose           Enable verbose logging. (default: false)
-  -h, --help              display help for command
+  -p, --pattern <source>        Path to the pattern file to use. May be a file path or a URL.
+  -o, --output <output>         Path location at which to output the generated file.
+  -s, --schemaDirectory <path>  Path to a directory of schemas to be used when instantiating patterns.
+  -v, --verbose                 Enable verbose logging. (default: false)
+  -h, --help                    display help for command
 ```
 
 ### Validating a CALM instantiation
