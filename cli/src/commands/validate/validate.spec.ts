@@ -159,6 +159,21 @@ describe('validate', () => {
         fetchMock.restore();
     });
 
+    it('exits with error when the pattern does not pass all the spectral validations', async () => {
+
+        const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-with-no-relationships.json'), 'utf8');
+        fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+
+        const apiGatewayInstantiation = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8');
+        fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayInstantiation);
+
+        await expect(validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
+            .rejects
+            .toThrow();
+
+        fetchMock.restore();
+    });
+
     it('exits with error when the meta schema location is not a directory', async () => {
         await expect(validate('https://url/with/non/json/response', 'http://exist/api-gateway.json', 'test_fixtures/api-gateway.json', debugDisabled))
             .rejects
@@ -321,6 +336,14 @@ describe('formatJsonSchemaOutput', () => {
         expect(actual).toStrictEqual(expected);
     });
 
+});
+
+describe('stripRefs', () => {
+    const objectWithRefs = JSON.parse('{"$ref":123,"abc":{"$ref":321}}');
+    const expectedString = '{"ref":123,"abc":{"ref":321}}';
+
+    expect(exportedForTesting.stripRefs(objectWithRefs))
+    .toBe(expectedString);
 });
 
 

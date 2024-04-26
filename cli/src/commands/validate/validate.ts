@@ -28,7 +28,7 @@ export default async function validate(jsonSchemaInstantiationLocation: string, 
 
         const validateSchema = ajv.compile(jsonSchema);
 
-        const spectralResult: SpectralResult = await runSpectralValidations(jsonSchemaInstantiation);
+        const spectralResult: SpectralResult = await runSpectralValidations(jsonSchemaInstantiation, stripRefs(jsonSchema));
         errors = spectralResult.errors;
         validations = validations.concat(spectralResult.spectralIssues);
 
@@ -85,14 +85,16 @@ function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
     });
 }
 
-async function runSpectralValidations(jsonSchemaInstantiation: string): Promise<SpectralResult> {
+async function runSpectralValidations(jsonSchemaInstantiation: string, jsonSchema: string): Promise<SpectralResult> {
     
     let errors = false;
     let spectralIssues: ValidationOutput[] = [];
     const spectral = new Spectral();
 
     spectral.setRuleset(await getRuleset('../spectral/instantiation/validation-rules.yaml'));
-    const issues = await spectral.run(jsonSchemaInstantiation);
+    var issues = await spectral.run(jsonSchemaInstantiation);
+    spectral.setRuleset(await getRuleset('../spectral/pattern/validation-rules.yaml'));
+    issues = issues.concat(await spectral.run(jsonSchema));
 
     if (issues && issues.length > 0) {
         logger.debug(`Spectral raw output: ${prettifyJson(issues)}`);
@@ -182,8 +184,12 @@ function prettifyJson(json){
     return JSON.stringify(json, null, 4);
 }
 
+function stripRefs(obj: object) : string {
+    return JSON.stringify(obj).replaceAll("$ref", "ref");
+}
 
 export const exportedForTesting = {
     formatSpectralOutput,
-    formatJsonSchemaOutput
+    formatJsonSchemaOutput,
+    stripRefs
 };
