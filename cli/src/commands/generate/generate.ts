@@ -7,6 +7,9 @@ import { mkdirp } from 'mkdirp';
 import * as winston from 'winston';
 import { initLogger } from '../helper.js';
 import { CALMInstantiation } from '../../types.js';
+import { SchemaDirectory } from './schema-directory.js';
+import { instantiateNode, instantiateNodes } from './components/node.js';
+import { instantiateRelationships } from './components/relationship.js';
 
 let logger: winston.Logger; // defined later at startup
 
@@ -22,120 +25,7 @@ function loadFile(path: string): any {
 }
 
 
-function getStringPlaceholder(name: string): string {
-    return '{{ ' + name.toUpperCase().replaceAll('-', '_') + ' }}';
-}
-
-function getPropertyValue(keyName: string, detail: any): any {
-    if ('const' in detail) {
-        return detail['const'];
-    }
-
-    if ('type' in detail) {
-        const propertyType = detail['type'];
-
-        if (propertyType === 'string') {
-            return getStringPlaceholder(keyName);
-        }
-        if (propertyType === 'integer') {
-            return -1;
-        }
-        if (propertyType === 'array') {
-            return [
-                getStringPlaceholder(keyName)
-            ];
-        }
-    }
-}
-
-function instantiateNodeInterfaces(detail: any): any[] {
-    const interfaces = [];
-    if (!('prefixItems' in detail)) {
-        logger.error('No items in interfaces block.');
-        return [];
-    }
-
-    const interfaceDefs = detail.prefixItems;
-    for (const interfaceDef of interfaceDefs) {
-        if (!('properties' in interfaceDef)) {
-            continue;
-        }
-
-        const out = {};
-        for (const [key, detail] of Object.entries(interfaceDef['properties'])) {
-            out[key] = getPropertyValue(key, detail);
-        }
-
-        interfaces.push(out);
-    }
-
-    return interfaces;
-}
-
-function instantiateNode(node: any): any {
-    const out = {};
-    for (const [key, detail] of Object.entries(node['properties'])) {
-        if (key === 'interfaces') {
-            const interfaces = instantiateNodeInterfaces(detail);
-            out['interfaces'] = interfaces;
-        }
-        else {
-            out[key] = getPropertyValue(key, detail);
-        }
-    }
-    return out;
-}
-
-function instantiateNodes(pattern: any): any {
-    const nodes = pattern?.properties?.nodes?.prefixItems;
-    if (!nodes) {
-        logger.error('Warning: pattern has no nodes defined.');
-        if (pattern?.properties?.nodes?.items) {
-            logger.warn('Note: properties.relationships.items is deprecated: please use prefixItems instead.');
-        }
-        return [];
-    }
-    const outputNodes = [];
-
-    for (const node of nodes) {
-        if (!('properties' in node)) {
-            continue;
-        }
-
-        outputNodes.push(instantiateNode(node));
-    }
-    return outputNodes;
-}
-
-function instantiateRelationships(pattern: any): any {
-    const relationships = pattern?.properties?.relationships?.prefixItems;
-
-    if (!relationships) {
-        logger.error('Warning: pattern has no relationships defined');
-        if (pattern?.properties?.relationships?.items) {
-            logger.warn('Note: properties.relationships.items is deprecated: please use prefixItems instead.');
-        }
-        return [];
-    }
-
-    const outputRelationships = [];
-    for (const relationship of relationships) {
-        if (!('properties' in relationship)) {
-            continue;
-        }
-
-        const out = {};
-        for (const [key, detail] of Object.entries(relationship['properties'])) {
-            out[key] = getPropertyValue(key, detail);
-        }
-
-        outputRelationships.push(out);
-    }
-
-    return outputRelationships;
-}
-
-function instantiateAdditionalTopLevelProperties(pattern: any): any {
+function instantiateAdditionalTopLevelProperties(pattern: any, schemaDirectory: SchemaDirectory): any {
     const properties = pattern?.properties;
     if (!properties) {
         logger.error('Warning: pattern has no properties defined.');
@@ -149,27 +39,23 @@ function instantiateAdditionalTopLevelProperties(pattern: any): any {
             continue;
         }
 
-        // TODO
-        extraProperties[additionalProperty] = instantiateNode(detail);
+        // TODO handle generic top level properties, not just nodes
+        extraProperties[additionalProperty] = instantiateNode(detail, schemaDirectory);
     }
 
     return extraProperties;
 }
 
 export const exportedForTesting = {
-    getPropertyValue,
-    instantiateNodes,
-    instantiateRelationships,
-    instantiateNodeInterfaces,
     instantiateAdditionalTopLevelProperties
 };
 
-export function generate(patternPath: string, debug: boolean): CALMInstantiation {
+export function generate(patternPath: string, schemaDirectory: SchemaDirectory, debug: boolean): CALMInstantiation {
     logger = initLogger(debug);
     const pattern = loadFile(patternPath);
-    const outputNodes = instantiateNodes(pattern);
-    const relationshipNodes = instantiateRelationships(pattern);
-    const additionalProperties = instantiateAdditionalTopLevelProperties(pattern);
+    const outputNodes = instantiateNodes(pattern, schemaDirectory, debug);
+    const relationshipNodes = instantiateRelationships(pattern, schemaDirectory, debug);
+    const additionalProperties = instantiateAdditionalTopLevelProperties(pattern, schemaDirectory);
 
     const final = {
         'nodes': outputNodes,
@@ -180,8 +66,14 @@ export function generate(patternPath: string, debug: boolean): CALMInstantiation
     return final;
 }
 
-export function runGenerate(patternPath: string, outputPath: string, debug: boolean): void {
-    const final = generate(patternPath, debug);
+export async function runGenerate(patternPath: string, outputPath: string, schemaDirectoryPath: string, debug: boolean): Promise<void> {
+    const schemaDirectory = new SchemaDirectory(schemaDirectoryPath);
+
+    if (schemaDirectoryPath) {
+        await schemaDirectory.loadSchemas();
+    }
+    
+    const final = generate(patternPath, schemaDirectory, debug);
 
     const output = JSON.stringify(final, null, 2);
     logger.debug('Generated instantiation: ' + output);
