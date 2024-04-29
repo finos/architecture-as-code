@@ -229,7 +229,6 @@ describe('validate', () => {
 
         const tmpDir = mkdtempSync(path.join(os.tmpdir()));
         const testReportLocation = tmpDir + '/test-report.xml';
-        console.log(testReportLocation);
         await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, testReportLocation);
 
         expect(existsSync(testReportLocation)).toBe(true); //check that the test report exists
