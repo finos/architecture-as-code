@@ -228,7 +228,7 @@ describe('validate', () => {
         fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayInstantiation);
 
         const tmpDir = mkdtempSync(path.join(os.tmpdir()));
-        const testReportLocation = tmpDir + '/test-report.xml';
+        const testReportLocation = path.join(tmpDir,  'test-report.xml');
         await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, testReportLocation);
 
         expect(existsSync(testReportLocation)).toBe(true); //check that the test report exists

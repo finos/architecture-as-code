@@ -38,7 +38,7 @@ describe('createJUnitReport', () => {
 
     beforeEach(() => {
         tmpDir = fs.mkdtempSync(path.join(os.tmpdir()));
-        jUnitReportLocation = tmpDir + '/test-report.xml';
+        jUnitReportLocation = path.join(tmpDir, 'test-report.xml');
     });
 
     it('should create a report with only JSON Schema Validations errors', async () => {
