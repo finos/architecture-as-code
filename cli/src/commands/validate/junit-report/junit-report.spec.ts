@@ -29,7 +29,7 @@ const spectralValidationOutput: ValidationOutput[] = [
     )
 ]; 
 
-const ruleset = ["rules-number-1", 'rule-number-2', 'no-placeholder-properties-numerical', 'no-empty-properties'];
+const ruleset = ['rules-number-1', 'rule-number-2', 'no-placeholder-properties-numerical', 'no-empty-properties'];
 
 
 describe('createJUnitReport', () => {
@@ -63,7 +63,7 @@ describe('createJUnitReport', () => {
           </testsuite>
         </testsuites>`;
 
-        expect(actual.replace(/\s/g, '')).toBe(expected.replace(/\s/g, ''))
+        expect(actual.replace(/\s/g, '')).toBe(expected.replace(/\s/g, ''));
     });
 
     it('should create a report with only Spectral issues', async () => {

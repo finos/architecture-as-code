@@ -200,7 +200,7 @@ async function loadFileFromUrl(fileUrl: string) {
 
 function extractRulesFromSpectralRulesets(spectralRulesetForInstantiation: string, spectralRulesetForPattern: string): string[]{
     return getRulesFromRulesetFile(spectralRulesetForInstantiation)
-            .concat(getRulesFromRulesetFile(spectralRulesetForPattern));
+        .concat(getRulesFromRulesetFile(spectralRulesetForPattern));
 }
 
 function getRulesFromRulesetFile(rulesetFile: string){
