@@ -12,7 +12,7 @@ import { initLogger } from '../helper.js';
  * Can merge objects recursively and will handle circular references.
  */
 export class SchemaDirectory {
-    private readonly schemas: Map<string, any> = new Map<string, any>();
+    private readonly schemas: Map<string, object> = new Map<string, object>();
     private readonly logger: Logger;
 
     /**
@@ -79,7 +79,7 @@ export class SchemaDirectory {
         return mergeSchemas(innerDef, definition);
     }
 
-    private getMissingSchemaPlaceholder(reference: string): object {
+    private getMissingSchemaPlaceholder(reference: string) {
         return {
             properties: {
                 'missing-value': `MISSING OBJECT, ref: ${reference} could not be resolved`
