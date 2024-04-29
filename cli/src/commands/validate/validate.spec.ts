@@ -1,10 +1,11 @@
 import fetchMock from 'fetch-mock';
 import validate, { exportedForTesting } from './validate';
-import { readFileSync } from 'fs';
+import { readFileSync, mkdtempSync, existsSync, rmSync } from 'fs';
 import path from 'path';
 import { ISpectralDiagnostic } from '@stoplight/spectral-core';
 import { ValidationOutput } from './validation.output';
 import { ErrorObject } from 'ajv';
+import os from 'os';
 
 const mockRunFunction = jest.fn();
 
@@ -182,6 +183,14 @@ describe('validate', () => {
         expect(mockExit).toHaveBeenCalledWith(1);
     });
 
+    it('exits with error when the test report output location is not an xml file', async () => {
+        await expect(validate('test_fixtures/api-gateway-implementation.json', 'test_fixtures/api-gateway.json', metaSchemaLocation, debugDisabled, 'not-xml.json'))
+            .rejects
+            .toThrow();
+
+        expect(mockExit).toHaveBeenCalledWith(1);
+    });
+
     it('complete successfully when the pattern instantiation validates against the pattern json schema', async () => {
         const mockExit = jest.spyOn(process, 'exit')
             .mockImplementation((code) => {
@@ -201,6 +210,36 @@ describe('validate', () => {
 
         expect(mockExit).toHaveBeenCalledWith(0);
         fetchMock.restore();
+    });
+
+    it('complete successfully when the pattern instantiation validates against the pattern json schema and the test report is created', async () => {
+        const mockExit = jest.spyOn(process, 'exit')
+            .mockImplementation((code) => {
+                if (code != 0) {
+                    throw new Error();
+                }
+                return undefined as never;
+            });
+
+        const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
+        fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+
+        const apiGatewayInstantiation = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8');
+        fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayInstantiation);
+
+        const tmpDir = mkdtempSync(path.join(os.tmpdir()));
+        const testReportLocation = tmpDir + '/test-report.xml';
+        console.log(testReportLocation);
+        await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, testReportLocation);
+
+        expect(existsSync(testReportLocation)).toBe(true); //check that the test report exists
+
+        rmSync(tmpDir, {recursive: true}); //delete folder with the test report
+
+        expect(mockExit).toHaveBeenCalledWith(0);
+        fetchMock.restore();
+
+
     });
 
 });

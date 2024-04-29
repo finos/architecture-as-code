@@ -46,9 +46,12 @@ export default async function validate(jsonSchemaInstantiationLocation: string, 
         }
         
         if(junitReportLocation) {
+            if (!junitReportLocation.endsWith('.xml')){
+                throw new Error('The test report location must be an xml file');
+            }
             logger.debug('Generating test report file');
             const spectralRules = extractRulesFromSpectralRulesets(spectralRulesetForInstantiation, spectralRulesetForPattern);
-            createJUnitReport(jsonSchemaValidations, spectralResult.spectralIssues, spectralRules, 'test-report.xml');
+            createJUnitReport(jsonSchemaValidations, spectralResult.spectralIssues, spectralRules, junitReportLocation);
         }
 
         if(errors){
