@@ -37,7 +37,7 @@ describe('createJUnitReport', () => {
     let tmpDir: string;
 
     beforeEach(() => {
-        tmpDir = fs.mkdtempSync(path.join(os.tmpdir()));
+        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'report'));
         jUnitReportLocation = path.join(tmpDir, 'test-report.xml');
     });
 

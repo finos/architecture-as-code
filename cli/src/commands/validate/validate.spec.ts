@@ -227,7 +227,7 @@ describe('validate', () => {
         const apiGatewayInstantiation = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8');
         fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayInstantiation);
 
-        const tmpDir = mkdtempSync(path.join(os.tmpdir()));
+        const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'report'));
         const testReportLocation = path.join(tmpDir,  'test-report.xml');
         await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, testReportLocation);
 
