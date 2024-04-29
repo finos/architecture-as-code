@@ -16,7 +16,7 @@ rules:
       - field: relationships
         function: truthy
   
-  no-empty-properties-instantiation:
+  instantiation-has-no-empty-properties:
     description: Must not contain string properties set to the empty string or numerical properties set to zero
     message: All properties must be set to a nonempty, nonzero value.
     severity: error
@@ -25,7 +25,7 @@ rules:
       function: truthy
 
   
-  no-placeholder-properties-numerical-in-instantiation:
+  instantiation-has-no-placeholder-properties-numerical:
     description: Should not contain numerical placeholder properties set to -1
     message: Numerical placeholder (-1) detected in instantiated pattern.
     severity: warn
@@ -34,7 +34,7 @@ rules:
       function: numerical-placeholder
       
   
-  no-placeholder-properties-string-in-instantiation:
+  instantiation-has-no-placeholder-properties-string:
     description: Should not contain placeholder values with pattern {{ PLACEHOLDER_NAME }}
     message: String placeholder detected in instantiated pattern.
     severity: warn
