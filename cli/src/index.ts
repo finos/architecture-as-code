@@ -42,10 +42,15 @@ program
     .requiredOption('-p, --pattern <pattern>', 'Path to the pattern file to use. May be a file path or a URL.')
     .requiredOption('-i, --instantiation <instantiation>', 'Path to the pattern instantiation file to use. May be a file path or a URL.')
     .option('-m, --metaSchemasLocation <metaSchemaLocation>', 'The location of the directory of the meta schemas to be loaded', '../calm/draft/2024-03/meta')
-    .option('-tr, --test-report <testReport>', 'Path location at which to output the generated test report.')
+    .addOption(
+        new Option('-f, --format <format>', 'The format of the output')
+            .choices(['json', 'junit'])
+            .default('json')
+    )
+    .option('-o, --output <output>', 'Path location at which to output the generated file.')
     .option('-v, --verbose', 'Enable verbose logging.', false)
     .action(async (options) =>
-        await validate(options.instantiation, options.pattern, options.metaSchemasLocation, options.verbose, options.testReport) 
+        await validate(options.instantiation, options.pattern, options.metaSchemasLocation, options.verbose, options.format, options.output) 
     );
 
 program.parse(process.argv);

@@ -1,8 +1,5 @@
 import { ValidationOutput } from '../validation.output';
 import createJUnitReport from './junit.report';
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
 
 const jsonSchemaValidationOutput: ValidationOutput[] = [
     new ValidationOutput(
@@ -33,20 +30,8 @@ const ruleset = ['rules-number-1', 'rule-number-2', 'no-placeholder-properties-n
 
 
 describe('createJUnitReport', () => {
-    let jUnitReportLocation: string;
-    let tmpDir: string;
-
-    beforeEach(() => {
-        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'report'));
-        jUnitReportLocation = path.join(tmpDir, 'test-report.xml');
-    });
-
     it('should create a report with only JSON Schema Validations errors', async () => {
-        createJUnitReport(jsonSchemaValidationOutput, [], ruleset, jUnitReportLocation);
-        
-        expect(fs.existsSync(jUnitReportLocation)).toBe(true); //check if the file was created in the correct location
-        
-        const actual = fs.readFileSync(jUnitReportLocation, 'utf-8');
+        const actual = createJUnitReport(jsonSchemaValidationOutput, [], ruleset);
 
         const expected = `<?xml version="1.0" encoding="UTF-8"?>
         <testsuites tests="5" failures="1" errors="0" skipped="0">
@@ -67,11 +52,8 @@ describe('createJUnitReport', () => {
     });
 
     it('should create a report with only Spectral issues', async () => {
-        createJUnitReport([], spectralValidationOutput, ruleset, jUnitReportLocation);
+        const actual = createJUnitReport([], spectralValidationOutput, ruleset);
 
-        expect(fs.existsSync(jUnitReportLocation)).toBe(true); //check if the file was created in the correct location
-
-        const actual = fs.readFileSync(jUnitReportLocation, 'utf-8');
         const expected = `<?xml version="1.0" encoding="UTF-8"?>
         <testsuites tests="5" failures="1" errors="0" skipped="0">
           <testsuite name="JSON Schema Validation" tests="1" failures="0" errors="0" skipped="0">
@@ -91,12 +73,8 @@ describe('createJUnitReport', () => {
     });
 
     it('should create a report with Spectral issues and JSON Schema errors', async () => {
+        const actual = createJUnitReport(jsonSchemaValidationOutput, spectralValidationOutput, ruleset);
 
-        createJUnitReport(jsonSchemaValidationOutput, spectralValidationOutput, ruleset, jUnitReportLocation);
-
-        expect(fs.existsSync(jUnitReportLocation)).toBe(true); //check if the file was created in the correct location
-
-        const actual = fs.readFileSync(jUnitReportLocation, 'utf-8');
         const expected = `<?xml version="1.0" encoding="UTF-8"?>
         <testsuites tests="5" failures="2" errors="0" skipped="0">
           <testsuite name="JSON Schema Validation" tests="1" failures="1" errors="0" skipped="0">
@@ -117,11 +95,8 @@ describe('createJUnitReport', () => {
     });
 
     it('should create a report with no Spectral issues and no JSON Schema errors', async () => {
-        createJUnitReport([], [], ruleset, jUnitReportLocation);
+        const actual = createJUnitReport([], [], ruleset);
 
-        expect(fs.existsSync(jUnitReportLocation)).toBe(true); //check if the file was created in the correct location
-
-        const actual = fs.readFileSync(jUnitReportLocation, 'utf-8');
         const expected = `<?xml version="1.0" encoding="UTF-8"?>
         <testsuites tests="5" failures="0" errors="0" skipped="0">
           <testsuite name="JSON Schema Validation" tests="1" failures="0" errors="0" skipped="0">
@@ -134,11 +109,8 @@ describe('createJUnitReport', () => {
             <testcase name="no-empty-properties"/>
           </testsuite>
         </testsuites>`;
-        expect(actual.replace(/\s/g, '')).toBe(expected.replace(/\s/g, ''));
-    });
 
-    afterEach(() => {
-        fs.rmSync(tmpDir, {recursive: true});
+        expect(actual.replace(/\s/g, '')).toBe(expected.replace(/\s/g, ''));
     });
 
 });

@@ -4,9 +4,8 @@ import { ValidationOutput } from '../validation.output';
 export default function createJUnitReport(
     jsonSchemaValidationOutput: ValidationOutput[], 
     spectralValidationOutput: ValidationOutput[], 
-    spectralRulesName: string[],
-    outputLocation: string
-){
+    spectralRulesName: string[]
+): string {
     const builder = junitReportBuilder.newBuilder();
 
     const jsonSchemaSuite = createTestSuite(builder, 'JSON Schema Validation');
@@ -34,7 +33,7 @@ export default function createJUnitReport(
         });
     }
 
-    builder.writeTo(outputLocation);
+    return builder.build();
 }
 
 function createTestSuite(builder, testSuiteName: string){

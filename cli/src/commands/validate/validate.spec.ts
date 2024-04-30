@@ -36,6 +36,8 @@ jest.mock('../helper.js', () => {
 
 const metaSchemaLocation = 'test_fixtures/calm';
 const debugDisabled = false;
+const jsonFormat = 'json';
+const jUnitFormat = 'junit';
 
 describe('validate', () => {
     let mockExit;
@@ -52,7 +54,7 @@ describe('validate', () => {
 
 
     it('exits with error when the JSON Schema pattern cannot be found in the input path', async () => {
-        await expect(validate('../test_fixtures/api-gateway-implementation.json', 'thisFolderDoesNotExist/api-gateway.json', metaSchemaLocation, debugDisabled))
+        await expect(validate('../test_fixtures/api-gateway-implementation.json', 'thisFolderDoesNotExist/api-gateway.json', metaSchemaLocation, debugDisabled, jsonFormat))
             .rejects
             .toThrow();
 
@@ -60,7 +62,7 @@ describe('validate', () => {
     });
 
     it('exits with error when the pattern instantiation file cannot be found in the input path', async () => {
-        await expect(validate('../doesNotExists/api-gateway-implementation.json', 'test_fixtures/api-gateway.json', metaSchemaLocation, debugDisabled))
+        await expect(validate('../doesNotExists/api-gateway-implementation.json', 'test_fixtures/api-gateway.json', metaSchemaLocation, debugDisabled, jsonFormat))
             .rejects
             .toThrow();
 
@@ -68,7 +70,7 @@ describe('validate', () => {
     });
 
     it('exits with error when the pattern instantiation file does not contain JSON', async () => {
-        await expect(validate('test_fixtures/api-gateway-implementation.json', 'test_fixtures/markdown.md', metaSchemaLocation, debugDisabled))
+        await expect(validate('test_fixtures/api-gateway-implementation.json', 'test_fixtures/markdown.md', metaSchemaLocation, debugDisabled, jsonFormat))
             .rejects
             .toThrow();
 
@@ -78,7 +80,7 @@ describe('validate', () => {
     it('exits with error when the JSON Schema pattern URL returns a 404', async () => {
         fetchMock.mock('http://does-not-exist/api-gateway.json', 404);
 
-        await expect(validate('https://does-not-exist/api-gateway-implementation.json', 'http://does-not-exist/api-gateway.json', metaSchemaLocation, debugDisabled))
+        await expect(validate('https://does-not-exist/api-gateway-implementation.json', 'http://does-not-exist/api-gateway.json', metaSchemaLocation, debugDisabled, jsonFormat))
             .rejects
             .toThrow();
 
@@ -92,7 +94,7 @@ describe('validate', () => {
         fetchMock.mock('http://exist/api-gateway.json', apiGateway);
         fetchMock.mock('https://does-not-exist/api-gateway-implementation.json', 404);
 
-        await expect(validate('https://does-not-exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
+        await expect(validate('https://does-not-exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, jsonFormat))
             .rejects
             .toThrow();
 
@@ -107,7 +109,7 @@ describe('validate', () => {
         fetchMock.mock('http://exist/api-gateway.json', apiGateway);
         fetchMock.mock('https://url/with/non/json/response', markdown);
 
-        await expect(validate('https://url/with/non/json/response', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
+        await expect(validate('https://url/with/non/json/response', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, jsonFormat))
             .rejects
             .toThrow();
 
@@ -124,7 +126,7 @@ describe('validate', () => {
         const apiGatewayInstantiation = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation-that-does-not-match-schema.json'), 'utf8');
         fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayInstantiation);
 
-        await expect(validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
+        await expect(validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, jsonFormat))
             .rejects
             .toThrow();
 
@@ -152,7 +154,7 @@ describe('validate', () => {
         const apiGatewayInstantiation = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation-that-does-not-pass-the-spectral-validation.json'), 'utf8');
         fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayInstantiation);
 
-        await expect(validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
+        await expect(validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, jsonFormat))
             .rejects
             .toThrow();
 
@@ -160,7 +162,7 @@ describe('validate', () => {
         fetchMock.restore();
     });
 
-    it('exits with error when the pattern does not pass all the spectral validations', async () => {
+    it('exits with error when the pattern does not pass all the spectral validations ', async () => {
 
         const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-with-no-relationships.json'), 'utf8');
         fetchMock.mock('http://exist/api-gateway.json', apiGateway);
@@ -168,7 +170,7 @@ describe('validate', () => {
         const apiGatewayInstantiation = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8');
         fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayInstantiation);
 
-        await expect(validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
+        await expect(validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, jsonFormat))
             .rejects
             .toThrow();
 
@@ -176,22 +178,14 @@ describe('validate', () => {
     });
 
     it('exits with error when the meta schema location is not a directory', async () => {
-        await expect(validate('https://url/with/non/json/response', 'http://exist/api-gateway.json', 'test_fixtures/api-gateway.json', debugDisabled))
+        await expect(validate('https://url/with/non/json/response', 'http://exist/api-gateway.json', 'test_fixtures/api-gateway.json', debugDisabled, jsonFormat))
             .rejects
             .toThrow();
 
         expect(mockExit).toHaveBeenCalledWith(1);
     });
 
-    it('exits with error when the test report output location is not an xml file', async () => {
-        await expect(validate('test_fixtures/api-gateway-implementation.json', 'test_fixtures/api-gateway.json', metaSchemaLocation, debugDisabled, 'not-xml.json'))
-            .rejects
-            .toThrow();
-
-        expect(mockExit).toHaveBeenCalledWith(1);
-    });
-
-    it('complete successfully when the pattern instantiation validates against the pattern json schema', async () => {
+    it('complete successfully when the pattern instantiation validates against the pattern json schema in Json format', async () => {
         const mockExit = jest.spyOn(process, 'exit')
             .mockImplementation((code) => {
                 if (code != 0) {
@@ -206,13 +200,34 @@ describe('validate', () => {
         const apiGatewayInstantiation = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8');
         fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayInstantiation);
 
-        await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled);
+        await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, jsonFormat);
 
         expect(mockExit).toHaveBeenCalledWith(0);
         fetchMock.restore();
     });
 
-    it('complete successfully when the pattern instantiation validates against the pattern json schema and the test report is created', async () => {
+    it('complete successfully when the pattern instantiation validates against the pattern json schema in JUnit format', async () => {
+        const mockExit = jest.spyOn(process, 'exit')
+            .mockImplementation((code) => {
+                if (code != 0) {
+                    throw new Error();
+                }
+                return undefined as never;
+            });
+
+        const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
+        fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+
+        const apiGatewayInstantiation = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8');
+        fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayInstantiation);
+
+        await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, jUnitFormat);
+
+        expect(mockExit).toHaveBeenCalledWith(0);
+        fetchMock.restore();
+    });
+
+    it('complete successfully when the pattern instantiation validates against the pattern json schema and the JUnit format output file is created', async () => {
         const mockExit = jest.spyOn(process, 'exit')
             .mockImplementation((code) => {
                 if (code != 0) {
@@ -229,7 +244,7 @@ describe('validate', () => {
 
         const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'report'));
         const testReportLocation = path.join(tmpDir,  'test-report.xml');
-        await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, testReportLocation);
+        await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, jUnitFormat, testReportLocation);
 
         expect(existsSync(testReportLocation)).toBe(true); //check that the test report exists
 
@@ -237,8 +252,33 @@ describe('validate', () => {
 
         expect(mockExit).toHaveBeenCalledWith(0);
         fetchMock.restore();
+    });
 
+    it('complete successfully when the pattern instantiation validates against the pattern json schema and the JSON format output file is created', async () => {
+        const mockExit = jest.spyOn(process, 'exit')
+            .mockImplementation((code) => {
+                if (code != 0) {
+                    throw new Error();
+                }
+                return undefined as never;
+            });
 
+        const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
+        fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+
+        const apiGatewayInstantiation = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8');
+        fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayInstantiation);
+
+        const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'report'));
+        const reportLocation = path.join(tmpDir,  'report.json');
+        await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, jsonFormat, reportLocation);
+
+        expect(existsSync(reportLocation)).toBe(true); //check that the test report exists
+
+        rmSync(tmpDir, {recursive: true}); //delete folder with the test report
+
+        expect(mockExit).toHaveBeenCalledWith(0);
+        fetchMock.restore();
     });
 
 });

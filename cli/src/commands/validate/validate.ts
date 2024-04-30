@@ -1,5 +1,5 @@
 import Ajv2020, { ErrorObject } from 'ajv/dist/2020.js';
-import { existsSync, promises as fs, readFileSync, readdirSync, statSync } from 'fs';
+import { existsSync, promises as fs, readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
 import pkg, { ISpectralDiagnostic } from '@stoplight/spectral-core';
 const { Spectral } = pkg;
 import { getRuleset } from '@stoplight/spectral-cli/dist/services/linter/utils/getRuleset.js';
@@ -10,10 +10,19 @@ import { ValidationOutput as ValidationOutput } from './validation.output.js';
 import { SpectralResult } from './spectral.result.js';
 import  createJUnitReport  from './junit-report/junit.report.js';
 import yaml from 'js-yaml';
+import path from 'path';
+import { mkdirp } from 'mkdirp';
 
 let logger: winston.Logger; // defined later at startup
 
-export default async function validate(jsonSchemaInstantiationLocation: string, jsonSchemaLocation: string, metaSchemaPath: string, debug: boolean = false, junitReportLocation?: string) {
+export default async function validate(
+    jsonSchemaInstantiationLocation: string,
+    jsonSchemaLocation: string, 
+    metaSchemaPath: string, 
+    debug: boolean = false, 
+    format: string, 
+    output?: string
+) {
     logger = initLogger(debug);
     let errors = false;
     let validations: ValidationOutput[] = [];
@@ -45,30 +54,50 @@ export default async function validate(jsonSchemaInstantiationLocation: string, 
             validations = validations.concat(jsonSchemaValidations);
         }
         
-        if(junitReportLocation) {
-            if (!junitReportLocation.endsWith('.xml')){
-                throw new Error('The test report location must be an xml file');
-            }
-            logger.debug('Generating test report file');
-            const spectralRules = extractRulesFromSpectralRulesets(spectralRulesetForInstantiation, spectralRulesetForPattern);
-            createJUnitReport(jsonSchemaValidations, spectralResult.spectralIssues, spectralRules, junitReportLocation);
-        }
+        const validationsOutput = getFormattedOutput(validations, format, spectralRulesetForInstantiation, spectralRulesetForPattern, jsonSchemaValidations, spectralResult);
+
+        createOutputFile(output, validationsOutput);
 
         if(errors){
-            logger.error(`The following issues have been found on the JSON Schema instantiation ${prettifyJson(validations)}`);
+            logger.error(`The following issues have been found on the JSON Schema instantiation ${validationsOutput}`);
             process.exit(1);
         }
-
-        if(validations.length > 0){
-            logger.info(`The following issues (not errors) have been found on the JSON Schema Instantiation ${prettifyJson(validations)}`);
-        }else{
-            logger.info('The JSON Schema instantiation is valid');
+        
+        logger.info('The JSON Schema instantiation is valid');
+        if(validationsOutput != '[]'){
+            logger.info(validationsOutput);   
         }
+
         process.exit(0);
 
     } catch (error) {
         logger.error(`An error occured: ${error}`);
         process.exit(1);
+    }
+}
+
+function getFormattedOutput(
+    validations: ValidationOutput[],
+    format: string,
+    spectralRulesetForInstantiation: string,
+    spectralRulesetForPattern: string, 
+    jsonSchemaValidations: ValidationOutput[],
+    spectralResult: SpectralResult
+) {
+    if (format === 'junit') {
+        const spectralRules = extractRulesFromSpectralRulesets(spectralRulesetForInstantiation, spectralRulesetForPattern);
+        return createJUnitReport(jsonSchemaValidations, spectralResult.spectralIssues, spectralRules);  
+    }
+    return prettifyJson(validations);
+    
+}
+
+function createOutputFile(output: string, validationsOutput: string) {
+    if (output) {
+        logger.debug('Creating report');
+        const dirname = path.dirname(output);
+        mkdirp.sync(dirname);
+        writeFileSync(output, validationsOutput);
     }
 }
 
