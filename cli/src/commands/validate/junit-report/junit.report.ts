@@ -4,7 +4,7 @@ import { ValidationOutput } from '../validation.output';
 export default function createJUnitReport(
     jsonSchemaValidationOutput: ValidationOutput[], 
     spectralValidationOutput: ValidationOutput[], 
-    spectralRules: string[],
+    spectralRulesName: string[],
     outputLocation: string
 ){
     const builder = junitReportBuilder.newBuilder();
@@ -12,27 +12,24 @@ export default function createJUnitReport(
     const jsonSchemaSuite = createTestSuite(builder, 'JSON Schema Validation');
     
     if (jsonSchemaValidationOutput.length <= 0) {
-        createTestCase(jsonSchemaSuite, 'JSON Schema Validation succeeded');
+        createSucceedingTestCase(jsonSchemaSuite, 'JSON Schema Validation succeeded');
     } else {
         jsonSchemaValidationOutput.forEach(jsonSchemaError => {
-            jsonSchemaSuite.testCase()
-                .name(`${jsonSchemaError.message} at ${jsonSchemaError.schemaPath}`)
-                .failure();
+            const testName = `${jsonSchemaError.message} at ${jsonSchemaError.schemaPath}`;
+            createFailingTestCase(jsonSchemaSuite, testName);
         });
     }
 
     const spectralSuite = createTestSuite(builder, 'Spectral Suite');
 
     if (spectralValidationOutput.length <= 0) {
-        spectralRules.forEach(ruleName => createTestCase(spectralSuite,ruleName));
+        spectralRulesName.forEach(ruleName => createSucceedingTestCase(spectralSuite,ruleName));
     } else {
-        spectralRules.forEach(ruleName => {
+        spectralRulesName.forEach(ruleName => {
             if (spectralValidationOutput.filter(item => (item.code === ruleName) && item.severity === 'error').length > 0) {
-                spectralSuite.testCase()
-                    .name(ruleName)
-                    .failure();
+                createFailingTestCase(spectralSuite, ruleName);
             } else {
-                createTestCase(spectralSuite, ruleName);
+                createSucceedingTestCase(spectralSuite, ruleName);
             }
         });
     }
@@ -46,8 +43,14 @@ function createTestSuite(builder, testSuiteName: string){
         .name(testSuiteName);
 }
 
-function createTestCase(testSuite: TestSuite, testName: string){
+function createSucceedingTestCase(testSuite: TestSuite, testName: string){
     testSuite.testCase()
         .name(testName);
+}
+
+function createFailingTestCase(testSuite: TestSuite, testName: string){
+    testSuite.testCase()
+        .name(testName)
+        .failure();
 }
 
