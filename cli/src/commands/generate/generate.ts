@@ -53,6 +53,9 @@ export const exportedForTesting = {
 export function generate(patternPath: string, schemaDirectory: SchemaDirectory, debug: boolean): CALMInstantiation {
     logger = initLogger(debug);
     const pattern = loadFile(patternPath);
+
+    schemaDirectory.loadCurrentPatternAsSchema(pattern);
+
     const outputNodes = instantiateNodes(pattern, schemaDirectory, debug);
     const relationshipNodes = instantiateRelationships(pattern, schemaDirectory, debug);
     const additionalProperties = instantiateAdditionalTopLevelProperties(pattern, schemaDirectory);
@@ -79,6 +82,8 @@ export async function runGenerate(patternPath: string, outputPath: string, schem
     logger.debug('Generated instantiation: ' + output);
 
     const dirname = path.dirname(outputPath);
+
+    logger.debug('Writing output to ' + outputPath)
 
     mkdirp.sync(dirname);
     fs.writeFileSync(outputPath, output);

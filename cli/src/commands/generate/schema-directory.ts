@@ -24,6 +24,11 @@ export class SchemaDirectory {
         this.logger = initLogger(debug);
     }
 
+    public loadCurrentPatternAsSchema(pattern: object) {
+        this.logger.debug("Loading current pattern as a schema.")
+        this.schemas.set('pattern', pattern);
+    }
+
     /**
      * Load the schemas from the configured directory path.
      */
