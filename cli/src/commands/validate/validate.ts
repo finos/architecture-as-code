@@ -1,5 +1,5 @@
 import Ajv2020, { ErrorObject } from 'ajv/dist/2020.js';
-import { existsSync, promises as fs, readFileSync, readdirSync, statSync } from 'fs';
+import { existsSync, promises as fs, readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
 import pkg, { ISpectralDiagnostic } from '@stoplight/spectral-core';
 const { Spectral } = pkg;
 import { getRuleset } from '@stoplight/spectral-cli/dist/services/linter/utils/getRuleset.js';
@@ -8,10 +8,21 @@ import * as winston from 'winston';
 import { initLogger } from '../helper.js';
 import { ValidationOutput as ValidationOutput } from './validation.output.js';
 import { SpectralResult } from './spectral.result.js';
+import  createJUnitReport  from './junit-report/junit.report.js';
+import yaml from 'js-yaml';
+import path from 'path';
+import { mkdirp } from 'mkdirp';
 
 let logger: winston.Logger; // defined later at startup
 
-export default async function validate(jsonSchemaInstantiationLocation: string, jsonSchemaLocation: string, metaSchemaPath: string, debug: boolean = false) {
+export default async function validate(
+    jsonSchemaInstantiationLocation: string,
+    jsonSchemaLocation: string, 
+    metaSchemaPath: string, 
+    debug: boolean = false, 
+    format: string, 
+    output?: string
+) {
     logger = initLogger(debug);
     let errors = false;
     let validations: ValidationOutput[] = [];
@@ -28,31 +39,65 @@ export default async function validate(jsonSchemaInstantiationLocation: string, 
 
         const validateSchema = ajv.compile(jsonSchema);
 
-        const spectralResult: SpectralResult = await runSpectralValidations(jsonSchemaInstantiation, stripRefs(jsonSchema));
+        const spectralRulesetForInstantiation = '../spectral/instantiation/validation-rules.yaml';
+        const spectralRulesetForPattern = '../spectral/pattern/validation-rules.yaml';
+        const spectralResult: SpectralResult = await runSpectralValidations(jsonSchemaInstantiation, stripRefs(jsonSchema), spectralRulesetForInstantiation, spectralRulesetForPattern);
+
         errors = spectralResult.errors;
         validations = validations.concat(spectralResult.spectralIssues);
 
+        let jsonSchemaValidations = [];
         if (!validateSchema(jsonSchemaInstantiation)) {
             logger.debug(`JSON Schema validation raw output: ${prettifyJson(validateSchema.errors)}`);
             errors = true;
-            validations = validations.concat(formatJsonSchemaOutput(validateSchema.errors));
-        } 
+            jsonSchemaValidations = formatJsonSchemaOutput(validateSchema.errors);
+            validations = validations.concat(jsonSchemaValidations);
+        }
+        
+        const validationsOutput = getFormattedOutput(validations, format, spectralRulesetForInstantiation, spectralRulesetForPattern, jsonSchemaValidations, spectralResult);
+
+        createOutputFile(output, validationsOutput);
 
         if(errors){
-            logger.error(`The following issues have been found on the JSON Schema instantiation ${prettifyJson(validations)}`);
+            logger.error(`The following issues have been found on the JSON Schema instantiation ${validationsOutput}`);
             process.exit(1);
         }
-
-        if(validations.length > 0){
-            logger.info(`The following issues (not errors) have been found on the JSON Schema Instantiation ${prettifyJson(validations)}`);
-        }else{
-            logger.info('The JSON Schema instantiation is valid');
+        
+        logger.info('The JSON Schema instantiation is valid');
+        if(validationsOutput != '[]'){
+            logger.info(validationsOutput);   
         }
+
         process.exit(0);
 
     } catch (error) {
         logger.error(`An error occured: ${error}`);
         process.exit(1);
+    }
+}
+
+function getFormattedOutput(
+    validations: ValidationOutput[],
+    format: string,
+    spectralRulesetForInstantiation: string,
+    spectralRulesetForPattern: string, 
+    jsonSchemaValidations: ValidationOutput[],
+    spectralResult: SpectralResult
+) {
+    if (format === 'junit') {
+        const spectralRules = extractRulesFromSpectralRulesets(spectralRulesetForInstantiation, spectralRulesetForPattern);
+        return createJUnitReport(jsonSchemaValidations, spectralResult.spectralIssues, spectralRules);  
+    }
+    return prettifyJson(validations);
+    
+}
+
+function createOutputFile(output: string, validationsOutput: string) {
+    if (output) {
+        logger.debug('Creating report');
+        const dirname = path.dirname(output);
+        mkdirp.sync(dirname);
+        writeFileSync(output, validationsOutput);
     }
 }
 
@@ -85,15 +130,20 @@ function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
     });
 }
 
-async function runSpectralValidations(jsonSchemaInstantiation: string, jsonSchema: string): Promise<SpectralResult> {
+async function runSpectralValidations(
+    jsonSchemaInstantiation: string,
+    jsonSchema: string, 
+    spectralRulesetForInstantiation: string, 
+    spectralRulesetForPattern: string
+): Promise<SpectralResult> {
     
     let errors = false;
     let spectralIssues: ValidationOutput[] = [];
     const spectral = new Spectral();
 
-    spectral.setRuleset(await getRuleset('../spectral/instantiation/validation-rules.yaml'));
+    spectral.setRuleset(await getRuleset(spectralRulesetForInstantiation));
     let issues = await spectral.run(jsonSchemaInstantiation);
-    spectral.setRuleset(await getRuleset('../spectral/pattern/validation-rules.yaml'));
+    spectral.setRuleset(await getRuleset(spectralRulesetForPattern));
     issues = issues.concat(await spectral.run(jsonSchema));
 
     if (issues && issues.length > 0) {
@@ -178,6 +228,16 @@ async function loadFileFromUrl(fileUrl: string) {
     }
     const body = await res.json();
     return body;
+}
+
+function extractRulesFromSpectralRulesets(spectralRulesetForInstantiation: string, spectralRulesetForPattern: string): string[]{
+    return getRulesFromRulesetFile(spectralRulesetForInstantiation)
+        .concat(getRulesFromRulesetFile(spectralRulesetForPattern));
+}
+
+function getRulesFromRulesetFile(rulesetFile: string){
+    const yamlData = yaml.load(readFileSync(rulesetFile, 'utf-8'));
+    return Object.keys(yamlData['rules']);
 }
 
 function prettifyJson(json){

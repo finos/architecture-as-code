@@ -78,6 +78,8 @@ Options:
   -p, --pattern <pattern>                         Path to the pattern file to use. May be a file path or a URL.
   -i, --instantiation <instantiation>             Path to the pattern instantiation file to use. May be a file path or a URL.
   -m, --metaSchemasLocation <metaSchemaLocation>  The location of the directory of the meta schemas to be loaded (default: "../calm/draft/2024-03/meta")
+  -f, --format <format>                           The format of the output (choices: "json", "junit", default: "json")
+  -o, --output <output>                           Path location at which to output the generated file.
   -v, --verbose                                   Enable verbose logging. (default: false)
   -h, --help                                      display help for command
 
