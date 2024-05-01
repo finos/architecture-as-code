@@ -45,10 +45,16 @@ describe('validate', () => {
     beforeEach(() => {
         mockRunFunction.mockReturnValue([]);
         mockExit = jest.spyOn(process, 'exit')
-            .mockImplementation((code) => { throw new Error(`The exit code is ${code}`); });
+            .mockImplementation((code) => {
+                if (code != 0) {
+                    throw new Error();
+                }
+                return undefined as never;
+            });
     });
 
     afterEach(() => {
+        fetchMock.restore();
         mockExit.mockRestore();
     });
 
@@ -85,7 +91,6 @@ describe('validate', () => {
             .toThrow();
 
         expect(mockExit).toHaveBeenCalledWith(1);
-        fetchMock.restore();
     });
 
     it('exits with error when the pattern instantiation URL returns a 404', async () => {
@@ -99,7 +104,6 @@ describe('validate', () => {
             .toThrow();
 
         expect(mockExit).toHaveBeenCalledWith(1);
-        fetchMock.restore();
     });
 
     it('exits with error when the pattern instantiation file at given URL returns non JSON response', async () => {
@@ -114,7 +118,6 @@ describe('validate', () => {
             .toThrow();
 
         expect(mockExit).toHaveBeenCalledWith(1);
-        fetchMock.restore();
     });
 
 
@@ -131,7 +134,6 @@ describe('validate', () => {
             .toThrow();
 
         expect(mockExit).toHaveBeenCalledWith(1);
-        fetchMock.restore();
     });
 
     it('exits with error when the pattern instantiation does not pass all the spectral validations', async () => {
@@ -159,10 +161,20 @@ describe('validate', () => {
             .toThrow();
 
         expect(mockExit).toHaveBeenCalledWith(1);
-        fetchMock.restore();
     });
 
     it('exits with error when the pattern does not pass all the spectral validations ', async () => {
+        const expectedSpectralOutput: ISpectralDiagnostic[] = [
+            {
+                code: 'no-empty-properties',
+                message: 'Must not contain string properties set to the empty string or numerical properties set to zero',
+                severity: 0,
+                path: JSON.parse(JSON.stringify('$..*')),
+                range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
+            }
+        ];
+
+        mockRunFunction.mockReturnValue(expectedSpectralOutput);
 
         const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-with-no-relationships.json'), 'utf8');
         fetchMock.mock('http://exist/api-gateway.json', apiGateway);
@@ -173,8 +185,6 @@ describe('validate', () => {
         await expect(validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, jsonFormat))
             .rejects
             .toThrow();
-
-        fetchMock.restore();
     });
 
     it('exits with error when the meta schema location is not a directory', async () => {
@@ -203,7 +213,6 @@ describe('validate', () => {
         await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, jsonFormat);
 
         expect(mockExit).toHaveBeenCalledWith(0);
-        fetchMock.restore();
     });
 
     it('complete successfully when the pattern instantiation validates against the pattern json schema in JUnit format', async () => {
@@ -224,7 +233,6 @@ describe('validate', () => {
         await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, jUnitFormat);
 
         expect(mockExit).toHaveBeenCalledWith(0);
-        fetchMock.restore();
     });
 
     it('complete successfully when the pattern instantiation validates against the pattern json schema and the JUnit format output file is created', async () => {
@@ -251,7 +259,6 @@ describe('validate', () => {
         rmSync(tmpDir, {recursive: true}); //delete folder with the test report
 
         expect(mockExit).toHaveBeenCalledWith(0);
-        fetchMock.restore();
     });
 
     it('complete successfully when the pattern instantiation validates against the pattern json schema and the JSON format output file is created', async () => {
@@ -278,7 +285,6 @@ describe('validate', () => {
         rmSync(tmpDir, {recursive: true}); //delete folder with the test report
 
         expect(mockExit).toHaveBeenCalledWith(0);
-        fetchMock.restore();
     });
 
 });
