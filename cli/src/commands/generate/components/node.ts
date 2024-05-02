@@ -115,7 +115,7 @@ export function instantiateNodeInterfaces(detail: any, schemaDirectory: SchemaDi
     const logger = initLogger(debug);
     const interfaces = [];
     if (!('prefixItems' in detail)) {
-        logger.debug('Instantiating a node with no interfaces defined.')
+        logger.debug('Instantiating a node with no interfaces defined.');
         return [];
     }
 
