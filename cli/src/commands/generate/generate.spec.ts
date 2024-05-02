@@ -111,7 +111,7 @@ describe('runGenerate', () => {
 
     it('instantiates to given directory', () => {
         const outPath = path.join(tempDirectoryPath, 'output.json');
-        runGenerate(testPath, outPath, undefined, false);
+        runGenerate(testPath, outPath, undefined, false, false);
 
         expect(existsSync(outPath))
             .toBeTruthy();
@@ -119,7 +119,7 @@ describe('runGenerate', () => {
 
     it('instantiates to given directory with nested folders', () => {
         const outPath = path.join(tempDirectoryPath, 'output/test/output.json');
-        runGenerate(testPath, outPath, undefined, false);
+        runGenerate(testPath, outPath, undefined, false, false);
 
         expect(existsSync(outPath))
             .toBeTruthy();
@@ -127,7 +127,7 @@ describe('runGenerate', () => {
 
     it('instantiates to calm instantiation file', () => {
         const outPath = path.join(tempDirectoryPath, 'output.json');
-        runGenerate(testPath, outPath, undefined, false);
+        runGenerate(testPath, outPath, undefined, false, false);
 
         expect(existsSync(outPath))
             .toBeTruthy();

@@ -1,4 +1,5 @@
 import { SchemaDirectory } from './schema-directory';
+import { readFile } from 'node:fs/promises';
 
 jest.mock('../helper', () => {
     return {
@@ -66,5 +67,20 @@ describe('SchemaDirectory', () => {
         // this should include top-level and port. If circular refs are not handled properly this will crash the whole test by stack overflow
         expect(interfaceDef.properties).toHaveProperty('top-level');
         expect(interfaceDef.properties).toHaveProperty('prop');
+    });
+
+    it('look up self-definitions without schema ID at top level from the pattern itself', async () => {
+        const schemaDir = new SchemaDirectory('../calm/draft/2024-04');
+
+        await schemaDir.loadSchemas();
+
+        const selfRefPatternStr = await readFile('test_fixtures/api-gateway-self-reference.json', 'utf-8');
+        const selfRefPattern = JSON.parse(selfRefPatternStr);
+
+        schemaDir.loadCurrentPatternAsSchema(selfRefPattern);
+
+
+        const nodeDef = schemaDir.getDefinition('#/defs/sample-node');
+        expect(nodeDef.properties).toHaveProperty('extra-prop');
     });
 });

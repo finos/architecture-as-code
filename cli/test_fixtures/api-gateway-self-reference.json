@@ -1,0 +1,62 @@
+{
+  "$schema": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
+  "$id": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/pattern/api-gateway",
+  "title": "API Gateway Pattern",
+  "type": "object",
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "minItems": 3,
+      "prefixItems": [
+        {
+          "$ref": "#/defs/sample-node",
+          "properties": {
+            "unique-id": {
+              "const": "api-gateway"
+            }
+          }
+        }
+      ]
+    },
+    "relationships": {
+      "type": "array",
+      "prefixItems": [
+      ]
+    }
+  },
+  "required": [
+    "nodes",
+    "relationships"
+  ],
+  "defs": {
+    "sample-node": {
+      "$ref": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/node",
+      "properties": {
+        "extra-prop": {
+          "type": "string"
+        },
+        "unique-id": {
+          "const": "api-gateway"
+        },
+        "interfaces": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "$ref": "#/defs/sample-interface"
+            }
+          ]
+        }
+      },
+      "required": ["extra-prop"]
+    },
+    "sample-interface": {
+      "$ref": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/interface-type",
+      "properties": {
+        "extra-prop-interface": {
+          "const": "value"
+        }
+      },
+      "required": ["extra-prop-interface"]
+    }
+  }
+}

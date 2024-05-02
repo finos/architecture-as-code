@@ -22,14 +22,15 @@ beforeEach(() => {
     mockSchemaDir = new SchemaDirectory('directory');
 });
 
-function getSamplePatternNode(properties: any): any {
+function getSamplePatternNode(properties: any, required: any = []): any {
     return {
         properties: {
             nodes: {
                 type: 'array',
                 prefixItems: [
                     {
-                        properties: properties
+                        properties: properties,
+                        required: required
                     }
                 ]
             }
@@ -39,13 +40,13 @@ function getSamplePatternNode(properties: any): any {
 
 
 describe('instantiateNodes', () => {
-    it('return instantiated node with array property', () => {
+    it('return instantiated required node with array property', () => {
         const pattern = getSamplePatternNode({
             'property-name': {
                 type: 'array'
             }
         });
-        expect(instantiateNodes(pattern, mockSchemaDir))
+        expect(instantiateNodes(pattern, mockSchemaDir, false, true))
             .toEqual(
                 [{
                     'property-name': [
@@ -62,7 +63,7 @@ describe('instantiateNodes', () => {
             }
         });
 
-        expect(instantiateNodes(pattern, mockSchemaDir))
+        expect(instantiateNodes(pattern, mockSchemaDir, false, true))
             .toEqual([
                 {
                     'property-name': '{{ PROPERTY_NAME }}'
@@ -77,7 +78,25 @@ describe('instantiateNodes', () => {
             }
         });
 
-        expect(instantiateNodes(pattern, mockSchemaDir))
+        expect(instantiateNodes(pattern, mockSchemaDir, false, true))
+            .toEqual([
+                {
+                    'property-name': 'value here'
+                }
+            ]);
+    });
+    
+    it('only instantiate required properties when instantiateAll set to false', () => {
+        const pattern = getSamplePatternNode({
+            'property-name': {
+                const: 'value here'
+            },
+            'other-property': {
+                const: 'should-be-ignored'
+            }
+        }, ['property-name']);
+
+        expect(instantiateNodes(pattern, mockSchemaDir, false, false))
             .toEqual([
                 {
                     'property-name': 'value here'
@@ -109,7 +128,7 @@ describe('instantiateNodes', () => {
             }
         });
 
-        expect(instantiateNodes(pattern, mockSchemaDir))
+        expect(instantiateNodes(pattern, mockSchemaDir, false, true))
             .toEqual([
                 {
                     'property-name': 'value here'
@@ -162,18 +181,19 @@ describe('instantiateNodes', () => {
             }
         ];
 
-        expect(instantiateNodes(pattern, mockSchemaDir))
+        expect(instantiateNodes(pattern, mockSchemaDir, false, false))
             .toEqual(expected);
 
     });
 });
 
 
-function getSampleNodeInterfaces(properties: any): any {
+function getSampleNodeInterfaces(properties: any, required: string[] = []): any {
     return {
         prefixItems: [
             {
-                properties: properties
+                properties: properties,
+                required: required
             }
         ]
     };
@@ -188,7 +208,7 @@ describe('instantiateNodeInterfaces', () => {
                 type: 'array'
             }
         });
-        expect(instantiateNodeInterfaces(pattern, mockSchemaDir))
+        expect(instantiateNodeInterfaces(pattern, mockSchemaDir, false, true))
             .toEqual(
                 [{
                     'property-name': [
@@ -205,7 +225,7 @@ describe('instantiateNodeInterfaces', () => {
             }
         });
 
-        expect(instantiateNodeInterfaces(pattern, mockSchemaDir))
+        expect(instantiateNodeInterfaces(pattern, mockSchemaDir, false, true))
             .toEqual([
                 {
                     'property-name': '{{ PROPERTY_NAME }}'
@@ -220,7 +240,25 @@ describe('instantiateNodeInterfaces', () => {
             }
         });
 
-        expect(instantiateNodeInterfaces(pattern, mockSchemaDir))
+        expect(instantiateNodeInterfaces(pattern, mockSchemaDir, false, true))
+            .toEqual([
+                {
+                    'property-name': 'value here'
+                }
+            ]);
+    });
+    
+    it('only instantiate required properties when instantiateAll set to false', () => {
+        const pattern = getSampleNodeInterfaces({
+            'property-name': {
+                const: 'value here'
+            },
+            'ignored-prop': {
+                const: 'value here'
+            }
+        }, ['property-name']);
+
+        expect(instantiateNodeInterfaces(pattern, mockSchemaDir, false, false))
             .toEqual([
                 {
                     'property-name': 'value here'
@@ -248,7 +286,7 @@ describe('instantiateNodeInterfaces', () => {
             }
         });
 
-        expect(instantiateNodeInterfaces(pattern, mockSchemaDir))
+        expect(instantiateNodeInterfaces(pattern, mockSchemaDir, false, true))
             .toEqual([
                 {
                     'property-name': 'value here'

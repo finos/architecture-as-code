@@ -2,7 +2,7 @@
 
 import { initLogger } from '../../helper.js';
 import { SchemaDirectory } from '../schema-directory.js';
-import { mergeSchemas } from '../util.js';
+import { logRequiredMessage, mergeSchemas } from '../util.js';
 import { getPropertyValue } from './property.js';
 
 
@@ -13,7 +13,7 @@ import { getPropertyValue } from './property.js';
  * @param debug Whether to log debug detail
  * @returns An instantiated relationship.
  */
-function instantiateRelationship(relationshipDef: object, schemaDirectory: SchemaDirectory, debug: boolean = false): object {
+function instantiateRelationship(relationshipDef: object, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): object {
     const logger = initLogger(debug);
     let fullDefinition = relationshipDef;
     if (relationshipDef['$ref']) {
@@ -27,10 +27,17 @@ function instantiateRelationship(relationshipDef: object, schemaDirectory: Schem
         return {};
     }
 
+    const required = fullDefinition['required'];
+
     logger.debug('Generating interface from ' + JSON.stringify(fullDefinition, undefined, 2));
+    logRequiredMessage(logger, required, instantiateAll);
 
     const out = {};
     for (const [key, detail] of Object.entries(fullDefinition['properties'])) {
+        if (!instantiateAll && required && !required.includes(key)) {
+            logger.debug('Skipping property ' + key + ' as it is not marked as required.');
+            continue;
+        }
         out[key] = getPropertyValue(key, detail);
     }
 
@@ -44,7 +51,7 @@ function instantiateRelationship(relationshipDef: object, schemaDirectory: Schem
  * @param debug Whether to log debug detail.
  * @returns An array of instantiated relationships.
  */
-export function instantiateRelationships(pattern: any, schemaDirectory: SchemaDirectory, debug: boolean = false): any {
+export function instantiateRelationships(pattern: any, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): any {
     const logger = initLogger(debug);
     const relationships = pattern?.properties?.relationships?.prefixItems;
 
@@ -58,7 +65,7 @@ export function instantiateRelationships(pattern: any, schemaDirectory: SchemaDi
 
     const outputRelationships = [];
     for (const relationship of relationships) {
-        outputRelationships.push(instantiateRelationship(relationship, schemaDirectory, debug));
+        outputRelationships.push(instantiateRelationship(relationship, schemaDirectory, debug, instantiateAll));
     }
 
     return outputRelationships;
