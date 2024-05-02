@@ -60,4 +60,11 @@ describe('getPropertyValue', () => {
                 '{{ KEY_NAME }}'
             ]);
     });
+
+    it('generates a ref value placeholder', () => {
+        expect(getPropertyValue('key-name', {
+            '$ref': '#/ref'
+        }))
+        .toBe('{{ REF_KEY_NAME }}');
+    })
 });

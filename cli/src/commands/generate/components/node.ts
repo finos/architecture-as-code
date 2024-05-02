@@ -115,7 +115,6 @@ export function instantiateNodeInterfaces(detail: any, schemaDirectory: SchemaDi
     const logger = initLogger(debug);
     const interfaces = [];
     if (!('prefixItems' in detail)) {
-        logger.error('No items in interfaces block.');
         return [];
     }
 

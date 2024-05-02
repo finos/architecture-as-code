@@ -58,7 +58,6 @@ export function generate(patternPath: string, schemaDirectory: SchemaDirectory, 
 
     const outputNodes = instantiateNodes(pattern, schemaDirectory, debug, instantiateAll);
     const relationshipNodes = instantiateRelationships(pattern, schemaDirectory, debug, instantiateAll);
-    // TODO
     const additionalProperties = instantiateAdditionalTopLevelProperties(pattern, schemaDirectory);
 
     const final = {
