@@ -33,8 +33,9 @@ program
     .requiredOption('-o, --output <output>', 'Path location at which to output the generated file.')
     .option('-s, --schemaDirectory <path>', 'Path to directory containing schemas to use in instantiation')
     .option('-v, --verbose', 'Enable verbose logging.', false)
+    .option('-a, --instantiateAll', 'Instantiate all properties, ignoring the "required" field.', false)
     .action(async (options) => {
-        await runGenerate(options.pattern, options.output, options.schemaDirectory, !!options.verbose);
+        await runGenerate(options.pattern, options.output, options.schemaDirectory, !!options.verbose, options.instantiateAll);
     });
 
 program

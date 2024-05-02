@@ -46,7 +46,8 @@
             }
           ]
         }
-      }
+      },
+      "required": ["extra-prop"]
     },
     "sample-interface": {
       "$ref": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/interface-type",
@@ -54,7 +55,8 @@
         "extra-prop-interface": {
           "const": "value"
         }
-      }
+      },
+      "required": ["extra-prop-interface"]
     }
   }
 }

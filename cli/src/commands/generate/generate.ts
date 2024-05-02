@@ -50,14 +50,15 @@ export const exportedForTesting = {
     instantiateAdditionalTopLevelProperties
 };
 
-export function generate(patternPath: string, schemaDirectory: SchemaDirectory, debug: boolean): CALMInstantiation {
+export function generate(patternPath: string, schemaDirectory: SchemaDirectory, debug: boolean, instantiateAll: boolean): CALMInstantiation {
     logger = initLogger(debug);
     const pattern = loadFile(patternPath);
 
     schemaDirectory.loadCurrentPatternAsSchema(pattern);
 
-    const outputNodes = instantiateNodes(pattern, schemaDirectory, debug);
-    const relationshipNodes = instantiateRelationships(pattern, schemaDirectory, debug);
+    const outputNodes = instantiateNodes(pattern, schemaDirectory, debug, instantiateAll);
+    const relationshipNodes = instantiateRelationships(pattern, schemaDirectory, debug, instantiateAll);
+    // TODO
     const additionalProperties = instantiateAdditionalTopLevelProperties(pattern, schemaDirectory);
 
     const final = {
@@ -69,21 +70,21 @@ export function generate(patternPath: string, schemaDirectory: SchemaDirectory, 
     return final;
 }
 
-export async function runGenerate(patternPath: string, outputPath: string, schemaDirectoryPath: string, debug: boolean): Promise<void> {
+export async function runGenerate(patternPath: string, outputPath: string, schemaDirectoryPath: string, debug: boolean, instantiateAll: boolean): Promise<void> {
     const schemaDirectory = new SchemaDirectory(schemaDirectoryPath);
 
     if (schemaDirectoryPath) {
         await schemaDirectory.loadSchemas();
     }
     
-    const final = generate(patternPath, schemaDirectory, debug);
+    const final = generate(patternPath, schemaDirectory, debug, instantiateAll);
 
     const output = JSON.stringify(final, null, 2);
     logger.debug('Generated instantiation: ' + output);
 
     const dirname = path.dirname(outputPath);
 
-    logger.debug('Writing output to ' + outputPath)
+    logger.debug('Writing output to ' + outputPath);
 
     mkdirp.sync(dirname);
     fs.writeFileSync(outputPath, output);

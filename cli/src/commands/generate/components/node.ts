@@ -2,7 +2,7 @@
 
 import { initLogger } from '../../helper.js';
 import { SchemaDirectory } from '../schema-directory.js';
-import { mergeSchemas } from '../util.js';
+import { logRequiredMessage, mergeSchemas } from '../util.js';
 import { getPropertyValue } from './property.js';
 
 /**
@@ -12,7 +12,7 @@ import { getPropertyValue } from './property.js';
  * @param debug Whether to log debug detail.
  * @returns An instantiated node.
  */
-export function instantiateNode(nodeDef: any, schemaDirectory: SchemaDirectory, debug: boolean = false): any {
+export function instantiateNode(nodeDef: any, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): any {
     const logger = initLogger(debug);
     let fullDefinition = nodeDef;
     if (nodeDef['$ref']) {
@@ -27,15 +27,22 @@ export function instantiateNode(nodeDef: any, schemaDirectory: SchemaDirectory, 
         return {};
     }
 
+    const required = fullDefinition['required'];
+    logRequiredMessage(logger, required, instantiateAll);
+
     const out = {};
     for (const [key, detail] of Object.entries(fullDefinition['properties'])) {
         if (key === 'interfaces') {
-            const interfaces = instantiateNodeInterfaces(detail, schemaDirectory, debug);
+            const interfaces = instantiateNodeInterfaces(detail, schemaDirectory, debug, instantiateAll);
             out['interfaces'] = interfaces;
+            continue;
         }
-        else {
-            out[key] = getPropertyValue(key, detail);
+
+        if (!instantiateAll && required && !required.includes(key)) {
+            logger.debug('Skipping property ' + key + ' as it is not marked as required.');
+            continue;
         }
+        out[key] = getPropertyValue(key, detail);
     }
     return out;
 }
@@ -47,7 +54,7 @@ export function instantiateNode(nodeDef: any, schemaDirectory: SchemaDirectory, 
  * @param debug Whether to log debug detail.
  * @returns An array of instantiated nodes.
  */
-export function instantiateNodes(pattern: any, schemaDirectory: SchemaDirectory, debug: boolean = false): any {
+export function instantiateNodes(pattern: any, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): any {
     const logger = initLogger(debug);
     const nodes = pattern?.properties?.nodes?.prefixItems;
     if (!nodes) {
@@ -60,7 +67,7 @@ export function instantiateNodes(pattern: any, schemaDirectory: SchemaDirectory,
     const outputNodes = [];
 
     for (const node of nodes) {
-        outputNodes.push(instantiateNode(node, schemaDirectory));
+        outputNodes.push(instantiateNode(node, schemaDirectory, debug, instantiateAll));
     }
     return outputNodes;
 }
@@ -72,7 +79,7 @@ export function instantiateNodes(pattern: any, schemaDirectory: SchemaDirectory,
  * @param debug Whether to log debug detail.
  * @returns An instantiated interface.
  */
-export function instantiateInterface(interfaceDef: object, schemaDirectory: SchemaDirectory, debug: boolean = false): object {
+export function instantiateInterface(interfaceDef: object, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): object {
     const logger = initLogger(debug);
     let fullDefinition = interfaceDef;
     if (interfaceDef['$ref']) {
@@ -87,16 +94,24 @@ export function instantiateInterface(interfaceDef: object, schemaDirectory: Sche
     if (!('properties' in fullDefinition)) {
         return {};
     }
+    
+    const required = fullDefinition['required'];
+    logRequiredMessage(logger, required, instantiateAll);
 
     const out = {};
     for (const [key, detail] of Object.entries(fullDefinition['properties'])) {
+        // TODO flag to force instantiate all
+        if (!instantiateAll && required && !required.includes(key)) {
+            logger.debug('Skipping property ' + key + ' as it is not marked as required.');
+            continue;
+        }
         out[key] = getPropertyValue(key, detail);
     }
 
     return out;
 }
 
-export function instantiateNodeInterfaces(detail: any, schemaDirectory: SchemaDirectory, debug: boolean = false): any[] {
+export function instantiateNodeInterfaces(detail: any, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): any[] {
     const logger = initLogger(debug);
     const interfaces = [];
     if (!('prefixItems' in detail)) {
@@ -106,7 +121,7 @@ export function instantiateNodeInterfaces(detail: any, schemaDirectory: SchemaDi
 
     const interfaceDefs = detail.prefixItems;
     for (const interfaceDef of interfaceDefs) {
-        interfaces.push(instantiateInterface(interfaceDef, schemaDirectory, debug));
+        interfaces.push(instantiateInterface(interfaceDef, schemaDirectory, debug, instantiateAll));
     }
 
     return interfaces;

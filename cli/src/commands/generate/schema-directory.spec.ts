@@ -74,13 +74,13 @@ describe('SchemaDirectory', () => {
 
         await schemaDir.loadSchemas();
 
-        const selfRefPatternStr = await readFile("test_fixtures/api-gateway-self-reference.json", 'utf-8')
+        const selfRefPatternStr = await readFile('test_fixtures/api-gateway-self-reference.json', 'utf-8');
         const selfRefPattern = JSON.parse(selfRefPatternStr);
 
-        schemaDir.loadCurrentPatternAsSchema(selfRefPattern)
+        schemaDir.loadCurrentPatternAsSchema(selfRefPattern);
 
 
-        const nodeDef = schemaDir.getDefinition("#/defs/sample-node");
+        const nodeDef = schemaDir.getDefinition('#/defs/sample-node');
         expect(nodeDef.properties).toHaveProperty('extra-prop');
-    })
+    });
 });

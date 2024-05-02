@@ -22,14 +22,15 @@ beforeEach(() => {
     mockSchemaDir = new SchemaDirectory('directory');
 });
 
-function getSamplePatternRelationship(properties: any): any {
+function getSamplePatternRelationship(properties: any, required: string[] = []): any {
     return {
         properties: {
             relationships: {
                 type: 'array',
                 prefixItems: [
                     {
-                        properties: properties
+                        properties: properties,
+                        required: required
                     }
                 ]
             }
@@ -46,7 +47,7 @@ describe('instantiateRelationships', () => {
             }
         });
 
-        expect(instantiateRelationships(pattern, mockSchemaDir))
+        expect(instantiateRelationships(pattern, mockSchemaDir, false, true))
             .toEqual(
                 [{
                     'property-name': [
@@ -63,7 +64,7 @@ describe('instantiateRelationships', () => {
             }
         });
 
-        expect(instantiateRelationships(pattern, mockSchemaDir))
+        expect(instantiateRelationships(pattern, mockSchemaDir, false, true))
             .toEqual([
                 {
                     'property-name': '{{ PROPERTY_NAME }}'
@@ -78,7 +79,25 @@ describe('instantiateRelationships', () => {
             }
         });
 
-        expect(instantiateRelationships(pattern, mockSchemaDir))
+        expect(instantiateRelationships(pattern, mockSchemaDir, false, true))
+            .toEqual([
+                {
+                    'property-name': 'value here'
+                }
+            ]);
+    });
+
+    it('only instantiate required properties when instantiateAll set to false', () => {
+        const pattern = getSamplePatternRelationship({
+            'property-name': {
+                const: 'value here'
+            },
+            'ignored-prop': {
+                const: 'value'
+            }
+        }, ['property-name']);
+
+        expect(instantiateRelationships(pattern, mockSchemaDir, false, false))
             .toEqual([
                 {
                     'property-name': 'value here'
@@ -110,7 +129,7 @@ describe('instantiateRelationships', () => {
             }
         });
 
-        expect(instantiateRelationships(pattern, mockSchemaDir))
+        expect(instantiateRelationships(pattern, mockSchemaDir, false, true))
             .toEqual([
                 {
                     'property-name': 'value here'

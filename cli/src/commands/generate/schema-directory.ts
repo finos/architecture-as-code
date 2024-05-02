@@ -25,7 +25,7 @@ export class SchemaDirectory {
     }
 
     public loadCurrentPatternAsSchema(pattern: object) {
-        this.logger.debug("Loading current pattern as a schema.")
+        this.logger.debug('Loading current pattern as a schema.');
         this.schemas.set('pattern', pattern);
     }
 
