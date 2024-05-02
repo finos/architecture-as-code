@@ -65,6 +65,6 @@ describe('getPropertyValue', () => {
         expect(getPropertyValue('key-name', {
             '$ref': '#/ref'
         }))
-        .toBe('{{ REF_KEY_NAME }}');
-    })
+            .toBe('{{ REF_KEY_NAME }}');
+    });
 });
