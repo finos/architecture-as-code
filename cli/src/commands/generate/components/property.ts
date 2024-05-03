@@ -4,6 +4,10 @@ export function getStringPlaceholder(name: string): string {
     return '{{ ' + name.toUpperCase().replaceAll('-', '_') + ' }}';
 }
 
+export function getRefPlaceholder(name: string): string {
+    return '{{ REF_' + name.toUpperCase().replaceAll('-', '_') + ' }}';
+}
+
 export function getPropertyValue(keyName: string, detail: any): any {
     // TODO follow refs here
     // should be able to instantiate not just a simple enum type but also a whole sub-object
@@ -18,7 +22,7 @@ export function getPropertyValue(keyName: string, detail: any): any {
         if (propertyType === 'string') {
             return getStringPlaceholder(keyName);
         }
-        if (propertyType === 'integer') {
+        if (propertyType === 'integer' || propertyType === 'number') {
             return -1;
         }
         if (propertyType === 'array') {
@@ -29,6 +33,6 @@ export function getPropertyValue(keyName: string, detail: any): any {
     }
 
     if ('$ref' in detail) {
-        console.log('Not following $ref on property, implementation TODO');
+        return getRefPlaceholder(keyName);
     }
 }
