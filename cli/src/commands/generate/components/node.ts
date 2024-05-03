@@ -112,7 +112,6 @@ export function instantiateInterface(interfaceDef: object, schemaDirectory: Sche
 }
 
 export function instantiateNodeInterfaces(detail: any, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): any[] {
-    const logger = initLogger(debug);
     const interfaces = [];
     if (!('prefixItems' in detail)) {
         return [];
