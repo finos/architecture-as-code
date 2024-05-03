@@ -3,6 +3,7 @@ functions:
   - interface-id-exists
   - node-has-relationship
   - numerical-placeholder
+  - ids-are-unique
 
 rules:
   pattern-has-nodes-relationships:
@@ -92,3 +93,11 @@ rules:
     given: "$.properties.nodes.prefixItems[*].properties.unique-id.const"
     then:
       function: node-has-relationship
+
+  unique-ids-must-be-unique:
+    description: Unique IDs cannot be reused.
+    severity: error
+    message: "{{error}}"
+    given: $
+    then:
+      function: ids-are-unique
