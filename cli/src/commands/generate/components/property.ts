@@ -22,7 +22,7 @@ export function getPropertyValue(keyName: string, detail: any): any {
         if (propertyType === 'string') {
             return getStringPlaceholder(keyName);
         }
-        if (propertyType === 'integer') {
+        if (propertyType === 'integer' || propertyType === 'number') {
             return -1;
         }
         if (propertyType === 'array') {
