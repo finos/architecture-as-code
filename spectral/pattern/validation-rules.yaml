@@ -94,7 +94,7 @@ rules:
     then:
       function: node-has-relationship
 
-  unique-ids-must-be-unique:
+  unique-ids-must-be-unique-in-pattern:
     description: Unique IDs cannot be reused.
     severity: error
     message: "{{error}}"
