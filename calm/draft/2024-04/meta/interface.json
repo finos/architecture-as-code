@@ -107,13 +107,13 @@
           "$ref": "#/defs/rate-limit-key"
         },
         "time": {
-          "type": "number"
+          "type": "integer"
         },
         "time-unit": {
           "$ref": "#/defs/rate-limit-time-unit"
         },
         "calls": {
-          "type": "number"
+          "type": "integer"
         }
       },
       "required": [
