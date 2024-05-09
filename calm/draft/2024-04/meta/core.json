@@ -14,6 +14,9 @@
       "items": {
         "$ref": "#/defs/relationship"
       }
+    },
+    "metadata": {
+      "$ref": "#/defs/metadata"
     }
   },
   "defs": {
@@ -49,6 +52,9 @@
           "items": {
             "$ref": "interface.json#/defs/interface-type"
           }
+        },
+        "metadata": {
+          "$ref": "#/defs/metadata"
         }
       },
       "required": [
@@ -112,6 +118,9 @@
         },
         "authentication": {
           "$ref": "#/defs/authentication"
+        },
+        "metadata": {
+          "$ref": "#/defs/metadata"
         }
       },
       "required": [
@@ -231,6 +240,12 @@
             "type": "string"
           }
         }
+      }
+    },
+    "metadata": {
+      "type": "array",
+      "items": {
+        "type": "object"
       }
     }
   }
