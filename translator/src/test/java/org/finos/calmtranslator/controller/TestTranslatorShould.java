@@ -1,11 +1,16 @@
 package org.finos.calmtranslator.controller;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.structurizr.Workspace;
+
+import io.fabric8.kubernetes.api.model.KubernetesResource;
+
 import org.finos.calmtranslator.calm.Core;
 import org.finos.calmtranslator.translators.C4ModelTranslator;
+import org.finos.calmtranslator.translators.K8sModelTranslator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -28,7 +33,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class TestTranslatorShould {
 
 	@MockBean
-	C4ModelTranslator mockTranslator;
+	C4ModelTranslator mockC4Translator;
+	@MockBean
+	K8sModelTranslator mockK8sTranslator;
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -41,7 +48,7 @@ class TestTranslatorShould {
 
 	@Test
 	void return_c4_json_when_a_valid_calm_model_is_passed() throws Exception {
-		when(mockTranslator.translate(any()))
+		when(mockC4Translator.translate(any()))
 				.thenReturn(new Workspace("", ""));
 		mockMvc.perform(
 						MockMvcRequestBuilders.post("/translate/c4")
@@ -70,6 +77,21 @@ class TestTranslatorShould {
 
 				)
 				.andExpect(status().isBadRequest());
-		verifyNoInteractions(mockTranslator);
+		verifyNoInteractions(mockC4Translator);
+	}
+	@Test
+	void return_k8s_json_when_a_valid_calm_model_is_passed() throws Exception {
+
+		when(mockK8sTranslator.translate(any()))
+				.thenReturn(new ArrayList<KubernetesResource>());
+		mockMvc.perform(
+						MockMvcRequestBuilders.post("/translate/k8s")
+								.accept(MediaType.APPLICATION_JSON)
+								.contentType(MediaType.APPLICATION_JSON)
+								.content(new ObjectMapper().writeValueAsString(traderxCalmModel))
+
+				)
+				.andExpect(status().isCreated())
+				.andExpect(content().contentType(MediaType.APPLICATION_JSON));
 	}
 }
