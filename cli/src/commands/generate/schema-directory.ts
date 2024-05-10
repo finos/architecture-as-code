@@ -1,0 +1,147 @@
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+
+import { readdir, readFile } from 'fs/promises';
+import { join } from 'path';
+import pointer from 'json-pointer';
+import { mergeSchemas } from './util.js';
+import { Logger } from 'winston';
+import { initLogger } from '../helper.js';
+
+/**
+ * Stores a directory of schemas and resolves references against that directory.
+ * Can merge objects recursively and will handle circular references.
+ */
+export class SchemaDirectory {
+    private readonly schemas: Map<string, object> = new Map<string, object>();
+    private readonly logger: Logger;
+
+    /**
+     * Initialise the SchemaDirectory. Does not load the schemas until loadSchemas is called.
+     * @param directoryPath The directory path from which to load schemas. All JSON and YAML files under this path will be loaded, including subfolders.
+     * @param debug Whether to log at debug level.
+     */
+    constructor(private directoryPath: string, debug: boolean = false) {
+        this.logger = initLogger(debug);
+    }
+
+    public loadCurrentPatternAsSchema(pattern: object) {
+        this.logger.debug('Loading current pattern as a schema.');
+        this.schemas.set('pattern', pattern);
+    }
+
+    /**
+     * Load the schemas from the configured directory path.
+     */
+    public async loadSchemas() {
+        this.logger.debug('Loading schemas from ' + this.directoryPath);
+        const files = await readdir(this.directoryPath, { recursive: true });
+
+        const schemaPaths = files.filter(str => str.match(/^.*(json|yaml|yml)$/))
+            .map(schemaPath => join(this.directoryPath, schemaPath));
+
+        for (const schemaPath of schemaPaths) {
+            await this.loadSchema(schemaPath);
+        }
+
+        this.logger.info(`Loaded ${this.schemas.size} schemas.`);
+    }
+
+    private lookupDefinition(schemaId: string, ref: string) {
+        const schema = this.getSchema(schemaId);
+        if (!schema) {
+            return undefined;
+        }
+        return pointer.get(schema, ref);
+    }
+
+    private getDefinitionRecursive(definitionReference: string, currentSchemaId: string, visitedDefinitions: string[]) {
+        const splitReference = definitionReference.split('#');
+        let newSchemaId = splitReference[0];
+        const ref = splitReference[1];
+        visitedDefinitions.push(definitionReference);
+
+        if (!newSchemaId) {
+            newSchemaId = currentSchemaId;
+            this.logger.debug(`Resolving reference ${ref} against current schema.`);
+        }
+        this.logger.debug(`Recursively resolving the reference, ref: ${ref}`);
+        const definition = this.lookupDefinition(newSchemaId, ref);
+        if (!definition) {
+            // schema not defined
+            // TODO enforce this once we can guarantee we always have schemas available
+            return this.getMissingSchemaPlaceholder(definitionReference);
+        }
+        if (!definition['$ref']) {
+            this.logger.debug('Reached a definition with no ref, terminating recursive lookup.');
+            return definition;
+        }
+        const newRef: string = definition['$ref'];
+        if (visitedDefinitions.includes(newRef)) {
+            this.logger.warn('Circular reference detected. Terminating reference lookup. Visited definitions: ' + visitedDefinitions);
+            return definition;
+        }
+        const innerDef = this.getDefinitionRecursive(newRef, newSchemaId, visitedDefinitions);
+        return mergeSchemas(innerDef, definition);
+    }
+
+    private getMissingSchemaPlaceholder(reference: string) {
+        return {
+            properties: {
+                'missing-value': `MISSING OBJECT, ref: ${reference} could not be resolved`
+            }
+        };
+    }
+
+    /**
+     * 
+     * @param definitionReference The reference to resolve. May be an absolute reference including a schema ID prefix, or a local reference.
+     * @returns The resolved object, or an empty object if the object could not be resolved.
+     */
+    public getDefinition(definitionReference: string) {
+        this.logger.debug(`Resolving ${definitionReference} from schema directory.`);
+        return this.getDefinitionRecursive(definitionReference, 'pattern', []);
+        // TODO propagate the required fields
+    }
+
+    /**
+     * Return the list of all loaded schemas.
+     */
+    public getLoadedSchemas() {
+        return [...this.schemas.keys()];
+    }
+
+    /**
+     * Return the entire schema from the provided directory.
+     * @param schemaId The ID of the schema to load.
+     * @returns An entire schema as an object.
+     */
+    public getSchema(schemaId: string) {
+        if (!this.schemas.has(schemaId)) {
+            const registered = this.getLoadedSchemas();
+            this.logger.warn(`Schema with $id ${schemaId} not found. Returning empty object. Registered schemas: ${registered}`);
+            return undefined;
+        }
+        return this.schemas.get(schemaId);
+    }
+
+    private async loadSchema(schemaPath: string) {
+        this.logger.debug('Loading ' + schemaPath);
+        const str = await readFile(schemaPath, 'utf-8');
+        const parsed = JSON.parse(str);
+        const schemaId = parsed['$id'];
+
+        if (!schemaId) {
+            this.logger.warn('Warning: bad schema found, no $id property was defined. Path: ', schemaPath);
+            return;
+        }
+
+        if (!parsed['$schema']) {
+            this.logger.warn('Warning, loaded schema does not have $schema set and therefore may be invalid. Path: ', schemaPath);
+        }
+
+        this.logger.debug('Loaded schema with $id: ' + schemaId);
+        
+        this.schemas.set(schemaId, parsed);
+    }
+
+}

@@ -14,3 +14,7 @@ docs/contributing.md
 # We use YARN
 website/package-lock.json
 /.idea/
+
+**/.vscode/
+
+node_modules/

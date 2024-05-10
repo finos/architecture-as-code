@@ -1,4 +1,4 @@
-name: Build Docs for GitHub Pages
+name: Build Docs
 
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
