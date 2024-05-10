@@ -22,13 +22,12 @@ jobs:
         cache: maven
     - run: |
         mvn -B install --file ./translator/pom.xml
-        find ${{ github.workspace }}/.
+        find ./translator
     - name: Add coverage to PR
       id: jacoco
       uses: madrapps/jacoco-report@v1.6.1
       with:
-        paths: |
-          ${{ github.workspace }}/translator/target/site/jacoco/jacoco.xml
+        paths: ./translator/target/site/jacoco/jacoco.xml
         token: ${{ secrets.GITHUB_TOKEN }}
         min-coverage-overall: 80
         min-coverage-changed-files: 80
