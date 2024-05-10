@@ -36,12 +36,7 @@ public class Translator {
 
 	@PostMapping("/k8s")
 	@ResponseStatus(HttpStatus.CREATED)
-	public List<KubernetesResource> k8sManifestTranslation(
-			@RequestBody Core calmModel
-
-	) throws Exception {
-		// Currently a Structurizr json format
-		final List<KubernetesResource> kubernetesResources = k8sModelTranslator.translate(calmModel);
-		return kubernetesResources;
+	public List<KubernetesResource> k8sManifestTranslation(@RequestBody Core calmModel) {
+		return k8sModelTranslator.translate(calmModel);
 	}
 }
