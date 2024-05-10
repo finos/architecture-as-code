@@ -20,7 +20,9 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
         cache: maven
-    - run: mvn -B install --file ./translator/pom.xml
+    - run: |
+        mvn -B install --file ./translator/pom.xml
+        find ${{ github.workspace }}/.
     - name: Add coverage to PR
       id: jacoco
       uses: madrapps/jacoco-report@v1.6.1
