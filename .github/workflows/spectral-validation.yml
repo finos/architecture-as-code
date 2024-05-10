@@ -1,4 +1,4 @@
-name: Run Spectral Validation on all samples
+name: Validation of CALM Samples
 
 on:
   pull_request:
@@ -31,5 +31,5 @@ jobs:
         with:
           node-version: v20
       - run: npm install @stoplight/spectral-cli
-      - run: npx spectral lint --ruleset spectral/calm-validation-rules.yaml 'calm/samples/**/*(*.json|*.yaml)'
+      - run: npx spectral lint --ruleset spectral/instantiation/validation-rules.yaml 'calm/samples/**/*(*.json|*.yaml)'
 

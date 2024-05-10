@@ -2,13 +2,18 @@
   "$schema": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/pattern/api-gateway.json",
   "nodes": [
     {
-      "ingress-host": "{{ INGRESS_HOST }}",
-      "well-known-endpoint": "{{ WELL_KNOWN_ENDPOINT }}",
+      "well-known-endpoint": "https://identity-provider.com/.well-known/openid-configuration",
       "name": "API Gateway",
       "description": "The API Gateway used to verify authorization and access to downstream system",
       "node-type": "system",
       "unique-id": "api-gateway",
-      "ingress-port": -1
+      "interfaces": [
+        {
+          "unique-id": "api-gateway-ingress",
+          "host": "https://api-gateway-ingress.example.com",
+          "port": 443
+        }
+      ]
     },
     {
       "unique-id": "api-consumer",
@@ -17,12 +22,23 @@
       "description": "The API Consumer making an authenticated and authorized request"
     },
     {
-      "name": "Java Based API Producer",
-      "host": "{{ HOST }}",
-      "description": "The API Producer serving content",
+      "interfaces": [
+        {
+          "unique-id": "producer-ingress",
+          "host": "https://api-producer.example.com",
+          "port": 443
+        }
+      ],
       "node-type": "system",
-      "port": -1,
+      "name": "Java Based API Producer",
+      "description": "The API Producer serving content",
       "unique-id": "api-producer"
+    },
+    {
+      "unique-id": "idp",
+      "node-type": "system",
+      "name": "Identity Provider",
+      "description": "The Identity Provider used to verify the bearer token"
     }
   ],
   "relationships": [
@@ -30,8 +46,15 @@
       "unique-id": "api-consumer-api-gateway",
       "relationship-type": {
         "connects": {
-          "destination": "api-gateway",
-          "source": "api-consumer"
+          "destination": {
+            "node": "api-gateway",
+            "interfaces": [
+              "api-gateway-ingress"
+            ]
+          },
+          "source": {
+            "node": "api-consumer"
+          }
         }
       }
     },
@@ -39,8 +62,12 @@
       "unique-id": "api-gateway-idp",
       "relationship-type": {
         "connects": {
-          "destination": "idp",
-          "source": "api-gateway"
+          "destination": {
+            "node": "idp"
+          },
+          "source": {
+            "node": "api-gateway"
+          }
         }
       }
     },
@@ -48,8 +75,15 @@
       "unique-id": "api-gateway-api-producer",
       "relationship-type": {
         "connects": {
-          "destination": "api-producer",
-          "source": "api-gateway"
+          "destination": {
+            "node": "api-producer",
+            "interfaces": [
+              "producer-ingress"
+            ]
+          },
+          "source": {
+            "node": "api-gateway"
+          }
         }
       }
     }
