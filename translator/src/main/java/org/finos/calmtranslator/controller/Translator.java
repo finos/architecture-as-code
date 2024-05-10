@@ -1,7 +1,6 @@
 package org.finos.calmtranslator.controller;
 
 import com.structurizr.Workspace;
-import com.structurizr.util.WorkspaceUtils;
 
 import io.fabric8.kubernetes.api.model.KubernetesResource;
 
