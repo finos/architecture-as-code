@@ -3,7 +3,7 @@ export interface CALMInstantiation {
     relationships: CALMRelationship[]
 }
 
-export type NodeType = 'actor' | 'system' | 'service' | 'database' | 'internal-network' | 'ldap' | 'dataclient';
+export type NodeType = 'actor' | 'system' | 'service' | 'database' | 'network' | 'ldap' | 'dataclient';
 
 export interface CALMNode {
     name: string, 

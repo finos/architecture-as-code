@@ -151,7 +151,7 @@
         "system",
         "service",
         "database",
-        "internal-network",
+        "network",
         "ldap",
         "webclient"
       ]

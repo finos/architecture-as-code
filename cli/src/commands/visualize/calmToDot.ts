@@ -29,7 +29,7 @@ export default function(calm: CALMInstantiation, debug: boolean = false): string
 function addNode(G: Digraph, node: CALMNode) {
     if (node['node-type'] === 'actor') {
         createNode(G, node, 'ellipse');
-    } else if (node['node-type'] === 'internal-network') {
+    } else if (node['node-type'] === 'network') {
         // do not create node as this will be a subgraph later
     } else {
         createNode(G, node, 'box');

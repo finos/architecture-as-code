@@ -33,7 +33,7 @@ nodes:
     data-classification: Confidential
     run-as: systemId
   - unique-id: internal-bank-network
-    node-type: internal-network
+    node-type: network
     name: Bank ABC Internal Network
     description: Internal network for Bank ABC
     instance: Internal Network
