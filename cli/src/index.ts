@@ -30,7 +30,7 @@ program
     .command('generate')
     .description('Generate an instantiation from a CALM pattern file.')
     .requiredOption('-p, --pattern <source>', 'Path to the pattern file to use. May be a file path or a URL.')
-    .requiredOption('-o, --output <output>', 'Path location at which to output the generated file.')
+    .requiredOption('-o, --output <output>', 'Path location at which to output the generated file.', 'instantiation.json')
     .option('-s, --schemaDirectory <path>', 'Path to directory containing schemas to use in instantiation')
     .option('-v, --verbose', 'Enable verbose logging.', false)
     .option('-a, --instantiateAll', 'Instantiate all properties, ignoring the "required" field.', false)
