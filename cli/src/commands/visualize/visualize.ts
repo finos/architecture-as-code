@@ -37,7 +37,7 @@ export async function visualizePattern(patternPath: string, output: string, debu
 
     // TODO add a path to load schemas and generate intelligently
     const schemaDir: SchemaDirectory = new SchemaDirectory(patternPath);
-    const instantiation = generate(patternPath, schemaDir, debug, false);
+    const instantiation = generate(patternPath, schemaDir, debug, true);
 
     logger.info('Generating an SVG from input');
 
