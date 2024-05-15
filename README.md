@@ -1,4 +1,4 @@
-![badge-labs](https://user-images.githubusercontent.com/327285/230928932-7c75f8ed-e57b-41db-9fb7-a292a13a1e58.svg)
+[![FINOS - Incubating](https://cdn.jsdelivr.net/gh/finos/contrib-toolbox@master/images/badge-incubating.svg)](https://finosfoundation.atlassian.net/wiki/display/FINOS/Incubating)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8821/badge)](https://www.bestpractices.dev/projects/8821)
 [![CodeQL](https://github.com/finos-labs/architecture-as-code/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/finos-labs/architecture-as-code/actions/workflows/github-code-scanning/codeql)
 [![CVE Scanning for Maven](https://github.com/finos-labs/architecture-as-code/actions/workflows/cve-scanning-maven.yml/badge.svg)](https://github.com/finos-labs/architecture-as-code/actions/workflows/cve-scanning-maven.yml)
