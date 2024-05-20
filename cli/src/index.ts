@@ -30,7 +30,7 @@ program
     .command('generate')
     .description('Generate an instantiation from a CALM pattern file.')
     .requiredOption('-p, --pattern <source>', 'Path to the pattern file to use. May be a file path or a URL.')
-    .requiredOption('-o, --output <output>', 'Path location at which to output the generated file.')
+    .requiredOption('-o, --output <output>', 'Path location at which to output the generated file.', 'instantiation.json')
     .option('-s, --schemaDirectory <path>', 'Path to directory containing schemas to use in instantiation')
     .option('-v, --verbose', 'Enable verbose logging.', false)
     .option('-a, --instantiateAll', 'Instantiate all properties, ignoring the "required" field.', false)
@@ -42,7 +42,7 @@ program
     .command('validate')
     .requiredOption('-p, --pattern <pattern>', 'Path to the pattern file to use. May be a file path or a URL.')
     .requiredOption('-i, --instantiation <instantiation>', 'Path to the pattern instantiation file to use. May be a file path or a URL.')
-    .option('-m, --metaSchemasLocation <metaSchemaLocation>', 'The location of the directory of the meta schemas to be loaded', '../calm/draft/2024-03/meta')
+    .option('-m, --metaSchemasLocation <metaSchemaLocation>', 'The location of the directory of the meta schemas to be loaded', '../calm/draft/2024-04/meta')
     .addOption(
         new Option('-f, --format <format>', 'The format of the output')
             .choices(['json', 'junit'])

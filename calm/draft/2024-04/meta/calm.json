@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
 
   "$vocabulary": {
     "https://json-schema.org/draft/2020-12/vocab/core": true,
@@ -9,13 +9,13 @@
     "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
     "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
     "https://json-schema.org/draft/2020-12/vocab/content": true,
-    "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-04/meta/core.json": true
+    "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json": true
   },
   "$dynamicAnchor": "meta",
 
   "title": "Common Architecture Language Model (CALM) Schema",
   "allOf": [
     {"$ref": "https://json-schema.org/draft/2020-12/schema"},
-    {"$ref": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-04/meta/core.json"}
+    {"$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json"}
   ]
 }

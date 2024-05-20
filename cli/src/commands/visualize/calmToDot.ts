@@ -16,6 +16,7 @@ export default function(calm: CALMInstantiation, debug: boolean = false): string
 
     calm.nodes.forEach(node => {
         logger.debug(`Creating a node with ID [${node['unique-id']}]`);
+        logger.debug(`Using the following node [${JSON.stringify(node)}]`);
         addNode(G, node);
     });
     calm.relationships.forEach(relationship => {
@@ -50,6 +51,7 @@ function capitalizeFirstLetter(s: string): string {
 }
 
 function addRelationship(g: Digraph, relationship: CALMRelationship): void {
+    logger.debug(`Using the following relationship [${JSON.stringify(relationship)}]`);
     if ('connects' in relationship['relationship-type']) {
         addConnectsRelationship(g, relationship as CALMConnectsRelationship);
     } else if ('interacts' in relationship['relationship-type']) {

@@ -20,7 +20,7 @@ const config = {
 
     // GitHub pages deployment config.
     // If you aren't using GitHub pages, you don't need these.
-    organizationName: 'finos-labs', // Usually your GitHub org/user name.
+    organizationName: 'finos', // Usually your GitHub org/user name.
     projectName: 'architecture-as-code', // Usually your repo name.
 
     onBrokenLinks: 'throw',
@@ -108,7 +108,7 @@ const config = {
                         activeBaseRegex: `/community/`,
                     },
                     {
-                        href: 'https://github.com/finos-labs/architecture-as-code',
+                        href: 'https://github.com/finos/architecture-as-code',
                         label: 'GitHub',
                         position: 'right',
                     },
@@ -122,7 +122,7 @@ const config = {
                         items: [
                             {
                                 label: 'Core',
-                                href: 'http://github.com/finos-labs/architecture-as-code/blob/master/calm/',
+                                href: 'http://github.com/finos/architecture-as-code/blob/master/calm/',
                             },
                         ],
                     },
@@ -131,15 +131,15 @@ const config = {
                         items: [
                             {
                                 label: 'Find an Issue',
-                                href: 'https://github.com/finos-labs/architecture-as-code/issues',
+                                href: 'https://github.com/finos/architecture-as-code/issues',
                             },
                             {
                                 label: 'Feature Request',
-                                href: 'https://github.com/finos-labs/architecture-as-code/issues/new?assignees=&labels=&projects=&template=Feature_request.md',
+                                href: 'https://github.com/finos/architecture-as-code/issues/new?assignees=&labels=&projects=&template=Feature_request.md',
                             },
                             {
                                 label: 'Bug Report',
-                                href: 'https://github.com/finos-labs/architecture-as-code/issues/new?assignees=&labels=&projects=&template=Bug_report.md',
+                                href: 'https://github.com/finos/architecture-as-code/issues/new?assignees=&labels=&projects=&template=Bug_report.md',
                             },
                         ],
                     },
@@ -152,7 +152,7 @@ const config = {
                             },
                             {
                                 label: 'GitHub',
-                                href: 'https://github.com/finos-labs/architecture-as-code',
+                                href: 'https://github.com/finos/architecture-as-code',
                             },
                         ],
                     },
