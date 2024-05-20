@@ -70,7 +70,7 @@ class TestTranslatorShould {
 								.contentType(MediaType.APPLICATION_JSON)
 								.content(new ObjectMapper().writeValueAsString("""
 										{
-										  "$schema": "https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-03/meta/calm.json",
+										  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/calm.json",
 										  "nodes": [
 										  ]
 										}"""))

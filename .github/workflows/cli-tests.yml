@@ -2,14 +2,14 @@ name: Build CLI
 
 on:
   pull_request:
-    branches: 
+    branches:
       - "main"
-    paths: 
+    paths:
       - "cli/**"
   push:
-    branches: 
+    branches:
       - "main"
-    paths: 
+    paths:
       - "cli/**"
 
 defaults:
@@ -28,4 +28,9 @@ jobs:
           node-version: v20
       - run: npm ci
       - run: npm run test
-      - run: npm run lint 
+      - run: npm run lint
+      - run: npm run build
+      # Try running each command
+      - run: npx calm validate -p ../calm/pattern/api-gateway.json -i ../calm/samples/api-gateway-implementation.json
+      - run: npx calm generate -p ../calm/pattern/api-gateway.json -s ../calm/draft/2024-04/meta
+      - run: npx calm visualize -p ../calm/pattern/api-gateway.json
