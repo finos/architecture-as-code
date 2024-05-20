@@ -28,86 +28,108 @@ jest.mock('../helper.js', () => {
     };
 });
 
-describe('visualize instantiation', () => {
+describe('visualizer', () => {
+    let mockExit;
+
     beforeEach(() => {
-        (readFileSync as jest.Mock).mockReturnValue(`
-        {
-            "nodes": [],
-            "relationships": []
-        }
-        `);
-    });
-
-
-    afterEach(() => {
-        jest.resetAllMocks();
-    });
-
-    it('reads from the given input file', async () => {
-        jest.spyOn(graphviz, 'renderGraphFromSource').mockResolvedValue('<svg></svg>');
-
-        await visualizeInstantiation('./input.json', './output.svg', false);
-        expect(readFileSync).toHaveBeenCalledWith('./input.json', 'utf-8');
-    });
-
-    it('writes to the given output file', async () => {
-        jest.spyOn(graphviz, 'renderGraphFromSource').mockResolvedValue('<svg></svg>');
-
-        await visualizeInstantiation('./input.json', './output.svg', false);
-        expect(writeFileSync).toHaveBeenCalledWith('./output.svg', '<svg></svg>');
-    });
-
-    it('doesnt write if an error is thrown', async () => {
-        jest.spyOn(graphviz, 'renderGraphFromSource').mockRejectedValue(new Error());
-
-        await visualizeInstantiation('./input.json', './output.svg', false);
-        expect(writeFileSync).not.toHaveBeenCalled();
-    });
-});
-
-describe('visualize pattern', () => {
-    beforeEach(() => {
-        (readFileSync as jest.Mock).mockReturnValue(`
-        {
-            "properties": {
-                "nodes": {
-                    "prefixItems": []
-                },
-                "relationships": {
-                    "prefixItems": []
+        mockExit = jest.spyOn(process, 'exit')
+            .mockImplementation((code) => {
+                if (code != 0) {
+                    throw new Error();
                 }
-            },
-            "required": [
-                "nodes",
-                "relationships"
-            ]
-        }
-        `);
+                return undefined as never;
+            });
     });
 
+    describe('visualize instantiation', () => {
 
-    afterEach(() => {
-        jest.resetAllMocks();
+        beforeEach(() => {
+            (readFileSync as jest.Mock).mockReturnValue(`
+            {
+                "nodes": [],
+                "relationships": []
+            }
+            `);
+        });
+
+
+        afterEach(() => {
+            jest.resetAllMocks();
+            mockExit.mockRestore();
+        });
+
+        it('reads from the given input file', async () => {
+            jest.spyOn(graphviz, 'renderGraphFromSource').mockResolvedValue('<svg></svg>');
+
+            await visualizeInstantiation('./input.json', './output.svg', false);
+            expect(readFileSync).toHaveBeenCalledWith('./input.json', 'utf-8');
+        });
+
+        it('writes to the given output file', async () => {
+            jest.spyOn(graphviz, 'renderGraphFromSource').mockResolvedValue('<svg></svg>');
+
+            await visualizeInstantiation('./input.json', './output.svg', false);
+            expect(writeFileSync).toHaveBeenCalledWith('./output.svg', '<svg></svg>');
+        });
+
+        it('doesnt write if an error is thrown', async () => {
+            jest.spyOn(graphviz, 'renderGraphFromSource').mockRejectedValue(new Error());
+
+            await expect(visualizeInstantiation('./input.json', './output.svg', false))
+                .rejects
+                .toThrow();
+            expect(writeFileSync).not.toHaveBeenCalled();
+            expect(mockExit).toHaveBeenCalledWith(1);
+        });
     });
 
-    it('reads from the given input file', async () => {
-        jest.spyOn(graphviz, 'renderGraphFromSource').mockResolvedValue('<svg></svg>');
+    describe('visualize pattern', () => {
+        beforeEach(() => {
+            (readFileSync as jest.Mock).mockReturnValue(`
+            {
+                "properties": {
+                    "nodes": {
+                        "prefixItems": []
+                    },
+                    "relationships": {
+                        "prefixItems": []
+                    }
+                },
+                "required": [
+                    "nodes",
+                    "relationships"
+                ]
+            }
+            `);
+        });
 
-        await visualizePattern('./input.json', './output.svg', false);
-        expect(readFileSync).toHaveBeenCalledWith('./input.json', 'utf-8');
-    });
 
-    it('writes to the given output file', async () => {
-        jest.spyOn(graphviz, 'renderGraphFromSource').mockResolvedValue('<svg></svg>');
+        afterEach(() => {
+            jest.resetAllMocks();
+        });
 
-        await visualizePattern('./input.json', './output.svg', false);
-        expect(writeFileSync).toHaveBeenCalledWith('./output.svg', '<svg></svg>');
-    });
+        it('reads from the given input file', async () => {
+            jest.spyOn(graphviz, 'renderGraphFromSource').mockResolvedValue('<svg></svg>');
 
-    it('doesnt write if an error is thrown', async () => {
-        jest.spyOn(graphviz, 'renderGraphFromSource').mockRejectedValue(new Error());
+            await visualizePattern('./input.json', './output.svg', false);
+            expect(readFileSync).toHaveBeenCalledWith('./input.json', 'utf-8');
+        });
 
-        await visualizePattern('./input.json', './output.svg', false);
-        expect(writeFileSync).not.toHaveBeenCalled();
+        it('writes to the given output file', async () => {
+            jest.spyOn(graphviz, 'renderGraphFromSource').mockResolvedValue('<svg></svg>');
+
+            await visualizePattern('./input.json', './output.svg', false);
+            expect(writeFileSync).toHaveBeenCalledWith('./output.svg', '<svg></svg>');
+        });
+
+        it('doesnt write if an error is thrown', async () => {
+            jest.spyOn(graphviz, 'renderGraphFromSource').mockRejectedValue(new Error());
+
+            await expect(visualizePattern('./input.json', './output.svg', false))
+                .rejects
+                .toThrow();
+            expect(writeFileSync).not.toHaveBeenCalled();
+            expect(mockExit).toHaveBeenCalledWith(1);
+        });
     });
 });
