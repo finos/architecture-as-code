@@ -26,7 +26,7 @@ describe('SchemaDirectory', () => {
         const schemaDir = new SchemaDirectory('../calm/draft/2024-03');
         
         await schemaDir.loadSchemas();
-        const nodeRef = 'https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-03/meta/core.json#/defs/node';
+        const nodeRef = 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/core.json#/defs/node';
         const nodeDef = schemaDir.getDefinition(nodeRef);
 
         // node should have a required property of node-type
@@ -37,7 +37,7 @@ describe('SchemaDirectory', () => {
         const schemaDir = new SchemaDirectory('../calm/draft/2024-04');
         
         await schemaDir.loadSchemas();
-        const interfaceRef = 'https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/host-port-interface';
+        const interfaceRef = 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/host-port-interface';
         const interfaceDef = schemaDir.getDefinition(interfaceRef);
 
         // this should include host and port, but also recursively include unique-id
@@ -49,7 +49,7 @@ describe('SchemaDirectory', () => {
     it('resolve to warning message if schema is missing', async () => {
         const schemaDir = new SchemaDirectory('../calm/draft/2024-04');
         
-        const interfaceRef = 'https://raw.githubusercontent.com/finos-labs/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/host-port-interface';
+        const interfaceRef = 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/host-port-interface';
         const interfaceDef = schemaDir.getDefinition(interfaceRef);
 
         // this should include host and port, but also recursively include unique-id
