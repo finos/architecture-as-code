@@ -15,6 +15,7 @@ import org.finos.calmtranslator.calm.Core;
 import org.finos.calmtranslator.calm.Node;
 import org.finos.calmtranslator.calm.RelationshipType;
 
+@org.springframework.stereotype.Service
 public class K8sModelTranslator implements ModelTranslator<List<KubernetesResource>> {
     @Override
     public List<KubernetesResource> translate(final Core calmModel) {
