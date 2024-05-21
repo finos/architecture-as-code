@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Architecture as Code",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}
