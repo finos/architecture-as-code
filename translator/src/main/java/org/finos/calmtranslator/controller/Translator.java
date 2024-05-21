@@ -1,9 +1,14 @@
 package org.finos.calmtranslator.controller;
 
 import com.structurizr.Workspace;
+
+import io.fabric8.kubernetes.api.model.KubernetesResource;
+
+import java.util.List;
+
 import org.finos.calmtranslator.calm.Core;
 import org.finos.calmtranslator.translators.C4ModelTranslator;
-
+import org.finos.calmtranslator.translators.K8sModelTranslator;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,14 +21,22 @@ import org.springframework.web.bind.annotation.RestController;
 public class Translator {
 
 	private final C4ModelTranslator c4ModelTranslator;
+	private final K8sModelTranslator k8sModelTranslator;
 
-	public Translator(C4ModelTranslator c4ModelTranslator) {
+	public Translator(C4ModelTranslator c4ModelTranslator, K8sModelTranslator k8sModelTranslator) {
 		this.c4ModelTranslator = c4ModelTranslator;
+		this.k8sModelTranslator = k8sModelTranslator;
 	}
 
 	@PostMapping("/c4")
 	@ResponseStatus(HttpStatus.CREATED)
 	public Workspace c4Translation(@RequestBody Core calmModel) {
 		return c4ModelTranslator.translate(calmModel);
+	}
+
+	@PostMapping("/k8s")
+	@ResponseStatus(HttpStatus.CREATED)
+	public List<KubernetesResource> k8sManifestTranslation(@RequestBody Core calmModel) {
+		return k8sModelTranslator.translate(calmModel);
 	}
 }
