@@ -14,8 +14,13 @@ specification into alternative formats.
 
 ## Using the translators
 
+### Using Swagger 
 The OpenAPI Specification is available at [/v3/api-docs](http://localhost:8080/v3/api-docs) and the Swagger UI is
 available at [/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+
+### Using Bruno
+-  Install Bruno from https://www.usebruno.com/
+- Open the Collection at `translator/etc/bruno/Architecture as Code`
 
 ## Supported translations
 
@@ -40,3 +45,4 @@ available at [/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.htm
   </tr>
 </table>
 
+##
