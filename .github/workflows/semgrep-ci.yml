@@ -21,6 +21,4 @@ jobs:
     if: (github.actor != 'dependabot[bot]')
     steps:
       - uses: actions/checkout@v4
-      - name: Log in to Semgrep
-        run: semgrep login
       - run: semgrep ci
