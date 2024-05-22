@@ -43,7 +43,7 @@
     "@types/junit-report-builder": "^3.0.2",
     "@types/node": "^20.11.30",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "eslint": "^8.57.0",
+    "eslint": "^9.0.0",
     "eslint-config-standard-with-typescript": "^43.0.1",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-n": "^16.6.2",
