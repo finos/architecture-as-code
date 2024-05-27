@@ -45,7 +45,7 @@ jobs:
           if [ $LINES_FOUND -gt 1 ]; then echo $LICENSE_REPORT ; exit -1; fi
         working-directory: ${{ matrix.module-folder }}
       - name: Upload license XML reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: license-xml-report
           path: '${{ matrix.module-folder }}/**/${{ env.REPORT_PATH }}'
