@@ -24,6 +24,7 @@ jobs:
         cache: maven
     - run: mvn -B install --file ./translator/pom.xml
     - name: Add coverage to PR
+      if: github.repository_owner == 'finos'
       id: jacoco
       uses: madrapps/jacoco-report@v1.4
       with:
