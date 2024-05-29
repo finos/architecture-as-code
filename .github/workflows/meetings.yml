@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checking out metadata-tool
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         repository: 'finos/metadata-tool'
         path: 'metadata-tool'
