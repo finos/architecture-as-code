@@ -1,4 +1,5 @@
 ## CALM CLI
+
 A command line interface to interact with the CALM schema.
 
 ## Building & linking the CLI
@@ -20,13 +21,14 @@ Note: you can also use `npm link` but this installs to your global package regis
 This will make the executable available as just `calm`, but will pollute your global NPM profile and may require `sudo` depending on your OS.
 
 ### Using the CLI
-Type `npx calm` into your terminal, and you should see the help text printed out.
+
+Type `calm` into your terminal, and you should see the help text printed out.
 
 ```shell
-% npx calm
+% calm
 Usage: calm [options] [command]
 
-A set of utilities for interacting with CALM
+A set of tools for interacting with the Common Architecture Language Model (CALM)
 
 Options:
   -V, --version        output the version number
@@ -35,11 +37,12 @@ Options:
 Commands:
   visualize [options]  Produces an SVG file representing a visualization of the CALM Specification.
   generate [options]   Generate an instantiation from a CALM pattern file.
-  validate [options]
+  validate [options]   Validate that an instantiation conforms to a given CALM pattern.
   help [command]       display help for command
 ```
 
 ### Visualizing the CALM schema
+
 ```shell
 % npx calm visualize --help
 Usage: calm visualize [options]
@@ -55,8 +58,9 @@ Options:
 ```
 
 ### Generating an instantiation from a CALM pattern file
+
 ```shell
-npx calm generate --help 
+npx calm generate --help
 Usage: calm generate [options]
 
 Generate an instantiation from a CALM pattern file.
@@ -71,9 +75,12 @@ Options:
 ```
 
 ### Validating a CALM instantiation
+
 ```shell
-% npx calm validate --help 
+% npx calm validate --help
 Usage: calm validate [options]
+
+Validate that an instantiation conforms to a given CALM pattern.
 
 Options:
   -p, --pattern <pattern>                         Path to the pattern file to use. May be a file path or a URL.

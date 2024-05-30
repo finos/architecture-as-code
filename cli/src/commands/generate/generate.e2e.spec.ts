@@ -16,9 +16,8 @@ describe('generate spec e2e', () => {
 
     it('instantiate file with self-reference', async () => {
         const patternPath = 'test_fixtures/api-gateway-self-reference.json';
-        const schemaDirectoryPath = '../calm/draft/2024-04';
         const outPath = path.join(tempDirectoryPath, 'output.json');
-        await runGenerate(patternPath, outPath, schemaDirectoryPath, true, false);
+        await runGenerate(patternPath, outPath, true, false);
 
         expect(existsSync(outPath))
             .toBeTruthy();

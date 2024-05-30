@@ -7,7 +7,7 @@ import validate  from './commands/validate/validate.js';
 
 program
     .version('0.1.0')
-    .description('A set of utilities for interacting with CALM');
+    .description('A set of tools for interacting with the Common Architecture Language Model (CALM)');
 
 program
     .command('visualize')
@@ -40,9 +40,10 @@ program
 
 program
     .command('validate')
+    .description('Validate that an instantiation conforms to a given CALM pattern.')
     .requiredOption('-p, --pattern <pattern>', 'Path to the pattern file to use. May be a file path or a URL.')
     .requiredOption('-i, --instantiation <instantiation>', 'Path to the pattern instantiation file to use. May be a file path or a URL.')
-    .option('-m, --metaSchemasLocation <metaSchemaLocation>', 'The location of the directory of the meta schemas to be loaded', '../calm/draft/2024-04/meta')
+    .option('-m, --metaSchemasLocation <metaSchemaLocation>', 'The location of the directory of the meta schemas to be loaded', 'dist/calm/meta')
     .addOption(
         new Option('-f, --format <format>', 'The format of the output')
             .choices(['json', 'junit'])
