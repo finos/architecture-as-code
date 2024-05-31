@@ -4,6 +4,7 @@ import { Option, program } from 'commander';
 import { visualizeInstantiation, visualizePattern } from './commands/visualize/visualize.js';
 import { runGenerate } from './commands/generate/generate.js';
 import validate  from './commands/validate/validate.js';
+import { CALM_META_SCHEMA_DIRECTORY } from './consts.js';
 
 program
     .version('0.1.0')
@@ -43,7 +44,7 @@ program
     .description('Validate that an instantiation conforms to a given CALM pattern.')
     .requiredOption('-p, --pattern <pattern>', 'Path to the pattern file to use. May be a file path or a URL.')
     .requiredOption('-i, --instantiation <instantiation>', 'Path to the pattern instantiation file to use. May be a file path or a URL.')
-    .option('-m, --metaSchemasLocation <metaSchemaLocation>', 'The location of the directory of the meta schemas to be loaded', 'dist/calm/meta')
+    .option('-m, --metaSchemasLocation <metaSchemaLocation>', 'The location of the directory of the meta schemas to be loaded', CALM_META_SCHEMA_DIRECTORY)
     .addOption(
         new Option('-f, --format <format>', 'The format of the output')
             .choices(['json', 'junit'])
