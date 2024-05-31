@@ -1,1 +1,1 @@
-export const CALM_META_SCHEMA_DIRECTORY = 'calm/meta';
+export const CALM_META_SCHEMA_DIRECTORY = 'dist/calm/meta';
