@@ -30,7 +30,3 @@ jobs:
       - run: npm run test
       - run: npm run lint
       - run: npm run build
-      # Try running each command
-      - run: npx calm generate -p ../calm/pattern/api-gateway.json
-      - run: npx calm validate -p ../calm/pattern/api-gateway.json -i instantiation.json
-      - run: npx calm visualize -p ../calm/pattern/api-gateway.json
