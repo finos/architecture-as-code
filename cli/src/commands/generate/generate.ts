@@ -10,6 +10,7 @@ import { CALMInstantiation } from '../../types.js';
 import { SchemaDirectory } from './schema-directory.js';
 import { instantiateNode, instantiateNodes } from './components/node.js';
 import { instantiateRelationships } from './components/relationship.js';
+import { CALM_META_SCHEMA_DIRECTORY } from '../../consts.js';
 
 let logger: winston.Logger; // defined later at startup
 
@@ -54,7 +55,7 @@ export async function generate(patternPath: string, debug: boolean, instantiateA
     logger = initLogger(debug);
     const schemaDirectory = new SchemaDirectory();
 
-    await schemaDirectory.loadSchemas('dist/calm/meta');
+    await schemaDirectory.loadSchemas(CALM_META_SCHEMA_DIRECTORY);
     if (schemaDirectoryPath) {
         await schemaDirectory.loadSchemas(schemaDirectoryPath);
     }

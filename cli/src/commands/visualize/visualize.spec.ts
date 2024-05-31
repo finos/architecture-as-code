@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import * as graphviz from 'graphviz-cli';
 import { visualizeInstantiation, visualizePattern } from './visualize';
+import { generate } from '../generate/generate';
 
 jest.mock('node:fs', () => {
     return {
@@ -27,6 +28,8 @@ jest.mock('../helper.js', () => {
         }
     };
 });
+
+jest.mock('../generate/generate');
 
 describe('visualizer', () => {
     let mockExit;
@@ -85,7 +88,7 @@ describe('visualizer', () => {
 
     describe('visualize pattern', () => {
         beforeEach(() => {
-            (readFileSync as jest.Mock).mockReturnValue(`
+            (generate as jest.Mock).mockResolvedValue(`
             {
                 "properties": {
                     "nodes": {
@@ -108,11 +111,11 @@ describe('visualizer', () => {
             jest.resetAllMocks();
         });
 
-        it('reads from the given input file', async () => {
+        it('generates instantiation from the given input file', async () => {
             jest.spyOn(graphviz, 'renderGraphFromSource').mockResolvedValue('<svg></svg>');
 
             await visualizePattern('./input.json', './output.svg', false);
-            expect(readFileSync).toHaveBeenCalledWith('./input.json', 'utf-8');
+            expect(generate).toHaveBeenCalledWith('./input.json', false, true);
         });
 
         it('writes to the given output file', async () => {

@@ -111,9 +111,7 @@ describe('runGenerate', () => {
 
     it('instantiates to given directory', async () => {
         const outPath = path.join(tempDirectoryPath, 'output.json');
-        console.log(outPath);
         await runGenerate(testPath, outPath, false, false);
-        console.log(existsSync(outPath));
 
         expect(existsSync(outPath))
             .toBeTruthy();
