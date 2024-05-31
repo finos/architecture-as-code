@@ -8,10 +8,10 @@
   ],
   "scripts": {
     "build": "tsc && npm run copy-calm-schema",
-    "test": "jest --verbose",
+    "test": "npm run copy-calm-schema && jest --verbose",
     "lint": "eslint src",
     "lint-fix": "eslint src --fix",
-    "copy-calm-schema": "cp -r ../calm/draft/2024-04 dist/calm/"
+    "copy-calm-schema": "mkdir -p dist/calm && cp -r ../calm/draft/2024-04/ dist/calm/"
   },
   "bin": {
     "calm": "dist/index.js"
