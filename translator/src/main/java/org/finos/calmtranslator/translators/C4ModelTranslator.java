@@ -78,8 +78,8 @@ public class C4ModelTranslator implements ModelTranslator<Workspace> {
 	private void addConnectsRelationship(Relationship relationship, final Core calmModel, final Model c4Model, final Map<String, String> nodeNameToC4Id) {
 		final RelationshipType relationshipType = relationship.getRelationshipType();
 		final ConnectsType connects = relationshipType.getConnects();
-		final Node sourceNode = getNodeFromUniqueName(calmModel, connects.getSource());
-		final Node destinationNode = getNodeFromUniqueName(calmModel, connects.getDestination());
+		final Node sourceNode = getNodeFromUniqueName(calmModel, connects.getSource().getNode());
+		final Node destinationNode = getNodeFromUniqueName(calmModel, connects.getDestination().getNode());
 
 		String srcC4Id = nodeNameToC4Id.get(sourceNode.getName());
 		if (Objects.isNull(srcC4Id)) {
