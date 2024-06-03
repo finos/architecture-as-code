@@ -20,7 +20,7 @@ export class SchemaDirectory {
      * @param directoryPath The directory path from which to load schemas. All JSON and YAML files under this path will be loaded, including subfolders.
      * @param debug Whether to log at debug level.
      */
-    constructor(private directoryPath: string, debug: boolean = false) {
+    constructor(debug: boolean = false) {
         this.logger = initLogger(debug);
     }
 
@@ -31,18 +31,23 @@ export class SchemaDirectory {
 
     /**
      * Load the schemas from the configured directory path.
+     * Subsequent loads could overwrite schemas if they have the same ID.
      */
-    public async loadSchemas() {
-        this.logger.debug('Loading schemas from ' + this.directoryPath);
-        const files = await readdir(this.directoryPath, { recursive: true });
+    public async loadSchemas(dir: string): Promise<void> {
+        const map = new Map<string, object>();
+
+        this.logger.debug('Loading schemas from ' + dir);
+        const files = await readdir(dir, { recursive: true });
 
         const schemaPaths = files.filter(str => str.match(/^.*(json|yaml|yml)$/))
-            .map(schemaPath => join(this.directoryPath, schemaPath));
+            .map(schemaPath => join(dir, schemaPath));
 
         for (const schemaPath of schemaPaths) {
-            await this.loadSchema(schemaPath);
+            const schema = await this.loadSchema(schemaPath);
+            map.set(schema['$id'], schema);
         }
 
+        map.forEach((val, key) => this.schemas.set(key, val));
         this.logger.info(`Loaded ${this.schemas.size} schemas.`);
     }
 
@@ -124,7 +129,7 @@ export class SchemaDirectory {
         return this.schemas.get(schemaId);
     }
 
-    private async loadSchema(schemaPath: string) {
+    private async loadSchema(schemaPath: string): Promise<object> {
         this.logger.debug('Loading ' + schemaPath);
         const str = await readFile(schemaPath, 'utf-8');
         const parsed = JSON.parse(str);
@@ -141,7 +146,6 @@ export class SchemaDirectory {
 
         this.logger.debug('Loaded schema with $id: ' + schemaId);
         
-        this.schemas.set(schemaId, parsed);
+        return parsed;
     }
-
 }

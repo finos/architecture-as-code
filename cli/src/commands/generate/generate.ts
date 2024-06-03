@@ -10,6 +10,7 @@ import { CALMInstantiation } from '../../types.js';
 import { SchemaDirectory } from './schema-directory.js';
 import { instantiateNode, instantiateNodes } from './components/node.js';
 import { instantiateRelationships } from './components/relationship.js';
+import { CALM_META_SCHEMA_DIRECTORY } from '../../consts.js';
 
 let logger: winston.Logger; // defined later at startup
 
@@ -50,10 +51,16 @@ export const exportedForTesting = {
     instantiateAdditionalTopLevelProperties
 };
 
-export function generate(patternPath: string, schemaDirectory: SchemaDirectory, debug: boolean, instantiateAll: boolean): CALMInstantiation {
+export async function generate(patternPath: string, debug: boolean, instantiateAll: boolean, schemaDirectoryPath?: string): Promise<CALMInstantiation> {
     logger = initLogger(debug);
-    const pattern = loadFile(patternPath);
+    const schemaDirectory = new SchemaDirectory(debug);
 
+    await schemaDirectory.loadSchemas(CALM_META_SCHEMA_DIRECTORY);
+    if (schemaDirectoryPath) {
+        await schemaDirectory.loadSchemas(schemaDirectoryPath);
+    }
+
+    const pattern = loadFile(patternPath);
     schemaDirectory.loadCurrentPatternAsSchema(pattern);
 
     const outputNodes = instantiateNodes(pattern, schemaDirectory, debug, instantiateAll);
@@ -69,14 +76,8 @@ export function generate(patternPath: string, schemaDirectory: SchemaDirectory, 
     return final;
 }
 
-export async function runGenerate(patternPath: string, outputPath: string, schemaDirectoryPath: string, debug: boolean, instantiateAll: boolean): Promise<void> {
-    const schemaDirectory = new SchemaDirectory(schemaDirectoryPath);
-
-    if (schemaDirectoryPath) {
-        await schemaDirectory.loadSchemas();
-    }
-    
-    const final = generate(patternPath, schemaDirectory, debug, instantiateAll);
+export async function runGenerate(patternPath: string, outputPath: string, debug: boolean, instantiateAll: boolean, schemaDirectoryPath?: string): Promise<void> {
+    const final = await generate(patternPath, debug, instantiateAll, schemaDirectoryPath);
 
     const output = JSON.stringify(final, null, 2);
     logger.debug('Generated instantiation: ' + output);

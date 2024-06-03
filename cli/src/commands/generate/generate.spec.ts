@@ -20,10 +20,14 @@ jest.mock('../helper', () => {
 
 jest.mock('./schema-directory');
 
+jest.mock('../../consts', () => ({
+    get CALM_META_SCHEMA_DIRECTORY() { return '../calm/draft/2024-04/meta'; }
+}));
+
 let mockSchemaDir;
 
 beforeEach(() => {
-    mockSchemaDir = new SchemaDirectory('directory');
+    mockSchemaDir = new SchemaDirectory();
 });
 
 const {
@@ -109,25 +113,25 @@ describe('runGenerate', () => {
         rmSync(tempDirectoryPath, { recursive: true, force: true });
     });
 
-    it('instantiates to given directory', () => {
+    it('instantiates to given directory', async () => {
         const outPath = path.join(tempDirectoryPath, 'output.json');
-        runGenerate(testPath, outPath, undefined, false, false);
+        await runGenerate(testPath, outPath, false, false);
 
         expect(existsSync(outPath))
             .toBeTruthy();
     });
 
-    it('instantiates to given directory with nested folders', () => {
+    it('instantiates to given directory with nested folders', async () => {
         const outPath = path.join(tempDirectoryPath, 'output/test/output.json');
-        runGenerate(testPath, outPath, undefined, false, false);
+        await runGenerate(testPath, outPath, false, false);
 
         expect(existsSync(outPath))
             .toBeTruthy();
     });
 
-    it('instantiates to calm instantiation file', () => {
+    it('instantiates to calm instantiation file', async () => {
         const outPath = path.join(tempDirectoryPath, 'output.json');
-        runGenerate(testPath, outPath, undefined, false, false);
+        await runGenerate(testPath, outPath, false, false);
 
         expect(existsSync(outPath))
             .toBeTruthy();

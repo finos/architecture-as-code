@@ -4,7 +4,6 @@
       "esModuleInterop": true,
       "target": "ES2021",
       "moduleResolution": "node",
-      "sourceMap": true,
       "outDir": "dist"
     },
     "lib": ["es2021"]
