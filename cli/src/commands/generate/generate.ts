@@ -53,7 +53,7 @@ export const exportedForTesting = {
 
 export async function generate(patternPath: string, debug: boolean, instantiateAll: boolean, schemaDirectoryPath?: string): Promise<CALMInstantiation> {
     logger = initLogger(debug);
-    const schemaDirectory = new SchemaDirectory();
+    const schemaDirectory = new SchemaDirectory(debug);
 
     await schemaDirectory.loadSchemas(CALM_META_SCHEMA_DIRECTORY);
     if (schemaDirectoryPath) {

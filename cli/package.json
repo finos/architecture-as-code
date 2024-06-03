@@ -7,11 +7,14 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc && npm run copy-calm-schema",
+    "build": "tsc && npm run copy-calm-schema && npm run copy-spectral-rules",
     "test": "jest --verbose",
     "lint": "eslint src",
     "lint-fix": "eslint src --fix",
-    "copy-calm-schema": "mkdir -p dist/calm && cp -r ../calm/draft/2024-04/ dist/calm/"
+    "copy-calm-schema": "mkdir -p dist/calm && cp -r ../calm/draft/2024-04/ dist/calm/",
+    "copy-spectral-rules": "mkdir -p dist/spectral && npm run copy-spectral-instantiation-rules && npm run copy-spectral-pattern-rules",
+    "copy-spectral-instantiation-rules": "cp -r ../spectral/instantiation dist/spectral",
+    "copy-spectral-pattern-rules": "cp -r ../spectral/pattern dist/spectral"
   },
   "bin": {
     "calm": "dist/index.js"
