@@ -31,6 +31,10 @@ jest.mock('../helper.js', () => {
 
 jest.mock('../generate/generate');
 
+jest.mock('../../consts', () => ({
+    get CALM_META_SCHEMA_DIRECTORY() { return '../calm/draft/2024-04/meta'; }
+}));
+
 describe('visualizer', () => {
     let mockExit;
 
