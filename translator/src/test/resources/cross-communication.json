@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/calm.json",
+  "$schema": "../../../../calm/draft/2024-04/meta/calm.json",
   "nodes": [
     {
       "unique-id": "system1",
@@ -67,8 +67,12 @@
       "description": "Service 1 to Service 2",
       "relationship-type": {
         "connects": {
-          "source": "service1",
-          "destination": "service2"
+          "destination": {
+            "node": "service2"
+          },
+          "source": {
+            "node": "service1"
+          }
         }
       }
     },
@@ -77,8 +81,12 @@
       "description": "Service 2 to Service 3",
       "relationship-type": {
         "connects": {
-          "source": "service2",
-          "destination": "service3"
+            "destination": {
+                "node": "service3"
+            },
+            "source": {
+                "node": "service2"
+            }
         }
       }
     }

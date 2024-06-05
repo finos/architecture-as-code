@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checking out metadata-tool
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         repository: 'finos/metadata-tool'
         path: 'metadata-tool'
@@ -79,7 +79,7 @@ jobs:
         fi
     - name: Report unknowns on issue comment
       if: (github.event.action == 'closed' || (github.event.action == 'labeled' && github.event.label.name == 'indexed')) && env.UNKNOWNS_COMMENT != ''
-      uses: peter-evans/create-or-update-comment@v1
+      uses: peter-evans/create-or-update-comment@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         issue-number: ${{ github.event.issue.number }}
