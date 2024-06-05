@@ -3,7 +3,13 @@
 A command line interface to interact with the CALM schema.
 You can use these tools to create an instantiation of an architectural pattern, validate that an instantiation conforms to a given pattern, and create visualizations of instantiations and patterns so that you can see what your architecture looks like.
 
-### Using the CLI
+### Getting Started
+
+Install the CLI on to your machine with this command:
+
+```shell
+% npm install -g @finos/calm-cli
+```
 
 Type `calm` into your terminal, and you should see the help text printed out.
 
