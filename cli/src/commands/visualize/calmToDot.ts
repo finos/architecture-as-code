@@ -11,7 +11,8 @@ export default function(calm: CALMInstantiation, debug: boolean = false): string
     logger = initLogger(debug);
 
     const G = new Digraph({
-        nodesep: 0.5
+        layout: 'fdp',
+        sep: '+80,50'
     });
 
     calm.nodes.forEach(node => {
@@ -40,14 +41,28 @@ function addNode(G: Digraph, node: CALMNode) {
 function createNode(G: Digraph, node: CALMNode, shape: string) {
     const graphNode = new Node(node['unique-id'], {
         [attribute.shape]: shape,
-        label: `${capitalizeFirstLetter(node['node-type'])}: ${node.name}`
+        label: `${node.name}\n\n${addNewLines(node.description, 25)}`
     });
     idToNode[node['unique-id']] = graphNode;
     G.addNode(graphNode);
 }
 
-function capitalizeFirstLetter(s: string): string {
-    return s.charAt(0).toUpperCase() + s.slice(1);
+function addNewLines(input: string, maxCharsPerLine: number): string {
+    let output = '';
+    let currentLineLength = 0;
+    input.split(' ').forEach(word => {
+        if (currentLineLength + word.length < maxCharsPerLine) {
+            output += word;
+            output += ' ';
+            currentLineLength += word.length;
+        } else {
+            output += '\n';
+            output += word;
+            output += ' ';
+            currentLineLength = word.length;
+        }
+    });
+    return output;
 }
 
 function addRelationship(g: Digraph, relationship: CALMRelationship): void {
@@ -75,7 +90,7 @@ function addConnectsRelationship(g: Digraph, relationship: CALMConnectsRelations
         getNode(sourceId),
         getNode(destinationId)
     ], {
-        label: `connects ${relationship.protocol || ''} ${relationship.authentication || ''}`
+        label: `${relationship.description || 'connects'}\n [${relationship.protocol || ''} ${relationship.authentication || ''}]`
     }));
 }
 
@@ -89,7 +104,7 @@ function addInteractsRelationship(g: Digraph, relationship: CALMInteractsRelatio
             getNode(sourceId),
             getNode(targetId)
         ], {
-            label: 'interacts'
+            label: `${relationship.description || 'interacts'}`
         }));
     });
 }
