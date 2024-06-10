@@ -36,7 +36,8 @@ program
     .option('-v, --verbose', 'Enable verbose logging.', false)
     .option('-a, --instantiateAll', 'Instantiate all properties, ignoring the "required" field.', false)
     .action(async (options) => {
-        await runGenerate(options.pattern, options.output, options.schemaDirectory, !!options.verbose, options.instantiateAll);
+        await runGenerate(options.pattern, options.output, !!options.verbose, options.instantiateAll, options.schemaDirectory
+        );
     });
 
 program
