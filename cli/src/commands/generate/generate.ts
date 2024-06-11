@@ -1,5 +1,3 @@
-/* eslint-disable  @typescript-eslint/no-explicit-any */
-
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { mkdirp } from 'mkdirp';
@@ -11,10 +9,11 @@ import { SchemaDirectory } from './schema-directory.js';
 import { instantiateNode, instantiateNodes } from './components/node.js';
 import { instantiateRelationships } from './components/relationship.js';
 import { CALM_META_SCHEMA_DIRECTORY } from '../../consts.js';
+import { instantiateAllMetadata } from './components/metadata.js';
 
 let logger: winston.Logger; // defined later at startup
 
-function loadFile(path: string): any {
+function loadFile(path: string): object {
     logger.info('Loading pattern from file: ' + path);
     const raw = fs.readFileSync(path, 'utf-8');
 
@@ -26,12 +25,12 @@ function loadFile(path: string): any {
 }
 
 
-function instantiateAdditionalTopLevelProperties(pattern: any, schemaDirectory: SchemaDirectory): any {
-    const properties = pattern?.properties;
-    if (!properties) {
+function instantiateAdditionalTopLevelProperties(pattern: object, schemaDirectory: SchemaDirectory): object {
+    if (!('properties' in pattern)) {
         logger.error('Warning: pattern has no properties defined.');
         return [];
     }
+    const properties = pattern['properties'];
 
     const extraProperties = {};
     for (const [additionalProperty, detail] of Object.entries(properties)) {
@@ -66,12 +65,17 @@ export async function generate(patternPath: string, debug: boolean, instantiateA
     const outputNodes = instantiateNodes(pattern, schemaDirectory, debug, instantiateAll);
     const relationshipNodes = instantiateRelationships(pattern, schemaDirectory, debug, instantiateAll);
     const additionalProperties = instantiateAdditionalTopLevelProperties(pattern, schemaDirectory);
+    const metadata = instantiateAllMetadata(pattern, schemaDirectory, debug, instantiateAll);
 
     const final = {
         'nodes': outputNodes,
         'relationships': relationshipNodes,
         ...additionalProperties // object spread operator to insert additional props at top level
     };
+
+    if (metadata) {
+        final['metadata'] = metadata;
+    }
 
     return final;
 }
