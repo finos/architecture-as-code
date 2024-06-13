@@ -1,0 +1,117 @@
+{
+  "nodes": [
+    {
+      "unique-id": "api-gateway",
+      "node-type": "system",
+      "name": "API Gateway",
+      "description": "The API Gateway used to verify authorization and access to downstream system",
+      "interfaces": [
+        {
+          "unique-id": "api-gateway-ingress",
+          "host": "mygateway.com",
+          "port": 6000
+        }
+      ],
+      "well-known-endpoint": "/api"
+    },
+    {
+      "unique-id": "api-consumer",
+      "node-type": "system",
+      "name": "API Consumer",
+      "description": "The API Consumer making an authenticated and authorized request",
+      "interfaces": []
+    },
+    {
+      "unique-id": "api-producer",
+      "node-type": "system",
+      "name": "API Producer",
+      "description": "The API Producer serving content",
+      "interfaces": [
+        {
+          "unique-id": "producer-ingress",
+          "host": "producer.com",
+          "port": 3000
+        }
+      ]
+    },
+    {
+      "unique-id": "idp",
+      "node-type": "system",
+      "name": "Identity Provider",
+      "description": "The Identity Provider used to verify the bearer token",
+      "interfaces": []
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "api-consumer-api-gateway",
+      "description": "Issue calculation request",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-consumer"
+          },
+          "destination": {
+            "node": "api-gateway",
+            "interfaces": [
+              "api-gateway-ingress"
+            ]
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "authentication": "OAuth2"
+    },
+    {
+      "unique-id": "api-gateway-idp",
+      "description": "Validate bearer token",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-gateway"
+          },
+          "destination": {
+            "node": "idp"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "authentication": "OAuth2"
+    },
+    {
+      "unique-id": "api-gateway-api-producer",
+      "description": "Forward request",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-gateway"
+          },
+          "destination": {
+            "node": "api-producer",
+            "interfaces": [
+              "producer-ingress"
+            ]
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "authentication": "OAuth2"
+    },
+    {
+      "unique-id": "api-consumer-idp",
+      "description": "Acquire a bearer token",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-consumer"
+          },
+          "destination": {
+            "node": "idp"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "authentication": "OAuth2"
+    }
+  ]
+}
