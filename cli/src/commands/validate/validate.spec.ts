@@ -34,6 +34,10 @@ jest.mock('../helper.js', () => {
     };
 });
 
+jest.mock('../../consts', () => ({
+    get CALM_SPECTRAL_RULES_DIRECTORY() { return '../spectral'; }
+}));
+
 const metaSchemaLocation = 'test_fixtures/calm';
 const debugDisabled = false;
 const jsonFormat = 'json';

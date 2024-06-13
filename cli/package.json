@@ -1,16 +1,20 @@
 {
   "name": "@finos/calm-cli",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.1.4",
+  "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
   "main": "dist/index.js",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run copy-calm-schema && npm run copy-spectral-rules",
     "test": "jest --verbose",
     "lint": "eslint src",
-    "lint-fix": "eslint src --fix"
+    "lint-fix": "eslint src --fix",
+    "copy-calm-schema": "mkdir -p dist/calm && cp -r ../calm/draft/2024-04/meta dist/calm/",
+    "copy-spectral-rules": "mkdir -p dist/spectral && npm run copy-spectral-instantiation-rules && npm run copy-spectral-pattern-rules",
+    "copy-spectral-instantiation-rules": "cp -r ../spectral/instantiation dist/spectral",
+    "copy-spectral-pattern-rules": "cp -r ../spectral/pattern dist/spectral"
   },
   "bin": {
     "calm": "dist/index.js"
@@ -25,10 +29,10 @@
     "commander": "^12.0.0",
     "fetch-mock": "^9.11.0",
     "graphviz-cli": "^2.0.0",
-    "json-pointer": "^0.6.2",
-    "lodash": "^4.17.21",
     "js-yaml": "^4.1.0",
+    "json-pointer": "^0.6.2",
     "junit-report-builder": "^3.2.1",
+    "lodash": "^4.17.21",
     "mkdirp": "^3.0.1",
     "ts-graphviz": "^2.1.1",
     "tsconfig-paths": "^4.2.0",
@@ -37,10 +41,10 @@
   "devDependencies": {
     "@jest/globals": "^29.7.0",
     "@types/jest": "^29.5.12",
-    "@types/json-pointer": "^1.0.34",
-    "@types/lodash": "^4.17.0",
     "@types/js-yaml": "^4.0.9",
+    "@types/json-pointer": "^1.0.34",
     "@types/junit-report-builder": "^3.0.2",
+    "@types/lodash": "^4.17.0",
     "@types/node": "^20.11.30",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "eslint": "^9.0.0",

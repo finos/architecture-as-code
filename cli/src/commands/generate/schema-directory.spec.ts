@@ -16,16 +16,16 @@ jest.mock('../helper', () => {
 
 describe('SchemaDirectory', () => {
     it('loads all specs from given directory including subdirectories', async () => {
-        const schemaDir = new SchemaDirectory('../calm/draft/2024-03');
+        const schemaDir = new SchemaDirectory();
         
-        await schemaDir.loadSchemas();
+        await schemaDir.loadSchemas('../calm/draft/2024-03');
         expect(schemaDir.getLoadedSchemas().length).toBe(2);
     });
 
     it('resolves a reference from a loaded schema', async () => {
-        const schemaDir = new SchemaDirectory('../calm/draft/2024-03');
+        const schemaDir = new SchemaDirectory();
         
-        await schemaDir.loadSchemas();
+        await schemaDir.loadSchemas('../calm/draft/2024-03');
         const nodeRef = 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/core.json#/defs/node';
         const nodeDef = schemaDir.getDefinition(nodeRef);
 
@@ -34,9 +34,9 @@ describe('SchemaDirectory', () => {
     });
 
     it('recursively resolve references from a loaded schema', async () => {
-        const schemaDir = new SchemaDirectory('../calm/draft/2024-04');
+        const schemaDir = new SchemaDirectory();
         
-        await schemaDir.loadSchemas();
+        await schemaDir.loadSchemas('../calm/draft/2024-04');
         const interfaceRef = 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/host-port-interface';
         const interfaceDef = schemaDir.getDefinition(interfaceRef);
 
@@ -47,7 +47,7 @@ describe('SchemaDirectory', () => {
     });
 
     it('resolve to warning message if schema is missing', async () => {
-        const schemaDir = new SchemaDirectory('../calm/draft/2024-04');
+        const schemaDir = new SchemaDirectory();
         
         const interfaceRef = 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/host-port-interface';
         const interfaceDef = schemaDir.getDefinition(interfaceRef);
@@ -58,9 +58,9 @@ describe('SchemaDirectory', () => {
     });
 
     it('terminate early in the case of a circular reference', async () => {
-        const schemaDir = new SchemaDirectory('test_fixtures/recursive_refs');
+        const schemaDir = new SchemaDirectory();
         
-        await schemaDir.loadSchemas();
+        await schemaDir.loadSchemas('test_fixtures/recursive_refs');
         const interfaceRef = 'https://calm.com/recursive.json#/$defs/top-level';
         const interfaceDef = schemaDir.getDefinition(interfaceRef);
 
@@ -70,9 +70,9 @@ describe('SchemaDirectory', () => {
     });
 
     it('look up self-definitions without schema ID at top level from the pattern itself', async () => {
-        const schemaDir = new SchemaDirectory('../calm/draft/2024-04');
+        const schemaDir = new SchemaDirectory();
 
-        await schemaDir.loadSchemas();
+        await schemaDir.loadSchemas('../calm/draft/2024-04');
 
         const selfRefPatternStr = await readFile('test_fixtures/api-gateway-self-reference.json', 'utf-8');
         const selfRefPattern = JSON.parse(selfRefPatternStr);

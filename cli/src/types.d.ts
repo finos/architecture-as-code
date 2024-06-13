@@ -3,7 +3,7 @@ export interface CALMInstantiation {
     relationships: CALMRelationship[]
 }
 
-export type NodeType = 'actor' | 'system' | 'service' | 'database' | 'internal-network' | 'ldap' | 'dataclient';
+export type NodeType = 'actor' | 'system' | 'service' | 'database' | 'network' | 'ldap' | 'dataclient';
 
 export interface CALMNode {
     name: string, 
@@ -26,6 +26,7 @@ export interface CALMInteractsRelationship {
         }
     },
     uniqueId: string,
+    description?: string
 }
 
 export interface CALMConnectsRelationship {
@@ -38,6 +39,7 @@ export interface CALMConnectsRelationship {
     uniqueId: string,
     protocol?: string,
     authentication?: string,
+    description?: string
 }
 
 export interface CALMDeployedInRelationship {
@@ -48,6 +50,7 @@ export interface CALMDeployedInRelationship {
         }
     },
     uniqueId: string,
+    description?: string
 }
 
 export interface CALMComposedOfRelationship {
@@ -58,4 +61,5 @@ export interface CALMComposedOfRelationship {
         },
     }
     uniqueId: string,
+    description?: string
 }
