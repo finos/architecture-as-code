@@ -60,7 +60,7 @@ export function instantiateNodes(pattern: any, schemaDirectory: SchemaDirectory,
     if (!nodes) {
         logger.error('Warning: pattern has no nodes defined.');
         if (pattern?.properties?.nodes?.items) {
-            logger.warn('Note: properties.relationships.items is deprecated: please use prefixItems instead.');
+            logger.warn('Note: properties.nodes.items is deprecated: please use prefixItems instead.');
         }
         return [];
     }
