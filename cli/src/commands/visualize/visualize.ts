@@ -4,7 +4,6 @@ import { initLogger } from '../helper.js';
 import calmToDot from './calmToDot.js';
 import { renderGraphFromSource } from 'graphviz-cli';
 import { generate } from '../generate/generate.js';
-import { SchemaDirectory } from '../generate/schema-directory.js';
 
 let logger: winston.Logger;
 
@@ -36,8 +35,7 @@ export async function visualizePattern(patternPath: string, output: string, debu
     logger = initLogger(debug);
 
     // TODO add a path to load schemas and generate intelligently
-    const schemaDir: SchemaDirectory = new SchemaDirectory(patternPath);
-    const instantiation = generate(patternPath, schemaDir, debug, true);
+    const instantiation = await generate(patternPath, debug, true);
 
     logger.info('Generating an SVG from input');
 

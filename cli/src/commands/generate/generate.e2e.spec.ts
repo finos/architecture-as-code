@@ -3,6 +3,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { runGenerate } from './generate';
 
+jest.mock('../../consts', () => ({
+    get CALM_META_SCHEMA_DIRECTORY() { return 'test_fixtures/calm'; }
+}));
+
 describe('generate spec e2e', () => {
     let tempDirectoryPath;
 
@@ -16,9 +20,8 @@ describe('generate spec e2e', () => {
 
     it('instantiate file with self-reference', async () => {
         const patternPath = 'test_fixtures/api-gateway-self-reference.json';
-        const schemaDirectoryPath = '../calm/draft/2024-04';
         const outPath = path.join(tempDirectoryPath, 'output.json');
-        await runGenerate(patternPath, outPath, schemaDirectoryPath, true, false);
+        await runGenerate(patternPath, outPath, true, false);
 
         expect(existsSync(outPath))
             .toBeTruthy();

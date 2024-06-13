@@ -12,6 +12,7 @@ import  createJUnitReport  from './junit-report/junit.report.js';
 import yaml from 'js-yaml';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
+import { CALM_SPECTRAL_RULES_DIRECTORY } from '../../consts.js';
 
 let logger: winston.Logger; // defined later at startup
 
@@ -39,8 +40,8 @@ export default async function validate(
 
         const validateSchema = ajv.compile(jsonSchema);
 
-        const spectralRulesetForInstantiation = '../spectral/instantiation/validation-rules.yaml';
-        const spectralRulesetForPattern = '../spectral/pattern/validation-rules.yaml';
+        const spectralRulesetForInstantiation = CALM_SPECTRAL_RULES_DIRECTORY + '/instantiation/validation-rules.yaml';
+        const spectralRulesetForPattern = CALM_SPECTRAL_RULES_DIRECTORY + '/pattern/validation-rules.yaml';
         const spectralResult: SpectralResult = await runSpectralValidations(jsonSchemaInstantiation, stripRefs(jsonSchema), spectralRulesetForInstantiation, spectralRulesetForPattern);
 
         errors = spectralResult.errors;
