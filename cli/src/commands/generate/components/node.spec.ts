@@ -19,7 +19,7 @@ jest.mock('../schema-directory');
 let mockSchemaDir;
 
 beforeEach(() => {
-    mockSchemaDir = new SchemaDirectory('directory');
+    mockSchemaDir = new SchemaDirectory();
 });
 
 function getSamplePatternNode(properties: any, required: any = []): any {

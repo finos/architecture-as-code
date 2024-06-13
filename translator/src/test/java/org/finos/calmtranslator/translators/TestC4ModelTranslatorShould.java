@@ -47,7 +47,7 @@ class TestC4ModelTranslatorShould {
 		assertThat(workspace.getModel().getSoftwareSystems())
 				.anyMatch(
 						softwareSystem -> softwareSystem.getDescription().equals("Simple Trading System") &&
-						softwareSystem.getName().equals("TraderX"))
+								softwareSystem.getName().equals("TraderX"))
 
 		;
 	}
@@ -123,5 +123,4 @@ class TestC4ModelTranslatorShould {
 				.usingRecursiveFieldByFieldElementComparatorOnFields("description", "source.name", "destination.name", "source.description", "destination.description")
 				.containsAll(expectedRelationship);
 	}
-
 }

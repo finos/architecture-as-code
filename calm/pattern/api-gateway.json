@@ -56,7 +56,7 @@
               "const": "system"
             },
             "name": {
-              "const": "Python Based API Consumer"
+              "const": "API Consumer"
             },
             "unique-id": {
               "const": "api-consumer"
@@ -73,7 +73,7 @@
               "const": "system"
             },
             "name": {
-              "const": "Java Based API Producer"
+              "const": "API Producer"
             },
             "unique-id": {
               "const": "api-producer"
@@ -118,13 +118,16 @@
     },
     "relationships": {
       "type": "array",
-      "minItems": 3,
+      "minItems": 4,
       "prefixItems": [
         {
           "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/relationship",
           "properties": {
             "unique-id": {
               "const": "api-consumer-api-gateway"
+            },
+            "description": {
+                "const": "Issue calculation request"
             },
             "relationship-type": {
               "const": {
@@ -156,6 +159,9 @@
             "unique-id": {
               "const": "api-gateway-idp"
             },
+            "description": {
+                "const": "Validate bearer token"
+            },
             "relationship-type": {
               "const": {
                 "connects": {
@@ -179,6 +185,9 @@
             "unique-id": {
               "const": "api-gateway-api-producer"
             },
+            "description": {
+                "const": "Forward request"
+            },
             "relationship-type": {
               "const": {
                 "connects": {
@@ -198,7 +207,33 @@
               "const": "HTTPS"
             }
           }
-        }
+        },
+        {
+            "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/relationship",
+            "properties": {
+              "unique-id": {
+                "const": "api-consumer-idp"
+              },
+              "description": {
+                  "const": "Acquire a bearer token"
+              },
+              "relationship-type": {
+                "const": {
+                  "connects": {
+                    "source": {
+                      "node": "api-consumer"
+                    },
+                    "destination": {
+                      "node": "idp"
+                    }
+                  }
+                }
+              },
+              "protocol": {
+                "const": "HTTPS"
+              }
+            }
+          }
       ]
     }
   },
