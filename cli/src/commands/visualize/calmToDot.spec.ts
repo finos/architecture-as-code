@@ -35,6 +35,7 @@ describe('calmToDot', () => {
             relationships: [
                 {
                     'uniqueId': 'relationship-1',
+                    'description': 'test description',
                     'protocol': 'HTTPS',
                     'relationship-type': {
                         'connects': {
@@ -54,20 +55,20 @@ describe('calmToDot', () => {
     it('creates a basic node', () => {
         const actualDot = calmToDot(calm);
         expect(actualDot).toContain('"node-1" [');
-        expect(actualDot).toContain('label = "Service: Node 1"');
+        expect(actualDot).toContain('label = "Node 1\\n\\nThis is node 1 "');
         expect(actualDot).toContain('shape = "box"');
     });
 
     it('creates a basic relationship', () => {
         const actualDot = calmToDot(calm);
         expect(actualDot).toContain('"node-1" -> "node-2" [');
-        expect(actualDot).toContain('label = "connects HTTPS "');
+        expect(actualDot).toContain('label = "test description\\n [HTTPS ]"');
     });
 
     it('creates an empty graph when given empty calm', () => {
         calm = { nodes: [], relationships: []};
         const actualDot = calmToDot(calm);
-        expect(actualDot).toEqual('digraph {   nodesep = 0.5; }');
+        expect(actualDot).toEqual('digraph {   layout = "fdp";   sep = "+80,50"; }');
     });
 
     it('creates a subgraph relationship', () => {
