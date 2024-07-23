@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/domain.json",
+  "title": "Common Architecture Language Model Interfaces",
+  "defs": {
+    "domain-decoration-type": {
+      "type": "object",
+      "properties": {
+        "element-id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "unique-id"
+      ]
+    }
+  }
+}
