@@ -35,18 +35,31 @@ export default async function validate(
         logger.info(`Loading pattern from : ${jsonSchemaLocation}`);
         const jsonSchema = await getFileFromUrlOrPath(jsonSchemaLocation);
 
-        logger.info(`Loading pattern instantiation from : ${jsonSchemaInstantiationLocation}`);
-        const jsonSchemaInstantiation = await getFileFromUrlOrPath(jsonSchemaInstantiationLocation);
+        const spectralRulesetForPattern = CALM_SPECTRAL_RULES_DIRECTORY + '/pattern/validation-rules.yaml';
+
+        const spectralResultForPattern: SpectralResult = await runSpectralValidations(stripRefs(jsonSchema), spectralRulesetForPattern);
+        
+        if (jsonSchemaInstantiationLocation === undefined) {
+            logger.debug('Pattern Instantiation was not provided, only the JSON Schema will be validated');
+            handleSpectralLogs(spectralResultForPattern.errors, prettifyJson(spectralResultForPattern.spectralIssues), 'JSON Schema');
+            ajv.compile(jsonSchema);
+            handleProcessExit(spectralResultForPattern.errors);
+        }
 
         const validateSchema = ajv.compile(jsonSchema);
 
-        const spectralRulesetForInstantiation = CALM_SPECTRAL_RULES_DIRECTORY + '/instantiation/validation-rules.yaml';
-        const spectralRulesetForPattern = CALM_SPECTRAL_RULES_DIRECTORY + '/pattern/validation-rules.yaml';
-        const spectralResult: SpectralResult = await runSpectralValidations(jsonSchemaInstantiation, stripRefs(jsonSchema), spectralRulesetForInstantiation, spectralRulesetForPattern);
+        logger.info(`Loading pattern instantiation from : ${jsonSchemaInstantiationLocation}`);
+        const jsonSchemaInstantiation = await getFileFromUrlOrPath(jsonSchemaInstantiationLocation);
 
+        const spectralRulesetForInstantiation = CALM_SPECTRAL_RULES_DIRECTORY + '/instantiation/validation-rules.yaml';
+        const spectralResultForInstantiation: SpectralResult = await runSpectralValidations(jsonSchemaInstantiation, spectralRulesetForInstantiation);
+
+        const spectralResult = mergeSpectralResults(spectralResultForPattern, spectralResultForInstantiation);
+
+        
         errors = spectralResult.errors;
         validations = validations.concat(spectralResult.spectralIssues);
-
+        
         let jsonSchemaValidations = [];
         if (!validateSchema(jsonSchemaInstantiation)) {
             logger.debug(`JSON Schema validation raw output: ${prettifyJson(validateSchema.errors)}`);
@@ -59,22 +72,38 @@ export default async function validate(
 
         createOutputFile(output, validationsOutput);
 
-        if(errors){
-            logger.error(`The following issues have been found on the JSON Schema instantiation ${validationsOutput}`);
-            process.exit(1);
-        }
-        
-        logger.info('The JSON Schema instantiation is valid');
-        if(validationsOutput != '[]'){
-            logger.info(validationsOutput);   
-        }
-
-        process.exit(0);
+        handleSpectralLogs(errors, validationsOutput, 'JSON Schema instantiation');
+        handleProcessExit(errors);
 
     } catch (error) {
         logger.error(`An error occured: ${error}`);
         process.exit(1);
     }
+}
+
+function mergeSpectralResults(spectralResultPattern: SpectralResult, spectralResultInstantiation: SpectralResult): SpectralResult{
+    const errors: boolean = spectralResultPattern.errors || spectralResultInstantiation.errors;
+    const spectralValidations = spectralResultPattern.spectralIssues.concat(spectralResultInstantiation.spectralIssues);
+    return new SpectralResult(errors, spectralValidations);
+}
+
+function handleSpectralLogs(errors: boolean, validationsOutput: string, schemaType: string){
+    if(errors) {
+        logger.error(`The following issues have been found on the ${schemaType} ${validationsOutput}`);
+        return;
+    }
+    
+    logger.info(`The ${schemaType} is valid`);
+    if(validationsOutput != '[]'){
+        logger.info(validationsOutput);   
+    }
+}
+
+function handleProcessExit(errors: boolean){
+    if(errors){
+        process.exit(1);
+    }
+    process.exit(0);
 }
 
 function getFormattedOutput(
@@ -132,20 +161,16 @@ function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
 }
 
 async function runSpectralValidations(
-    jsonSchemaInstantiation: string,
-    jsonSchema: string, 
-    spectralRulesetForInstantiation: string, 
-    spectralRulesetForPattern: string
+    schema: string, 
+    spectralRulesetLocation: string
 ): Promise<SpectralResult> {
     
     let errors = false;
     let spectralIssues: ValidationOutput[] = [];
     const spectral = new Spectral();
 
-    spectral.setRuleset(await getRuleset(spectralRulesetForInstantiation));
-    let issues = await spectral.run(jsonSchemaInstantiation);
-    spectral.setRuleset(await getRuleset(spectralRulesetForPattern));
-    issues = issues.concat(await spectral.run(jsonSchema));
+    spectral.setRuleset(await getRuleset(spectralRulesetLocation));
+    const issues = await spectral.run(schema);
 
     if (issues && issues.length > 0) {
         logger.debug(`Spectral raw output: ${prettifyJson(issues)}`);

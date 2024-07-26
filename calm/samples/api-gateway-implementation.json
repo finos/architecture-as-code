@@ -11,7 +11,7 @@
         {
           "unique-id": "api-gateway-ingress",
           "host": "https://api-gateway-ingress.example.com",
-          "port": 443
+          "port": "aa"
         }
       ]
     },
@@ -26,7 +26,7 @@
         {
           "unique-id": "producer-ingress",
           "host": "https://api-producer.example.com",
-          "port": 443
+          "port": -1
         }
       ],
       "node-type": "system",
