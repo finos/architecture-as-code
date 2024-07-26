@@ -220,7 +220,7 @@ describe('validate', () => {
             .mockImplementation((code) => {
                 console.log(code);
                 if (code != 0) {
-                    throw new Error();
+                    throw new Error("Expected successful code 0");
                 }
                 return undefined as never;
             });
