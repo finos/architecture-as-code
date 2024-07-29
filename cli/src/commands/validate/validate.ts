@@ -22,10 +22,12 @@ export default async function validate(
     metaSchemaPath: string, 
     debug: boolean = false, 
     format: string, 
-    output?: string
+    output?: string,
+    failOnWarnings: boolean = false
 ) {
     logger = initLogger(debug);
     let errors = false;
+    let warnings = false;
     let validations: ValidationOutput[] = [];
     try {
         const ajv = buildAjv2020(debug);
@@ -45,6 +47,7 @@ export default async function validate(
         const spectralResult: SpectralResult = await runSpectralValidations(jsonSchemaInstantiation, stripRefs(jsonSchema), spectralRulesetForInstantiation, spectralRulesetForPattern);
 
         errors = spectralResult.errors;
+        warnings = spectralResult.warnings;
         validations = validations.concat(spectralResult.spectralIssues);
 
         let jsonSchemaValidations = [];
@@ -61,6 +64,11 @@ export default async function validate(
 
         if(errors){
             logger.error(`The following issues have been found on the JSON Schema instantiation ${validationsOutput}`);
+            process.exit(1);
+        }
+
+        if (warnings && failOnWarnings) {
+            logger.error(`No errors were reported. However, there were warnings, and --strict was provided. The following warnings were encountered: ${validationsOutput}`);
             process.exit(1);
         }
         
@@ -139,6 +147,7 @@ async function runSpectralValidations(
 ): Promise<SpectralResult> {
     
     let errors = false;
+    let warnings = false;
     let spectralIssues: ValidationOutput[] = [];
     const spectral = new Spectral();
 
@@ -154,8 +163,12 @@ async function runSpectralValidations(
             logger.debug('Spectral output contains errors');
             errors = true;
         }
+        if (issues.filter(issue => issue.severity === 1).length > 0) {
+            logger.debug('Spectral output contains warnings');
+            warnings = true;
+        }
     }
-    return new SpectralResult(errors, spectralIssues);
+    return new SpectralResult(warnings, errors, spectralIssues);
 }
 
 function formatJsonSchemaOutput(jsonSchemaIssues: ErrorObject[]): ValidationOutput[]{
