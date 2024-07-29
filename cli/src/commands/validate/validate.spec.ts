@@ -147,7 +147,7 @@ describe('validate', () => {
                 code: 'no-empty-properties',
                 message: 'Must not contain string properties set to the empty string or numerical properties set to zero',
                 severity: 0,
-                path: ["/nodes"],
+                path: ['/nodes'],
                 range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
             }
         ];
@@ -173,7 +173,7 @@ describe('validate', () => {
                 code: 'no-empty-properties',
                 message: 'Must not contain string properties set to the empty string or numerical properties set to zero',
                 severity: 0,
-                path: ["/nodes"],
+                path: ['/nodes'],
                 range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
             }
         ];
@@ -197,7 +197,7 @@ describe('validate', () => {
                 code: 'no-empty-properties',
                 message: 'Must not contain string properties set to the empty string or numerical properties set to zero',
                 severity: 0,
-                path: ["/nodes"],
+                path: ['/nodes'],
                 range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
             }
         ];
@@ -218,7 +218,7 @@ describe('validate', () => {
     it('completes successfully when the spectral validation returns warnings only and failOnWarnings is not set', async () => {
         const mockExit = jest.spyOn(process, 'exit')
             .mockImplementation((code) => {
-                console.log(code)
+                console.log(code);
                 if (code != 0) {
                     throw new Error();
                 }
@@ -230,7 +230,7 @@ describe('validate', () => {
                 code: 'warning-test',
                 message: 'Test warning',
                 severity: 1,
-                path: [ "nodes" ],
+                path: [ 'nodes' ],
                 range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
             }
         ];
