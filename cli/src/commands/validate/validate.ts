@@ -41,9 +41,16 @@ export default async function validate(
         
         if (jsonSchemaInstantiationLocation === undefined) {
             logger.debug('Pattern Instantiation was not provided, only the JSON Schema will be validated');
-            handleSpectralLogs(spectralResultForPattern.errors, prettifyJson(spectralResultForPattern.spectralIssues), 'JSON Schema');
-            ajv.compile(jsonSchema);
-            handleProcessExit(spectralResultForPattern.errors);
+            let errors = spectralResultForPattern.errors;
+            const jsonSchemaErrors = [];
+            try{
+                ajv.compile(jsonSchema);
+            }catch (error){
+                errors = true;
+                jsonSchemaErrors.push(new ValidationOutput("json-schema", "error", error.message, "/"));
+            }
+            handleSpectralLogs(errors, prettifyJson(jsonSchemaErrors.concat(spectralResultForPattern.spectralIssues)), 'JSON Schema');
+            handleProcessExit(errors);
         }
 
         const validateSchema = ajv.compile(jsonSchema);
@@ -56,7 +63,6 @@ export default async function validate(
 
         const spectralResult = mergeSpectralResults(spectralResultForPattern, spectralResultForInstantiation);
 
-        
         errors = spectralResult.errors;
         validations = validations.concat(spectralResult.spectralIssues);
         

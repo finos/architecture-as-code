@@ -4,9 +4,9 @@
   "title": "API Gateway Pattern",
   "type": "object",
   "properties": {
-    "nodes": {
-      "type": "array",
-      "minItems": 4,
+    "nodesaaaa": {
+      "type": 3,
+      "minItemsaaaa": 4,
       "prefixItems": [
         {
           "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/node",
