@@ -55,7 +55,7 @@ export default async function validate(
             logger.debug(`JSON Schema validation raw output: ${prettifyJson(validateSchema.errors)}`);
             errors = true;
             jsonSchemaValidations = formatJsonSchemaOutput(validateSchema.errors);
-            validations = validations.concat(jsonSchemaValidations);
+            validations = jsonSchemaValidations.concat(validations);
         }
         
         const validationsOutput = getFormattedOutput(validations, format, spectralRulesetForInstantiation, spectralRulesetForPattern, jsonSchemaValidations, spectralResult);
@@ -158,6 +158,7 @@ async function runSpectralValidations(
 
     if (issues && issues.length > 0) {
         logger.debug(`Spectral raw output: ${prettifyJson(issues)}`);
+        sortSpectralIssueBySeverity(issues);
         spectralIssues = formatSpectralOutput(issues);
         if (issues.filter(issue => issue.severity === 0).length > 0) {
             logger.debug('Spectral output contains errors');
@@ -169,6 +170,13 @@ async function runSpectralValidations(
         }
     }
     return new SpectralResult(warnings, errors, spectralIssues);
+}
+
+function sortSpectralIssueBySeverity(issues: ISpectralDiagnostic[]): void{
+    logger.debug('Sorting the spectral issues by the severity');
+    issues.sort((issue1: ISpectralDiagnostic, issue2: ISpectralDiagnostic) =>
+        issue1.severity.valueOf() - issue2.severity.valueOf()
+    );
 }
 
 function formatJsonSchemaOutput(jsonSchemaIssues: ErrorObject[]): ValidationOutput[]{
@@ -265,5 +273,6 @@ function stripRefs(obj: object) : string {
 export const exportedForTesting = {
     formatSpectralOutput,
     formatJsonSchemaOutput,
-    stripRefs
+    stripRefs,
+    sortSpectralIssueBySeverity
 };
