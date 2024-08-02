@@ -42,7 +42,7 @@ export default async function validate(
         const spectralResultForPattern: SpectralResult = await runSpectralValidations(stripRefs(jsonSchema), spectralRulesetForPattern);
         
         if (jsonSchemaInstantiationLocation === undefined) {
-            validatePatternOnly(spectralResultForPattern, jsonSchema, ajv, failOnWarnings);
+            return validatePatternOnly(spectralResultForPattern, jsonSchema, ajv, failOnWarnings);
         }
 
         // compile the schema, producing a function that will then validate instances
@@ -90,17 +90,17 @@ export default async function validate(
  * @param ajv The AJV instance to compile with.
  * @param failOnWarnings Whether or not to treat a warning as a failure in the validation process.
  */
-function validatePatternOnly(spectralValidationResults: SpectralResult, patternSchema: any, ajv: Ajv2020, failOnWarnings: boolean) {
+function validatePatternOnly(spectralValidationResults: SpectralResult, patternSchema: object, ajv: Ajv2020, failOnWarnings: boolean) {
     logger.debug('Pattern Instantiation was not provided, only the JSON Schema will be validated');
     let errors = spectralValidationResults.errors;
-    let warnings = spectralValidationResults.warnings;
+    const warnings = spectralValidationResults.warnings;
     const jsonSchemaErrors = [];
 
     try{
         ajv.compile(patternSchema);
     } catch (error){
         errors = true;
-        jsonSchemaErrors.push(new ValidationOutput("json-schema", "error", error.message, "/"));
+        jsonSchemaErrors.push(new ValidationOutput('json-schema', 'error', error.message, '/'));
     }
 
     handleSpectralLogs(errors, warnings, failOnWarnings, prettifyJson(jsonSchemaErrors.concat(spectralValidationResults.spectralIssues)), 'JSON Schema');
