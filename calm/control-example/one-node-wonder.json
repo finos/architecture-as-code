@@ -13,7 +13,7 @@
           {
             "unique-id": "ci-arch-001",
             "description": "Evidence of Pre Production Review",
-            "detail": "control-evidence.json"
+            "detail": "control-instance.json"
           }
         ]
       }
