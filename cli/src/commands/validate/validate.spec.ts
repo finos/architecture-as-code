@@ -352,8 +352,40 @@ describe('validate', () => {
 
 const {
     formatSpectralOutput,
-    formatJsonSchemaOutput
+    formatJsonSchemaOutput,
+    sortSpectralIssueBySeverity
 } = exportedForTesting;
+
+describe('sortSpectralIssueBySeverity', () => {
+
+    it('should sort the spectral issues based on the severity', () => {
+        const givenFirstError = buildISpectralDiagnostic('error-code-1', 'This is the first error', 0);
+        const givenFirstWarning = buildISpectralDiagnostic('warning-code-1', 'This is the first warning', 1);
+        const givenSecondWarning = buildISpectralDiagnostic('warning-code-2', 'This is the second warning', 1);
+        const givenSecondError = buildISpectralDiagnostic('error-code-2', 'This is the second error', 0);
+        const givenNotSortedSpectralIssues: ISpectralDiagnostic[] = [ givenFirstError, givenFirstWarning, givenSecondWarning, givenSecondError];
+        sortSpectralIssueBySeverity(givenNotSortedSpectralIssues);
+        const expectedSortedSpectralIssue: ISpectralDiagnostic[] = [givenFirstError, givenSecondError, givenFirstWarning, givenSecondWarning];
+        expect(givenNotSortedSpectralIssues).toStrictEqual(expectedSortedSpectralIssue);
+    });
+});
+
+function buildISpectralDiagnostic(code: string, message: string, severity: number): ISpectralDiagnostic{
+    return {
+        code: code,
+        message: message,
+        severity: severity,
+        path: [
+            'relationships',
+            '0',
+            'relationship-type',
+            'connects',
+            'destination',
+            'interface'
+        ],
+        range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
+    };
+}
 
 describe('formatSpectralOutput', () => {
 
