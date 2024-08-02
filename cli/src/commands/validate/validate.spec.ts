@@ -147,7 +147,7 @@ describe('validate', () => {
                 code: 'no-empty-properties',
                 message: 'Must not contain string properties set to the empty string or numerical properties set to zero',
                 severity: 0,
-                path: JSON.parse(JSON.stringify('$..*')),
+                path: ['/nodes'],
                 range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
             }
         ];
@@ -173,7 +173,7 @@ describe('validate', () => {
                 code: 'no-empty-properties',
                 message: 'Must not contain string properties set to the empty string or numerical properties set to zero',
                 severity: 0,
-                path: JSON.parse(JSON.stringify('$..*')),
+                path: ['/nodes'],
                 range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
             }
         ];
@@ -189,6 +189,63 @@ describe('validate', () => {
         await expect(validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, jsonFormat))
             .rejects
             .toThrow();
+    });
+    
+    it('exits with error when spectral returns warnings, but failOnWarnings is set', async () => {
+        const expectedSpectralOutput: ISpectralDiagnostic[] = [
+            {
+                code: 'no-empty-properties',
+                message: 'Must not contain string properties set to the empty string or numerical properties set to zero',
+                severity: 0,
+                path: ['/nodes'],
+                range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
+            }
+        ];
+
+        mockRunFunction.mockReturnValue(expectedSpectralOutput);
+
+        const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-with-no-relationships.json'), 'utf8');
+        fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+
+        const apiGatewayInstantiation = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8');
+        fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayInstantiation);
+
+        await expect(validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, jsonFormat, undefined, true))
+            .rejects
+            .toThrow();
+    });
+
+    it('completes successfully when the spectral validation returns warnings only and failOnWarnings is not set', async () => {
+        const mockExit = jest.spyOn(process, 'exit')
+            .mockImplementation((code) => {
+                console.log(code);
+                if (code != 0) {
+                    throw new Error();
+                }
+                return undefined as never;
+            });
+
+        const expectedSpectralOutput: ISpectralDiagnostic[] = [
+            {
+                code: 'warning-test',
+                message: 'Test warning',
+                severity: 1,
+                path: [ 'nodes' ],
+                range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
+            }
+        ];
+
+        mockRunFunction.mockReturnValue(expectedSpectralOutput);
+
+        const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
+        fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+
+        const apiGatewayInstantiation = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8');
+        fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayInstantiation);
+
+        await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, jsonFormat, undefined, false);
+
+        expect(mockExit).toHaveBeenCalledWith(0);
     });
 
     it('exits with error when the meta schema location is not a directory', async () => {
