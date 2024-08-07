@@ -44,7 +44,7 @@ program
     .command('validate')
     .description('Validate that an instantiation conforms to a given CALM pattern.')
     .requiredOption('-p, --pattern <pattern>', 'Path to the pattern file to use. May be a file path or a URL.')
-    .requiredOption('-i, --instantiation <instantiation>', 'Path to the pattern instantiation file to use. May be a file path or a URL.')
+    .option('-i, --instantiation <instantiation>', 'Path to the pattern instantiation file to use. May be a file path or a URL.')
     .option('-m, --metaSchemasLocation <metaSchemaLocation>', 'The location of the directory of the meta schemas to be loaded', CALM_META_SCHEMA_DIRECTORY)
     .option('--strict', 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
     .addOption(

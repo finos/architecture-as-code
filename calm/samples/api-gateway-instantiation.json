@@ -8,7 +8,7 @@
       "interfaces": [
         {
           "unique-id": "api-gateway-ingress",
-          "host": "mygateway.com",
+          "host": "https://api-gateway-ingress.example.com",
           "port": 6000
         }
       ],
@@ -29,8 +29,8 @@
       "interfaces": [
         {
           "unique-id": "producer-ingress",
-          "host": "producer.com",
-          "port": 3000
+          "host": "https://api-producer.example.com",
+          "port": -1
         }
       ]
     },
