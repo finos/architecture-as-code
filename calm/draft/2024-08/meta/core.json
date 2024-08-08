@@ -17,6 +17,9 @@
     },
     "metadata": {
       "$ref": "#/defs/metadata"
+    },
+    "domains": {
+      "$ref": "domain.json#/defs/domains"
     }
   },
   "defs": {
@@ -124,6 +127,9 @@
         },
         "metadata": {
           "$ref": "#/defs/metadata"
+        },
+        "domains": {
+          "$ref": "domain.json#/defs/domains"
         }
       },
       "required": [
