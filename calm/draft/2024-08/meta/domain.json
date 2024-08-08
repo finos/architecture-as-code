@@ -16,13 +16,42 @@
           "type": "string"
         },
         "evidence": {
-          "type": "string"
+          "type": "array",
+          "items": {
+            "$ref": "#/defs/evidence"
+          }
         }
       },
       "required": [
         "unique-id",
         "description",
         "detail"
+      ]
+    },
+    "domains": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z0-9_]+$": {
+          "type": "array",
+          "items": {
+            "$ref": "#/defs/domain-type"
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "evidence-id": {
+          "type": "string"
+        },
+        "evidence-link": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence-id",
+        "evidence-link"
       ]
     }
   }

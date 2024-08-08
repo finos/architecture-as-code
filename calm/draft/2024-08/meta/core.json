@@ -54,15 +54,7 @@
           }
         },
         "domains": {
-          "type": "object",
-          "patternProperties": {
-            "^[a-zA-Z0-9_]+$": {
-              "type": "array",
-              "items": {
-                "$ref": "domain.json#/defs/domain-type"
-              }
-            }
-          }
+          "$ref": "domain.json#/defs/domains"
         },
         "metadata": {
           "$ref": "#/defs/metadata"
