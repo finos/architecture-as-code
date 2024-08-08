@@ -1,0 +1,30 @@
+{
+  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/calm.json",
+  "id": "one-node-wonder.json",
+  "title": "Demonstration of domain and controls",
+  "nodes": [
+    {
+      "unique-id": "example-system",
+      "node-type": "system",
+      "name": "Example System",
+      "description": "Example System",
+      "domains": {
+        "cbom": [
+          {
+            "unique-id": "ci-arch-001",
+            "description": "Evidence of Pre Production Review",
+            "detail": "control-instance.json",
+            "evidence": [
+              {
+                "evidence-link": "https://evidence.com/12345",
+                "evidence-id": "12345"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "relationships": [],
+  "metadata": []
+}

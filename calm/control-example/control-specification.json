@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "control-specification.json",
+  "title": "Example Production Control Specification",
+  "properties": {
+    "control-id": {
+      "const": "ci-arch-001"
+    },
+    "name": {
+      "const": "Architecture review pre-production"
+    },
+    "scope-text": {
+      "const": "All workloads going to production"
+    },
+    "scope-rego": {
+      "const": "input.metadata.target-deployment.environment == Production"
+    },
+    "data-fields": {
+      "type": "object",
+      "properties": {
+        "review-date": {
+          "type": "string",
+          "format": "date"
+        },
+        "reviewed-by": {
+          "type": "string"
+        },
+        "docs-link": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "review-date",
+        "reviewed-by",
+        "docs-link"
+      ]
+    }
+  },
+  "required": [
+    "control-id",
+    "name",
+    "scope-text",
+    "scope-rego"
+  ]
+}

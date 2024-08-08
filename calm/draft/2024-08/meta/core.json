@@ -17,6 +17,9 @@
     },
     "metadata": {
       "$ref": "#/defs/metadata"
+    },
+    "domains": {
+      "$ref": "domain.json#/defs/domains"
     }
   },
   "defs": {
@@ -52,6 +55,9 @@
           "items": {
             "$ref": "interface.json#/defs/interface-type"
           }
+        },
+        "domains": {
+          "$ref": "domain.json#/defs/domains"
         },
         "metadata": {
           "$ref": "#/defs/metadata"
@@ -121,6 +127,9 @@
         },
         "metadata": {
           "$ref": "#/defs/metadata"
+        },
+        "domains": {
+          "$ref": "domain.json#/defs/domains"
         }
       },
       "required": [
