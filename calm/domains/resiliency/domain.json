@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://patterns.company.com/domains/resiliency/domain.json",
+  "title": "Common Architecture Language Model Interfaces",
+  "defs": {
+    "node-domain": {
+      "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/domain.json",
+      "type": "object",
+      "properties": {
+        "replica-sets": {
+          "type": "integer"
+        },
+        "deployment-strategy": {
+          "type": "string",
+          "enum": [ "rolling-release", "canary", "blue-green" ]
+        },
+        "other-resiliency-properties": {
+          "type": "string"
+        },
+        "regional-resiliency": {
+          "$ref": "#/defs/regional-resiliency"
+        }
+      },
+      "required": [
+        "replica-sets",
+        "deployment-strategy"
+      ]
+    },
+    "regional-resiliency": {
+      "type": "object",
+      "properties": {
+        "some data about": "regional resiliency"
+      },
+      "required": [
+      ]
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+    // other props such as $schema, $id etc
+    "type": "object",
+    "properties": {
+        // totally standard nodes definition, nothing new
+        "nodes": {
+            "type": "array",
+            "prefixItems": [
+                {
+                    "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/node",
+                    "type": "object",
+                    "properties": {
+                        "unique-id": {
+                            "const": "api-producer"
+                        }
+                    }
+                }
+            ]
+        },
+        // relationships, etc omitted...
+        "domains": {
+            "type": "object",
+            "properties": {
+                "resilience": {
+                    "type": "object",
+                    "properties": {
+                        "nodes": {
+                            "type": "array",
+                            "prefixItems": [
+                                {
+                                    "$ref": "https://patterns.company.com/domains/resilience.json#/defs/node-domain",
+                                    "type": "object",
+                                    "properties": {
+                                        "element-id": {
+                                            "const": "api-producer"
+                                        },
+                                        "replica-sets": {
+                                            "const": 4
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
