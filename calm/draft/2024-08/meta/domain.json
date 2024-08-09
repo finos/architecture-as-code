@@ -3,7 +3,7 @@
   "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/domain.json",
   "title": "Common Architecture Language Model Domains",
   "defs": {
-    "domain-type": {
+    "domain-requirement": {
       "type": "object",
       "properties": {
         "unique-id": {
@@ -12,7 +12,10 @@
         "description": {
           "type": "string"
         },
-        "detail": {
+        "requirement-schema": {
+          "type": "string"
+        },
+        "requirement-instance": {
           "type": "string"
         },
         "evidence": {
@@ -25,7 +28,8 @@
       "required": [
         "unique-id",
         "description",
-        "detail"
+        "requirement-schema",
+        "requirement-instance"
       ]
     },
     "domains": {
@@ -34,7 +38,7 @@
         "^[a-zA-Z0-9_]+$": {
           "type": "array",
           "items": {
-            "$ref": "#/defs/domain-type"
+            "$ref": "#/defs/domain-requirement"
           }
         }
       }

@@ -13,7 +13,8 @@
           {
             "unique-id": "ci-arch-001",
             "description": "Evidence of Pre Production Review",
-            "detail": "control-instance.json",
+            "requirement-schema": "control-specification.json",
+            "requirement-instance": "control-instance.json",
             "evidence": [
               {
                 "evidence-link": "https://evidence.com/12345",
