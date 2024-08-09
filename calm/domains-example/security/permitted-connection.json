@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "permitted-connection.json",
+  "title": "Permission for connections between components in architecture",
+  "properties": {
+    "security-id": {
+      "const": "security-002"
+    },
+    "scope-text": {
+      "const": "Permits connections between components on a relationship"
+    },
+    "protocol": {
+      "$ref": "#/defs/protocol"
+    }
+  },
+  "required": [
+    "security-id",
+    "scope-text",
+    "protocol"
+  ],
+  "defs": {
+    "protocol": {
+      "enum": [
+        "HTTP",
+        "HTTPS",
+        "FTP",
+        "SFTP",
+        "JDBC",
+        "WebSocket",
+        "SocketIO",
+        "LDAP",
+        "AMQP",
+        "TLS",
+        "mTLS",
+        "TCP"
+      ]
+    }
+  }
+}

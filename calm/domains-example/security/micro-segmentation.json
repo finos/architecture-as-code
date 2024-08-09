@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "micro-segmentation.json",
+  "title": "Micro-segmentation in place",
+  "type": "object",
+  "properties": {
+    "security-id": {
+      "const": "security-001"
+    },
+    "scope-text": {
+      "const": "Micro-segmentation is in place to prevent lateral movement outside of permitted flows"
+    },
+    "permit-ingress": {
+      "type": "boolean"
+    },
+    "permit-egress": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "security-id",
+    "scope-text",
+    "permit-ingress",
+    "permit-egress"
+  ]
+}

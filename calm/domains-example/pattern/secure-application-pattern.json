@@ -97,6 +97,29 @@
             },
             "node-type": {
               "const": "system"
+            },
+            "domains": {
+              "type": "object",
+              "properties": {
+                "security": {
+                  "type": "array",
+                  "minItems": 1,
+                  "prefixItems": [
+                    {
+                      "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/domain.json#/defs/domain-type",
+                      "type": "object",
+                      "properties": {
+                        "unique-id": {
+                          "const": "default-deny"
+                        },
+                        "description": {
+                          "const": "micro-segmentation configuration for cluster"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
             }
           }
         }

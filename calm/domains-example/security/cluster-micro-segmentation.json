@@ -1,0 +1,7 @@
+{
+  "$schema": "micro-segmentation.json",
+  "security-id": "security-001",
+  "scope-text": "Micro-segmentation is in place to prevent lateral movement outside of permitted flows",
+  "permit-ingress": true,
+  "permit-egress": false
+}
