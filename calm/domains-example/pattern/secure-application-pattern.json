@@ -114,6 +114,9 @@
                         },
                         "description": {
                           "const": "micro-segmentation configuration for cluster"
+                        },
+                        "external-schema": {
+                          "const": "micro-segmentation.json"
                         }
                       }
                     }
@@ -121,7 +124,10 @@
                 }
               }
             }
-          }
+          },
+          "required": [
+            "domains"
+          ]
         }
       ]
     },
@@ -149,6 +155,8 @@
                   }
                 }
               }
+            },
+            "domains": {
             }
           },
           "protocol": {
@@ -179,6 +187,9 @@
           },
           "protocol": {
             "const": "mTLS"
+          },
+          "domains": {
+
           }
         },
         {
