@@ -110,7 +110,7 @@
                       "type": "object",
                       "properties": {
                         "unique-id": {
-                          "const": "default-deny"
+                          "const": "micro-segmentation"
                         },
                         "description": {
                           "const": "micro-segmentation configuration for cluster"
