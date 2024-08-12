@@ -44,8 +44,9 @@ program
     .command('validate')
     .description('Validate that an instantiation conforms to a given CALM pattern.')
     .requiredOption('-p, --pattern <pattern>', 'Path to the pattern file to use. May be a file path or a URL.')
-    .requiredOption('-i, --instantiation <instantiation>', 'Path to the pattern instantiation file to use. May be a file path or a URL.')
+    .option('-i, --instantiation <instantiation>', 'Path to the pattern instantiation file to use. May be a file path or a URL.')
     .option('-m, --metaSchemasLocation <metaSchemaLocation>', 'The location of the directory of the meta schemas to be loaded', CALM_META_SCHEMA_DIRECTORY)
+    .option('--strict', 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
     .addOption(
         new Option('-f, --format <format>', 'The format of the output')
             .choices(['json', 'junit'])
@@ -54,7 +55,7 @@ program
     .option('-o, --output <output>', 'Path location at which to output the generated file.')
     .option('-v, --verbose', 'Enable verbose logging.', false)
     .action(async (options) =>
-        await validate(options.instantiation, options.pattern, options.metaSchemasLocation, options.verbose, options.format, options.output) 
+        await validate(options.instantiation, options.pattern, options.metaSchemasLocation, options.verbose, options.format, options.output, options.strict) 
     );
 
 program.parse(process.argv);

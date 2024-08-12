@@ -62,5 +62,10 @@ describe('runGenerate', () => {
             .toHaveProperty('nodes');
         expect(parsed)
             .toHaveProperty('relationships');
+        expect(parsed)
+            .toHaveProperty('$schema');
+        expect(parsed['$schema'])
+            .toEqual('https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/pattern/api-gateway');
     });
+
 });

@@ -41,6 +41,8 @@ export async function generate(patternPath: string, debug: boolean, instantiateA
     const relationshipNodes = instantiateRelationships(pattern, schemaDirectory, debug, instantiateAll);
     const metadata = instantiateAllMetadata(pattern, schemaDirectory, debug, instantiateAll);
 
+    const patternSchemaId = pattern['$id'];
+
     const final = {
         'nodes': outputNodes,
         'relationships': relationshipNodes
@@ -48,6 +50,10 @@ export async function generate(patternPath: string, debug: boolean, instantiateA
 
     if (metadata) {
         final['metadata'] = metadata;
+    }
+
+    if (patternSchemaId) {
+        final['$schema'] = patternSchemaId;
     }
 
     return final;
