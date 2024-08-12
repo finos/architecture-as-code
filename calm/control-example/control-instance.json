@@ -6,7 +6,13 @@
   "data-fields": {
     "review-date": "2024-08-02",
     "reviewed-by": "jpgough-ms",
-    "docs-link": "https://issue-tracker.com/12345"
+    "docs-link": "https://issue-tracker.com/12345",
+    "evidence": [
+      {
+        "evidence-link": "https://evidence.com/12345",
+        "evidence-id": "12345"
+      }
+    ]
   },
   "name": "Architecture review pre-production",
   "scope-text": "All workloads going to production",

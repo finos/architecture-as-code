@@ -28,6 +28,12 @@
         "docs-link": {
           "type": "string",
           "format": "uri"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/defs/evidence"
+          }
         }
       },
       "required": [
@@ -42,5 +48,22 @@
     "name",
     "scope-text",
     "scope-rego"
-  ]
+  ],
+  "defs": {
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "evidence-id": {
+          "type": "string"
+        },
+        "evidence-link": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence-id",
+        "evidence-link"
+      ]
+    }
+  }
 }

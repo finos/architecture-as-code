@@ -6,28 +6,14 @@
     "domain-requirement": {
       "type": "object",
       "properties": {
-        "unique-id": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
         "requirement-schema": {
           "type": "string"
         },
         "requirement-instance": {
           "type": "string"
-        },
-        "evidence": {
-          "type": "array",
-          "items": {
-            "$ref": "#/defs/evidence"
-          }
         }
       },
       "required": [
-        "unique-id",
-        "description",
         "requirement-schema",
         "requirement-instance"
       ]
@@ -42,21 +28,6 @@
           }
         }
       }
-    },
-    "evidence": {
-      "type": "object",
-      "properties": {
-        "evidence-id": {
-          "type": "string"
-        },
-        "evidence-link": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "evidence-id",
-        "evidence-link"
-      ]
     }
   }
 }
