@@ -115,8 +115,11 @@
                         "description": {
                           "const": "micro-segmentation configuration for cluster"
                         },
-                        "external-schema": {
-                          "const": "micro-segmentation.json"
+                        "requirement-schema": {
+                          "const": "../security/schema/micro-segmentation.json"
+                        },
+                        "requirement-instance": {
+                          "const": "../security/cluster-micro-segmentation.json"
                         }
                       }
                     }
