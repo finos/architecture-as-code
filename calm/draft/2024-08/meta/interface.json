@@ -152,6 +152,30 @@
         "Minutes",
         "Hours"
       ]
+    },
+    "container-image-interface": {
+      "$ref": "#/defs/interface-type",
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "image"
+      ]
+    },
+    "port-interface": {
+      "$ref": "#/defs/interface-type",
+      "type": "object",
+      "properties": {
+        "port": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "port"
+      ]
     }
   }
 }
