@@ -14,7 +14,8 @@
     "copy-calm-schema": "mkdir -p dist/calm && cp -r ../calm/draft/2024-04/meta dist/calm/",
     "copy-spectral-rules": "mkdir -p dist/spectral && npm run copy-spectral-instantiation-rules && npm run copy-spectral-pattern-rules",
     "copy-spectral-instantiation-rules": "cp -r ../spectral/instantiation dist/spectral",
-    "copy-spectral-pattern-rules": "cp -r ../spectral/pattern dist/spectral"
+    "copy-spectral-pattern-rules": "cp -r ../spectral/pattern dist/spectral",
+    "dependency-check": "dependency-check --project 'calm-cli' --scan . --out ./dependency-check-report --format ALL --suppression ../.github/node-cve-ignore-list.xml"
   },
   "bin": {
     "calm": "dist/index.js"
@@ -36,7 +37,7 @@
     "mkdirp": "^3.0.1",
     "ts-graphviz": "^2.1.1",
     "tsconfig-paths": "^4.2.0",
-    "winston": "^3.13.0"
+    "winston": "^3.14.1"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
