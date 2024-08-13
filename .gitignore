@@ -18,3 +18,4 @@ website/package-lock.json
 **/.vscode/
 
 node_modules/
+/cli/dependency-check-report/
