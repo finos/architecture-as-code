@@ -28,7 +28,7 @@
     "@stoplight/spectral-core": "^1.18.3",
     "ajv": "^8.12.0",
     "commander": "^12.0.0",
-    "fetch-mock": "^9.11.0",
+    "fetch-mock": "^11.0.0",
     "graphviz-cli": "^2.0.0",
     "js-yaml": "^4.1.0",
     "json-pointer": "^0.6.2",
