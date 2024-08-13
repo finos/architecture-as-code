@@ -1,6 +1,6 @@
 {
   "name": "@finos/calm-cli",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
   "main": "dist/index.js",
   "files": [
@@ -47,9 +47,9 @@
     "@types/junit-report-builder": "^3.0.2",
     "@types/lodash": "^4.17.0",
     "@types/node": "^20.11.30",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
     "eslint": "^8.57.0",
-    "eslint-config-standard-with-typescript": "^43.0.1",
+    "eslint-config-love": "^62.0.0",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-n": "^16.6.2",
     "eslint-plugin-promise": "^6.1.1",
