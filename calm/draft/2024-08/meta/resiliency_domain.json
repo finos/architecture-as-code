@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/resiliency_domain.json",
+  "title": "Common Architecture Language Model (CALM) Resiliency Domain Specification",
+  
+  "properties": {
+  	"unique-id": {
+  		"type": "string"
+  	},
+  	"description": {
+  		"type": "string"
+  	},
+  	"requirement-type": {
+  		"$ref": "#/$defs/requirement-type-definition"
+  	},
+  	"applicable-criticality-ratings": {
+  		"type": "array",
+      "items": {
+        "$ref": "#/$defs/criticality-definition"
+  	  }
+    },
+    "entity-type-scope": {
+        "list-of-applicable-entities": "string"
+    },
+     "entity-instance-scope": {
+        "list-of-applicable-entity-instances": "string"
+    },
+     "pattern-instance-scope": {
+        "list-of-applicable-pattern-instances": "string"
+    },
+     "measurement": {
+        "list-of-resiliency-requirement-measurement": "string"
+    },
+    
+    
+  	"required": [
+  		"unique-id",
+  		"description",
+  		"requirement-type"
+  	]
+  
+  },
+  
+  "$defs": {
+  	"requirement-type-definition": {
+  		"enum": [
+  		 "Policy",
+  		 "Business",
+  		 "Implementation"
+  		]
+    },
+      "criticality-rating": {
+  		"enum": [
+  		 "tier1",
+  		 "tier2",
+  		 "tier3"
+  		 ]
+      },
+      "application-mode": {
+  		"enum": [
+  		 "Must have",
+  		 "Optional"
+  		 ]
+      },
+      "criticality-definition": {
+          "application-mode": "#/$defs/application-mode",
+          "criticality-rating": "#/$defs/criticality-rating"
+      }
+     	
+  }
+  
+}

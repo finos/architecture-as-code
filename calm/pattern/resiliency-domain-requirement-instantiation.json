@@ -1,0 +1,8 @@
+{
+  "unique-id": "1",
+  "description": "The system has a clear (stakeholder agreed) definition of the minimum acceptable level of service",
+  "requirement-type": "Policy",
+  "applicable-criticality-rating": [ ["tier1","Must have"],["tier2","Optional"]],
+  "entity-type-scope": "Imagine here a list calm entities like node, relationship, interfaces, systems",
+  "entity-instance-scope": "e.g. https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/pattern/api-gateway-instationation.json"
+}
