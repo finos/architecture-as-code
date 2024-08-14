@@ -1,6 +1,5 @@
 {
   "$schema": "pre-prod-review-specification.json",
-  "$id": "control-evidence.json",
   "title": "Evidence of pre-production review",
   "control-id": "ci-arch-001",
   "data-fields": {
