@@ -8,13 +8,16 @@
       "node-type": "system",
       "name": "Example System",
       "description": "Example System",
-      "domains": {
-        "cbom": [
-          {
-            "requirement-schema": "control-specification.json",
-            "requirement-instance": "control-instance.json"
+      "controls": {
+        "cbom": {
+            "base-path": ".",
+            "description": "Control requirements for delivering patterns",
+            "requirements": [
+              {
+                "$ref": "pre-prod-review-configuration.json"
+              }
+            ]
           }
-        ]
       }
     }
   ],

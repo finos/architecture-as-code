@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "../draft/2024-08/meta/control.json#defs/control-requirement",
   "$id": "control-specification.json",
   "title": "Example Production Control Specification",
   "properties": {
@@ -8,6 +8,9 @@
     },
     "name": {
       "const": "Architecture review pre-production"
+    },
+    "description": {
+      "const": "As part of the SDLC requirements, each workload going to production is subject to an architecture review"
     },
     "scope-text": {
       "const": "All workloads going to production"
@@ -28,12 +31,6 @@
         "docs-link": {
           "type": "string",
           "format": "uri"
-        },
-        "evidence": {
-          "type": "array",
-          "items": {
-            "$ref": "#/defs/evidence"
-          }
         }
       },
       "required": [
@@ -46,24 +43,8 @@
   "required": [
     "control-id",
     "name",
+    "description",
     "scope-text",
     "scope-rego"
-  ],
-  "defs": {
-    "evidence": {
-      "type": "object",
-      "properties": {
-        "evidence-id": {
-          "type": "string"
-        },
-        "evidence-link": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "evidence-id",
-        "evidence-link"
-      ]
-    }
-  }
+  ]
 }

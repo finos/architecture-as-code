@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/domain.json",
+  "title": "Common Architecture Language Model Domains",
+  "defs": {
+    "control-requirement": {
+      "type": "object",
+      "properties": {
+        "control-id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ]
+    },
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "unique-id": {
+          "type": "string"
+        },
+        "evidence-path": {
+          "type": "string"
+        }
+      },
+      "required":[
+        "unique-id",
+        "evidence-path"
+      ]
+    },
+    "controls": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z0-9_]+$": {
+          "type": "object",
+          "properties": {
+            "base-path": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "requirements": {
+              "type": "array",
+              "items": {
+                "type": "#defs/control-requirement"
+              }
+            }
+          },
+          "required": [
+            "base-path",
+            "description",
+            "requirements"
+          ]
+        }
+      }
+    }
+  }
+}
