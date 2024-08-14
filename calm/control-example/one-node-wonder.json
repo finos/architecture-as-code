@@ -1,6 +1,5 @@
 {
   "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/calm.json",
-  "id": "one-node-wonder.json",
   "title": "Demonstration of domain and controls",
   "nodes": [
     {
@@ -10,11 +9,15 @@
       "description": "Example System",
       "controls": {
         "cbom": {
-            "base-path": ".",
             "description": "Control requirements for delivering patterns",
             "requirements": [
               {
-                "$ref": "pre-prod-review-configuration.json"
+                "control-requirement": {
+                  "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-specification.json"
+                },
+                "control-config": {
+                  "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-configuration.json"
+                }
               }
             ]
           }

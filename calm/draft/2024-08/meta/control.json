@@ -2,62 +2,43 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control.json",
   "title": "Common Architecture Language Model Controls",
-  "defs": {
-    "control-requirement": {
+  "description": "Controls model requirements for domains. For example, a security domain contains a series of control requirements",
+  "$defs": {
+    "control-detail": {
       "type": "object",
       "properties": {
-        "control-id": {
-          "type": "string"
+        "control-requirement": {
+          "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control-requirement.json",
+          "description": "The requirement schema that specifies how a control should be defined"
         },
-        "name": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
+        "control-config": {
+          "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control-requirement.json",
+          "description": "The configuration of how the control requirement schema is met"
         }
       },
       "required": [
-        "control-id",
-        "name",
-        "description"
-      ]
-    },
-    "evidence": {
-      "type": "object",
-      "properties": {
-        "unique-id": {
-          "type": "string"
-        },
-        "evidence-path": {
-          "type": "string"
-        }
-      },
-      "required":[
-        "unique-id",
-        "evidence-path"
+        "control-requirement"
       ]
     },
     "controls": {
       "type": "object",
       "patternProperties": {
-        "^[a-zA-Z0-9_]+$": {
+        "^[a-zA-Z0-9-]+$": {
           "type": "object",
           "properties": {
-            "base-path": {
-              "type": "string"
-            },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "A description of a control and how it applies to a given architecture"
             },
             "requirements": {
               "type": "array",
               "items": {
-                "type": "#/defs/control-requirement"
+                "type": "#/$defs/control-detail",
+                "description": "The detail of a how a specified control is structured and (if it currently does) is configured to meet the requirement"
               }
             }
           },
           "required": [
-            "base-path",
             "description",
             "requirements"
           ]

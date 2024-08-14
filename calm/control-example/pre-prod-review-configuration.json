@@ -1,12 +1,7 @@
 {
-  "$schema": "pre-prod-review-specification.json",
+  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/control-specification.json",
   "title": "Evidence of pre-production review",
   "control-id": "ci-arch-001",
-  "data-fields": {
-    "review-date": "2024-08-02",
-    "reviewed-by": "jpgough-ms",
-    "docs-link": "https://issue-tracker.com/12345"
-  },
   "name": "Architecture review pre-production",
   "scope-text": "All workloads going to production",
   "scope-rego": "input.metadata.target-deployment.environment == Production",
