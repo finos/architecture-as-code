@@ -52,7 +52,7 @@
             "requirements": {
               "type": "array",
               "items": {
-                "type": "#defs/control-requirement"
+                "type": "#/defs/control-requirement"
               }
             }
           },
