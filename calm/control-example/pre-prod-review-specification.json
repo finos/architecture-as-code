@@ -1,5 +1,5 @@
 {
-  "$schema": "../draft/2024-08/meta/control.json#defs/control-requirement",
+  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control.json#defs/control-requirement",
   "$id": "control-specification.json",
   "title": "Example Production Control Specification",
   "properties": {

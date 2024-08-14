@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/domain.json",
-  "title": "Common Architecture Language Model Domains",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control.json",
+  "title": "Common Architecture Language Model Controls",
   "defs": {
     "control-requirement": {
       "type": "object",
