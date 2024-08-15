@@ -1,6 +1,5 @@
 {
   "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/calm.json",
-  "id": "one-node-wonder.json",
   "title": "Demonstration of domain and controls",
   "nodes": [
     {
@@ -8,21 +7,20 @@
       "node-type": "system",
       "name": "Example System",
       "description": "Example System",
-      "domains": {
-        "cbom": [
-          {
-            "unique-id": "ci-arch-001",
-            "description": "Evidence of Pre Production Review",
-            "requirement-schema": "control-specification.json",
-            "requirement-instance": "control-instance.json",
-            "evidence": [
+      "controls": {
+        "cbom": {
+            "description": "Control requirements for delivering patterns",
+            "requirements": [
               {
-                "evidence-link": "https://evidence.com/12345",
-                "evidence-id": "12345"
+                "control-requirement": {
+                  "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-specification.json"
+                },
+                "control-config": {
+                  "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-configuration.json"
+                }
               }
             ]
           }
-        ]
       }
     }
   ],

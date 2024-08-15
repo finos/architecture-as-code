@@ -18,8 +18,8 @@
     "metadata": {
       "$ref": "#/defs/metadata"
     },
-    "domains": {
-      "$ref": "domain.json#/defs/domains"
+    "controls": {
+      "$ref": "control.json#/defs/controls"
     }
   },
   "defs": {
@@ -56,8 +56,8 @@
             "$ref": "interface.json#/defs/interface-type"
           }
         },
-        "domains": {
-          "$ref": "domain.json#/defs/domains"
+        "controls": {
+          "$ref": "control.json#/defs/controls"
         },
         "metadata": {
           "$ref": "#/defs/metadata"
@@ -128,8 +128,8 @@
         "metadata": {
           "$ref": "#/defs/metadata"
         },
-        "domains": {
-          "$ref": "domain.json#/defs/domains"
+        "controls": {
+          "$ref": "control.json#/defs/controls"
         }
       },
       "required": [
