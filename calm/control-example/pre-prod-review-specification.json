@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/control-specification.json",
+  "title": "Example Production Control Specification",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "control-id": {
+      "const": "ci-arch-001"
+    },
+    "name": {
+      "const": "Architecture review pre-production"
+    },
+    "description": {
+      "const": "As part of the SDLC requirements, each workload going to production is subject to an architecture review"
+    },
+    "scope-text": {
+      "const": "All workloads going to production"
+    },
+    "scope-rego": {
+      "const": "input.metadata.target-deployment.environment == Production"
+    }
+  },
+  "required": [
+    "scope-text",
+    "scope-rego",
+    "control-id",
+    "name",
+    "description"
+  ]
+}
