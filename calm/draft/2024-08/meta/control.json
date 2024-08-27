@@ -3,7 +3,7 @@
   "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control.json",
   "title": "Common Architecture Language Model Controls",
   "description": "Controls model requirements for domains. For example, a security domain contains a series of control requirements",
-  "$defs": {
+  "defs": {
     "control-detail": {
       "type": "object",
       "properties": {
