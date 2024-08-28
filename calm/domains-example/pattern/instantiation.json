@@ -1,6 +1,13 @@
 {
   "nodes": [
     {
+      "unique-id": "consumer",
+      "node-type": "system",
+      "name": "Consumer",
+      "description": "External Consumer of the secure application",
+      "interfaces": []
+    },
+    {
       "unique-id": "load-balancer",
       "node-type": "system",
       "name": "Load Balancer",
@@ -14,12 +21,12 @@
       "description": "User deployed application that should follow the defined interfaces",
       "interfaces": [
         {
-          "unique-id": "{{ UNIQUE_ID }}",
-          "image": "{{ IMAGE }}"
+          "unique-id": "application-image",
+          "image": "masteringapi/attendees-quarkus:ws-native"
         },
         {
-          "unique-id": "{{ UNIQUE_ID }}",
-          "port": -1
+          "unique-id": "http-port",
+          "port": 8080
         }
       ]
     },
@@ -36,10 +43,44 @@
       "name": "Service Mesh Enabled Kubernetes Cluster",
       "description": "Service Mesh Deployed on a Kubernetes Cluster with network policy rules enabled",
       "interfaces": [],
-      "controls": "{{ REF_CONTROLS }}"
+      "controls": {
+        "security": {
+          "description": "The cluster conforms to micro-segmentation control requirements",
+          "requirements": [
+            {
+              "control-requirement-url": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/micro-segmentation.json",
+              "control-config-url": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/cluster-micro-segmentation.json"
+            }
+          ]
+        }
+      }
     }
   ],
   "relationships": [
+    {
+      "unique-id": "consumer-load-balancer",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "consumer"
+          },
+          "destination": {
+            "node": "load-balancer"
+          }
+        }
+      },
+      "controls": {
+        "security": {
+          "description": "The ingress to the cluster should be permitted in a secure environment using HTTPS",
+          "requirements": [
+            {
+              "control-requirement-url": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/permitted-connection.json",
+              "control-config-url": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/cluster-ingress-https.json"
+            }
+          ]
+        }
+      }
+    },
     {
       "unique-id": "load-balancer-application",
       "relationship-type": {
@@ -50,6 +91,17 @@
           "destination": {
             "node": "application"
           }
+        }
+      },
+      "controls": {
+        "security": {
+          "description": "Internal cluster connectivity should be permitted using mTLS",
+          "requirements": [
+            {
+              "control-requirement-url": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/permitted-connection.json",
+              "control-config-url": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/cluster-internal-mtls.json"
+            }
+          ]
         }
       }
     },
@@ -63,6 +115,17 @@
           "destination": {
             "node": "postgres-database"
           }
+        }
+      },
+      "controls": {
+        "security": {
+          "description": "Internal cluster connectivity should be permitted using mTLS",
+          "requirements": [
+            {
+              "control-requirement-url": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/permitted-connection.json",
+              "control-config-url": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/cluster-internal-mtls.json"
+            }
+          ]
         }
       }
     },

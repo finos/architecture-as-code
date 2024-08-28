@@ -6,8 +6,26 @@
   "properties": {
     "nodes": {
       "type": "array",
-      "minItems": 4,
+      "minItems": 5,
       "prefixItems": [
+        {
+          "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/core.json#/defs/node",
+          "type": "object",
+          "properties": {
+            "unique-id": {
+              "const": "consumer"
+            },
+            "name": {
+              "const": "Consumer"
+            },
+            "description": {
+              "const": "External Consumer of the secure application"
+            },
+            "node-type": {
+              "const": "system"
+            }
+          }
+        },
         {
           "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/core.json#/defs/node",
           "type": "object",
@@ -49,15 +67,19 @@
                 {
                   "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/interface.json#/defs/container-image-interface",
                   "type": "object",
-                  "unique-id": {
-                    "const": "application-image"
+                  "properties": {
+                    "unique-id": {
+                      "const": "application-image"
+                    }
                   }
                 },
                 {
                   "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/interface.json#/defs/port-interface",
                   "type": "object",
-                  "unique-id": {
-                    "const": "http-port"
+                  "properties": {
+                    "unique-id": {
+                      "const": "http-port"
+                    }
                   }
                 }
               ]
@@ -117,7 +139,10 @@
                             "control-requirement-url": {
                               "const": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/micro-segmentation.json"
                             }
-                          }
+                          },
+                          "required": [
+                            "control-config-url"
+                          ]
                         }
                       ]
                     }
@@ -134,8 +159,64 @@
     },
     "relationships": {
       "type": "array",
-      "minItems": 3,
+      "minItems": 4,
       "prefixItems": [
+        {
+          "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/core.json#/defs/relationship",
+          "properties": {
+            "unique-id": {
+              "const": "consumer-load-balancer"
+            },
+            "description": {
+              "const": "Consumer connects to external load balancer"
+            },
+            "relationship-type": {
+              "const": {
+                "connects": {
+                  "source": {
+                    "node": "consumer"
+                  },
+                  "destination": {
+                    "node": "load-balancer"
+                  }
+                }
+              }
+            },
+            "controls": {
+              "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control.json#/defs/controls",
+              "properties": {
+                "security": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "const": "The ingress to the cluster should be permitted in a secure environment using HTTPS"
+                    },
+                    "requirements": {
+                      "type": "array",
+                      "minItems": 1,
+                      "prefixItems": [
+                        {
+                          "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control.json#/defs/control-detail",
+                          "properties": {
+                            "control-requirement-url": {
+                              "const": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/permitted-connection.json"
+                            }
+                          },
+                          "required": [
+                            "control-config-url"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "protocol": {
+            "const": "HTTPS"
+          }
+        },
         {
           "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/core.json#/defs/relationship",
           "properties": {
@@ -157,7 +238,35 @@
                 }
               }
             },
-            "domains": {
+            "controls": {
+              "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control.json#/defs/controls",
+              "properties": {
+                "security": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "const": "Internal cluster connectivity should be permitted using mTLS"
+                    },
+                    "requirements": {
+                      "type": "array",
+                      "minItems": 1,
+                      "prefixItems": [
+                        {
+                          "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control.json#/defs/control-detail",
+                          "properties": {
+                            "control-requirement-url": {
+                              "const": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/permitted-connection.json"
+                            }
+                          },
+                          "required": [
+                            "control-config-url"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
             }
           },
           "protocol": {
@@ -184,12 +293,40 @@
                   }
                 }
               }
+            },
+            "controls": {
+              "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control.json#/defs/controls",
+              "properties": {
+                "security": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "const": "Internal cluster connectivity should be permitted using mTLS"
+                    },
+                    "requirements": {
+                      "type": "array",
+                      "minItems": 1,
+                      "prefixItems": [
+                        {
+                          "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control.json#/defs/control-detail",
+                          "properties": {
+                            "control-requirement-url": {
+                              "const": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/permitted-connection.json"
+                            }
+                          },
+                          "required": [
+                            "control-config-url"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
             }
           },
           "protocol": {
             "const": "mTLS"
-          },
-          "domains": {
           }
         },
         {

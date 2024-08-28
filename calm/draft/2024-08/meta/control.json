@@ -17,7 +17,7 @@
         }
       },
       "required": [
-        "control-requirement"
+        "control-requirement-url"
       ]
     },
     "controls": {
