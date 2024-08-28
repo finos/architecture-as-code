@@ -7,12 +7,12 @@
     "control-detail": {
       "type": "object",
       "properties": {
-        "control-requirement": {
-          "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control-requirement.json",
+        "control-requirement-url": {
+          "type": "string",
           "description": "The requirement schema that specifies how a control should be defined"
         },
         "control-config": {
-          "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control-requirement.json",
+          "type": "string",
           "description": "The configuration of how the control requirement schema is met"
         }
       },
