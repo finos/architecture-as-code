@@ -36,22 +36,7 @@
       "name": "Service Mesh Enabled Kubernetes Cluster",
       "description": "Service Mesh Deployed on a Kubernetes Cluster with network policy rules enabled",
       "interfaces": [],
-      "domains": {
-        "security": [
-          {
-            "unique-id": "default-deny",
-            "description": "micro-segmentation configuration for cluster",
-            "detail": "cluster-micro-segmentation.json",
-            "external-schema": "schema/micro-segmentation.json",
-            "evidence": [
-              {
-                "evidence-id": "control-1",
-                "evidence-link":"https://jira"
-              }
-            ]
-          }
-        ]
-      }
+      "controls": "{{ REF_CONTROLS }}"
     }
   ],
   "relationships": [

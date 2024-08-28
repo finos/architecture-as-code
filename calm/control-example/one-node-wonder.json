@@ -12,12 +12,8 @@
             "description": "Control requirements for delivering patterns",
             "requirements": [
               {
-                "control-requirement": {
-                  "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-specification.json"
-                },
-                "control-config": {
-                  "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-configuration.json"
-                }
+                "control-requirement": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-specification.json",
+                "control-config": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-configuration.json"
               }
             ]
           }

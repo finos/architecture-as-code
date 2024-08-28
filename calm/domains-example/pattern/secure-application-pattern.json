@@ -113,10 +113,9 @@
                       "prefixItems": [
                         {
                           "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control.json#/defs/control-detail",
-                          "type": "object",
                           "properties": {
-                            "control-requirement": {
-                              "const": "../security/schema/micro-segmentation.json"
+                            "control-requirement-url": {
+                              "const": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/micro-segmentation.json"
                             }
                           }
                         }
@@ -191,7 +190,6 @@
             "const": "mTLS"
           },
           "domains": {
-
           }
         },
         {
