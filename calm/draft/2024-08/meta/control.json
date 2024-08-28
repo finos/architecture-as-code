@@ -3,16 +3,16 @@
   "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control.json",
   "title": "Common Architecture Language Model Controls",
   "description": "Controls model requirements for domains. For example, a security domain contains a series of control requirements",
-  "$defs": {
+  "defs": {
     "control-detail": {
       "type": "object",
       "properties": {
-        "control-requirement": {
-          "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control-requirement.json",
+        "control-requirement-url": {
+          "type": "string",
           "description": "The requirement schema that specifies how a control should be defined"
         },
-        "control-config": {
-          "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control-requirement.json",
+        "control-config-url": {
+          "type": "string",
           "description": "The configuration of how the control requirement schema is met"
         }
       },
@@ -33,7 +33,7 @@
             "requirements": {
               "type": "array",
               "items": {
-                "type": "#/$defs/control-detail",
+                "type": "#/defs/control-detail",
                 "description": "The detail of a how a specified control is structured and (if it currently does) is configured to meet the requirement"
               }
             }
