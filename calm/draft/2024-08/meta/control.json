@@ -33,8 +33,7 @@
             "requirements": {
               "type": "array",
               "items": {
-                "type": "#/defs/control-detail",
-                "description": "The detail of a how a specified control is structured and (if it currently does) is configured to meet the requirement"
+                "$ref": "#/defs/control-detail"
               }
             }
           },
