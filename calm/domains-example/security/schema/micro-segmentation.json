@@ -1,8 +1,13 @@
 {
-  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control-requirement.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/micro-segmentation.json",
   "title": "Micro-segmentation in place",
   "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control-requirement.json"
+    }
+  ],
   "properties": {
     "control-id": {
       "const": "security-001"
