@@ -1,13 +1,8 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control-requirement.json",
   "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/control-specification.json",
   "title": "Example Production Control Specification",
   "type": "object",
-  "allOf": [
-    {
-      "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control-requirement.json"
-    }
-  ],
   "properties": {
     "control-id": {
       "const": "ci-arch-001"
