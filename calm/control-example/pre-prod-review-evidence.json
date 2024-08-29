@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control.json#/defs/evidence",
+  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/evidence.json",
   "evidence": {
     "unique-id": "pre-prod-review-evidence",
     "control-configuration-uri": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-configuration.json",
