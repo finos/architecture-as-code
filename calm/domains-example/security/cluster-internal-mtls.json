@@ -1,0 +1,7 @@
+{
+  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/permitted-connection.json",
+  "control-id": "security-002",
+  "name": "Permitted Connection",
+  "description": "Permits a connection on a relationship specified in the architecture",
+  "protocol": "mTLS"
+}

@@ -19,7 +19,7 @@
             "type": "string"
           }
         },
-        "control-configuration-uri": {
+        "control-configuration-url": {
           "type": "string",
           "description": "URI for the control configuration this evidence relates to"
         }
@@ -27,7 +27,7 @@
       "required":[
         "unique-id",
         "evidence-paths",
-        "control-configuration-uri"
+        "control-configuration-url"
       ]
     }
   },

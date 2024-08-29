@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/micro-segmentation.json",
+  "title": "Micro-segmentation in place",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "control-id": {
+      "const": "security-001"
+    },
+    "name": {
+      "const": "Micro-segmentation of Kubernetes Cluster"
+    },
+    "description": {
+      "const": "Micro-segmentation is in place to prevent lateral movement outside of permitted flows"
+    },
+    "permit-ingress": {
+      "type": "boolean"
+    },
+    "permit-egress": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "control-id",
+    "name",
+    "description",
+    "permit-ingress",
+    "permit-egress"
+  ]
+}
