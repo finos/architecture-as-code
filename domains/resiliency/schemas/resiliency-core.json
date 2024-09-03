@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/domains/resiliency/schemas/resiliency-core.json",
+  "title": "Core definitions for use in the resiliency domain",
+  "defs": {
+    "resiliency-requirement-type": {
+      "enum" : [
+        "Policy",
+        "Business",
+        "Implementation"
+      ]
+    },
+    "criticality-rating": {
+      "enum": [
+        "tier1",
+        "tier2",
+        "tier3"
+      ]
+    },
+    "application-mode": {
+      "enum": [
+        "mandatory",
+        "optional"
+      ]
+    },
+    "criticality-definition": {
+      "type": "object",
+      "properties" : {
+        "application-mode": {
+          "$ref": "#/defs/application-mode"
+        },
+        "criticality-rating": {
+          "$ref": "#/defs/criticality-rating"
+        }
+      },
+      "required": [
+        "application-mode",
+        "criticality-rating"
+      ]
+    }
+  }
+}
