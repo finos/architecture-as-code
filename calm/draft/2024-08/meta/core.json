@@ -2,25 +2,23 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/core.json",
   "title": "Common Architecture Language Model (CALM) Vocab",
-  "properties": {
-    "nodes": {
-      "type": "array",
-      "items": {
-        "$ref": "#/defs/node"
-      }
-    },
-    "relationships": {
-      "type": "array",
-      "items": {
-        "$ref": "#/defs/relationship"
-      }
-    },
-    "metadata": {
-      "$ref": "#/defs/metadata"
-    },
-    "controls": {
-      "$ref": "control.json#/defs/controls"
+  "nodes": {
+    "type": "array",
+    "items": {
+      "$ref": "#/defs/node"
     }
+  },
+  "relationships": {
+    "type": "array",
+    "items": {
+      "$ref": "#/defs/relationship"
+    }
+  },
+  "metadata": {
+    "$ref": "#/defs/metadata"
+  },
+  "controls": {
+    "$ref": "control.json#/defs/controls"
   },
   "defs": {
     "node": {

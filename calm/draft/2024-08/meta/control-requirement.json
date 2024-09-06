@@ -3,20 +3,13 @@
   "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control-requirement.json",
   "title": "Common Architecture Language Model Control Requirement",
   "description": "Schema for defining control requirements within the Common Architecture Language Model.",
-  "type": "object",
-  "properties": {
-    "control-id": {
-      "type": "string",
-      "description": "The unique identifier of this control, which has the potential to be used for linking evidence"
-    },
-    "name": {
-      "type": "string",
-      "description": "The name of the control requirement that provides contextual meaning within a given domain"
-    },
-    "description": {
-      "type": "string",
-      "description": "A more detailed description of the control and information on what a developer needs to consider"
-    }
+  "control-id": {
+    "type": "string",
+    "description": "The unique identifier of this control, which has the potential to be used for linking evidence"
+  },
+  "name": {
+    "type": "string",
+    "description": "The name of the control requirement that provides contextual meaning within a given domain"
   },
   "required": [
     "control-id",
