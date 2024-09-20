@@ -100,7 +100,7 @@ You would get an output which includes a warning like this:
 ...
 ```
 
-which is just letting you know that you have left in a placeholder value which might have been generated with the generate command.
+Which is just letting you know that you have left in a placeholder value which might have been generated with the generate command.
 This isn't a full break, but it implies that you've forgotten to fill out a detail in your architecture.
 
 ### Visualizing the CALM schema
