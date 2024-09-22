@@ -76,7 +76,7 @@
 			<plugin>
 				<groupId>org.jsonschema2pojo</groupId>
 				<artifactId>jsonschema2pojo-maven-plugin</artifactId>
-				<version>1.2.1</version>
+				<version>1.2.2</version>
 				<configuration>
 					<sourceDirectory>${project.basedir}/../calm/draft/2024-04/meta/</sourceDirectory>
 					<targetPackage>org.finos.calmtranslator.calm</targetPackage>
