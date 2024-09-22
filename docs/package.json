@@ -27,6 +27,11 @@
     "react-dom": "^18.0.0",
     "webpack": "^5.94.0"
   },
+  "overrides": {
+    "serve-handler": {
+      "path-to-regexp": "3.3.0"
+    }
+  },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.5.2",
     "@docusaurus/types": "3.5.2"
