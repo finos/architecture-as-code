@@ -52,24 +52,24 @@ const config = {
     ],
 
     plugins: [
-        [
-            '@docusaurus/plugin-content-docs',
-            {
-                id: 'calm',
-                path: 'calm',
-                routeBasePath: 'calm',
-                sidebarPath: require.resolve('./sidebars.js'),
-            },
-        ],
-        [
-            '@docusaurus/plugin-content-docs',
-            {
-                id: 'community',
-                path: 'community',
-                routeBasePath: 'community',
-                sidebarPath: require.resolve('./sidebars.js'),
-            },
-        ],
+        // [
+        //     '@docusaurus/plugin-content-docs',
+        //     {
+        //         id: 'calm',
+        //         path: 'calm',
+        //         routeBasePath: 'calm',
+        //         sidebarPath: require.resolve('./sidebars.js'),
+        //     },
+        // ],
+        // [
+        //     '@docusaurus/plugin-content-docs',
+        //     {
+        //         id: 'community',
+        //         path: 'community',
+        //         routeBasePath: 'community',
+        //         sidebarPath: require.resolve('./sidebars.js'),
+        //     },
+        // ],
     ],
 
     themeConfig:
@@ -78,30 +78,30 @@ const config = {
             // Replace with your project's social card
             image: 'img/docusaurus-social-card.jpg',
             navbar: {
-                title: 'Architecture as Code',
+                title: 'CALM',
                 logo: {
-                    alt: 'Architecture as Code Logo',
+                    alt: 'CALM Logo',
                     src: 'img/logo.svg',
                 },
                 items: [
-                    {
-                        type: 'docSidebar',
-                        sidebarId: 'docsSidebar',
-                        position: 'left',
-                        label: 'Docs',
-                    },
-                    {
-                        to: '/calm/',
-                        label: 'CALM',
-                        position: 'left',
-                        activeBaseRegex: `/calm/`,
-                    },
-                    {
-                        to: '/community/',
-                        label: 'Community',
-                        position: 'left',
-                        activeBaseRegex: `/community/`,
-                    },
+                    // {
+                    //     type: 'docSidebar',
+                    //     sidebarId: 'docsSidebar',
+                    //     position: 'left',
+                    //     label: 'Docs',
+                    // },
+                    // {
+                    //     to: '/calm/',
+                    //     label: 'CALM',
+                    //     position: 'left',
+                    //     activeBaseRegex: `/calm/`,
+                    // },
+                    // {
+                    //     to: '/community/',
+                    //     label: 'Community',
+                    //     position: 'left',
+                    //     activeBaseRegex: `/community/`,
+                    // },
                     {
                         href: 'https://github.com/finos/architecture-as-code',
                         label: 'GitHub',
@@ -116,7 +116,7 @@ const config = {
                         title: 'CALM',
                         items: [
                             {
-                                label: 'Core',
+                                label: 'Schema',
                                 href: 'http://github.com/finos/architecture-as-code/blob/master/calm/',
                             },
                         ],
