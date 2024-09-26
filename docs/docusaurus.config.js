@@ -70,6 +70,15 @@ const config = {
         //         sidebarPath: require.resolve('./sidebars.js'),
         //     },
         // ],
+        [
+            '@docusaurus/plugin-content-docs',
+            {
+                id: 'talks',
+                path: 'talks',
+                routeBasePath: 'talks',
+                sidebarPath: require.resolve('./sidebars.js'),
+            },
+        ],
     ],
 
     themeConfig:
@@ -102,6 +111,12 @@ const config = {
                     //     position: 'left',
                     //     activeBaseRegex: `/community/`,
                     // },
+                    {
+                        to: '/talks/',
+                        label: 'Talks',
+                        position: 'left',
+                        activeBaseRegex: `/talks/`,
+                    },
                     {
                         href: 'https://github.com/finos/architecture-as-code',
                         label: 'GitHub',
