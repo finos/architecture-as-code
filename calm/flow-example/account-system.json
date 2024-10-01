@@ -1,0 +1,88 @@
+{
+  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
+  "nodes": [
+    {
+      "unique-id": "simple-banking-system",
+      "node-type": "system",
+      "name": "Simple Banking System",
+      "description": "A basic system for managing bank accounts"
+    },
+    {
+      "unique-id": "bank-user",
+      "node-type": "actor",
+      "name": "Bank User",
+      "description": "A customer who interacts with the banking system"
+    },
+    {
+      "unique-id": "bank-web-client",
+      "node-type": "webclient",
+      "name": "Bank Web Client",
+      "description": "Web interface for customers to manage their bank accounts",
+      "data-classification": "Confidential",
+      "run-as": "user"
+    },
+    {
+      "unique-id": "account-service",
+      "node-type": "service",
+      "name": "Account Service",
+      "description": "Service responsible for managing user accounts",
+      "data-classification": "Confidential",
+      "run-as": "systemId"
+    },
+    {
+      "unique-id": "bank-database",
+      "node-type": "database",
+      "name": "Bank Database",
+      "description": "Stores account details and transaction history",
+      "data-classification": "Confidential",
+      "run-as": "systemId"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "bank-user-uses-web-client",
+      "description": "Bank User accesses the banking system via the web client",
+      "relationship-type": {
+        "interacts": {
+          "actor": "bank-user",
+          "nodes": [
+            "bank-web-client"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "web-client-uses-account-service",
+      "description": "Web client interacts with the account service",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "bank-web-client"
+          },
+          "destination": {
+            "node": "account-service"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "account-service-uses-database",
+      "description": "Account service stores and retrieves data from the database",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "account-service"
+          },
+          "destination": {
+            "node": "bank-database"
+          }
+        }
+      },
+      "protocol": "JDBC"
+    }
+  ],
+  "flows": [
+    "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow-example/account-creation/account-creation-flow.json"
+  ]
+}

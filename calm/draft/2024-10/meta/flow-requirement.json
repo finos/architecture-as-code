@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/draft/2024-09/meta/flow-requirement.json",
+  "title": "Generic Flow Specification",
+  "description": "Defines the requirements for a flow",
+  "type": "object",
+  "properties": {
+    "requirementId": {
+      "type": "string",
+      "description": "Unique identifier for the requirement"
+    },
+    "requirementDescription": {
+      "type": "string",
+      "description": "Detailed description of the requirements for the flow"
+    },
+    "fields": {
+      "type": "array",
+      "description": "List of fields required for the flow",
+      "items": {
+        "type": "object",
+        "properties": {
+          "fieldName": {
+            "type": "string",
+            "description": "Name of the field"
+          },
+          "fieldType": {
+            "type": "string",
+            "enum": ["string", "integer", "boolean", "date"],
+            "description": "Data type of the field"
+          },
+          "isRequired": {
+            "type": "boolean",
+            "description": "Indicates if the field is required"
+          },
+          "validationRules": {
+            "type": "object",
+            "properties": {
+              "minLength": {
+                "type": "integer",
+                "description": "Minimum length for string fields"
+              },
+              "maxLength": {
+                "type": "integer",
+                "description": "Maximum length for string fields"
+              },
+              "pattern": {
+                "type": "string",
+                "description": "Regular expression pattern for field validation"
+              }
+            },
+            "required": [],
+            "additionalProperties": true
+          }
+        },
+        "required": ["fieldName", "fieldType", "isRequired"]
+      }
+    },
+    "successCriteria": {
+      "type": "string",
+      "description": "Criteria that determine the successful execution of the flow"
+    },
+    "errorHandling": {
+      "type": "array",
+      "description": "List of error messages to handle failures in the flow",
+      "items": {
+        "type": "object",
+        "properties": {
+          "errorCode": {
+            "type": "string",
+            "description": "Unique identifier for the error"
+          },
+          "errorMessage": {
+            "type": "string",
+            "description": "Description of the error"
+          }
+        },
+        "required": ["errorCode", "errorMessage"]
+      }
+    }
+  },
+  "metadata": {
+    "type": "array",
+    "items": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "requirementId",
+    "requirementDescription",
+    "fields",
+    "successCriteria",
+    "errorHandling"
+  ]
+}

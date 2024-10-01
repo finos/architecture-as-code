@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/draft/2024-09/meta/account-specific-requirement.json",
+  "requirementId": "account-creation-001",
+  "requirementDescription": "Requirements for creating a standard checking account",
+  "fields": [
+    {
+      "fieldName": "accountHolderName",
+      "fieldType": "string",
+      "isRequired": true,
+      "validationRules": {
+        "minLength": 1,
+        "maxLength": 100
+      }
+    },
+    {
+      "fieldName": "accountType",
+      "fieldType": "string",
+      "isRequired": true,
+      "validationRules": {
+        "pattern": "^(checking|savings)$"
+      }
+    },
+    {
+      "fieldName": "initialDeposit",
+      "fieldType": "integer",
+      "isRequired": true,
+      "validationRules": {
+        "minLength": 0
+      }
+    },
+    {
+      "fieldName": "dateOfBirth",
+      "fieldType": "date",
+      "isRequired": true
+    }
+  ],
+  "successCriteria": "Account is successfully created when all required fields are validated and processed.",
+  "errorHandling": [
+    {
+      "errorCode": "ERR001",
+      "errorMessage": "Account holder name is required."
+    },
+    {
+      "errorCode": "ERR002",
+      "errorMessage": "Initial deposit must be a non-negative integer."
+    },
+    {
+      "errorCode": "ERR003",
+      "errorMessage": "Invalid account type specified."
+    }
+  ]
+}
