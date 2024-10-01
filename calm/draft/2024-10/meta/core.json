@@ -20,6 +20,9 @@
     },
     "controls": {
       "$ref": "control.json#/defs/controls"
+    },
+    "flows": {
+      "$ref": "flow.json#/defs/flows"
     }
   },
   "defs": {
