@@ -24,4 +24,4 @@ jobs:
         aws-region: us-east-1
     - name: Sync calm/draft folder to S3
       run: |
-        aws s3 sync calm/draft s3://${{ vars.AWS_S3_BUCKET }}/drafts --delete
+        aws s3 sync calm/draft s3://${{ vars.AWS_S3_BUCKET }}/draft --delete
