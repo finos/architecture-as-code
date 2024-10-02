@@ -5,7 +5,7 @@ on:
     branches:
       - nandani   
     paths:
-      - 'calm/drafts/**'
+      - 'calm/draft/**'
 
 jobs:
   sync-to-s3:
