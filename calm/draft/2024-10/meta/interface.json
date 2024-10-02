@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://calm.finos.org/draft/2024-09/meta/interface.json",
+  "$id": "https://calm.finos.org/draft/2024-10/meta/interface.json",
   "title": "Common Architecture Language Model Interfaces",
   "defs": {
     "interface-type": {
