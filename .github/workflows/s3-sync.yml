@@ -1,6 +1,7 @@
 name: Sync Drafts to S3
 
 on:
+  workflow_dispatch: {}
   push:
     branches:
       - main   
