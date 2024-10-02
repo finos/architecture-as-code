@@ -22,7 +22,10 @@
       "$ref": "control.json#/defs/controls"
     },
     "flows": {
-      "$ref": "flow.json#/defs/flows"
+      "type": "array",
+      "items": {
+        "$ref": "flow.json#/defs/flows"
+      }
     }
   },
   "defs": {

@@ -1,6 +1,6 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://calm.finos.org/draft/2024-09/meta/account-specific-requirement.json",
+  "$schema": "https://calm.finos.org/draft/2024-10/meta/flow-requirement.json",
+  "$id": "https://calm.finos.org/flow-example/account-creation/account-creation-requirement.json",
   "requirementId": "account-creation-001",
   "requirementDescription": "Requirements for creating a standard checking account",
   "fields": [

@@ -1,5 +1,7 @@
 {
-  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
+  "$id": "https://calm.finos.org/draft/2024-10/meta/calm/flow-example/account-system.json",
+  "$schema": "https://calm.finos.org/draft/2024-10/meta/calm.json",
+  "title": "Demonstration of domain and flows",
   "nodes": [
     {
       "unique-id": "simple-banking-system",

@@ -1,6 +1,6 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://calm.finos.org/draft/2024-09/meta/control-requirement.json#account-creation-control-001",
+  "$schema": "https://calm.finos.org/draft/2024-10/meta/control-requirement.json",
+  "$id": "https://calm.finos.org/flow-example/account-creation/account-creation-control-001.json",
   "control-id": "account-creation-control-001",
   "name": "Input Validation Control",
   "description": "Ensure that all user inputs during the account creation process are validated against defined criteria, including format, length, and required fields, to prevent invalid data from being stored in the system."

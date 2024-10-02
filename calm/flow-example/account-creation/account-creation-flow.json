@@ -1,34 +1,31 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://calm.finos.org/draft/2024-09/meta/flow.json",
-  "flows": {
-    "flows": [
-      {
-        "flowUniqueId": "account-creation-flow-001",
-        "name": "Account Creation Flow",
-        "description": "This flow outlines the steps for a bank user to create a new bank account using the web client.",
-        "flow-requirement-url": "https://calm.finos.org/draft/2024-09/meta/flow-requirement.json",
-        "flow-requirement-instance": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow-example/account-creation/account-creation-requirement.json",
-        "transitions": [
-          {
-            "relationshipUniqueId": "bank-user-uses-web-client",
-            "sequenceNumber": 1
-          },
-          {
-            "relationshipUniqueId": "web-client-uses-account-service",
-            "sequenceNumber": 2
-          },
-          {
-            "relationshipUniqueId": "account-service-uses-database",
-            "sequenceNumber": 3
-          }
-        ],
-        "controlRequirements": [
-          {
-            "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow-example/account-creation/account-creation-control-001.json"
-          }
-        ]
-      }
-    ]
-  }
+  "flows": [
+    {
+      "flowUniqueId": "account-creation-flow-001",
+      "name": "Account Creation Flow",
+      "description": "This flow outlines the steps for a bank user to create a new bank account using the web client.",
+      "flow-requirement-instance": "https://calm.finos.org/flow-example/account-creation/account-creation-requirement.json",
+      "transitions": [
+        {
+          "relationshipUniqueId": "bank-user-uses-web-client",
+          "sequenceNumber": 1
+        },
+        {
+          "relationshipUniqueId": "web-client-uses-account-service",
+          "sequenceNumber": 2
+        },
+        {
+          "relationshipUniqueId": "account-service-uses-database",
+          "sequenceNumber": 3
+        }
+      ],
+      "controlRequirements": [
+        {
+          "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow-example/account-creation/account-creation-control-001.json"
+        }
+      ]
+    }
+  ]
 }
