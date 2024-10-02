@@ -60,6 +60,6 @@
   },
   "overrides": {
     "path-to-regexp": "3.3.0",
-    "rollup": "4.22.5"
+    "rollup": "4.24.0"
   }
 }
