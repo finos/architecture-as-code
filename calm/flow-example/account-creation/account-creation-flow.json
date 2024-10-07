@@ -6,6 +6,7 @@
       "flowUniqueId": "account-creation-flow-001",
       "name": "Account Creation Flow",
       "description": "This flow outlines the steps for a bank user to create a new bank account using the web client.",
+      "flow-requirement-url": "https://calm.finos.org/draft/2024-10/meta/flow-requirement.json",
       "flow-requirement-instance": "https://calm.finos.org/flow-example/account-creation/account-creation-requirement.json",
       "transitions": [
         {
@@ -23,7 +24,7 @@
       ],
       "controlRequirements": [
         {
-          "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow-example/account-creation/account-creation-control-001.json"
+          "$ref": "https://calm.finos.org/flow-example/account-creation/account-creation-control-001.json"
         }
       ]
     }

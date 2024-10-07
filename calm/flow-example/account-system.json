@@ -1,5 +1,5 @@
 {
-  "$id": "https://calm.finos.org/draft/2024-10/meta/calm/flow-example/account-system.json",
+  "$id": "https://calm.finos.org/flow-example/account-system.json",
   "$schema": "https://calm.finos.org/draft/2024-10/meta/calm.json",
   "title": "Demonstration of domain and flows",
   "nodes": [
@@ -85,6 +85,6 @@
     }
   ],
   "flows": [
-    "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow-example/account-creation/account-creation-flow.json"
+    "https://calm.finos.org/draft/2024-10/meta/calm/flow-example/account-creation/account-creation-flow.json"
   ]
 }
