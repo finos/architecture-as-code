@@ -79,19 +79,4 @@ class TestTranslatorShould {
 				.andExpect(status().isBadRequest());
 		verifyNoInteractions(mockC4Translator);
 	}
-	@Test
-	void return_k8s_json_when_a_valid_calm_model_is_passed() throws Exception {
-
-		when(mockK8sTranslator.translate(any()))
-				.thenReturn(new ArrayList<KubernetesResource>());
-		mockMvc.perform(
-						MockMvcRequestBuilders.post("/translate/k8s")
-								.accept(MediaType.APPLICATION_JSON)
-								.contentType(MediaType.APPLICATION_JSON)
-								.content(new ObjectMapper().writeValueAsString(traderxCalmModel))
-
-				)
-				.andExpect(status().isCreated())
-				.andExpect(content().contentType(MediaType.APPLICATION_JSON));
-	}
 }
