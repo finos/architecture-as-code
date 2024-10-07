@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: {{ namespaceName }}
+
+resources:
+  - namespace.yaml
+  - application-deployment.yaml
+  - application-service.yaml
+  - database-service.yaml
+  - database-deployment.yaml
+  - networkpolicy-allow-egress-from-app-to-db.yaml
+  - networkpolicy-allow-ingress-to-db-from-app.yaml
+  - networkpolicy-allow-external-ingress.yaml
