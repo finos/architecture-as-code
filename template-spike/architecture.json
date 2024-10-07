@@ -1,0 +1,158 @@
+{
+  "nodes": [
+    {
+      "unique-id": "consumer",
+      "node-type": "system",
+      "name": "Consumer",
+      "description": "External Consumer of the secure application",
+      "interfaces": []
+    },
+    {
+      "unique-id": "load-balancer",
+      "node-type": "system",
+      "name": "Load Balancer",
+      "description": "Kubernetes provided load balancer enabling ingress at the edge of the cluster",
+      "interfaces": []
+    },
+    {
+      "unique-id": "application",
+      "node-type": "service",
+      "name": "Application",
+      "description": "User deployed application that should follow the defined interfaces",
+      "interfaces": [
+        {
+          "unique-id": "application-image",
+          "image": "masteringapi/attendees-quarkus:ws-native-db"
+        },
+        {
+          "unique-id": "http-port",
+          "port": 8080
+        }
+      ]
+    },
+    {
+      "unique-id": "postgres-database",
+      "node-type": "database",
+      "name": "Postgres Database",
+      "description": "Postgres database configured on the postgres service, using defaults for ports",
+      "interfaces": [
+        {
+          "unique-id": "database-image",
+          "image": "postgres:16.4"
+        },
+        {
+          "unique-id": "database-port",
+          "port": 5432
+        }
+      ]
+    },
+    {
+      "unique-id": "secure-k8s-cluster",
+      "node-type": "system",
+      "name": "Secure Kubernetes Cluster",
+      "description": "Secure Kubernetes cluster with network micro-segmentation applied",
+      "interfaces": [
+        {
+          "unique-id": "kubernetes-version",
+          "kubernetes-version": "1.30.0"
+        }
+      ],
+      "controls": {
+        "security": {
+          "description": "The cluster conforms to micro-segmentation control requirements",
+          "requirements": [
+            {
+              "control-requirement-url": "https://short-url/security/schema/micro-segmentation.json",
+              "control-config-url": "https://short-url/security/cluster-micro-segmentation.json"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "consumer-load-balancer",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "consumer"
+          },
+          "destination": {
+            "node": "load-balancer"
+          }
+        }
+      },
+      "controls": {
+        "security": {
+          "description": "The ingress to the cluster should be permitted in a secure environment using HTTPS",
+          "requirements": [
+            {
+              "control-requirement-url": "https://short-url/security/schema/permitted-connection.json",
+              "control-config-url": "https://short-url/security/cluster-ingress-https.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "load-balancer-application",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "load-balancer"
+          },
+          "destination": {
+            "node": "application"
+          }
+        }
+      },
+      "controls": {
+        "security": {
+          "description": "Internal cluster connectivity should be permitted using mTLS",
+          "requirements": [
+            {
+              "control-requirement-url": "https://short-url/security/schema/permitted-connection.json",
+              "control-config-url": "https://short-url/security/cluster-internal-mtls.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "application-postgres-database",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "application"
+          },
+          "destination": {
+            "node": "postgres-database"
+          }
+        }
+      },
+      "controls": {
+        "security": {
+          "description": "Internal cluster connectivity should be permitted using mTLS",
+          "requirements": [
+            {
+              "control-requirement-url": "https://short-url/security/schema/permitted-connection.json",
+              "control-config-url": "https://short-url/security/cluster-internal-mtls.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "deployed-in-secure-k8s-cluster",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "secure-k8s-cluster",
+          "nodes": ["load-balancer", "application", "postgres-database"]
+        }
+      }
+    }
+  ],
+  "metadata": [],
+  "$schema": "https://short-url/pattern/secure-service-pattern.json"
+}

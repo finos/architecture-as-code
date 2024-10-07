@@ -5,6 +5,7 @@ import { visualizeInstantiation, visualizePattern } from './commands/visualize/v
 import { runGenerate } from './commands/generate/generate.js';
 import validate  from './commands/validate/validate.js';
 import { CALM_META_SCHEMA_DIRECTORY } from './consts.js';
+import template from './commands/template/template.js';
 
 program
     .version(process.env.npm_package_version)
@@ -57,5 +58,15 @@ program
     .action(async (options) =>
         await validate(options.instantiation, options.pattern, options.metaSchemasLocation, options.verbose, options.format, options.output, options.strict) 
     );
+
+program.command('template')
+    .description('Template Kubernetes resources using CALM architecture as code')
+    .argument('<document>', 'File containing a CALM pattern instantiation to generate from')
+    .requiredOption('-t, --templates <DIRECTORY>', 'Directory of Handlebars templates to populate')
+    .option('-o, --output <DIRECTORY>', 'Directory to output files to. If not set, output to STDOUT separated by --')
+    .option('-v, --verbose', 'Whether to do verbose level logging', false)
+    .action(async (arg, options) => {
+        await template(arg, options.templates, options.verbose, options.output); 
+    });
 
 program.parse(process.argv);
