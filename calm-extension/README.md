@@ -1,10 +1,10 @@
 # CALM Extention 
 
 An extention designed to visualize CALM Schema in VS Code.
-This tool can be used to visualize a CALM Instantiation from the command pallete of VS Code.
+This tool can be used to visualize a CALM Instantiation from the command pallet of VS Code.
 
 ## Features
-Visualize a diagram of your CALM instantiation from the VS Code command pallete.
+Visualize a diagram of your CALM instantiation from the VS Code command pallet.
 Type: ``CALM: Calm Visualize Current Instantiation File``
 
 
