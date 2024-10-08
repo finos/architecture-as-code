@@ -34,3 +34,5 @@ Fixed issue #.
 Added features X, Y, and Z.
 
 ---
+![Image of the extension in action.](./media/extension.png)
+![Image of Calm Instantiation diagram](./media/calmInstantiation.png)
