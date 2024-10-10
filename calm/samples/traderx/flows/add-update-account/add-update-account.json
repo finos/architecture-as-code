@@ -1,0 +1,36 @@
+{
+  "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
+  "$id": "https://calm.finos.org/traderx/flows/add-update-account.json",
+  "unique-id": "flow-add-update-account",
+  "name": "Add or Update Account",
+  "description": "Flow for adding or updating account information in the database.",
+  "transitions": [
+    {
+      "relationship-unique-id": "web-gui-process-uses-accounts-service",
+      "sequence-number": 1,
+      "summary": "Submit Account Create/Update"
+    },
+    {
+      "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
+      "sequence-number": 2,
+      "summary": "inserts or updates account"
+    },
+    {
+      "relationship-unique-id": "web-gui-process-uses-accounts-service",
+      "sequence-number": 3,
+      "summary": "Returns Account Create/Update Response Status",
+      "direction": "destination-to-source"
+    }
+  ],
+  "controls": {
+    "add-update-account-sla": {
+      "description": "Control requirement for flow SLA",
+      "requirements": [
+        {
+          "control-requirement": "https://calm.finos.org/traderx/controls/flow-sla-control-requirement.json",
+          "control-config": "https://calm.finos.org/traderx/flows/add-update-account/add-update-account-control-configuration.json"
+        }
+      ]
+    }
+  }
+}

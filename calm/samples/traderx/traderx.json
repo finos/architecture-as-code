@@ -437,6 +437,21 @@
         }
       },
       "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "accounts-service-uses-traderx-db-for-accounts",
+      "description": "CRUD operations on account",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "accounts-service"
+          },
+          "destination": {
+            "node": "traderx-db"
+          }
+        }
+      },
+      "protocol": "JDBC"
     }
   ]
 }
