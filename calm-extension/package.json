@@ -1,0 +1,45 @@
+{
+  "name": "calm-plugin",
+  "displayName": "calm-plugin",
+  "description": "",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.93.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:caml.visualize"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "calm.visualize.instantiation",
+        "title": "Calm Visualize Instantiation File",
+        "category": "CALM"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "@types/node": "20.x",
+    "@types/vscode": "^1.93.0",
+    "@typescript-eslint/eslint-plugin": "^8.3.0",
+    "@typescript-eslint/parser": "^8.3.0",
+    "eslint": "^9.9.1",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "@viz-js/viz": "^3.9.0",
+    "ts-graphviz": "^2.1.4",
+    "winston": "^3.14.1"
+  }
+}
