@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/controls/flow-sla-control-requirement.json",
+  "title": "Flow SLA Control",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/draft/2024-10/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "control-id": {
+      "const": "flow-sla-001"
+    },
+    "name": {
+      "const": "Flow SLA Control"
+    },
+    "description": {
+      "const": "Ensure that each flow meets the defined Service Level Agreement (SLA)"
+    },
+    "latency": {
+      "type": "object",
+      "properties": {
+        "expected-latency": {
+          "$ref": "https://calm.finos.org/draft/2024-10/meta/units.json#/defs/time-unit",
+          "description": "The expected latency for completion of flow"
+        },
+        "alert-threshold": {
+          "$ref": "https://calm.finos.org/draft/2024-10/meta/units.json#/defs/time-unit",
+          "description": "If latency exceeds this threshold, an alert will be triggered."
+        }
+      },
+      "required": [
+        "expected-latency",
+        "alert-threshold"
+      ]
+    },
+    "throughput": {
+      "type": "object",
+      "properties": {
+        "expected-message-rate": {
+          "$ref": "https://calm.finos.org/draft/2024-10/meta/units.json#/defs/time-unit",
+          "description": "Define the expected message rate that the flow should handle e.g. 1000 per second"
+        }
+      },
+      "required": [
+        "expected-message-rate"
+      ]
+    },
+    "availability": {
+      "type": "object",
+      "properties": {
+        "uptime-guarantee": {
+          "type": "number",
+          "description": "Percentage of availability required (e.g., 99.9%).",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "uptime-guarantee"
+      ]
+    },
+    "data-integrity": {
+      "type": "object",
+      "properties": {
+        "message-reliability": {
+          "enum": [
+            "atLeastOnce",
+            "atMostOnce",
+            "exactlyOnce"
+          ],
+          "description": "Guarantee that messages are delivered in the correct order and without duplication."
+        },
+        "loss-tolerance": {
+          "type": "number",
+          "description": "Specify acceptable levels of message loss as a percentage (e.g., 0 to 100).",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "message-reliability",
+        "loss-tolerance"
+      ]
+    },
+    "error-handling": {
+      "type": "object",
+      "properties": {
+        "retry-logic": {
+          "type": "object",
+          "properties": {
+            "max-retries": {
+              "type": "integer",
+              "description": "Specify the maximum number of retries in case of failures."
+            },
+            "retry-interval": {
+              "$ref": "https://calm.finos.org/draft/2024-10/meta/units.json#/defs/time-unit",
+              "description": "Define the interval between retries."
+            }
+          },
+          "required": ["max-retries", "retry-interval"]
+        }
+      },
+      "required": [
+        "retry-logic"
+      ]
+    },
+    "monitoring": {
+      "type": "object",
+      "properties": {
+        "real-time-monitoring": {
+          "type": "string",
+          "description": "Define the monitoring systems for tracking performance against the SLA."
+        },
+        "consumer-reporting": {
+          "$ref": "https://calm.finos.org/draft/2024-10/meta/units.json#/defs/time-unit",
+          "description": "Specify the reporting frequency for the consumer, e.g., daily, weekly, or monthly."
+        }
+      },
+      "required": [
+        "real-time-monitoring",
+        "consumer-reporting"
+      ]
+    },
+    "incident-response": {
+      "type": "object",
+      "properties": {
+        "incident-resolution-time": {
+          "$ref": "https://calm.finos.org/draft/2024-10/meta/units.json#/defs/time-unit",
+          "description": "Define timeframes for responding to SLA-impacting issues."
+        },
+        "escalation-protocols": {
+          "type": "object",
+          "properties": {
+            "incident-start-time-post-alert": {
+              "$ref": "https://calm.finos.org/draft/2024-10/meta/units.json#/defs/time-unit",
+              "description": "Timeframe for initiating incident response after an alert."
+            },
+            "escalation-path": {
+              "type": "string",
+              "description": "Specify the escalation path for SLA violations."
+            }
+          },
+          "required": [
+            "incident-start-time-post-alert",
+            "escalation-path"
+          ]
+        }
+      },
+      "required": [
+        "incident-resolution-time",
+        "escalation-protocols"
+      ]
+    },
+    "review-adjustments": {
+      "type": "object",
+      "properties": {
+        "sla-review": {
+          "$ref": "https://calm.finos.org/draft/2024-10/meta/units.json#/defs/time-unit",
+          "description": "Outline a schedule for regularly reviewing the SLA."
+        }
+      },
+      "required": [
+        "sla-review"
+      ]
+    }
+  },
+  "required": [
+    "control-id",
+    "name",
+    "description",
+    "latency",
+    "throughput",
+    "availability",
+    "data-integrity",
+    "error-handling",
+    "monitoring",
+    "incident-response",
+    "review-adjustments"
+  ]
+}
