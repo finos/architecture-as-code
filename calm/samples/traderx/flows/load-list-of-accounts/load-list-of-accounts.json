@@ -1,6 +1,6 @@
 {
   "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
-  "$id": "https://calm.finos.org/traderx/flows/load-list-of-accounts.json",
+  "$id": "https://calm.finos.org/samples/traderx/flows/load-list-of-accounts.json",
   "unique-id": "flow-load-list-of-accounts",
   "name": "Load List of Accounts",
   "description": "Flow for loading a list of accounts from the database to populate the GUI drop-down for user account selection.",

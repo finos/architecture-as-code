@@ -1,6 +1,6 @@
 {
-  "$schema": "https://calm.finos.org/traderx/controls/flow-sla-control-requirement.json",
-  "$id": "https://calm.finos.org/traderx/flows/add-update-account/add-update-account-control-configuration.json",
+  "$schema": "https://calm.finos.org/samples/traderx/controls/flow-sla-control-requirement.json",
+  "$id": "https://calm.finos.org/samples/traderx/flows/add-update-account/add-update-account-control-configuration.json",
   "control-id": "flow-sla-001",
   "name": "Flow SLA Control for Add or Update Account",
   "description": "Ensure that the Add or Update Account flow meets the defined Service Level Agreement (SLA).",
