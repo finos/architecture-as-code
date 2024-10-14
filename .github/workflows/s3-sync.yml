@@ -1,4 +1,4 @@
-name: Sync Drafts to S3
+name: Sync CALM to S3
 
 on:
   workflow_dispatch: {}
