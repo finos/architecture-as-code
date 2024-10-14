@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
+  "$schema": "https://calm.finos.org/draft/2024-10/meta/calm.json",
   "nodes": [
     {
       "unique-id": "traderx-system",

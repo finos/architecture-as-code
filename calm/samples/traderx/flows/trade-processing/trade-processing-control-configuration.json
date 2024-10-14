@@ -1,6 +1,6 @@
 {
-  "$schema": "https://calm.finos.org/traderx/controls/flow-sla-control-requirement.json",
-  "$id": "https://calm.finos.org/traderx/flows/trade-processing/trade-processing-control-configuration.json",
+  "$schema": "https://calm.finos.org/samples/traderx/controls/flow-sla-control-requirement.json",
+  "$id": "https://calm.finos.org/samples/traderx/flows/trade-processing/trade-processing-control-configuration.json",
   "control-id": "flow-sla-001",
   "name": "Flow SLA Control for Trade Processing",
   "description": "Ensure that Trade Processing flows meet the defined Service Level Agreement (SLA).",
