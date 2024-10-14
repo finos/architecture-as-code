@@ -1,6 +1,6 @@
 {
   "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
-  "$id": "https://calm.finos.org/traderx/flows/trade-processing.json",
+  "$id": "https://calm.finos.org/samples/traderx/flows/trade-processing.json",
   "unique-id": "flow-trade-processing",
   "name": "Trade Processing - New Trade",
   "description": "The process flow for handling new trade events",
@@ -39,14 +39,16 @@
       "direction": "destination-to-source"
     }
   ],
-  "trade-processing-sla": {
-    "description": "Control requirement for flow SLA",
-    "requirements": [
-      {
-        "control-requirement": "https://calm.finos.org/traderx/controls/flow-sla-control-requirement.json",
-        "control-config": "https://calm.finos.org/traderx/flows/trade-processing/trade-processing-control-configuration.json"
-      }
-    ]
+  "controls": {
+    "trade-processing-sla": {
+      "description": "Control requirement for flow SLA",
+      "requirements": [
+        {
+          "control-requirement-url": "https://calm.finos.org/samples/traderx/controls/flow-sla-control-requirement.json",
+          "control-config": "https://calm.finos.org/samples/traderx/flows/trade-processing/trade-processing-control-configuration.json"
+        }
+      ]
+    }
   }
 }
 
