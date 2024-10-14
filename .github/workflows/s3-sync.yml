@@ -7,6 +7,7 @@ on:
       - main   
     paths:
       - 'calm/draft/**'
+      - 'calm/samples/**'
 
 jobs:
   sync-to-s3:
@@ -15,7 +16,6 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -25,3 +25,6 @@ jobs:
     - name: Sync calm/draft folder to S3
       run: |
         aws s3 sync calm/draft s3://${{ vars.AWS_S3_BUCKET }}/draft --delete
+    - name: Sync calm/samples folder to S3
+      run: |
+        aws s3 sync calm/samples s3://${{ vars.AWS_S3_BUCKET }}/samples --delete
