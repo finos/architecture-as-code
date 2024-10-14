@@ -177,10 +177,10 @@
         "actor",
         "system",
         "service",
-        "database",
         "network",
         "ldap",
-        "webclient"
+        "webclient",
+        "data-assset"
       ]
     },
     "interacts-type": {
