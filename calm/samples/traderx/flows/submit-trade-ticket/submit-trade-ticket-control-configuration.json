@@ -1,6 +1,6 @@
 {
-  "$schema": "https://calm.finos.org/traderx/controls/flow-sla-control-requirement.json",
-  "$id": "https://calm.finos.org/traderx/flows/submit-trade-ticket/submit-trade-ticket-control-configuration.json",
+  "$schema": "https://calm.finos.org/samples/traderx/controls/flow-sla-control-requirement.json",
+  "$id": "https://calm.finos.org/samples/traderx/flows/submit-trade-ticket/submit-trade-ticket-control-configuration.json",
   "control-id": "flow-sla-001",
   "name": "Flow SLA Control for Trade Ticket Submission",
   "description": "Ensure that Trade Ticket Submission flow meets the defined Service Level Agreement (SLA).",

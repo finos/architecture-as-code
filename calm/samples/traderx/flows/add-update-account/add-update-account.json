@@ -27,8 +27,8 @@
       "description": "Control requirement for flow SLA",
       "requirements": [
         {
-          "control-requirement": "https://calm.finos.org/traderx/controls/flow-sla-control-requirement.json",
-          "control-config": "https://calm.finos.org/traderx/flows/add-update-account/add-update-account-control-configuration.json"
+          "control-requirement-url": "https://calm.finos.org/samples/traderx/controls/flow-sla-control-requirement.json",
+          "control-config": "https://calm.finos.org/samples/traderx/flows/add-update-account/add-update-account-control-configuration.json"
         }
       ]
     }

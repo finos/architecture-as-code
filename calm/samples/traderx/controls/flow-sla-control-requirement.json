@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://calm.finos.org/traderx/controls/flow-sla-control-requirement.json",
+  "$id": "https://calm.finos.org/samples/traderx/controls/flow-sla-control-requirement.json",
   "title": "Flow SLA Control",
   "type": "object",
   "allOf": [
