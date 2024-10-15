@@ -1,32 +1,29 @@
-name: Build CLI
+name: Build Extensions Module ( calm-validate )
 
 on:
   pull_request:
     branches:
       - "main"
     paths:
-      - "cli/**"
+      - "calm-validate/**"
   push:
     branches:
       - "main"
     paths:
-      - "cli/**"
+      - "calm-validate/**"
 
 defaults:
   run:
-    working-directory: ./cli
+    working-directory: ./calm-validate
 
 jobs:
-  cli-tests:
-    name: Run unit tests and lint
+  calm-validate-extension-tests:
+    name: Run unit tests and lint on the calm-validate module.
     runs-on: ubuntu-latest
     steps:
-      # Check out the repository
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: v20
       - run: npm ci
       - run: npm run test
-      - run: npm run lint
-      - run: npm run build

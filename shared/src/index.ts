@@ -1,3 +1,9 @@
+export { validate, getFormattedOutput } from './commands/validate/validate.js';
+export { visualizeInstantiation, visualizePattern, visualize } from './commands/visualize/visualize.js';
+export { runGenerate } from './commands/generate/generate.js';
+export { ValidationOutput } from './commands/validate/validation.output.js';
+export * from './consts.js';
+
 export interface CALMInstantiation {
     nodes: CALMNode[],
     relationships: CALMRelationship[]
@@ -63,3 +69,5 @@ export interface CALMComposedOfRelationship {
     uniqueId: string,
     description?: string
 }
+
+

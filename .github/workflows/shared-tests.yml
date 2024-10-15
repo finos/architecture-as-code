@@ -1,0 +1,31 @@
+name: Build Shared Module
+
+on:
+  pull_request:
+    branches:
+      - "main"
+    paths:
+      - "shared/**"
+  push:
+    branches:
+      - "main"
+    paths:
+      - "shared/**"
+
+defaults:
+  run:
+    working-directory: ./shared
+
+jobs:
+  shared-tests:
+    name: Run unit tests and lint on the CLI module.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: v20
+      - run: npm ci
+      - run: npm run test
+      - run: npm run lint
+      - run: npm run build
