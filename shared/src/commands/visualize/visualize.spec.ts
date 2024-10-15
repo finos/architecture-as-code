@@ -85,6 +85,7 @@ describe('visualizer', () => {
             await expect(visualizeInstantiation('./input.json', './output.svg', false))
                 .rejects
                 .toThrow();
+
             expect(writeFileSync).not.toHaveBeenCalled();
             expect(mockExit).toHaveBeenCalledWith(1);
         });
