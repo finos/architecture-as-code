@@ -177,6 +177,7 @@
         "actor",
         "system",
         "service",
+        "database",
         "network",
         "ldap",
         "webclient",
