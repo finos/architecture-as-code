@@ -1,32 +1,29 @@
-name: Build CLI
+name: Test /plugins/calm-vscode/ 
 
 on:
   pull_request:
     branches:
       - "main"
     paths:
-      - "cli/**"
+      - "plugins/calm-vscode/**"
   push:
     branches:
       - "main"
     paths:
-      - "cli/**"
+      - "plugins/calm-vscode/**"
 
 defaults:
   run:
-    working-directory: ./cli
+    working-directory: ./plugins/calm-vscode
 
 jobs:
-  cli-tests:
-    name: Run unit tests and lint
+  calm-vscode-extension-tests:
+    name: Run unit tests and lint on the calm-vscode module.
     runs-on: ubuntu-latest
     steps:
-      # Check out the repository
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: v20
       - run: npm ci
       - run: npm run test
-      - run: npm run lint
-      - run: npm run build

@@ -2,10 +2,22 @@ import * as fs from 'node:fs';
 import * as winston from 'winston';
 import { initLogger } from '../helper.js';
 import calmToDot from './calmToDot.js';
+import { instance } from '@viz-js/viz';
 import { renderGraphFromSource } from 'graphviz-cli';
 import { generate } from '../generate/generate.js';
 
 let logger: winston.Logger;
+
+export async function visualize(instantiation: string): Promise<string | undefined> {
+    try {
+        const dot = calmToDot(JSON.parse(instantiation));
+        return (await instance()).render(dot, { format: 'svg', engine: 'dot' }).output;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error: unknown) {
+        console.error(error);
+        return 'Error creating SVG: Instantiation JSON is invalid';
+    }
+} 
 
 export async function visualizeInstantiation(instantiationPath: string, output: string, debug: boolean) {
     logger = initLogger(debug);

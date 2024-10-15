@@ -4,7 +4,7 @@ import { mkdirp } from 'mkdirp';
 
 import * as winston from 'winston';
 import { initLogger } from '../helper.js';
-import { CALMInstantiation } from '../../types.js';
+import { CALMInstantiation }  from '../../index.js';
 import { SchemaDirectory } from './schema-directory.js';
 import { instantiateNodes } from './components/node.js';
 import { instantiateRelationships } from './components/relationship.js';
