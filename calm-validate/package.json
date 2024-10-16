@@ -1,0 +1,57 @@
+{
+  "name": "calm-validate",
+  "displayName": "calm-validate",
+  "description": "",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.94.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "calm-validate.validate",
+        "title": "Hello World",
+        "when": "editorLangId == json"
+      },
+       {
+        "command": "calm-validate.visualize",
+        "title": "Calm Visualize Instantiation File",
+        "when": "editorLangId == json",
+        "category": "CALM"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "clean": "rimraf node_modules out .vscode-test/",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "lint-fix": "eslint src --fix",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.7",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.94.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "typescript": "^5.5.4",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "eslint": "^8.57.0"
+  },
+  "dependencies": {
+    "@typescript-eslint/parser": "^8.9.0",
+    "@finos/calm-shared": "file:../shared",
+    "json-source-map": "^0.6.1",
+    "jsonpath-plus": "^10.0.0"
+  }
+}

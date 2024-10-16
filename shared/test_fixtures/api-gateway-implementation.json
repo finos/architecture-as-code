@@ -23,7 +23,8 @@
       "node-type": "system",
       "port": -1,
       "unique-id": "api-producer"
-    }
+    },
+    {}
   ],
   "relationships": [
     {
