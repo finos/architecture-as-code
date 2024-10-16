@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
+  "$schema": "https://calm.finos.org/draft/2024-10/meta/calm.json",
   "nodes": [
     {
       "unique-id": "traderx-system",
@@ -437,6 +437,21 @@
         }
       },
       "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "accounts-service-uses-traderx-db-for-accounts",
+      "description": "CRUD operations on account",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "accounts-service"
+          },
+          "destination": {
+            "node": "traderx-db"
+          }
+        }
+      },
+      "protocol": "JDBC"
     }
   ]
 }
