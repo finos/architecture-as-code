@@ -68,7 +68,7 @@ function App() {
 
     useEffect(() => {
         setInstance(newInstance({
-            container: document.getElementById('container')!
+            container: document.getElementById('app')!
         }));
     }, []);
 
@@ -79,7 +79,7 @@ function App() {
             <FileUploader callback={handleFile}/>
         
             <button onClick={onSave}>SaveAs</button>
-            <div id="container">
+            <div id="app">
                 {instance && <Graph instance={instance} nodes={nodes} relationships={relationships} />}
             </div>
         </>

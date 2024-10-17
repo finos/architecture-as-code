@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import './Graph.css'
 import { BrowserJsPlumbInstance } from "@jsplumb/browser-ui"
 import { NodeLayout, RelationshipLayout } from "../../layout";
-import { CALMConnectsRelationship, CALMDeployedInRelationship, CALMInteractsRelationship, CALMRelationship } from "../../types";
+import { CALMConnectsRelationship, CALMInteractsRelationship, CALMRelationship } from "../../types";
 
 interface Props {
     instance: BrowserJsPlumbInstance,
@@ -10,7 +10,7 @@ interface Props {
     relationships: RelationshipLayout[]
 }
 
-const groups: string[] = [];
+// const groups: string[] = [];
 
 function createConnectsRelationship(instance: BrowserJsPlumbInstance, relationship: CALMConnectsRelationship) {
     const r = relationship["relationship-type"]["connects"];
@@ -59,24 +59,20 @@ function createInteractsRelationship(instance: BrowserJsPlumbInstance, relations
     })
 }
 
-function createDeployedInRelationship(instance: BrowserJsPlumbInstance, relationship: CALMDeployedInRelationship) {
-    const r = relationship["relationship-type"]["deployed-in"];
-    if (!groups.find(group => group === r.container)) {
-        groups.push(r.container);
-        instance.addGroup({
-            el: document.getElementById(r.container)!,
-            id: r.container,
-            droppable: false,
-            constrain: false,
-            revert: false,
-            dropOverride: true
-        });
-    }
+// function createDeployedInRelationship(instance: BrowserJsPlumbInstance, relationship: CALMDeployedInRelationship) {
+//     const r = relationship["relationship-type"]["deployed-in"];
+//     if (!groups.find(group => group === r.container)) {
+//         groups.push(r.container);
+//         instance.addGroup({
+//             el: document.getElementById(r.container)!,
+//             id: r.container,
+//         });
+//     }
 
-    r.nodes.forEach(node => {
-        instance.addToGroup(r.container, document.getElementById(node)!)
-    });
-}
+//     r.nodes.forEach(node => {
+//         instance.addToGroup(r.container, document.getElementById(node)!)
+//     });
+// }
 
 function createGraphRelationship(instance: BrowserJsPlumbInstance, relationship: CALMRelationship) {
     if ("connects" in relationship["relationship-type"]) {
@@ -84,7 +80,8 @@ function createGraphRelationship(instance: BrowserJsPlumbInstance, relationship:
     } else if ("interacts" in relationship["relationship-type"]) {
         createInteractsRelationship(instance, relationship as CALMInteractsRelationship);
     } else if ("deployed-in" in relationship["relationship-type"]) {
-        createDeployedInRelationship(instance, relationship as CALMDeployedInRelationship);
+        // createDeployedInRelationship(instance, relationship as CALMDeployedInRelationship);
+        // TODO: Fix the "deployed-in" relationship and add "contains" relationship
     }
 }
 
@@ -93,10 +90,14 @@ function Graph({ instance, nodes, relationships }: Props) {
         relationships.map(relationship => {
             createGraphRelationship(instance, relationship);
         });
+
+        nodes.forEach(node => {
+            instance.manage(document.getElementById(node["unique-id"])!);
+        });
     }, [nodes, relationships, instance]);
 
     return (
-        <div>
+        <>
             {
                 nodes.map(node => {
                     return <div 
@@ -115,7 +116,7 @@ function Graph({ instance, nodes, relationships }: Props) {
                     </div>
                 })
             }
-        </div>
+        </>
     );
 }
 
