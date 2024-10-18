@@ -1,6 +1,6 @@
 {
   "name": "@finos/calm-cli",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
   "main": "dist/index.js",
   "files": [
@@ -24,14 +24,16 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@rollup/plugin-commonjs": "^28.0.1",
     "@stoplight/spectral-cli": "^6.13.1",
     "@stoplight/spectral-core": "^1.19.1",
     "ajv": "^8.12.0",
     "commander": "^12.0.0",
+    "glob": "^11.0.0",
     "graphviz-cli": "^2.0.0",
     "js-yaml": "^4.1.0",
-    "jsonpath-plus": "^10.0.0",
     "json-pointer": "^0.6.2",
+    "jsonpath-plus": "^10.0.0",
     "junit-report-builder": "^5.0.0",
     "lodash": "^4.17.21",
     "mkdirp": "^3.0.1",
@@ -62,6 +64,7 @@
   "overrides": {
     "jsonpath-plus": "^10.0.0",
     "path-to-regexp": "3.3.0",
-    "rollup": "4.24.0"
+    "rollup": "4.24.0",
+    "glob": "^11.0.0"
   }
 }
