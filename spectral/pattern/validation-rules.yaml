@@ -64,6 +64,16 @@ rules:
       # only container and actor are in scope, since source/destination use interfaces now
       function: node-id-exists
 
+  avoid-boolean-properties:
+    description: Boolean property detected. Booleans should ideally be avoided as they are closed for extension; have you considered using an enum instead?
+    severity: warn 
+    message: Boolean property detected. Booleans should ideally be avoided as they are closed for extension; have you considered using an enum instead?
+    given: "$..type"
+    then: 
+      function: pattern 
+      functionOptions:
+        notMatch: /boolean/
+
   relationship-references-existing-nodes-in-pattern:
     description: Relationships with const properties must reference existing nodes
     severity: error 
