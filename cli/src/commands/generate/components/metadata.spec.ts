@@ -32,6 +32,9 @@ describe('instantiateMetadataObject', () => {
                 'integer-prop': {
                     'type': 'integer'
                 },
+                'boolean-prop': {
+                    'type': 'boolean'
+                },
                 'const-prop': {
                     'const': 'constant'
                 }
@@ -42,6 +45,7 @@ describe('instantiateMetadataObject', () => {
                 {
                     'string-prop': '{{ STRING_PROP }}',
                     'integer-prop': -1,
+                    'boolean-prop': '{{ BOOLEAN_BOOLEAN_PROP }}',
                     'const-prop': 'constant'
                 },
             );
