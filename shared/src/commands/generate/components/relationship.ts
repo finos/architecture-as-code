@@ -3,6 +3,7 @@
 import { initLogger } from '../../helper.js';
 import { SchemaDirectory } from '../schema-directory.js';
 import { logRequiredMessage, mergeSchemas } from '../util.js';
+import { instantiateGenericObject } from './instantiate.js';
 import { getPropertyValue } from './property.js';
 
 
@@ -14,34 +15,7 @@ import { getPropertyValue } from './property.js';
  * @returns An instantiated relationship.
  */
 function instantiateRelationship(relationshipDef: object, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): object {
-    const logger = initLogger(debug);
-    let fullDefinition = relationshipDef;
-    if (relationshipDef['$ref']) {
-        const ref = relationshipDef['$ref'];
-        const schemaDef = schemaDirectory.getDefinition(ref);
-
-        fullDefinition = mergeSchemas(schemaDef, relationshipDef);
-    }
-
-    if (!('properties' in fullDefinition)) {
-        return {};
-    }
-
-    const required = fullDefinition['required'];
-
-    logger.debug('Generating interface from ' + JSON.stringify(fullDefinition, undefined, 2));
-    logRequiredMessage(logger, required, instantiateAll);
-
-    const out = {};
-    for (const [key, detail] of Object.entries(fullDefinition['properties'])) {
-        if (!instantiateAll && required && !required.includes(key)) {
-            logger.debug('Skipping property ' + key + ' as it is not marked as required.');
-            continue;
-        }
-        out[key] = getPropertyValue(key, detail);
-    }
-
-    return out;
+    return instantiateGenericObject(relationshipDef, schemaDirectory, 'relationship', debug, instantiateAll);
 }
 
 /**
