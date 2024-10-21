@@ -1,14 +1,11 @@
 #! /usr/bin/env node
 
 import { Option, program } from 'commander';
-import { createRequire } from 'module';
 import { visualizeInstantiation, visualizePattern } from './commands/visualize/visualize.js';
 import { runGenerate } from './commands/generate/generate.js';
 import validate  from './commands/validate/validate.js';
 import { CALM_META_SCHEMA_DIRECTORY } from './consts.js';
-
-const require = createRequire(import.meta.url);
-const { version } = require('../package.json');
+import {version} from '../package.json';
 
 program
     .version(version)
