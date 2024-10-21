@@ -338,17 +338,6 @@ export async function validate(
     }
 }
 
-// function replaceHttpsWithHttp(obj) {
-//     for (const key in obj) {
-//         if (typeof obj[key] === 'string') {
-//             obj[key] = obj[key].replace('https:', 'http:');
-//         } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-//             // Recursively process nested objects
-//             replaceHttpsWithHttp(obj[key]);
-//         }
-//     }
-// }
-
 /**
  * Run validations for the case where only the pattern is provided. 
  * This essentially tries to compile the pattern, and returns the errors thrown if it fails.

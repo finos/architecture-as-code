@@ -6,8 +6,7 @@ import { writeFileSync } from 'fs';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
 import { exitBasedOffOfValidationOutcome } from '@finos/calm-shared/dist/commands/validate/validate';
-
-const version = process.env.npm_package_version || '0.0.1';
+import { version } from '../package.json';
 
 program
     .version(version)
@@ -19,7 +18,8 @@ program
     .addOption(new Option('-i, --instantiation <file>', 'Path to an instantiation of a CALM pattern.').conflicts('pattern'))
     .addOption(new Option('-p, --pattern <file>', 'Path to a CALM pattern.').conflicts('instantiation'))
     .requiredOption('-o, --output <file>', 'Path location at which to output the SVG.', 'calm-visualization.svg')
-    .option('-v, --verbose', 'Enable verbose logging.', false)    .action(async (options) => {
+    .option('-v, --verbose', 'Enable verbose logging.', false)    
+    .action(async (options) => {
         if (!options.instantiation && !options.pattern) {
             throw new Error('You must provide either a pattern or an instantiation');
         } else if (options.instantiation) {

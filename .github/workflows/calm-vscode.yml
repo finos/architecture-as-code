@@ -1,4 +1,4 @@
-name: Build Extensions Module ( calm-validate )
+name: Test /plugins/calm-vscode/ 
 
 on:
   pull_request:
@@ -17,7 +17,7 @@ defaults:
     working-directory: ./plugins/calm-vscode
 
 jobs:
-  calm-validate-extension-tests:
+  calm-vscode-extension-tests:
     name: Run unit tests and lint on the calm-vscode module.
     runs-on: ubuntu-latest
     steps:

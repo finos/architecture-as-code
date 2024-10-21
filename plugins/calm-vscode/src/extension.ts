@@ -26,13 +26,13 @@ export function activate(context: vscode.ExtensionContext) {
             );
 
             //Initial visualization - then will hook into same function for rendering updates.
-            visualizeDocument(editor, panel, columnToShowIn);
+            _visualizeDocument(editor, panel, columnToShowIn);
 
             // On update
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             vscode.workspace.onDidSaveTextDocument(async (document) => {
                 if (editor && panel) {
-                    visualizeDocument(editor, panel, columnToShowIn);
+                    _visualizeDocument(editor, panel, columnToShowIn);
                 }
             });
 
@@ -49,21 +49,23 @@ export function activate(context: vscode.ExtensionContext) {
     const validateCommand = vscode.commands.registerCommand('calm-vscode.validate', () => {
         const diagnosticCollection = languages.createDiagnosticCollection('calm');
         vscode.workspace.onDidSaveTextDocument(async (document: vscode.TextDocument) => {
-            if (document.uri.fsPath.endsWith('.json')) {
-                vscode.commands.executeCommand('editor.action.formatDocument');
-                const editor = vscode.window.activeTextEditor;
-                try {
-                    const data: string = editor?.document.getText();
-                    const absPath: string = editor?.document?.uri?.fsPath;
-                    if (data && vscode.window.activeTextEditor) {
-                        diagnosticCollection.clear();
-                        const calmResult: ValidationOutcome = await callCalmValidate(data, absPath);
-                        const diagnostics: Diagnostic[] = calmResult.allValidationOutputs().map((calmValidation: ValidationOutput) => mapTo(data, calmValidation));
+
+            vscode.commands.executeCommand('editor.action.formatDocument');
+            try {
+                const data: string = document.getText();
+                const absPath: string = document?.uri?.fsPath;
+                if (data && vscode.window.activeTextEditor && _isCALMFile(data)) {
+                    diagnosticCollection.clear();
+                    const calmResult: ValidationOutcome = await _callCalmValidate(data, absPath);
+                    if(calmResult === undefined) {
+                        console.error('Got \'undefined\' back from callCalmValidate - indicating we weren\'t able to complete validation.');
+                    } else {
+                        const diagnostics: Diagnostic[] = calmResult.allValidationOutputs().map((calmValidation: ValidationOutput) => _mapTo(data, calmValidation));
                         diagnosticCollection.set(vscode.window.activeTextEditor.document.uri, diagnostics);
                     }
-                } catch (error: unknown) {
-                    vscode.window.showErrorMessage('Error validating current file: ' + error);
                 }
+            } catch (error: unknown) {
+                vscode.window.showErrorMessage('Error validating current file: ' + error);
             }
         });
     });
@@ -72,21 +74,21 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.executeCommand('calm-vscode.validate');
 }
 
+export function deactivate() { }
 
-
-async function visualizeDocument(editor: vscode.TextEditor, panel: vscode.WebviewPanel, columnToShowIn: vscode.ViewColumn) {
+async function _visualizeDocument(editor: vscode.TextEditor, panel: vscode.WebviewPanel, columnToShowIn: vscode.ViewColumn) {
     try {
         const data = editor?.document.getText();
         const absPath = editor?.document?.uri?.fsPath;
         if (data) {
-            const issueCount = await validationIssueCount(data, absPath);
+            const issueCount = await _validationIssueCount(data, absPath);
             if (issueCount > 0) {
                 vscode.window.showInformationMessage(`Please resolve the ${issueCount} validation issues before visualizing.`);
                 panel.dispose();
                 panel = undefined;
             } else {
                 const svg = await visualize(data);
-                panel.webview.html = getWebviewContent(svg);
+                panel.webview.html = _getWebviewContent(svg);
                 panel.reveal(columnToShowIn);
             }
         }
@@ -95,11 +97,10 @@ async function visualizeDocument(editor: vscode.TextEditor, panel: vscode.Webvie
     }
 }
 
-function mapTo(jsonDataFromFile: string, calmValidation: ValidationOutput): vscode.Diagnostic {
-
+function _mapTo(jsonDataFromFile: string, calmValidation: ValidationOutput): vscode.Diagnostic {
     let { line_start, line_end, character_start, character_end } = calmValidation;
     if (calmValidation.line_start === undefined || (calmValidation.line_start === 1)) {
-        const data = getLineNumbers(jsonDataFromFile, calmValidation.path);
+        const data = _getLineNumbers(jsonDataFromFile, calmValidation.path);
         if (data.length === 1) {
             line_start = data[0].line_start;
             line_end = data[0].line_end;
@@ -108,38 +109,49 @@ function mapTo(jsonDataFromFile: string, calmValidation: ValidationOutput): vsco
         }
     }
 
-    return new Diagnostic(new Range(new vscode.Position(line_start, character_start), new vscode.Position(line_end, character_end)), calmValidation.message, convertSeverity(calmValidation.severity));
+    return new Diagnostic(new Range(new vscode.Position(line_start, character_start), new vscode.Position(line_end, character_end)), calmValidation.message, _convertSeverity(calmValidation.severity));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function callCalmValidate(pageData: string, absFilePath: string): Promise<ValidationOutcome> {
+async function _callCalmValidate(pageData: string, absFilePath: string): Promise<ValidationOutcome> {
 
-    const schema = singleValueFrom(pageData, '$.$schema');
-    const id = singleValueFrom(pageData, '$.$id');
+    const schema = _singleValueFrom(pageData, '$.$schema');
+    const id = _singleValueFrom(pageData, '$.$id');
 
     let instantiation = undefined;
     let pattern = undefined;
 
+    //Hacky implementation - needs to be changed.
     if (schema?.includes('/pattern/') && id === undefined) {
         instantiation = absFilePath;
         pattern = schema;
-
     } else if (id?.includes('/pattern/')) {
         pattern = absFilePath;
+    } else {
+        return Promise.resolve(undefined);
     }
+    //The pattern should refer to the version of CALM being used - so let's fetch.
 
     const schema_location = `https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/${CALM_DRAFT_VERSION}/meta/calm.json`;
     return await validate(instantiation, pattern, schema_location, false);
 }
 
-async function validationIssueCount(pageData: string, absFilePath: string): Promise<number> {
-    const validationOutcome = await callCalmValidate(pageData, absFilePath);
+/**
+ * Determine if the current file is CALM and should be attempted to be validated - visualized.
+ * @param pageData Data on the current page.
+ * @returns 
+ */
+function _isCALMFile(pageData: string): boolean {
+    //Yes, this is extremely hacky - but it's simply to stop every save on any open JSON file assuming it's CALM.
+    return pageData.includes('$schema') && pageData.includes('calm');
+}
+
+async function _validationIssueCount(pageData: string, absFilePath: string): Promise<number> {
+    const validationOutcome = await _callCalmValidate(pageData, absFilePath);
     return validationOutcome.allValidationOutputs().length;
 }
 
-function singleValueFrom(pageData: string, jsonPath: string): string {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { data: jsonObj, pointers } = jsonSourceMap.parse(pageData);
+function _singleValueFrom(pageData: string, jsonPath: string): string {
+    const { data: jsonObj } = jsonSourceMap.parse(pageData);
     const results = JSONPath({ path: jsonPath, json: jsonObj });
     if (results.length == 1) {
         return results[0];
@@ -147,7 +159,7 @@ function singleValueFrom(pageData: string, jsonPath: string): string {
     return undefined;
 }
 
-function convertSeverity(severityStr: string): DiagnosticSeverity {
+function _convertSeverity(severityStr: string): DiagnosticSeverity {
     if (severityStr === 'error') {
         return DiagnosticSeverity.Error;
     } else if (severityStr === 'warning') {
@@ -157,10 +169,10 @@ function convertSeverity(severityStr: string): DiagnosticSeverity {
     }
 }
 
-function getLineNumbers(jsonStr: string, jsonPathExpr: string) {
+function _getLineNumbers(jsonStr: string, jsonPathExpr: string) {
 
     const { data: jsonObj, pointers } = jsonSourceMap.parse(jsonStr);
-    const results = JSONPath({ path: generatePath(jsonPathExpr.split('/')), json: jsonObj });
+    const results = JSONPath({ path: _generatePath(jsonPathExpr.split('/')), json: jsonObj });
 
     if (!results.length) {
         return null;
@@ -180,7 +192,7 @@ function getLineNumbers(jsonStr: string, jsonPathExpr: string) {
     return lineNumbers;
 }
 
-function generatePath(arr) {
+function _generatePath(arr) {
     let result = '$';
 
     arr.forEach(item => {
@@ -194,7 +206,7 @@ function generatePath(arr) {
     return result;
 }
 
-function getWebviewContent(svg: string | undefined) {
+function _getWebviewContent(svg: string | undefined) {
     return `<!DOCTYPE html>
     <html lang="en">
     <head>
@@ -208,4 +220,4 @@ function getWebviewContent(svg: string | undefined) {
     </html>`;
 }
 
-export function deactivate() { }
+

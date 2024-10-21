@@ -20,7 +20,7 @@
         "title": "CALM Validate Current File.",
         "when": "editorLangId == json"
       },
-       {
+      {
         "command": "calm-vscode.visualize",
         "title": "CALM Visualize Current File.",
         "when": "editorLangId == json",
@@ -39,18 +39,20 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/mocha": "^10.0.7",
     "@types/node": "20.x",
+    "@types/sinon": "^17.0.3",
     "@types/vscode": "^1.94.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.1",
-    "typescript": "^5.5.4",
-    "@typescript-eslint/eslint-plugin": "^8.0.0",
-    "eslint": "^8.57.0"
+    "eslint": "^8.57.0",
+    "rimraf": "^6.0.1",
+    "sinon": "^19.0.2",
+    "typescript": "^5.5.4"
   },
   "dependencies": {
-    "@typescript-eslint/parser": "^8.9.0",
     "@finos/calm-shared": "file:../../shared",
+    "@typescript-eslint/parser": "^8.9.0",
     "json-source-map": "^0.6.1",
     "jsonpath-plus": "^10.0.0"
   }
