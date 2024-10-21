@@ -5,9 +5,10 @@ import { visualizeInstantiation, visualizePattern } from './commands/visualize/v
 import { runGenerate } from './commands/generate/generate.js';
 import validate  from './commands/validate/validate.js';
 import { CALM_META_SCHEMA_DIRECTORY } from './consts.js';
+import {version} from '../package.json';
 
 program
-    .version(process.env.npm_package_version)
+    .version(version)
     .description('A set of tools for interacting with the Common Architecture Language Model (CALM)');
 
 program
