@@ -7,7 +7,7 @@ import validate  from './commands/validate/validate.js';
 import { CALM_META_SCHEMA_DIRECTORY } from './consts.js';
 
 program
-    .version("0.2.4")
+    .version('0.2.4')
     .description('A set of tools for interacting with the Common Architecture Language Model (CALM)');
 
 program
