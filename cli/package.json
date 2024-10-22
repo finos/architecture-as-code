@@ -24,7 +24,6 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@finos/calm-cli": "^0.2.3",
     "@rollup/plugin-commonjs": "^28.0.1",
     "@stoplight/spectral-cli": "^6.13.1",
     "@stoplight/spectral-core": "^1.19.1",
