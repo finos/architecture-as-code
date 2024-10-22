@@ -1,6 +1,6 @@
 {
   "name": "@finos/calm-cli",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
   "main": "dist/index.js",
   "files": [
@@ -24,6 +24,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@finos/calm-cli": "^0.2.3",
     "@rollup/plugin-commonjs": "^28.0.1",
     "@stoplight/spectral-cli": "^6.13.1",
     "@stoplight/spectral-core": "^1.19.1",

@@ -5,10 +5,9 @@ import { visualizeInstantiation, visualizePattern } from './commands/visualize/v
 import { runGenerate } from './commands/generate/generate.js';
 import validate  from './commands/validate/validate.js';
 import { CALM_META_SCHEMA_DIRECTORY } from './consts.js';
-import {version} from '../package.json';
 
 program
-    .version(version)
+    .version("0.2.4")
     .description('A set of tools for interacting with the Common Architecture Language Model (CALM)');
 
 program
@@ -18,7 +17,7 @@ program
     .addOption(new Option('-p, --pattern <file>', 'Path to a CALM pattern.').conflicts('instantiation'))
     .requiredOption('-o, --output <file>', 'Path location at which to output the SVG.', 'calm-visualization.svg')
     .option('-v, --verbose', 'Enable verbose logging.', false)
-    .action(async (options) => { 
+    .action(async (options) => {
         if (!options.instantiation && ! options.pattern) {
             throw new Error('You must provide either a pattern or an instantiation');
         } else if (options.instantiation) {
@@ -56,7 +55,7 @@ program
     .option('-o, --output <output>', 'Path location at which to output the generated file.')
     .option('-v, --verbose', 'Enable verbose logging.', false)
     .action(async (options) =>
-        await validate(options.instantiation, options.pattern, options.metaSchemasLocation, options.verbose, options.format, options.output, options.strict) 
+        await validate(options.instantiation, options.pattern, options.metaSchemasLocation, options.verbose, options.format, options.output, options.strict)
     );
 
 program.parse(process.argv);
