@@ -20,4 +20,4 @@ Here you can find talks that our members have given.
 
 ### CALM - Architecture at Scale
 #### Denis Coffaro, Morgan Stanley, and David Johnston, Red Hat, Open Source in Finance Forum, NYC 2025
-<iframe width="640px" height="480px" src="https://www.youtube.com/watch?v=bqip3qiXh6o" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="640px" height="480px" src="https://www.youtube.com/embed/bqip3qiXh6o?si=Kxv-5hpz_sFDkBQ5" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
