@@ -1,6 +1,6 @@
 import { initLogger } from '../../helper.js';
 import { SchemaDirectory } from '../schema-directory.js';
-import { appendPath, logRequiredMessage, mergeSchemas } from '../util.js';
+import { appendPath } from '../util.js';
 import { instantiateGenericObject } from './instantiate.js';
 
 export function instantiateMetadataObject(definition: object, schemaDirectory: SchemaDirectory, path: string[], debug: boolean = false, instantiateAll: boolean = false): object {

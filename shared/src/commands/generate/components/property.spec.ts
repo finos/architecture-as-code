@@ -37,7 +37,7 @@ describe('getConstValue', () => {
                 }
             });
     });
-})
+});
 
 describe('getPropertyValue', () => {
     it('generates string placeholder name from variable', () => {

@@ -2,7 +2,7 @@
 
 import { initLogger } from '../../helper.js';
 import { SchemaDirectory } from '../schema-directory.js';
-import { appendPath, logRequiredMessage, mergeSchemas } from '../util.js';
+import { appendPath } from '../util.js';
 import { instantiateGenericObject } from './instantiate.js';
 
 /**
@@ -36,7 +36,7 @@ export function instantiateNodes(pattern: any, schemaDirectory: SchemaDirectory,
     const outputNodes = [];
 
     for (const [index, node] of nodes.entries()) {
-        const path = appendPath(['nodes'], index)
+        const path = appendPath(['nodes'], index);
         outputNodes.push(instantiateNode(node, schemaDirectory, path, debug, instantiateAll));
     }
     return outputNodes;

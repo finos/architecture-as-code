@@ -1,8 +1,8 @@
-import { Logger } from "winston";
-import { initLogger } from "../../helper.js";
-import { SchemaDirectory } from "../schema-directory.js";
-import { appendPath, logRequiredMessage, mergeSchemas, renderPath } from "../util.js";
-import { getConstValue, getPropertyValue } from "./property.js";
+import { Logger } from 'winston';
+import { initLogger } from '../../helper.js';
+import { SchemaDirectory } from '../schema-directory.js';
+import { appendPath, logRequiredMessage, mergeSchemas, renderPath } from '../util.js';
+import { getConstValue, getPropertyValue } from './property.js';
 
 export function instantiateGenericObject(definition: object, schemaDirectory: SchemaDirectory, objectType: string, path: string[], debug: boolean = false, instantiateAll: boolean = false): object {
     const logger = initLogger(debug);
@@ -30,12 +30,12 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
         
         if (!instantiateAll && required && !required.includes(key)) { // TODO should we always do interfaces even if not required?
             if (key === 'interfaces') {
-                logger.warn(`${renderedPath}: 'interfaces' property was not marked as required. You might be missing some values if this object has interfaces defined.`)
+                logger.warn(`${renderedPath}: 'interfaces' property was not marked as required. You might be missing some values if this object has interfaces defined.`);
             }
             logger.debug(`${renderedPath}: Skipping property ${key} as it is not marked as required.`);
             continue;
         }
-        if (!!detail?.const) {
+        if (detail?.const) {
             out[key] = getConstValue(detail);
         }
         else if (detail?.type === 'object') {
@@ -57,22 +57,22 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
     return out;
 }
 
-function isArrayObjectComplex(detail: any, logger: Logger, pathContext: string) {
+function isArrayObjectComplex(detail: object, logger: Logger, pathContext: string) {
     if (!detail) {
         return false;
     }
 
-    const arrayContentsType = detail.items?.type
+    const arrayContentsType = detail['items']?.type;
     if (!!arrayContentsType && ['integer', 'number', 'boolean', 'string', 'const'].includes(arrayContentsType)) {
-        logger.info(`${pathContext}: Skipping recursive instantiation of array as it has a simple type and no prefixItems`)
-        return false
+        logger.info(`${pathContext}: Skipping recursive instantiation of array as it has a simple type and no prefixItems`);
+        return false;
     }
 
-    if (!!detail.prefixItems && !!detail.items) {
-        logger.warn(`${pathContext}: Both 'items' and 'prefixItems' are defined on this array schema; only prefixItems will be instantiated.`)
+    if (!!detail['prefixItems'] && !!detail['items']) {
+        logger.warn(`${pathContext}: Both 'items' and 'prefixItems' are defined on this array schema; only prefixItems will be instantiated.`);
     }
 
-    if (!!detail.prefixItems) {
+    if (detail['prefixItems']) {
         // if we have prefixItems and it's not a simple array, then must be complex.
         return true;
     }
@@ -85,9 +85,9 @@ export function instantiateArray(prefixItems: object[], schemaDirectory: SchemaD
     const logger = initLogger(debug);
     const output = [];
 
-    logger.debug(`${path}: Instantiating elements of array as defined in prefixItems`)
+    logger.debug(`${path}: Instantiating elements of array as defined in prefixItems`);
     for (const [index, element] of prefixItems.entries()) {
-        const currentPath = appendPath(path, index)
+        const currentPath = appendPath(path, index);
         output.push(instantiateGenericObject(element, schemaDirectory, objectType, currentPath, debug, instantiateAll));
     }
 
