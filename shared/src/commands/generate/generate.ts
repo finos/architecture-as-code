@@ -72,8 +72,6 @@ export async function runGenerate(patternPath: string, outputPath: string, debug
     const final = await generate(patternPath, debug, instantiateAll, schemaDirectoryPath);
 
     const output = JSON.stringify(final, null, 2);
-    logger.debug('Generated instantiation: ' + output);
-
     const dirname = path.dirname(outputPath);
 
     logger.debug('Writing output to ' + outputPath);

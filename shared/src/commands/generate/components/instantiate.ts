@@ -34,9 +34,9 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
         if (!!detail?.const) {
             out[key] = getPropertyValue(key, detail);
         }
-        if (detail?.type === 'object') {
+        else if (detail?.type === 'object') {
             // recursive instantiation
-            logger.info(`${renderedPath}: Recursively instantiating an ${objectType} object`);
+            logger.info(`${renderedPath}: Recursively instantiating a ${objectType} object`);
             out[key] = instantiateGenericObject(detail, schemaDirectory, objectType, currentPath, instantiateAll, debug);
         }
         else if (detail?.type === 'array' && isArrayObjectComplex(detail, logger, renderedPath)) {
