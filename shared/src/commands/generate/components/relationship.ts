@@ -4,7 +4,6 @@ import { initLogger } from '../../helper.js';
 import { SchemaDirectory } from '../schema-directory.js';
 import { appendPath, logRequiredMessage, mergeSchemas } from '../util.js';
 import { instantiateGenericObject } from './instantiate.js';
-import { getPropertyValue } from './property.js';
 
 
 /**

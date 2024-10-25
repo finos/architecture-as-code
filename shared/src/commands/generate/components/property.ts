@@ -16,8 +16,16 @@ interface Detail {
     $ref?: string
 }
 
+/**
+ * Simply return the value of the const object when instantiating a const.
+ * @param detail The detail from the object to instantiate
+ * @returns Either the value or the object described by the 'const' property.
+ */
+export function getConstValue(detail: Detail) : string | object {
+    return detail.const;
+}
+
 export function getPropertyValue(keyName: string, detail: Detail): string | string[] | number | object {
-    // should be able to instantiate not just a simple enum type but also a whole sub-object
     // if both const and type are defined, prefer const
     if (detail.const) {
         return detail.const;

@@ -2,7 +2,7 @@ import { Logger } from "winston";
 import { initLogger } from "../../helper.js";
 import { SchemaDirectory } from "../schema-directory.js";
 import { appendPath, logRequiredMessage, mergeSchemas, renderPath } from "../util.js";
-import { getPropertyValue } from "./property.js";
+import { getConstValue, getPropertyValue } from "./property.js";
 
 export function instantiateGenericObject(definition: object, schemaDirectory: SchemaDirectory, objectType: string, path: string[], debug: boolean = false, instantiateAll: boolean = false): object {
     const logger = initLogger(debug);
@@ -13,6 +13,7 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
 
         fullDefinition = mergeSchemas(schemaDef, definition);
     }
+    // TODO rework to properly separate 'verbose' from 'debug' level logging
     // logger.debug('Generating ' + objectType + ' object from ' + JSON.stringify(fullDefinition));
     
     if (!('properties' in fullDefinition)) {
@@ -28,11 +29,14 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
         const renderedPath = renderPath(currentPath);
         
         if (!instantiateAll && required && !required.includes(key)) { // TODO should we always do interfaces even if not required?
+            if (key === 'interfaces') {
+                logger.warn(`${renderedPath}: 'interfaces' property was not marked as required. You might be missing some values if this object has interfaces defined.`)
+            }
             logger.debug(`${renderedPath}: Skipping property ${key} as it is not marked as required.`);
             continue;
         }
         if (!!detail?.const) {
-            out[key] = getPropertyValue(key, detail);
+            out[key] = getConstValue(detail);
         }
         else if (detail?.type === 'object') {
             // recursive instantiation

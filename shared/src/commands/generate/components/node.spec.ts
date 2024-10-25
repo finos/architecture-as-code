@@ -1,7 +1,7 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 
 import { SchemaDirectory } from '../schema-directory';
-import { instantiateNodeInterfaces, instantiateNodes } from './node';
+import { instantiateNodes } from './node';
 
 jest.mock('../../helper', () => {
     return {
