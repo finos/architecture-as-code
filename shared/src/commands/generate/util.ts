@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import { Logger } from 'winston';
+import pointer from 'json-pointer';
 
 /**
  * Recursively merge two schemas into a new object, without modifying either.
@@ -24,4 +25,12 @@ export function logRequiredMessage(logger: Logger, required: string[], instantia
     } else {
         logger.debug('Required properties: ' + required);
     }
+}
+
+export function appendPath(path: string[], element) : string[] {
+    return [...path, element];
+}
+
+export function renderPath(path: string[]): string {
+    return pointer.compile(path);
 }

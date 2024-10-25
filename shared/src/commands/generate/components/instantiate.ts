@@ -1,10 +1,10 @@
 import { Logger } from "winston";
 import { initLogger } from "../../helper.js";
 import { SchemaDirectory } from "../schema-directory.js";
-import { logRequiredMessage, mergeSchemas } from "../util.js";
+import { appendPath, logRequiredMessage, mergeSchemas, renderPath } from "../util.js";
 import { getPropertyValue } from "./property.js";
 
-export function instantiateGenericObject(definition: object, schemaDirectory: SchemaDirectory, objectType: string, debug: boolean = false, instantiateAll: boolean = false): object {
+export function instantiateGenericObject(definition: object, schemaDirectory: SchemaDirectory, objectType: string, path: string[], debug: boolean = false, instantiateAll: boolean = false): object {
     const logger = initLogger(debug);
     let fullDefinition = definition;
     if (definition['$ref']) {
@@ -24,8 +24,11 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
 
     const out = {};
     for (const [key, detail] of Object.entries(fullDefinition['properties'])) {
+        const currentPath = appendPath(path, key);
+        const renderedPath = renderPath(currentPath);
+        
         if (!instantiateAll && required && !required.includes(key)) { // TODO should we always do interfaces even if not required?
-            logger.debug('Skipping property ' + key + ' as it is not marked as required.');
+            logger.debug(`${renderedPath}: Skipping property ${key} as it is not marked as required.`);
             continue;
         }
         if (!!detail?.const) {
@@ -33,15 +36,15 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
         }
         if (detail?.type === 'object') {
             // recursive instantiation
-            logger.info('Recursively instantiating an ' + objectType + ' object');
-            out[key] = instantiateGenericObject(detail, schemaDirectory, objectType, instantiateAll, debug);
+            logger.info(`${renderedPath}: Recursively instantiating an ${objectType} object`);
+            out[key] = instantiateGenericObject(detail, schemaDirectory, objectType, currentPath, instantiateAll, debug);
         }
-        else if (detail?.type === 'array' && isArrayObjectComplex(detail, logger)) {
-            logger.info('Recursively instantiating an array object.');
+        else if (detail?.type === 'array' && isArrayObjectComplex(detail, logger, renderedPath)) {
+            logger.info(`${renderedPath}: Recursively instantiating an array object.`);
 
             // isArrayObjectComplex ensures this is present
             const prefixItems = detail.prefixItems;
-            out[key] = instantiateArray(prefixItems, schemaDirectory, objectType, instantiateAll, debug);
+            out[key] = instantiateArray(prefixItems, schemaDirectory, objectType, currentPath, instantiateAll, debug);
         }
         else {
             out[key] = getPropertyValue(key, detail);
@@ -50,22 +53,19 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
     return out;
 }
 
-function isArrayObjectComplex(detail: any, logger: Logger) {
-    console.log(detail)
+function isArrayObjectComplex(detail: any, logger: Logger, pathContext: string) {
     if (!detail) {
         return false;
     }
 
-    console.log(detail)
-
     const arrayContentsType = detail.items?.type
     if (!!arrayContentsType && ['integer', 'number', 'boolean', 'string', 'const'].includes(arrayContentsType)) {
-        logger.info('Skipping recursive instantiation of array as it has a simple type and no prefixItems')
+        logger.info(`${pathContext}: Skipping recursive instantiation of array as it has a simple type and no prefixItems`)
         return false
     }
 
     if (!!detail.prefixItems && !!detail.items) {
-        logger.warn("Both 'items' and 'prefixItems' are defined on this array schema; only prefixItems will be instantiated.")
+        logger.warn(`${pathContext}: Both 'items' and 'prefixItems' are defined on this array schema; only prefixItems will be instantiated.`)
     }
 
     if (!!detail.prefixItems) {
@@ -77,57 +77,15 @@ function isArrayObjectComplex(detail: any, logger: Logger) {
     return false;
 }
 
-export function instantiateArray(prefixItems: object[], schemaDirectory: SchemaDirectory, objectType: string, instantiateAll: boolean, debug: boolean) {
+export function instantiateArray(prefixItems: object[], schemaDirectory: SchemaDirectory, objectType: string, path: string[], instantiateAll: boolean, debug: boolean) {
     const logger = initLogger(debug);
     const output = [];
 
-    logger.debug("Instantiating elements of array as defined in prefixItems")
-    for (const item of prefixItems) {
-        output.push(instantiateGenericObject(item, schemaDirectory, objectType, debug, instantiateAll));
+    logger.debug(`${path}: Instantiating elements of array as defined in prefixItems`)
+    for (const [index, element] of prefixItems.entries()) {
+        const currentPath = appendPath(path, index)
+        output.push(instantiateGenericObject(element, schemaDirectory, objectType, currentPath, debug, instantiateAll));
     }
 
     return output;
-}
-
-export function instantiateArrayObject(definition: object, schemaDirectory: SchemaDirectory, objectType: string, debug: boolean = false, instantiateAll: boolean = false): object {
-    const logger = initLogger(debug);
-    let fullDefinition = definition;
-    if (definition['$ref']) {
-        const ref = definition['$ref'];
-        const schemaDef = schemaDirectory.getDefinition(ref); 
-
-        fullDefinition = mergeSchemas(schemaDef, definition);
-    }
-    logger.debug('Generating ' + objectType + ' object from ' + JSON.stringify(fullDefinition));
-    
-    if (!('properties' in fullDefinition)) {
-        return {};
-    }
-
-    const required = fullDefinition['required'];
-    logRequiredMessage(logger, required, instantiateAll);
-
-    const out = {};
-    for (const [key, detail] of Object.entries(fullDefinition['properties'])) {
-        if (!instantiateAll && required && !required.includes(key)) {
-            logger.debug('Skipping property ' + key + ' as it is not marked as required.');
-            continue;
-        }
-        if (detail?.type === 'object') {
-            // recursive instantiation
-            logger.debug('Recursively instantiating an ' + objectType + ' object');
-            out[key] = instantiateGenericObject(detail, schemaDirectory, objectType, instantiateAll, debug);
-        }
-        else if (detail?.type === 'array') {
-            if (key === 'interfaces')
-                logger.debug('Instantiating interfaces for a node object.');
-            else
-                logger.debug('Recursively instantiating an array object.');
-
-        }
-        else {
-            out[key] = getPropertyValue(key, detail);
-        }
-    }
-    return out;
 }

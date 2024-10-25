@@ -40,7 +40,7 @@ describe('instantiateMetadataObject', () => {
                 }
             }
         };
-        expect(instantiateMetadataObject(metadataDef, mockSchemaDir, false, true))
+        expect(instantiateMetadataObject(metadataDef, mockSchemaDir, [], false, true))
             .toEqual(
                 {
                     'string-prop': '{{ STRING_PROP }}',
@@ -65,7 +65,7 @@ describe('instantiateMetadataObject', () => {
                 }
             }
         };
-        expect(instantiateMetadataObject(metadataDef, mockSchemaDir, false, true))
+        expect(instantiateMetadataObject(metadataDef, mockSchemaDir, [], false, true))
             .toEqual(
                 {
                     'property-name': {
@@ -99,7 +99,7 @@ describe('instantiateMetadataObject', () => {
         spy.mockReturnValue(returnedDef);
 
 
-        expect(instantiateMetadataObject(metadataDef, mockSchemaDir, false, true))
+        expect(instantiateMetadataObject(metadataDef, mockSchemaDir, [], false, true))
             .toEqual(
                 {
                     'property-name': {

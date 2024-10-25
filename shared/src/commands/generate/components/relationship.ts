@@ -2,7 +2,7 @@
 
 import { initLogger } from '../../helper.js';
 import { SchemaDirectory } from '../schema-directory.js';
-import { logRequiredMessage, mergeSchemas } from '../util.js';
+import { appendPath, logRequiredMessage, mergeSchemas } from '../util.js';
 import { instantiateGenericObject } from './instantiate.js';
 import { getPropertyValue } from './property.js';
 
@@ -11,11 +11,12 @@ import { getPropertyValue } from './property.js';
  * Instantiates an individual relationship.
  * @param relationshipDef The relationship definition to instantiate
  * @param schemaDirectory The schema directory to resolve refs against.
+ * @param path The current path in the document, for logging purposes.
  * @param debug Whether to log debug detail
  * @returns An instantiated relationship.
  */
-function instantiateRelationship(relationshipDef: object, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): object {
-    return instantiateGenericObject(relationshipDef, schemaDirectory, 'relationship', debug, instantiateAll);
+function instantiateRelationship(relationshipDef: object, schemaDirectory: SchemaDirectory, path: string[], debug: boolean = false, instantiateAll: boolean = false): object {
+    return instantiateGenericObject(relationshipDef, schemaDirectory, 'relationship', path, debug, instantiateAll);
 }
 
 /**
@@ -38,8 +39,9 @@ export function instantiateRelationships(pattern: any, schemaDirectory: SchemaDi
     }
 
     const outputRelationships = [];
-    for (const relationship of relationships) {
-        outputRelationships.push(instantiateRelationship(relationship, schemaDirectory, debug, instantiateAll));
+    for (const [index, relationship] of relationships.entries()) {
+        const path = appendPath(['relationships'], index);
+        outputRelationships.push(instantiateRelationship(relationship, schemaDirectory, path, debug, instantiateAll));
     }
 
     return outputRelationships;

@@ -2,7 +2,7 @@
 
 import { initLogger } from '../../helper.js';
 import { SchemaDirectory } from '../schema-directory.js';
-import { logRequiredMessage, mergeSchemas } from '../util.js';
+import { appendPath, logRequiredMessage, mergeSchemas } from '../util.js';
 import { instantiateGenericObject } from './instantiate.js';
 import { getPropertyValue } from './property.js';
 
@@ -13,8 +13,8 @@ import { getPropertyValue } from './property.js';
  * @param debug Whether to log debug detail.
  * @returns An instantiated node.
  */
-export function instantiateNode(nodeDef: any, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): any {
-    return instantiateGenericObject(nodeDef, schemaDirectory, 'node', debug, instantiateAll);
+export function instantiateNode(nodeDef: any, schemaDirectory: SchemaDirectory, path: string[], debug: boolean = false, instantiateAll: boolean = false): any {
+    return instantiateGenericObject(nodeDef, schemaDirectory, 'node', path, debug, instantiateAll);
 }
 
 /**
@@ -36,8 +36,9 @@ export function instantiateNodes(pattern: any, schemaDirectory: SchemaDirectory,
     }
     const outputNodes = [];
 
-    for (const node of nodes) {
-        outputNodes.push(instantiateNode(node, schemaDirectory, debug, instantiateAll));
+    for (const [index, node] of nodes.entries()) {
+        const path = appendPath(['nodes'], index)
+        outputNodes.push(instantiateNode(node, schemaDirectory, path, debug, instantiateAll));
     }
     return outputNodes;
 }

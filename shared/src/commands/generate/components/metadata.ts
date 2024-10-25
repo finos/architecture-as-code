@@ -1,11 +1,11 @@
 import { initLogger } from '../../helper.js';
 import { SchemaDirectory } from '../schema-directory.js';
-import { logRequiredMessage, mergeSchemas } from '../util.js';
+import { appendPath, logRequiredMessage, mergeSchemas } from '../util.js';
 import { instantiateGenericObject } from './instantiate.js';
 import { getPropertyValue } from './property.js';
 
-export function instantiateMetadataObject(definition: object, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): object {
-    return instantiateGenericObject(definition, schemaDirectory, 'metadata', debug, instantiateAll);
+export function instantiateMetadataObject(definition: object, schemaDirectory: SchemaDirectory, path: string[], debug: boolean = false, instantiateAll: boolean = false): object {
+    return instantiateGenericObject(definition, schemaDirectory, 'metadata', path, debug, instantiateAll);
 }
 
 export function instantiateAllMetadata(pattern: object, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): object[] {
@@ -20,8 +20,9 @@ export function instantiateAllMetadata(pattern: object, schemaDirectory: SchemaD
     }
     const outputMetadata = [];
 
-    for (const node of metadataObjects) {
-        outputMetadata.push(instantiateMetadataObject(node, schemaDirectory, debug, instantiateAll));
+    for (const [index, metadataObj] of metadataObjects.entries()) {
+        const path = appendPath(['metadata'], index);
+        outputMetadata.push(instantiateMetadataObject(metadataObj, schemaDirectory, path, debug, instantiateAll));
     }
     return outputMetadata;
 }
