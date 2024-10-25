@@ -152,7 +152,7 @@ describe('instantiateNodes', () => {
         expect(spy).toHaveBeenCalledWith(reference);
     });
 
-    it('return instantiated node with interface', () => {
+    it('return instantiated node with interfaces, even when not marked as required', () => {
         const pattern = {
             properties: {
                 nodes: {
@@ -165,6 +165,7 @@ describe('instantiateNodes', () => {
                                 },
                                 // interfaces should be inserted
                                 'interfaces': {
+                                    'type': 'array',
                                     'prefixItems': [
                                         {
                                             properties: {

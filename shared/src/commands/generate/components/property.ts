@@ -44,6 +44,10 @@ export function getPropertyValue(keyName: string, detail: Detail): string | stri
             return -1;
         }
         if (propertyType === 'array') {
+            // special case: we always want to instantiate interfaces, even if not required, but not to output [ {{ INTERFACES }} ] in this case.
+            if (keyName === 'interfaces') {
+                return [];
+            }
             return [
                 getStringPlaceholder(keyName)
             ];

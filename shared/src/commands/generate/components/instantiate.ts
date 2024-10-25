@@ -28,10 +28,7 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
         const currentPath = appendPath(path, key);
         const renderedPath = renderPath(currentPath);
         
-        if (!instantiateAll && required && !required.includes(key)) { // TODO should we always do interfaces even if not required?
-            if (key === 'interfaces') {
-                logger.warn(`${renderedPath}: 'interfaces' property was not marked as required. You might be missing some values if this object has interfaces defined.`);
-            }
+        if (!instantiateAll && required && !required.includes(key) && key !== 'interfaces') { // TODO should we always do interfaces even if not required?
             logger.debug(`${renderedPath}: Skipping property ${key} as it is not marked as required.`);
             continue;
         }
