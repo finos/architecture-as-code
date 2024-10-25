@@ -17,7 +17,6 @@ interface Detail {
 }
 
 export function getPropertyValue(keyName: string, detail: Detail): string | string[] | number | object {
-    // TODO follow refs here
     // should be able to instantiate not just a simple enum type but also a whole sub-object
     // if both const and type are defined, prefer const
     if (detail.const) {

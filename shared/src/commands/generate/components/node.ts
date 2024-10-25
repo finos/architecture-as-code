@@ -3,6 +3,7 @@
 import { initLogger } from '../../helper.js';
 import { SchemaDirectory } from '../schema-directory.js';
 import { logRequiredMessage, mergeSchemas } from '../util.js';
+import { instantiateGenericObject } from './instantiate.js';
 import { getPropertyValue } from './property.js';
 
 /**
@@ -13,38 +14,7 @@ import { getPropertyValue } from './property.js';
  * @returns An instantiated node.
  */
 export function instantiateNode(nodeDef: any, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): any {
-    const logger = initLogger(debug);
-    let fullDefinition = nodeDef;
-    if (nodeDef['$ref']) {
-        const ref = nodeDef['$ref'];
-        const schemaDef = schemaDirectory.getDefinition(ref); 
-
-        fullDefinition = mergeSchemas(schemaDef, nodeDef);
-    }
-    logger.debug('Generating node from ' + JSON.stringify(fullDefinition));
-    
-    if (!('properties' in fullDefinition)) {
-        return {};
-    }
-
-    const required = fullDefinition['required'];
-    logRequiredMessage(logger, required, instantiateAll);
-
-    const out = {};
-    for (const [key, detail] of Object.entries(fullDefinition['properties'])) {
-        if (key === 'interfaces') {
-            const interfaces = instantiateNodeInterfaces(detail, schemaDirectory, debug, instantiateAll);
-            out['interfaces'] = interfaces;
-            continue;
-        }
-
-        if (!instantiateAll && required && !required.includes(key)) {
-            logger.debug('Skipping property ' + key + ' as it is not marked as required.');
-            continue;
-        }
-        out[key] = getPropertyValue(key, detail);
-    }
-    return out;
+    return instantiateGenericObject(nodeDef, schemaDirectory, 'node', debug, instantiateAll);
 }
 
 /**
@@ -72,6 +42,7 @@ export function instantiateNodes(pattern: any, schemaDirectory: SchemaDirectory,
     return outputNodes;
 }
 
+// TODO remove all this
 /**
  * Instantiate an individual interface on a node.
  * @param interfaceDef The definition of the interface.
@@ -100,7 +71,6 @@ export function instantiateInterface(interfaceDef: object, schemaDirectory: Sche
 
     const out = {};
     for (const [key, detail] of Object.entries(fullDefinition['properties'])) {
-        // TODO flag to force instantiate all
         if (!instantiateAll && required && !required.includes(key)) {
             logger.debug('Skipping property ' + key + ' as it is not marked as required.');
             continue;

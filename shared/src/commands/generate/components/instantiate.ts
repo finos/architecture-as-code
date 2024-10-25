@@ -1,8 +1,8 @@
 import { Logger } from "winston";
-import { initLogger } from "../../helper";
-import { SchemaDirectory } from "../schema-directory";
-import { logRequiredMessage, mergeSchemas } from "../util";
-import { getPropertyValue } from "./property";
+import { initLogger } from "../../helper.js";
+import { SchemaDirectory } from "../schema-directory.js";
+import { logRequiredMessage, mergeSchemas } from "../util.js";
+import { getPropertyValue } from "./property.js";
 
 export function instantiateGenericObject(definition: object, schemaDirectory: SchemaDirectory, objectType: string, debug: boolean = false, instantiateAll: boolean = false): object {
     const logger = initLogger(debug);
@@ -24,9 +24,12 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
 
     const out = {};
     for (const [key, detail] of Object.entries(fullDefinition['properties'])) {
-        if (!instantiateAll && required && !required.includes(key)) {
+        if (!instantiateAll && required && !required.includes(key)) { // TODO should we always do interfaces even if not required?
             logger.debug('Skipping property ' + key + ' as it is not marked as required.');
             continue;
+        }
+        if (!!detail?.const) {
+            out[key] = getPropertyValue(key, detail);
         }
         if (detail?.type === 'object') {
             // recursive instantiation
