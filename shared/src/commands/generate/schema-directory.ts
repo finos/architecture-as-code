@@ -112,7 +112,6 @@ export class SchemaDirectory {
     public getDefinition(definitionReference: string) {
         this.logger.debug(`Resolving ${definitionReference} from schema directory.`);
         return this.getDefinitionRecursive(definitionReference, 'pattern', []);
-        // TODO propagate the required fields
     }
 
     /**
