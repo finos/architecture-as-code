@@ -44,6 +44,16 @@ rules:
       function: pattern
       functionOptions:
         notMatch: "^{{\\s*[A-Z_]+\\s*}}$"
+  
+  instantiation-has-no-placeholder-properties-boolean:
+    description: Should not contain placeholder values with pattern {{ BOOLEAN_[property name] }}
+    message: Boolean placeholder detected in instantiated pattern.
+    severity: warn
+    given: "$..*"
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: "^{{\\s*BOOLEAN_[A-Z_]+\\s*}}$"
 
   relationship-references-existing-nodes-in-instantiation:
     description: Relationships must reference existing nodes

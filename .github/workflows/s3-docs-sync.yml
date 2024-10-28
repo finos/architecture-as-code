@@ -35,4 +35,4 @@ jobs:
         aws-region: us-east-1
     - name: Sync docs to S3
       run: |
-        aws s3 sync build s3://calm.finos.org/ --delete --include "*" --exclude "draft/*" --exclude "samples/*"
+        aws s3 sync build s3://calm.finos.org/ --delete --include "*" --exclude "draft/*" --exclude "samples/*" --exclude "video/*"

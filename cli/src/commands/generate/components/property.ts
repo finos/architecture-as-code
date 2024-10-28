@@ -6,9 +6,13 @@ export function getRefPlaceholder(name: string): string {
     return '{{ REF_' + name.toUpperCase().replaceAll('-', '_') + ' }}';
 }
 
+export function getBooleanPlaceholder(name: string): string {
+    return '{{ BOOLEAN_' + name.toUpperCase().replaceAll('-', '_') + ' }}';
+}
+
 interface Detail {
     const?: string | object,
-    type?: 'string' | 'integer' | 'number' | 'array',
+    type?: 'string' | 'integer' | 'number' | 'array' | 'boolean',
     $ref?: string
 }
 
@@ -25,6 +29,9 @@ export function getPropertyValue(keyName: string, detail: Detail): string | stri
 
         if (propertyType === 'string') {
             return getStringPlaceholder(keyName);
+        }
+        if (propertyType === 'boolean') {
+            return getBooleanPlaceholder(keyName);
         }
         if (propertyType === 'integer' || propertyType === 'number') {
             return -1;

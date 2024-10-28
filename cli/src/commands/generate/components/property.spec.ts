@@ -67,4 +67,11 @@ describe('getPropertyValue', () => {
         }))
             .toBe('{{ REF_KEY_NAME }}');
     });
+    
+    it('generates boolean placeholder from variable', () => {
+        expect(getPropertyValue('key-name', {
+            'type': 'boolean'
+        }))
+            .toBe('{{ BOOLEAN_KEY_NAME }}');
+    });
 });
