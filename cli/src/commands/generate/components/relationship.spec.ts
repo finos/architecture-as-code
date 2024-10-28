@@ -71,6 +71,21 @@ describe('instantiateRelationships', () => {
                 }
             ]);
     });
+    
+    it('return instantiated relationship with boolean property', () => {
+        const pattern = getSamplePatternRelationship({
+            'property-name': {
+                type: 'boolean'
+            }
+        });
+
+        expect(instantiateRelationships(pattern, mockSchemaDir, false, true))
+            .toEqual([
+                {
+                    'property-name': '{{ BOOLEAN_PROPERTY_NAME }}'
+                }
+            ]);
+    });
 
     it('return instantiated relationship with const property', () => {
         const pattern = getSamplePatternRelationship({

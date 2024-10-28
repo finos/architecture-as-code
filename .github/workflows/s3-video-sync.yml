@@ -1,0 +1,26 @@
+name: Sync Videos to S3
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - main   
+    paths:
+      - 'video'
+
+jobs:
+  sync-to-s3:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_S3_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    - name: Sync video folder to S3
+      run: |
+        aws s3 sync video s3://${{ vars.AWS_S3_BUCKET }}/video
