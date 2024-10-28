@@ -1,5 +1,3 @@
-/* eslint-disable  @typescript-eslint/no-explicit-any */
-
 import { readdir, readFile } from 'fs/promises';
 import { join } from 'path';
 import pointer from 'json-pointer';
