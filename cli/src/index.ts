@@ -17,7 +17,7 @@ const STRICT_OPTION = '-s, --strict';
 const VERBOSE_OPTION = '-v, --verbose';
 
 program
-    .version('0.2.4')
+    .version('0.2.5')
     .description('A set of tools for interacting with the Common Architecture Language Model (CALM)');
 
 program
