@@ -76,7 +76,7 @@ export default async function validate(
         handleProcessExit(errors, warnings, failOnWarnings);
 
     } catch (error) {
-        logger.error(`An error occured: ${error}`);
+        logger.error(error);
         process.exit(1);
     }
 }

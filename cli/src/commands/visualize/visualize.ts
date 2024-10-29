@@ -10,12 +10,11 @@ let logger: winston.Logger;
 export async function visualizeInstantiation(instantiationPath: string, output: string, debug: boolean) {
     logger = initLogger(debug);
 
-    logger.info(`Reading CALM file from [${instantiationPath}]`);
-    const calm = fs.readFileSync(instantiationPath, 'utf-8');
-
-    logger.info('Generating an SVG from input');
-
     try {
+        logger.info(`Reading CALM file from [${instantiationPath}]`);
+        const calm = fs.readFileSync(instantiationPath, 'utf-8');
+        logger.info('Generating an SVG from input');
+
         const dot = calmToDot(JSON.parse(calm), debug);
         logger.debug(`Generated the following dot: 
             ${dot}
@@ -26,7 +25,11 @@ export async function visualizeInstantiation(instantiationPath: string, output: 
         logger.info(`Outputting file at [${output}]`);
         fs.writeFileSync(output, svg);
     } catch (err) {
-        logger.error(err);
+        if (err.code === 'ENOENT') {
+            logger.error('File not found!');
+        } else {
+            logger.error(err);
+        }
         process.exit(1);
     }
 }
@@ -34,12 +37,12 @@ export async function visualizeInstantiation(instantiationPath: string, output: 
 export async function visualizePattern(patternPath: string, output: string, debug: boolean) {
     logger = initLogger(debug);
 
-    // TODO add a path to load schemas and generate intelligently
-    const instantiation = await generate(patternPath, debug, true);
-
-    logger.info('Generating an SVG from input');
-
     try {
+        // TODO add a path to load schemas and generate intelligently
+        const instantiation = await generate(patternPath, debug, true);
+
+        logger.info('Generating an SVG from input');
+
         const dot = calmToDot(instantiation, debug);
         logger.debug(`Generated the following dot: 
             ${dot}
@@ -50,7 +53,11 @@ export async function visualizePattern(patternPath: string, output: string, debu
         logger.info(`Outputting file at [${output}]`);
         fs.writeFileSync(output, svg);
     } catch (err) {
-        logger.error(err);
+        if (err.code === 'ENOENT') {
+            logger.error('File not found!');
+        } else {
+            logger.error(err);
+        }
         process.exit(1);
     }
 }

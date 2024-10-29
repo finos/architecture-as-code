@@ -32,21 +32,30 @@ export class SchemaDirectory {
      * Subsequent loads could overwrite schemas if they have the same ID.
      */
     public async loadSchemas(dir: string): Promise<void> {
-        const map = new Map<string, object>();
+        try {
+            const map = new Map<string, object>();
 
-        this.logger.debug('Loading schemas from ' + dir);
-        const files = await readdir(dir, { recursive: true });
+            this.logger.debug('Loading schemas from ' + dir);
+            const files = await readdir(dir, { recursive: true });
 
-        const schemaPaths = files.filter(str => str.match(/^.*(json|yaml|yml)$/))
-            .map(schemaPath => join(dir, schemaPath));
+            const schemaPaths = files.filter(str => str.match(/^.*(json|yaml|yml)$/))
+                .map(schemaPath => join(dir, schemaPath));
 
-        for (const schemaPath of schemaPaths) {
-            const schema = await this.loadSchema(schemaPath);
-            map.set(schema['$id'], schema);
+            for (const schemaPath of schemaPaths) {
+                const schema = await this.loadSchema(schemaPath);
+                map.set(schema['$id'], schema);
+            }
+
+            map.forEach((val, key) => this.schemas.set(key, val));
+            this.logger.info(`Loaded ${this.schemas.size} schemas.`);
+        } catch (err) {
+            if (err.code === 'ENOENT') {
+                this.logger.error('Schema Path not found!');
+            } else {
+                this.logger.error(err);
+            }
+            process.exit(1);
         }
-
-        map.forEach((val, key) => this.schemas.set(key, val));
-        this.logger.info(`Loaded ${this.schemas.size} schemas.`);
     }
 
     private lookupDefinition(schemaId: string, ref: string) {
