@@ -1,27 +1,36 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { mkdirp } from 'mkdirp';
+import {mkdirp} from 'mkdirp';
 
 import * as winston from 'winston';
-import { initLogger } from '../helper.js';
-import { CALMInstantiation } from '../../types.js';
-import { SchemaDirectory } from './schema-directory.js';
-import { instantiateNodes } from './components/node.js';
-import { instantiateRelationships } from './components/relationship.js';
-import { CALM_META_SCHEMA_DIRECTORY } from '../../consts.js';
-import { instantiateAllMetadata } from './components/metadata.js';
+import {initLogger} from '../helper.js';
+import {CALMInstantiation} from '../../types.js';
+import {SchemaDirectory} from './schema-directory.js';
+import {instantiateNodes} from './components/node.js';
+import {instantiateRelationships} from './components/relationship.js';
+import {CALM_META_SCHEMA_DIRECTORY} from '../../consts.js';
+import {instantiateAllMetadata} from './components/metadata.js';
 
 let logger: winston.Logger; // defined later at startup
 
 function loadFile(path: string): object {
-    logger.info('Loading pattern from file: ' + path);
-    const raw = fs.readFileSync(path, 'utf-8');
+    try {
+        logger.info('Loading pattern from file: ' + path);
+        const raw = fs.readFileSync(path, 'utf-8');
 
-    logger.debug('Attempting to load pattern file: ' + raw);
-    const pattern = JSON.parse(raw);
+        logger.debug('Attempting to load pattern file: ' + raw);
+        const pattern = JSON.parse(raw);
 
-    logger.debug('Loaded pattern file.');
-    return pattern;
+        logger.debug('Loaded pattern file.');
+        return pattern;
+    } catch (err) {
+        if (err.code === 'ENOENT') {
+            logger.error('Pattern not found!');
+        } else {
+            logger.error(err);
+        }
+        process.exit(1);
+    }
 }
 
 
