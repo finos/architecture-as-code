@@ -1,3 +1,8 @@
+---
+name: 🤝 Architecture as Code Office Hours
+about: Track Office Hours meetings
+---
+
 ## Date
 
 _day-of-week_ DD MMM yyyy - _time_ EST / _time_ UK
