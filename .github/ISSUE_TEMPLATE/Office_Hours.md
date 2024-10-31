@@ -1,5 +1,5 @@
 ---
-name: 🤝 Architecture as Code Office Hours
+name: 🏢 Architecture as Code Office Hours
 about: Track Office Hours meetings
 ---
 
@@ -27,16 +27,8 @@ Office Hours is a meeting for maintainers to get together to discuss active deve
 
 ### Zoom info
 
-**Join Zoom Meeting**
-- https://zoom.us/j/94904595244
-- Meeting ID: 949 0459 5244
-- Passcode: 545224
-- Find your local number: https://zoom.us/u/aesEqmNODb
+Join Zoom Meeting
+https://zoom.us/j/95349776375
 
-**Github Repo:** https://github.com/finos/architecture-as-code/
-
-**Project Board:** https://github.com/orgs/finos/projects/98
-
-**Mailing List:** Email devops-automation+subscribe@finos.org to subscribe to our mailing list
-
-**Mailing List:** Email devops-automation+subscribe@finos.org to subscribe to our mailing list
+Meeting ID: 953 4977 6375
+Passcode: 373428
