@@ -1,6 +1,6 @@
 ---
 name: 🤝 Architecture as Code Office Hours
-about: Track Offie Hours meetings
+about: Track Office Hours meetings
 ---
 
 ## Date
