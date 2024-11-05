@@ -1,0 +1,25 @@
+{
+    "layout": "absolute",
+    "nodes": [
+        {
+            "unique-id": "api-gateway",
+            "x": 400,
+            "y": 400
+        },
+        {
+            "unique-id": "api-consumer",
+            "x": 60,
+            "y": 400
+        },
+        {
+            "unique-id": "api-producer",
+            "x": 700,
+            "y": 400
+        },
+        {
+            "unique-id": "idp",
+            "x": 250,
+            "y": 720
+        }
+    ]
+}

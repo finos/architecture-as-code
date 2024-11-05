@@ -1,0 +1,30 @@
+.container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+.node {
+    padding: 1rem;
+    border: 2px black solid;
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    max-width: 15rem;
+}
+
+.group-node {
+    width: fit-content;
+    height: fit-content;
+}
+
+.node-type {
+    color: gray;
+    font-size: 0.9rem;
+}
+
+.node-description {
+    font-size: 0.9rem;
+}
