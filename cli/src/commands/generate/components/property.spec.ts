@@ -1,5 +1,3 @@
-/* eslint-disable  @typescript-eslint/no-explicit-any */
-
 import { getPropertyValue } from './property';
 
 jest.mock('../../helper', () => {
@@ -66,5 +64,12 @@ describe('getPropertyValue', () => {
             '$ref': '#/ref'
         }))
             .toBe('{{ REF_KEY_NAME }}');
+    });
+    
+    it('generates boolean placeholder from variable', () => {
+        expect(getPropertyValue('key-name', {
+            'type': 'boolean'
+        }))
+            .toBe('{{ BOOLEAN_KEY_NAME }}');
     });
 });

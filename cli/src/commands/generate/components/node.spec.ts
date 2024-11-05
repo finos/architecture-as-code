@@ -86,6 +86,21 @@ describe('instantiateNodes', () => {
             ]);
     });
     
+    it('return instantiated node with boolean property', () => {
+        const pattern = getSamplePatternNode({
+            'property-name': {
+                'type': 'boolean'
+            }
+        });
+
+        expect(instantiateNodes(pattern, mockSchemaDir, false, true))
+            .toEqual([
+                {
+                    'property-name': '{{ BOOLEAN_PROPERTY_NAME }}'
+                }
+            ]);
+    });
+    
     it('only instantiate required properties when instantiateAll set to false', () => {
         const pattern = getSamplePatternNode({
             'property-name': {

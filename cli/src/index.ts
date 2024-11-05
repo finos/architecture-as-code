@@ -6,35 +6,45 @@ import { runGenerate } from './commands/generate/generate.js';
 import validate  from './commands/validate/validate.js';
 import { CALM_META_SCHEMA_DIRECTORY } from './consts.js';
 
+const FORMAT_OPTION = '-f, --format <format>';
+const INSTANTIATION_OPTION = '-i, --instantiation <file>';
+const INSTANTIATE_ALL_OPTION = '-a, --instantiateAll';
+const META_SCHEMA_OPTION = '-m, --metaSchemasLocation <metaSchemaLocation>';
+const OUTPUT_OPTION = '-o, --output <file>';
+const PATTERN_OPTION = '-p, --pattern <file>';
+const SCHEMAS_OPTION = '-s, --schemaDirectory <path>';
+const STRICT_OPTION = '-s, --strict';
+const VERBOSE_OPTION = '-v, --verbose';
+
 program
-    .version(process.env.npm_package_version)
+    .version('0.2.5')
     .description('A set of tools for interacting with the Common Architecture Language Model (CALM)');
 
 program
     .command('visualize')
     .description('Produces an SVG file representing a visualization of the CALM Specification.')
-    .addOption(new Option('-i, --instantiation <file>', 'Path to an instantiation of a CALM pattern.').conflicts('pattern'))
-    .addOption(new Option('-p, --pattern <file>', 'Path to a CALM pattern.').conflicts('instantiation'))
-    .requiredOption('-o, --output <file>', 'Path location at which to output the SVG.', 'calm-visualization.svg')
-    .option('-v, --verbose', 'Enable verbose logging.', false)
-    .action(async (options) => { 
-        if (!options.instantiation && ! options.pattern) {
-            throw new Error('You must provide either a pattern or an instantiation');
-        } else if (options.instantiation) {
+    .addOption(new Option(INSTANTIATION_OPTION, 'Path to an instantiation of a CALM pattern.').conflicts('pattern'))
+    .addOption(new Option(PATTERN_OPTION, 'Path to a CALM pattern.').conflicts('instantiation'))
+    .requiredOption(OUTPUT_OPTION, 'Path location at which to output the SVG.', 'calm-visualization.svg')
+    .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+    .action(async (options) => {
+        if (options.instantiation) {
             await visualizeInstantiation(options.instantiation, options.output, !!options.verbose);
         } else if (options.pattern) {
             await visualizePattern(options.pattern, options.output, !!options.verbose);
+        } else {
+            program.error(`error: one of required options '${INSTANTIATION_OPTION}' or '${PATTERN_OPTION}' not specified`);
         }
     });
 
 program
     .command('generate')
     .description('Generate an instantiation from a CALM pattern file.')
-    .requiredOption('-p, --pattern <source>', 'Path to the pattern file to use. May be a file path or a URL.')
-    .requiredOption('-o, --output <output>', 'Path location at which to output the generated file.', 'instantiation.json')
-    .option('-s, --schemaDirectory <path>', 'Path to directory containing schemas to use in instantiation')
-    .option('-v, --verbose', 'Enable verbose logging.', false)
-    .option('-a, --instantiateAll', 'Instantiate all properties, ignoring the "required" field.', false)
+    .requiredOption(PATTERN_OPTION, 'Path to the pattern file to use. May be a file path or a URL.')
+    .requiredOption(OUTPUT_OPTION, 'Path location at which to output the generated file.', 'instantiation.json')
+    .option(SCHEMAS_OPTION, 'Path to directory containing schemas to use in instantiation')
+    .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+    .option(INSTANTIATE_ALL_OPTION, 'Instantiate all properties, ignoring the "required" field.', false)
     .action(async (options) => {
         await runGenerate(options.pattern, options.output, !!options.verbose, options.instantiateAll, options.schemaDirectory
         );
@@ -43,19 +53,19 @@ program
 program
     .command('validate')
     .description('Validate that an instantiation conforms to a given CALM pattern.')
-    .requiredOption('-p, --pattern <pattern>', 'Path to the pattern file to use. May be a file path or a URL.')
-    .option('-i, --instantiation <instantiation>', 'Path to the pattern instantiation file to use. May be a file path or a URL.')
-    .option('-m, --metaSchemasLocation <metaSchemaLocation>', 'The location of the directory of the meta schemas to be loaded', CALM_META_SCHEMA_DIRECTORY)
-    .option('--strict', 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
+    .requiredOption(PATTERN_OPTION, 'Path to the pattern file to use. May be a file path or a URL.')
+    .option(INSTANTIATION_OPTION, 'Path to the pattern instantiation file to use. May be a file path or a URL.')
+    .option(META_SCHEMA_OPTION, 'The location of the directory of the meta schemas to be loaded', CALM_META_SCHEMA_DIRECTORY)
+    .option(STRICT_OPTION, 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
     .addOption(
-        new Option('-f, --format <format>', 'The format of the output')
+        new Option(FORMAT_OPTION, 'The format of the output')
             .choices(['json', 'junit'])
             .default('json')
     )
-    .option('-o, --output <output>', 'Path location at which to output the generated file.')
-    .option('-v, --verbose', 'Enable verbose logging.', false)
+    .option(OUTPUT_OPTION, 'Path location at which to output the generated file.')
+    .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
     .action(async (options) =>
-        await validate(options.instantiation, options.pattern, options.metaSchemasLocation, options.verbose, options.format, options.output, options.strict) 
+        await validate(options.instantiation, options.pattern, options.metaSchemasLocation, options.verbose, options.format, options.output, options.strict)
     );
 
 program.parse(process.argv);
