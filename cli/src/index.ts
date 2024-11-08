@@ -9,7 +9,6 @@ import { CALM_META_SCHEMA_DIRECTORY } from './consts.js';
 const FORMAT_OPTION = '-f, --format <format>';
 const INSTANTIATION_OPTION = '-i, --instantiation <file>';
 const INSTANTIATE_ALL_OPTION = '-a, --instantiateAll';
-const META_SCHEMA_OPTION = '-m, --metaSchemasLocation <metaSchemaLocation>';
 const OUTPUT_OPTION = '-o, --output <file>';
 const PATTERN_OPTION = '-p, --pattern <file>';
 const SCHEMAS_OPTION = '-s, --schemaDirectory <path>';
@@ -55,7 +54,7 @@ program
     .description('Validate that an instantiation conforms to a given CALM pattern.')
     .requiredOption(PATTERN_OPTION, 'Path to the pattern file to use. May be a file path or a URL.')
     .option(INSTANTIATION_OPTION, 'Path to the pattern instantiation file to use. May be a file path or a URL.')
-    .option(META_SCHEMA_OPTION, 'The location of the directory of the meta schemas to be loaded', CALM_META_SCHEMA_DIRECTORY)
+    .option(SCHEMAS_OPTION, 'The location of the directory of the meta schemas to be loaded', CALM_META_SCHEMA_DIRECTORY)
     .option(STRICT_OPTION, 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
     .addOption(
         new Option(FORMAT_OPTION, 'The format of the output')
