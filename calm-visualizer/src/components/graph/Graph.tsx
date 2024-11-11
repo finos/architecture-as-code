@@ -27,8 +27,8 @@ function createConnectsRelationship(instance: BrowserJsPlumbInstance, relationsh
             options: {}
         },
         overlays: [
-            { type:"Arrow", options:{location:1}},
-            {  type: "Label", options: { location: 0.5, label: relationship.description }}
+            { type: "Arrow", options: { location: 1 }},
+            { type: "Label", options: { location: [ 0.5, 0.5 ], label:relationship.description, cssClass: 'graph-labels' }}
         ]
     });
 }
@@ -52,8 +52,8 @@ function createInteractsRelationship(instance: BrowserJsPlumbInstance, relations
                 }
             },
             overlays: [
-                { type:"Arrow", options:{location:1}},
-                {  type: "Label", options: { location: 0.5, label: relationship.description }}
+                { type: "Arrow", options: { location: 1 }},
+                { type: "Label", options: { location: [ 0.5, 0.5 ], label:relationship.description, cssClass: 'graph-labels' }}
 
             ]
         });

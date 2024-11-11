@@ -6,6 +6,8 @@
 
 .node {
     padding: 1rem;
+    z-index: 3;
+    background-color: white;
     border: 2px black solid;
     position: absolute;
     display: flex;
@@ -13,6 +15,13 @@
     flex-direction: column;
     text-align: center;
     max-width: 15rem;
+}
+
+.graph-labels {
+    background-color: white;
+    font-weight: bold;
+    padding: 5px 10px;
+    max-width: 250px;
 }
 
 .group-node {
