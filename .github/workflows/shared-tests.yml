@@ -1,23 +1,23 @@
-name: Build CLI
+name: Build Shared Module
 
 on:
   pull_request:
     branches:
       - "main"
     paths:
-      - "cli/**"
+      - "shared/**"
   push:
     branches:
       - "main"
     paths:
-      - "cli/**"
+      - "shared/**"
 
 defaults:
   run:
-    working-directory: ./cli
+    working-directory: ./shared
 
 jobs:
-  cli-tests:
+  shared-tests:
     name: Run unit tests and lint
     runs-on: ubuntu-latest
     steps:

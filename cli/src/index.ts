@@ -1,10 +1,11 @@
 #! /usr/bin/env node
 
+import { CALM_META_SCHEMA_DIRECTORY, getFormattedOutput, runGenerate, validate, visualizeInstantiation, visualizePattern } from '@finos/calm-shared';
 import { Option, program } from 'commander';
-import { visualizeInstantiation, visualizePattern } from './commands/visualize/visualize.js';
-import { runGenerate } from './commands/generate/generate.js';
-import validate  from './commands/validate/validate.js';
-import { CALM_META_SCHEMA_DIRECTORY } from './consts.js';
+import path from 'path';
+import { mkdirp } from 'mkdirp';
+import { writeFileSync } from 'fs';
+import { exitBasedOffOfValidationOutcome } from '@finos/calm-shared/dist/commands/validate/validate';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const INSTANTIATION_OPTION = '-i, --instantiation <file>';
@@ -64,8 +65,22 @@ program
     )
     .option(OUTPUT_OPTION, 'Path location at which to output the generated file.')
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
-    .action(async (options) =>
-        await validate(options.instantiation, options.pattern, options.metaSchemasLocation, options.verbose, options.format, options.output, options.strict)
+    .action(async (options) => {
+        const outcome = await validate(options.instantiation, options.pattern, options.metaSchemasLocation, options.verbose);
+        const content = getFormattedOutput(outcome, options.format, options.instantiation, options.pattern);
+        writeOutputFile(options.output, content);
+        exitBasedOffOfValidationOutcome(outcome, options.strict);
+    }
     );
+
+function writeOutputFile(output: string, validationsOutput: string) {
+    if (output) {
+        const dirname = path.dirname(output);
+        mkdirp.sync(dirname);
+        writeFileSync(output, validationsOutput);
+    } else {
+        console.log(validationsOutput);
+    }
+}
 
 program.parse(process.argv);
