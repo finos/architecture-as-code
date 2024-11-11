@@ -22,6 +22,8 @@ jobs:
   calm-vscode-tests:
     name: Run unit tests and lint
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/vscode/devcontainers/javascript-node:0-18
     steps:
       # Check out the repository
       - uses: actions/checkout@v4
