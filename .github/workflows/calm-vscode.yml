@@ -19,20 +19,27 @@ defaults:
     working-directory: ./plugins/calm-vscode
 
 jobs:
-  shared-tests:
+  calm-vscode-tests:
     name: Run unit tests and lint
     runs-on: ubuntu-latest
     steps:
       # Check out the repository
       - uses: actions/checkout@v4
+      # Setup Node
       - uses: actions/setup-node@v4
         with:
           node-version: v20
-      - run: cd ../../shared
-      - run: npm install
-      - run: npm run build
-      - run: cd ../plugins/calm-vscode
-      - run: npm ci
-      - run: npm run test
-      - run: npm run lint
-      - run: npm run build
+
+      # Ensure shared is built.
+      - name: Install & Build Shared Module
+        working-directory: ./shared
+        run: |
+          npm install
+          npm run build
+
+      - name: Install & Build Shared Module
+        run: |
+          npm ci
+          npm run test
+          npm run lint
+          npm run build
