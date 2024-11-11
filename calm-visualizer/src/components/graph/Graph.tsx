@@ -10,8 +10,6 @@ interface Props {
     relationships: RelationshipLayout[]
 }
 
-// const groups: string[] = [];
-
 function createConnectsRelationship(instance: BrowserJsPlumbInstance, relationship: CALMConnectsRelationship) {
     const r = relationship["relationship-type"]["connects"];
     instance.connect({
@@ -29,7 +27,8 @@ function createConnectsRelationship(instance: BrowserJsPlumbInstance, relationsh
             options: {}
         },
         overlays: [
-            { type:"Arrow", options:{location:1}}
+            { type: "Arrow", options: { location: 1 }},
+            { type: "Label", options: { location: [ 0.5, 0.5 ], label:relationship.description, cssClass: 'graph-labels' }}
         ]
     });
 }
@@ -53,7 +52,9 @@ function createInteractsRelationship(instance: BrowserJsPlumbInstance, relations
                 }
             },
             overlays: [
-                { type:"Arrow", options:{location:1}}
+                { type: "Arrow", options: { location: 1 }},
+                { type: "Label", options: { location: [ 0.5, 0.5 ], label:relationship.description, cssClass: 'graph-labels' }}
+
             ]
         });
     })
