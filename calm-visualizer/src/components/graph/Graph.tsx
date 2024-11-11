@@ -10,75 +10,53 @@ interface Props {
     relationships: RelationshipLayout[]
 }
 
-// const groups: string[] = [];
-
-function createConnectsRelationship(instance: BrowserJsPlumbInstance, relationships: CALMConnectsRelationship[]) {
-    relationships.map(
-            relationship =>{
-                const connects  = relationship["relationship-type"]["connects"];
-                instance.connect({
-                    source: document.getElementById(connects.source.node)!,
-                    target: document.getElementById(connects.destination.node)!,
-                    anchor: "Continuous",
-                    connector: {
-                        type:"Straight",
-                        options: {
-                            "stub": 25
-                        }
-                    },
-                    endpoint: {
-                        type: "Blank",
-                        options: {}
-                    },
-                    overlays: [
-                        { type:"Arrow", options:{location:1}}
-                    ]
-                });
+function createConnectsRelationship(instance: BrowserJsPlumbInstance, relationship: CALMConnectsRelationship) {
+    const r = relationship["relationship-type"]["connects"];
+    instance.connect({
+        source: document.getElementById(r.source.node)!,
+        target: document.getElementById(r.destination.node)!,
+        anchor: "Continuous",
+        connector: {
+            type:"Straight",
+            options: {
+                "stub": 25
             }
-        );
-    }
-
-    function createInteractsRelationship(instance: BrowserJsPlumbInstance, relationships: CALMInteractsRelationship[]) {
-        relationships.map(relationship => {
-            const interacts = relationship["relationship-type"]["interacts"];
-            interacts.nodes.forEach(node => {
-                instance.connect({
-                    source: document.getElementById(interacts.actor)!,
-                    target: document.getElementById(node)!,
-                    anchor: "Continuous",
-                    connector: {
-                        type:"Straight",
-                        options: {
-                            "stub": 25
-                        }
-                    },
-                    endpoint: {
-                        type: "Blank",
-                        options: {
-                        }
-                    },
-                    overlays:[ 
-                        { type:"Arrow", options:{location:1}}
-                    ]
-                });
-            })
-        })
-    }
-
-function getUniqueCALMDeployedInContainers(relationships : CALMDeployedInRelationship[]){
-    const deployedInContainers : string[] =  relationships.map(relationship=> relationship["relationship-type"]["deployed-in"].container);
-    return Array.from(new Set(deployedInContainers));
+        },
+        endpoint: {
+            type: "Blank",
+            options: {}
+        },
+        overlays: [
+            { type:"Arrow", options:{location:1}},
+            {  type: "Label", options: { location: 0.5, label: relationship.description }}
+        ]
+    });
 }
 
-function createGroups({instance, containers}:{instance: BrowserJsPlumbInstance, containers: string[]}){
-    containers.forEach(container =>{
-        instance.addGroup({
-            el: document.getElementById(container)!,
-            id: container,
-            anchor:"Continuous",
-            endpoint:{ type:"Dot", options:{ radius:3 } },
-            dropOverride:true
-        })   
+function createInteractsRelationship(instance: BrowserJsPlumbInstance, relationship: CALMInteractsRelationship) {
+    const r = relationship["relationship-type"]["interacts"];
+    r.nodes.forEach(node => {
+        instance.connect({
+            source: document.getElementById(r.actor)!,
+            target: document.getElementById(node)!,
+            anchor: "Continuous",
+            connector: {
+                type:"Straight",
+                options: {
+                    "stub": 25
+                }
+            },
+            endpoint: {
+                type: "Blank",
+                options: {
+                }
+            },
+            overlays: [
+                { type:"Arrow", options:{location:1}},
+                {  type: "Label", options: { location: 0.5, label: relationship.description }}
+
+            ]
+        });
     })
 
 }
