@@ -3,12 +3,13 @@
         "browser": true,
         "es2021": true
     },
+    "ignorePatterns": ["out/", ".vscode-test/"],
     "extends": [
         "eslint:recommended",
         "plugin:@typescript-eslint/recommended"
     ],
-    "ignorePatterns": ["dist/"],
-    "overrides": [],
+    "overrides": [
+    ],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
         "ecmaVersion": "latest",

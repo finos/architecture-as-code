@@ -6,5 +6,19 @@
         "clearOnRun": "none"
     },
     "java.compile.nullAnalysis.mode": "automatic",
-    "java.configuration.updateBuildConfiguration": "automatic"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/out": true,
+        "**/bower_components": true,
+        "**/*.code-search": true
+    },
+    "typescript.tsc.autoDetect": "off",
+    "workbench.tree.indent": 20,
+    "eslint.workingDirectories": [
+        "./plugins/calm-vscode",
+        "./cli",
+        "./shared"
+    ]
 }

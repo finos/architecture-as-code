@@ -1,0 +1,29 @@
+name: CALM VSCode Extension
+
+on:
+  pull_request:
+    branches:
+      - "main"
+    paths:
+      - "plugins/calm-vscode/**"
+  push:
+    branches:
+      - "main"
+    paths:
+      - "plugins/calm-vscode/**"
+
+defaults:
+  run:
+    working-directory: ./plugins/calm-vscode
+
+jobs:
+  calm-vscode-extension-tests:
+    name: Run unit tests and lint on the calm-vscode module.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: v20
+      - run: npm ci
+      - run: npm run test

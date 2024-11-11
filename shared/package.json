@@ -14,7 +14,7 @@
         "clean": "rimraf node_modules dist",
         "test": "jest --verbose",
         "lint": "eslint src --config ./.eslintrc.json",
-        "lint-fix": "eslint src -- --fix",
+        "lint-fix": "eslint --fix .",
         "copy-calm-schema": "copyfiles ../calm/draft/2024-04/meta/* dist/calm/",
         "copy-spectral-rules": "copyfiles ../spectral/**/* dist/spectral/",
         "copy-calm-schema-old": "mkdir -p dist/calm && cp -r ../calm/draft/2024-04/meta dist/calm/",
