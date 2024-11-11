@@ -1,4 +1,4 @@
-import { ValidationOutput } from '../validation.output';
+import { ValidationOutcome, ValidationOutput } from '../validation.output';
 import createJUnitReport from './junit.report';
 
 const jsonSchemaValidationOutput: ValidationOutput[] = [
@@ -28,10 +28,10 @@ const spectralValidationOutput: ValidationOutput[] = [
 
 const ruleset = ['rules-number-1', 'rule-number-2', 'no-placeholder-properties-numerical', 'no-empty-properties'];
 
-
 describe('createJUnitReport', () => {
     it('should create a report with only JSON Schema Validations errors', async () => {
-        const actual = createJUnitReport(jsonSchemaValidationOutput, [], ruleset);
+        const validationOutcome: ValidationOutcome = new ValidationOutcome(jsonSchemaValidationOutput, [], true, true);
+        const actual = createJUnitReport(validationOutcome, ruleset);
 
         const expected = `<?xml version="1.0" encoding="UTF-8"?>
         <testsuites tests="5" failures="1" errors="0" skipped="0">
@@ -52,7 +52,8 @@ describe('createJUnitReport', () => {
     });
 
     it('should create a report with only Spectral issues', async () => {
-        const actual = createJUnitReport([], spectralValidationOutput, ruleset);
+        const validationOutcome: ValidationOutcome = new ValidationOutcome([], spectralValidationOutput, true, true);
+        const actual = createJUnitReport(validationOutcome, ruleset);
 
         const expected = `<?xml version="1.0" encoding="UTF-8"?>
         <testsuites tests="5" failures="1" errors="0" skipped="0">
@@ -73,7 +74,8 @@ describe('createJUnitReport', () => {
     });
 
     it('should create a report with Spectral issues and JSON Schema errors', async () => {
-        const actual = createJUnitReport(jsonSchemaValidationOutput, spectralValidationOutput, ruleset);
+        const validationOutcome: ValidationOutcome = new ValidationOutcome(jsonSchemaValidationOutput, spectralValidationOutput, true, true);
+        const actual = createJUnitReport(validationOutcome, ruleset);
 
         const expected = `<?xml version="1.0" encoding="UTF-8"?>
         <testsuites tests="5" failures="2" errors="0" skipped="0">
@@ -95,7 +97,8 @@ describe('createJUnitReport', () => {
     });
 
     it('should create a report with no Spectral issues and no JSON Schema errors', async () => {
-        const actual = createJUnitReport([], [], ruleset);
+        const validationOutcome: ValidationOutcome = new ValidationOutcome([], [], true, true);
+        const actual = createJUnitReport(validationOutcome, ruleset);
 
         const expected = `<?xml version="1.0" encoding="UTF-8"?>
         <testsuites tests="5" failures="0" errors="0" skipped="0">
