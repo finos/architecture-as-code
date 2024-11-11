@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface Props {
     callback: (instanceFile: File, layoutFile?: File) => void
@@ -7,10 +7,16 @@ interface Props {
 function FileUploader({ callback }: Props) {
     const [instanceFile, setInstanceFile] = useState<File | null>(null);
     const [layoutFile, setLayoutFile] = useState<File | null>(null);
+    const [filesChanged, setFilesChanged] = useState(false);
+
+    useEffect(() => {
+      setFilesChanged(true);
+    }, [instanceFile, layoutFile]);
 
     const handleSubmit = () => {
-        if (instanceFile) {
+        if (instanceFile && filesChanged) {
             callback(instanceFile, layoutFile || undefined);
+            setFilesChanged(false); 
         }
     };
 
@@ -34,6 +40,7 @@ function FileUploader({ callback }: Props) {
       {instanceFile && (
         <button 
           onClick={handleSubmit}
+          disabled={!filesChanged}
           className="submit"
         >Upload a file</button>
       )}
