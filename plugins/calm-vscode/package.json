@@ -31,7 +31,7 @@
       "pretest": "npm run compile && npm run lint",
       "lint": "eslint src",
       "lint-fix": "eslint --fix .",
-      "test": "vscode-test --headless"
+      "test": "vscode-test"
     },
     "devDependencies": {
       "@types/node": "20.x",
