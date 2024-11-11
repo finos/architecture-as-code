@@ -14,10 +14,6 @@ on:
       - "plugins/calm-vscode/**"
       - "shared/**"
 
-defaults:
-  run:
-    working-directory: ./plugins/calm-vscode
-
 jobs:
   calm-vscode-tests:
     name: Run unit tests and lint
@@ -46,6 +42,7 @@ jobs:
           npm run build
 
       - name: Run tests
+        working-directory: ./plugins/calm-vscode
         run: |
           npm ci
           npm run test
