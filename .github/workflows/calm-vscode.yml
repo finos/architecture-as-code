@@ -25,7 +25,14 @@ jobs:
     container:
       image: mcr.microsoft.com/vscode/devcontainers/typescript-node:latest
     steps:
+
+      - name: Set up the environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnss3
+
       - uses: actions/checkout@v4
+
       - name: Set up virtual display
         run: |
           export DISPLAY=:99
