@@ -28,6 +28,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: v20
+      - run: cd ../../shared
+      - run: npm install
+      - run: npm run build
+      - run: cd ../plugins/calm-vscode
       - run: npm ci
       - run: npm run test
       - run: npm run lint
