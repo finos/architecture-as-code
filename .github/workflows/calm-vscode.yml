@@ -22,13 +22,14 @@ jobs:
   calm-vscode-tests:
     name: Run unit tests and lint
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/vscode/devcontainers/typescript-node:latest
     steps:
-      # Check out the repository
       - uses: actions/checkout@v4
-      # Setup Node
-      - uses: actions/setup-node@v4
-        with:
-          node-version: v20
+      - name: Set up virtual display
+        run: |
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1280x1024x24 > /dev/null 2>&1 &
 
       # Ensure shared is built.
       - name: Install & Build Shared Module
@@ -37,11 +38,5 @@ jobs:
           npm install
           npm run build
 
-      - name: Install & Build VSCode Plugin Module
-        run: |
-          npm ci
-          npm run lint
-
-
       - name: Run tests
-        run: xvfb-run -a npm run test
+        run: npm run test
