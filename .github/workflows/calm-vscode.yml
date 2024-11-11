@@ -5,16 +5,18 @@ on:
     branches:
       - "main"
     paths:
+      - "plugins/calm-vscode/**"
       - "shared/**"
   push:
     branches:
       - "main"
     paths:
+      - "plugins/calm-vscode/**"
       - "shared/**"
 
 defaults:
   run:
-    working-directory: ./shared
+    working-directory: ./plugins/calm-vscode
 
 jobs:
   shared-tests:
