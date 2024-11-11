@@ -35,7 +35,7 @@ function FileUploader({ callback }: Props) {
         <button 
           onClick={handleSubmit}
           className="submit"
-        >Upload a file</button>
+        >Visualize</button>
       )}
     </>
   );
