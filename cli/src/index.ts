@@ -10,7 +10,6 @@ import { exitBasedOffOfValidationOutcome } from '@finos/calm-shared/dist/command
 const FORMAT_OPTION = '-f, --format <format>';
 const INSTANTIATION_OPTION = '-i, --instantiation <file>';
 const INSTANTIATE_ALL_OPTION = '-a, --instantiateAll';
-const META_SCHEMA_OPTION = '-m, --metaSchemasLocation <metaSchemaLocation>';
 const OUTPUT_OPTION = '-o, --output <file>';
 const PATTERN_OPTION = '-p, --pattern <file>';
 const SCHEMAS_OPTION = '-s, --schemaDirectory <path>';
@@ -43,20 +42,19 @@ program
     .description('Generate an instantiation from a CALM pattern file.')
     .requiredOption(PATTERN_OPTION, 'Path to the pattern file to use. May be a file path or a URL.')
     .requiredOption(OUTPUT_OPTION, 'Path location at which to output the generated file.', 'instantiation.json')
-    .option(SCHEMAS_OPTION, 'Path to directory containing schemas to use in instantiation')
+    .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
     .option(INSTANTIATE_ALL_OPTION, 'Instantiate all properties, ignoring the "required" field.', false)
-    .action(async (options) => {
-        await runGenerate(options.pattern, options.output, !!options.verbose, options.instantiateAll, options.schemaDirectory
-        );
-    });
+    .action(async (options) =>
+        await runGenerate(options.pattern, options.output, !!options.verbose, options.instantiateAll, options.schemaDirectory)
+    );
 
 program
     .command('validate')
     .description('Validate that an instantiation conforms to a given CALM pattern.')
     .requiredOption(PATTERN_OPTION, 'Path to the pattern file to use. May be a file path or a URL.')
     .option(INSTANTIATION_OPTION, 'Path to the pattern instantiation file to use. May be a file path or a URL.')
-    .option(META_SCHEMA_OPTION, 'The location of the directory of the meta schemas to be loaded', CALM_META_SCHEMA_DIRECTORY)
+    .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.', CALM_META_SCHEMA_DIRECTORY)
     .option(STRICT_OPTION, 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
     .addOption(
         new Option(FORMAT_OPTION, 'The format of the output')
