@@ -6,5 +6,6 @@
         "clearOnRun": "none"
     },
     "java.compile.nullAnalysis.mode": "automatic",
-    "java.configuration.updateBuildConfiguration": "automatic"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "editor.formatOnSave": true,
 }
