@@ -42,7 +42,7 @@ function FileUploader({ callback }: Props) {
           onClick={handleSubmit}
           disabled={!filesChanged}
           className="submit"
-        >Visualize</button>
+        >Upload a file</button>
       )}
     </>
   );

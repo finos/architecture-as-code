@@ -1,8 +1,8 @@
-import { CALMNode, CALMRelationship } from "./types"
+import { CALMNode, CALMRelationship } from './types'
 
 export interface NodeLayout extends CALMNode {
-    "x": number,
-    "y": number
+    x: number
+    y: number
 }
 
-export type RelationshipLayout = CALMRelationship;
+export type RelationshipLayout = CALMRelationship

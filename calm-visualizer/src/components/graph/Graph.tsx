@@ -10,6 +10,8 @@ interface Props {
     relationships: RelationshipLayout[]
 }
 
+// const groups: string[] = [];
+
 function createConnectsRelationship(instance: BrowserJsPlumbInstance, relationship: CALMConnectsRelationship) {
     const r = relationship["relationship-type"]["connects"];
     instance.connect({
