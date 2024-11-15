@@ -12,7 +12,7 @@ const INSTANTIATE_ALL_OPTION = '-a, --instantiateAll';
 const OUTPUT_OPTION = '-o, --output <file>';
 const PATTERN_OPTION = '-p, --pattern <file>';
 const SCHEMAS_OPTION = '-s, --schemaDirectory <path>';
-const STRICT_OPTION = '-s, --strict';
+const STRICT_OPTION = '--strict';
 const VERBOSE_OPTION = '-v, --verbose';
 
 program
