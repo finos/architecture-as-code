@@ -122,3 +122,7 @@ Options:
   -v, --verbose               Enable verbose logging. (default: false)
   -h, --help                  display help for command
 ```
+
+### Releasing the CLI
+
+To deploy an updated version of the CLI to NPM run the [Publish to NPM](https://github.com/rocketstack-matt/architecture-as-code/actions/workflows/publish-cli-to-npm.yml) Action.
