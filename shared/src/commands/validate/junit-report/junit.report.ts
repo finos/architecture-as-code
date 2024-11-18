@@ -1,15 +1,14 @@
 import junitReportBuilder, { TestSuite } from 'junit-report-builder';
-import { ValidationOutput } from '../validation.output';
+import { ValidationOutcome } from '../validation.output';
 
 export default function createJUnitReport(
-    jsonSchemaValidationOutput: ValidationOutput[], 
-    spectralValidationOutput: ValidationOutput[], 
+    validationOutcome: ValidationOutcome, 
     spectralRulesName: string[]
 ): string {
     const builder = junitReportBuilder.newBuilder();
 
     const jsonSchemaSuite = createTestSuite(builder, 'JSON Schema Validation');
-    
+    const jsonSchemaValidationOutput = validationOutcome.jsonSchemaValidationOutputs;
     if (jsonSchemaValidationOutput.length <= 0) {
         createSucceedingTestCase(jsonSchemaSuite, 'JSON Schema Validation succeeded');
     } else {
@@ -20,7 +19,7 @@ export default function createJUnitReport(
     }
 
     const spectralSuite = createTestSuite(builder, 'Spectral Suite');
-
+    const spectralValidationOutput = validationOutcome.spectralSchemaValidationOutputs;
     if (spectralValidationOutput.length <= 0) {
         spectralRulesName.forEach(ruleName => createSucceedingTestCase(spectralSuite,ruleName));
     } else {
@@ -52,4 +51,3 @@ function createFailingTestCase(testSuite: TestSuite, testName: string){
         .name(testName)
         .failure();
 }
-
