@@ -80,7 +80,6 @@ Options:
   -h, --help                    display help for command
 ```
 
-
 This command can output warnings and errors - the command will only exit with an error code if there are errors present in the output.
 Warnings are sometimes provided as hints about how to improve the architecture, but they are not essential for the architecture to match the pattern.
 
@@ -185,10 +184,10 @@ Options:
 
 ## Coding for the CLI
 
-The CLI module has its logic split into two modules, `cli` and `shared`.  Both are managed by [npm workspaces](https://docs.npmjs.com/cli/v8/using-npm/workspaces).
+The CLI module has its logic split into two modules, `cli` and `shared`. Both are managed by [npm workspaces](https://docs.npmjs.com/cli/v8/using-npm/workspaces).
 
-* `cli` module is for anything pertaining to the calling of the core logic, the CLI wrapper
-* `shared` module is where the logic being delegated to actually sits, so that it can be re-used for other use-cases if required.
+- `cli` module is for anything pertaining to the calling of the core logic, the CLI wrapper
+- `shared` module is where the logic being delegated to actually sits, so that it can be re-used for other use-cases if required.
 
 ### Getting Started
 
@@ -208,13 +207,12 @@ npm run link:cli
 npm run watch
 ```
 
-
 ### CLI Tests
 
 There are currently two types of tests;
 
-* `cli` tests - these are end-to-end and involve linking the package as part of the test so that we can assert on actual `calm X` invocations.
-* `shared` tests - these are where the core logic tests live, like how validation behaves etc.
+- `cli` tests - these are end-to-end and involve linking the package as part of the test so that we can assert on actual `calm X` invocations.
+- `shared` tests - these are where the core logic tests live, like how validation behaves etc.
 
 ## Releasing the CLI
 
@@ -222,15 +220,15 @@ Publishing of the CLI to NPM is controlled via [this action](https://github.com/
 
 ### Through the Github UI
 
-* Go to your repository on GitHub.
-* Click on the Releases tab (under "Code").
-* Click the Draft a new release button.
-* Fill in:
-  * Tag version: Enter the version number (e.g., v1.0.0).
-  * Release title: Name the release (e.g., "First Release").
-  * Description: Add details about what’s included in the release.
-  * Target: Leave as main (or your default branch).
-* Click Publish release to create the release and trigger the workflow.
+- Go to your repository on GitHub.
+- Click on the Releases tab (under "Code").
+- Click the Draft a new release button.
+- Fill in:
+  - Tag version: Enter the version number (e.g., v1.0.0).
+  - Release title: Name the release (e.g., "First Release").
+  - Description: Add details about what’s included in the release.
+  - Target: Leave as main (or your default branch).
+- Click Publish release to create the release and trigger the workflow.
 
 ### Through the GitHub CLI (`gh`)
 
@@ -241,5 +239,3 @@ gh auth login
 # Step 2: Create the release.
 gh release create <version> --title "<release_title>" --notes "<release_description>"
 ```
-
-
