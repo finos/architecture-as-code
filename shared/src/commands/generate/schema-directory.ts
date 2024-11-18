@@ -50,7 +50,7 @@ export class SchemaDirectory {
             this.logger.info(`Loaded ${this.schemas.size} schemas.`);
         } catch (err) {
             if (err.code === 'ENOENT') {
-                this.logger.error('Schema Path not found!');
+                this.logger.error('Schema Path not found: ' + dir);
             } else {
                 this.logger.error(err);
             }

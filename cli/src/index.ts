@@ -64,7 +64,7 @@ program
     .option(OUTPUT_OPTION, 'Path location at which to output the generated file.')
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
     .action(async (options) => {
-        const outcome = await validate(options.instantiation, options.pattern, options.metaSchemasLocation, options.verbose);
+        const outcome = await validate(options.instantiation, options.pattern, options.schemaDirectory, options.verbose);
         const content = getFormattedOutput(outcome, options.format, options.instantiation, options.pattern);
         writeOutputFile(options.output, content);
         exitBasedOffOfValidationOutcome(outcome, options.strict);

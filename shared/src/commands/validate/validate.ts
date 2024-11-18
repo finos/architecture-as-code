@@ -331,7 +331,7 @@ export async function validate(
 
         return new ValidationOutcome(jsonSchemaValidations, spectralResult.spectralIssues, errors, warnings);
     } catch (error) {
-        logger.error(`An error occured: ${error}`);
+        logger.error('An error occured:', error);
         process.exit(1);
     }
 }
