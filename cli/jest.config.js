@@ -1,9 +1,11 @@
-/** @type {import('ts-jest').JestConfigWithTsJest} */
-export default {
+module.exports =  {
     preset: 'ts-jest',
     testEnvironment: 'node',
-    testMatch: ['<rootDir>/src/**/*.spec.ts'],
-    moduleNameMapper: {
-        '^(.+)\\.js$': '$1'
-    }
+    testMatch: ['./**/*.spec.ts'],
+    transformIgnorePatterns: [
+        "<rootDir>/node_modules/(?!calm-shared)",
+        '^.+\\.js$'
+    ],
+    rootDir: '.',
+    watchPathIgnorePatterns: ['<rootDir>/../shared/']
 };
