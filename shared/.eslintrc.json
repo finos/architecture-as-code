@@ -32,6 +32,15 @@
         "semi": [
             "error",
             "always"
+        ],
+        //Temporarily here-until we upgrade to more recent versions of ESLint/Parsers
+        "@typescript-eslint/no-unused-expressions": [
+            "error",
+            {
+                "allowShortCircuit": true,
+                "allowTernary": true,
+                "allowTaggedTemplates": true
+            }
         ]
     }
 }
