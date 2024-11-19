@@ -9,10 +9,6 @@
     z-index: 3;
     background-color: white;
     border: 2px black solid;
-    position: absolute;
-    display: flex;
-    justify-content: center;
-    flex-direction: column;
     text-align: center;
     max-width: 15rem;
 }
@@ -24,11 +20,6 @@
     max-width: 250px;
 }
 
-.group-node {
-    width: fit-content;
-    height: fit-content;
-}
-
 .node-type {
     color: gray;
     font-size: 0.9rem;
@@ -37,6 +28,15 @@
 .node-description {
     font-size: 0.9rem;
 }
-.jtk-group-expanded{
-    border: 2px gray dashed;
+
+.group-container{
+    border: 2px gray dashed !important;
+    background-color: aliceblue;
+    max-width: max-content;
+    padding: 5rem;
+}
+
+.group-node {
+    border: 2px rgb(180, 178, 178) solid;
+    position: relative;
 }

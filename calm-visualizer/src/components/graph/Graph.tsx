@@ -74,15 +74,16 @@ function getUniqueCALMContainers(relationships: CALMRelationship[]) {
 
 function createGroups(instance: BrowserJsPlumbInstance, containers: string[]) {
     containers.forEach(container => {
+        const element = document.getElementById(container)!;
+        element.classList.add('group-container')
         instance.addGroup({
-            el: document.getElementById(container)!,
+            el: element,
             id: container,
             anchor: "Continuous",
             endpoint: { type: "Dot", options: { radius: 3 } },
             dropOverride: true
         })
     })
-
 }
 
 function createDeployedInRelationship(instance: BrowserJsPlumbInstance, relationship: CALMDeployedInRelationship) {
@@ -90,7 +91,9 @@ function createDeployedInRelationship(instance: BrowserJsPlumbInstance, relation
     const nodes = relationship["relationship-type"]["deployed-in"].nodes
     if (instance.getGroup(container).id === container) {
         nodes.forEach(node => {
-            instance.addToGroup(container, document.getElementById(node)!)
+            const element = document.getElementById(node)!
+            element.classList.add("group-node");
+            instance.addToGroup(container, element)
         })
     }
 }
@@ -100,7 +103,9 @@ function createComposedOfRelationship(instance: BrowserJsPlumbInstance, relation
     const nodes = relationship["relationship-type"]["composed-of"].nodes
     if (instance.getGroup(container).id === container) {
         nodes.forEach(node => {
-            instance.addToGroup(container, document.getElementById(node)!)
+            const element = document.getElementById(node)!
+            element.classList.add("group-node");
+            instance.addToGroup(container, element)
         })
     }
 }
