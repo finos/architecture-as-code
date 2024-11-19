@@ -12,9 +12,18 @@ import {
 export interface GraphProps {
     instance: BrowserJsPlumbInstance
     nodes: NodeLayout[]
+import { BrowserJsPlumbInstance } from "@jsplumb/browser-ui"
+import { NodeLayout, RelationshipLayout } from "../../layout";
+import { CALMConnectsRelationship, CALMInteractsRelationship, CALMRelationship } from "../../types";
+
+interface Props {
+    instance: BrowserJsPlumbInstance,
+    nodes: NodeLayout[],
     relationships: RelationshipLayout[]
     setSelectedNode: any
 }
+
+// const groups: string[] = [];
 
 function createConnectsRelationship(
     instance: BrowserJsPlumbInstance,
@@ -27,6 +36,7 @@ function createConnectsRelationship(
         anchor: 'Continuous',
         connector: {
             type: 'Straight',
+            type:"Straight",
             options: {
                 stub: 25,
             },
@@ -43,6 +53,9 @@ function createConnectsRelationship(
             },
         ],
     })
+            { type:"Arrow", options:{location:1}}
+        ]
+    });
 }
 
 function createInteractsRelationship(
@@ -57,6 +70,7 @@ function createInteractsRelationship(
             anchor: 'Continuous',
             connector: {
                 type: 'Straight',
+                type:"Straight",
                 options: {
                     stub: 25,
                 },
@@ -66,13 +80,9 @@ function createInteractsRelationship(
                 options: {},
             },
             overlays: [
-                { type: 'Arrow', options: { location: 1 } },
-                {
-                    type: 'Label',
-                    options: { location: 0.5, label: relationship.description },
-                },
-            ],
-        })
+                { type:"Arrow", options:{location:1}}
+            ]
+        });
     })
 }
 
@@ -91,40 +101,25 @@ function createInteractsRelationship(
 //     });
 // }
 
-function createGraphRelationship(
-    instance: BrowserJsPlumbInstance,
-    relationship: CALMRelationship
-) {
-    if ('connects' in relationship['relationship-type']) {
-        createConnectsRelationship(
-            instance,
-            relationship as CALMConnectsRelationship
-        )
-    } else if ('interacts' in relationship['relationship-type']) {
-        createInteractsRelationship(
-            instance,
-            relationship as CALMInteractsRelationship
-        )
-    } else if ('deployed-in' in relationship['relationship-type']) {
+function createGraphRelationship(instance: BrowserJsPlumbInstance, relationship: CALMRelationship) {
+    if ("connects" in relationship["relationship-type"]) {
+        createConnectsRelationship(instance, relationship as CALMConnectsRelationship);
+    } else if ("interacts" in relationship["relationship-type"]) {
+        createInteractsRelationship(instance, relationship as CALMInteractsRelationship);
+    } else if ("deployed-in" in relationship["relationship-type"]) {
         // createDeployedInRelationship(instance, relationship as CALMDeployedInRelationship);
         // TODO: Fix the "deployed-in" relationship and add "contains" relationship
     }
 }
 
-function Graph({
-    instance,
-    nodes,
-    relationships,
-    setSelectedNode,
-}: GraphProps) {
-    const toggleNodePreview = (node: CALMNode) => () => {
-        setSelectedNode(node)
-    }
-
+function Graph({ instance, nodes, relationships }: Props) {
     useEffect(() => {
         relationships.map((relationship) => {
             createGraphRelationship(instance, relationship)
         })
+        relationships.map(relationship => {
+            createGraphRelationship(instance, relationship);
+        });
 
         nodes.forEach((node) => {
             instance.manage(document.getElementById(node['unique-id'])!)
@@ -139,11 +134,18 @@ function Graph({
                         onClick={toggleNodePreview(node)}
                         key={node['unique-id']}
                         id={node['unique-id']}
+            {
+                nodes.map(node => {
+                    return <div 
+                        key={node["unique-id"]}
+                        id={node["unique-id"]}
                         className="node"
                         style={{
                             left: node.x,
                             top: node.y,
                         }}
+                            top: node.y
+                        }} 
                     >
                         <div>
                             <b>{node.name}</b>
@@ -161,3 +163,4 @@ function Graph({
 }
 
 export default Graph
+
