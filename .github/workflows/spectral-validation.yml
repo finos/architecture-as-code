@@ -8,7 +8,7 @@ on:
       - "calm/draft/**"
       - "calm/pattern/**"
       - "calm/samples/**"
-      - "spectral/**" 
+      - "shared/src/spectral/**" 
   push:
     branches: 
       - "main"
@@ -16,7 +16,7 @@ on:
       - "calm/draft/**"
       - "calm/pattern/**"
       - "calm/samples/**"
-      - "spectral/**" 
+      - "shared/src/spectral/**" 
 
 jobs:
   spectrals:
@@ -30,6 +30,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: v20
-      - run: npm install @stoplight/spectral-cli
-      - run: npx spectral lint --ruleset spectral/instantiation/validation-rules.yaml 'calm/samples/api-gateway-instantiation(*.json|*.yaml)'
+
+      - name: Install workspace
+        run: npm ci
+
+      - name: Build workspace
+        run: npm run build
+
+      - name: Install Spectral-CLI
+        run: npm install @stoplight/spectral-cli
+
+      - name: Run Example Spectral Linting
+        run: npx spectral lint --ruleset ./shared/dist/spectral/rules-instantiation.js 'calm/samples/api-gateway-instantiation(*.json|*.yaml)'
 

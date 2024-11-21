@@ -12,7 +12,7 @@ export async function visualize(instantiation: string): Promise<string | undefin
     try {
         const dot = calmToDot(JSON.parse(instantiation));
         return (await instance()).render(dot, { format: 'svg', engine: 'dot' }).output;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     } catch (error: unknown) {
         console.error(error);
         return 'Error creating SVG: Instantiation JSON is invalid';
