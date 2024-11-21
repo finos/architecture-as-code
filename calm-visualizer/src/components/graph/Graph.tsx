@@ -3,7 +3,9 @@ import './Graph.css'
 import { BrowserJsPlumbInstance } from '@jsplumb/browser-ui'
 import { NodeLayout, RelationshipLayout } from '../../layout'
 import {
+    CALMComposedOfRelationship,
     CALMConnectsRelationship,
+    CALMDeployedInRelationship,
     CALMInteractsRelationship,
     CALMNode,
     CALMRelationship,
@@ -13,7 +15,7 @@ export interface GraphProps {
     instance: BrowserJsPlumbInstance
     nodes: NodeLayout[]
     relationships: RelationshipLayout[]
-    setSelectedNode: any
+    setSelectedNode: (node: CALMNode) => () => {}
 }
 
 function createConnectsRelationship(
@@ -39,7 +41,11 @@ function createConnectsRelationship(
             { type: 'Arrow', options: { location: 1 } },
             {
                 type: 'Label',
-                options: { location: 0.5, label: relationship.description },
+                options: {
+                    location: [0.5, 0.5],
+                    label: relationship.description,
+                    cssClass: 'graph-labels',
+                },
             },
         ],
     })
@@ -69,46 +75,118 @@ function createInteractsRelationship(
                 { type: 'Arrow', options: { location: 1 } },
                 {
                     type: 'Label',
-                    options: { location: 0.5, label: relationship.description },
+                    options: {
+                        location: [0.5, 0.5],
+                        label: relationship.description,
+                        cssClass: 'graph-labels',
+                    },
                 },
             ],
         })
     })
 }
 
-// function createDeployedInRelationship(instance: BrowserJsPlumbInstance, relationship: CALMDeployedInRelationship) {
-//     const r = relationship["relationship-type"]["deployed-in"];
-//     if (!groups.find(group => group === r.container)) {
-//         groups.push(r.container);
-//         instance.addGroup({
-//             el: document.getElementById(r.container)!,
-//             id: r.container,
-//         });
-//     }
+function getUniqueCALMContainers(relationships: CALMRelationship[]) {
+    const deployedInContainers: string[] = relationships
+        .filter(
+            (relationship) => 'deployed-in' in relationship['relationship-type']
+        )
+        .map((r) => r as CALMDeployedInRelationship)
+        .map((r) => r['relationship-type']['deployed-in'].container)
 
-//     r.nodes.forEach(node => {
-//         instance.addToGroup(r.container, document.getElementById(node)!)
-//     });
-// }
+    const composedOfContainers: string[] = relationships
+        .filter(
+            (relationship) => 'composed-of' in relationship['relationship-type']
+        )
+        .map((r) => r as CALMComposedOfRelationship)
+        .map((r) => r['relationship-type']['composed-of'].container)
+
+    const containers = [...deployedInContainers, ...composedOfContainers]
+    return Array.from(new Set(containers))
+}
+
+function createGroups(instance: BrowserJsPlumbInstance, containers: string[]) {
+    containers.forEach((container) => {
+        const element = document.getElementById(container)!
+        element.classList.add('group-container')
+        instance.addGroup({
+            el: element,
+            id: container,
+            anchor: 'Continuous',
+            endpoint: { type: 'Dot', options: { radius: 3 } },
+            dropOverride: true,
+        })
+    })
+}
+
+function createDeployedInRelationship(
+    instance: BrowserJsPlumbInstance,
+    relationship: CALMDeployedInRelationship
+) {
+    const container = relationship['relationship-type']['deployed-in'].container
+    const nodes = relationship['relationship-type']['deployed-in'].nodes
+    if (instance.getGroup(container).id === container) {
+        nodes.forEach((node) => {
+            const element = document.getElementById(node)!
+            element.classList.add('group-node')
+            instance.addToGroup(container, element)
+        })
+    }
+}
+
+function createComposedOfRelationship(
+    instance: BrowserJsPlumbInstance,
+    relationship: CALMComposedOfRelationship
+) {
+    const container = relationship['relationship-type']['composed-of'].container
+    const nodes = relationship['relationship-type']['composed-of'].nodes
+    if (instance.getGroup(container).id === container) {
+        nodes.forEach((node) => {
+            const element = document.getElementById(node)!
+            element.classList.add('group-node')
+            instance.addToGroup(container, element)
+        })
+    }
+}
 
 function createGraphRelationship(
     instance: BrowserJsPlumbInstance,
-    relationship: CALMRelationship
+    relationships: CALMRelationship[]
 ) {
-    if ('connects' in relationship['relationship-type']) {
-        createConnectsRelationship(
-            instance,
-            relationship as CALMConnectsRelationship
-        )
-    } else if ('interacts' in relationship['relationship-type']) {
-        createInteractsRelationship(
-            instance,
-            relationship as CALMInteractsRelationship
-        )
-    } else if ('deployed-in' in relationship['relationship-type']) {
-        // createDeployedInRelationship(instance, relationship as CALMDeployedInRelationship);
-        // TODO: Fix the "deployed-in" relationship and add "contains" relationship
-    }
+    const deployedInandComposedOfRelationships = relationships.filter(
+        (relationship) =>
+            'deployed-in' in relationship['relationship-type'] ||
+            'composed-of' in relationship['relationship-type']
+    )
+
+    const containers = getUniqueCALMContainers(
+        deployedInandComposedOfRelationships
+    )
+    createGroups(instance, containers)
+
+    relationships.forEach((relationship) => {
+        if ('connects' in relationship['relationship-type']) {
+            createConnectsRelationship(
+                instance,
+                relationship as CALMConnectsRelationship
+            )
+        } else if ('interacts' in relationship['relationship-type']) {
+            createInteractsRelationship(
+                instance,
+                relationship as CALMInteractsRelationship
+            )
+        } else if ('deployed-in' in relationship['relationship-type']) {
+            createDeployedInRelationship(
+                instance,
+                relationship as CALMDeployedInRelationship
+            )
+        } else {
+            createComposedOfRelationship(
+                instance,
+                relationship as CALMComposedOfRelationship
+            )
+        }
+    })
 }
 
 function Graph({
@@ -122,9 +200,7 @@ function Graph({
     }
 
     useEffect(() => {
-        relationships.map((relationship) => {
-            createGraphRelationship(instance, relationship)
-        })
+        createGraphRelationship(instance, relationships)
 
         nodes.forEach((node) => {
             instance.manage(document.getElementById(node['unique-id'])!)

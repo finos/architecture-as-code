@@ -1,19 +1,19 @@
 #! /usr/bin/env node
 
+import { CALM_META_SCHEMA_DIRECTORY, getFormattedOutput, runGenerate, validate, visualizeInstantiation, visualizePattern } from '@finos/calm-shared';
 import { Option, program } from 'commander';
-import { visualizeInstantiation, visualizePattern } from './commands/visualize/visualize.js';
-import { runGenerate } from './commands/generate/generate.js';
-import validate  from './commands/validate/validate.js';
-import { CALM_META_SCHEMA_DIRECTORY } from './consts.js';
+import path from 'path';
+import { mkdirp } from 'mkdirp';
+import { writeFileSync } from 'fs';
+import { exitBasedOffOfValidationOutcome } from '@finos/calm-shared/dist/commands/validate/validate';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const INSTANTIATION_OPTION = '-i, --instantiation <file>';
 const INSTANTIATE_ALL_OPTION = '-a, --instantiateAll';
-const META_SCHEMA_OPTION = '-m, --metaSchemasLocation <metaSchemaLocation>';
 const OUTPUT_OPTION = '-o, --output <file>';
 const PATTERN_OPTION = '-p, --pattern <file>';
 const SCHEMAS_OPTION = '-s, --schemaDirectory <path>';
-const STRICT_OPTION = '-s, --strict';
+const STRICT_OPTION = '--strict';
 const VERBOSE_OPTION = '-v, --verbose';
 
 program
@@ -42,20 +42,19 @@ program
     .description('Generate an instantiation from a CALM pattern file.')
     .requiredOption(PATTERN_OPTION, 'Path to the pattern file to use. May be a file path or a URL.')
     .requiredOption(OUTPUT_OPTION, 'Path location at which to output the generated file.', 'instantiation.json')
-    .option(SCHEMAS_OPTION, 'Path to directory containing schemas to use in instantiation')
+    .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
     .option(INSTANTIATE_ALL_OPTION, 'Instantiate all properties, ignoring the "required" field.', false)
-    .action(async (options) => {
-        await runGenerate(options.pattern, options.output, !!options.verbose, options.instantiateAll, options.schemaDirectory
-        );
-    });
+    .action(async (options) =>
+        await runGenerate(options.pattern, options.output, !!options.verbose, options.instantiateAll, options.schemaDirectory)
+    );
 
 program
     .command('validate')
     .description('Validate that an instantiation conforms to a given CALM pattern.')
     .requiredOption(PATTERN_OPTION, 'Path to the pattern file to use. May be a file path or a URL.')
     .option(INSTANTIATION_OPTION, 'Path to the pattern instantiation file to use. May be a file path or a URL.')
-    .option(META_SCHEMA_OPTION, 'The location of the directory of the meta schemas to be loaded', CALM_META_SCHEMA_DIRECTORY)
+    .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.', CALM_META_SCHEMA_DIRECTORY)
     .option(STRICT_OPTION, 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
     .addOption(
         new Option(FORMAT_OPTION, 'The format of the output')
@@ -64,8 +63,22 @@ program
     )
     .option(OUTPUT_OPTION, 'Path location at which to output the generated file.')
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
-    .action(async (options) =>
-        await validate(options.instantiation, options.pattern, options.metaSchemasLocation, options.verbose, options.format, options.output, options.strict)
+    .action(async (options) => {
+        const outcome = await validate(options.instantiation, options.pattern, options.metaSchemasLocation, options.verbose);
+        const content = getFormattedOutput(outcome, options.format, options.instantiation, options.pattern);
+        writeOutputFile(options.output, content);
+        exitBasedOffOfValidationOutcome(outcome, options.strict);
+    }
     );
+
+function writeOutputFile(output: string, validationsOutput: string) {
+    if (output) {
+        const dirname = path.dirname(output);
+        mkdirp.sync(dirname);
+        writeFileSync(output, validationsOutput);
+    } else {
+        console.log(validationsOutput);
+    }
+}
 
 program.parse(process.argv);
