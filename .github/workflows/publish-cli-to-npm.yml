@@ -1,36 +1,35 @@
-name: Publish to NPM
+name: Publish CLI to NPM
 
 on:
   release:
     types: [published]
-  workflow_dispatch:
 
 jobs:
-  build:
+  publish-cli:
     runs-on: ubuntu-latest
-    # use 'if' to prevent endless looping with npm package commit
-    if: "!startsWith(github.event.head_commit.message, '[RELEASE]')"
-    defaults:
-      run:
-        working-directory: ./cli
     steps:
-      - uses: actions/checkout@v4
+
+      # Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - run: git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-      - run: git config user.name "$GITHUB_ACTOR"
-      # prepend '[RELEASE]' so that it can be detected above to prevent looping
-      #  this is a commit to main that can be ignored by this GitHub action
-      #  use 'patch' to update only the last digit in the version (e.g. 1.1.?)
-      # - run: npm version patch -m "[RELEASE] %s"
-      # - run: git push
-      # Setup .npmrc file to publish to npm
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "18.x"
+          node-version: v20
           registry-url: "https://registry.npmjs.org"
-      - run: npm ci
-      - run: npm run build
-      - run: npm publish --access=public
+
+      # Install the workspace
+      - name: Install workspace
+        run: npm ci
+
+      # Build the entire workspace
+      - name: Build workspace
+        run: npm run build
+
+      # Publish the CLI module
+      - name: Publish CLI module
+        run: npm publish --workspace cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

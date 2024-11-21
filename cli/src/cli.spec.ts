@@ -17,7 +17,7 @@ describe('CLI Integration Tests', () => {
 
     beforeAll(async () => {
         tempDir = fs.mkdtempSync(path.join(os.tmpdir(), integrationTestPrefix));
-        await callNpmFunctionSync(`${projectRoot}/..`, 'link');
+        await callNpmFunctionSync(`${projectRoot}`, 'link');
     }, millisPerSecond * 20);
 
     afterAll(async () => {

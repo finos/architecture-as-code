@@ -6,6 +6,9 @@
   "files": [
     "dist/"
   ],
+  "bin": {
+    "calm": "dist/index.js"
+  },
   "scripts": {
     "build": "tsc",
     "watch": "tsc -watch -p ./",
