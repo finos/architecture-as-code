@@ -209,10 +209,37 @@ npm run watch
 ```
 
 
-
 ### CLI Tests
 
 There are currently two types of tests;
 
 * `cli` tests - these are end-to-end and involve linking the package as part of the test so that we can assert on actual `calm X` invocations.
 * `shared` tests - these are where the core logic tests live, like how validation behaves etc.
+
+## Releasing the CLI
+
+Publishing of the CLI to NPM is controlled via [this action](https://github.com/finos/architecture-as-code/blob/main/.github/workflows/publish-cli-to-npm.yml) - this action is triggered whenever a GitHub release is created. To create a github release you can do one of the following;
+
+### Through the Github UI
+
+* Go to your repository on GitHub.
+* Click on the Releases tab (under "Code").
+* Click the Draft a new release button.
+* Fill in:
+  * Tag version: Enter the version number (e.g., v1.0.0).
+  * Release title: Name the release (e.g., "First Release").
+  * Description: Add details about what’s included in the release.
+  * Target: Leave as main (or your default branch).
+* Click Publish release to create the release and trigger the workflow.
+
+### Through the GitHub CLI (`gh`)
+
+```shell
+# Step 1: Authenticate with GitHub if you haven't already
+gh auth login
+
+# Step 2: Create the release.
+gh release create <version> --title "<release_title>" --notes "<release_description>"
+```
+
+
