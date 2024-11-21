@@ -57,7 +57,22 @@ export function getFormattedOutput(
 
 function buildAjv2020(debug: boolean): Ajv2020 {
     if (debug) {
-        return new Ajv2020({ strict: 'log', allErrors: true , loadSchema: async (uri) => {
+        return new Ajv2020({
+            strict: 'log', allErrors: true, loadSchema: async (uri) => {
+                try {
+                    const response = await fetch(uri);
+                    if (!response.ok) {
+                        throw new Error(`Unable to fetch schema from ${uri}`);
+                    }
+                    return response.json();
+                } catch (error) {
+                    console.error(`Error fetching schema: ${error.message}`);
+                }
+            }
+        });
+    }
+    return new Ajv2020({
+        strict: false, allErrors: true, loadSchema: async (uri) => {
             try {
                 const response = await fetch(uri);
                 if (!response.ok) {
@@ -67,48 +82,36 @@ function buildAjv2020(debug: boolean): Ajv2020 {
             } catch (error) {
                 console.error(`Error fetching schema: ${error.message}`);
             }
-        }});
-    }
-    return new Ajv2020({ strict: false, allErrors: true, loadSchema: async (uri) => {
-        try {
-            const response = await fetch(uri);
-            if (!response.ok) {
-                throw new Error(`Unable to fetch schema from ${uri}`);
-            }
-            return response.json();
-        } catch (error) {
-            console.error(`Error fetching schema: ${error.message}`);
         }
-    }});
+    });
 }
 
-function isValidURL(str: string): boolean{
+function isValidURL(str: string): boolean {
     try {
-        new URL(str);
-        return true;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (_) {
-        return false;
+        const url = new URL(str);
+        return ['http:', 'https:'].includes(url.protocol);
+    } catch {
+        return false; // Invalid URL
     }
 }
+
 
 async function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
     logger.info(`Loading meta schema(s) from ${metaSchemaLocation}`);
-
-    if(isValidURL(metaSchemaLocation)) {
+    if (isValidURL(metaSchemaLocation)) {
         const metaSchema = await getFileFromUrlOrPath(metaSchemaLocation);
         ajv.addMetaSchema(metaSchema);
     } else {
         if (!statSync(metaSchemaLocation).isDirectory()) {
             throw new Error(`The metaSchemaLocation: ${metaSchemaLocation} is not a directory`);
         }
-    
+
         const filenames = readdirSync(metaSchemaLocation);
-    
+
         if (filenames.length === 0) {
             throw new Error(`The metaSchemaLocation: ${metaSchemaLocation} is an empty directory`);
         }
-    
+
         filenames.forEach(filename => {
             if (filename.endsWith('.json')) {
                 logger.debug('Adding meta schema : ' + filename);
