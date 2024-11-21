@@ -18,6 +18,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: v20
+          registry-url: "https://registry.npmjs.org"
 
       # Install the workspace
       - name: Install workspace
