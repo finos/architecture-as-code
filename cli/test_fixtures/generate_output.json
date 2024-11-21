@@ -1,0 +1,107 @@
+{
+    "nodes": [
+      {
+        "unique-id": "api-gateway",
+        "node-type": "system",
+        "name": "API Gateway",
+        "description": "The API Gateway used to verify authorization and access to downstream system",
+        "interfaces": [
+          {
+            "unique-id": "api-gateway-ingress",
+            "host": "{{ HOST }}",
+            "port": -1
+          }
+        ],
+        "well-known-endpoint": "{{ WELL_KNOWN_ENDPOINT }}"
+      },
+      {
+        "unique-id": "api-consumer",
+        "node-type": "system",
+        "name": "API Consumer",
+        "description": "The API Consumer making an authenticated and authorized request",
+        "interfaces": []
+      },
+      {
+        "unique-id": "api-producer",
+        "node-type": "system",
+        "name": "API Producer",
+        "description": "The API Producer serving content",
+        "interfaces": [
+          {
+            "unique-id": "producer-ingress",
+            "host": "{{ HOST }}",
+            "port": -1
+          }
+        ]
+      },
+      {
+        "unique-id": "idp",
+        "node-type": "system",
+        "name": "Identity Provider",
+        "description": "The Identity Provider used to verify the bearer token",
+        "interfaces": []
+      }
+    ],
+    "relationships": [
+      {
+        "unique-id": "api-consumer-api-gateway",
+        "relationship-type": {
+          "connects": {
+            "source": {
+              "node": "api-consumer"
+            },
+            "destination": {
+              "node": "api-gateway",
+              "interfaces": [
+                "api-gateway-ingress"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "unique-id": "api-gateway-idp",
+        "relationship-type": {
+          "connects": {
+            "source": {
+              "node": "api-gateway"
+            },
+            "destination": {
+              "node": "idp"
+            }
+          }
+        }
+      },
+      {
+        "unique-id": "api-gateway-api-producer",
+        "relationship-type": {
+          "connects": {
+            "source": {
+              "node": "api-gateway"
+            },
+            "destination": {
+              "node": "api-producer",
+              "interfaces": [
+                "producer-ingress"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "unique-id": "api-consumer-idp",
+        "relationship-type": {
+          "connects": {
+            "source": {
+              "node": "api-consumer"
+            },
+            "destination": {
+              "node": "idp"
+            }
+          }
+        }
+      }
+    ],
+    "metadata": [],
+    "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/pattern/api-gateway"
+  }
