@@ -18,6 +18,6 @@
         "calm": "cli/dist/index.js"
     },
     "devDependencies": {
-        "npm-run-all": "^4.1.5"
+        "npm-run-all2": "^5.0.0"
     }
 }
