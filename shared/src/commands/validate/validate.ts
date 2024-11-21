@@ -1,15 +1,15 @@
 import Ajv2020, { ErrorObject } from 'ajv/dist/2020.js';
 import { existsSync, promises as fs, readdirSync, readFileSync, statSync } from 'fs';
-import { Spectral, ISpectralDiagnostic } from '@stoplight/spectral-core';
-import { getRuleset } from '@stoplight/spectral-cli/dist/services/linter/utils/getRuleset.js';
+import { Spectral, ISpectralDiagnostic, RulesetDefinition } from '@stoplight/spectral-core';
+
+import validationRulesForPattern from '../../spectral/rules-pattern';
+import validationRulesForInstantiation from '../../spectral/rules-instantiation';
 import { DiagnosticSeverity } from '@stoplight/types';
 import * as winston from 'winston';
 import { initLogger } from '../helper.js';
 import { ValidationOutput, ValidationOutcome } from './validation.output.js';
 import { SpectralResult } from './spectral.result.js';
 import createJUnitReport from './junit-report/junit.report.js';
-import yaml from 'js-yaml';
-import { CALM_SPECTRAL_RULES_DIRECTORY } from '../../consts.js';
 
 let logger: winston.Logger; // defined later at startup
 
@@ -32,6 +32,7 @@ function mergeSpectralResults(spectralResultPattern: SpectralResult, spectralRes
  * @param failOnWarnings If true, the process will exit with a non-zero exit code for warnings as well as errors.
  */
 export function exitBasedOffOfValidationOutcome(validationOutcome: ValidationOutcome, failOnWarnings: boolean) {
+    logger.info('Validation complete');
     if (validationOutcome.hasErrors) {
         process.exit(1);
     }
@@ -43,12 +44,12 @@ export function exitBasedOffOfValidationOutcome(validationOutcome: ValidationOut
 
 export function getFormattedOutput(
     validationOutcome: ValidationOutcome,
-    format: string,
-    spectralRulesetForInstantiation: string,
-    spectralRulesetForPattern: string
+    format: string
 ): string {
     if (format === 'junit') {
-        const spectralRules = extractRulesFromSpectralRulesets(spectralRulesetForInstantiation, spectralRulesetForPattern);
+    
+        const spectralRules = extractRulesFromSpectralRulesets();
+    
         return createJUnitReport(validationOutcome, spectralRules);
     }
     return prettifyJson(validationOutcome);
@@ -100,7 +101,7 @@ async function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
     logger.info(`Loading meta schema(s) from ${metaSchemaLocation}`);
     if (isValidURL(metaSchemaLocation)) {
         const metaSchema = await getFileFromUrlOrPath(metaSchemaLocation);
-        ajv.addMetaSchema(metaSchema);
+        ajv.addSchema(metaSchema);
     } else {
         if (!statSync(metaSchemaLocation).isDirectory()) {
             throw new Error(`The metaSchemaLocation: ${metaSchemaLocation} is not a directory`);
@@ -124,15 +125,14 @@ async function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
 
 async function runSpectralValidations(
     schema: string,
-    spectralRulesetLocation: string
+    spectralRuleset: RulesetDefinition
 ): Promise<SpectralResult> {
-
     let errors = false;
     let warnings = false;
     let spectralIssues: ValidationOutput[] = [];
     const spectral = new Spectral();
 
-    spectral.setRuleset(await getRuleset(spectralRulesetLocation));
+    spectral.setRuleset(spectralRuleset);
     const issues = await spectral.run(schema);
 
     if (issues && issues.length > 0) {
@@ -238,13 +238,12 @@ async function loadFileFromUrl(fileUrl: string) {
     return body;
 }
 
-function extractRulesFromSpectralRulesets(spectralRulesetForInstantiation: string, spectralRulesetForPattern: string): string[] {
-    return getRulesFromRulesetFile(spectralRulesetForInstantiation).concat(getRulesFromRulesetFile(spectralRulesetForPattern));
+function extractRulesFromSpectralRulesets(): string[] {
+    return getRuleNamesFromRuleset(validationRulesForInstantiation).concat(getRuleNamesFromRuleset(validationRulesForPattern));
 }
 
-function getRulesFromRulesetFile(rulesetFile: string) {
-    const yamlData = yaml.load(readFileSync(rulesetFile, 'utf-8'));
-    return Object.keys(yamlData['rules']);
+function getRuleNamesFromRuleset(ruleset: RulesetDefinition) : string[] {
+    return Object.keys((ruleset as { rules: Record<string, unknown> }).rules);
 }
 
 function prettifyJson(json) {
@@ -299,10 +298,7 @@ export async function validate(
         logger.info(`Loading pattern from : ${jsonSchemaLocation}`);
         const jsonSchema = await getFileFromUrlOrPath(jsonSchemaLocation);
 
-        const spectralRulesetForPattern = CALM_SPECTRAL_RULES_DIRECTORY + '/pattern/validation-rules.yaml';
-        logger.info(`Spectral Ruleset being loaded from : ${spectralRulesetForPattern}`);
-
-        const spectralResultForPattern: SpectralResult = await runSpectralValidations(stripRefs(jsonSchema), spectralRulesetForPattern);
+        const spectralResultForPattern: SpectralResult = await runSpectralValidations(stripRefs(jsonSchema), validationRulesForPattern);
 
         if (jsonSchemaInstantiationLocation === undefined) {
             return validatePatternOnly(spectralResultForPattern, jsonSchema, ajv);
@@ -313,8 +309,7 @@ export async function validate(
         logger.info(`Loading pattern instantiation from : ${jsonSchemaInstantiationLocation}`);
         const jsonSchemaInstantiation = await getFileFromUrlOrPath(jsonSchemaInstantiationLocation);
 
-        const spectralRulesetForInstantiation = CALM_SPECTRAL_RULES_DIRECTORY + '/instantiation/validation-rules.yaml';
-        const spectralResultForInstantiation: SpectralResult = await runSpectralValidations(jsonSchemaInstantiation, spectralRulesetForInstantiation);
+        const spectralResultForInstantiation: SpectralResult = await runSpectralValidations(jsonSchemaInstantiation, validationRulesForInstantiation);
 
         const spectralResult = mergeSpectralResults(spectralResultForPattern, spectralResultForInstantiation);
 

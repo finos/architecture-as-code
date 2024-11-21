@@ -22,3 +22,5 @@ node_modules/
 **/.vscode-test/
 **/out/
 **/dependency-check-report/
+
+**/tsconfig.tsbuildinfo

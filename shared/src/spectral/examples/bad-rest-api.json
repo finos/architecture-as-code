@@ -1,0 +1,136 @@
+{
+  "nodes": [
+    {
+      "uniqueId": "api-consumer",
+      "node-type": "system",
+      "name": "Python Based API Consumer",
+      "description": "The API Consumer making an authenticated and authorized request"
+    },
+    {
+      "name": "Java Based API Producer",
+      "host": "website.com",
+      "description": "The API Producer serving content",
+      "port": 0,
+      "uniqueId": "api-producer",
+      "node-type": "system"
+    },
+    {
+      "uniqueId": "idp",
+      "node-type": "system",
+      "name": "Identity Provider",
+      "description": "The Identity Provider used to verify the bearer token"
+    },
+    {
+      "name": "Database",
+      "databaseType": "",
+      "description": "The database storing the system data",
+      "databaseAlias": "DB_NAME",
+      "uniqueId": "database",
+      "node-type": "system"
+    },
+    {
+      "name": "Entitlements System",
+      "description": "The database storing the system data",
+      "entitlementType": "ACL",
+      "uniqueId": "entitlements-system",
+      "node-type": "system"
+    },
+    {
+      "name": "Floating system",
+      "description": "Not referenced",
+      "uniqueId": "not-referenced",
+      "node-type": "system"
+    }
+  ],
+  "relationships": [
+    {
+      "uniqueId": "api-consumer-idp",
+      "relationship-type": "connects",
+      "parties": {
+        "destination": "idp",
+        "source": "api-consumer"
+      },
+      "authentication": "OAuth2",
+      "protocol": "HTTPS"
+    },
+    {
+      "uniqueId": "api-producer-idp",
+      "relationship-type": "connects",
+      "parties": {
+        "destination": "idp",
+        "source": "api-producer"
+      },
+      "protocol": "HTTPS",
+      "authentication": "OAuth2"
+    },
+    {
+      "uniqueId": "api-consumer-api-producer",
+      "relationship-type": "connects",
+      "parties": {
+        "destination": "api-producer",
+        "source": "api-consumer"
+      },
+      "authentication": "OAuth2",
+      "protocol": "HTTPS"
+    },
+    {
+      "uniqueId": "api-producer-entitlements-system",
+      "relationship-type": "connects",
+      "parties": {
+        "destination": "entitlements-system",
+        "source": "api-producer"
+      },
+      "protocol": "LDAP"
+    },
+    {
+      "uniqueId": "api-producer-database",
+      "relationship-type": "connects",
+      "parties": {
+        "destination": "database",
+        "source": "api-producer"
+      },
+      "protocol": "JDBC",
+      "authentication": "mTLS"
+    },
+    {
+      "uniqueId": "api-producer-bad",
+      "relationship-type": "connects",
+      "parties": {
+        "destination": "bad-id",
+        "source": "api-producer"
+      },
+      "protocol": "JDBC",
+      "authentication": "mTLS"
+    },
+    {
+      "uniqueId": "bad-api-producer",
+      "relationship-type": "connects",
+      "parties": {
+        "destination": "api-producer",
+        "source": "bad-id"
+      },
+      "protocol": "JDBC",
+      "authentication": "mTLS"
+    },
+
+    {
+      "uniqueId": "bad-api-producer-no-relationship",
+      "relationship-type": "connects",
+      "protocol": "JDBC",
+      "authentication": "mTLS"
+    },
+
+    {
+      "uniqueId": "multiple-bad",
+      "relationship-type": "connects",
+      "protocol": "JDBC",
+      "authentication": "mTLS",
+      "parties": {
+        "nodes": [
+          "bad-1",
+          "bad-2"
+        ]
+      }
+    }
+  ]
+}

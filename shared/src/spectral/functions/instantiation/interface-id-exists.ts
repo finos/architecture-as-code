@@ -1,16 +1,16 @@
-import { JSONPath } from 'jsonpath-plus'
+import { JSONPath } from 'jsonpath-plus';
 
 /**
  * Checks that the input value exists as an interface with matching unique ID defined under a node in the document.
  */
-export default (input, _, context) => {
+export function interfaceIdExists(input, _, context) {
     if (!input) {
         return [];
     }
 
     // get uniqueIds of all interfaces 
     const names = JSONPath({path: '$.nodes[*].interfaces[*].unique-id', json: context.document.data});
-    let results = [];
+    const results = [];
 
     if (!names.includes(input)) {
         results.push({
