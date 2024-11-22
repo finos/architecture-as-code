@@ -1,9 +1,12 @@
 import './cytoscape.css';
 import React, {useEffect, useRef, useState} from 'react';
-import cytoscape, {Core} from 'cytoscape';
+import cytoscape, {Core, EdgeSingular, EdgeSingularTraversing} from 'cytoscape';
 import nodeHtmlLabel from 'cytoscape-node-html-label';
 import coseBilkent from 'cytoscape-cose-bilkent';
 import expandCollapse from 'cytoscape-expand-collapse';
+import popper, { RefElement } from 'cytoscape-popper';
+import tippy from 'tippy.js';
+import cytoscapePopper from 'cytoscape-popper';
 
 //Make some information available on tooltip hover
 
@@ -16,6 +19,31 @@ const layoutOptions  = {
     name: 'cose-bilkent',
 
 }
+
+function tippyFactory(ref: RefElement, content: HTMLElement){
+    // Since tippy constructor requires DOM element/elements, create a placeholder
+    var dummyDomEle = document.createElement('div');
+ 
+    var tip = tippy( dummyDomEle, {
+        getReferenceClientRect: ref.getBoundingClientRect,
+        trigger: 'manual', // mandatory
+        // dom element inside the tippy:
+        content: content,
+        // your own preferences:
+        arrow: true,
+        placement: 'bottom',
+        hideOnClick: false,
+        sticky: "reference",
+ 
+        // if interactive:
+        interactive: true,
+        appendTo: document.body // or append dummyDomEle to document.body
+    } );
+ 
+    return tip;
+ }
+
+cytoscape.use(cytoscapePopper(tippyFactory))
 
 export type Node = {
     classes?: string;
@@ -63,6 +91,28 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                     }
                 }
             ])
+            //EVENT LISTENING FOR TOOLTIP
+            // cy.on('mouseover', 'edge', (event) => {
+            //     const edge = event.target
+            //     edge.tippy = edge.popper({
+            //         content: () => {
+            //            let content = document.createElement('div');
+                 
+            //            content.innerHTML = edge.data('label');
+            //            content.className = 'edge-tooltip'
+                 
+            //            return content;
+            //         },
+            //      });
+
+            //     edge.tippy.show();
+            // })
+
+            // cy.on('mouseout', 'edge', (event) => {
+            //     const edge = event.target
+
+            //     edge.tippy.hide(0);
+            // })
         }
     }, [cy]);
 
@@ -94,6 +144,8 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                         'curve-style': 'bezier',
                         'label':  'data(label)', // labels from data property
                         'target-arrow-shape': 'triangle',
+                        //'text-wrap': 'ellipsis',
+                        //"text-max-width": '100px'
                     },
                 },
                 {
