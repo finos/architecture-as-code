@@ -2,8 +2,11 @@ import './cytoscape.css';
 import React, {useEffect, useRef, useState} from 'react';
 import cytoscape, {Core} from 'cytoscape';
 import nodeHtmlLabel from 'cytoscape-node-html-label';
+import coseBilkent from 'cytoscape-cose-bilkent';
 
 nodeHtmlLabel(cytoscape)
+
+cytoscape.use(coseBilkent)
 
 export type Node = {
     data: {
@@ -42,7 +45,7 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                     halignBox:  'center',
                     valignBox: 'center',
                     tpl: (data: Node["data"]) => {
-                        return `<div class="node">
+                        return `<div class="node element">
   <p class="title">${data.label}</p>
   <p class="type">[database]</p>
   <p class="description">Database which stores account, trade and position state</p>
@@ -69,19 +72,9 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                 {
                     selector: 'node',
                     style: {
-                        opacity: 0,
-                        width: "mapData (degree, 0, 10, 5,  20)",
-                        height: "mapData (degree, 0  10, 5,  20)",
-                        shape:  "rectangle"
-                        /*'background-color': 'white',
-                        'label': 'data(label)', // labels from data property
-                        'color': 'black',
-                        'text-valign': 'center',
-
-                        width: '200px',
-                        "border-style": "solid",
-                        "border-color": "black",
-                        "border-width": "2px"*/
+                        width: "200px",
+                        height: "200px",
+                        shape:  "rectangle",
                     },
                 },
                 {
@@ -95,7 +88,7 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                 },
             ],
             layout: {
-                name: 'grid', // Use grid layout for simplicity
+                name: 'cose-bilkent', // Use grid layout for simplicity
             },
         }));
 
