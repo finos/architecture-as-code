@@ -11,6 +11,7 @@
     border: 2px black solid;
     text-align: center;
     max-width: 15rem;
+    position: absolute;
 }
 
 .graph-labels {
@@ -18,6 +19,10 @@
     font-weight: bold;
     padding: 5px 10px;
     max-width: 250px;
+}
+
+h1 {
+    font-size: 1.2rem;
 }
 
 .node-type {
@@ -32,11 +37,16 @@
 .group-container {
     border: 2px gray dashed !important;
     background-color: aliceblue;
-    max-width: max-content;
-    padding: 5rem;
+    min-width: max-content;
+    flex-direction: column;
+    box-sizing: border-box;
+    padding: 15%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    row-gap: auto;
 }
 
 .group-node {
     border: 2px rgb(180, 178, 178) solid;
-    position: relative;
+    box-sizing: border-box;
 }
