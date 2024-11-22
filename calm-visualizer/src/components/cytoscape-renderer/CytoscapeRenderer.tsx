@@ -3,12 +3,22 @@ import React, {useEffect, useRef, useState} from 'react';
 import cytoscape, {Core} from 'cytoscape';
 import nodeHtmlLabel from 'cytoscape-node-html-label';
 import coseBilkent from 'cytoscape-cose-bilkent';
+import expandCollapse from 'cytoscape-expand-collapse';
 
-nodeHtmlLabel(cytoscape)
+//Make some information available on tooltip hover
 
-cytoscape.use(coseBilkent)
+nodeHtmlLabel(cytoscape);
+expandCollapse(cytoscape);
+
+cytoscape.use(coseBilkent);
+
+const layoutOptions  = {
+    name: 'cose-bilkent',
+
+}
 
 export type Node = {
+    classes?: string;
     data: {
         label: string;
         id: string;
@@ -48,7 +58,7 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                         return `<div class="node element">
   <p class="title">${data.label}</p>
   <p class="type">[database]</p>
-  <p class="description">Database which stores account, trade and position state</p>
+<!--  <p class="description">Database which stores account, trade and position state</p>-->
 </div>`
                     }
                 }
@@ -73,7 +83,7 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                     selector: 'node',
                     style: {
                         width: "200px",
-                        height: "200px",
+                        height: "100px",
                         shape:  "rectangle",
                     },
                 },
@@ -86,10 +96,21 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                         'target-arrow-shape': 'triangle',
                     },
                 },
+                {
+                    selector: ":parent",
+                    style: {
+                        "label": "data(label)"
+                    }
+                }
             ],
             layout: {
                 name: 'cose-bilkent', // Use grid layout for simplicity
             },
+            /*ready: function(this) {
+                this.expandCollapse({
+
+                })
+            }*/
         }));
 
         /*return () => {
