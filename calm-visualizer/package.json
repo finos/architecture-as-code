@@ -13,6 +13,9 @@
     "dependencies": {
         "@jsplumb/browser-ui": "^6.2.10",
         "cytoscape": "^3.30.3",
+        "cytoscape-cola": "^2.5.1",
+        "cytoscape-cose-bilkent": "^4.1.0",
+        "cytoscape-dagre": "^2.5.0",
         "cytoscape-node-html-label": "^1.2.2",
         "file-saver": "^2.0.5",
         "react": "^18.3.1",
