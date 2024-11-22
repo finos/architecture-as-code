@@ -29,7 +29,7 @@
     font-size: 0.9rem;
 }
 
-.group-container{
+.group-container {
     border: 2px gray dashed !important;
     background-color: aliceblue;
     max-width: max-content;
