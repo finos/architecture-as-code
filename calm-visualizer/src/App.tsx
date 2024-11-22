@@ -461,7 +461,13 @@ const traderXJson = {
 }
 
 const getData = (): [Node[], Edge[]] => {
-    const nodes = traderXJson.nodes.map(node => ({data: {label: node.name, description: node.description, type: node["node-type"], id: node["unique-id"]}}))
+    const nodes = traderXJson.nodes.map(node => (
+        {
+            classes: 'node',
+            data: {
+            classes: 'node',
+            label: node.name,
+                description: node.description, type: node["node-type"], id: node["unique-id"]}}))
 
     const edges = traderXJson.relationships.filter(relationship => !relationship["relationship-type"]["composed-of"] && !relationship["relationship-type"]["deployed-in"]).map(relationship => {
         if(relationship["relationship-type"]["interacts"] && relationship["unique-id"]  && relationship.description) {
