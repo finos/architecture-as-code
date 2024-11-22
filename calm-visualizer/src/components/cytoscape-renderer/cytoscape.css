@@ -29,3 +29,11 @@
     margin-top: 10px;
     color: black
 }
+
+/*Used for the tooltip*/
+.edge-tooltip {
+    border: solid 1px;
+    background-color: blue;
+    color: white;
+    padding: 1rem;
+}
