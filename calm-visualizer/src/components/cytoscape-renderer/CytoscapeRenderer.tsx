@@ -1,10 +1,10 @@
 import './cytoscape.css';
 import React, {useEffect, useRef, useState} from 'react';
-import cytoscape, {Core, EdgeSingular, EdgeSingularTraversing} from 'cytoscape';
+import cytoscape, {Core} from 'cytoscape';
 import nodeHtmlLabel from 'cytoscape-node-html-label';
 import coseBilkent from 'cytoscape-cose-bilkent';
 import expandCollapse from 'cytoscape-expand-collapse';
-import popper, { RefElement } from 'cytoscape-popper';
+import { RefElement } from 'cytoscape-popper';
 import tippy from 'tippy.js';
 import cytoscapePopper from 'cytoscape-popper';
 
@@ -17,13 +17,29 @@ cytoscape.use(coseBilkent);
 
 const layoutOptions  = {
     name: 'cose-bilkent',
+    randomize: false,
+    fit: true,
+    padding: 50,
+    nodeDimensionsIncludeLabels: true,
+    nodeRepulsion: 10000,
+    idealEdgeLength: 200,
+    edgeElasticity: 0.1,
+    gravity: 0.25,
+    numIter: 2500,
+    tile: true,
+    tilingPaddingVertical: 50,
+    tilingPaddingHorizontal: 50,
+    animate: false,
+    gravityRangeCompound: 1.5,
+    gravityCompound: 1.0,
+    gravityRange: 3.8
 
 }
 
 function tippyFactory(ref: RefElement, content: HTMLElement){
     // Since tippy constructor requires DOM element/elements, create a placeholder
     var dummyDomEle = document.createElement('div');
- 
+
     var tip = tippy( dummyDomEle, {
         getReferenceClientRect: ref.getBoundingClientRect,
         trigger: 'manual', // mandatory
@@ -34,12 +50,12 @@ function tippyFactory(ref: RefElement, content: HTMLElement){
         placement: 'bottom',
         hideOnClick: false,
         sticky: "reference",
- 
+
         // if interactive:
         interactive: true,
         appendTo: document.body // or append dummyDomEle to document.body
     } );
- 
+
     return tip;
  }
 
@@ -97,10 +113,10 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
             //     edge.tippy = edge.popper({
             //         content: () => {
             //            let content = document.createElement('div');
-                 
+
             //            content.innerHTML = edge.data('label');
             //            content.className = 'edge-tooltip'
-                 
+
             //            return content;
             //         },
             //      });
@@ -155,9 +171,7 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                     }
                 }
             ],
-            layout: {
-                name: 'cose-bilkent', // Use grid layout for simplicity
-            },
+            layout: layoutOptions,
             /*ready: function(this) {
                 this.expandCollapse({
 
