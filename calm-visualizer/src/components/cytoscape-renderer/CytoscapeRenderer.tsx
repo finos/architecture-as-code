@@ -1,18 +1,20 @@
 import React, { useEffect, useRef } from 'react';
 import cytoscape from 'cytoscape';
 
-type Node = {
+export type Node = {
     data: {
         label: string;
         id: string;
+        [idx: string]: string;
     }
 }
 
-type Edge = {
+export type Edge = {
     data: {
         label: string
         source: string;
         target: string;
+        [idx: string]: string;
     };
 
 }
