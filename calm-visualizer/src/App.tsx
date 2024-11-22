@@ -464,15 +464,36 @@ const getData = (): [Node[], Edge[]] => {
     const nodes = traderXJson.nodes.map(node => ({data: {label: node.name, description: node.description, type: node["node-type"], id: node["unique-id"]}}))
 
     const edges = traderXJson.relationships.filter(relationship => !relationship["relationship-type"]["composed-of"] && !relationship["relationship-type"]["deployed-in"]).map(relationship => {
-        if(relationship["relationship-type"]["interacts"]  && relationship.description) {
-            return  {data: {label: relationship.description, source: relationship["relationship-type"].interacts.actor, target: relationship["relationship-type"].interacts.nodes[0]}}
+        if(relationship["relationship-type"]["interacts"] && relationship["unique-id"]  && relationship.description) {
+            return  {
+                data: {
+                    id: relationship["unique-id"],
+                    label: relationship.description,
+                    source: relationship["relationship-type"].interacts.actor,
+                    target: relationship["relationship-type"].interacts.nodes[0],
+                    smooth: {
+                        enabled: true,
+                        type: "curvedCW",
+                        roundness: 0.1
+                    }
+                }}
         }
-        if(relationship["relationship-type"]["connects"] && relationship.description && relationship["relationship-type"].connects.source.node && relationship["relationship-type"].connects.destination.node) {
+        if(relationship["relationship-type"]["connects"] && relationship["unique-id"] && relationship.description && relationship["relationship-type"].connects.source.node && relationship["relationship-type"].connects.destination.node) {
             const source = relationship["relationship-type"].connects.source.node;
             const target =  relationship["relationship-type"].connects.destination.node;
-            return {data: {label: relationship.description, source , target }}
+            return {
+                data: {
+                    id: relationship["unique-id"],
+                    label: relationship.description,
+                    source ,
+                    target,
+                    smooth: {
+                        enabled: true,
+                        type: "curvedCW",
+                        roundness: 0.1
+                    }}}
         }
-        return {data: {label: "Dummy label", source: "1", target: "2"}}
+        return {data: {id: '5', label: "Dummy label", source: "1", target: "2"}}
         /*if(relationship["relationship-type"]["composed-of"]) {
             // return {}
         }

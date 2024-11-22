@@ -55,6 +55,8 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                     selector: 'edge',
                     style: {
                         'width': 2,
+                        'curve-style': 'bezier',
+                        'label':  'data(label)', // labels from data property
                         'line-color': '#FF4136',
                         'target-arrow-color': '#FF4136',
                         'target-arrow-shape': 'triangle',
@@ -73,7 +75,7 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
         };*/
     }, [nodes, edges]); // Re-render on nodes or edges change
 
-    return <div ref={cyRef} style={{ width: '100%', height: '500px' }} />;
+    return <div ref={cyRef} style={{ width: '90%', height: '1000px', backgroundColor: "white" }} />;
 };
 
 export default CytoscapeRenderer;
