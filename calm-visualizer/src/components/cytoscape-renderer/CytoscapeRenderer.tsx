@@ -1,5 +1,9 @@
-import React, { useEffect, useRef } from 'react';
-import cytoscape from 'cytoscape';
+import './cytoscape.css';
+import React, {useEffect, useRef, useState} from 'react';
+import cytoscape, {Core} from 'cytoscape';
+import nodeHtmlLabel from 'cytoscape-node-html-label';
+
+nodeHtmlLabel(cytoscape)
 
 export type Node = {
     data: {
@@ -26,6 +30,28 @@ interface Props {
 
 const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
     const cyRef = useRef(null);
+    const [cy, setCy] = useState<Core | null>(null);
+
+    useEffect(() => {
+        if(cy) {
+            cy.nodeHtmlLabel([
+                {
+                    query:  '.node',
+                    halign: 'center',
+                    valign: 'center',
+                    halignBox:  'center',
+                    valignBox: 'center',
+                    tpl: (data: Node["data"]) => {
+                        return `<div class="node">
+  <p class="title">${data.label}</p>
+  <p class="type">[database]</p>
+  <p class="description">Database which stores account, trade and position state</p>
+</div>`
+                    }
+                }
+            ])
+        }
+    }, [cy]);
 
     useEffect(() => {
         // Destroy previous Cytoscape instance to avoid memory leaks
@@ -36,19 +62,26 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
         // Initialize Cytoscape instance
         const container = cyRef.current;
 
-        cytoscape({
+        setCy(cytoscape({
             container: container, // container to render
             elements: [...nodes, ...edges], // graph data
             style: [
                 {
                     selector: 'node',
                     style: {
-                        'background-color': '#0074D9',
+                        opacity: 0,
+                        width: "mapData (degree, 0, 10, 5,  20)",
+                        height: "mapData (degree, 0  10, 5,  20)",
+                        shape:  "rectangle"
+                        /*'background-color': 'white',
                         'label': 'data(label)', // labels from data property
-                        'color': '#fff',
+                        'color': 'black',
                         'text-valign': 'center',
-                        'text-outline-width': 2,
-                        'text-outline-color': '#0074D9',
+
+                        width: '200px',
+                        "border-style": "solid",
+                        "border-color": "black",
+                        "border-width": "2px"*/
                     },
                 },
                 {
@@ -57,8 +90,6 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                         'width': 2,
                         'curve-style': 'bezier',
                         'label':  'data(label)', // labels from data property
-                        'line-color': '#FF4136',
-                        'target-arrow-color': '#FF4136',
                         'target-arrow-shape': 'triangle',
                     },
                 },
@@ -66,7 +97,7 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
             layout: {
                 name: 'grid', // Use grid layout for simplicity
             },
-        });
+        }));
 
         /*return () => {
             if (cyRef.current) {
