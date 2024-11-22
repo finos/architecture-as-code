@@ -460,18 +460,81 @@ const traderXJson = {
     ]
 }
 
+
+const getComposedOfRelationships = () => {
+    const composedOfRelationships: {
+        [idx: string]: {
+            type: "parent" | "child";
+            parent?: string;
+        }
+    } = {}
+
+    traderXJson.relationships.forEach(relationship => {
+        if (relationship["relationship-type"]["composed-of"]) {
+            const rel = relationship["relationship-type"]["composed-of"];
+            composedOfRelationships[rel["container"]] = {type: "parent"}
+            rel["nodes"].forEach(node => {
+                composedOfRelationships[node] = {
+                    type: "child",
+                    parent: rel["container"]
+                }
+            })
+        }
+    })
+
+    return composedOfRelationships;
+}
+const getDeployedInRelationships = () => {
+    const deployedInRelationships: {
+        [idx: string]: {
+            type: "parent" | "child";
+            parent?: string;
+        }
+    } = {}
+    traderXJson.relationships.forEach(relationship => {
+        if (relationship["relationship-type"]["deployed-in"]) {
+            const rel = relationship["relationship-type"]["deployed-in"];
+            deployedInRelationships[rel["container"]] = {type: "parent"}
+            rel["nodes"].forEach(node => {
+                deployedInRelationships[node] = {
+                    type: "child",
+                    parent: rel["container"]
+                }
+            })
+        }
+    })
+
+    return deployedInRelationships;
+}
+
 const getData = (): [Node[], Edge[]] => {
-    const nodes = traderXJson.nodes.map(node => (
-        {
-            classes: 'node',
-            data: {
-            classes: 'node',
-            label: node.name,
-                description: node.description, type: node["node-type"], id: node["unique-id"]}}))
+    const composedOfRelationships = getComposedOfRelationships();
+    // const deployedInRelationships = getDeployedInRelationships();
+
+    const nodes = traderXJson.nodes.map(node => {
+            const newData: Node = {
+                classes: 'node',
+                data: {
+                    classes: 'node',
+                    label: node.name,
+                    description: node.description, type: node["node-type"], id: node["unique-id"]
+                }
+            }
+
+            if (composedOfRelationships[node["unique-id"]]?.type === "parent") {
+                newData.classes = "group";
+            }
+
+            if (composedOfRelationships[node["unique-id"]]?.type === "child" && composedOfRelationships[node["unique-id"]]["parent"]) {
+                newData.data.parent = composedOfRelationships[node["unique-id"]].parent!;
+            }
+            return newData;
+        }
+    )
 
     const edges = traderXJson.relationships.filter(relationship => !relationship["relationship-type"]["composed-of"] && !relationship["relationship-type"]["deployed-in"]).map(relationship => {
-        if(relationship["relationship-type"]["interacts"] && relationship["unique-id"]  && relationship.description) {
-            return  {
+        if (relationship["relationship-type"]["interacts"] && relationship["unique-id"] && relationship.description) {
+            return {
                 data: {
                     id: relationship["unique-id"],
                     label: relationship.description,
@@ -482,27 +545,33 @@ const getData = (): [Node[], Edge[]] => {
                         type: "curvedCW",
                         roundness: 0.1
                     }
-                }}
+                }
+            }
         }
-        if(relationship["relationship-type"]["connects"] && relationship["unique-id"] && relationship.description && relationship["relationship-type"].connects.source.node && relationship["relationship-type"].connects.destination.node) {
+        if (relationship["relationship-type"]["connects"] && relationship["unique-id"] && relationship.description && relationship["relationship-type"].connects.source.node && relationship["relationship-type"].connects.destination.node) {
             const source = relationship["relationship-type"].connects.source.node;
-            const target =  relationship["relationship-type"].connects.destination.node;
+            const target = relationship["relationship-type"].connects.destination.node;
             return {
                 data: {
                     id: relationship["unique-id"],
                     label: relationship.description,
-                    source ,
+                    source,
                     target,
                     smooth: {
                         enabled: true,
                         type: "curvedCW",
                         roundness: 0.1
-                    }}}
+                    }
+                }
+            }
+        }
+
+        if (relationship["relationship-type"]["composed-of"]) {
+            return {}
         }
         return {data: {id: '5', label: "Dummy label", source: "1", target: "2"}}
-        /*if(relationship["relationship-type"]["composed-of"]) {
-            // return {}
-        }
+        /*
+
         if(relationship["relationship-type"]["deployed-in"]) {
             return {}
         }*/
@@ -513,12 +582,12 @@ const getData = (): [Node[], Edge[]] => {
 }
 
 function App() {
-    const [nodes, edges]  = getData();
+    const [nodes, edges] = getData();
 
     return (
         <>
-            <Drawer />
-            <CytoscapeRenderer nodes={nodes} edges={edges} />
+            <Drawer/>
+            <CytoscapeRenderer nodes={nodes} edges={edges}/>
         </>
     )
 }
