@@ -34,3 +34,35 @@ export function appendPath(path: string[], element) : string[] {
 export function renderPath(path: string[]): string {
     return pointer.compile(path);
 }
+
+/**
+ * Apply an update to the string keys of an object, recursively.   
+ * The provided function should map a key and value to the new value. To leave a value unmodified, just return the original value.
+ * @param obj The object to modify.
+ * @param mappingFunction The function to apply. Takes the key and the value, and returns the new value to set it to. 
+ * @returns 
+ */
+export function updateStringValuesRecursively(def: object, mappingFunction: (key: string, value: string) => string): object {
+    const update = (obj) => {
+        if (Array.isArray(obj)) {
+            for (let i = 0; i < obj.length; i++) {
+                update(obj[i]);
+            }
+        }
+        else if (typeof obj == 'object') {
+            for (const key in obj) {
+                const value = obj[key];
+                if (typeof value === 'string') {
+                    obj[key] = mappingFunction(key, value);
+                }
+                else {
+                    update(obj[key]);
+                }
+            }
+        }
+    };
+
+    const clone = _.cloneDeep(def);
+    update(clone);
+    return clone;
+}

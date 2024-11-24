@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'fs/promises';
 import { join } from 'path';
 import pointer from 'json-pointer';
-import { mergeSchemas } from './util.js';
+import { mergeSchemas, updateStringValuesRecursively } from './util.js';
 import { Logger } from 'winston';
 import { initLogger } from '../helper.js';
 import _ from 'lodash';
@@ -96,7 +96,7 @@ export class SchemaDirectory {
         const innerDef = this.getDefinitionRecursive(newRef, newSchemaId, visitedDefinitions);
         const merged = mergeSchemas(innerDef, definition);
         const qualified = this.qualifyLocalReferences(merged, newSchemaId);
-        return qualified
+        return qualified;
     }
 
     private getMissingSchemaPlaceholder(reference: string) {
@@ -115,7 +115,7 @@ export class SchemaDirectory {
     public getDefinition(definitionReference: string) {
         this.logger.debug(`Resolving ${definitionReference} from schema directory.`);
         const definition = this.getDefinitionRecursive(definitionReference, 'pattern', []);
-        this.logger.debug(`Resolved definition ${JSON.stringify(definition, null, 2)}`)
+        this.logger.debug(`Resolved definition ${JSON.stringify(definition, null, 2)}`);
         return definition;
     }
 
@@ -127,36 +127,15 @@ export class SchemaDirectory {
      * @param schemaId the schema ID to insert
      */
     public qualifyLocalReferences(definition: object, schemaId: string) {
-        const clone = _.cloneDeep(definition);
-        
-        const update = (obj) => {
-            if (Array.isArray(obj)) {
-                for (let i = 0; i < obj.length; i++) {
-                    update(obj[i])
-                }
+        return updateStringValuesRecursively(definition, (key, value) => {
+            if (key === '$ref' && value.startsWith('#')) {
+                const newReference = schemaId + value;
+                this.logger.debug(`Detected a local reference: ${value}. Qualifying the reference with schema ID during resolution. `);
+                this.logger.debug(`Qualified reference: ${newReference}`);
+                return newReference;
             }
-            else if (typeof obj == 'object') {
-                for (let key in obj) {
-                    if (key === '$ref') {
-                        let value = obj['$ref'];
-                        if (typeof value !== 'string') {
-                            this.logger.warn(`Error while resolving definition ${definition}. $ref property was not a string. Skipping this property.`);
-                            continue;
-                        }
-                        if (value.startsWith('#')) {
-                            const newReference = schemaId + value;
-                            this.logger.debug(`Detected a local reference: ${value}. Qualifying the reference with schema ID during resolution. Qualified reference ${newReference}`)
-                            obj[key] = newReference;
-                        }
-                    }
-                    else {
-                        update(obj[key])
-                    }
-                }
-            }
-        }
-        update(clone)
-        return clone
+            return value;
+        });
     }
 
     /**

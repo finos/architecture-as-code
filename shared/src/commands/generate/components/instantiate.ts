@@ -22,14 +22,14 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
     const required = fullDefinition['required'];
     logRequiredMessage(logger, required, instantiateAll);
 
-    logger.debug(`${renderPath(path)}: Instantiating generic object. Full definition: ${JSON.stringify(fullDefinition, null, 2)}`)
+    logger.debug(`${renderPath(path)}: Instantiating generic object. Full definition: ${JSON.stringify(fullDefinition, null, 2)}`);
 
     const out = {};
     for (const [key, detail] of Object.entries(fullDefinition['properties'])) {
         const currentPath = appendPath(path, key);
         const renderedPath = renderPath(currentPath);
 
-        logger.debug(`${renderedPath}: Generating definition for key ${key}: ${JSON.stringify(detail, null, 2)}`)
+        logger.debug(`${renderedPath}: Generating definition for key ${key}: ${JSON.stringify(detail, null, 2)}`);
         
         if (!instantiateAll && required && !required.includes(key) && key !== 'interfaces') { 
             logger.debug(`${renderedPath}: Skipping property ${key} as it is not marked as required.`);
@@ -89,7 +89,7 @@ export function instantiateArray(prefixItems: object[], schemaDirectory: SchemaD
     const logger = initLogger(debug);
     const output = [];
 
-    const renderedPath = renderPath(path)
+    const renderedPath = renderPath(path);
     logger.debug(`${renderedPath}: Instantiating elements of array as defined in prefixItems`);
     for (const [index, element] of prefixItems.entries()) {
         const currentPath = appendPath(path, index);
