@@ -1,5 +1,3 @@
-import _ from 'lodash';
-
 import { updateStringValuesRecursively } from './util';
 
 describe('updateStringValuesRecursively', () => {

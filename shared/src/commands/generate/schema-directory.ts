@@ -4,7 +4,6 @@ import pointer from 'json-pointer';
 import { mergeSchemas, updateStringValuesRecursively } from './util.js';
 import { Logger } from 'winston';
 import { initLogger } from '../helper.js';
-import _ from 'lodash';
 
 /**
  * Stores a directory of schemas and resolves references against that directory.

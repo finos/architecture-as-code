@@ -61,7 +61,7 @@ export function getPropertyValue(keyName: string, detail: Detail): string | stri
 }
 
 export function getEnumPlaceholder(ref: string): string {
-    var refName = /[^/#]*$/.exec(ref)[0];
-    const refPlaceholder = refName.toUpperCase().replaceAll('-', '_')
-    return `{{ ENUM_${refPlaceholder} }}`
+    const refName = /[^/#]*$/.exec(ref)[0];
+    const refPlaceholder = refName.toUpperCase().replaceAll('-', '_');
+    return `{{ ENUM_${refPlaceholder} }}`;
 }

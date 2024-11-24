@@ -82,6 +82,6 @@ describe('getPropertyValue', () => {
 describe('getEnumPlaceholder', () => {
     it('extracts ref name', () => {
         expect(getEnumPlaceholder('https://calm.com/core.json#def-name'))
-            .toBe('{{ ENUM_DEF_NAME }}')
-    })
-})
+            .toBe('{{ ENUM_DEF_NAME }}');
+    });
+});

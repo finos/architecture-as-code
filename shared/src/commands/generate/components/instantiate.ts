@@ -14,16 +14,15 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
         fullDefinition = mergeSchemas(schemaDef, definition);
 
         if ('enum' in fullDefinition) {
-            logger.debug(`Generating an enum definition. $ref: ${ref}`)
+            logger.debug(`Generating an enum definition. $ref: ${ref}`);
             const placeholder = getEnumPlaceholder(ref);
-            logger.info(`Generated an enum placeholder ${placeholder}. Potential values for this enum are: ${fullDefinition.enum}`)
+            logger.info(`Generated an enum placeholder ${placeholder}. Potential values for this enum are: ${fullDefinition.enum}`);
             return placeholder;
         }
     }
-    // TODO rework to properly separate 'verbose' from 'debug' level logging
     
     if (!('properties' in fullDefinition)) {
-        logger.warn("Attempting to resolve an empty definition. Returning {}.")
+        logger.warn('Attempting to resolve an empty definition. Returning {}.');
         return {};
     }
 
