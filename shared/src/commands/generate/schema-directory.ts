@@ -4,6 +4,7 @@ import pointer from 'json-pointer';
 import { mergeSchemas } from './util.js';
 import { Logger } from 'winston';
 import { initLogger } from '../helper.js';
+import _ from 'lodash';
 
 /**
  * Stores a directory of schemas and resolves references against that directory.
@@ -74,7 +75,7 @@ export class SchemaDirectory {
 
         if (!newSchemaId) {
             newSchemaId = currentSchemaId;
-            this.logger.debug(`Resolving reference ${ref} against current schema.`);
+            this.logger.debug(`Resolving reference ${ref} against current schema ${currentSchemaId}.`);
         }
         this.logger.debug(`Recursively resolving the reference, ref: ${ref}`);
         const definition = this.lookupDefinition(newSchemaId, ref);
@@ -85,7 +86,7 @@ export class SchemaDirectory {
         }
         if (!definition['$ref']) {
             this.logger.debug('Reached a definition with no ref, terminating recursive lookup.');
-            return definition;
+            return this.qualifyLocalReferences(definition, newSchemaId);
         }
         const newRef: string = definition['$ref'];
         if (visitedDefinitions.includes(newRef)) {
@@ -93,7 +94,9 @@ export class SchemaDirectory {
             return definition;
         }
         const innerDef = this.getDefinitionRecursive(newRef, newSchemaId, visitedDefinitions);
-        return mergeSchemas(innerDef, definition);
+        const merged = mergeSchemas(innerDef, definition);
+        const qualified = this.qualifyLocalReferences(merged, newSchemaId);
+        return qualified
     }
 
     private getMissingSchemaPlaceholder(reference: string) {
@@ -111,7 +114,49 @@ export class SchemaDirectory {
      */
     public getDefinition(definitionReference: string) {
         this.logger.debug(`Resolving ${definitionReference} from schema directory.`);
-        return this.getDefinitionRecursive(definitionReference, 'pattern', []);
+        const definition = this.getDefinitionRecursive(definitionReference, 'pattern', []);
+        this.logger.debug(`Resolved definition ${JSON.stringify(definition, null, 2)}`)
+        return definition;
+    }
+
+    /**
+     * Once a definition has been resolved, we need to make sure the returned object has any leftover keys resolved against the schema they were fetched from.
+     * The easiest way to do this is to qualify all local references (e.g #/defs/rate-limit-key) with their full schema ID.
+     * That way when we instantiate them later, we have the ID of the schema they belong to.
+     * @param definition  the definition object to look at references for
+     * @param schemaId the schema ID to insert
+     */
+    public qualifyLocalReferences(definition: object, schemaId: string) {
+        const clone = _.cloneDeep(definition);
+        
+        const update = (obj) => {
+            if (Array.isArray(obj)) {
+                for (let i = 0; i < obj.length; i++) {
+                    update(obj[i])
+                }
+            }
+            else if (typeof obj == 'object') {
+                for (let key in obj) {
+                    if (key === '$ref') {
+                        let value = obj['$ref'];
+                        if (typeof value !== 'string') {
+                            this.logger.warn(`Error while resolving definition ${definition}. $ref property was not a string. Skipping this property.`);
+                            continue;
+                        }
+                        if (value.startsWith('#')) {
+                            const newReference = schemaId + value;
+                            this.logger.debug(`Detected a local reference: ${value}. Qualifying the reference with schema ID during resolution. Qualified reference ${newReference}`)
+                            obj[key] = newReference;
+                        }
+                    }
+                    else {
+                        update(obj[key])
+                    }
+                }
+            }
+        }
+        update(clone)
+        return clone
     }
 
     /**

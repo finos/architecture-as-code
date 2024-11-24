@@ -14,7 +14,6 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
         fullDefinition = mergeSchemas(schemaDef, definition);
     }
     // TODO rework to properly separate 'verbose' from 'debug' level logging
-    // logger.debug('Generating ' + objectType + ' object from ' + JSON.stringify(fullDefinition));
     
     if (!('properties' in fullDefinition)) {
         return {};
@@ -23,10 +22,14 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
     const required = fullDefinition['required'];
     logRequiredMessage(logger, required, instantiateAll);
 
+    logger.debug(`${renderPath(path)}: Instantiating generic object. Full definition: ${JSON.stringify(fullDefinition, null, 2)}`)
+
     const out = {};
     for (const [key, detail] of Object.entries(fullDefinition['properties'])) {
         const currentPath = appendPath(path, key);
         const renderedPath = renderPath(currentPath);
+
+        logger.debug(`${renderedPath}: Generating definition for key ${key}: ${JSON.stringify(detail, null, 2)}`)
         
         if (!instantiateAll && required && !required.includes(key) && key !== 'interfaces') { 
             logger.debug(`${renderedPath}: Skipping property ${key} as it is not marked as required.`);
@@ -37,11 +40,15 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
         }
         else if (detail?.type === 'object') {
             // recursive instantiation
-            logger.info(`${renderedPath}: Recursively instantiating a ${objectType} object`);
+            logger.debug(`${renderedPath}: Recursively instantiating an object`);
+            out[key] = instantiateGenericObject(detail, schemaDirectory, objectType, currentPath, instantiateAll, debug);
+        }
+        else if (detail['$ref']) {
+            logger.debug(`${renderedPath}: Recursively instantiating a ${objectType} object via a $ref`);
             out[key] = instantiateGenericObject(detail, schemaDirectory, objectType, currentPath, instantiateAll, debug);
         }
         else if (detail?.type === 'array' && isArrayObjectComplex(detail, logger, renderedPath)) {
-            logger.info(`${renderedPath}: Recursively instantiating an array object.`);
+            logger.debug(`${renderedPath}: Recursively instantiating an array object.`);
 
             // isArrayObjectComplex ensures this is present
             const prefixItems = detail.prefixItems;
@@ -82,9 +89,11 @@ export function instantiateArray(prefixItems: object[], schemaDirectory: SchemaD
     const logger = initLogger(debug);
     const output = [];
 
-    logger.debug(`${path}: Instantiating elements of array as defined in prefixItems`);
+    const renderedPath = renderPath(path)
+    logger.debug(`${renderedPath}: Instantiating elements of array as defined in prefixItems`);
     for (const [index, element] of prefixItems.entries()) {
         const currentPath = appendPath(path, index);
+        // const renderedPath = renderPath(path)
         output.push(instantiateGenericObject(element, schemaDirectory, objectType, currentPath, debug, instantiateAll));
     }
 
