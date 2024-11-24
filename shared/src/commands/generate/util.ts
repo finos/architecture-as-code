@@ -27,7 +27,7 @@ export function logRequiredMessage(logger: Logger, required: string[], instantia
     }
 }
 
-export function appendPath(path: string[], element) : string[] {
+export function appendPath<T>(path: T[], element: T) : T[] {
     return [...path, element];
 }
 

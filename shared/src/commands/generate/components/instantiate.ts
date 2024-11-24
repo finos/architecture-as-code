@@ -34,7 +34,7 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
 
     const out = {};
     for (const [key, detail] of Object.entries(fullDefinition['properties'])) {
-        const currentPath = appendPath(path, key);
+        const currentPath = appendPath<string>(path, key);
         const renderedPath = renderPath(currentPath);
 
         logger.debug(`${renderedPath}: Generating definition for key ${key}: ${JSON.stringify(detail, null, 2)}`);
@@ -100,8 +100,7 @@ export function instantiateArray(prefixItems: object[], schemaDirectory: SchemaD
     const renderedPath = renderPath(path);
     logger.debug(`${renderedPath}: Instantiating elements of array as defined in prefixItems`);
     for (const [index, element] of prefixItems.entries()) {
-        const currentPath = appendPath(path, index);
-        // const renderedPath = renderPath(path)
+        const currentPath = appendPath<string>(path, index.toString());
         output.push(instantiateGenericObject(element, schemaDirectory, objectType, currentPath, debug, instantiateAll));
     }
 

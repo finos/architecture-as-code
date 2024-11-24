@@ -45,7 +45,7 @@ export function instantiateRelationships(pattern: any, schemaDirectory: SchemaDi
 
     const outputRelationships = [];
     for (const [index, relationship] of relationships.entries()) {
-        const path = appendPath(['relationships'], index);
+        const path = appendPath<string>(['relationships'], index);
         outputRelationships.push(instantiateRelationship(relationship, schemaDirectory, path, debug, instantiateAll));
     }
 

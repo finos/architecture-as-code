@@ -26,7 +26,7 @@ export function instantiateAllMetadata(pattern: object, schemaDirectory: SchemaD
     const outputMetadata = [];
 
     for (const [index, metadataObj] of metadataObjects.entries()) {
-        const path = appendPath(['metadata'], index);
+        const path = appendPath<string>(['metadata'], index);
         outputMetadata.push(instantiateMetadataObject(metadataObj, schemaDirectory, path, debug, instantiateAll));
     }
     return outputMetadata;

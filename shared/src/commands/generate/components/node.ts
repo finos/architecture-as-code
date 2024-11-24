@@ -36,7 +36,7 @@ export function instantiateNodes(pattern: any, schemaDirectory: SchemaDirectory,
     const outputNodes = [];
 
     for (const [index, node] of nodes.entries()) {
-        const path = appendPath(['nodes'], index);
+        const path = appendPath<string>(['nodes'], index);
         outputNodes.push(instantiateNode(node, schemaDirectory, path, debug, instantiateAll));
     }
     return outputNodes;
