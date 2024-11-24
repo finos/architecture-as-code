@@ -4,7 +4,13 @@ import { appendPath } from '../util.js';
 import { instantiateGenericObject } from './instantiate.js';
 
 export function instantiateMetadataObject(definition: object, schemaDirectory: SchemaDirectory, path: string[], debug: boolean = false, instantiateAll: boolean = false): object {
-    return instantiateGenericObject(definition, schemaDirectory, 'metadata', path, debug, instantiateAll);
+    const metadata = instantiateGenericObject(definition, schemaDirectory, 'metadata', path, debug, instantiateAll);
+    if (typeof metadata !== 'object') {
+        const message = 'Expected an object during instantiation, got a string. Could there be a top-level $ref to an enum or string type?'
+        initLogger(debug).error(message)
+        throw Error(message);
+    }
+    return metadata
 }
 
 export function instantiateAllMetadata(pattern: object, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): object[] {

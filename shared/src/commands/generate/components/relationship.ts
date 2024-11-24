@@ -15,7 +15,13 @@ import { instantiateGenericObject } from './instantiate.js';
  * @returns An instantiated relationship.
  */
 function instantiateRelationship(relationshipDef: object, schemaDirectory: SchemaDirectory, path: string[], debug: boolean = false, instantiateAll: boolean = false): object {
-    return instantiateGenericObject(relationshipDef, schemaDirectory, 'relationship', path, debug, instantiateAll);
+    const relationship = instantiateGenericObject(relationshipDef, schemaDirectory, 'relationship', path, debug, instantiateAll);
+    if (typeof relationship !== 'object') {
+        const message = 'Expected an object during instantiation, got a string. Could there be a top-level $ref to an enum or string type?'
+        initLogger(debug).error(message)
+        throw Error(message);
+    }
+    return relationship
 }
 
 /**
