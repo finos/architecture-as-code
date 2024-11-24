@@ -1,6 +1,6 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 
-import { getConstValue, getPropertyValue } from './property';
+import { getConstValue, getEnumPlaceholder, getPropertyValue } from './property';
 
 jest.mock('../../helper', () => {
     return {
@@ -78,3 +78,10 @@ describe('getPropertyValue', () => {
             .toBe('{{ BOOLEAN_KEY_NAME }}');
     });
 });
+
+describe('getEnumPlaceholder', () => {
+    it('extracts ref name', () => {
+        expect(getEnumPlaceholder('https://calm.com/core.json#def-name'))
+            .toBe('{{ ENUM_DEF_NAME }}')
+    })
+})

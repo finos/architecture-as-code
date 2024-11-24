@@ -12,6 +12,7 @@ export function getBooleanPlaceholder(name: string): string {
 
 interface Detail {
     const?: string | object,
+    enum?: string[],
     type?: 'string' | 'integer' | 'number' | 'array' | 'boolean',
     $ref?: string
 }
@@ -57,4 +58,11 @@ export function getPropertyValue(keyName: string, detail: Detail): string | stri
     if (detail.$ref) {
         return getRefPlaceholder(keyName);
     }
+}
+
+export function getEnumPlaceholder(ref: string): string {
+    const refSegments = ref.split('/');
+    const refName = refSegments[refSegments.length - 1];
+    const refPlaceholder = refName.toUpperCase().replaceAll('-', '_')
+    return `{{ ENUM_${refPlaceholder} }}`
 }

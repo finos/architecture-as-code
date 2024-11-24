@@ -2,7 +2,7 @@ import { Logger } from 'winston';
 import { initLogger } from '../../helper.js';
 import { SchemaDirectory } from '../schema-directory.js';
 import { appendPath, logRequiredMessage, mergeSchemas, renderPath } from '../util.js';
-import { getConstValue, getPropertyValue } from './property.js';
+import { getConstValue, getEnumPlaceholder, getPropertyValue } from './property.js';
 
 export function instantiateGenericObject(definition: object, schemaDirectory: SchemaDirectory, objectType: string, path: string[], debug: boolean = false, instantiateAll: boolean = false): object {
     const logger = initLogger(debug);
@@ -12,10 +12,16 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
         const schemaDef = schemaDirectory.getDefinition(ref); 
 
         fullDefinition = mergeSchemas(schemaDef, definition);
+
+        if ('enum' in fullDefinition) {
+            logger.debug(`Generating an enum definition. $ref: ${ref}`)
+            return getEnumPlaceholder(ref);
+        }
     }
     // TODO rework to properly separate 'verbose' from 'debug' level logging
     
     if (!('properties' in fullDefinition)) {
+        logger.warn("Attempting to resolve an empty definition. Returning {}.")
         return {};
     }
 
