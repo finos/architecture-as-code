@@ -78,8 +78,8 @@ export type Edge = {
 }
 
 interface Props {
-    nodes: Node[]
-    edges: Edge[]
+    nodes: Node[] | undefined
+    edges: Edge[] | undefined
 }
 
 const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
