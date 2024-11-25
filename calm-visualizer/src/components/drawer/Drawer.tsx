@@ -516,85 +516,16 @@ const getDeployedInRelationships = () => {
     return deployedInRelationships;
 }
 
-const getData = (): [Node[], Edge[]] => {
-    const composedOfRelationships = getComposedOfRelationships();
-    const deployedInRelationships = getDeployedInRelationships();
-
-    const nodes = traderXJson.nodes.map(node => {
-            const newData: Node = {
-                classes: 'node',
-                data: {
-                    classes: 'node',
-                    label: node.name,
-                    description: node.description, type: node["node-type"], id: node["unique-id"]
-                }
-            }
-
-            if (composedOfRelationships[node["unique-id"]]?.type === "parent") {
-                newData.classes = "group";
-            }
-
-            if (composedOfRelationships[node["unique-id"]]?.type === "child" && composedOfRelationships[node["unique-id"]]["parent"]) {
-                newData.data.parent = composedOfRelationships[node["unique-id"]].parent!;
-            }
-
-            if (deployedInRelationships[node["unique-id"]]?.type === "parent") {
-                newData.classes = "group";
-            }
-
-            if (deployedInRelationships[node["unique-id"]]?.type === "child" && deployedInRelationships[node["unique-id"]]["parent"] && !newData.data.parent) {
-                newData.data.parent = deployedInRelationships[node["unique-id"]].parent!;
-            }
-            return newData;
-        }
-    )
-
-    const edges = traderXJson.relationships.filter(relationship => !relationship["relationship-type"]["composed-of"] && !relationship["relationship-type"]["deployed-in"]).map(relationship => {
-        if (relationship["relationship-type"]["interacts"] && relationship["unique-id"] && relationship.description) {
-            return {
-                data: {
-                    id: relationship["unique-id"],
-                    label: relationship.description,
-                    source: relationship["relationship-type"].interacts.actor,
-                    target: relationship["relationship-type"].interacts.nodes[0],
-                    smooth: {
-                        enabled: true,
-                        type: "curvedCW",
-                        roundness: 0.1
-                    }
-                }
-            }
-        }
-        if (relationship["relationship-type"]["connects"] && relationship["unique-id"] && relationship.description && relationship["relationship-type"].connects.source.node && relationship["relationship-type"].connects.destination.node) {
-            const source = relationship["relationship-type"].connects.source.node;
-            const target = relationship["relationship-type"].connects.destination.node;
-            return {
-                data: {
-                    id: relationship["unique-id"],
-                    label: relationship.description,
-                    source,
-                    target,
-                    smooth: {
-                        enabled: true,
-                        type: "curvedCW",
-                        roundness: 0.1
-                    }
-                }
-            }
-        }
-
-    })
-
-    return [nodes, edges];
-}
-
 function Drawer() {
-    const [_nodes, edges] = getData();
+    //const [_nodes, edges] = getData();
     const [nodes, setNodes] = useState<NodeLayout[]>([])
     const [relationships, setRelationships] = useState<RelationshipLayout[]>([])
     const [instance, setInstance] = useState<BrowserJsPlumbInstance>()
     const [title, setTitle] = useState('Architecture as Code')
     const [selectedNode, setSelectedNode] = useState(null)
+    const [calmInstance, setCALMInstance] = useState(null)
+    const [cyNodes, setCyNodes] = useState<Node[] | undefined>()
+    const [cyEdges, setCyEdges] = useState<Edge[] | undefined>()
 
     const closeSidebar = () => {
         setSelectedNode(null)
@@ -616,6 +547,78 @@ function Drawer() {
         })
     }
 
+    const getData = (calmInstance : any) => {
+        const composedOfRelationships = getComposedOfRelationships();
+        const deployedInRelationships = getDeployedInRelationships();
+    
+        const nodes = calmInstance.nodes.map(node => {
+                const newData: Node = {
+                    classes: 'node',
+                    data: {
+                        classes: 'node',
+                        label: node.name,
+                        description: node.description, type: node["node-type"], id: node["unique-id"]
+                    }
+                }
+    
+                if (composedOfRelationships[node["unique-id"]]?.type === "parent") {
+                    newData.classes = "group";
+                }
+    
+                if (composedOfRelationships[node["unique-id"]]?.type === "child" && composedOfRelationships[node["unique-id"]]["parent"]) {
+                    newData.data.parent = composedOfRelationships[node["unique-id"]].parent!;
+                }
+    
+                if (deployedInRelationships[node["unique-id"]]?.type === "parent") {
+                    newData.classes = "group";
+                }
+    
+                if (deployedInRelationships[node["unique-id"]]?.type === "child" && deployedInRelationships[node["unique-id"]]["parent"] && !newData.data.parent) {
+                    newData.data.parent = deployedInRelationships[node["unique-id"]].parent!;
+                }
+                return newData;
+            }
+        )
+    
+        const edges = calmInstance.relationships.filter(relationship => !relationship["relationship-type"]["composed-of"] && !relationship["relationship-type"]["deployed-in"]).map(relationship => {
+            if (relationship["relationship-type"]["interacts"] && relationship["unique-id"] && relationship.description) {
+                return {
+                    data: {
+                        id: relationship["unique-id"],
+                        label: relationship.description,
+                        source: relationship["relationship-type"].interacts.actor,
+                        target: relationship["relationship-type"].interacts.nodes[0],
+                        smooth: {
+                            enabled: true,
+                            type: "curvedCW",
+                            roundness: 0.1
+                        }
+                    }
+                }
+            }
+            if (relationship["relationship-type"]["connects"] && relationship["unique-id"] && relationship.description && relationship["relationship-type"].connects.source.node && relationship["relationship-type"].connects.destination.node) {
+                const source = relationship["relationship-type"].connects.source.node;
+                const target = relationship["relationship-type"].connects.destination.node;
+                return {
+                    data: {
+                        id: relationship["unique-id"],
+                        label: relationship.description,
+                        source,
+                        target,
+                        smooth: {
+                            enabled: true,
+                            type: "curvedCW",
+                            roundness: 0.1
+                        }
+                    }
+                }
+            }
+    
+        })
+        setCyNodes(nodes);
+        setCyEdges(edges);
+    }
+
     async function handleFile(instanceFile: File, layoutFile?: File) {
         const instanceString = await instanceFile.text()
         const calmInstance = JSON.parse(instanceString)
@@ -630,6 +633,8 @@ function Drawer() {
             )
         }
 
+        setCALMInstance(calmInstance);
+        getData(calmInstance);
         setNodes(enhanceNodesWithLayout(calmInstance.nodes, nodePositions))
         setRelationships(calmInstance.relationships)
     }
@@ -690,7 +695,7 @@ function Drawer() {
                                 setSelectedNode={setSelectedNode}
                             />
                         )}*/}
-                        <CytoscapeRenderer nodes={_nodes} edges={edges}/>
+                        <CytoscapeRenderer nodes={cyNodes} edges={cyEdges}/>
                     </div>
                 </div>
                 {selectedNode && (
