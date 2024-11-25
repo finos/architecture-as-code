@@ -2,16 +2,17 @@
     border: 1px solid;
     text-align: center;
     width: 200px;
-    height: 200px;
+    height: 100px;
     font-family: Arial;
     padding: 10px 30px 10px 30px;
+    background-color: white;
 }
 
 .element {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-top: -100px;
+    margin-top: -50px;
     margin-left: -100px;
 }
 
@@ -28,4 +29,12 @@
 .description {
     margin-top: 10px;
     color: black
+}
+
+/*Used for the tooltip*/
+.edge-tooltip {
+    border: solid 1px;
+    background-color: blue;
+    color: white;
+    padding: 1rem;
 }
