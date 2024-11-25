@@ -11,7 +11,6 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "@jsplumb/browser-ui": "^6.2.10",
         "cytoscape": "^3.30.3",
         "cytoscape-cola": "^2.5.1",
         "cytoscape-cose-bilkent": "^4.1.0",
