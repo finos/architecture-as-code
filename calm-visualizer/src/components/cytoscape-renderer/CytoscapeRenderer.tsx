@@ -1,6 +1,6 @@
 import './cytoscape.css'
-import React, { useEffect, useRef, useState } from 'react'
-import cytoscape, { Core } from 'cytoscape'
+import { useEffect, useRef, useState } from 'react'
+import cytoscape from 'cytoscape'
 import nodeHtmlLabel from 'cytoscape-node-html-label'
 import coseBilkent from 'cytoscape-cose-bilkent'
 import expandCollapse from 'cytoscape-expand-collapse'
@@ -69,11 +69,23 @@ export type Node = {
 }
 
 export type Edge = {
+    // data: {
+    //     label: string
+    //     source: string
+    //     target: string
+    //     [idx: string]: string
+    // }
+
     data: {
+        id: string
         label: string
         source: string
         target: string
-        [idx: string]: string
+        smooth: {
+            enabled: boolean
+            type: string
+            roundness: number
+        }
     }
 }
 
