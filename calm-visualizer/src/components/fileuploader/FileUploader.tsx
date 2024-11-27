@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 
-interface FileUploaderProps {
+interface Props {
     callback: (instanceFile: File, layoutFile?: File) => void
 }
 
@@ -12,7 +12,7 @@ function FileUploader({ callback }: FileUploaderProps) {
         if (instanceFile) {
             callback(instanceFile, layoutFile || undefined)
         }
-    }
+    };
 
     return (
         <>
@@ -61,4 +61,4 @@ function FileUploader({ callback }: FileUploaderProps) {
     )
 }
 
-export default FileUploader
+export default FileUploader;
