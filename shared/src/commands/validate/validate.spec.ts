@@ -33,10 +33,6 @@ jest.mock('../helper.js', () => {
     };
 });
 
-jest.mock('../../consts', () => ({
-    get CALM_SPECTRAL_RULES_DIRECTORY() { return '../spectral'; }
-}));
-
 const metaSchemaLocation = 'test_fixtures/calm';
 const debugDisabled = false;
 
@@ -454,7 +450,7 @@ describe('validate-all', () => {
             const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
             fetchMock.mock('http://exist/api-gateway.json', apiGateway);
     
-            await expect(validateAndExitConditionally(undefined, 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
+            await expect(validateAndExitConditionally('', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
                 .rejects
                 .toThrow();
         });
@@ -474,7 +470,7 @@ describe('validate-all', () => {
     
             const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
             fetchMock.mock('http://exist/api-gateway.json', apiGateway);
-            await expect(validateAndExitConditionally(undefined, 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, true))
+            await expect(validateAndExitConditionally('', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, true))
                 .rejects
                 .toThrow();
     
@@ -491,7 +487,7 @@ describe('validate-all', () => {
             const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/bad-schema/bad-json-schema.json'), 'utf8');
             fetchMock.mock('http://exist/api-gateway.json', apiGateway);
     
-            await expect(validateAndExitConditionally(undefined, 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
+            await expect(validateAndExitConditionally('', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
                 .rejects
                 .toThrow();
     
