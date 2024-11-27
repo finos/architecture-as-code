@@ -202,11 +202,10 @@ npm install
 npm run build
 
 # Step 3: Link the workspace locally for testing
-npm link:cli
-
-# Step 4: Start the watch process for live development
-npm run watch
+npm run link:cli
 ```
+
+*Currently `watch` based development isn't working - this is in progress and will be resolved seperately.*
 
 
 ### CLI Tests

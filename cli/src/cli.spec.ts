@@ -17,7 +17,7 @@ describe('CLI Integration Tests', () => {
 
     beforeAll(async () => {
         tempDir = fs.mkdtempSync(path.join(os.tmpdir(), integrationTestPrefix));
-        await callNpmFunctionSync(`${projectRoot}`, 'link');
+        await callNpmFunction(`${projectRoot}`, 'link');
     }, millisPerSecond * 20);
 
     afterAll(async () => {
@@ -83,7 +83,7 @@ describe('CLI Integration Tests', () => {
         });
     });
 
-    test('example validate command - no format or schema input - outputting JUNIT to stdout', (done) => {
+    test('example validate command - outputting JUNIT to stdout', (done) => {
         const exampleValidateCommand = 'calm validate -p ../calm/pattern/api-gateway.json -i ../calm/samples/api-gateway-instantiation.json -f junit';
         exec(exampleValidateCommand, async (_error, stdout, _stderr) => {
             const parsedOutput = await parseStringPromise(stdout);
@@ -139,7 +139,7 @@ describe('CLI Integration Tests', () => {
 });
 
 
-async function callNpmFunctionSync(projectRoot: string, command: string) {
+async function callNpmFunction(projectRoot: string, command: string) {
     await execPromise(`npm ${command}`, { cwd: projectRoot });
 }
 

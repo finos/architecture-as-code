@@ -1,5 +1,5 @@
 import { Digraph, Subgraph, Node, Edge, toDot, attribute } from 'ts-graphviz';
-import { CALMInstantiation, CALMComposedOfRelationship, CALMConnectsRelationship, CALMDeployedInRelationship, CALMInteractsRelationship, CALMRelationship, CALMNode } from '../..';
+import { CALMInstantiation, CALMComposedOfRelationship, CALMConnectsRelationship, CALMInteractsRelationship, CALMNode, CALMRelationship, CALMDeployedInRelationship } from '../../types';
 import { initLogger } from '../helper.js';
 import winston from 'winston';
 
