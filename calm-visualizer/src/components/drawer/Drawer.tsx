@@ -183,7 +183,7 @@ function Drawer() {
                 </div>
                 {selectedNode && (
                     <Sidebar
-                        selectedNode={selectedNode}
+                        selectedData={selectedNode}
                         closeSidebar={closeSidebar}
                     />
                 )}
