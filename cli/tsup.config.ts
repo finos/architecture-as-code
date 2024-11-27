@@ -4,7 +4,7 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig({
     entry: ['src/index.ts'],
-    format: ['cjs', 'esm'],
+    format: ['cjs'],
     sourcemap: false,
     clean: true,
     external: ['canvas', 'fsevents', /node_modules/],

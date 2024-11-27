@@ -203,9 +203,10 @@ npm run build
 
 # Step 3: Link the workspace locally for testing
 npm run link:cli
-```
 
-*Currently `watch` based development isn't working - this is in progress and will be resolved seperately.*
+# Step 4 : Run `watch` to check for changes automatically and re-bundle. This watching is via `chokidar` and isn't instant - give it a second or two to propogate changes.
+npm run watch
+```
 
 
 ### CLI Tests

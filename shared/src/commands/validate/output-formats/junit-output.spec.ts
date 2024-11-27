@@ -1,5 +1,5 @@
 import { ValidationOutcome, ValidationOutput } from '../validation.output';
-import createJUnitReport from './junit.report';
+import createJUnitReport from './junit-output';
 
 const jsonSchemaValidationOutput: ValidationOutput[] = [
     new ValidationOutput(
