@@ -12,7 +12,7 @@ export interface CALMInstantiation {
 export type NodeType = 'actor' | 'system' | 'service' | 'database' | 'network' | 'ldap' | 'dataclient';
 
 export interface CALMNode {
-    name: string, 
+    name: string,
     class?: string,
     'unique-id': string,
     'node-type': NodeType,
@@ -31,7 +31,7 @@ export interface CALMInteractsRelationship {
             nodes: string[]
         }
     },
-    uniqueId: string,
+    'unique-id': string,
     description?: string
 }
 
@@ -42,7 +42,7 @@ export interface CALMConnectsRelationship {
             destination: { node: string, interface?: string }
         }
     },
-    uniqueId: string,
+    'unique-id': string,
     protocol?: string,
     authentication?: string,
     description?: string
@@ -55,7 +55,7 @@ export interface CALMDeployedInRelationship {
             nodes: string[]
         }
     },
-    uniqueId: string,
+    'unique-id': string,
     description?: string
 }
 
@@ -66,6 +66,6 @@ export interface CALMComposedOfRelationship {
             nodes: string[]
         },
     }
-    uniqueId: string,
+    'unique-id': string,
     description?: string
 }
