@@ -1,9 +1,10 @@
 import './cytoscape.css'
 import { useEffect, useRef, useState } from 'react'
-import cytoscape from 'cytoscape'
+import cytoscape, {Core, NodeSingular} from 'cytoscape'
 import nodeHtmlLabel from 'cytoscape-node-html-label'
 import coseBilkent from 'cytoscape-cose-bilkent'
 import expandCollapse from 'cytoscape-expand-collapse'
+import fcose from 'cytoscape-fcose';
 import cytoscapePopper, { RefElement } from 'cytoscape-popper'
 import tippy from 'tippy.js'
 import Sidebar from '../sidebar/Sidebar'
@@ -13,9 +14,14 @@ import Sidebar from '../sidebar/Sidebar'
 nodeHtmlLabel(cytoscape)
 expandCollapse(cytoscape)
 
-cytoscape.use(coseBilkent)
+cytoscape.use(fcose);
+cytoscape.use(coseBilkent);
 
-const layoutOptions = {
+const fcoseLayoutOptions = {
+    name: 'fcose'
+}
+
+const coseBilkentLayoutOptions = {
     name: 'cose-bilkent',
     randomize: false,
     fit: true,
@@ -37,9 +43,9 @@ const layoutOptions = {
 
 function tippyFactory(ref: RefElement, content: HTMLElement) {
     // Since tippy constructor requires DOM element/elements, create a placeholder
-    var dummyDomEle = document.createElement('div')
+    let dummyDomEle = document.createElement('div')
 
-    var tip = tippy(dummyDomEle, {
+    let tip = tippy(dummyDomEle, {
         getReferenceClientRect: ref.getBoundingClientRect,
         trigger: 'manual', // mandatory
         // dom element inside the tippy:
@@ -69,13 +75,6 @@ export type Node = {
 }
 
 export type Edge = {
-    // data: {
-    //     label: string
-    //     source: string
-    //     target: string
-    //     [idx: string]: string
-    // }
-
     data: {
         id: string
         label: string
@@ -86,6 +85,7 @@ export type Edge = {
             type: string
             roundness: number
         }
+        [idx: string]: string
     }
 }
 
@@ -96,7 +96,7 @@ interface Props {
 
 const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
     const cyRef = useRef<HTMLDivElement>(null)
-    const [cy, setCy] = useState<any | null>(null)
+    const [cy, setCy] = useState<Core | null>(null)
     const [selectedNode, setSelectedNode] = useState<Node['data'] | null>(null)
 
     useEffect(() => {
@@ -118,21 +118,43 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
             //     const edge = event.target
             //     edge.tippy.hide(0);
             // })
+
+            //@ts-expect-error
+            cy.nodeHtmlLabel([
+                {
+                    query: '.node',
+                    halign: 'center',
+                    valign: 'center',
+                    halignBox: 'center',
+                    valignBox: 'center',
+                    tpl: (data: Node['data']) => {
+                        return `<div class="node element">
+  <p class="title">${data.label}</p>
+  <p class="type">[database]</p>
+</div>`
+                    },
+                }
+            ])
+
+            cy.on('tap', 'node', (e: Event) => {
+                e.preventDefault()
+                const node = e.target as  unknown as  NodeSingular | null
+                setSelectedNode(node?.data()) // Update state with the clicked node's data
+            })
+
+            return () => {
+                cy.destroy()
+            }
         }
     }, [cy])
 
     useEffect(() => {
-        // Destroy previous Cytoscape instance to avoid memory leaks
-        /*if (cyRef.current) {
-            cyRef.current.destroy();
-        }*/
-
         // Initialize Cytoscape instance
         const container = cyRef.current
 
         if (!container) return
 
-        const cyInstance: any = cytoscape({
+        setCy(cytoscape({
             container: container, // container to render
             elements: [...nodes, ...edges], // graph data
             style: [
@@ -151,8 +173,6 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                         'curve-style': 'bezier',
                         label: 'data(label)', // labels from data property
                         'target-arrow-shape': 'triangle',
-                        //'text-wrap': 'ellipsis',
-                        //"text-max-width": '100px'
                     },
                 },
                 {
@@ -162,48 +182,13 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                     },
                 },
             ],
-            layout: layoutOptions,
-            /*ready: function(this) {
-                            this.expandCollapse({
+            layout: fcoseLayoutOptions,
+        }))
 
-                            })
-                        }*/
-        })
-
-        cyInstance.nodeHtmlLabel([
-            {
-                query: 'node',
-                halign: 'center',
-                valign: 'center',
-                halignBox: 'center',
-                valignBox: 'center',
-                tpl: (data: Node['data']) => {
-                    return `<div class="node element">
-  <p class="title">${data.label}</p>
-  <p class="type">[database]</p>
-</div>`
-                },
-            },
-        ])
-
-        cyInstance.on('tap', 'node', (e: any) => {
-            e.preventDefault()
-            const node = e.target
-            setSelectedNode(node.data()) // Update state with the clicked node's data
-        })
-        setCy(cyInstance)
-
-        return () => {
-            cyInstance.destroy()
-        }
-        // } else {
-        //     cy.json({ elements: [...nodes, ...edges] })
-        //     cy.layout({ name: 'cose-bilkent' }).run()
-        // }
     }, [nodes, edges]) // Re-render on cy, nodes or edges change
 
     return (
-        <div className="relative flex h-screen w-full">
+        <div className="relative flex h-screen w-11/12 m-auto">
             <div
                 ref={cyRef}
                 className="flex-1 bg-white"
