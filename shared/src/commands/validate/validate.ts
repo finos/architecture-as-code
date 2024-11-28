@@ -9,7 +9,8 @@ import * as winston from 'winston';
 import { initLogger } from '../helper.js';
 import { ValidationOutput, ValidationOutcome } from './validation.output.js';
 import { SpectralResult } from './spectral.result.js';
-import createJUnitReport from './junit-report/junit.report.js';
+import createJUnitReport from './output-formats/junit-output.js';
+import prettyFormat from './output-formats/pretty-output';
 
 let logger: winston.Logger; // defined later at startup
 
@@ -27,12 +28,12 @@ function mergeSpectralResults(spectralResultPattern: SpectralResult, spectralRes
 }
 
 /**
+ * TODO - move this out of shared and into the CLI - this is process-management code.
  * Given a validation outcome - exit from the process gracefully with an exit code we conrol.
  * @param validationOutcome Outcome to process from call to validate.
  * @param failOnWarnings If true, the process will exit with a non-zero exit code for warnings as well as errors.
  */
 export function exitBasedOffOfValidationOutcome(validationOutcome: ValidationOutcome, failOnWarnings: boolean) {
-    logger.info('Validation complete');
     if (validationOutcome.hasErrors) {
         process.exit(1);
     }
@@ -42,38 +43,29 @@ export function exitBasedOffOfValidationOutcome(validationOutcome: ValidationOut
     process.exit(0);
 }
 
-export function getFormattedOutput(
-    validationOutcome: ValidationOutcome,
-    format: string
-): string {
-    if (format === 'junit') {
-    
-        const spectralRules = extractRulesFromSpectralRulesets();
-    
-        return createJUnitReport(validationOutcome, spectralRules);
-    }
-    return prettifyJson(validationOutcome);
+export type OutputFormat = 'junit' | 'json' | 'pretty'
 
+export function formatOutput(
+    validationOutcome: ValidationOutcome,
+    format: OutputFormat
+): string {
+    logger.info(`Formatting output as ${format}`);
+    switch (format) {
+    case 'junit': {
+        const spectralRuleNames = extractSpectralRuleNames();
+        return createJUnitReport(validationOutcome, spectralRuleNames);
+    }
+    case 'pretty':
+        return prettyFormat(validationOutcome);
+    case 'json':
+        return prettifyJson(validationOutcome);
+    }
 }
 
 function buildAjv2020(debug: boolean): Ajv2020 {
-    if (debug) {
-        return new Ajv2020({
-            strict: 'log', allErrors: true, loadSchema: async (uri) => {
-                try {
-                    const response = await fetch(uri);
-                    if (!response.ok) {
-                        throw new Error(`Unable to fetch schema from ${uri}`);
-                    }
-                    return response.json();
-                } catch (error) {
-                    console.error(`Error fetching schema: ${error.message}`);
-                }
-            }
-        });
-    }
+    const strictType = debug ? 'log' : false;
     return new Ajv2020({
-        strict: false, allErrors: true, loadSchema: async (uri) => {
+        strict: strictType, allErrors: true, loadSchema: async (uri) => {
             try {
                 const response = await fetch(uri);
                 if (!response.ok) {
@@ -92,14 +84,14 @@ function isValidURL(str: string): boolean {
         const url = new URL(str);
         return ['http:', 'https:'].includes(url.protocol);
     } catch {
-        return false; // Invalid URL
+        return false;
     }
 }
-
 
 async function loadMetaSchemas(ajv: Ajv2020, metaSchemaLocation: string) {
     logger.info(`Loading meta schema(s) from ${metaSchemaLocation}`);
     if (isValidURL(metaSchemaLocation)) {
+        logger.info(`Loading meta schema from URL: ${metaSchemaLocation}`);
         const metaSchema = await getFileFromUrlOrPath(metaSchemaLocation);
         ajv.addSchema(metaSchema);
     } else {
@@ -138,7 +130,7 @@ async function runSpectralValidations(
     if (issues && issues.length > 0) {
         logger.debug(`Spectral raw output: ${prettifyJson(issues)}`);
         sortSpectralIssueBySeverity(issues);
-        spectralIssues = formatSpectralOutput(issues);
+        spectralIssues = convertSpectralDiagnosticToValidationOutputs(issues);
         if (issues.filter(issue => issue.severity === 0).length > 0) {
             logger.debug('Spectral output contains errors');
             errors = true;
@@ -157,24 +149,17 @@ export function sortSpectralIssueBySeverity(issues: ISpectralDiagnostic[]): void
     );
 }
 
-export function formatJsonSchemaOutput(jsonSchemaIssues: ErrorObject[]): ValidationOutput[] {
-    const validationOutput: ValidationOutput[] = [];
-
-    jsonSchemaIssues.forEach(issue => {
-        const formattedIssue = new ValidationOutput(
-            'json-schema',
-            'error',
-            issue.message,
-            issue.instancePath,
-            issue.schemaPath
-        );
-        validationOutput.push(formattedIssue);
-    });
-
-    return validationOutput;
+export function convertJsonSchemaIssuesToValidationOutputs(jsonSchemaIssues: ErrorObject[]): ValidationOutput[] {
+    return jsonSchemaIssues.map(issue => new ValidationOutput(
+        'json-schema',
+        'error',
+        issue.message,
+        issue.instancePath,
+        issue.schemaPath
+    ));
 }
 
-export function formatSpectralOutput(spectralIssues: ISpectralDiagnostic[]): ValidationOutput[] {
+export function convertSpectralDiagnosticToValidationOutputs(spectralIssues: ISpectralDiagnostic[]): ValidationOutput[] {
     const validationOutput: ValidationOutput[] = [];
 
     spectralIssues.forEach(issue => {
@@ -238,13 +223,7 @@ async function loadFileFromUrl(fileUrl: string) {
     return body;
 }
 
-function extractRulesFromSpectralRulesets(): string[] {
-    return getRuleNamesFromRuleset(validationRulesForInstantiation).concat(getRuleNamesFromRuleset(validationRulesForPattern));
-}
 
-function getRuleNamesFromRuleset(ruleset: RulesetDefinition) : string[] {
-    return Object.keys((ruleset as { rules: Record<string, unknown> }).rules);
-}
 
 function prettifyJson(json) {
     return JSON.stringify(json, null, 4);
@@ -320,12 +299,8 @@ export async function validate(
         if (!validateSchema(jsonSchemaInstantiation)) {
             logger.debug(`JSON Schema validation raw output: ${prettifyJson(validateSchema.errors)}`);
             errors = true;
-            jsonSchemaValidations = formatJsonSchemaOutput(validateSchema.errors);
+            jsonSchemaValidations = convertJsonSchemaIssuesToValidationOutputs(validateSchema.errors);
         }
-
-        // const validationsOutput = getFormattedOutput(validations, format, spectralRulesetForInstantiation, spectralRulesetForPattern, jsonSchemaValidations, spectralResult);
-        // handleSpectralLogs(errors, warnings, validationsOutput, 'JSON Schema instantiation');
-        // handleProcessExit(errors, warnings, failOnWarnings);
 
         return new ValidationOutcome(jsonSchemaValidations, spectralResult.spectralIssues, errors, warnings);
     } catch (error) {
@@ -358,3 +333,14 @@ function validatePatternOnly(spectralValidationResults: SpectralResult, patternS
 
     return new ValidationOutcome(jsonSchemaErrors, [], errors, warnings);
 }
+
+function extractSpectralRuleNames(): string[] {
+    const instantiationRuleNames = getRuleNamesFromRuleset(validationRulesForInstantiation);
+    const patternRuleNames = getRuleNamesFromRuleset(validationRulesForPattern);
+    return instantiationRuleNames.concat(patternRuleNames);
+}
+
+function getRuleNamesFromRuleset(ruleset: RulesetDefinition): string[] {
+    return Object.keys((ruleset as { rules: Record<string, unknown> }).rules);
+}
+

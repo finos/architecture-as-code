@@ -58,7 +58,7 @@ program
     .option(STRICT_OPTION, 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
     .addOption(
         new Option(FORMAT_OPTION, 'The format of the output')
-            .choices(['json', 'junit'])
+            .choices(['json', 'junit', 'pretty'])
             .default('json')
     )
     .option(OUTPUT_OPTION, 'Path location at which to output the generated file.')
@@ -68,8 +68,7 @@ program
         const content = getFormattedOutput(outcome, options.format);
         writeOutputFile(options.output, content);
         exitBasedOffOfValidationOutcome(outcome, options.strict);
-    }
-    );
+    });
 
 function writeOutputFile(output: string, validationsOutput: string) {
     if (output) {
