@@ -1,42 +1,16 @@
 import { initLogger } from '../../helper.js';
 import { SchemaDirectory } from '../schema-directory.js';
-import { logRequiredMessage, mergeSchemas } from '../util.js';
-import { getPropertyValue } from './property.js';
+import { appendPath } from '../util.js';
+import { instantiateGenericObject } from './instantiate.js';
 
-export function instantiateMetadataObject(definition: object, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): object {
-    const logger = initLogger(debug);
-    let fullDefinition = definition;
-    if (definition['$ref']) {
-        const ref = definition['$ref'];
-        const schemaDef = schemaDirectory.getDefinition(ref); 
-
-        fullDefinition = mergeSchemas(schemaDef, definition);
+export function instantiateMetadataObject(definition: object, schemaDirectory: SchemaDirectory, path: string[], debug: boolean = false, instantiateAll: boolean = false): object {
+    const metadata = instantiateGenericObject(definition, schemaDirectory, 'metadata', path, debug, instantiateAll);
+    if (typeof metadata !== 'object') {
+        const message = 'Expected an object during instantiation, got a string. Could there be a top-level $ref to an enum or string type?';
+        initLogger(debug).error(message);
+        throw Error(message);
     }
-    logger.debug('Generating metadata object from ' + JSON.stringify(fullDefinition));
-    
-    if (!('properties' in fullDefinition)) {
-        return {};
-    }
-
-    const required = fullDefinition['required'];
-    logRequiredMessage(logger, required, instantiateAll);
-
-    const out = {};
-    for (const [key, detail] of Object.entries(fullDefinition['properties'])) {
-        if (!instantiateAll && required && !required.includes(key)) {
-            logger.debug('Skipping property ' + key + ' as it is not marked as required.');
-            continue;
-        }
-        if (detail?.type == 'object') {
-            // recursive instantiation
-            logger.debug('Recursively instantiating a metadata object');
-            out[key] = instantiateMetadataObject(detail, schemaDirectory, instantiateAll, debug);
-        }
-        else {
-            out[key] = getPropertyValue(key, detail);
-        }
-    }
-    return out;
+    return metadata;
 }
 
 export function instantiateAllMetadata(pattern: object, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): object[] {
@@ -51,8 +25,9 @@ export function instantiateAllMetadata(pattern: object, schemaDirectory: SchemaD
     }
     const outputMetadata = [];
 
-    for (const node of metadataObjects) {
-        outputMetadata.push(instantiateMetadataObject(node, schemaDirectory, debug, instantiateAll));
+    for (const [index, metadataObj] of metadataObjects.entries()) {
+        const path = appendPath<string>(['metadata'], index);
+        outputMetadata.push(instantiateMetadataObject(metadataObj, schemaDirectory, path, debug, instantiateAll));
     }
     return outputMetadata;
 }

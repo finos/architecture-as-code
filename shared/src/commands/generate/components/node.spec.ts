@@ -1,7 +1,7 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 
 import { SchemaDirectory } from '../schema-directory';
-import { instantiateNodeInterfaces, instantiateNodes } from './node';
+import { instantiateNodes } from './node';
 
 jest.mock('../../helper', () => {
     return {
@@ -152,7 +152,7 @@ describe('instantiateNodes', () => {
         expect(spy).toHaveBeenCalledWith(reference);
     });
 
-    it('return instantiated node with interface', () => {
+    it('return instantiated node with interfaces, even when not marked as required', () => {
         const pattern = {
             properties: {
                 nodes: {
@@ -165,6 +165,7 @@ describe('instantiateNodes', () => {
                                 },
                                 // interfaces should be inserted
                                 'interfaces': {
+                                    'type': 'array',
                                     'prefixItems': [
                                         {
                                             properties: {
@@ -199,114 +200,5 @@ describe('instantiateNodes', () => {
         expect(instantiateNodes(pattern, mockSchemaDir, false, false))
             .toEqual(expected);
 
-    });
-});
-
-
-function getSampleNodeInterfaces(properties: any, required: string[] = []): any {
-    return {
-        prefixItems: [
-            {
-                properties: properties,
-                required: required
-            }
-        ]
-    };
-}
-
-
-describe('instantiateNodeInterfaces', () => {
-
-    it('return instantiated node with array property', () => {
-        const pattern = getSampleNodeInterfaces({
-            'property-name': {
-                type: 'array'
-            }
-        });
-        expect(instantiateNodeInterfaces(pattern, mockSchemaDir, false, true))
-            .toEqual(
-                [{
-                    'property-name': [
-                        '{{ PROPERTY_NAME }}'
-                    ]
-                }]
-            );
-    });
-
-    it('return instantiated node with string property', () => {
-        const pattern = getSampleNodeInterfaces({
-            'property-name': {
-                type: 'string'
-            }
-        });
-
-        expect(instantiateNodeInterfaces(pattern, mockSchemaDir, false, true))
-            .toEqual([
-                {
-                    'property-name': '{{ PROPERTY_NAME }}'
-                }
-            ]);
-    });
-
-    it('return instantiated node with const property', () => {
-        const pattern = getSampleNodeInterfaces({
-            'property-name': {
-                const: 'value here'
-            }
-        });
-
-        expect(instantiateNodeInterfaces(pattern, mockSchemaDir, false, true))
-            .toEqual([
-                {
-                    'property-name': 'value here'
-                }
-            ]);
-    });
-    
-    it('only instantiate required properties when instantiateAll set to false', () => {
-        const pattern = getSampleNodeInterfaces({
-            'property-name': {
-                const: 'value here'
-            },
-            'ignored-prop': {
-                const: 'value here'
-            }
-        }, ['property-name']);
-
-        expect(instantiateNodeInterfaces(pattern, mockSchemaDir, false, false))
-            .toEqual([
-                {
-                    'property-name': 'value here'
-                }
-            ]);
-    });
-
-    it('call schema directory to resolve $ref interfaces`', () => {
-        const reference = 'https://calm.com/core.json#/interface';
-
-        const pattern = {
-            prefixItems: [
-                {
-                    '$ref': reference
-                }
-            ]
-        };
-
-        const spy = jest.spyOn(mockSchemaDir, 'getDefinition');
-        spy.mockReturnValue({
-            properties: {
-                'property-name': {
-                    const: 'value here'
-                }
-            }
-        });
-
-        expect(instantiateNodeInterfaces(pattern, mockSchemaDir, false, true))
-            .toEqual([
-                {
-                    'property-name': 'value here'
-                }
-            ]);
-        expect(spy).toHaveBeenCalledWith(reference);
     });
 });
