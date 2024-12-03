@@ -67,7 +67,7 @@ There aren't many standards to follow when it comes to Github actions - but some
 - Ensure that any obscure actions are documented so that others can follow and maintain them.
 
 
-## Language Dependencies
+## Language Dependencies  
 
 ### TypeScript Packages
 
