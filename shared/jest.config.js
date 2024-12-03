@@ -1,15 +1,16 @@
-// eslint-disable-next-line no-undef
 module.exports = {
     preset: 'ts-jest',
     testEnvironment: 'node',
+    testMatch: ['**/*.spec.ts'],
     modulePaths: ['<rootDir>'],
-    rootDir: '.',
+    transformIgnorePatterns: [
+        '^.+\\.js$'
+    ],
     transform: {
-        '^.+\\.ts?$': 'ts-jest',  // Tells Jest to use ts-jest for TypeScript files
+        '^.+\\.ts?$': 'ts-jest'
     },
+    rootDir: '.',
     moduleNameMapper: {
         '^(\\.{1,2}/.*)\\.js$': '$1'
     },
-    testPathIgnorePatterns: ['dist/'],
-    verbose: true
 };

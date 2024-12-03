@@ -202,9 +202,9 @@ npm install
 npm run build
 
 # Step 3: Link the workspace locally for testing
-npm link:cli
+npm run link:cli
 
-# Step 4: Start the watch process for live development
+# Step 4 : Run `watch` to check for changes automatically and re-bundle. This watching is via `chokidar` and isn't instant - give it a second or two to propogate changes.
 npm run watch
 ```
 

@@ -12,12 +12,12 @@ describe('CLI Integration Tests', () => {
     let tempDir: string;
     const millisPerSecond = 1000;
     const integrationTestPrefix = 'calm-test';
-    const projectRoot = path.resolve(__dirname, '..');
+    const projectRoot = __dirname;
     jest.setTimeout(30 * millisPerSecond);
 
     beforeAll(async () => {
         tempDir = fs.mkdtempSync(path.join(os.tmpdir(), integrationTestPrefix));
-        await callNpmFunctionSync(`${projectRoot}`, 'link');
+        await callNpmFunction(`${projectRoot}`, 'link');
     }, millisPerSecond * 20);
 
     afterAll(async () => {
@@ -83,7 +83,7 @@ describe('CLI Integration Tests', () => {
         });
     });
 
-    test('example validate command - no format or schema input - outputting JUNIT to stdout', (done) => {
+    test('example validate command - outputting JUNIT to stdout', (done) => {
         const exampleValidateCommand = 'calm validate -p ../calm/pattern/api-gateway.json -i ../calm/samples/api-gateway-instantiation.json -f junit';
         exec(exampleValidateCommand, async (_error, stdout, _stderr) => {
             const parsedOutput = await parseStringPromise(stdout);
@@ -135,11 +135,36 @@ describe('CLI Integration Tests', () => {
         });
     });
 
+    test('example validate command - outputting PRETTY to stdout', (done) => {
+        const exampleValidateCommand = 'calm validate -p ../calm/pattern/api-gateway.json -i ../calm/samples/api-gateway-instantiation.json -f pretty';
+        exec(exampleValidateCommand, (_error, stdout, _stderr) => {
+            const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_output_pretty.txt');
+            const expectedOutput = fs.readFileSync(expectedFilePath, 'utf-8');
+            //Some minor replacement logic to avoid issues with line endings
+            expect(stdout.replace(/\r\n/g, '\n')).toEqual(expectedOutput.replace(/\r\n/g, '\n'));
+            done();
+        });
+    });
 
+    test('example validate command - outputting PRETTY to file', (done) => {
+        const targetOutputFile = path.join(tempDir, 'validate-output-pretty.txt');
+        const exampleValidateCommand = `calm validate -p ../calm/pattern/api-gateway.json -i ../calm/samples/api-gateway-instantiation.json -f pretty -o ${targetOutputFile}`;
+        exec(exampleValidateCommand, (_error, _stdout, _stderr) => {
+            expect(fs.existsSync(targetOutputFile)).toBeTruthy();
+
+            const outputString = fs.readFileSync(targetOutputFile, 'utf-8');
+            const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_output_pretty.txt');
+            const expectedOutput = fs.readFileSync(expectedFilePath, 'utf-8');
+
+            //Some minor replacement logic to avoid issues with line endings
+            expect(outputString.replace(/\r\n/g, '\n')).toEqual(expectedOutput.replace(/\r\n/g, '\n'));
+            done();
+        });
+    });
 });
 
 
-async function callNpmFunctionSync(projectRoot: string, command: string) {
+async function callNpmFunction(projectRoot: string, command: string) {
     await execPromise(`npm ${command}`, { cwd: projectRoot });
 }
 

@@ -1,11 +1,10 @@
 #! /usr/bin/env node
 
-import { CALM_META_SCHEMA_DIRECTORY, CALM_SPECTRAL_RULES_DIRECTORY, getFormattedOutput, runGenerate, validate, visualizeInstantiation, visualizePattern } from '@finos/calm-shared';
+import { CALM_META_SCHEMA_DIRECTORY, getFormattedOutput, runGenerate, validate, visualizeInstantiation, visualizePattern, exitBasedOffOfValidationOutcome } from '@finos/calm-shared';
 import { Option, program } from 'commander';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
-import { exitBasedOffOfValidationOutcome } from '@finos/calm-shared/dist/commands/validate/validate';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const INSTANTIATION_OPTION = '-i, --instantiation <file>';
@@ -59,22 +58,17 @@ program
     .option(STRICT_OPTION, 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
     .addOption(
         new Option(FORMAT_OPTION, 'The format of the output')
-            .choices(['json', 'junit'])
+            .choices(['json', 'junit', 'pretty'])
             .default('json')
     )
     .option(OUTPUT_OPTION, 'Path location at which to output the generated file.')
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
     .action(async (options) => {
         const outcome = await validate(options.instantiation, options.pattern, options.schemaDirectory, options.verbose);
-
-        const spectralRulesetForInstantiation = CALM_SPECTRAL_RULES_DIRECTORY + '/instantiation/validation-rules.yaml';
-        const spectralRulesetForPattern = CALM_SPECTRAL_RULES_DIRECTORY + '/pattern/validation-rules.yaml';
-
-        const content = getFormattedOutput(outcome, options.format,spectralRulesetForInstantiation, spectralRulesetForPattern);
+        const content = getFormattedOutput(outcome, options.format);
         writeOutputFile(options.output, content);
         exitBasedOffOfValidationOutcome(outcome, options.strict);
-    }
-    );
+    });
 
 function writeOutputFile(output: string, validationsOutput: string) {
     if (output) {

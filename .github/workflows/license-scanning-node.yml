@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         node-version: ['20.x']
-        module-folder: ['cli', 'docs']
+        module-folder: ['cli', 'docs', 'shared']
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
@@ -23,7 +23,6 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm install --omit=dev
-        #       - run: yarn install --production --frozen-lockfile
         working-directory: ${{ matrix.module-folder }}
       - run: npm install -g node-license-validator
         working-directory: ${{ matrix.module-folder }}

@@ -1,5 +1,7 @@
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+
 import { SchemaDirectory } from '../schema-directory';
-import { instantiateAllMetadata, instantiateMetadataObject } from './metadata';
+import { instantiateGenericObject } from './instantiate';
 
 jest.mock('../../helper', () => {
     return {
@@ -21,9 +23,10 @@ beforeEach(() => {
 });
 
 
-describe('instantiateMetadataObject', () => {
-    it('instantiate metadata object with simple properties', () => {
-        const metadataDef = {
+
+describe('instantiateGenericObject', () => {
+    it('instantiate object with simple properties', () => {
+        const objectDef = {
             'type': 'object',
             'properties': {
                 'string-prop': {
@@ -40,7 +43,7 @@ describe('instantiateMetadataObject', () => {
                 }
             }
         };
-        expect(instantiateMetadataObject(metadataDef, mockSchemaDir, [], false, true))
+        expect(instantiateGenericObject(objectDef, mockSchemaDir, 'generic', [], false, true))
             .toEqual(
                 {
                     'string-prop': '{{ STRING_PROP }}',
@@ -51,8 +54,8 @@ describe('instantiateMetadataObject', () => {
             );
     });
     
-    it('instantiate metadata object with nested object properties', () => {
-        const metadataDef = {
+    it('instantiate object with nested object properties', () => {
+        const objectDef = {
             'type': 'object',
             'properties': {
                 'property-name': {
@@ -65,7 +68,7 @@ describe('instantiateMetadataObject', () => {
                 }
             }
         };
-        expect(instantiateMetadataObject(metadataDef, mockSchemaDir, [], false, true))
+        expect(instantiateGenericObject(objectDef, mockSchemaDir, 'generic', [], false, true))
             .toEqual(
                 {
                     'property-name': {
@@ -75,9 +78,9 @@ describe('instantiateMetadataObject', () => {
             );
     });
 
-    it('instantiate metadata object with $ref', () => {
+    it('instantiate object with $ref', () => {
         const reference =  'http://calm.com/example-ref';
-        const metadataDef = {
+        const objectDef = {
             '$ref': reference
         };
 
@@ -99,7 +102,7 @@ describe('instantiateMetadataObject', () => {
         spy.mockReturnValue(returnedDef);
 
 
-        expect(instantiateMetadataObject(metadataDef, mockSchemaDir, [], false, true))
+        expect(instantiateGenericObject(objectDef, mockSchemaDir, 'generic', [], false, true))
             .toEqual(
                 {
                     'property-name': {
@@ -109,51 +112,55 @@ describe('instantiateMetadataObject', () => {
             );
         expect(spy).toHaveBeenCalledWith(reference);
     });
-});
 
-function getSamplePatternWithMetadata(...metadataDefs): object {
-    return {
-        properties: {
-            metadata: {
-                type: 'array',
-                prefixItems: [
-                    ...metadataDefs
-                ]
-            }
-        }
-    };
-}
-
-
-describe('instantiateAllMetadata', () => {
-    it('instantiate simple metadata list with two objects', () => {
-        const pattern = getSamplePatternWithMetadata({
+    it('instantiate object with simple array property to placeholder', () => {
+        const objectDef = {
             'type': 'object',
             'properties': {
                 'property-name': {
-                    'type': 'string'
+                    'type': 'array',
+                    'items': 'string'
                 }
             }
-        },
-        {
+        };
+        expect(instantiateGenericObject(objectDef, mockSchemaDir, 'generic', [], false, true))
+            .toEqual(
+                {
+                    'property-name': [ 
+                        '{{ PROPERTY_NAME }}' 
+                    ]
+                },
+            );
+    });
+    
+    it('instantiate object with complex/prefixItems array property', () => {
+        const objectDef = {
             'type': 'object',
             'properties': {
-                'property-name-2': {
-                    'type': 'integer'
+                'property-name': {
+                    'type': 'array',
+                    'prefixItems': [
+                        {
+                            'type': 'object',
+                            'properties': {
+                                'property': {
+                                    'const': 'value'
+                                }
+                            }
+                        }
+                    ]
                 }
             }
-        }
-        );
-        expect(instantiateAllMetadata(pattern, mockSchemaDir, false, true))
+        };
+        expect(instantiateGenericObject(objectDef, mockSchemaDir, 'generic', [], false, true))
             .toEqual(
-                [
-                    {
-                        'property-name': '{{ PROPERTY_NAME }}'
-                    },
-                    {
-                        'property-name-2': -1
-                    }
-                ]
+                {
+                    'property-name': [ 
+                        {
+                            'property': 'value'
+                        }
+                    ]
+                },
             );
     });
 });

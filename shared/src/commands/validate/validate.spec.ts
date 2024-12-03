@@ -1,5 +1,5 @@
 import fetchMock from 'fetch-mock';
-import { validate, validateAndExitConditionally, sortSpectralIssueBySeverity, formatSpectralOutput, formatJsonSchemaOutput, stripRefs, exitBasedOffOfValidationOutcome } from './validate';
+import { validate, validateAndExitConditionally, sortSpectralIssueBySeverity, convertSpectralDiagnosticToValidationOutputs, convertJsonSchemaIssuesToValidationOutputs, stripRefs, exitBasedOffOfValidationOutcome } from './validate';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { ISpectralDiagnostic } from '@stoplight/spectral-core';
@@ -32,10 +32,6 @@ jest.mock('../helper.js', () => {
         }
     };
 });
-
-jest.mock('../../consts', () => ({
-    get CALM_SPECTRAL_RULES_DIRECTORY() { return '../spectral'; }
-}));
 
 const metaSchemaLocation = 'test_fixtures/calm';
 const debugDisabled = false;
@@ -311,7 +307,7 @@ describe('validate-all', () => {
                 1
             )];
 
-            const actual = formatSpectralOutput(given);
+            const actual = convertSpectralDiagnosticToValidationOutputs(given);
 
             expect(actual).toStrictEqual(expected);
         });
@@ -339,7 +335,7 @@ describe('validate-all', () => {
                 1
             )];
 
-            const actual = formatSpectralOutput(given);
+            const actual = convertSpectralDiagnosticToValidationOutputs(given);
 
             expect(actual).toStrictEqual(expected);
         });
@@ -347,7 +343,7 @@ describe('validate-all', () => {
         it('should return an empty array when spectral reports no issues', () => {
             const given: ISpectralDiagnostic[] = [];
             const expected: ValidationOutput[] = [];
-            const actual = formatSpectralOutput(given);
+            const actual = convertSpectralDiagnosticToValidationOutputs(given);
             expect(actual).toStrictEqual(expected);
         });
 
@@ -377,7 +373,7 @@ describe('validate-all', () => {
                 )
             ];
 
-            const actual = formatJsonSchemaOutput(given);
+            const actual = convertJsonSchemaIssuesToValidationOutputs(given);
 
             expect(actual).toStrictEqual(expected);
         });
@@ -405,7 +401,7 @@ describe('validate-all', () => {
                 )
             ];
 
-            const actual = formatJsonSchemaOutput(given);
+            const actual = convertJsonSchemaIssuesToValidationOutputs(given);
 
             expect(actual).toStrictEqual(expected);
         });
@@ -413,7 +409,7 @@ describe('validate-all', () => {
         it('should return an empty array when no JSON Schema issues have been reported', () => {
             const given: ErrorObject[] = [];
             const expected: ValidationOutput[] = [];
-            const actual = formatJsonSchemaOutput(given);
+            const actual = convertJsonSchemaIssuesToValidationOutputs(given);
             expect(actual).toStrictEqual(expected);
         });
 
@@ -454,7 +450,7 @@ describe('validate-all', () => {
             const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
             fetchMock.mock('http://exist/api-gateway.json', apiGateway);
     
-            await expect(validateAndExitConditionally(undefined, 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
+            await expect(validateAndExitConditionally('', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
                 .rejects
                 .toThrow();
         });
@@ -474,7 +470,7 @@ describe('validate-all', () => {
     
             const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
             fetchMock.mock('http://exist/api-gateway.json', apiGateway);
-            await expect(validateAndExitConditionally(undefined, 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, true))
+            await expect(validateAndExitConditionally('', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, true))
                 .rejects
                 .toThrow();
     
@@ -491,7 +487,7 @@ describe('validate-all', () => {
             const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/bad-schema/bad-json-schema.json'), 'utf8');
             fetchMock.mock('http://exist/api-gateway.json', apiGateway);
     
-            await expect(validateAndExitConditionally(undefined, 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
+            await expect(validateAndExitConditionally('', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
                 .rejects
                 .toThrow();
     

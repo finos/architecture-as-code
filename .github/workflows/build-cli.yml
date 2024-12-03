@@ -1,0 +1,41 @@
+name: Build CLI
+
+on:
+  pull_request:
+    branches:
+      - "main"
+    paths:
+      - "cli/**"
+      - "shared/**"
+  push:
+    branches:
+      - "main"
+    paths:
+      - "cli/**"
+      - "shared/**"
+
+jobs:
+  cli:
+    name: Build, Test, and Lint CLI Module
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR Branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: v20
+
+      - name: Install workspace
+        run: npm ci
+
+      - name: Lint CLI Module
+        run: npm run lint --workspace=cli
+
+      - name: Build workspace
+        run: npm run build
+
+      - name: Run tests for CLI
+        run: npm run test --workspace=cli
