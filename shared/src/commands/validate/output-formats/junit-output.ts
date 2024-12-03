@@ -2,13 +2,8 @@ import junitReportBuilder, { TestSuite } from 'junit-report-builder';
 import { ValidationOutcome } from '../validation.output';
 
 export default function createJUnitReport(
-<<<<<<<< HEAD:shared/src/commands/validate/junit-report/junit.report.ts
-    validationOutcome: ValidationOutcome, 
-    spectralRulesName: string[]
-========
     validationOutcome: ValidationOutcome,
     spectralRuleNames: string[]
->>>>>>>> main:shared/src/commands/validate/output-formats/junit-output.ts
 ): string {
     const builder = junitReportBuilder.newBuilder();
 
@@ -56,3 +51,4 @@ function createFailingTestCase(testSuite: TestSuite, testName: string){
         .name(testName)
         .failure();
 }
+
