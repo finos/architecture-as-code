@@ -1,0 +1,262 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/draft/2024-12/meta/core.json",
+  "title": "Common Architecture Language Model (CALM) Vocab",
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/defs/node"
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "$ref": "#/defs/relationship"
+      }
+    },
+    "metadata": {
+      "$ref": "#/defs/metadata"
+    },
+    "controls": {
+      "$ref": "control.json#/defs/controls"
+    }
+  },
+  "defs": {
+    "node": {
+      "type": "object",
+      "properties": {
+        "unique-id": {
+          "type": "string"
+        },
+        "node-type": {
+          "$ref": "#/defs/node-type-definition"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "detailed-architecture": {
+          "type": "string"
+        },
+        "data-classification": {
+          "$ref": "#/defs/data-classification"
+        },
+        "run-as": {
+          "type": "string"
+        },
+        "instance": {
+          "type": "string"
+        },
+        "interfaces": {
+          "type": "array",
+          "items": {
+            "$ref": "interface.json#/defs/interface-type"
+          }
+        },
+        "controls": {
+          "$ref": "control.json#/defs/controls"
+        },
+        "metadata": {
+          "$ref": "#/defs/metadata"
+        }
+      },
+      "required": [
+        "unique-id",
+        "node-type",
+        "name",
+        "description"
+      ],
+      "additionalProperties": true
+    },
+    "relationship": {
+      "type": "object",
+      "properties": {
+        "unique-id": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "relationship-type": {
+          "type": "object",
+          "properties": {
+            "interacts": {
+              "$ref": "#/defs/interacts-type"
+            },
+            "connects": {
+              "$ref": "#/defs/connects-type"
+            },
+            "deployed-in": {
+              "$ref": "#/defs/deployed-in-type"
+            },
+            "composed-of": {
+              "$ref": "#/defs/composed-of-type"
+            }
+          },
+          "oneOf": [
+            {
+              "required": [
+                "deployed-in"
+              ]
+            },
+            {
+              "required": [
+                "composed-of"
+              ]
+            },
+            {
+              "required": [
+                "interacts"
+              ]
+            },
+            {
+              "required": [
+                "connects"
+              ]
+            }
+          ]
+        },
+        "protocol": {
+          "$ref": "#/defs/protocol"
+        },
+        "authentication": {
+          "$ref": "#/defs/authentication"
+        },
+        "metadata": {
+          "$ref": "#/defs/metadata"
+        },
+        "controls": {
+          "$ref": "control.json#/defs/controls"
+        }
+      },
+      "required": [
+        "unique-id",
+        "relationship-type"
+      ],
+      "additionalProperties": true
+    },
+    "data-classification": {
+      "enum": [
+        "Public",
+        "Confidential",
+        "Highly Restricted",
+        "MNPI",
+        "PII"
+      ]
+    },
+    "protocol": {
+      "enum": [
+        "HTTP",
+        "HTTPS",
+        "FTP",
+        "SFTP",
+        "JDBC",
+        "WebSocket",
+        "SocketIO",
+        "LDAP",
+        "AMQP",
+        "TLS",
+        "mTLS",
+        "TCP"
+      ]
+    },
+    "authentication": {
+      "enum": [
+        "Basic",
+        "OAuth2",
+        "Kerberos",
+        "SPNEGO",
+        "Certificate"
+      ]
+    },
+    "node-type-definition": {
+      "enum": [
+        "actor",
+        "system",
+        "service",
+        "database",
+        "network",
+        "ldap",
+        "webclient",
+        "data-assset"
+      ]
+    },
+    "interacts-type": {
+      "type": "object",
+      "required": [
+        "actor",
+        "nodes"
+      ],
+      "properties": {
+        "actor": {
+          "type": "string"
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "connects-type": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "$ref": "interface.json#/defs/node-interface"
+        },
+        "destination": {
+          "$ref": "interface.json#/defs/node-interface"
+        }
+      },
+      "required": [
+        "source",
+        "destination"
+      ]
+    },
+    "deployed-in-type": {
+      "type": "object",
+      "properties": {
+        "container": {
+          "type": "string"
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "composed-of-type": {
+      "required": [
+        "container",
+        "nodes"
+      ],
+      "type": "object",
+      "properties": {
+        "container": {
+          "type": "string"
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+  }
+}
