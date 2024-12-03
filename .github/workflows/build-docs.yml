@@ -1,26 +1,23 @@
-name: CLI
+name: Build Docs
 
 on:
   pull_request:
     branches:
       - "main"
     paths:
-      - "cli/**"
-      - "shared/**"
+      - "docs/**"
   push:
     branches:
       - "main"
     paths:
-      - "cli/**"
-      - "shared/**"
+      - "docs/**"
 
 jobs:
-  cli:
-    name: Build, Test, and Lint CLI Module
+  docs:
+    name: Build Docs Module
     runs-on: ubuntu-latest
 
     steps:
-      # Ensure full PR checkout
       - name: Checkout PR Branch
         uses: actions/checkout@v4
 
@@ -29,11 +26,10 @@ jobs:
         with:
           node-version: v20
 
-      - name: Install workspace
+      - name: Install docs
         run: npm ci
+        working-directory: docs
 
-      - name: Build workspace
+      - name: Build docs
         run: npm run build
-
-      - name: Run tests for CLI
-        run: npm run test --workspace=cli
+        working-directory: docs 
