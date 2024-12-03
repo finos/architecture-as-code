@@ -1,4 +1,4 @@
-name: Build CLI
+name: Build Shared
 
 on:
   pull_request:
@@ -13,7 +13,7 @@ on:
       - "shared/**"
 
 jobs:
-  cli:
+  shared:
     name: Build, Test, and Lint Shared Module
     runs-on: ubuntu-latest
 
