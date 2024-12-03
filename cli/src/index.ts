@@ -1,11 +1,10 @@
 #! /usr/bin/env node
 
-import { CALM_META_SCHEMA_DIRECTORY, getFormattedOutput, runGenerate, validate, visualizeInstantiation, visualizePattern } from '@finos/calm-shared';
+import { CALM_META_SCHEMA_DIRECTORY, getFormattedOutput, runGenerate, validate, visualizeInstantiation, visualizePattern, exitBasedOffOfValidationOutcome } from '@finos/calm-shared';
 import { Option, program } from 'commander';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
-import { exitBasedOffOfValidationOutcome } from '@finos/calm-shared/dist/commands/validate/validate';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const INSTANTIATION_OPTION = '-i, --instantiation <file>';
@@ -17,6 +16,7 @@ const STRICT_OPTION = '--strict';
 const VERBOSE_OPTION = '-v, --verbose';
 
 program
+    .name('calm')
     .version('0.2.5')
     .description('A set of tools for interacting with the Common Architecture Language Model (CALM)');
 
@@ -58,18 +58,17 @@ program
     .option(STRICT_OPTION, 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
     .addOption(
         new Option(FORMAT_OPTION, 'The format of the output')
-            .choices(['json', 'junit'])
+            .choices(['json', 'junit', 'pretty'])
             .default('json')
     )
     .option(OUTPUT_OPTION, 'Path location at which to output the generated file.')
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
     .action(async (options) => {
-        const outcome = await validate(options.instantiation, options.pattern, options.metaSchemasLocation, options.verbose);
-        const content = getFormattedOutput(outcome, options.format, options.instantiation, options.pattern);
+        const outcome = await validate(options.instantiation, options.pattern, options.schemaDirectory, options.verbose);
+        const content = getFormattedOutput(outcome, options.format);
         writeOutputFile(options.output, content);
         exitBasedOffOfValidationOutcome(outcome, options.strict);
-    }
-    );
+    });
 
 function writeOutputFile(output: string, validationsOutput: string) {
     if (output) {
@@ -77,7 +76,7 @@ function writeOutputFile(output: string, validationsOutput: string) {
         mkdirp.sync(dirname);
         writeFileSync(output, validationsOutput);
     } else {
-        console.log(validationsOutput);
+        process.stdout.write(validationsOutput);
     }
 }
 

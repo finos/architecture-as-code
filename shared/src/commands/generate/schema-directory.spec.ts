@@ -45,6 +45,16 @@ describe('SchemaDirectory', () => {
         expect(interfaceDef.properties).toHaveProperty('port');
         expect(interfaceDef.properties).toHaveProperty('unique-id');
     });
+    
+    it('qualify relative references within same file to absolute IDs', async () => {
+        const schemaDir = new SchemaDirectory();
+        
+        await schemaDir.loadSchemas('../calm/draft/2024-04');
+        const interfaceRef = 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/rate-limit-interface';
+        const interfaceDef = schemaDir.getDefinition(interfaceRef);
+
+        expect(interfaceDef['properties']['key']['$ref']).toEqual('https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/rate-limit-key');
+    });
 
     it('resolve to warning message if schema is missing', async () => {
         const schemaDir = new SchemaDirectory();

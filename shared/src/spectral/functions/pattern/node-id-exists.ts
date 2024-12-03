@@ -1,4 +1,4 @@
-import { JSONPath } from 'jsonpath-plus'
+import { JSONPath } from 'jsonpath-plus';
 /**
  * Checks that the input value exists as a node with a matching unique ID.
  */
@@ -10,7 +10,7 @@ export default (input, _, context) => {
     const names = JSONPath({path: '$.properties.nodes.prefixItems[*].properties.unique-id.const', json: context.document.data});
 
     // get uniqueIds of all nodes
-    let results = [];
+    const results = [];
 
     if (!names.includes(input)) {
         results.push({
@@ -19,4 +19,4 @@ export default (input, _, context) => {
         });
     }
     return results;
-}
+};

@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'fs/promises';
 import { join } from 'path';
 import pointer from 'json-pointer';
-import { mergeSchemas } from './util.js';
+import { mergeSchemas, updateStringValuesRecursively } from './util.js';
 import { Logger } from 'winston';
 import { initLogger } from '../helper.js';
 
@@ -50,7 +50,7 @@ export class SchemaDirectory {
             this.logger.info(`Loaded ${this.schemas.size} schemas.`);
         } catch (err) {
             if (err.code === 'ENOENT') {
-                this.logger.error('Schema Path not found!');
+                this.logger.error('Schema Path not found: ', dir, ', error: ', err);
             } else {
                 this.logger.error(err);
             }
@@ -74,7 +74,7 @@ export class SchemaDirectory {
 
         if (!newSchemaId) {
             newSchemaId = currentSchemaId;
-            this.logger.debug(`Resolving reference ${ref} against current schema.`);
+            this.logger.debug(`Resolving reference ${ref} against current schema ${currentSchemaId}.`);
         }
         this.logger.debug(`Recursively resolving the reference, ref: ${ref}`);
         const definition = this.lookupDefinition(newSchemaId, ref);
@@ -85,7 +85,7 @@ export class SchemaDirectory {
         }
         if (!definition['$ref']) {
             this.logger.debug('Reached a definition with no ref, terminating recursive lookup.');
-            return definition;
+            return this.qualifyLocalReferences(definition, newSchemaId);
         }
         const newRef: string = definition['$ref'];
         if (visitedDefinitions.includes(newRef)) {
@@ -93,7 +93,9 @@ export class SchemaDirectory {
             return definition;
         }
         const innerDef = this.getDefinitionRecursive(newRef, newSchemaId, visitedDefinitions);
-        return mergeSchemas(innerDef, definition);
+        const merged = mergeSchemas(innerDef, definition);
+        const qualified = this.qualifyLocalReferences(merged, newSchemaId);
+        return qualified;
     }
 
     private getMissingSchemaPlaceholder(reference: string) {
@@ -111,8 +113,28 @@ export class SchemaDirectory {
      */
     public getDefinition(definitionReference: string) {
         this.logger.debug(`Resolving ${definitionReference} from schema directory.`);
-        return this.getDefinitionRecursive(definitionReference, 'pattern', []);
-        // TODO propagate the required fields
+        const definition = this.getDefinitionRecursive(definitionReference, 'pattern', []);
+        this.logger.debug(`Resolved definition ${JSON.stringify(definition, null, 2)}`);
+        return definition;
+    }
+
+    /**
+     * Once a definition has been resolved, we need to make sure the returned object has any leftover keys resolved against the schema they were fetched from.
+     * The easiest way to do this is to qualify all local references (e.g #/defs/rate-limit-key) with their full schema ID.
+     * That way when we instantiate them later, we have the ID of the schema they belong to.
+     * @param definition  the definition object to look at references for
+     * @param schemaId the schema ID to insert
+     */
+    public qualifyLocalReferences(definition: object, schemaId: string) {
+        return updateStringValuesRecursively(definition, (key, value) => {
+            if (key === '$ref' && value.startsWith('#')) {
+                const newReference = schemaId + value;
+                this.logger.debug(`Detected a local reference: ${value}. Qualifying the reference with schema ID during resolution. `);
+                this.logger.debug(`Qualified reference: ${newReference}`);
+                return newReference;
+            }
+            return value;
+        });
     }
 
     /**

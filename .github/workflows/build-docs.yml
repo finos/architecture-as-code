@@ -1,0 +1,35 @@
+name: Build Docs
+
+on:
+  pull_request:
+    branches:
+      - "main"
+    paths:
+      - "docs/**"
+  push:
+    branches:
+      - "main"
+    paths:
+      - "docs/**"
+
+jobs:
+  docs:
+    name: Build Docs Module
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR Branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: v20
+
+      - name: Install docs
+        run: npm ci
+        working-directory: docs
+
+      - name: Build docs
+        run: npm run build
+        working-directory: docs 

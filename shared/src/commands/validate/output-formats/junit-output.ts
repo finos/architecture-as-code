@@ -2,8 +2,13 @@ import junitReportBuilder, { TestSuite } from 'junit-report-builder';
 import { ValidationOutcome } from '../validation.output';
 
 export default function createJUnitReport(
+<<<<<<<< HEAD:shared/src/commands/validate/junit-report/junit.report.ts
     validationOutcome: ValidationOutcome, 
     spectralRulesName: string[]
+========
+    validationOutcome: ValidationOutcome,
+    spectralRuleNames: string[]
+>>>>>>>> main:shared/src/commands/validate/output-formats/junit-output.ts
 ): string {
     const builder = junitReportBuilder.newBuilder();
 
@@ -21,9 +26,9 @@ export default function createJUnitReport(
     const spectralSuite = createTestSuite(builder, 'Spectral Suite');
     const spectralValidationOutput = validationOutcome.spectralSchemaValidationOutputs;
     if (spectralValidationOutput.length <= 0) {
-        spectralRulesName.forEach(ruleName => createSucceedingTestCase(spectralSuite,ruleName));
+        spectralRuleNames.forEach(ruleName => createSucceedingTestCase(spectralSuite,ruleName));
     } else {
-        spectralRulesName.forEach(ruleName => {
+        spectralRuleNames.forEach(ruleName => {
             if (spectralValidationOutput.filter(item => (item.code === ruleName) && item.severity === 'error').length > 0) {
                 createFailingTestCase(spectralSuite, ruleName);
             } else {

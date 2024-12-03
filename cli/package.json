@@ -1,22 +1,22 @@
 {
   "name": "@finos/calm-cli",
-  "version": "0.2.5",
+  "version": "0.2.7",
   "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
   "main": "dist/index.js",
   "files": [
     "dist/"
   ],
+  "bin": {
+    "calm": "dist/index.js"
+  },
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc -watch -p ./",
-    "clean": "rimraf node_modules dist",
+    "build": "tsup && npm run copy-calm-schema",
+    "watch": "node watch.mjs",
+    "copy-calm-schema": "copyfiles \"../calm/draft/2024-04/meta/*\" dist/calm/",
+    "test": "jest",
     "lint": "eslint src",
     "lint-fix": "eslint src --fix",
     "dependency-check": "dependency-check --project 'calm-cli' --scan . --out ./dependency-check-report --format ALL --suppression ../.github/node-cve-ignore-list.xml"
-
-  },
-  "bin": {
-    "calm": "dist/index.js"
   },
   "publishConfig": {
     "access": "public"
@@ -28,19 +28,29 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@finos/calm-shared": "file:../shared",
+    "canvas": "^2.11.2",
+    "commander": "^12.0.0",
     "copyfiles": "^2.4.1",
-    "mkdirp": "^3.0.1",
-    "commander": "^12.0.0"
+    "mkdirp": "^3.0.1"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
+    "@types/jest": "^29.5.14",
     "@types/json-pointer": "^1.0.34",
     "@types/junit-report-builder": "^3.0.2",
     "@types/lodash": "^4.17.0",
+    "@types/node": "^22.10.0",
+    "@types/xml2js": "^0.4.14",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "chokidar": "^4.0.1",
     "eslint": "^9.13.0",
+    "globals": "^15.12.0",
     "jest": "^29.7.0",
-    "rimraf": "^6.0.1",
-    "typescript": "^5.4.3"
+    "ts-jest": "^29.2.5",
+    "ts-node": "10.9.2",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.3",
+    "xml2js": "^0.6.2"
   }
 }
