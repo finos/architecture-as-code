@@ -1,4 +1,6 @@
-import { getPropertyValue } from './property';
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+
+import { getConstValue, getEnumPlaceholder, getPropertyValue } from './property';
 
 jest.mock('../../helper', () => {
     return {
@@ -9,6 +11,32 @@ jest.mock('../../helper', () => {
             };
         }
     };
+});
+
+describe('getConstValue', () => {
+    it('generates const value if const is provided', () => {
+        expect(getConstValue({
+            'const': 'Example value'
+        }))
+            .toBe('Example value');
+    });
+
+    it('generates const value with entire subtree if const is provided', () => {
+        expect(getConstValue({
+            'const': {
+                'connects': {
+                    'source': 'source',
+                    'destination': 'destination'
+                }
+            }
+        }))
+            .toEqual({
+                'connects': {
+                    'source': 'source',
+                    'destination': 'destination'
+                }
+            });
+    });
 });
 
 describe('getPropertyValue', () => {
@@ -26,29 +54,6 @@ describe('getPropertyValue', () => {
             .toBe(-1);
     });
 
-    it('generates const value if const is provided', () => {
-        expect(getPropertyValue('key-name', {
-            'const': 'Example value'
-        }))
-            .toBe('Example value');
-    });
-
-    it('generates const value with entire subtree if const is provided', () => {
-        expect(getPropertyValue('key-name', {
-            'const': {
-                'connects': {
-                    'source': 'source',
-                    'destination': 'destination'
-                }
-            }
-        }))
-            .toEqual({
-                'connects': {
-                    'source': 'source',
-                    'destination': 'destination'
-                }
-            });
-    });
 
     it('generates array with single string placeholder', () => {
         expect(getPropertyValue('key-name', {
@@ -71,5 +76,12 @@ describe('getPropertyValue', () => {
             'type': 'boolean'
         }))
             .toBe('{{ BOOLEAN_KEY_NAME }}');
+    });
+});
+
+describe('getEnumPlaceholder', () => {
+    it('extracts ref name', () => {
+        expect(getEnumPlaceholder('https://calm.com/core.json#def-name'))
+            .toBe('{{ ENUM_DEF_NAME }}');
     });
 });
