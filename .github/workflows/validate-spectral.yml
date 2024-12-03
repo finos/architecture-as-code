@@ -2,21 +2,21 @@ name: Validation of CALM Samples
 
 on:
   pull_request:
-    branches: 
+    branches:
       - "main"
-    paths: 
+    paths:
       - "calm/draft/**"
       - "calm/pattern/**"
       - "calm/samples/**"
-      - "shared/src/spectral/**" 
+      - "shared/src/spectral/**"
   push:
-    branches: 
+    branches:
       - "main"
-    paths: 
+    paths:
       - "calm/draft/**"
       - "calm/pattern/**"
       - "calm/samples/**"
-      - "shared/src/spectral/**" 
+      - "shared/src/spectral/**"
 
 jobs:
   spectrals:
@@ -42,4 +42,3 @@ jobs:
 
       - name: Run Example Spectral Linting
         run: npx spectral lint --ruleset ./shared/dist/spectral/rules-architecture.js 'calm/samples/api-gateway-architecture(*.json|*.yaml)'
-

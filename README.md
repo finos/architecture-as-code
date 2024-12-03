@@ -49,7 +49,8 @@ that are being built to utilize the CALM specification.
 
 We accept contributions via Pull Request, to make a contribution:
 
-1. Pick an issue you are interested in contributing to (or raise one yourself) and speak to the lead maintainers about what you plan to do either in the issue itself or come to a meetup. [Some issues](https://github.com/finos/architecture-as-code/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) are suggested for first time contributors.
+1. Pick an issue you are interested in contributing to (or raise one yourself) and speak to the lead maintainers about
+   what you plan to do either in the issue itself or come to a meetup.
 2. Fork the repo (<https://github.com/finos/architecture-as-code/fork>)
 3. Create your feature branch (`git checkout -b feature/fooBar`)
 4. Read our [contribution guidelines](.github/CONTRIBUTING.md)

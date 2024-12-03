@@ -1,4 +1,4 @@
-export interface CALMArchitecture {
+export interface CALMInstantiation {
     nodes: CALMNode[],
     relationships: CALMRelationship[]
 }

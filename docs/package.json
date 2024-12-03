@@ -29,8 +29,7 @@
   "overrides": {
     "serve-handler": {
       "path-to-regexp": "3.3.0"
-    },
-    "cross-spawn": "^7.0.5"
+    }
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.6.3",

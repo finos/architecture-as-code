@@ -21,7 +21,7 @@ const spectralValidationOutput: ValidationOutput[] = [
     new ValidationOutput(
         'no-placeholder-properties-numerical',
         'warning',
-        'Numerical placeholder (-1) detected in architecture.',
+        'Numerical placeholder (-1) detected in instantiated pattern.',
         '/nodes/0/interfaces/0/port'
     )
 ]; 
