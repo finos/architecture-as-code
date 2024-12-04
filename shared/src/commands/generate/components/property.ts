@@ -12,13 +12,21 @@ export function getBooleanPlaceholder(name: string): string {
 
 interface Detail {
     const?: string | object,
+    enum?: string[],
     type?: 'string' | 'integer' | 'number' | 'array' | 'boolean',
     $ref?: string
 }
 
+/**
+ * Simply return the value of the const object when instantiating a const.
+ * @param detail The detail from the object to instantiate
+ * @returns Either the value or the object described by the 'const' property.
+ */
+export function getConstValue(detail: Detail) : string | object {
+    return detail.const;
+}
+
 export function getPropertyValue(keyName: string, detail: Detail): string | string[] | number | object {
-    // TODO follow refs here
-    // should be able to instantiate not just a simple enum type but also a whole sub-object
     // if both const and type are defined, prefer const
     if (detail.const) {
         return detail.const;
@@ -37,6 +45,10 @@ export function getPropertyValue(keyName: string, detail: Detail): string | stri
             return -1;
         }
         if (propertyType === 'array') {
+            // special case: we always want to instantiate interfaces, even if not required, but not to output [ {{ INTERFACES }} ] in this case.
+            if (keyName === 'interfaces') {
+                return [];
+            }
             return [
                 getStringPlaceholder(keyName)
             ];
@@ -46,4 +58,10 @@ export function getPropertyValue(keyName: string, detail: Detail): string | stri
     if (detail.$ref) {
         return getRefPlaceholder(keyName);
     }
+}
+
+export function getEnumPlaceholder(ref: string): string {
+    const refName = /[^/#]*$/.exec(ref)[0];
+    const refPlaceholder = refName.toUpperCase().replaceAll('-', '_');
+    return `{{ ENUM_${refPlaceholder} }}`;
 }

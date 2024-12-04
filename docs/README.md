@@ -1,4 +1,4 @@
 # Formal Documentation
 
-https://finos.github.io/architecture-as-code/
+https://calm.finos.org/
 
