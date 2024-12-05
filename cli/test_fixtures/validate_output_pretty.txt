@@ -1,0 +1,12 @@
+
+| Issue Type | Issues Found? | Issue Count |
+--------------------------------------------
+| Errors     | false         | 0           |
+| Warnings   | true          | 1           |
+
+
+Warnings:
+
+| code                                                  | severity | message                                                      | path                       | schemaPath | line_start | line_end | character_start | character_end |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| instantiation-has-no-placeholder-properties-numerical | warning  | Numerical placeholder (-1) detected in instantiated pattern. | /nodes/2/interfaces/0/port |            |         32 |       32 |              18 |            20 |

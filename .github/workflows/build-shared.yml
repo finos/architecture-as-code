@@ -1,0 +1,39 @@
+name: Build Shared
+
+on:
+  pull_request:
+    branches:
+      - "main"
+    paths:
+      - "shared/**"
+  push:
+    branches:
+      - "main"
+    paths:
+      - "shared/**"
+
+jobs:
+  shared:
+    name: Build, Test, and Lint Shared Module
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR Branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: v20
+
+      - name: Install workspace
+        run: npm ci
+
+      - name: Lint Shared Module
+        run: npm run lint --workspace=shared
+
+      - name: Build workspace
+        run: npm run build
+
+      - name: Run tests for Shared
+        run: npm run test --workspace=shared

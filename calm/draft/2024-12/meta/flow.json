@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/draft/2024-12/meta/flow.json",
+  "title": "Business Flow Model",
+  "description": "Defines business flows that relate to technical architectures, allowing mapping of flows to technical components and attaching control requirements.",
+  "type": "object",
+  "properties": {
+    "unique-id": {
+      "type": "string",
+      "description": "Unique identifier for the flow"
+    },
+    "name": {
+      "type": "string",
+      "description": "Descriptive name for the business flow"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the flow's purpose"
+    },
+    "requirement-url": {
+      "type": "string",
+      "description": "Link to a detailed requirement document"
+    },
+    "transitions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/defs/transition"
+      }
+    },
+    "controls": {
+      "$ref": "https://calm.finos.org/draft/2024-12/meta/control.json#/defs/controls"
+    },
+    "metadata": {
+      "$ref": "#/defs/metadata"
+    }
+  },
+  "required": [
+    "unique-id",
+    "name",
+    "description",
+    "transitions"
+  ],
+  "defs": {
+    "transition": {
+      "type": "object",
+      "properties": {
+        "relationship-unique-id": {
+          "type": "string",
+          "description": "Unique identifier for the relationship in the architecture"
+        },
+        "sequence-number": {
+          "type": "integer",
+          "description": "Indicates the sequence of the relationship in the flow"
+        },
+        "summary": {
+          "type": "string",
+          "description": "Functional summary of what is happening in the transition"
+        },
+        "direction": {
+          "enum": [
+            "source-to-destination",
+            "destination-to-source"
+          ],
+          "default": "source-to-destination"
+        },
+        "required": [
+          "relationship-unique-id",
+          "sequence-number",
+          "summary"
+        ]
+      },
+      "minItems": 1
+    },
+    "metadata": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+  }
+}
+

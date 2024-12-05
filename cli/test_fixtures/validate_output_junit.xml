@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="23" failures="0" errors="0" skipped="0">
+    <testsuite name="JSON Schema Validation" tests="1" failures="0"
+        errors="0" skipped="0">
+        <testcase name="JSON Schema Validation succeeded" />
+    </testsuite>
+    <testsuite name="Spectral Suite" tests="22"
+        failures="0" errors="0" skipped="0">
+        <testcase name="instantiation-has-nodes-relationships" />
+        <testcase name="instantiation-has-no-empty-properties" />
+        <testcase
+            name="instantiation-has-no-placeholder-properties-numerical" />
+        <testcase name="instantiation-has-no-placeholder-properties-string" />
+        <testcase name="instantiation-has-no-placeholder-properties-boolean" />
+        <testcase name="relationship-references-existing-nodes-in-instantiation" />
+        <testcase
+            name="connects-relationship-references-existing-nodes-in-instantiation" />
+        <testcase name="referenced-interfaces-defined-in-instantiation" />
+        <testcase name="composition-relationships-reference-existing-nodes-in-instantiation" />
+        <testcase name="instantiation-nodes-must-be-referenced" />
+        <testcase
+            name="unique-ids-must-be-unique-in-instantiation" />
+        <testcase name="pattern-has-nodes-relationships" />
+        <testcase name="pattern-has-no-empty-properties" />
+        <testcase name="pattern-has-no-placeholder-properties-numerical" />
+        <testcase
+            name="pattern-has-no-placeholder-properties-string" />
+        <testcase name="connects-relationship-references-existing-nodes-in-pattern" />
+        <testcase name="group-relationship-references-existing-nodes-in-pattern" />
+        <testcase name="avoid-boolean-properties" />
+        <testcase
+            name="relationship-references-existing-nodes-in-pattern" />
+        <testcase name="referenced-interfaces-defined-in-pattern" />
+        <testcase name="pattern-nodes-must-be-referenced" />
+        <testcase name="unique-ids-must-be-unique-in-pattern" />
+    </testsuite>
+</testsuites>

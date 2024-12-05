@@ -1,73 +1,56 @@
 {
   "name": "@finos/calm-cli",
-  "version": "0.2.5",
+  "version": "0.2.7",
   "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
   "main": "dist/index.js",
   "files": [
-    "dist"
+    "dist/"
   ],
-  "scripts": {
-    "build": "tsc && npm run copy-calm-schema && npm run copy-spectral-rules",
-    "test": "jest --verbose",
-    "lint": "eslint src",
-    "lint-fix": "eslint src --fix",
-    "copy-calm-schema": "mkdir -p dist/calm && cp -r ../calm/draft/2024-04/meta dist/calm/",
-    "copy-spectral-rules": "mkdir -p dist/spectral && npm run copy-spectral-instantiation-rules && npm run copy-spectral-pattern-rules",
-    "copy-spectral-instantiation-rules": "cp -r ../spectral/instantiation dist/spectral",
-    "copy-spectral-pattern-rules": "cp -r ../spectral/pattern dist/spectral",
-    "dependency-check": "dependency-check --project 'calm-cli' --scan . --out ./dependency-check-report --format ALL --suppression ../.github/node-cve-ignore-list.xml"
-  },
   "bin": {
     "calm": "dist/index.js"
   },
+  "scripts": {
+    "build": "tsup && npm run copy-calm-schema",
+    "watch": "node watch.mjs",
+    "copy-calm-schema": "copyfiles \"../calm/draft/2024-04/meta/*\" dist/calm/",
+    "test": "jest",
+    "lint": "eslint src",
+    "lint-fix": "eslint src --fix",
+    "dependency-check": "dependency-check --project 'calm-cli' --scan . --out ./dependency-check-report --format ALL --suppression ../.github/node-cve-ignore-list.xml"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "cli",
+    "validation"
+  ],
   "author": "",
   "license": "ISC",
-  "type": "module",
   "dependencies": {
-    "@rollup/plugin-commonjs": "^28.0.1",
-    "@stoplight/spectral-cli": "^6.13.1",
-    "@stoplight/spectral-core": "^1.19.1",
-    "ajv": "^8.12.0",
+    "canvas": "^2.11.2",
     "commander": "^12.0.0",
-    "glob": "^11.0.0",
-    "graphviz-cli": "^2.0.0",
-    "js-yaml": "^4.1.0",
-    "json-pointer": "^0.6.2",
-    "jsonpath-plus": "^10.0.0",
-    "junit-report-builder": "^5.0.0",
-    "lodash": "^4.17.21",
-    "mkdirp": "^3.0.1",
-    "ts-graphviz": "^2.1.1",
-    "tsconfig-paths": "^4.2.0",
-    "winston": "^3.14.1"
+    "copyfiles": "^2.4.1",
+    "mkdirp": "^3.0.1"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.1.0",
-    "@eslint/js": "^9.13.0",
     "@jest/globals": "^29.7.0",
-    "@types/jest": "^29.5.12",
-    "@types/js-yaml": "^4.0.9",
+    "@types/jest": "^29.5.14",
     "@types/json-pointer": "^1.0.34",
     "@types/junit-report-builder": "^3.0.2",
     "@types/lodash": "^4.17.0",
-    "@types/node": "^22.0.0",
+    "@types/node": "^22.10.0",
+    "@types/xml2js": "^0.4.14",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "chokidar": "^4.0.1",
     "eslint": "^9.13.0",
-    "eslint-config-love": "^96.0.0",
-    "eslint-plugin-import": "^2.31.0",
-    "eslint-plugin-n": "^17.11.1",
-    "eslint-plugin-promise": "^7.1.0",
-    "fetch-mock": "^9.11.0",
-    "globals": "^15.11.0",
+    "globals": "^15.12.0",
     "jest": "^29.7.0",
-    "ts-jest": "^29.1.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.4.3"
-  },
-  "overrides": {
-    "jsonpath-plus": "^10.0.0",
-    "path-to-regexp": "3.3.0",
-    "rollup": "4.24.3",
-    "glob": "^11.0.0"
+    "ts-jest": "^29.2.5",
+    "ts-node": "10.9.2",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.3",
+    "xml2js": "^0.6.2"
   }
 }
