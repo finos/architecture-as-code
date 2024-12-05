@@ -1,13 +1,28 @@
 {
+  "extends": "../tsconfig.json",
   "compilerOptions": {
-    "module": "ES2020",
+    "outDir": "./dist",
+    "module": "CommonJS",
+    "target": "ES6",
     "esModuleInterop": true,
-    "target": "ES2021",
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
     "moduleResolution": "node",
-    "outDir": "dist",
-    "resolveJsonModule": true
+    "types": [
+      "node",
+      "jest"
+    ],
+    "typeRoots": [
+      "node_modules/@types",
+      "../node_modules/@types"
+    ]
   },
-  "lib": [
-    "es2021"
+  "references": [
+    {
+      "path": "../shared"
+    }
+  ],
+  "include": [
+    "src/**/*"
   ]
 }

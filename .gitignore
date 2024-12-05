@@ -18,4 +18,9 @@ website/package-lock.json
 **/.vscode/
 
 node_modules/
+**/dist/
+**/.vscode-test/
+**/out/
 **/dependency-check-report/
+
+**/tsconfig.tsbuildinfo

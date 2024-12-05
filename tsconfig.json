@@ -1,0 +1,36 @@
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@finos/calm-shared": ["shared/src"],
+            "@finos/calm-shared/*": ["shared/src/*"]
+        },
+        "composite": true,
+        "declaration": true,
+        "declarationMap": true,
+        "target": "es2021",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        "sourceMap": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "outDir": "./dist",
+        "rootDir": ".",
+        "typeRoots": [
+            "node_modules/@types"
+        ]
+    },
+    "references": [
+        { "path": "./shared" },
+        { "path": "./cli" }
+    ],
+    "include": [
+        "shared/**/*",
+        "cli/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist"
+    ]
+}

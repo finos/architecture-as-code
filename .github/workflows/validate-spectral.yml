@@ -1,0 +1,45 @@
+name: Validation of CALM Samples
+
+on:
+  pull_request:
+    branches: 
+      - "main"
+    paths: 
+      - "calm/draft/**"
+      - "calm/pattern/**"
+      - "calm/samples/**"
+      - "shared/src/spectral/**" 
+  push:
+    branches: 
+      - "main"
+    paths: 
+      - "calm/draft/**"
+      - "calm/pattern/**"
+      - "calm/samples/**"
+      - "shared/src/spectral/**" 
+
+jobs:
+  spectrals:
+    name: Run Spectral
+    runs-on: ubuntu-latest
+    steps:
+      # Check out the repository
+      - uses: actions/checkout@v4
+
+      # Run Spectral
+      - uses: actions/setup-node@v4
+        with:
+          node-version: v20
+
+      - name: Install workspace
+        run: npm ci
+
+      - name: Build workspace
+        run: npm run build
+
+      - name: Install Spectral-CLI
+        run: npm install @stoplight/spectral-cli
+
+      - name: Run Example Spectral Linting
+        run: npx spectral lint --ruleset ./shared/dist/spectral/rules-instantiation.js 'calm/samples/api-gateway-instantiation(*.json|*.yaml)'
+
