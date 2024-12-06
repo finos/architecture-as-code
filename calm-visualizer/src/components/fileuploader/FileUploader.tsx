@@ -16,14 +16,13 @@ function FileUploader({ callback }: Props) {
 
     return (
         <>
-            <div className="input-group">
+            <div className="input-group m-5">
                 <div
                     style={{
                         display: 'flex',
                     }}
                 >
                     <div>
-                        <p>CALM Instance:</p>
                         <input
                             id="file"
                             type="file"
