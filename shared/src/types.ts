@@ -25,7 +25,7 @@ export interface CALMInteractsRelationship {
             nodes: string[]
         }
     },
-    uniqueId: string,
+    'unique-id': string,
     description?: string
 }
 
@@ -36,7 +36,7 @@ export interface CALMConnectsRelationship {
             destination: { node: string, interface?: string }
         }
     },
-    uniqueId: string,
+    'unique-id': string,
     protocol?: string,
     authentication?: string,
     description?: string
@@ -49,7 +49,7 @@ export interface CALMDeployedInRelationship {
             nodes: string[]
         }
     },
-    uniqueId: string,
+    'unique-id': string,
     description?: string
 }
 
@@ -60,6 +60,6 @@ export interface CALMComposedOfRelationship {
             nodes: string[]
         },
     }
-    uniqueId: string,
+    'unique-id': string,
     description?: string
 }

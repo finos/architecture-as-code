@@ -1,77 +1,77 @@
-import './cytoscape.css'
-import { useEffect, useRef, useState } from 'react'
-import cytoscape, {Core, EdgeSingular, NodeSingular} from 'cytoscape'
-import nodeHtmlLabel from 'cytoscape-node-html-label'
-import coseBilkent from 'cytoscape-cose-bilkent'
-import expandCollapse from 'cytoscape-expand-collapse'
+import './cytoscape.css';
+import { useEffect, useRef, useState } from 'react';
+import cytoscape, { Core, EdgeSingular, NodeSingular } from 'cytoscape';
+import nodeHtmlLabel from 'cytoscape-node-html-label';
+import coseBilkent from 'cytoscape-cose-bilkent';
+import expandCollapse from 'cytoscape-expand-collapse';
 import fcose from 'cytoscape-fcose';
-import Sidebar from '../sidebar/Sidebar'
+import Sidebar from '../sidebar/Sidebar';
 
 //Make some information available on tooltip hover
 
-nodeHtmlLabel(cytoscape)
-expandCollapse(cytoscape)
+nodeHtmlLabel(cytoscape);
+expandCollapse(cytoscape);
 
 cytoscape.use(fcose);
 cytoscape.use(coseBilkent);
 
-const fcoseLayoutOptions = {
-    name: 'fcose'
-}
+const fcoseLayoutOptions: cytoscape.LayoutOptions = {
+    name: 'fcose',
+};
 
-const coseBilkentLayoutOptions = {
-    name: 'cose-bilkent',
-    randomize: false,
-    fit: true,
-    padding: 50,
-    nodeDimensionsIncludeLabels: true,
-    nodeRepulsion: 10000,
-    idealEdgeLength: 200,
-    edgeElasticity: 0.1,
-    gravity: 0.25,
-    numIter: 2500,
-    tile: true,
-    tilingPaddingVertical: 50,
-    tilingPaddingHorizontal: 50,
-    animate: false,
-    gravityRangeCompound: 1.5,
-    gravityCompound: 1.0,
-    gravityRange: 3.8,
-}
+// const coseBilkentLayoutOptions = {
+//     name: 'cose-bilkent',
+//     randomize: false,
+//     fit: true,
+//     padding: 50,
+//     nodeDimensionsIncludeLabels: true,
+//     nodeRepulsion: 10000,
+//     idealEdgeLength: 200,
+//     edgeElasticity: 0.1,
+//     gravity: 0.25,
+//     numIter: 2500,
+//     tile: true,
+//     tilingPaddingVertical: 50,
+//     tilingPaddingHorizontal: 50,
+//     animate: false,
+//     gravityRangeCompound: 1.5,
+//     gravityCompound: 1.0,
+//     gravityRange: 3.8,
+// };
 
 export type Node = {
-    classes?: string
+    classes?: string;
     data: {
-        label: string
-        id: string
-        [idx: string]: string
-    }
-}
+        label: string;
+        id: string;
+        [idx: string]: string;
+    };
+};
 
 export type Edge = {
     data: {
-        id: string
-        label: string
-        source: string
-        target: string
-        [idx: string]: string
-    }
-}
+        id: string;
+        label: string;
+        source: string;
+        target: string;
+        [idx: string]: string;
+    };
+};
 
 interface Props {
-    nodes: Node[] | undefined
-    edges: Edge[] | undefined
+    nodes: Node[];
+    edges: Edge[];
 }
 
 const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
-    const cyRef = useRef<HTMLDivElement>(null)
-    const [cy, setCy] = useState<Core | null>(null)
-    const [selectedNode, setSelectedNode] = useState<Node['data'] | null>(null)
-    const [selectedEdge, setSelectedEdge] = useState<Edge['data'] | null>(null)
+    const cyRef = useRef<HTMLDivElement>(null);
+    const [cy, setCy] = useState<Core | null>(null);
+    const [selectedNode, setSelectedNode] = useState<Node['data'] | null>(null);
+    const [selectedEdge, setSelectedEdge] = useState<Edge['data'] | null>(null);
 
     useEffect(() => {
         if (cy) {
-            //@ts-expect-error
+            //@ts-expect-error types are missing from the library
             cy.nodeHtmlLabel([
                 {
                     query: '.node',
@@ -83,73 +83,74 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                         return `<div class="node element">
                                 <p class="title">${data.label}</p>
                                 <p class="type">[database]</p>
-                                </div>`
+                                </div>`;
                     },
-                }
-            ])
+                },
+            ]);
 
-            //@ts-expect-error
+            //@ts-expect-error types are missing from the library
             cy.on('tap', 'node', (e: Event) => {
-                e.preventDefault()
-                const node = e.target as  unknown as  NodeSingular | null
-                setSelectedEdge(null)
-                setSelectedNode(node?.data()) // Update state with the clicked node's data
-            })
+                e.preventDefault();
+                const node = e.target as unknown as NodeSingular | null;
+                setSelectedEdge(null);
+                setSelectedNode(node?.data()); // Update state with the clicked node's data
+            });
 
-            //@ts-expect-error
+            //@ts-expect-error types are missing from the library
             cy.on('tap', 'edge', (e: Event) => {
-                e.preventDefault()
-                const edge = e.target as  unknown as  EdgeSingular | null
-                setSelectedNode(null)
-                setSelectedEdge(edge?.data()) // Update state with the clicked node's data
-            })
+                e.preventDefault();
+                const edge = e.target as unknown as EdgeSingular | null;
+                setSelectedNode(null);
+                setSelectedEdge(edge?.data()); // Update state with the clicked node's data
+            });
 
             return () => {
-                cy.destroy()
-            }
+                cy.destroy();
+            };
         }
-    }, [cy])
+    }, [cy]);
 
     useEffect(() => {
         // Initialize Cytoscape instance
-        const container = cyRef.current
+        const container = cyRef.current;
 
-        if (!container) return
+        if (!container) return;
 
-        setCy(cytoscape({
-            container: container, // container to render
-            elements: [...nodes, ...edges], // graph data
-            style: [
-                {
-                    selector: 'node',
-                    style: {
-                        width: '200px',
-                        height: '100px',
-                        shape: 'rectangle',
+        setCy(
+            cytoscape({
+                container: container, // container to render
+                elements: [...nodes, ...edges], // graph data
+                style: [
+                    {
+                        selector: 'node',
+                        style: {
+                            width: '200px',
+                            height: '100px',
+                            shape: 'rectangle',
+                        },
                     },
-                },
-                {
-                    selector: 'edge',
-                    style: {
-                        width: 2,
-                        'curve-style': 'bezier',
-                        label: 'data(label)', // labels from data property
-                        'target-arrow-shape': 'triangle',
-                        'text-wrap': 'ellipsis',
-                        "text-max-width": '200px'
+                    {
+                        selector: 'edge',
+                        style: {
+                            width: 2,
+                            'curve-style': 'bezier',
+                            label: 'data(label)', // labels from data property
+                            'target-arrow-shape': 'triangle',
+                            'text-wrap': 'ellipsis',
+                            'text-max-width': '200px',
+                        },
                     },
-                },
-                {
-                    selector: ':parent',
-                    style: {
-                        label: 'data(label)',
+                    {
+                        selector: ':parent',
+                        style: {
+                            label: 'data(label)',
+                        },
                     },
-                },
-            ],
-            layout: fcoseLayoutOptions,
-        }))
-
-    }, [nodes, edges]) // Re-render on cy, nodes or edges change
+                ],
+                layout: fcoseLayoutOptions,
+            })
+        );
+    }, [nodes, edges]); // Re-render on cy, nodes or edges change
 
     return (
         <div className="relative flex h-screen w-11/12 m-auto">
@@ -179,7 +180,7 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                 </div>
             )}
         </div>
-    )
-}
+    );
+};
 
-export default CytoscapeRenderer
+export default CytoscapeRenderer;
