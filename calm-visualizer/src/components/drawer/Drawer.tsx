@@ -74,7 +74,6 @@ const getDeployedInRelationships = (calmInstance: CALMInstantiation) => {
 };
 
 function Drawer() {
-    const [title, setTitle] = useState('Architecture as Code');
     const [selectedNode, setSelectedNode] = useState(null);
     const [calmInstance, setCALMInstance] = useState<CALMInstantiation | null>(null);
 
@@ -166,7 +165,6 @@ function Drawer() {
     async function handleFile(instanceFile: File) {
         const instanceString = await instanceFile.text();
         const calmInstance: CALMInstantiation = JSON.parse(instanceString);
-        setTitle(instanceFile.name);
         setCALMInstance(calmInstance);
     }
 
@@ -180,9 +178,13 @@ function Drawer() {
                     onChange={closeSidebar}
                 />
                 <div className="drawer-content">
-                    <div className="text-xl font-bold">{title}</div>
-                    <FileUploader callback={handleFile} />
-                    <div id="app">
+                    <div className="flex">
+                        <div className="h-24 w-80 flex flex-col justify-center bg-blue-700 max-w-64 rounded-tr-[4rem] rounded-br-[4rem]">
+                            <div className="text-4xl ml-4 text-white">CALM UI</div>
+                        </div>
+                        <FileUploader callback={handleFile} />
+                    </div>
+                    <div id="app m-5">
                         {calmInstance && <CytoscapeRenderer nodes={nodes} edges={edges} />}
                     </div>
                 </div>
