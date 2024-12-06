@@ -1,16 +1,16 @@
-import React, { useState } from 'react'
+import React, { useState } from 'react';
 
 interface Props {
-    callback: (instanceFile: File, layoutFile?: File) => void
+    callback: (instanceFile: File, layoutFile?: File) => void;
 }
 
 function FileUploader({ callback }: FileUploaderProps) {
-    const [instanceFile, setInstanceFile] = useState<File | null>(null)
-    const [layoutFile, setLayoutFile] = useState<File | null>(null)
+    const [instanceFile, setInstanceFile] = useState<File | null>(null);
+    const [layoutFile, setLayoutFile] = useState<File | null>(null);
 
     const handleSubmit = () => {
         if (instanceFile) {
-            callback(instanceFile, layoutFile || undefined)
+            callback(instanceFile, layoutFile || undefined);
         }
     };
 
@@ -28,11 +28,8 @@ function FileUploader({ callback }: FileUploaderProps) {
                             id="file"
                             type="file"
                             className="file-input w-full max-w-xs"
-                            onChange={(
-                                e: React.ChangeEvent<HTMLInputElement>
-                            ) =>
-                                e.target.files &&
-                                setInstanceFile(e.target.files[0])
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                e.target.files && setInstanceFile(e.target.files[0])
                             }
                         />
                     </div>
@@ -42,11 +39,8 @@ function FileUploader({ callback }: FileUploaderProps) {
                             id="file"
                             type="file"
                             className="file-input w-full max-w-xs"
-                            onChange={(
-                                e: React.ChangeEvent<HTMLInputElement>
-                            ) =>
-                                e.target.files &&
-                                setLayoutFile(e.target.files[0])
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                e.target.files && setLayoutFile(e.target.files[0])
                             }
                         />
                     </div>
@@ -58,7 +52,7 @@ function FileUploader({ callback }: FileUploaderProps) {
                 </button>
             )}
         </>
-    )
+    );
 }
 
 export default FileUploader;
