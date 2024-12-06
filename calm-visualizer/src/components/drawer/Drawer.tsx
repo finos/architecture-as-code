@@ -1,6 +1,5 @@
 import Sidebar from '../sidebar/Sidebar';
 import { useState } from 'react';
-import { CALMInstantiation } from '../../../../shared/src';
 import FileUploader from '../fileuploader/FileUploader';
 import CytoscapeRenderer, { Node, Edge } from '../cytoscape-renderer/CytoscapeRenderer.tsx';
 import {
@@ -9,7 +8,8 @@ import {
     CALMDeployedInRelationship,
     CALMInteractsRelationship,
     CALMRelationship,
-} from '../../types';
+    CALMInstantiation,
+} from '../../../../shared/src';
 
 function isComposedOf(relationship: CALMRelationship): relationship is CALMComposedOfRelationship {
     return 'composed-of' in relationship['relationship-type'];
