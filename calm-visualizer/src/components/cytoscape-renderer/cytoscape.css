@@ -1,0 +1,32 @@
+.node {
+    border: 1px solid;
+    text-align: center;
+    width: 200px;
+    height: 100px;
+    font-family: Arial;
+    padding: 10px 30px 10px 30px;
+    background-color: white;
+}
+
+.element {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: -50px;
+    margin-left: -100px;
+}
+
+.title {
+    font-weight: bold;
+    color: black
+}
+
+.type {
+    margin-top: 10px;
+    color: grey
+}
+
+.description {
+    margin-top: 10px;
+    color: black
+}

@@ -1,0 +1,42 @@
+.container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+.node {
+    padding: 1rem;
+    z-index: 3;
+    background-color: white;
+    border: 2px black solid;
+    text-align: center;
+    max-width: 15rem;
+}
+
+.graph-labels {
+    background-color: white;
+    font-weight: bold;
+    padding: 5px 10px;
+    max-width: 250px;
+}
+
+.node-type {
+    color: gray;
+    font-size: 0.9rem;
+}
+
+.node-description {
+    font-size: 0.9rem;
+}
+
+.group-container {
+    border: 2px gray dashed !important;
+    background-color: aliceblue;
+    max-width: max-content;
+    padding: 5rem;
+}
+
+.group-node {
+    border: 2px rgb(180, 178, 178) solid;
+    position: relative;
+}
