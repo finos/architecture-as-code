@@ -1,15 +1,12 @@
-import './App.css'
-import Drawer from './components/drawer/Drawer'
-
-
-
+import './App.css';
+import Drawer from './components/drawer/Drawer';
 
 function App() {
     return (
         <>
-            <Drawer/>
+            <Drawer />
         </>
-    )
+    );
 }
 
-export default App
+export default App;
