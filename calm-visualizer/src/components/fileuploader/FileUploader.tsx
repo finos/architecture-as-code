@@ -4,7 +4,7 @@ interface Props {
     callback: (instanceFile: File, layoutFile?: File) => void;
 }
 
-function FileUploader({ callback }: FileUploaderProps) {
+function FileUploader({ callback }: Props) {
     const [instanceFile, setInstanceFile] = useState<File | null>(null);
     const [layoutFile, setLayoutFile] = useState<File | null>(null);
 
