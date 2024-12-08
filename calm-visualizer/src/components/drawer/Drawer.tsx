@@ -1,7 +1,6 @@
 import Sidebar from '../sidebar/Sidebar';
 import { useState } from 'react';
 import { CALMInstantiation } from '../../../../shared/src';
-import FileUploader from '../fileuploader/FileUploader';
 import CytoscapeRenderer, { Node, Edge } from '../cytoscape-renderer/CytoscapeRenderer.tsx';
 import {
     CALMComposedOfRelationship,
@@ -10,6 +9,11 @@ import {
     CALMInteractsRelationship,
     CALMRelationship,
 } from '../../types';
+
+interface DrawerProps {
+    calmInstance?: CALMInstantiation;
+    title?: string;
+}
 
 function isComposedOf(relationship: CALMRelationship): relationship is CALMComposedOfRelationship {
     return 'composed-of' in relationship['relationship-type'];
@@ -73,17 +77,15 @@ const getDeployedInRelationships = (calmInstance: CALMInstantiation) => {
     return deployedInRelationships;
 };
 
-function Drawer() {
-    const [title, setTitle] = useState('Architecture as Code');
+function Drawer({ calmInstance, title }: DrawerProps) {
     const [selectedNode, setSelectedNode] = useState(null);
-    const [calmInstance, setCALMInstance] = useState<CALMInstantiation | null>(null);
 
     function closeSidebar() {
         setSelectedNode(null);
     }
 
     function getNodes(): Node[] {
-        if (!calmInstance) return [];
+        if (!calmInstance || !calmInstance.relationships) return [];
 
         const composedOfRelationships = getComposedOfRelationships(calmInstance);
         const deployedInRelationships = getDeployedInRelationships(calmInstance);
@@ -163,15 +165,8 @@ function Drawer() {
     const edges = getEdges();
     const nodes = getNodes();
 
-    async function handleFile(instanceFile: File) {
-        const instanceString = await instanceFile.text();
-        const calmInstance: CALMInstantiation = JSON.parse(instanceString);
-        setTitle(instanceFile.name);
-        setCALMInstance(calmInstance);
-    }
-
     return (
-        <>
+        <div className="flex-1 flex overflow-hidden">
             <div className={`drawer drawer-end ${selectedNode ? 'drawer-open' : ''}`}>
                 <input
                     type="checkbox"
@@ -179,18 +174,18 @@ function Drawer() {
                     checked={!!selectedNode}
                     onChange={closeSidebar}
                 />
-                <div className="drawer-content">
-                    <div className="text-xl font-bold">{title}</div>
-                    <FileUploader callback={handleFile} />
-                    <div id="app">
-                        {calmInstance && <CytoscapeRenderer nodes={nodes} edges={edges} />}
-                    </div>
+                <div className="drawer-content flex justify-center items-center ">
+                    {calmInstance && title ? (
+                        <CytoscapeRenderer title={title} nodes={nodes} edges={edges} />
+                    ) : (
+                        'No file selected'
+                    )}
                 </div>
                 {selectedNode && (
                     <Sidebar selectedData={selectedNode} closeSidebar={closeSidebar} />
                 )}
             </div>
-        </>
+        </div>
     );
 }
 
