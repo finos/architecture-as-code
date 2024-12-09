@@ -1,0 +1,42 @@
+{
+  "$schema": "https://calm.finos.org/draft/2024-12/meta/flow.json",
+  "$id": "https://calm.finos.org/traderx/flow/load-positions",
+  "unique-id": "flow-load-positions",
+  "name": "Load Positions",
+  "description": "Flow for loading positions for a specific account and subscribing to updates.",
+  "transitions": [
+    {
+      "relationship-unique-id": "web-gui-uses-position-service-for-position-queries",
+      "sequence-number": 1,
+      "summary": "Load Positions (acc)"
+    },
+    {
+      "relationship-unique-id": "position-service-uses-traderx-db-for-positions",
+      "sequence-number": 2,
+      "summary": "Query Positions for Account"
+    },
+    {
+      "relationship-unique-id": "position-service-uses-traderx-db-for-positions",
+      "sequence-number": 3,
+      "summary": "Return Positions for Account",
+      "direction": "destination-to-source"
+    },
+    {
+      "relationship-unique-id": "web-gui-uses-position-service-for-position-queries",
+      "sequence-number": 4,
+      "summary": "Return Positions for Account",
+      "direction": "destination-to-source"
+    },
+    {
+      "relationship-unique-id": "web-gui-uses-trade-feed",
+      "sequence-number": 5,
+      "summary": "Subscribe to Position updates (accounts/$id/positions)"
+    },
+    {
+      "relationship-unique-id": "web-gui-uses-trade-feed",
+      "sequence-number": 6,
+      "summary": "Publish Position Updates",
+      "direction": "destination-to-source"
+    }
+  ]
+}
