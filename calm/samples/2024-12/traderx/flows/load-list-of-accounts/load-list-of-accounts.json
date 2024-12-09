@@ -1,0 +1,31 @@
+{
+  "$schema": "https://calm.finos.org/draft/2024-12/meta/flow.json",
+  "$id": "https://calm.finos.org/traderx/flow/load-list-of-accounts",
+  "unique-id": "flow-load-list-of-accounts",
+  "name": "Load List of Accounts",
+  "description": "Flow for loading a list of accounts from the database to populate the GUI drop-down for user account selection.",
+  "transitions": [
+    {
+      "relationship-unique-id": "web-gui-process-uses-accounts-service",
+      "sequence-number": 1,
+      "summary": "Load list of accounts"
+    },
+    {
+      "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
+      "sequence-number": 2,
+      "summary": "Query for all Accounts"
+    },
+    {
+      "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
+      "sequence-number": 3,
+      "summary": "Returns list of accounts",
+      "direction": "destination-to-source"
+    },
+    {
+      "relationship-unique-id": "web-gui-process-uses-accounts-service",
+      "sequence-number": 4,
+      "summary": "Returns list of accounts",
+      "direction": "destination-to-source"
+    }
+  ]
+}

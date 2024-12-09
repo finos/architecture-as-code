@@ -20,6 +20,12 @@
     },
     "controls": {
       "$ref": "control.json#/defs/controls"
+    },
+    "flows": {
+      "type": "array",
+      "items": {
+        "$ref": "flow.json#/defs/flow"
+      }
     }
   },
   "defs": {
@@ -175,6 +181,7 @@
     "node-type-definition": {
       "enum": [
         "actor",
+        "ecosystem",
         "system",
         "service",
         "database",
