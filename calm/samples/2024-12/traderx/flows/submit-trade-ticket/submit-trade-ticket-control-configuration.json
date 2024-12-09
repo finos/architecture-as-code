@@ -1,0 +1,65 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control/flow-sla-control-requirement",
+  "$id": "https://calm.finos.org/traderx/control/submit-trade-ticket-control-configuration",
+  "control-id": "submit-trade-ticket-control-configuration",
+  "name": "Flow SLA Control for Trade Ticket Submission",
+  "description": "Ensure that Trade Ticket Submission flow meets the defined Service Level Agreement (SLA).",
+  "latency": {
+    "expected-latency": {
+      "value": 100,
+      "unit": "milliseconds"
+    },
+    "alert-threshold": {
+      "value": 150,
+      "unit": "milliseconds"
+    }
+  },
+  "throughput": {
+    "expected-message-rate": {
+      "value": 1000,
+      "unit": "seconds"
+    }
+  },
+  "availability": {
+    "uptime-guarantee": 99.9
+  },
+  "data-integrity": {
+    "message-reliability": "exactlyOnce",
+    "loss-tolerance": 0
+  },
+  "error-handling": {
+    "retry-logic": {
+      "max-retries": 3,
+      "retry-interval": {
+        "value": 10,
+        "unit": "seconds"
+      }
+    }
+  },
+  "monitoring": {
+    "real-time-monitoring": "Use of monitoring tools like Prometheus or Grafana for SLA tracking.",
+    "consumer-reporting": {
+      "value": 1,
+      "unit": "days"
+    }
+  },
+  "incident-response": {
+    "incident-resolution-time": {
+      "value": 30,
+      "unit": "minutes"
+    },
+    "escalation-protocols": {
+      "incident-start-time-post-alert": {
+        "value": 5,
+        "unit": "minutes"
+      },
+      "escalation-path": "Notify the incident response team via the dedicated Slack channel."
+    }
+  },
+  "review-adjustments": {
+    "sla-review": {
+      "value": 1,
+      "unit": "months"
+    }
+  }
+}
