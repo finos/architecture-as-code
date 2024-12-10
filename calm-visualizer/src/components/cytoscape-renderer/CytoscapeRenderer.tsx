@@ -66,6 +66,7 @@ interface Props {
 const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
     const cyRef = useRef<HTMLDivElement>(null);
     const [cy, setCy] = useState<Core | null>(null);
+    const [zoomLevel, setZoomLevel] = useState<number>(1);
     const [selectedNode, setSelectedNode] = useState<Node['data'] | null>(null);
     const [selectedEdge, setSelectedEdge] = useState<Edge['data'] | null>(null);
 
@@ -82,7 +83,7 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                     tpl: (data: Node['data']) => {
                         return `<div class="node element">
                                 <p class="title">${data.label}</p>
-                                <p class="type">[database]</p>
+                                <p class="type">[${data.type}]</p>
                                 </div>`;
                     },
                 },
@@ -103,6 +104,8 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                 setSelectedNode(null);
                 setSelectedEdge(edge?.data()); // Update state with the clicked node's data
             });
+
+            cy.on('zoom', () => setZoomLevel(cy.zoom()));
 
             return () => {
                 cy.destroy();
@@ -153,32 +156,35 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
     }, [nodes, edges]); // Re-render on cy, nodes or edges change
 
     return (
-        <div className="relative flex h-screen w-11/12 m-auto">
-            <div
-                ref={cyRef}
-                className="flex-1 bg-white"
-                style={{
-                    height: '100vh',
-                }}
-            />
+        <div>
+            <div className="mt-4">Zoom Level: {(zoomLevel*100).toFixed(0)}%</div>
+            <div className="relative flex h-screen w-11/12 m-auto">
+                <div
+                    ref={cyRef}
+                    className="flex-1 bg-white"
+                    style={{
+                        height: '100vh',
+                    }}
+                />
 
-            {selectedNode && (
-                <div className="absolute right-0 top-0 h-full">
-                    <Sidebar
-                        selectedData={selectedNode}
-                        closeSidebar={() => setSelectedNode(null)}
-                    />
-                </div>
-            )}
+                {selectedNode && (
+                    <div className="absolute right-0 top-0 h-full">
+                        <Sidebar
+                            selectedData={selectedNode}
+                            closeSidebar={() => setSelectedNode(null)}
+                        />
+                    </div>
+                )}
 
-            {selectedEdge && (
-                <div className="absolute right-0 top-0 h-full">
-                    <Sidebar
-                        selectedData={selectedEdge}
-                        closeSidebar={() => setSelectedEdge(null)}
-                    />
-                </div>
-            )}
+                {selectedEdge && (
+                    <div className="absolute right-0 top-0 h-full">
+                        <Sidebar
+                            selectedData={selectedEdge}
+                            closeSidebar={() => setSelectedEdge(null)}
+                        />
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
