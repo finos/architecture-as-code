@@ -3,43 +3,6 @@
   "$id": "https://calm.finos.org/draft/2024-12/meta/flow.json",
   "title": "Business Flow Model",
   "description": "Defines business flows that relate to technical architectures, allowing mapping of flows to technical components and attaching control requirements.",
-  "type": "object",
-  "properties": {
-    "unique-id": {
-      "type": "string",
-      "description": "Unique identifier for the flow"
-    },
-    "name": {
-      "type": "string",
-      "description": "Descriptive name for the business flow"
-    },
-    "description": {
-      "type": "string",
-      "description": "Detailed description of the flow's purpose"
-    },
-    "requirement-url": {
-      "type": "string",
-      "description": "Link to a detailed requirement document"
-    },
-    "transitions": {
-      "type": "array",
-      "items": {
-        "$ref": "#/defs/transition"
-      }
-    },
-    "controls": {
-      "$ref": "https://calm.finos.org/draft/2024-12/meta/control.json#/defs/controls"
-    },
-    "metadata": {
-      "$ref": "#/defs/metadata"
-    }
-  },
-  "required": [
-    "unique-id",
-    "name",
-    "description",
-    "transitions"
-  ],
   "defs": {
     "transition": {
       "type": "object",
@@ -76,6 +39,45 @@
       "items": {
         "type": "object"
       }
+    },
+    "flow": {
+      "type": "object",
+      "properties": {
+        "unique-id": {
+          "type": "string",
+          "description": "Unique identifier for the flow"
+        },
+        "name": {
+          "type": "string",
+          "description": "Descriptive name for the business flow"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the flow's purpose"
+        },
+        "requirement-url": {
+          "type": "string",
+          "description": "Link to a detailed requirement document"
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/defs/transition"
+          }
+        },
+        "controls": {
+          "$ref": "control.json#/defs/controls"
+        },
+        "metadata": {
+          "$ref": "#/defs/metadata"
+        }
+      },
+      "required": [
+        "unique-id",
+        "name",
+        "description",
+        "transitions"
+      ]
     }
   }
 }
