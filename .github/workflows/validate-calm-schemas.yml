@@ -1,0 +1,36 @@
+name: Validation of CALM Schemas
+
+on:
+  pull_request:
+    branches:
+      - "main"
+    paths:
+      - "calm/draft/**"
+  push:
+    branches:
+      - "main"
+    paths:
+      - "calm/draft/**"
+
+jobs:
+  validate-schemas:
+    name: Validate Schemas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: v20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build workspace
+        run: npm run build
+
+      - name: Install Spectral
+        run: npm install @stoplight/spectral-cli
+
+      - name: Validate Schemas
+        run: npx spectral lint --ruleset ./calm/dist/spectral/calm-rules.js 'calm/draft/**/*.json'

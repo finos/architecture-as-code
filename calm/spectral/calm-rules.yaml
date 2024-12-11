@@ -1,0 +1,66 @@
+extends: spectral:oas
+functions: []  # We'll implement custom functions in the next step
+
+rules:
+  calm-schema-version:
+    description: 'Ensures correct JSON Schema version'
+    message: 'Must use JSON Schema Draft 2020-12'
+    severity: error
+    given: $.['$schema']
+    then:
+      function: pattern
+      functionOptions:
+        match: https://json-schema.org/draft/2020-12/schema
+
+  calm-schema-id-format:
+    description: 'Validates schema ID format'
+    message: 'Schema ID must follow CALM format'
+    severity: error
+    given: $.['$id']
+    then:
+      function: pattern
+      functionOptions:
+        match: ^https://calm\.finos\.org/draft/\d{4}-\d{2}/.*\.json$
+
+  calm-required-properties:
+    description: 'Checks for required CALM properties'
+    message: 'Missing required properties: {{property}}'
+    severity: error
+    given: $
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required: ['$schema', '$id', 'title']
+
+  calm-properties-format:
+    description: 'Validates property formats'
+    message: 'Property format validation failed: {{error}}'
+    severity: error
+    given: $
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          properties:
+            $schema:
+              type: string
+              pattern: ^https://json-schema\.org/draft/2020-12/schema$
+            $id:
+              type: string
+              pattern: ^https://calm\.finos\.org/draft/\d{4}-\d{2}/.*\.json$
+            title:
+              type: string
+              minLength: 1
+
+  calm-cross-references:
+    description: 'Validates cross-references between schemas'
+    message: 'Invalid cross-reference detected: {{error}}'
+    severity: error
+    given: $..$ref
+    then:
+      function: pattern
+      functionOptions:
+        match: ^(https://calm\.finos\.org/draft/\d{4}-\d{2}/.*\.json|#/.*)$
