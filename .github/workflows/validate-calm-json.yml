@@ -1,0 +1,30 @@
+name: Validate CALM JSON Schemas
+
+on:
+  pull_request:
+    branches:
+      - "main"
+    paths:
+      - "calm/draft/**/*.json"
+  push:
+    branches:
+      - "main"
+    paths:
+      - "calm/draft/**/*.json"
+
+jobs:
+  validate-json:
+    name: Validate JSON Schemas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install jsonlint
+        run: npm install -g jsonlint
+
+      - name: Validate Schemas
+        run: npm run validate
