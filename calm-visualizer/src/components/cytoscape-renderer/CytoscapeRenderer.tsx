@@ -61,9 +61,10 @@ export type Edge = {
 interface Props {
     nodes: Node[];
     edges: Edge[];
+    title: string;
 }
 
-const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
+const CytoscapeRenderer = ({ nodes = [], edges = [], title }: Props) => {
     const cyRef = useRef<HTMLDivElement>(null);
     const [cy, setCy] = useState<Core | null>(null);
     const [selectedNode, setSelectedNode] = useState<Node['data'] | null>(null);
@@ -154,16 +155,10 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
 
     return (
         <div className="relative flex h-screen w-11/12 m-auto">
-            <div
-                ref={cyRef}
-                className="flex-1 bg-white"
-                style={{
-                    height: '100vh',
-                }}
-            />
-
+            <div className="text-l font-bold">{title}</div>
+            <div ref={cyRef} className="flex-1 bg-white visualizer" />
             {selectedNode && (
-                <div className="absolute right-0 top-0 h-full">
+                <div className="absolute right-0 h-full">
                     <Sidebar
                         selectedData={selectedNode}
                         closeSidebar={() => setSelectedNode(null)}
@@ -172,7 +167,7 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
             )}
 
             {selectedEdge && (
-                <div className="absolute right-0 top-0 h-full">
+                <div className="absolute right-0 h-full">
                     <Sidebar
                         selectedData={selectedEdge}
                         closeSidebar={() => setSelectedEdge(null)}
