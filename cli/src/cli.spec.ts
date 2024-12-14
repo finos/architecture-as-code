@@ -17,7 +17,7 @@ describe('CLI Integration Tests', () => {
 
     beforeAll(async () => {
         tempDir = fs.mkdtempSync(path.join(os.tmpdir(), integrationTestPrefix));
-        await callNpmFunction(`${projectRoot}`, 'link');
+        await callNpxFunction(`${projectRoot}/../..`, 'link cli');      // Link the CLI package to the top-level node_modules
     }, millisPerSecond * 20);
 
     afterAll(async () => {
@@ -164,7 +164,7 @@ describe('CLI Integration Tests', () => {
 });
 
 
-async function callNpmFunction(projectRoot: string, command: string) {
-    await execPromise(`npm ${command}`, { cwd: projectRoot });
+async function callNpxFunction(projectRoot: string, command: string) {
+    await execPromise(`npx ${command}`, { cwd: projectRoot });
 }
 
