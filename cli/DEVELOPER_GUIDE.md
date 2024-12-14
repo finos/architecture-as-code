@@ -1,13 +1,17 @@
 # Developing the CALM CLI
 
+## Prerequisites
+
+We recommend using Node v20.18.1 (use `nvm` to manage node versions if needed).  The `canvas` package we use does not seem to be compatible with later versions of node.
+
 ## Building & linking the CLI
 
-Clone the project and run the following commands:
+Clone the project and run the following commands from within this `cli` directory:
 
 ```shell
 npm install
 npm run build
-npx link
+npx link .
 ```
 
 When you've made a change to the CLI and want to test it out, you can rerun the build and link steps.
