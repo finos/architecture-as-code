@@ -1,20 +1,34 @@
 # Developing the CALM CLI
 
-## Prerequisites
+## One-time environment set-up
 
-We recommend using Node v20.18.1 (use `nvm` to manage node versions if needed).  The `canvas` package we use does not seem to be compatible with later versions of node.
+### [Flox](https://flox.dev) users
+
+  1. Clone the git repo and `cd` into the directory.
+  1. Run `flox activate`.  The first time you do this, it will locally install all the dependencies and Node packages, and configure the environment ready for you to develop and test.
+
+
+### Everyone else
+
+  1. Install Node v20.18.1 (use `nvm` to manage Node versions if needed).  The `canvas` package we use does not seem to be compatible with later versions of node.
+  1. Make sure `libuuid.so` is installed (`ldconfig -p | grep libuuid`) and install it if not (instructions will depend on your OS).
+  1. Clone the git repo and `cd` into the directory
+  1. Run the following:
+  ```shell
+     npm install
+     npm run build
+     npx link cli
+   ```
 
 ## Building & linking the CLI
 
-Clone the project and run the following commands from within this `cli` directory:
+When you've made a change to the CLI and want to test it out, you can rerun the build and link steps from within the `cli` directory:
 
 ```shell
-npm install
 npm run build
 npx link .
 ```
 
-When you've made a change to the CLI and want to test it out, you can rerun the build and link steps.
 This will make the CLI available on your local `node_modules` path.
 
 `npx link` uses the `link` package to symlink the `calm` executable in `node_modules/.bin` to your locally-built CLI.
