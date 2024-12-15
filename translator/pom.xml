@@ -44,7 +44,7 @@
 		<dependency>
 			<groupId>com.structurizr</groupId>
 			<artifactId>structurizr-client</artifactId>
-			<version>3.0.0</version>
+			<version>3.2.1</version>
 
 		</dependency>
 		<dependency>
