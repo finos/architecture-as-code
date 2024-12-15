@@ -13,6 +13,7 @@ import {
 interface DrawerProps {
     calmInstance?: CALMInstantiation;
     title?: string;
+    isDescActive: boolean;
 }
 
 function isComposedOf(relationship: CALMRelationship): relationship is CALMComposedOfRelationship {
@@ -77,7 +78,7 @@ const getDeployedInRelationships = (calmInstance: CALMInstantiation) => {
     return deployedInRelationships;
 };
 
-function Drawer({ calmInstance, title }: DrawerProps) {
+function Drawer({ calmInstance, title, isDescActive }: DrawerProps) {
     const [selectedNode, setSelectedNode] = useState(null);
 
     function closeSidebar() {
@@ -150,7 +151,7 @@ function Drawer({ calmInstance, title }: DrawerProps) {
                     return {
                         data: {
                             id: relationship['unique-id'],
-                            label: relationship.description || '',
+                            label: (isDescActive && relationship.description) || '',
                             source,
                             target,
                         },
