@@ -18,7 +18,7 @@
      npm install
      npm run build
      npx link cli
-   ```
+  ```
 
 ## Building & linking the CLI
 
