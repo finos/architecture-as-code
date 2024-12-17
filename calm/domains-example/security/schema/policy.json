@@ -1,0 +1,36 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/policy.json",
+    "title": "Policy",
+    "type": "object",
+    "allOf": [
+      {
+        "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/control-requirement.json"
+      }
+    ],
+    "properties": {
+      "control-id": {
+        "type": "string",
+        "description": "Unique id of the control"
+      },
+      "name": {
+        "type": "string",
+        "description": "Name of the policy"
+      },
+      "description": {
+        "type": "string",
+        "description": "Layman's explanation of the policy"
+      },
+      "statement": {
+        "type": "string",
+        "description": "The policy statement that the Policy adheres to e.g. YOU MUST ENABLE END TO END ENCRYPTION"
+      }
+    },
+    "required": [
+      "control-id",
+      "name",
+      "description",
+      "statement"
+    ]
+  }
+  

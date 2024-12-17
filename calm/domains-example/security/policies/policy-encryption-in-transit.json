@@ -1,0 +1,47 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/policies/encryption-in-transit.json",
+    "title": "Encryption in Transit policy",
+    "type": "object",
+    "allOf": [
+      {
+        "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/policy.json"
+      }
+    ],
+    "properties": {
+      "control-id": {
+        "const": "Policy-01"
+      },
+      "name": {
+        "const": "Encryption in transit"
+      },
+      "description": {
+        "const": "Point to point communication must be encrypted"
+      },
+      "statement": {
+        "const": "You MUST encrypt all data in transit with an approved protocol using an approved secure cryptographic protocol"
+      },
+      "protocol": {
+        "$ref": "#/defs/protocol"
+        }
+      
+    },
+    "required": [
+      "control-id",
+      "name",
+      "description",
+      "statement",
+      "protocol"
+    ],
+    "defs": {
+    "protocol": {
+      "enum": [
+        "TLS",
+        "mTLS",
+        "ssh",
+        "smpt"
+      ]
+    }
+  }
+}
+  

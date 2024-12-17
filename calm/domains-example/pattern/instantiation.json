@@ -124,6 +124,10 @@
             {
               "control-requirement-url": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/permitted-connection.json",
               "control-config-url": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/cluster-internal-mtls.json"
+            },
+            {
+              "control-requirement-url": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/encryption-in-transit.json",
+              "control-config-url": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/"
             }
           ]
         }
