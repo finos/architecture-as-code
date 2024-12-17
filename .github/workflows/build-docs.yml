@@ -26,10 +26,8 @@ jobs:
         with:
           node-version: v20
 
-      - name: Install docs
+      - name: Install workspace
         run: npm ci
-        working-directory: docs
 
-      - name: Build docs
-        run: npm run build
-        working-directory: docs 
+      - name: Build Docs
+        run: npm run build:docs
