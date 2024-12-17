@@ -43,7 +43,17 @@
       "direction": "destination-to-source"
     }
   ],
-  "controls": {
+  "controls": [{
+    "security": {
+      "description": "Encryption in transit control",
+      "requirements": [
+        {
+          "control-requirement-url": "https://calm.finos.org/samples/traderx/controls/flow-sla-control-requirement.json",
+          "control-config": "https://calm.finos.org/samples/traderx/flows/submit-trade-ticket/submit-trade-ticket-control-configuration.json"
+        }
+      ]
+    },
+  },{
     "submit-trade-ticket-sla": {
       "description": "Control requirement for flow SLA",
       "requirements": [
@@ -54,4 +64,5 @@
       ]
     }
   }
+  ]
 }
