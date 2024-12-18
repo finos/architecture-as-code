@@ -175,12 +175,12 @@ function Drawer({ calmInstance, title, isDescActive }: DrawerProps) {
                     checked={!!selectedNode}
                     onChange={closeSidebar}
                 />
-                <div className="drawer-content flex justify-center items-center ">
-                    {calmInstance && title ? (
-                        <CytoscapeRenderer title={title} nodes={nodes} edges={edges} />
-                    ) : (
-                        'No file selected'
-                    )}
+                <div className="drawer-content">
+                    <div id="app m-5">
+                        {calmInstance && (
+                            <CytoscapeRenderer title={title || ''} nodes={nodes} edges={edges} />
+                        )}
+                    </div>
                 </div>
                 {selectedNode && (
                     <Sidebar selectedData={selectedNode} closeSidebar={closeSidebar} />

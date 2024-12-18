@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import './cytoscape.css';
 import { useEffect, useRef, useState } from 'react';
 import cytoscape, { Core, EdgeSingular, NodeSingular } from 'cytoscape';
 import nodeHtmlLabel from 'cytoscape-node-html-label';
+import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
 import coseBilkent from 'cytoscape-cose-bilkent';
 import expandCollapse from 'cytoscape-expand-collapse';
 import fcose from 'cytoscape-fcose';
@@ -10,34 +12,41 @@ import Sidebar from '../sidebar/Sidebar';
 //Make some information available on tooltip hover
 
 nodeHtmlLabel(cytoscape);
+nodeEdgeHtmlLabel(cytoscape);
 expandCollapse(cytoscape);
 
 cytoscape.use(fcose);
 cytoscape.use(coseBilkent);
 
-const fcoseLayoutOptions: cytoscape.LayoutOptions = {
+const fcoseLayoutOptions = {
     name: 'fcose',
+    animate: false,
+    samplingType: true,
+    // Sample size to construct distance matrix
+    sampleSize: 25,
+    // Separation amount between nodes
+    nodeSeparation: 175,
+    // Power iteration tolerance
+    piTol: 0.0000001,
+    nodeRepulsion: (_node: unknown) => 450000,
+    // Ideal edge (non nested) length
+    idealEdgeLength: (_edge: unknown) => 500,
+    // Divisor to compute edge forces
+    edgeElasticity: (_edge: unknown) => 0.85,
+    // Nesting factor (multiplier) to compute ideal edge length for nested edges
+    nestingFactor: 0.1,
+    // Maximum number of iterations to perform - this is a suggested value and might be adjusted by the algorithm as required
+    numIter: 25000,
+    gravity: 0.9,
+    // Gravity range (constant) for compounds
+    gravityRangeCompound: 1.5,
+    // Gravity force (constant) for compounds
+    gravityCompound: 1.0,
+    // Gravity range (constant)
+    gravityRange: 3.8,
+    // Initial cooling factor for incremental layout
+    initialEnergyOnIncremental: 0.3,
 };
-
-// const coseBilkentLayoutOptions = {
-//     name: 'cose-bilkent',
-//     randomize: false,
-//     fit: true,
-//     padding: 50,
-//     nodeDimensionsIncludeLabels: true,
-//     nodeRepulsion: 10000,
-//     idealEdgeLength: 200,
-//     edgeElasticity: 0.1,
-//     gravity: 0.25,
-//     numIter: 2500,
-//     tile: true,
-//     tilingPaddingVertical: 50,
-//     tilingPaddingHorizontal: 50,
-//     animate: false,
-//     gravityRangeCompound: 1.5,
-//     gravityCompound: 1.0,
-//     gravityRange: 3.8,
-// };
 
 export type Node = {
     classes?: string;
@@ -59,12 +68,12 @@ export type Edge = {
 };
 
 interface Props {
+    title: string;
     nodes: Node[];
     edges: Edge[];
-    title: string;
 }
 
-const CytoscapeRenderer = ({ nodes = [], edges = [], title }: Props) => {
+const CytoscapeRenderer = ({ title, nodes = [], edges = [] }: Props) => {
     const cyRef = useRef<HTMLDivElement>(null);
     const [cy, setCy] = useState<Core | null>(null);
     const [selectedNode, setSelectedNode] = useState<Node['data'] | null>(null);
@@ -82,8 +91,8 @@ const CytoscapeRenderer = ({ nodes = [], edges = [], title }: Props) => {
                     valignBox: 'center',
                     tpl: (data: Node['data']) => {
                         return `<div class="node element">
-                                <p class="title">${data.label}</p>
-                                <p class="type">[database]</p>
+                                    <p class="title">${data.label}</p>
+                                    <p class="type">[database]</p>
                                 </div>`;
                     },
                 },
@@ -138,7 +147,9 @@ const CytoscapeRenderer = ({ nodes = [], edges = [], title }: Props) => {
                             label: 'data(label)', // labels from data property
                             'target-arrow-shape': 'triangle',
                             'text-wrap': 'ellipsis',
-                            'text-max-width': '200px',
+                            'text-background-color': 'white',
+                            'text-background-opacity': 1,
+                            'text-background-padding': '5px',
                         },
                     },
                     {
@@ -154,9 +165,15 @@ const CytoscapeRenderer = ({ nodes = [], edges = [], title }: Props) => {
     }, [nodes, edges]); // Re-render on cy, nodes or edges change
 
     return (
-        <div className="relative flex h-screen w-11/12 m-auto">
-            <div className="text-l font-bold">{title}</div>
-            <div ref={cyRef} className="flex-1 bg-white visualizer" />
+        <div className="relative flex m-auto border">
+            <div className="text-l font-bold absolute">{title}</div>
+            <div
+                ref={cyRef}
+                className="flex-1 bg-white visualizer"
+                style={{
+                    height: '100vh',
+                }}
+            />
             {selectedNode && (
                 <div className="absolute right-0 h-full">
                     <Sidebar
