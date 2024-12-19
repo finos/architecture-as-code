@@ -49,7 +49,7 @@ describe('runGenerate', () => {
             .toBeTruthy();
     });
 
-    it('instantiates to calm instantiation file', async () => {
+    it('instantiates to calm architecture file', async () => {
         const outPath = path.join(tempDirectoryPath, 'output.json');
         await runGenerate(testPath, outPath, false, false);
 
