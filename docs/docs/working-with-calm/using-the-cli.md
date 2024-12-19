@@ -27,8 +27,8 @@ Options: -V, --version output the version number -h, --help display help for com
 
 Commands:
   visualize [options]  Produces an SVG file representing a visualization of the CALM Specification.
-  generate [options]   Generate an instantiation from a CALM pattern file.
-  validate [options]   Validate that an instantiation conforms to a given CALM pattern.
+  generate [options]   Generate an architecture from a CALM pattern file.
+  validate [options]   Validate that an architecture conforms to a given CALM pattern.
   help [command]       display help for command
 
 ```
