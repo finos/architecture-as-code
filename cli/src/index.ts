@@ -5,6 +5,7 @@ import { Option, program } from 'commander';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
+import { version } from '../package.json';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -17,7 +18,7 @@ const VERBOSE_OPTION = '-v, --verbose';
 
 program
     .name('calm')
-    .version('0.2.5')
+    .version(version)
     .description('A set of tools for interacting with the Common Architecture Language Model (CALM)');
 
 program
