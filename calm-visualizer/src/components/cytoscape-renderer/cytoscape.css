@@ -2,10 +2,20 @@
     border: 1px solid;
     text-align: center;
     width: 200px;
-    height: 100px;
+    min-height: 100px;
     font-family: Arial;
     padding: 10px 30px 10px 30px;
     background-color: white;
+}
+
+:focus {
+    border: 1px solid;
+    border-color: blue;
+}
+
+.graph-title {
+    z-index: 1;
+    padding: var(--navbar-padding, 0.5rem);
 }
 
 .element {

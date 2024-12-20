@@ -13,7 +13,8 @@ import {
 interface DrawerProps {
     calmInstance?: CALMInstantiation;
     title?: string;
-    isDescActive: boolean;
+    isNodeDescActive: boolean;
+    isConDescActive: boolean;
 }
 
 function isComposedOf(relationship: CALMRelationship): relationship is CALMComposedOfRelationship {
@@ -78,7 +79,7 @@ const getDeployedInRelationships = (calmInstance: CALMInstantiation) => {
     return deployedInRelationships;
 };
 
-function Drawer({ calmInstance, title, isDescActive }: DrawerProps) {
+function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive }: DrawerProps) {
     const [selectedNode, setSelectedNode] = useState(null);
 
     function closeSidebar() {
@@ -151,7 +152,7 @@ function Drawer({ calmInstance, title, isDescActive }: DrawerProps) {
                     return {
                         data: {
                             id: relationship['unique-id'],
-                            label: (isDescActive && relationship.description) || '',
+                            label: relationship.description || '',
                             source,
                             target,
                         },
@@ -159,7 +160,6 @@ function Drawer({ calmInstance, title, isDescActive }: DrawerProps) {
                 }
             })
             .filter((edge) => edge !== undefined);
-
         return edges;
     }
 
@@ -171,16 +171,25 @@ function Drawer({ calmInstance, title, isDescActive }: DrawerProps) {
             <div className={`drawer drawer-end ${selectedNode ? 'drawer-open' : ''}`}>
                 <input
                     type="checkbox"
+                    aria-label="drawer-toggle"
                     className="drawer-toggle"
                     checked={!!selectedNode}
                     onChange={closeSidebar}
                 />
                 <div className="drawer-content">
-                    <div id="app m-5">
-                        {calmInstance && (
-                            <CytoscapeRenderer title={title || ''} nodes={nodes} edges={edges} />
-                        )}
-                    </div>
+                    {calmInstance ? (
+                        <CytoscapeRenderer
+                            isConDescActive={isConDescActive}
+                            isNodeDescActive={isNodeDescActive}
+                            title={title}
+                            nodes={nodes}
+                            edges={edges}
+                        />
+                    ) : (
+                        <div className="flex justify-center items-center h-full">
+                            No file selected
+                        </div>
+                    )}
                 </div>
                 {selectedNode && (
                     <Sidebar selectedData={selectedNode} closeSidebar={closeSidebar} />
