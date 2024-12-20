@@ -1,0 +1,8 @@
+{
+  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/policies/policy-encryption-in-transit.json",
+  "control-id": "policy-001",
+  "name": "Encryption in transit",
+  "description": "Point to point communication must be encrypted",
+  "statement": "You MUST encrypt all data in transit with an approved protocol using an approved secure cryptographic protocol",
+  "protocol": "mTLS"
+}
