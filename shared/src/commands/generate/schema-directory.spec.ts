@@ -22,6 +22,29 @@ describe('SchemaDirectory', () => {
         expect(schemaDir.getLoadedSchemas().length).toBe(2);
     });
 
+    it('loads all specs from given directory including subdirectories - 2024-10 schema', async () => {
+        const schemaDir = new SchemaDirectory();
+        
+        await schemaDir.loadSchemas('../calm/draft/2024-10');
+        expect(schemaDir.getLoadedSchemas().length).toBe(8);
+        
+        const loadedSchemas = schemaDir.getLoadedSchemas();
+        const expectedFileNames = [
+            'https://calm.finos.org/draft/2024-10/meta/calm.json',
+            'https://calm.finos.org/draft/2024-10/meta/control-requirement.json',
+            'https://calm.finos.org/draft/2024-10/meta/control.json',
+            'https://calm.finos.org/draft/2024-10/meta/core.json',
+            'https://calm.finos.org/draft/2024-10/meta/evidence.json',
+            'https://calm.finos.org/draft/2024-10/meta/flow.json',
+            'https://calm.finos.org/draft/2024-10/meta/interface.json',
+            'https://calm.finos.org/draft/2024-10/meta/units.json'
+        ];
+
+        expectedFileNames.forEach((fileName, index) => {
+            expect(loadedSchemas[index]).toBe(fileName);
+        });
+    });
+
     it('resolves a reference from a loaded schema', async () => {
         const schemaDir = new SchemaDirectory();
         
@@ -66,6 +89,8 @@ describe('SchemaDirectory', () => {
         expect(interfaceDef.properties).toHaveProperty('missing-value');
         expect(interfaceDef.properties['missing-value']).toEqual('MISSING OBJECT, ref: ' + interfaceRef + ' could not be resolved');
     });
+
+
 
     it('terminate early in the case of a circular reference', async () => {
         const schemaDir = new SchemaDirectory();
