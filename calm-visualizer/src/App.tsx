@@ -8,7 +8,8 @@ import React from 'react';
 function App() {
     const [title, setTitle] = useState<string | undefined>(undefined);
     const [instance, setCALMInstance] = useState<CALMInstantiation | undefined>(undefined);
-    const [isDescActive, setDescriptionsActive] = React.useState(false);
+    const [isConDescActive, setConDescActive] = React.useState(false);
+    const [isNodeDescActive, setNodeDescActive] = React.useState(false);
 
     async function handleFile(instanceFile: File) {
         const title = instanceFile.name;
@@ -23,10 +24,16 @@ function App() {
         <div className="h-screen flex flex-col">
             <Navbar
                 handleUpload={handleFile}
-                calmInstance={instance}
-                toggleDescriptions={() => setDescriptionsActive((isDescActive) => !isDescActive)}
+                isGraphRendered={instance ? true : false}
+                toggleNodeDesc={() => setNodeDescActive((isNodeDescActive) => !isNodeDescActive)}
+                toggleConnectionDesc={() => setConDescActive((isConDescActive) => !isConDescActive)}
             />
-            <Drawer isDescActive={isDescActive} calmInstance={instance} title={title} />
+            <Drawer
+                isNodeDescActive={isNodeDescActive}
+                isConDescActive={isConDescActive}
+                calmInstance={instance}
+                title={title}
+            />
         </div>
     );
 }
