@@ -5,6 +5,9 @@ import { Option, program } from 'commander';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
+import express from 'express';
+import { allRoutes } from './routes/routes';
+import { Application } from 'express';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const INSTANTIATION_OPTION = '-i, --instantiation <file>';
@@ -14,6 +17,8 @@ const PATTERN_OPTION = '-p, --pattern <file>';
 const SCHEMAS_OPTION = '-s, --schemaDirectory <path>';
 const STRICT_OPTION = '--strict';
 const VERBOSE_OPTION = '-v, --verbose';
+
+
 
 program
     .name('calm')
@@ -68,6 +73,26 @@ program
         const content = getFormattedOutput(outcome, options.format);
         writeOutputFile(options.output, content);
         exitBasedOffOfValidationOutcome(outcome, options.strict);
+    });
+
+program
+    .command('server')
+    .description('Start a HTTP server to proxy CLI commands.')
+    .option('-p, --port <port>', 'Port to run the server on', '3000')
+    .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+    .action((options) => {
+
+        const app: Application = express();
+        app.use(express.json());
+        app.use('/', allRoutes);
+
+        const port = options.port;
+
+        app.listen(port, () => {
+            if (options.verbose) {
+                console.log(`CALM Server is running on http://localhost:${port}`);
+            }
+        });
     });
 
 function writeOutputFile(output: string, validationsOutput: string) {

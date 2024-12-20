@@ -4,6 +4,8 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { parseStringPromise } from 'xml2js';
 import util from 'util';
+import axios from 'axios';
+
 
 const execPromise = util.promisify(exec);
 
@@ -13,7 +15,7 @@ describe('CLI Integration Tests', () => {
     const millisPerSecond = 1000;
     const integrationTestPrefix = 'calm-test';
     const projectRoot = __dirname;
-    jest.setTimeout(30 * millisPerSecond);
+    jest.setTimeout(30 * millisPerSecond); // Uncomment this line to set the timeout for Jest tests
 
     beforeAll(async () => {
         tempDir = fs.mkdtempSync(path.join(os.tmpdir(), integrationTestPrefix));
@@ -161,6 +163,40 @@ describe('CLI Integration Tests', () => {
             done();
         });
     });
+
+
+    test('example server command - health check', (done) => {
+        const serverCommand = 'calm server';
+
+        const serverProcess = exec(serverCommand, async (_error, _stdout, _stderr) => {
+            const response = await axios.get('http://localhost:3000/api/validate/health');
+            expect(response.status).toBe(200);
+            done();
+        });
+
+        serverProcess.kill();
+
+
+    }, millisPerSecond * 30);
+
+
+    test('example server command - basic validation - temp', async () => {
+        const serverCommand = 'calm server --verbose';
+
+        const serverProcess = exec(serverCommand, async (_error, _stdout, _stderr) => {            
+        });
+    
+        const response = await axios.get('http://localhost:3000/api/validate/health');
+        expect(response.status).toBe(200);
+
+        serverProcess.kill();
+
+
+    }, millisPerSecond * 5);
+
+
+
+
 });
 
 
