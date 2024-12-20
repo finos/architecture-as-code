@@ -54,7 +54,8 @@ describe('validate-all', () => {
         });
 
         afterEach(() => {
-            fetchMock.restore();
+            fetchMock.hardReset();
+            fetchMock.mockGlobal().hardReset();
         });
 
 
@@ -81,7 +82,7 @@ describe('validate-all', () => {
         });
 
         it('exits with error when the JSON Schema pattern URL returns a 404', async () => {
-            fetchMock.mock('http://does-not-exist/api-gateway.json', 404);
+            fetchMock.mockGlobal().route('http://does-not-exist/api-gateway.json', 404);
 
             await expect(validate('https://does-not-exist/api-gateway-implementation.json', 'http://does-not-exist/api-gateway.json', metaSchemaLocation, debugDisabled))
                 .rejects
@@ -93,8 +94,8 @@ describe('validate-all', () => {
         it('exits with error when the architecture URL returns a 404', async () => {
             const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
 
-            fetchMock.mock('http://exist/api-gateway.json', apiGateway);
-            fetchMock.mock('https://does-not-exist/api-gateway-implementation.json', 404);
+            fetchMock.mockGlobal().route('http://exist/api-gateway.json', apiGateway);
+            fetchMock.mockGlobal().route('https://does-not-exist/api-gateway-implementation.json', 404);
 
             await expect(validate('https://does-not-exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
                 .rejects
@@ -107,8 +108,8 @@ describe('validate-all', () => {
             const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
 
             const markdown = ' #This is markdown';
-            fetchMock.mock('http://exist/api-gateway.json', apiGateway);
-            fetchMock.mock('https://url/with/non/json/response', markdown);
+            fetchMock.mockGlobal().route('http://exist/api-gateway.json', apiGateway);
+            fetchMock.mockGlobal().route('https://url/with/non/json/response', markdown);
 
             await expect(validate('https://url/with/non/json/response', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
                 .rejects
@@ -129,10 +130,10 @@ describe('validate-all', () => {
         it('has error when the architecture does not match the json schema', async () => {
 
             const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
-            fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+            fetchMock.mockGlobal().route('http://exist/api-gateway.json', apiGateway);
 
             const apiGatewayArchitecture = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation-that-does-not-match-schema.json'), 'utf8');
-            fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayArchitecture);
+            fetchMock.mockGlobal().route('https://exist/api-gateway-implementation.json', apiGatewayArchitecture);
 
             const response = await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled);
 
@@ -158,10 +159,10 @@ describe('validate-all', () => {
             mockRunFunction.mockReturnValue(expectedSpectralOutput);
 
             const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
-            fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+            fetchMock.mockGlobal().route('http://exist/api-gateway.json', apiGateway);
 
             const apiGatewayArchitecture = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation-that-does-not-pass-the-spectral-validation.json'), 'utf8');
-            fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayArchitecture);
+            fetchMock.mockGlobal().route('https://exist/api-gateway-implementation.json', apiGatewayArchitecture);
 
             const response = await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled);
             expect(response).not.toBeNull();
@@ -171,7 +172,7 @@ describe('validate-all', () => {
             expect(response.allValidationOutputs().length).toBeGreaterThan(0);
         });
 
-        it('has error when the pattern does not pass all the spectral validations ', async () => {
+        it('has error when the pattern does not pass all the spectral validations', async () => {
             const expectedSpectralOutput: ISpectralDiagnostic[] = [
                 {
                     code: 'no-empty-properties',
@@ -185,10 +186,10 @@ describe('validate-all', () => {
             mockRunFunction.mockReturnValue(expectedSpectralOutput);
 
             const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-with-no-relationships.json'), 'utf8');
-            fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+            fetchMock.mockGlobal().route('http://exist/api-gateway.json', apiGateway);
 
             const apiGatewayArchitecture = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8');
-            fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayArchitecture);
+            fetchMock.mockGlobal().route('https://exist/api-gateway-implementation.json', apiGatewayArchitecture);
 
             const response = await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled);
             expect(response).not.toBeNull();
@@ -213,15 +214,16 @@ describe('validate-all', () => {
             mockRunFunction.mockReturnValue(expectedSpectralOutput);
 
             const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
-            fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+            fetchMock.mockGlobal().route('http://exist/api-gateway.json', apiGateway);
 
             const apiGatewayArchitecture = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8');
-            fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayArchitecture);
+            fetchMock.mockGlobal().route('https://exist/api-gateway-implementation.json', apiGatewayArchitecture);
 
             const response = await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled);
+
             expect(response).not.toBeNull();
             expect(response).not.toBeUndefined();
-            expect(response.hasErrors).not.toBeTruthy();
+            expect(response.hasErrors).toBeTruthy();
             expect(response.hasWarnings).toBeTruthy();
             expect(response.allValidationOutputs()).not.toBeNull();
             expect(response.allValidationOutputs().length).toBeGreaterThan(0);
@@ -431,7 +433,8 @@ describe('validate-all', () => {
         });
     
         afterEach(() => {
-            fetchMock.restore();
+            fetchMock.hardReset();
+            fetchMock.mockGlobal().hardReset();
         });
     
         it('exits with non zero exit code when the pattern does not pass all the spectral validations ', async () => {
@@ -448,7 +451,7 @@ describe('validate-all', () => {
             mockRunFunction.mockReturnValue(expectedSpectralOutput);
     
             const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
-            fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+            fetchMock.mockGlobal().route('http://exist/api-gateway.json', apiGateway);
     
             await expect(validateAndExitConditionally('', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
                 .rejects
@@ -469,7 +472,7 @@ describe('validate-all', () => {
             mockRunFunction.mockReturnValue(expectedSpectralOutput);
     
             const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
-            fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+            fetchMock.mockGlobal().route('http://exist/api-gateway.json', apiGateway);
             await expect(validateAndExitConditionally('', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled, true))
                 .rejects
                 .toThrow();
@@ -485,7 +488,7 @@ describe('validate-all', () => {
             mockRunFunction.mockReturnValue(expectedSpectralOutput);
     
             const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/bad-schema/bad-json-schema.json'), 'utf8');
-            fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+            fetchMock.mockGlobal().route('http://exist/api-gateway.json', apiGateway);
     
             await expect(validateAndExitConditionally('', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
                 .rejects

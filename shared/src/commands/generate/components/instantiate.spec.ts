@@ -1,4 +1,4 @@
-/* eslint-disable  @typescript-eslint/no-explicit-any */
+ 
 
 import { SchemaDirectory } from '../schema-directory';
 import { instantiateGenericObject } from './instantiate';

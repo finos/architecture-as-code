@@ -20,6 +20,6 @@
         "link:cli": "npm link --workspace cli"
     },
     "devDependencies": {
-        "npm-run-all2": "^5.0.0"
+        "npm-run-all2": "^7.0.2"
     }
 }
