@@ -17,7 +17,7 @@ jest.mock('../helper', () => {
 jest.mock('./schema-directory');
 
 jest.mock('../../consts', () => ({
-    get CALM_META_SCHEMA_DIRECTORY() { return '../calm/draft/2024-04/meta'; }
+    get CALM_META_SCHEMA_DIRECTORY() { return '../calm/draft/2024-10/meta'; }
 }));
 
 

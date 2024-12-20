@@ -354,7 +354,7 @@ describe('validate-all', () => {
             const given: ErrorObject[] = [
                 {
                     'instancePath': '/nodes/0/interfaces/0/port',
-                    'schemaPath': 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/host-port-interface/properties/port/type',
+                    'schemaPath': 'https://calm.finos.org/draft/2024-10/meta/interface.json#/defs/host-port-interface/properties/port/type',
                     'keyword': 'type',
                     'params': {
                         'type': 'integer'
@@ -369,7 +369,7 @@ describe('validate-all', () => {
                     'error',
                     'must be integer',
                     '/nodes/0/interfaces/0/port',
-                    'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/host-port-interface/properties/port/type'
+                    'https://calm.finos.org/draft/2024-10/meta/interface.json#/defs/host-port-interface/properties/port/type'
                 )
             ];
 
