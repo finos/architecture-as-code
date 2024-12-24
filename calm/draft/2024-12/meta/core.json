@@ -77,53 +77,6 @@
       ],
       "additionalProperties": true
     },
-    "relationship-type": {
-      "type": "object",
-      "properties": {
-        "interacts": {
-          "$ref": "#/defs/interacts-type"
-        },
-        "connects": {
-          "$ref": "#/defs/connects-type"
-        },
-        "deployed-in": {
-          "$ref": "#/defs/deployed-in-type"
-        },
-        "composed-of": {
-          "$ref": "#/defs/composed-of-type"
-        }
-      },
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "deployed-in": { "$ref": "#/defs/deployed-in-type" }
-          },
-          "required": ["deployed-in"]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "composed-of": { "$ref": "#/defs/composed-of-type" }
-          },
-          "required": ["composed-of"]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "interacts": { "$ref": "#/defs/interacts-type" }
-          },
-          "required": ["interacts"]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "connects": { "$ref": "#/defs/connects-type" }
-          },
-          "required": ["connects"]
-        }
-      ]
-    },
     "relationship": {
       "type": "object",
       "properties": {
@@ -134,22 +87,38 @@
           "type": "string"
         },
         "relationship-type": {
-          "type": "object",
-          "properties": {
-            "interacts": {
-              "$ref": "#/defs/interacts-type"
+          "oneOf": [
+            {
+              "properties": {
+                "kind": { "const": "deployed-in" },
+                "details": { "$ref": "#/defs/deployed-in-type" }
+              },
+              "required": ["kind", "details"]
             },
-            "connects": {
-              "$ref": "#/defs/connects-type"
+            {
+              "properties": {
+                "kind": { "const": "composed-of" },
+                "details": { "$ref": "#/defs/composed-of-type" }
+              },
+              "required": ["kind", "details"]
             },
-            "deployed-in": {
-              "$ref": "#/defs/deployed-in-type"
+            {
+              "properties": {
+                "kind": { "const": "interacts" },
+                "details": { "$ref": "#/defs/interacts-type" }
+              },
+              "required": ["kind", "details"]
             },
-            "composed-of": {
-              "$ref": "#/defs/composed-of-type"
+            {
+              "properties": {
+                "kind": { "const": "connects" },
+                "details": { "$ref": "#/defs/connects-type" }
+              },
+              "required": ["kind", "details"]
             }
-          }
+          ]
         },
+
         "protocol": {
           "$ref": "#/defs/protocol"
         },

@@ -68,13 +68,27 @@ export interface ControlDetail {
 export interface Relationship {
   "unique-id": string;
   description?: string;
-  "relationship-type": {
-    interacts?: InteractsType;
-    connects?: ConnectsType;
-    "deployed-in"?: DeployedInType;
-    "composed-of"?: ComposedOfType;
-    [k: string]: unknown;
-  };
+  "relationship-type":
+    | {
+        kind: "deployed-in";
+        details: DeployedInType;
+        [k: string]: unknown;
+      }
+    | {
+        kind: "composed-of";
+        details: ComposedOfType;
+        [k: string]: unknown;
+      }
+    | {
+        kind: "interacts";
+        details: InteractsType;
+        [k: string]: unknown;
+      }
+    | {
+        kind: "connects";
+        details: ConnectsType;
+        [k: string]: unknown;
+      };
   protocol?:
     | "HTTP"
     | "HTTPS"
@@ -93,6 +107,22 @@ export interface Relationship {
   controls?: Controls;
   [k: string]: unknown;
 }
+export interface DeployedInType {
+  container?: string;
+  /**
+   * @minItems 1
+   */
+  nodes?: [string, ...string[]];
+  [k: string]: unknown;
+}
+export interface ComposedOfType {
+  container: string;
+  /**
+   * @minItems 1
+   */
+  nodes: [string, ...string[]];
+  [k: string]: unknown;
+}
 export interface InteractsType {
   actor: string;
   /**
@@ -109,22 +139,6 @@ export interface ConnectsType {
 export interface NodeInterface {
   node: string;
   interfaces?: string[];
-  [k: string]: unknown;
-}
-export interface DeployedInType {
-  container?: string;
-  /**
-   * @minItems 1
-   */
-  nodes?: [string, ...string[]];
-  [k: string]: unknown;
-}
-export interface ComposedOfType {
-  container: string;
-  /**
-   * @minItems 1
-   */
-  nodes: [string, ...string[]];
   [k: string]: unknown;
 }
 export interface Flow {
