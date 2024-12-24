@@ -34,7 +34,7 @@ describe('calmToDot', () => {
             ],
             relationships: [
                 {
-                    'uniqueId': 'relationship-1',
+                    'unique-id': 'relationship-1',
                     'description': 'test description',
                     'protocol': 'HTTPS',
                     'relationship-type': {
@@ -76,7 +76,7 @@ describe('calmToDot', () => {
             ...calm,
             relationships: [
                 {
-                    'uniqueId': 'subtest',
+                    'unique-id': 'subtest',
                     'relationship-type': {
                         'deployed-in': {
                             container: 'node-1',
