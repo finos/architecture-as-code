@@ -28,7 +28,7 @@
       }
     },
     "controls": {
-      "$ref": "https://calm.finos.org/draft/2024-10/meta/control.json#/defs/controls"
+      "$ref": "control.json#/defs/controls"
     },
     "metadata": {
       "$ref": "#/defs/metadata"

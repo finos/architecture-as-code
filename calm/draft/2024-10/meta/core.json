@@ -71,6 +71,53 @@
       ],
       "additionalProperties": true
     },
+    "relationship-type": {
+      "type": "object",
+      "properties": {
+        "interacts": {
+          "$ref": "#/defs/interacts-type"
+        },
+        "connects": {
+          "$ref": "#/defs/connects-type"
+        },
+        "deployed-in": {
+          "$ref": "#/defs/deployed-in-type"
+        },
+        "composed-of": {
+          "$ref": "#/defs/composed-of-type"
+        }
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "deployed-in": { "$ref": "#/defs/deployed-in-type" }
+          },
+          "required": ["deployed-in"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "composed-of": { "$ref": "#/defs/composed-of-type" }
+          },
+          "required": ["composed-of"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "interacts": { "$ref": "#/defs/interacts-type" }
+          },
+          "required": ["interacts"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "connects": { "$ref": "#/defs/connects-type" }
+          },
+          "required": ["connects"]
+        }
+      ]
+    },
     "relationship": {
       "type": "object",
       "properties": {
@@ -95,29 +142,7 @@
             "composed-of": {
               "$ref": "#/defs/composed-of-type"
             }
-          },
-          "oneOf": [
-            {
-              "required": [
-                "deployed-in"
-              ]
-            },
-            {
-              "required": [
-                "composed-of"
-              ]
-            },
-            {
-              "required": [
-                "interacts"
-              ]
-            },
-            {
-              "required": [
-                "connects"
-              ]
-            }
-          ]
+          }
         },
         "protocol": {
           "$ref": "#/defs/protocol"

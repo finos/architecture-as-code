@@ -1,0 +1,17 @@
+{
+  "name": "@finos/calm-model-generator",
+  "version": "0.1.0",
+  "private": false,
+  "description": "A model generator for the CALM specifications to be leveraged by tools like docify",
+  "scripts": {
+    "generate-model": "node dist/calm-model-generator-application.js"
+  },
+  "dependencies": {
+    "json-schema-ref-parser": "^9.0.9",
+    "json-schema-to-typescript": "^15.0.3"
+  },
+  "devDependencies": {
+    "ts-node": "10.9.2",
+    "typescript": "^5.4.3"
+  }
+}
