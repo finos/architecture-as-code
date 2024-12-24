@@ -88,34 +88,10 @@
         },
         "relationship-type": {
           "oneOf": [
-            {
-              "properties": {
-                "kind": { "const": "deployed-in" },
-                "details": { "$ref": "#/defs/deployed-in-type" }
-              },
-              "required": ["kind", "details"]
-            },
-            {
-              "properties": {
-                "kind": { "const": "composed-of" },
-                "details": { "$ref": "#/defs/composed-of-type" }
-              },
-              "required": ["kind", "details"]
-            },
-            {
-              "properties": {
-                "kind": { "const": "interacts" },
-                "details": { "$ref": "#/defs/interacts-type" }
-              },
-              "required": ["kind", "details"]
-            },
-            {
-              "properties": {
-                "kind": { "const": "connects" },
-                "details": { "$ref": "#/defs/connects-type" }
-              },
-              "required": ["kind", "details"]
-            }
+            { "$ref": "#/defs/composed-of-type" },
+            { "$ref": "#/defs/interacts-type" },
+            { "$ref": "#/defs/connects-type" },
+            { "$ref": "#/defs/deployed-in-type" }
           ]
         },
 

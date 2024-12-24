@@ -68,27 +68,7 @@ export interface ControlDetail {
 export interface Relationship {
   "unique-id": string;
   description?: string;
-  "relationship-type":
-    | {
-        kind: "deployed-in";
-        details: DeployedInType;
-        [k: string]: unknown;
-      }
-    | {
-        kind: "composed-of";
-        details: ComposedOfType;
-        [k: string]: unknown;
-      }
-    | {
-        kind: "interacts";
-        details: InteractsType;
-        [k: string]: unknown;
-      }
-    | {
-        kind: "connects";
-        details: ConnectsType;
-        [k: string]: unknown;
-      };
+  "relationship-type": ComposedOfType | InteractsType | ConnectsType | DeployedInType;
   protocol?:
     | "HTTP"
     | "HTTPS"
@@ -105,14 +85,6 @@ export interface Relationship {
   authentication?: "Basic" | "OAuth2" | "Kerberos" | "SPNEGO" | "Certificate";
   metadata?: Metadata;
   controls?: Controls;
-  [k: string]: unknown;
-}
-export interface DeployedInType {
-  container?: string;
-  /**
-   * @minItems 1
-   */
-  nodes?: [string, ...string[]];
   [k: string]: unknown;
 }
 export interface ComposedOfType {
@@ -139,6 +111,14 @@ export interface ConnectsType {
 export interface NodeInterface {
   node: string;
   interfaces?: string[];
+  [k: string]: unknown;
+}
+export interface DeployedInType {
+  container?: string;
+  /**
+   * @minItems 1
+   */
+  nodes?: [string, ...string[]];
   [k: string]: unknown;
 }
 export interface Flow {
