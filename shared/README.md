@@ -35,7 +35,7 @@ npm install
 npm run build
 
 # 3 Invoke spectral referencing the disted rules you're interested in
-spectral lint --ruleset ./shared/dist/spectral/rules-instantiation.js ./shared/spectral-examples/bad-rest-api.json
+spectral lint --ruleset ./shared/dist/spectral/rules-architecture.js ./shared/spectral-examples/bad-rest-api.json
 ```
 
 ## Learn more

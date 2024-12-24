@@ -6,20 +6,20 @@
     </testsuite>
     <testsuite name="Spectral Suite" tests="22"
         failures="0" errors="0" skipped="0">
-        <testcase name="instantiation-has-nodes-relationships" />
-        <testcase name="instantiation-has-no-empty-properties" />
+        <testcase name="architecture-has-nodes-relationships" />
+        <testcase name="architecture-has-no-empty-properties" />
         <testcase
-            name="instantiation-has-no-placeholder-properties-numerical" />
-        <testcase name="instantiation-has-no-placeholder-properties-string" />
-        <testcase name="instantiation-has-no-placeholder-properties-boolean" />
-        <testcase name="relationship-references-existing-nodes-in-instantiation" />
+            name="architecture-has-no-placeholder-properties-numerical" />
+        <testcase name="architecture-has-no-placeholder-properties-string" />
+        <testcase name="architecture-has-no-placeholder-properties-boolean" />
+        <testcase name="relationship-references-existing-nodes-in-architecture" />
         <testcase
-            name="connects-relationship-references-existing-nodes-in-instantiation" />
-        <testcase name="referenced-interfaces-defined-in-instantiation" />
-        <testcase name="composition-relationships-reference-existing-nodes-in-instantiation" />
-        <testcase name="instantiation-nodes-must-be-referenced" />
+            name="connects-relationship-references-existing-nodes-in-architecture" />
+        <testcase name="referenced-interfaces-defined-in-architecture" />
+        <testcase name="composition-relationships-reference-existing-nodes-in-architecture" />
+        <testcase name="architecture-nodes-must-be-referenced" />
         <testcase
-            name="unique-ids-must-be-unique-in-instantiation" />
+            name="unique-ids-must-be-unique-in-architecture" />
         <testcase name="pattern-has-nodes-relationships" />
         <testcase name="pattern-has-no-empty-properties" />
         <testcase name="pattern-has-no-placeholder-properties-numerical" />

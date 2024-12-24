@@ -1,7 +1,7 @@
 # CALM CLI
 
 A command line interface to interact with the CALM schema.
-You can use these tools to create an instantiation of an architectural pattern, validate that an instantiation conforms to a given pattern, and create visualizations of instantiations and patterns so that you can see what your architecture looks like.
+You can use these tools to create an architecture from a CALM pattern, validate that an architecture conforms to a given pattern, and create visualizations of architectures and patterns so that you can see what your architecture looks like.
 
 ## Using the CLI
 
@@ -27,51 +27,51 @@ Options:
 
 Commands:
   visualize [options]  Produces an SVG file representing a visualization of the CALM Specification.
-  generate [options]   Generate an instantiation from a CALM pattern file.
-  validate [options]   Validate that an instantiation conforms to a given CALM pattern.
+  generate [options]   Generate an architecture from a CALM pattern file.
+  validate [options]   Validate that an architecture conforms to a given CALM pattern.
   help [command]       display help for command
 ```
 
-### Generating an instantiation from a CALM pattern file
+### Generating an architecture from a CALM pattern file
 
-This command lets you create a shell of an instantiation from a pattern file.
+This command lets you create a shell of an architecture from a pattern file.
 You can try it out using the example patterns provided in this repo under `calm/pattern`.
 
 ```shell
 % calm generate --help
 Usage: calm generate [options]
 
-Generate an instantiation from a CALM pattern file.
+Generate an architecture from a CALM pattern file.
 
 Options:
   -p, --pattern <file>          Path to the pattern file to use. May be a file path or a URL.
-  -o, --output <file>           Path location at which to output the generated file. (default: "instantiation.json")
+  -o, --output <file>           Path location at which to output the generated file. (default: "architecture.json")
   -s, --schemaDirectory <path>  Path to the directory containing the meta schemas to use.
   -v, --verbose                 Enable verbose logging. (default: false)
-  -a, --instantiateAll          Instantiate all properties, ignoring the "required" field. (default: false)
+  -g, --generateAll             Generates all properties, ignoring the "required" field. (default: false)
   -h, --help                    display help for command
 ```
 
-The most simple way to use this command is to call it with only the pattern option, which will generate an instantiation with the default filename `instantiation.json` in the current working directory.
+The most simple way to use this command is to call it with only the pattern option, which will generate an architecture with the default filename `architecture.json` in the current working directory.
 
 ```shell
 % calm generate -p calm/pattern/api-gateway.json
 ```
 
-### Validating a CALM instantiation
+### Validating a CALM architecture
 
-This command will tell you if an instantiation matches a pattern that you provide.
+This command will tell you if an architecture matches a pattern that you provide.
 If it doesn't, then it will output a list of problems that you can address to help your architecture conform to the pattern.
 
 ```shell
 % calm validate --help
 Usage: calm validate [options]
 
-Validate that an instantiation conforms to a given CALM pattern.
+Validate that an architecture conforms to a given CALM pattern.
 
 Options:
   -p, --pattern <file>          Path to the pattern file to use. May be a file path or a URL.
-  -i, --instantiation <file>    Path to the pattern instantiation file to use. May be a file path or a URL.
+  -a, --architecture <file>     Path to the pattern architecture file to use. May be a file path or a URL.
   -s, --schemaDirectory <path>  Path to the directory containing the meta schemas to use. (default: "../calm/draft")
   --strict                      When run in strict mode, the CLI will fail if any warnings are reported. (default: false)
   -f, --format <format>         The format of the output (choices: "json", "junit", default: "json")
@@ -82,13 +82,13 @@ Options:
 
 
 This command can output warnings and errors - the command will only exit with an error code if there are errors present in the output.
-Warnings are sometimes provided as hints about how to improve the instantiation, but they are not essential for the architecture to match the pattern.
+Warnings are sometimes provided as hints about how to improve the architecture, but they are not essential for the architecture to match the pattern.
 
-If you were to try and generate an instantiation from the api-pattern, and then validate the instantation against that pattern like this
+If you were to try and generate an architecture from the api-pattern, and then validate the architecture against that pattern like this
 
 ```shell
 % calm generate -p calm/pattern/api-gateway.json
-% calm validate -p calm/pattern/api-gateway.json -i instantiation.json
+% calm validate -p calm/pattern/api-gateway.json -a architecture.json
 ```
 
 You would get an output which includes a warning like this:
@@ -99,9 +99,9 @@ You would get an output which includes a warning like this:
     "jsonSchemaValidationOutputs": [],
     "spectralSchemaValidationOutputs": [
         {
-            "code": "instantiation-has-no-placeholder-properties-string",
+            "code": "architecture-has-no-placeholder-properties-string",
             "severity": "warning",
-            "message": "String placeholder detected in instantiated pattern.",
+            "message": "String placeholder detected in architecture.",
             "path": "/nodes/0/interfaces/0/host",
             "schemaPath": "",
             "line_start": 10,
@@ -110,9 +110,9 @@ You would get an output which includes a warning like this:
             "character_end": 30
         },
         {
-            "code": "instantiation-has-no-placeholder-properties-numerical",
+            "code": "architecture-has-no-placeholder-properties-numerical",
             "severity": "warning",
-            "message": "Numerical placeholder (-1) detected in instantiated pattern.",
+            "message": "Numerical placeholder (-1) detected in architecture.",
             "path": "/nodes/0/interfaces/0/port",
             "schemaPath": "",
             "line_start": 11,
@@ -121,9 +121,9 @@ You would get an output which includes a warning like this:
             "character_end": 20
         },
         {
-            "code": "instantiation-has-no-placeholder-properties-string",
+            "code": "architecture-has-no-placeholder-properties-string",
             "severity": "warning",
-            "message": "String placeholder detected in instantiated pattern.",
+            "message": "String placeholder detected in architecture.",
             "path": "/nodes/0/well-known-endpoint",
             "schemaPath": "",
             "line_start": 14,
@@ -132,9 +132,9 @@ You would get an output which includes a warning like this:
             "character_end": 56
         },
         {
-            "code": "instantiation-has-no-placeholder-properties-string",
+            "code": "architecture-has-no-placeholder-properties-string",
             "severity": "warning",
-            "message": "String placeholder detected in instantiated pattern.",
+            "message": "String placeholder detected in architecture.",
             "path": "/nodes/2/interfaces/0/host",
             "schemaPath": "",
             "line_start": 31,
@@ -143,9 +143,9 @@ You would get an output which includes a warning like this:
             "character_end": 30
         },
         {
-            "code": "instantiation-has-no-placeholder-properties-numerical",
+            "code": "architecture-has-no-placeholder-properties-numerical",
             "severity": "warning",
-            "message": "Numerical placeholder (-1) detected in instantiated pattern.",
+            "message": "Numerical placeholder (-1) detected in architecture.",
             "path": "/nodes/2/interfaces/0/port",
             "schemaPath": "",
             "line_start": 32,
@@ -166,7 +166,7 @@ This isn't a full break, but it implies that you've forgotten to fill out a deta
 ### Visualizing the CALM schema
 
 In order to take a look at the architecture that you're working on, beyond just staring at a json file, you can use the visualize command.
-This command accepts either an instantiation or a pattern as it's input (not both), and will output an SVG file.
+This command accepts either an architecture or a pattern as it's input (not both), and will output an SVG file.
 You can then open up that file in the browser to see a box and line diagram which represents your architecture.
 
 ```shell
@@ -176,7 +176,7 @@ Usage: calm visualize [options]
 Produces an SVG file representing a visualization of the CALM Specification.
 
 Options:
-  -i, --instantiation <file>  Path to an instantiation of a CALM pattern.
+  -a, --architecture <file>   Path to an architecture of a CALM pattern.
   -p, --pattern <file>        Path to a CALM pattern.
   -o, --output <file>         Path location at which to output the SVG. (default: "calm-visualization.svg")
   -v, --verbose               Enable verbose logging. (default: false)

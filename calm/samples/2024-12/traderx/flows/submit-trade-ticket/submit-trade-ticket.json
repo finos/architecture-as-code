@@ -1,0 +1,57 @@
+{
+  "$schema": "https://calm.finos.org/draft/2024-12/meta/flow.json",
+  "$id": "https://calm.finos.org/traderx/flow/submit-trade-ticket",
+  "unique-id": "flow-submit-trade-ticket",
+  "name": "Submitting a Trade Ticket",
+  "description": "Flow for submitting a trade ticket and validating the trade, account, and publishing a new trade event.",
+  "transitions": [
+    {
+      "relationship-unique-id": "web-gui-process-uses-reference-data-service",
+      "sequence-number": 1,
+      "summary": "Load ticker list"
+    },
+    {
+      "relationship-unique-id": "web-gui-process-uses-reference-data-service",
+      "sequence-number": 2,
+      "summary": "Return ticker list",
+      "direction": "destination-to-source"
+    },
+    {
+      "relationship-unique-id": "web-gui-process-uses-trading-services",
+      "sequence-number": 3,
+      "summary": "Submit trade (acct, ticker, side, qty)"
+    },
+    {
+      "relationship-unique-id": "trading-services-connects-to-reference-data-service",
+      "sequence-number": 4,
+      "summary": "Validate Ticker"
+    },
+    {
+      "relationship-unique-id": "trading-services-uses-account-service",
+      "sequence-number": 5,
+      "summary": "Validate Account Number"
+    },
+    {
+      "relationship-unique-id": "trading-services-uses-trade-feed",
+      "sequence-number": 6,
+      "summary": "Publish new Trade Event (trades/new)"
+    },
+    {
+      "relationship-unique-id": "web-gui-process-uses-trading-services",
+      "sequence-number": 7,
+      "summary": "Trade Submission Complete",
+      "direction": "destination-to-source"
+    }
+  ],
+  "controls": {
+    "submit-trade-ticket-sla": {
+      "description": "Control requirement for flow SLA",
+      "requirements": [
+        {
+          "control-requirement-url": "https://calm.finos.org/traderx/control/flow-sla-control-requirement",
+          "control-config-url": "https://calm.finos.org/traderx/flow/submit-trade-ticket"
+        }
+      ]
+    }
+  }
+}

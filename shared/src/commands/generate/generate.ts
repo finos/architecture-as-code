@@ -4,7 +4,7 @@ import {mkdirp} from 'mkdirp';
 
 import * as winston from 'winston';
 import {initLogger} from '../helper.js';
-import {CALMInstantiation} from '../../types.js';
+import {CALMArchitecture} from '../../types.js';
 import {SchemaDirectory} from './schema-directory.js';
 import {instantiateNodes} from './components/node.js';
 import {instantiateRelationships} from './components/relationship.js';
@@ -34,7 +34,7 @@ function loadFile(path: string): object {
 }
 
 
-export async function generate(patternPath: string, debug: boolean, instantiateAll: boolean, schemaDirectoryPath?: string): Promise<CALMInstantiation> {
+export async function generate(patternPath: string, debug: boolean, instantiateAll: boolean, schemaDirectoryPath?: string): Promise<CALMArchitecture> {
     logger = initLogger(debug);
     const schemaDirectory = new SchemaDirectory(debug);
 

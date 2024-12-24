@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/draft/2024-12/meta/units.json",
+  "title": "Common Architecture Language Model Units",
+  "defs": {
+    "time-unit": {
+      "type": "object",
+      "description": "A unit of time with a value and a unit type.",
+      "properties": {
+        "unit": {
+          "enum": [
+            "nanoseconds",
+            "milliseconds",
+            "seconds",
+            "minutes",
+            "hours",
+            "days",
+            "weeks",
+            "months",
+            "years"
+          ],
+          "description": "The unit of time (e.g., seconds, minutes, hours)."
+        },
+        "value": {
+          "type": "number",
+          "minimum": 0,
+          "description": "The numeric value representing the amount of time."
+        }
+      },
+      "required": ["unit", "value"],
+      "additionalProperties": false,
+      "examples": [
+        {
+          "unit": "seconds",
+          "value": 30
+        },
+        {
+          "unit": "minutes",
+          "value": 15
+        },
+        {
+          "unit": "hours",
+          "value": 1
+        },
+        {
+          "unit": "days",
+          "value": 7
+        }
+      ]
+    },
+    "cron-expression": {
+      "type": "string",
+      "title": "Cron Expression",
+      "description": "A valid Unix-style cron expression.",
+      "pattern": "^([0-5]?\\d)\\s([01]?\\d|2[0-3])\\s(3[01]|[12]\\d|0?[1-9])\\s(1[0-2]|0?[1-9])\\s([0-6])$",
+      "examples": [
+        "0 0 * * 0",
+        "30 14 1 * 5",
+        "15 10 * * *"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

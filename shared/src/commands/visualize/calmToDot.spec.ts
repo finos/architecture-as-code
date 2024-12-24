@@ -1,4 +1,4 @@
-import { CALMInstantiation } from '../../types';
+import { CALMArchitecture } from '../../types';
 import calmToDot from './calmToDot';
 
 jest.mock('../helper.js', () => {
@@ -14,7 +14,7 @@ jest.mock('../helper.js', () => {
 });
 
 describe('calmToDot', () => {
-    let calm: CALMInstantiation;
+    let calm: CALMArchitecture;
 
     beforeEach(() => {
         calm = {

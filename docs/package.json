@@ -35,7 +35,7 @@
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.6.3",
     "@docusaurus/types": "3.6.3",
-    "express": "^4.21.1",
+    "express": "^4.21.2",
     "webpack-dev-server": "^5.1.0"
   },
   "browserslist": {

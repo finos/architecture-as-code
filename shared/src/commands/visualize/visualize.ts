@@ -8,22 +8,22 @@ import { generate } from '../generate/generate.js';
 
 let logger: winston.Logger;
 
-export async function visualize(instantiation: string): Promise<string | undefined> {
+export async function visualize(architecture: string): Promise<string | undefined> {
     try {
-        const dot = calmToDot(JSON.parse(instantiation));
+        const dot = calmToDot(JSON.parse(architecture));
         return (await instance()).render(dot, { format: 'svg', engine: 'dot' }).output;
      
     } catch (error: unknown) {
         console.error(error);
-        return 'Error creating SVG: Instantiation JSON is invalid';
+        return 'Error creating SVG: Architecture JSON is invalid';
     }
 } 
 
-export async function visualizeInstantiation(instantiationPath: string, output: string, debug: boolean) {
+export async function visualizeArchitecture(architecturePath: string, output: string, debug: boolean) {
     logger = initLogger(debug);
 
-    logger.info(`Reading CALM file from [${instantiationPath}]`);
-    const calm = fs.readFileSync(instantiationPath, 'utf-8');
+    logger.info(`Reading CALM file from [${architecturePath}]`);
+    const calm = fs.readFileSync(architecturePath, 'utf-8');
 
     logger.info('Generating an SVG from input');
 
@@ -47,12 +47,12 @@ export async function visualizePattern(patternPath: string, output: string, debu
     logger = initLogger(debug);
 
     // TODO add a path to load schemas and generate intelligently
-    const instantiation = await generate(patternPath, debug, true);
+    const architecture = await generate(patternPath, debug, true);
 
     logger.info('Generating an SVG from input');
 
     try {
-        const dot = calmToDot(instantiation, debug);
+        const dot = calmToDot(architecture, debug);
         logger.debug(`Generated the following dot: 
             ${dot}
         `);

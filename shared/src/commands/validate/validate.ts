@@ -3,7 +3,7 @@ import { existsSync, promises as fs, readdirSync, readFileSync, statSync } from 
 import { Spectral, ISpectralDiagnostic, RulesetDefinition } from '@stoplight/spectral-core';
 
 import validationRulesForPattern from '../../spectral/rules-pattern';
-import validationRulesForInstantiation from '../../spectral/rules-instantiation';
+import validationRulesForArchitecture from '../../spectral/rules-architecture';
 import { DiagnosticSeverity } from '@stoplight/types';
 import * as winston from 'winston';
 import { initLogger } from '../helper.js';
@@ -17,13 +17,13 @@ let logger: winston.Logger; // defined later at startup
 /**
  * Merge the results from two Spectral validations together, combining any errors/warnings.
  * @param spectralResultPattern Spectral results from the pattern validation
- * @param spectralResultInstantiation Spectral results from the instantiation validation
+ * @param spectralResultArchitecture Spectral results from the architecture validation
  * @returns A new SpectralResult with the error/warning status propagated and the results concatenated.
  */
-function mergeSpectralResults(spectralResultPattern: SpectralResult, spectralResultInstantiation: SpectralResult): SpectralResult {
-    const errors: boolean = spectralResultPattern.errors || spectralResultInstantiation.errors;
-    const warnings: boolean = spectralResultPattern.warnings || spectralResultInstantiation.warnings;
-    const spectralValidations = spectralResultPattern.spectralIssues.concat(spectralResultInstantiation.spectralIssues);
+function mergeSpectralResults(spectralResultPattern: SpectralResult, spectralResultArchitecture: SpectralResult): SpectralResult {
+    const errors: boolean = spectralResultPattern.errors || spectralResultArchitecture.errors;
+    const warnings: boolean = spectralResultPattern.warnings || spectralResultArchitecture.warnings;
+    const spectralValidations = spectralResultPattern.spectralIssues.concat(spectralResultArchitecture.spectralIssues);
     return new SpectralResult(warnings, errors, spectralValidations);
 }
 
@@ -235,33 +235,33 @@ export function stripRefs(obj: object): string {
 
 /**
  * This is essentially the old function, just wrapped into the nicer functions.
- * @param jsonSchemaInstantiationLocation 
+ * @param jsonSchemaArchitectureLocation 
  * @param jsonSchemaLocation 
  * @param metaSchemaPath 
  * @param debug 
  * @param failOnWarnings 
  */
 export async function validateAndExitConditionally(
-    jsonSchemaInstantiationLocation: string,
+    jsonSchemaArchitectureLocation: string,
     jsonSchemaLocation: string,
     metaSchemaPath: string,
     debug: boolean = false,
     failOnWarnings: boolean = false
 ): Promise<void> {
-    const outcome = await validate(jsonSchemaInstantiationLocation, jsonSchemaLocation, metaSchemaPath, debug);
+    const outcome = await validate(jsonSchemaArchitectureLocation, jsonSchemaLocation, metaSchemaPath, debug);
     exitBasedOffOfValidationOutcome(outcome, failOnWarnings);
 }
 
 /**
  * Validation - with simple input parameters and output validation outcomes.
- * @param jsonSchemaInstantiationLocation 
+ * @param jsonSchemaArchitectureLocation 
  * @param jsonSchemaLocation 
  * @param metaSchemaPath 
  * @param debug 
  * @returns 
  */
 export async function validate(
-    jsonSchemaInstantiationLocation: string,
+    jsonSchemaArchitectureLocation: string,
     jsonSchemaLocation: string,
     metaSchemaPath: string,
     debug: boolean = false): Promise<ValidationOutcome> {
@@ -279,24 +279,24 @@ export async function validate(
 
         const spectralResultForPattern: SpectralResult = await runSpectralValidations(stripRefs(jsonSchema), validationRulesForPattern);
 
-        if (jsonSchemaInstantiationLocation === undefined) {
+        if (jsonSchemaArchitectureLocation === undefined) {
             return validatePatternOnly(spectralResultForPattern, jsonSchema, ajv);
         }
 
         const validateSchema = await ajv.compileAsync(jsonSchema);
 
-        logger.info(`Loading pattern instantiation from : ${jsonSchemaInstantiationLocation}`);
-        const jsonSchemaInstantiation = await getFileFromUrlOrPath(jsonSchemaInstantiationLocation);
+        logger.info(`Loading architecture from : ${jsonSchemaArchitectureLocation}`);
+        const jsonSchemaArchitecture = await getFileFromUrlOrPath(jsonSchemaArchitectureLocation);
 
-        const spectralResultForInstantiation: SpectralResult = await runSpectralValidations(jsonSchemaInstantiation, validationRulesForInstantiation);
+        const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(jsonSchemaArchitecture, validationRulesForArchitecture);
 
-        const spectralResult = mergeSpectralResults(spectralResultForPattern, spectralResultForInstantiation);
+        const spectralResult = mergeSpectralResults(spectralResultForPattern, spectralResultForArchitecture);
 
         errors = spectralResult.errors;
         warnings = spectralResult.warnings;
 
         let jsonSchemaValidations = [];
-        if (!validateSchema(jsonSchemaInstantiation)) {
+        if (!validateSchema(jsonSchemaArchitecture)) {
             logger.debug(`JSON Schema validation raw output: ${prettifyJson(validateSchema.errors)}`);
             errors = true;
             jsonSchemaValidations = convertJsonSchemaIssuesToValidationOutputs(validateSchema.errors);
@@ -319,7 +319,7 @@ export async function validate(
  * @param failOnWarnings Whether or not to treat a warning as a failure in the validation process.
  */
 function validatePatternOnly(spectralValidationResults: SpectralResult, patternSchema: object, ajv: Ajv2020): ValidationOutcome {
-    logger.debug('Pattern Instantiation was not provided, only the JSON Schema will be validated');
+    logger.debug('Architecture was not provided, only the JSON Schema will be validated');
     let errors = spectralValidationResults.errors;
     const warnings = spectralValidationResults.warnings;
     const jsonSchemaErrors = [];
@@ -335,9 +335,9 @@ function validatePatternOnly(spectralValidationResults: SpectralResult, patternS
 }
 
 function extractSpectralRuleNames(): string[] {
-    const instantiationRuleNames = getRuleNamesFromRuleset(validationRulesForInstantiation);
+    const architectureRuleNames = getRuleNamesFromRuleset(validationRulesForArchitecture);
     const patternRuleNames = getRuleNamesFromRuleset(validationRulesForPattern);
-    return instantiationRuleNames.concat(patternRuleNames);
+    return architectureRuleNames.concat(patternRuleNames);
 }
 
 function getRuleNamesFromRuleset(ruleset: RulesetDefinition): string[] {

@@ -19,7 +19,7 @@ At the heart of CALM is its JSON Meta Schema, which provides a standardized form
 
 One of the most powerful aspects of CALM is its ability to validate architectures against predefined patterns. This ensures that designs adhere to best practices and organizational standards.
 
-- **Pattern-Based Validation**: Use CALM’s CLI to validate instantiations against approved patterns, catching errors early in the design phase.
+- **Pattern-Based Validation**: Use CALM’s CLI to validate architectures against approved patterns, catching errors early in the design phase.
 - **Automated Compliance Checks**: Integrate CALM validation into your CI/CD pipeline to enforce compliance automatically, reducing the burden of manual reviews.
 
 ## 3. Visualization
@@ -31,7 +31,7 @@ Understanding complex architectures can be challenging, especially when dealing 
 
 ## 4. Patterns and Reuse
 
-CALM supports the creation and reuse of architectural patterns, allowing you to encapsulate common designs and quickly instantiate them for specific use cases.
+CALM supports the creation and reuse of architectural patterns, allowing you to encapsulate common designs and quickly generate them for specific use cases.
 
 - **Reusable Components**: Define patterns for common architectural structures, such as microservices, API gateways, or data pipelines.
 - **Pre-Approved Designs**: Use pre-approved patterns to speed up development, reduce review times, and ensure consistency across projects.

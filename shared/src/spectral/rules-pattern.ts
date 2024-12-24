@@ -36,7 +36,7 @@ const patternRules: RulesetDefinition = {
         },
         'pattern-has-no-placeholder-properties-numerical': {
             description: 'Should not contain numerical placeholder properties set to -1',
-            message: 'Numerical placeholder (-1) detected in instantiated pattern.',
+            message: 'Numerical placeholder (-1) detected in architecture.',
             severity: 'warn',
             given: '$..*',
             then: {
@@ -45,7 +45,7 @@ const patternRules: RulesetDefinition = {
         },
         'pattern-has-no-placeholder-properties-string': {
             description: 'Should not contain placeholder values with pattern {{ PLACEHOLDER_NAME }}',
-            message: 'String placeholder detected in instantiated pattern.',
+            message: 'String placeholder detected in architecture.',
             severity: 'warn',
             given: '$..*',
             then: {

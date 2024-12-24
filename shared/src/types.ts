@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 export interface CALMInstantiation {
   nodes: CALMNode[];
   relationships: CALMRelationship[];
+=======
+export interface CALMArchitecture {
+    nodes: CALMNode[],
+    relationships: CALMRelationship[]
+>>>>>>> 7e2a71785057a09bd693c1d191a777554f7e96b0
 }
 
 export type NodeType =

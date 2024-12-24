@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/draft/2024-12/meta/interface.json",
+  "title": "Common Architecture Language Model Interfaces",
+  "defs": {
+    "interface-type": {
+      "type": "object",
+      "properties": {
+        "unique-id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "unique-id"
+      ]
+    },
+    "node-interface": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "type": "string"
+        },
+        "interfaces": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "node"
+      ]
+    },
+    "host-port-interface": {
+      "$ref": "#/defs/interface-type",
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "host",
+        "port"
+      ]
+    },
+    "hostname-interface": {
+      "$ref": "#/defs/interface-type",
+      "type": "object",
+      "properties": {
+        "hostname": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "hostname"
+      ]
+    },
+    "path-interface": {
+      "$ref": "#/defs/interface-type",
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "oauth2-audience-interface": {
+      "$ref": "#/defs/interface-type",
+      "type": "object",
+      "properties": {
+        "audiences": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "audiences"
+      ]
+    },
+    "url-interface": {
+      "$ref": "#/defs/interface-type",
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ]
+    },
+    "rate-limit-interface": {
+      "$ref": "#/defs/interface-type",
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/defs/rate-limit-key"
+        },
+        "time": {
+          "type": "integer"
+        },
+        "time-unit": {
+          "$ref": "#/defs/rate-limit-time-unit"
+        },
+        "calls": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "key",
+        "time",
+        "time-unit",
+        "calls"
+      ]
+    },
+    "rate-limit-key": {
+      "type": "object",
+      "properties": {
+        "key-type": {
+          "$ref": "#/defs/rate-limit-key-type"
+        },
+        "static-value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "key-type"
+      ]
+    },
+    "rate-limit-key-type": {
+      "enum": [
+        "User",
+        "IP",
+        "Global",
+        "Header",
+        "OAuth2Client"
+      ]
+    },
+    "rate-limit-time-unit": {
+      "enum": [
+        "Seconds",
+        "Minutes",
+        "Hours"
+      ]
+    },
+    "container-image-interface": {
+      "$ref": "#/defs/interface-type",
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "image"
+      ]
+    },
+    "port-interface": {
+      "$ref": "#/defs/interface-type",
+      "type": "object",
+      "properties": {
+        "port": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "port"
+      ]
+    }
+  }
+}

@@ -6,6 +6,7 @@
     "target": "ES6",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
     "skipLibCheck": true,
     "moduleResolution": "node",
     "types": [
@@ -23,6 +24,7 @@
     }
   ],
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "package.json"
   ]
 }

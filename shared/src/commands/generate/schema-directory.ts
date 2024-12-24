@@ -48,6 +48,9 @@ export class SchemaDirectory {
 
             map.forEach((val, key) => this.schemas.set(key, val));
             this.logger.info(`Loaded ${this.schemas.size} schemas.`);
+            this.schemas.forEach((_schema, id) => {
+                this.logger.debug(`Schema ID: ${id}`);
+            });
         } catch (err) {
             if (err.code === 'ENOENT') {
                 this.logger.error('Schema Path not found: ', dir, ', error: ', err);
