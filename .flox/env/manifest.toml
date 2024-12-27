@@ -15,10 +15,10 @@ version = 1
 ##  $ flox show gum     <- show all versions of a package
 ## -------------------------------------------------------------------
 [install]
-nodejs = { pkg-path = "nodejs" }
 libuuid.pkg-path = "libuuid"
 libuuid.systems = ["aarch64-linux", "x86_64-linux"]
 gum.pkg-path = "gum"
+nodejs_21.pkg-path = "nodejs_21"
 
 
 ## Environment Variables ---------------------------------------------
