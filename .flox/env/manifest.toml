@@ -1,0 +1,97 @@
+## Flox Environment Manifest -----------------------------------------
+##
+##   _Everything_ you need to know about the _manifest_ is here:
+##
+##               https://flox.dev/docs/concepts/manifest
+##
+## -------------------------------------------------------------------
+# Flox manifest version managed by Flox CLI
+version = 1
+
+
+## Install Packages --------------------------------------------------
+##  $ flox install gum  <- puts a package in [install] section below
+##  $ flox search gum   <- search for a package
+##  $ flox show gum     <- show all versions of a package
+## -------------------------------------------------------------------
+[install]
+libuuid.pkg-path = "libuuid"
+libuuid.systems = ["aarch64-linux", "x86_64-linux"]
+gum.pkg-path = "gum"
+nodejs_21.pkg-path = "nodejs_21"
+jdk21.pkg-path = "jdk21"
+maven3.pkg-path = "maven3"
+
+
+## Environment Variables ---------------------------------------------
+##  ... available for use in the activated environment
+##      as well as [hook], [profile] scripts and [services] below.
+## -------------------------------------------------------------------
+[vars]
+# INTRO_MESSAGE = "It's gettin' Flox in here"
+
+
+## Activation Hook ---------------------------------------------------
+##  ... run by _bash_ shell when you run 'flox activate'.
+## -------------------------------------------------------------------
+[hook]
+on-activate = """
+  export MAVEN_USER_HOME="$(realpath $FLOX_ENV_CACHE)/m2"
+  export MAVEN_OPTS="-Dmaven.repo.local=$MAVEN_USER_HOME/repository"
+
+  if [ ! -d "$FLOX_ENV_PROJECT"/node_modules ]; then
+    echo "First activation of environment.  Setting some things up - you may want to get a cup of tea..."
+
+    # Install Java dependencies
+    mvnw-deps() {
+      cd translator
+      ./mvnw dependency:resolve dependency:resolve-plugins
+      cd ..
+    }
+    export -f mvnw-deps
+    gum spin --spinner minidot --title "Installing Java dependencies..." --show-output -- bash -c mvnw-deps
+
+    # Install nodejs dependencies
+    gum spin --spinner minidot --title "Installing node packages..." --show-output -- npm install
+
+    gum confirm "Perform initial CLI build (recommended)?" && npm run build && npx link cli
+  fi
+"""
+
+
+## Profile script ----------------------------------------------------
+## ... sourced by _your shell_ when you run 'flox activate'.
+## -------------------------------------------------------------------
+[profile]
+# common = '''
+#   gum style \
+#   --foreground 212 --border-foreground 212 --border double \
+#   --align center --width 50 --margin "1 2" --padding "2 4" \
+#     $INTRO_MESSAGE
+# '''
+## Shell specific profiles go here:
+# bash = ...
+# zsh  = ...
+# fish = ...
+
+
+## Services ----------------------------------------------------------
+##  $ flox services start             <- Starts all services
+##  $ flox services status            <- Status of running services
+##  $ flox activate --start-services  <- Activates & starts all
+## -------------------------------------------------------------------
+[services]
+# myservice.command = "python3 -m http.server"
+
+
+## Other Environment Options -----------------------------------------
+[options]
+# Systems that environment is compatible with
+systems = [
+  "aarch64-darwin",
+  "aarch64-linux",
+  "x86_64-darwin",
+  "x86_64-linux",
+]
+# Uncomment to disable CUDA detection.
+# cuda-detection = false

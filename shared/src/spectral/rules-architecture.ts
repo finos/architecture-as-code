@@ -1,15 +1,15 @@
 import { RulesetDefinition } from '@stoplight/spectral-core';
 import { pattern, truthy } from '@stoplight/spectral-functions';
 import { numericalPlaceHolder } from './functions/helper-functions';
-import { idsAreUnique } from './functions/instantiation/ids-are-unique';
-import { nodeIdExists } from './functions/instantiation/node-id-exists';
-import { interfaceIdExists } from './functions/instantiation/interface-id-exists';
-import { nodeHasRelationship } from './functions/instantiation/node-has-relationship';
+import { idsAreUnique } from './functions/architecture/ids-are-unique';
+import { nodeIdExists } from './functions/architecture/node-id-exists';
+import { interfaceIdExists } from './functions/architecture/interface-id-exists';
+import { nodeHasRelationship } from './functions/architecture/node-has-relationship';
 
-const instantiationRules: RulesetDefinition = {
+const architectureRules: RulesetDefinition = {
     rules: {
 
-        'instantiation-has-nodes-relationships': {
+        'architecture-has-nodes-relationships': {
             description: 'Has top level nodes and relationships',
             message: 'Should have nodes and relationships as top level properties on the CALM document',
             severity: 'error',
@@ -26,7 +26,7 @@ const instantiationRules: RulesetDefinition = {
             ],
         },
 
-        'instantiation-has-no-empty-properties': {
+        'architecture-has-no-empty-properties': {
             description: 'Must not contain string properties set to the empty string or numerical properties set to zero',
             message: 'All properties must be set to a nonempty, nonzero value.',
             severity: 'error',
@@ -36,9 +36,9 @@ const instantiationRules: RulesetDefinition = {
             },
         },
 
-        'instantiation-has-no-placeholder-properties-numerical': {
+        'architecture-has-no-placeholder-properties-numerical': {
             description: 'Should not contain numerical placeholder properties set to -1',
-            message: 'Numerical placeholder (-1) detected in instantiated pattern.',
+            message: 'Numerical placeholder (-1) detected in architecture.',
             severity: 'warn',
             given: '$..*',
             then: {
@@ -46,9 +46,9 @@ const instantiationRules: RulesetDefinition = {
             },
         },
 
-        'instantiation-has-no-placeholder-properties-string': {
+        'architecture-has-no-placeholder-properties-string': {
             description: 'Should not contain placeholder values with pattern {{ PLACEHOLDER_NAME }}',
-            message: 'String placeholder detected in instantiated pattern.',
+            message: 'String placeholder detected in architecture.',
             severity: 'warn',
             given: '$..*',
             then: {
@@ -59,9 +59,9 @@ const instantiationRules: RulesetDefinition = {
             },
         },
 
-        'instantiation-has-no-placeholder-properties-boolean': {
+        'architecture-has-no-placeholder-properties-boolean': {
             description: 'Should not contain placeholder values with pattern {{ BOOLEAN_[property name] }}',
-            message: 'Boolean placeholder detected in instantiated pattern.',
+            message: 'Boolean placeholder detected in architecture.',
             severity: 'warn',
             given: '$..*',
             then: {
@@ -72,7 +72,7 @@ const instantiationRules: RulesetDefinition = {
             },
         },
 
-        'relationship-references-existing-nodes-in-instantiation': {
+        'relationship-references-existing-nodes-in-architecture': {
             description: 'Relationships must reference existing nodes',
             severity: 'error',
             message: '{{error}}',
@@ -89,7 +89,7 @@ const instantiationRules: RulesetDefinition = {
             ],
         },
 
-        'connects-relationship-references-existing-nodes-in-instantiation': {
+        'connects-relationship-references-existing-nodes-in-architecture': {
             description: 'Connects relationships must reference existing nodes',
             severity: 'error',
             message: '{{error}}',
@@ -100,7 +100,7 @@ const instantiationRules: RulesetDefinition = {
             },
         },
 
-        'referenced-interfaces-defined-in-instantiation': {
+        'referenced-interfaces-defined-in-architecture': {
             description: 'Referenced interfaces must be defined ',
             severity: 'error',
             message: '{{error}}',
@@ -110,7 +110,7 @@ const instantiationRules: RulesetDefinition = {
             },
         },
 
-        'composition-relationships-reference-existing-nodes-in-instantiation': {
+        'composition-relationships-reference-existing-nodes-in-architecture': {
             description: 'All nodes in a composition relationship must reference existing nodes',
             severity: 'error',
             message: '{{error}}',
@@ -120,7 +120,7 @@ const instantiationRules: RulesetDefinition = {
             },
         },
 
-        'instantiation-nodes-must-be-referenced': {
+        'architecture-nodes-must-be-referenced': {
             description: 'Nodes must be referenced by at least one relationship.',
             severity: 'warn',
             message: '{{error}}',
@@ -130,7 +130,7 @@ const instantiationRules: RulesetDefinition = {
             },
         },
 
-        'unique-ids-must-be-unique-in-instantiation': {
+        'unique-ids-must-be-unique-in-architecture': {
             description: 'Unique IDs cannot be reused.',
             severity: 'error',
             message: '{{error}}',
@@ -142,4 +142,4 @@ const instantiationRules: RulesetDefinition = {
     }
 };
 
-export default instantiationRules;
+export default architectureRules;
