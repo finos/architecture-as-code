@@ -1,78 +1,79 @@
 # Calm Hub
 
+## Quick Start - Node Coding, Just Product
+
+You can run a version of Calm Hub locally, by using the `docker-compose` deploy configuration.
+Note, this currently depends on @jpgough-ms publishing a Docker image, which will be fixed in the next few weeks by producing a build from this mono-repo.
+
+```shell
+cd deploy
+docker-compose up
+```
+
+A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)   
+The API documentation can be found at: [http://localhost:8080/q/swagger-ui/#/](http://localhost:8080/q/swagger-ui/#/)
+
 ## Working with the project
 
-### Running the Server in Development Mode (from this directory)
+There are three main locations in the server code base:
 
-1. `./mvnw package`
-2. `./mvnw quarkus:dev`
+* `src/main/java` - The location of the main code base
+* `src/test/java` - The location of the test code for the project
+* `src/integration-test/java` - The location of integration tests for the project
 
-### Running the UI in Development Mode (from src/main/webapp)
+The integration tests are set up a little different, as once TestContainers is configured - Docker is required for all tests (even where TestContainers are not used).
+Integration tests need to be run via Maven, with Docker up and running on your machine.
+
+The main location for the UI is located in [/calm-hub/src/main/webapp](/calm-hub/src/main/webapp) directory
+
+```shell
+#Run all tests including integration tests
+mvn -P integration verify
+```
+
+## Running in Development Mode
+
+Development mode is designed to provide a great developer experience from using modern tools and build systems.
+
+### Mongo Database Startup
+
+In the `local-dev` directory, launch:
+
+```
+docker-compose up
+```
+
+This setups a Mongo Database that works with the application.
+You might see a conflict if you have run using the deploy profile, you can `docker rm container-name` to fix this.
+
+### Server Side with Hot Reload
+
+From the `calm-hub` directory
+
+1. `../mvnw package`
+2. `../mvnw quarkus:dev`
+
+### UI with hot reload (from src/main/webapp)
+
+The first time, you may need to run `npm install`.
 
 1. `npm start`
 
+The UI is now ready for hot reloading and development across the stack. 
+
 ### Building for Deployment
 
-Packaging and Running as a jar
+#### Packaging and Running as a jar (from `calm-hub` directory)
 
-1. `./mvnw clean package`
+1. `../mvnw -P integration clean package`
 2. `$ java -jar target/quarkus-app/quarkus-run.jar`
 
-Building a Docker Image
+#### Building a Docker Image
 
-1. Run the jar packaging (TODO improve to multistage build)
-2. `docker build -f src/main/docker/Dockerfile.jvm -t calm-hub .`
+1. `docker build -f src/main/docker/Dockerfile.jvm -t calm-hub .`
 
-## API Design
+#### Experimental - Multistage Docker Build
 
-* Those marked with a `(P)` will also have a corresponding PUT/POST
+1. `docker build -f src/main/docker/Dockerfile.multistage -t calm-hub .`
 
-### Schemas
-
-```
-GET calm/schema/ - list all versions of the CALM schema
-GET calm/schema/{version}/meta - list all resources of the schema
-GET calm/schema/{version}/meta/{resource}
-```
-
-### Namespaces
-
-```
-GET calm/namespaces/ - list all namespaces
-```
-
-### Patterns
-
-```
-GET calm/namespaces/{namespace}/patterns - return all patterns in the namespace
-POST calm/namespaces/{namespace}/patterns - create a new pattern in the namespace
-GET calm/namespaces/{namespace}/patterns/{pattern-id}/versions/ - The list of versions
-GET calm/namespaces/{namespace}/patterns/{pattern-id}/versions/{version} - return the actual pattern
-POST/PUT calm/namespaces/{namespace}/patterns/{pattern-id}/versions/{version} - create a new pattern, PUT will not be supported where config mode is set to write once
-```
-
-### Architectures
-```
-GET calm/namespaces/{namespace}/instances - return all instances of architectures
-POST calm/namespaces/{namespace}/instances - create a new architecture
-GET calm/namespaces/{namespace}/instances/{instance-id}/versions - return all the versions of an architecture
-POST/PUT calm/namespaces/{namespace}/instances/{instance-id}/versions - create a new architecture with a specific version, PUT will not be supported where config mode set to write once
-```
-
-Note, need to figure out the best place for creating the base information about a given architecture 
-
-### Controls
-
-```
-GET calm/controls/domains - List all centrally supported domains
-GET(P) calm/controls/domains/{domain} - The controls in a specific domain - with a control-id
-GET(P) calm/controls/domains/{domain}/{control-id} => Should these be versioned?
-```
-
-### Interfaces
-
-```
-GET calm/interfaces - List all interfaces
-```
-
-Note, need to talk to Matt about namespaceing interfaces
+Known limitations, doesn't run integration tests.
