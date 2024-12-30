@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import * as graphviz from 'graphviz-cli';
-import { visualizeInstantiation, visualizePattern } from './visualize';
+import { visualizeArchitecture, visualizePattern } from './visualize';
 import { generate } from '../generate/generate';
 
 jest.mock('node:fs', () => {
@@ -32,7 +32,7 @@ jest.mock('../helper.js', () => {
 jest.mock('../generate/generate');
 
 jest.mock('../../consts', () => ({
-    get CALM_META_SCHEMA_DIRECTORY() { return '../calm/draft/2024-04/meta'; }
+    get CALM_META_SCHEMA_DIRECTORY() { return '../calm/draft/2024-10/meta'; }
 }));
 
 describe('visualizer', () => {
@@ -48,7 +48,7 @@ describe('visualizer', () => {
             });
     });
 
-    describe('visualize instantiation', () => {
+    describe('visualize architecture', () => {
 
         beforeEach(() => {
             (readFileSync as jest.Mock).mockReturnValue(`
@@ -68,21 +68,21 @@ describe('visualizer', () => {
         it('reads from the given input file', async () => {
             jest.spyOn(graphviz, 'renderGraphFromSource').mockResolvedValue('<svg></svg>');
 
-            await visualizeInstantiation('./input.json', './output.svg', false);
+            await visualizeArchitecture('./input.json', './output.svg', false);
             expect(readFileSync).toHaveBeenCalledWith('./input.json', 'utf-8');
         });
 
         it('writes to the given output file', async () => {
             jest.spyOn(graphviz, 'renderGraphFromSource').mockResolvedValue('<svg></svg>');
 
-            await visualizeInstantiation('./input.json', './output.svg', false);
+            await visualizeArchitecture('./input.json', './output.svg', false);
             expect(writeFileSync).toHaveBeenCalledWith('./output.svg', '<svg></svg>');
         });
 
         it('doesnt write if an error is thrown', async () => {
             jest.spyOn(graphviz, 'renderGraphFromSource').mockRejectedValue(new Error());
 
-            await expect(visualizeInstantiation('./input.json', './output.svg', false))
+            await expect(visualizeArchitecture('./input.json', './output.svg', false))
                 .rejects
                 .toThrow();
 
@@ -116,7 +116,7 @@ describe('visualizer', () => {
             jest.resetAllMocks();
         });
 
-        it('generates instantiation from the given input file', async () => {
+        it('generates architecture from the given input file', async () => {
             jest.spyOn(graphviz, 'renderGraphFromSource').mockResolvedValue('<svg></svg>');
 
             await visualizePattern('./input.json', './output.svg', false);

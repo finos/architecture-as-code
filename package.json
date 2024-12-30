@@ -4,10 +4,13 @@
     "private": true,
     "workspaces": [
         "shared",
-        "cli"
+        "cli",
+        "docs"
     ],
     "scripts": {
         "build": "npm run build --workspaces --if-present",
+        "build:cli": "npm run build --workspace shared --workspace cli",
+        "build:docs": "npm run build --workspace docs",
         "test": "npm run test --workspaces --if-present",
         "lint": "npm run lint --workspaces --if-present",
         "lint-fix": "npm run lint-fix --workspaces --if-present",
