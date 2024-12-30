@@ -1,0 +1,13 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: calm_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - ../mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - calm-net
+networks:
+  calm-net:
+    driver: bridge

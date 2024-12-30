@@ -1,0 +1,14 @@
+# Ignore everything
+*
+
+# Allow the Maven Wrapper and build files
+!pom.xml
+!.mvn/
+!mvnw
+!src
+
+# Allow the target directory for the final build
+!target/*-runner
+!target/*-runner.jar
+!target/lib/*
+!target/quarkus-app/*
