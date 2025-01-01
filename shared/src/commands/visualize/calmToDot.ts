@@ -1,5 +1,5 @@
 import { Digraph, Subgraph, Node, Edge, toDot, attribute } from 'ts-graphviz';
-import { CALMInstantiation, CALMComposedOfRelationship, CALMConnectsRelationship, CALMInteractsRelationship, CALMNode, CALMRelationship, CALMDeployedInRelationship } from '../../types';
+import { CALMArchitecture, CALMComposedOfRelationship, CALMConnectsRelationship, CALMInteractsRelationship, CALMNode, CALMRelationship, CALMDeployedInRelationship } from '../../types';
 import { initLogger } from '../helper.js';
 import winston from 'winston';
 
@@ -7,7 +7,7 @@ let logger: winston.Logger;
 
 const idToNode: {[id: string]: Node} = {};
 
-export default function(calm: CALMInstantiation, debug: boolean = false): string {
+export default function(calm: CALMArchitecture, debug: boolean = false): string {
     logger = initLogger(debug);
 
     const G = new Digraph({

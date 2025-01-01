@@ -1,0 +1,591 @@
+{
+  "lockfile-version": 1,
+  "manifest": {
+    "version": 1,
+    "install": {
+      "gum": {
+        "pkg-path": "gum"
+      },
+      "jdk21": {
+        "pkg-path": "jdk21"
+      },
+      "libuuid": {
+        "pkg-path": "libuuid",
+        "systems": [
+          "aarch64-linux",
+          "x86_64-linux"
+        ]
+      },
+      "maven3": {
+        "pkg-path": "maven3"
+      },
+      "nodejs_22": {
+        "pkg-path": "nodejs_22"
+      }
+    },
+    "hook": {
+      "on-activate": "  export MAVEN_USER_HOME=\"$(realpath $FLOX_ENV_CACHE)/m2\"\n  export MAVEN_OPTS=\"-Dmaven.repo.local=$MAVEN_USER_HOME/repository\"\n\n  if [ ! -d \"$FLOX_ENV_PROJECT\"/node_modules ]; then\n    echo \"First activation of environment.  Setting some things up - you may want to get a cup of tea...\"\n\n    # Install Java dependencies\n    mvnw-deps() {\n      cd translator\n      ./mvnw dependency:resolve dependency:resolve-plugins\n      cd ..\n    }\n    export -f mvnw-deps\n    gum spin --spinner minidot --title \"Installing Java dependencies...\" --show-output -- bash -c mvnw-deps\n\n    # Install nodejs dependencies\n    gum spin --spinner minidot --title \"Installing node packages...\" --show-output -- npm install\n\n    gum confirm \"Perform initial CLI build (recommended)?\" && npm run build && npx link cli\n  fi\n"
+    },
+    "profile": {},
+    "options": {
+      "systems": [
+        "aarch64-darwin",
+        "aarch64-linux",
+        "x86_64-darwin",
+        "x86_64-linux"
+      ],
+      "allow": {
+        "licenses": []
+      },
+      "semver": {}
+    }
+  },
+  "packages": [
+    {
+      "attr_path": "gum",
+      "broken": false,
+      "derivation": "/nix/store/saqsc2cnrj5kdswscdl8f7za5pjh29f7-gum-0.14.5.drv",
+      "description": "Tasty Bubble Gum for your shell",
+      "install_id": "gum",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "name": "gum-0.14.5",
+      "pname": "gum",
+      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
+      "rev_count": 729082,
+      "rev_date": "2024-12-27T09:21:16Z",
+      "scrape_date": "2024-12-28T03:56:01Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.14.5",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/p87f1zvabjckkam5f8p5n8s0p9dy2z8d-gum-0.14.5"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "gum",
+      "broken": false,
+      "derivation": "/nix/store/gq0x16il396knlmncdmljqrgxmqj5vlx-gum-0.14.5.drv",
+      "description": "Tasty Bubble Gum for your shell",
+      "install_id": "gum",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "name": "gum-0.14.5",
+      "pname": "gum",
+      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
+      "rev_count": 729082,
+      "rev_date": "2024-12-27T09:21:16Z",
+      "scrape_date": "2024-12-28T03:56:01Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.14.5",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/i8ks7qinadmk77dmknnrpi4iczv8p8gj-gum-0.14.5"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "gum",
+      "broken": false,
+      "derivation": "/nix/store/p9hjn7115d3ks9nd96zc5zj8wbfvm932-gum-0.14.5.drv",
+      "description": "Tasty Bubble Gum for your shell",
+      "install_id": "gum",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "name": "gum-0.14.5",
+      "pname": "gum",
+      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
+      "rev_count": 729082,
+      "rev_date": "2024-12-27T09:21:16Z",
+      "scrape_date": "2024-12-28T03:56:01Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.14.5",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/1s4jc1kmqksngyhanl76iibb19b7sd2v-gum-0.14.5"
+      },
+      "system": "x86_64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "gum",
+      "broken": false,
+      "derivation": "/nix/store/xbrn20zfhm8w5cgjjzjcyv67g5k6kbdl-gum-0.14.5.drv",
+      "description": "Tasty Bubble Gum for your shell",
+      "install_id": "gum",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "name": "gum-0.14.5",
+      "pname": "gum",
+      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
+      "rev_count": 729082,
+      "rev_date": "2024-12-27T09:21:16Z",
+      "scrape_date": "2024-12-28T03:56:01Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.14.5",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/z96hiw9h45mph9qilm4hp4j4ncf19qbl-gum-0.14.5"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "jdk21",
+      "broken": false,
+      "derivation": "/nix/store/l5a27j5b0n89h5n19pvxjpipcfasxr3z-zulu-ca-jdk-21.0.4.drv",
+      "description": "Certified builds of OpenJDK",
+      "install_id": "jdk21",
+      "license": "GPL-2.0-only",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "name": "zulu-ca-jdk-21.0.4",
+      "pname": "jdk21",
+      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
+      "rev_count": 729082,
+      "rev_date": "2024-12-27T09:21:16Z",
+      "scrape_date": "2024-12-28T03:56:01Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "zulu-ca-jdk-21.0.4",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/i43yq5k7nphs1paam9xyrzypzjkn97p1-zulu-ca-jdk-21.0.4"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "jdk21",
+      "broken": false,
+      "derivation": "/nix/store/28sls8nn9nr33jy5in88wz77mf06gb7y-openjdk-21.0.5+11.drv",
+      "description": "Open-source Java Development Kit",
+      "install_id": "jdk21",
+      "license": "GPL-2.0-only",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "name": "openjdk-21.0.5+11",
+      "pname": "jdk21",
+      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
+      "rev_count": 729082,
+      "rev_date": "2024-12-27T09:21:16Z",
+      "scrape_date": "2024-12-28T03:56:01Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "openjdk-21.0.5+11",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "debug": "/nix/store/kv4krs3vzdgpfcp51xgg4cfgdwx4kvmf-openjdk-21.0.5+11-debug",
+        "out": "/nix/store/p7bxwzgpnbsafz0iz1a0yrnnzmjr0pqy-openjdk-21.0.5+11"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "jdk21",
+      "broken": false,
+      "derivation": "/nix/store/f61wj8dkr70x8pkyr2gwn946k0v0jpid-zulu-ca-jdk-21.0.4.drv",
+      "description": "Certified builds of OpenJDK",
+      "install_id": "jdk21",
+      "license": "GPL-2.0-only",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "name": "zulu-ca-jdk-21.0.4",
+      "pname": "jdk21",
+      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
+      "rev_count": 729082,
+      "rev_date": "2024-12-27T09:21:16Z",
+      "scrape_date": "2024-12-28T03:56:01Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "zulu-ca-jdk-21.0.4",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/ij352rjrmfcw6pyfm8q4bkjvw2knzwih-zulu-ca-jdk-21.0.4"
+      },
+      "system": "x86_64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "jdk21",
+      "broken": false,
+      "derivation": "/nix/store/7cg8jrm8xr34v8w92ybw181kwv7hh5i7-openjdk-21.0.5+11.drv",
+      "description": "Open-source Java Development Kit",
+      "install_id": "jdk21",
+      "license": "GPL-2.0-only",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "name": "openjdk-21.0.5+11",
+      "pname": "jdk21",
+      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
+      "rev_count": 729082,
+      "rev_date": "2024-12-27T09:21:16Z",
+      "scrape_date": "2024-12-28T03:56:01Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "openjdk-21.0.5+11",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "debug": "/nix/store/ihdvawhishsymc3dcdj22w400f3pwnv2-openjdk-21.0.5+11-debug",
+        "out": "/nix/store/v5p972p1lsfnb3v62jy3qcf69as7x8wp-openjdk-21.0.5+11"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "libuuid",
+      "broken": false,
+      "derivation": "/nix/store/6x8hl8djbxqa79lz6hpbrig9b0rvqvzf-util-linux-minimal-2.39.4.drv",
+      "description": "Set of system utilities for Linux",
+      "install_id": "libuuid",
+      "license": "[ GPL-2.0-only, GPL-2.0-or-later, GPL-3.0-or-later, LGPL-2.1-or-later, BSD-3-Clause, BSD-4-Clause-UC, Public Domain ]",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "name": "util-linux-minimal-2.39.4",
+      "pname": "libuuid",
+      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
+      "rev_count": 729082,
+      "rev_date": "2024-12-27T09:21:16Z",
+      "scrape_date": "2024-12-28T03:56:01Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "util-linux-minimal-2.39.4",
+      "outputs_to_install": [
+        "bin",
+        "man"
+      ],
+      "outputs": {
+        "bin": "/nix/store/6fhrl11ijry0cmh6d3f1mvfsh8ys303j-util-linux-minimal-2.39.4-bin",
+        "debug": "/nix/store/86jjk10miirs6njrc4b104jh8c0k14zi-util-linux-minimal-2.39.4-debug",
+        "dev": "/nix/store/rsdx2bcq50lww87chc24k2ykvr41fr4m-util-linux-minimal-2.39.4-dev",
+        "lib": "/nix/store/ajsx33ys4gi37b9g3pwnmw8c22ib6q47-util-linux-minimal-2.39.4-lib",
+        "login": "/nix/store/rqsd6vzsa26r955xxc9vjhb1dkh6h0lq-util-linux-minimal-2.39.4-login",
+        "man": "/nix/store/lms8y6dpmvimpmg6gp5793akakwvjn18-util-linux-minimal-2.39.4-man",
+        "mount": "/nix/store/ai3kkqha4dd8q7ahiy0vxvifcdpx56n9-util-linux-minimal-2.39.4-mount",
+        "out": "/nix/store/9c2zk0vyr27nsqwr6lrxdvgafsjxj2w3-util-linux-minimal-2.39.4",
+        "swap": "/nix/store/v0j7q3h8qn3mzmp79fxbmvk0zyx5l3vd-util-linux-minimal-2.39.4-swap"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "libuuid",
+      "broken": false,
+      "derivation": "/nix/store/gd5jcxb590i9as9b969hn8q5y1jdg4hz-util-linux-minimal-2.39.4.drv",
+      "description": "Set of system utilities for Linux",
+      "install_id": "libuuid",
+      "license": "[ GPL-2.0-only, GPL-2.0-or-later, GPL-3.0-or-later, LGPL-2.1-or-later, BSD-3-Clause, BSD-4-Clause-UC, Public Domain ]",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "name": "util-linux-minimal-2.39.4",
+      "pname": "libuuid",
+      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
+      "rev_count": 729082,
+      "rev_date": "2024-12-27T09:21:16Z",
+      "scrape_date": "2024-12-28T03:56:01Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "util-linux-minimal-2.39.4",
+      "outputs_to_install": [
+        "bin",
+        "man"
+      ],
+      "outputs": {
+        "bin": "/nix/store/0mw68769i8kflcg9f2mjfkf9mfhjgnjm-util-linux-minimal-2.39.4-bin",
+        "debug": "/nix/store/1678ssxrb3sldn52i495ma83s2c40wc3-util-linux-minimal-2.39.4-debug",
+        "dev": "/nix/store/yprr97nrxmmhbxzbxz1i8ygs6z0sc8jr-util-linux-minimal-2.39.4-dev",
+        "lib": "/nix/store/2phvd8h14vwls0da1kmsxc73vzmhkm3b-util-linux-minimal-2.39.4-lib",
+        "login": "/nix/store/jmvqjqvpr8ml83n46w4wpz1q3y02qklb-util-linux-minimal-2.39.4-login",
+        "man": "/nix/store/ymdyp5wrl6rc388gzh8rn2sl6vlj9k1v-util-linux-minimal-2.39.4-man",
+        "mount": "/nix/store/8nh952944p9abxq9w5w88ansagxzvyvb-util-linux-minimal-2.39.4-mount",
+        "out": "/nix/store/fxlb7p7yqr0vw0m9ll1a4sg9bwhiby1b-util-linux-minimal-2.39.4",
+        "swap": "/nix/store/l20y4j3xj01w3cwj2b6hi04804xh379l-util-linux-minimal-2.39.4-swap"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "maven3",
+      "broken": false,
+      "derivation": "/nix/store/b1gvwji2bjydwsid4a2x4aca31y25b6m-maven-3.9.9.drv",
+      "description": "Build automation tool (used primarily for Java projects)",
+      "install_id": "maven3",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "name": "maven-3.9.9",
+      "pname": "maven3",
+      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
+      "rev_count": 729082,
+      "rev_date": "2024-12-27T09:21:16Z",
+      "scrape_date": "2024-12-28T03:56:01Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "maven-3.9.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/skgavbzs2qnkf4sqr9fzdgpwym6cyz6w-maven-3.9.9"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "maven3",
+      "broken": false,
+      "derivation": "/nix/store/8c74rmzazvax83f0737rgdfgqz2598kn-maven-3.9.9.drv",
+      "description": "Build automation tool (used primarily for Java projects)",
+      "install_id": "maven3",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "name": "maven-3.9.9",
+      "pname": "maven3",
+      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
+      "rev_count": 729082,
+      "rev_date": "2024-12-27T09:21:16Z",
+      "scrape_date": "2024-12-28T03:56:01Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "maven-3.9.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/d2d8y3d3v0bghv6v59m6ln3m154sp93d-maven-3.9.9"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "maven3",
+      "broken": false,
+      "derivation": "/nix/store/3blvrrsa4h60hs8hd9m9dwm65107xzvq-maven-3.9.9.drv",
+      "description": "Build automation tool (used primarily for Java projects)",
+      "install_id": "maven3",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "name": "maven-3.9.9",
+      "pname": "maven3",
+      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
+      "rev_count": 729082,
+      "rev_date": "2024-12-27T09:21:16Z",
+      "scrape_date": "2024-12-28T03:56:01Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "maven-3.9.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/kfg5rnrxx0a6xcfkcsvj4rmangcfg01s-maven-3.9.9"
+      },
+      "system": "x86_64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "maven3",
+      "broken": false,
+      "derivation": "/nix/store/96k1idsqdwfbmc57i68zxb9md02nasbc-maven-3.9.9.drv",
+      "description": "Build automation tool (used primarily for Java projects)",
+      "install_id": "maven3",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "name": "maven-3.9.9",
+      "pname": "maven3",
+      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
+      "rev_count": 729082,
+      "rev_date": "2024-12-27T09:21:16Z",
+      "scrape_date": "2024-12-28T03:56:01Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "maven-3.9.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/dqv2ipvqa1ngydsgv0bcqxfr4xdq6zi6-maven-3.9.9"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "nodejs_22",
+      "broken": false,
+      "derivation": "/nix/store/zh4vzz8z4g7k2p0iqpi8dfz6kgpxkgb1-nodejs-22.11.0.drv",
+      "description": "Event-driven I/O framework for the V8 JavaScript engine",
+      "install_id": "nodejs_22",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "name": "nodejs-22.11.0",
+      "pname": "nodejs_22",
+      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
+      "rev_count": 729082,
+      "rev_date": "2024-12-27T09:21:16Z",
+      "scrape_date": "2024-12-28T03:56:01Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "nodejs-22.11.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "libv8": "/nix/store/m3rxxwm6jp95kjmh4rklqn0d76biz6wm-nodejs-22.11.0-libv8",
+        "out": "/nix/store/9vkabbbbyfn8hv5l1r8fm59d27imq460-nodejs-22.11.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "nodejs_22",
+      "broken": false,
+      "derivation": "/nix/store/q23y2j34i9ydidrllrm4gj857hqhvda1-nodejs-22.11.0.drv",
+      "description": "Event-driven I/O framework for the V8 JavaScript engine",
+      "install_id": "nodejs_22",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "name": "nodejs-22.11.0",
+      "pname": "nodejs_22",
+      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
+      "rev_count": 729082,
+      "rev_date": "2024-12-27T09:21:16Z",
+      "scrape_date": "2024-12-28T03:56:01Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "nodejs-22.11.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "libv8": "/nix/store/0xiwppqyszilzy9cg71c26fxg5qcxh89-nodejs-22.11.0-libv8",
+        "out": "/nix/store/z2lznj5fq0wagkhj7nkgmb5yr4gyv0ws-nodejs-22.11.0"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "nodejs_22",
+      "broken": false,
+      "derivation": "/nix/store/vzxxfv1f1i83bnjib0q144v5gndhci33-nodejs-22.11.0.drv",
+      "description": "Event-driven I/O framework for the V8 JavaScript engine",
+      "install_id": "nodejs_22",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "name": "nodejs-22.11.0",
+      "pname": "nodejs_22",
+      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
+      "rev_count": 729082,
+      "rev_date": "2024-12-27T09:21:16Z",
+      "scrape_date": "2024-12-28T03:56:01Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "nodejs-22.11.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "libv8": "/nix/store/mm87n14lp5akdjlfwh1yg4l93zm8gv9h-nodejs-22.11.0-libv8",
+        "out": "/nix/store/s81s2z275wnjazk4ij3zvn6kslfa5ipf-nodejs-22.11.0"
+      },
+      "system": "x86_64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "nodejs_22",
+      "broken": false,
+      "derivation": "/nix/store/542jkp10xz0nd5657bqksqwhhvjcmi9n-nodejs-22.11.0.drv",
+      "description": "Event-driven I/O framework for the V8 JavaScript engine",
+      "install_id": "nodejs_22",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "name": "nodejs-22.11.0",
+      "pname": "nodejs_22",
+      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
+      "rev_count": 729082,
+      "rev_date": "2024-12-27T09:21:16Z",
+      "scrape_date": "2024-12-28T03:56:01Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "nodejs-22.11.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "libv8": "/nix/store/fyaac3q8qn3zfxy72airfabm3dakmgf5-nodejs-22.11.0-libv8",
+        "out": "/nix/store/fkyp1bm5gll9adnfcj92snyym524mdrj-nodejs-22.11.0"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    }
+  ]
+}

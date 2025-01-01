@@ -2,9 +2,9 @@
         "jsonSchemaValidationOutputs": [],
         "spectralSchemaValidationOutputs": [
             {
-                "code": "instantiation-has-no-placeholder-properties-numerical",
+                "code": "architecture-has-no-placeholder-properties-numerical",
                 "severity": "warning",
-                "message": "Numerical placeholder (-1) detected in instantiated pattern.",
+                "message": "Numerical placeholder (-1) detected in architecture.",
                 "path": "/nodes/2/interfaces/0/port",
                 "schemaPath": "",
                 "line_start": 32,

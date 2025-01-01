@@ -19,9 +19,9 @@ export function mergeSchemas(s1: object, s2: object) {
     return newSchema;
 }
 
-export function logRequiredMessage(logger: Logger, required: string[], instantiateAll: boolean) {
-    if (instantiateAll) {
-        logger.debug('--instantiateAll was set, ignoring required list and instantiating all properties.');
+export function logRequiredMessage(logger: Logger, required: string[], generateAll: boolean) {
+    if (generateAll) {
+        logger.debug('--generateAll was set, ignoring required list and generating all properties.');
     } else {
         logger.debug('Required properties: ' + required);
     }
