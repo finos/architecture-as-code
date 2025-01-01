@@ -10,7 +10,7 @@
 
 ### Everyone else
 
-  1. Install Node v21.7.3 (use `nvm` to manage Node versions if needed).  The `canvas` package we use does not currently seem to be compatible with node v22+.
+  1. Install Node v22.11.0 (use `nvm` to manage Node versions if needed).
   1. Make sure `libuuid.so` is installed (`ldconfig -p | grep libuuid`) and install it if not (instructions will depend on your OS).
   1. Clone the git repo and `cd` into the directory
   1. Run the following:
