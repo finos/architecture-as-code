@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 @QuarkusTest
 @ExtendWith(MockitoExtension.class)
 @TestProfile(AllowPutProfile.class)
-@Disabled("This test fails due to a multiple injection problem with a conflicting mock in TestPatternResourceShould, will need to find a fix. (the tests do pass)")
 public class TestPatternResourcePutEnabledShould {
 
     @InjectMock
@@ -31,15 +30,15 @@ public class TestPatternResourcePutEnabledShould {
 
     static Stream<Arguments> provideParametersForPutPatternTests() {
         return Stream.of(
-                Arguments.of( NamespaceNotFoundException.class, 404),
-                Arguments.of( PatternNotFoundException.class, 404),
+                Arguments.of( new NamespaceNotFoundException(), 404),
+                Arguments.of( new PatternNotFoundException(), 404),
                 Arguments.of(null, 201)
         );
     }
 
     @ParameterizedTest
     @MethodSource("provideParametersForPutPatternTests")
-    void respond_correctly_to_put_pattern_correctly(Class<? extends Exception> exceptionToThrow, int expectedStatusCode) throws PatternNotFoundException, NamespaceNotFoundException {
+    void respond_correctly_to_put_pattern_correctly(Throwable exceptionToThrow, int expectedStatusCode) throws PatternNotFoundException, NamespaceNotFoundException {
 
         Pattern expectedPattern = new Pattern.PatternBuilder()
                 .setNamespace("test")
