@@ -4,6 +4,7 @@
 
 You can run a version of Calm Hub locally, by using the `docker-compose` deploy configuration.
 Note, this currently depends on @jpgough-ms publishing a Docker image, which will be fixed in the next few weeks by producing a build from this mono-repo.
+The only support architectures at this time are `amd64` and `arm64`.
 
 ```shell
 cd deploy
