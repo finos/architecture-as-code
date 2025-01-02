@@ -1,4 +1,4 @@
-name: Build and Test Calm Hub Project
+name: Build Calm Hub
 
 on:
   pull_request:
@@ -45,5 +45,5 @@ jobs:
       # Step 5: Build and Test
       - name: Build and Test
         working-directory: calm-hub
-        run: mvn -p integration clean verify
+        run: mvn -P integration clean verify
 
