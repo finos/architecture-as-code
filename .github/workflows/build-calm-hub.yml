@@ -27,7 +27,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       # Step 3: Cache Maven Dependencies
       - name: Cache Maven Dependencies
