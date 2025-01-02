@@ -45,6 +45,12 @@ public class MongoPatternStore implements PatternStore {
         }
 
         Document namespaceDocument = patternCollection.find(Filters.eq("namespace", namespace)).first();
+
+        //protects from an unpopulated mongo collection
+        if(namespaceDocument == null || namespaceDocument.isEmpty()) {
+            return List.of();
+        }
+
         List<Document> patterns = namespaceDocument.getList("patterns", Document.class);
         List<Integer> patternIds = new ArrayList<>();
 
