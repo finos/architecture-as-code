@@ -3,6 +3,7 @@ package org.finos.calm.resources;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.*;
@@ -66,6 +67,9 @@ public class PatternResource {
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating pattern", namespace, e);
             return invalidNamespaceResponse(namespace);
+        } catch (JsonParseException e) {
+            logger.error("Cannot parse Pattern JSON for namespace [{}]. Pattern JSON : [{}]", namespace, patternJson, e);
+            return invalidPatternJsonResponse(patternJson);
         }
     }
 
@@ -188,6 +192,10 @@ public class PatternResource {
 
     private Response invalidNamespaceResponse(String namespace) {
         return Response.status(Response.Status.NOT_FOUND).entity("Invalid namespace provided: " + namespace).build();
+    }
+
+    private Response invalidPatternJsonResponse(String patternJson) {
+        return Response.status(Response.Status.BAD_REQUEST).entity("The pattern JSON could not be parsed: " + patternJson).build();
     }
 
     private Response invalidPatternResponse(int patternId) {

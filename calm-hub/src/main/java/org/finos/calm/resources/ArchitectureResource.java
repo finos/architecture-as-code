@@ -3,6 +3,7 @@ package org.finos.calm.resources;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.*;
@@ -74,6 +75,9 @@ public class ArchitectureResource {
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating architecture", namespace, e);
             return invalidNamespaceResponse(namespace);
+        } catch (JsonParseException e) {
+            logger.error("Cannot parse Architecture JSON for namespace [{}]. Architecture JSON : [{}]", namespace, architectureJson, e);
+            return invalidArchitectureJsonResponse(namespace);
         }
     }
 
@@ -196,6 +200,10 @@ public class ArchitectureResource {
 
     private Response invalidNamespaceResponse(String namespace) {
         return Response.status(Response.Status.NOT_FOUND).entity("Invalid namespace provided: " + namespace).build();
+    }
+
+    private Response invalidArchitectureJsonResponse(String architectureJson) {
+        return Response.status(Response.Status.BAD_REQUEST).entity("The architecture JSON could not be parsed: " + architectureJson).build();
     }
 
     private Response invalidArchitectureResponse(int architectureId) {
