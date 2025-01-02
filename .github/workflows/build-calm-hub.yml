@@ -41,17 +41,8 @@ jobs:
       # Step 4: Set up Docker (Required for Testcontainers)
       - name: Set up Docker
         uses: docker/setup-buildx-action@v2
-        with:
-          driver: containerd
-          driver-opts: image-store=/var/lib/containerd
 
       # Step 5: Build and Test
       - name: Build and Test
         working-directory: calm-hub
         run: mvn -P integration clean verify
-
-      #Step 6: Build the Docker Image to Test
-
-      - name: Build Docker Image
-        working-directory: calm-hub
-        run: docker buildx build --platform linux/amd64,linux/arm64 -f src/main/docker/Dockerfile.jvm -t calm-hub .
