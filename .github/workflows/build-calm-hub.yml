@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    name: Build and Test Calm Hub Module
+    name: Build Calm Hub
     runs-on: ubuntu-latest
 
     steps:
@@ -47,3 +47,8 @@ jobs:
         working-directory: calm-hub
         run: mvn -P integration clean verify
 
+      #Step 6: Build the Docker Image to Test
+
+      - name: Build Docker Image
+        working-directory: calm-hub
+        run: docker build --platform linux/amd64,linux/arm64 -f src/main/docker/Dockerfile.jvm -t calm-hub .
