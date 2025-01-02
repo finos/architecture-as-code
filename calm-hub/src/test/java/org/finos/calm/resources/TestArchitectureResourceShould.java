@@ -2,6 +2,7 @@ package org.finos.calm.resources;
 
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import org.bson.json.JsonParseException;
 import org.finos.calm.domain.*;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
@@ -82,7 +83,28 @@ public class TestArchitectureResourceShould {
         verify(mockArchitectureStore, times(1)).createArchitectureForNamespace(expectedArchitecture);
     }
 
-//    //FIXME add a test to catch a JSONParseException and create a 400 response
+    @Test
+    void return_a_400_when_invalid_architecture_json_is_provided_on_create_architecture() throws NamespaceNotFoundException {
+        when(mockArchitectureStore.createArchitectureForNamespace(any(Architecture.class)))
+                .thenThrow(new JsonParseException());
+
+        String architecture = "{ \"test\": im invalid json";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(architecture)
+                .when()
+                .post("/calm/namespaces/invalid/architectures")
+                .then()
+                .statusCode(400);
+
+        Architecture expectedArchitecture = new Architecture.ArchitectureBuilder()
+                .setArchitecture(architecture)
+                .setNamespace("invalid")
+                .build();
+
+        verify(mockArchitectureStore, times(1)).createArchitectureForNamespace(expectedArchitecture);
+    }
 
     @Test
     void return_a_created_with_location_of_architecture_when_creating_architecture() throws NamespaceNotFoundException {

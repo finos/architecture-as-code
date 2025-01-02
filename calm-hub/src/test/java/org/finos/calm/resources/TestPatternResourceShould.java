@@ -2,6 +2,7 @@ package org.finos.calm.resources;
 
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import org.bson.json.JsonParseException;
 import org.finos.calm.domain.*;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
@@ -82,7 +83,28 @@ public class TestPatternResourceShould {
         verify(mockPatternStore, times(1)).createPatternForNamespace(expectedPattern);
     }
 
-    //FIXME add a test to catch a JSONParseException and create a 400 response
+    @Test
+    void return_a_400_when_invalid_pattern_json_is_provided_on_create_pattern() throws NamespaceNotFoundException {
+        when(mockPatternStore.createPatternForNamespace(any(Pattern.class)))
+                .thenThrow(new JsonParseException());
+
+        String pattern = "{ \"test\": this is invalid json";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(pattern)
+                .when()
+                .post("/calm/namespaces/invalid/patterns")
+                .then()
+                .statusCode(400);
+
+        Pattern expectedPattern = new Pattern.PatternBuilder()
+                .setPattern(pattern)
+                .setNamespace("invalid")
+                .build();
+
+        verify(mockPatternStore, times(1)).createPatternForNamespace(expectedPattern);
+    }
 
     @Test
     void return_a_created_with_location_of_pattern_when_creating_pattern() throws NamespaceNotFoundException {
