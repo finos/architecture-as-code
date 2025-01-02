@@ -18,13 +18,14 @@ function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
     // Determine if we have selected a node or edge or something else
     const isCALMNode = isCALMNodeData(selectedData);
     const isCALMEdge = isCALMEdgeData(selectedData);
-    console.log('This is the selectedData => ', selectedData);
+
     return (
-        <div className="fixed right-0 top-0 h-full w-80 bg-gray-100 shadow-lg">
+        <div className="fixed right-0 h-full w-80 bg-gray-100 shadow-lg">
             <label htmlFor="node-details" className="drawer-overlay" onClick={closeSidebar}></label>
             <div className="menu bg-base-200 text-base-content min-h-full w-80 p-4">
                 <div className="flex justify-end">
                     <button
+                        aria-label="close-sidebar"
                         onClick={(e) => {
                             e.stopPropagation();
                             closeSidebar();

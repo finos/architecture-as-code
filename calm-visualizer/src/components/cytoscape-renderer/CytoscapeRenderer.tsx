@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import './cytoscape.css';
 import { useEffect, useRef, useState } from 'react';
 import cytoscape, { Core, EdgeSingular, NodeSingular } from 'cytoscape';
 import nodeHtmlLabel from 'cytoscape-node-html-label';
+import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
 import coseBilkent from 'cytoscape-cose-bilkent';
 import expandCollapse from 'cytoscape-expand-collapse';
 import fcose from 'cytoscape-fcose';
@@ -10,38 +12,47 @@ import Sidebar from '../sidebar/Sidebar';
 //Make some information available on tooltip hover
 
 nodeHtmlLabel(cytoscape);
+nodeEdgeHtmlLabel(cytoscape);
 expandCollapse(cytoscape);
 
 cytoscape.use(fcose);
 cytoscape.use(coseBilkent);
 
-const fcoseLayoutOptions: cytoscape.LayoutOptions = {
+const fcoseLayoutOptions = {
     name: 'fcose',
+    animate: false,
+    samplingType: true,
+    // Sample size to construct distance matrix
+    sampleSize: 25,
+    // Separation amount between nodes
+    nodeSeparation: 175,
+    // Power iteration tolerance
+    piTol: 0.0000001,
+    nodeRepulsion: (_node: unknown) => 450000,
+    // Ideal edge (non nested) length
+    idealEdgeLength: (_edge: unknown) => 500,
+    // Divisor to compute edge forces
+    edgeElasticity: (_edge: unknown) => 0.85,
+    // Nesting factor (multiplier) to compute ideal edge length for nested edges
+    nestingFactor: 0.1,
+    // Maximum number of iterations to perform - this is a suggested value and might be adjusted by the algorithm as required
+    numIter: 25000,
+    gravity: 0.9,
+    // Gravity range (constant) for compounds
+    gravityRangeCompound: 1.5,
+    // Gravity force (constant) for compounds
+    gravityCompound: 1.0,
+    // Gravity range (constant)
+    gravityRange: 3.8,
+    // Initial cooling factor for incremental layout
+    initialEnergyOnIncremental: 0.3,
 };
-
-// const coseBilkentLayoutOptions = {
-//     name: 'cose-bilkent',
-//     randomize: false,
-//     fit: true,
-//     padding: 50,
-//     nodeDimensionsIncludeLabels: true,
-//     nodeRepulsion: 10000,
-//     idealEdgeLength: 200,
-//     edgeElasticity: 0.1,
-//     gravity: 0.25,
-//     numIter: 2500,
-//     tile: true,
-//     tilingPaddingVertical: 50,
-//     tilingPaddingHorizontal: 50,
-//     animate: false,
-//     gravityRangeCompound: 1.5,
-//     gravityCompound: 1.0,
-//     gravityRange: 3.8,
-// };
 
 export type Node = {
     classes?: string;
     data: {
+        description: string;
+        type: string;
         label: string;
         id: string;
         [idx: string]: string;
@@ -59,11 +70,20 @@ export type Edge = {
 };
 
 interface Props {
+    title?: string;
+    isNodeDescActive: boolean;
+    isConDescActive: boolean;
     nodes: Node[];
     edges: Edge[];
 }
 
-const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
+const CytoscapeRenderer = ({
+    title,
+    nodes = [],
+    edges = [],
+    isConDescActive,
+    isNodeDescActive,
+}: Props) => {
     const cyRef = useRef<HTMLDivElement>(null);
     const [cy, setCy] = useState<Core | null>(null);
     const [zoomLevel, setZoomLevel] = useState<number>(1);
@@ -72,8 +92,7 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
 
     useEffect(() => {
         if (cy) {
-            //@ts-expect-error types are missing from the library
-            cy.nodeHtmlLabel([
+            (cy as any).nodeHtmlLabel([
                 {
                     query: '.node',
                     halign: 'center',
@@ -82,8 +101,9 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                     valignBox: 'center',
                     tpl: (data: Node['data']) => {
                         return `<div class="node element">
-                                <p class="title">${data.label}</p>
-                                <p class="type">[${data.type}]</p>
+                                    <p class="title">${data.label}</p>
+                                    <p class="type">${data.type}</p>
+                                    <p class="description">${isNodeDescActive ? data.description : ''}</p>
                                 </div>`;
                     },
                 },
@@ -125,22 +145,16 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                 elements: [...nodes, ...edges], // graph data
                 style: [
                     {
-                        selector: 'node',
-                        style: {
-                            width: '200px',
-                            height: '100px',
-                            shape: 'rectangle',
-                        },
-                    },
-                    {
                         selector: 'edge',
                         style: {
                             width: 2,
                             'curve-style': 'bezier',
-                            label: 'data(label)', // labels from data property
+                            label: isConDescActive ? 'data(label)' : '', // labels from data property
                             'target-arrow-shape': 'triangle',
                             'text-wrap': 'ellipsis',
-                            'text-max-width': '200px',
+                            'text-background-color': 'white',
+                            'text-background-opacity': 1,
+                            'text-background-padding': '5px',
                         },
                     },
                     {
@@ -156,35 +170,37 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
     }, [nodes, edges]); // Re-render on cy, nodes or edges change
 
     return (
-        <div>
-            <div className="mt-4">Zoom Level: {(zoomLevel*100).toFixed(0)}%</div>
-            <div className="relative flex h-screen w-11/12 m-auto">
-                <div
-                    ref={cyRef}
-                    className="flex-1 bg-white"
-                    style={{
-                        height: '100vh',
-                    }}
-                />
+        <div className="relative flex m-auto border">
+            {title && (
+                <div className="graph-title absolute m-5 bg-primary-content shadow-md">
+                    <span className="text-m">Architecture: {title}</span>
+                </div>
+            )}
+            <div
+                ref={cyRef}
+                className="flex-1 bg-white visualizer"
+                style={{
+                    height: '100vh',
+                }}
+            />
+            <div className="absolute">Zoom Level: {(zoomLevel*100).toFixed(0)}%</div>
+            {selectedNode && (
+                <div className="absolute right-0 h-full">
+                    <Sidebar
+                        selectedData={selectedNode}
+                        closeSidebar={() => setSelectedNode(null)}
+                    />
+                </div>
+            )}
 
-                {selectedNode && (
-                    <div className="absolute right-0 top-0 h-full">
-                        <Sidebar
-                            selectedData={selectedNode}
-                            closeSidebar={() => setSelectedNode(null)}
-                        />
-                    </div>
-                )}
-
-                {selectedEdge && (
-                    <div className="absolute right-0 top-0 h-full">
-                        <Sidebar
-                            selectedData={selectedEdge}
-                            closeSidebar={() => setSelectedEdge(null)}
-                        />
-                    </div>
-                )}
-            </div>
+            {selectedEdge && (
+                <div className="absolute right-0 h-full">
+                    <Sidebar
+                        selectedData={selectedEdge}
+                        closeSidebar={() => setSelectedEdge(null)}
+                    />
+                </div>
+            )}
         </div>
     );
 };
