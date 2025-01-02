@@ -1,6 +1,6 @@
 # Calm Hub
 
-## Quick Start - Node Coding, Just Product
+## Quick Start - No Coding, Just Product
 
 You can run a version of Calm Hub locally, by using the `docker-compose` deploy configuration.
 Note, this currently depends on @jpgough-ms publishing a Docker image, which will be fixed in the next few weeks by producing a build from this mono-repo.
