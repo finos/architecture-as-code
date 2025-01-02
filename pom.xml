@@ -21,6 +21,7 @@
         <module>calm</module>
         <module>docs</module>
         <module>shared</module>
+        <module>translator</module>
     </modules>
 
     <dependencyManagement>
