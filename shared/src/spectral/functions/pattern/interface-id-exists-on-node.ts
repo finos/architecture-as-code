@@ -18,7 +18,7 @@ export function interfaceIdExistsOnNode(input, _, context) {
 
     const nodeId = input.node;
     console.log('id: ', nodeId)
-    const nodeMatch: any[] = JSONPath({ path: `$.nodes[?(@['unique-id'] == '${nodeId}')]`, json: context.document.data });
+    const nodeMatch: any[] = JSONPath({ path: `$.properties.nodes.prefixItems[?(@.properties['unique-id'].const == '${nodeId}')]`, json: context.document.data });
     if (!nodeMatch || nodeMatch.length === 0) {
         // other rule will report undefined node
         return [];
@@ -29,10 +29,10 @@ export function interfaceIdExistsOnNode(input, _, context) {
 
     const node = nodeMatch[0];
 
-    const nodeInterfaces = JSONPath({ path: '$.interfaces[*].unique-id', json: node })
+    const nodeInterfaces = JSONPath({ path: '$.properties.interfaces.prefixItems[*].properties.unique-id.const', json: node })
     if (!nodeInterfaces || nodeInterfaces.length === 0) {
         return [
-            { message: `Node with unique-id ${nodeId} has no interfaces defined, expected interfaces [${desiredInterfaces}].` }
+            { message: `Node with unique-id ${nodeId} has no interfaces defined, expected interfaces [${desiredInterfaces}]` }
         ]
     }
 

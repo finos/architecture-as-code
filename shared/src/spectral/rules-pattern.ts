@@ -5,6 +5,7 @@ import nodeIdExists from './functions/pattern/node-id-exists';
 import idsAreUnique from './functions/pattern/ids-are-unique';
 import nodeHasRelationship from './functions/pattern/node-has-relationship';
 import { interfaceIdExists } from './functions/pattern/interface-id-exists';
+import { interfaceIdExistsOnNode } from './functions/pattern/interface-id-exists-on-node';
 
 
 const patternRules: RulesetDefinition = {
@@ -108,6 +109,15 @@ const patternRules: RulesetDefinition = {
             given: '$..relationship-type.const.connects.*.interfaces[*]',
             then: {
                 function: interfaceIdExists,
+            },
+        },
+        'referenced-interfaces-defined-on-correct-node-in-architecture': {
+            description: 'Connects relationships must reference interfaces that exist on the correct nodes',
+            severity: 'error',
+            message: '{{error}}',
+            given: '$..relationship-type.const.connects.*',
+            then: {
+                function: interfaceIdExistsOnNode
             },
         },
         'pattern-nodes-must-be-referenced': {
