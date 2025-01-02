@@ -87,6 +87,18 @@ public class TestMongoPatternStoreShould {
     }
 
     @Test
+    void get_pattern_for_namespace_returns_empty_list_when_mongo_collection_not_created() throws NamespaceNotFoundException {
+        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(patternCollection.find(eq(Filters.eq("namespace", "finos"))))
+                .thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(null);
+
+        assertThat(mongoPatternStore.getPatternsForNamespace("finos"), is(empty()));
+        verify(namespaceStore).namespaceExists("finos");
+    }
+
+    @Test
     void get_pattern_for_namespace_returns_values() throws NamespaceNotFoundException {
         FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
