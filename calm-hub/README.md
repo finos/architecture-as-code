@@ -25,7 +25,7 @@ There are three main locations for the Java code base:
 The integration tests are set up a little different, as once TestContainers is configured - Docker is required for all tests (even where TestContainers are not used).
 Integration tests need to be run via Maven, with Docker up and running on your machine.
 
-The main location for the UI is located in [/calm-hub/src/main/webapp](/calm-hub/src/main/webapp) directory
+The main location for the UI is located in [/calm-hub/src/main/webapp](/calm-hub/src/main/webapp) directory, when creating a final build this is packaged by Maven.
 
 ```shell
 #Run all tests including integration tests
