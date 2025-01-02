@@ -13,12 +13,12 @@ export function interfaceIdExistsOnNode(input, _, context) {
         return [{
             message: 'Invalid connects relationship - no node defined.',
             path: [...context.path]
-        }]
+        }];
     }
 
     const nodeId = input.node;
-    console.log('id: ', nodeId)
-    const nodeMatch: any[] = JSONPath({ path: `$.nodes[?(@['unique-id'] == '${nodeId}')]`, json: context.document.data });
+    console.log('id: ', nodeId);
+    const nodeMatch: object[] = JSONPath({ path: `$.nodes[?(@['unique-id'] == '${nodeId}')]`, json: context.document.data });
     if (!nodeMatch || nodeMatch.length === 0) {
         // other rule will report undefined node
         return [];
@@ -29,11 +29,11 @@ export function interfaceIdExistsOnNode(input, _, context) {
 
     const node = nodeMatch[0];
 
-    const nodeInterfaces = JSONPath({ path: '$.interfaces[*].unique-id', json: node })
+    const nodeInterfaces = JSONPath({ path: '$.interfaces[*].unique-id', json: node });
     if (!nodeInterfaces || nodeInterfaces.length === 0) {
         return [
             { message: `Node with unique-id ${nodeId} has no interfaces defined, expected interfaces [${desiredInterfaces}].` }
-        ]
+        ];
     }
 
     const missingInterfaces = difference(desiredInterfaces, nodeInterfaces);
@@ -42,9 +42,9 @@ export function interfaceIdExistsOnNode(input, _, context) {
     if (missingInterfaces.length === 0) {
         return [];
     }
-    let results = [];
+    const results = [];
 
-    for (let missing of missingInterfaces) {
+    for (const missing of missingInterfaces) {
         results.push({
             message: `Referenced interface with ID '${missing}' was not defined on the node with ID '${nodeId}'.`,
             path: [...context.path]
