@@ -18,9 +18,9 @@ version = 1
 libuuid.pkg-path = "libuuid"
 libuuid.systems = ["aarch64-linux", "x86_64-linux"]
 gum.pkg-path = "gum"
-nodejs_21.pkg-path = "nodejs_21"
 jdk21.pkg-path = "jdk21"
 maven3.pkg-path = "maven3"
+nodejs_22.pkg-path = "nodejs_22"
 
 
 ## Environment Variables ---------------------------------------------
