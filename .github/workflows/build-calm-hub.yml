@@ -1,0 +1,48 @@
+name: Build Calm Hub
+
+on:
+  pull_request:
+    branches:
+      - "main"
+    paths:
+      - "calm-hub/**"
+  push:
+    branches:
+      - "main"
+    paths:
+      - "calm-hub/**"
+
+jobs:
+  build:
+    name: Build Calm Hub
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout PR Branch
+      - name: Checkout PR Branch
+        uses: actions/checkout@v4
+
+      # Step 2: Set up JDK
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # Step 3: Cache Maven Dependencies
+      - name: Cache Maven Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('calm-hub/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-m2-
+
+      # Step 4: Set up Docker (Required for Testcontainers)
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+
+      # Step 5: Build and Test
+      - name: Build and Test
+        working-directory: calm-hub
+        run: mvn -P integration clean verify
