@@ -16,7 +16,7 @@ The API documentation can be found at: [http://localhost:8080/q/swagger-ui/#/](h
 
 ## Working with the project
 
-There are three main locations in the server code base:
+There are three main locations for the Java code base:
 
 * `src/main/java` - The location of the main code base
 * `src/test/java` - The location of the test code for the project
