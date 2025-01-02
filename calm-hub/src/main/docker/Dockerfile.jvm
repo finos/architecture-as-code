@@ -7,7 +7,7 @@
 #
 # Then, build the image with:
 #
-# docker build -f src/main/docker/Dockerfile.jvm -t calm-hub .
+# docker build --platform linux/amd64,linux/arm64 -f src/main/docker/Dockerfile.jvm -t calm-hub .
 #
 # Then run the container using:
 #

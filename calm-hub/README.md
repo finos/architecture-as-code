@@ -70,10 +70,10 @@ The UI is now ready for hot reloading and development across the stack.
 
 #### Building a Docker Image
 
-1. `docker build -f src/main/docker/Dockerfile.jvm -t calm-hub .`
+1. `docker build --platform linux/amd64,linux/arm64 -f src/main/docker/Dockerfile.jvm -t calm-hub .`
 
 #### Experimental - Multistage Docker Build
 
-1. `docker build -f src/main/docker/Dockerfile.multistage -t calm-hub .`
+1. `docker build --platform linux/amd64,linux/arm64 -f src/main/docker/Dockerfile.multistage -t calm-hub .`
 
 Known limitations, doesn't run integration tests.
