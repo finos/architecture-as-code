@@ -22,5 +22,8 @@
     "devDependencies": {
         "link": "^2.1.1",
         "npm-run-all2": "^5.0.0"
+    },
+    "overrides": {
+        "rollup": "4.29.1"
     }
 }
