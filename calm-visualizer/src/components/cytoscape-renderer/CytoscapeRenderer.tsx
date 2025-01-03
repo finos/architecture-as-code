@@ -92,6 +92,7 @@ const CytoscapeRenderer = ({
 
     useEffect(() => {
         if (cy) {
+            setZoomLevel(cy.zoom());
             (cy as any).nodeHtmlLabel([
                 {
                     query: '.node',
@@ -169,11 +170,34 @@ const CytoscapeRenderer = ({
         );
     }, [nodes, edges]); // Re-render on cy, nodes or edges change
 
+    function zoomIn() {
+        //Obtain percentage as integer
+        const currentPercentageZoom = Math.round(zoomLevel*100);
+        //Add 10% to the zoom or round to upper 10% interval
+        const newPercentageZoom = Math.floor(currentPercentageZoom/10)*10 + 10;
+        cy?.zoom(newPercentageZoom/100);
+        setZoomLevel(newPercentageZoom/100);
+    }
+
+    function zoomOut() {
+        //Obtain percentage as integer
+        const currentPercentageZoom = Math.round(zoomLevel*100);
+        //Subtract 10% from the zoom or round to lower 10% interval
+        const newPercentageZoom = Math.ceil(currentPercentageZoom/10)*10 - 10;
+        cy?.zoom(newPercentageZoom/100);
+        setZoomLevel(newPercentageZoom/100);
+    }
+
     return (
         <div className="relative flex m-auto border">
             {title && (
-                <div className="graph-title absolute m-5 bg-primary-content shadow-md">
+                <div className="graph-title absolute m-5 bg-gray-100 shadow-md">
                     <span className="text-m">Architecture: {title}</span>
+                    <div className="text-m mt-2">
+                        <span className='zoom-indicator'>Zoom: {(zoomLevel*100).toFixed(0)}%</span>
+                        <button className='ms-2 ps-2 pe-2 bg-base-300 cursor-pointer' onClick={zoomIn}>+</button>
+                        <button className='ms-2 ps-2 pe-2 bg-base-300 cursor-pointer' onClick={zoomOut}>-</button>
+                    </div>        
                 </div>
             )}
             <div
@@ -183,7 +207,6 @@ const CytoscapeRenderer = ({
                     height: '100vh',
                 }}
             />
-            <div className="absolute">Zoom Level: {(zoomLevel*100).toFixed(0)}%</div>
             {selectedNode && (
                 <div className="absolute right-0 h-full">
                     <Sidebar

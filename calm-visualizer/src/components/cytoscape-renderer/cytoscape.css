@@ -44,3 +44,8 @@
 .relationship-label {
     background-color: white;
 }
+
+.zoom-indicator {
+    width: 100px;
+    display: inline-block;
+}
