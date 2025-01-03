@@ -26,6 +26,10 @@ public class MongoCounterStore {
         return nextValueForCounter("architectureStoreCounter");
     }
 
+    public int getNextAdrSequenceValue() {
+        return nextValueForCounter("adrStoreCounter");
+    }
+
     private int nextValueForCounter(String counterId) {
         Document filter = new Document("_id", counterId);
         Document update = new Document("$inc", new Document("sequence_value", 1));
