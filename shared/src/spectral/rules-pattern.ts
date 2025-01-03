@@ -111,7 +111,7 @@ const patternRules: RulesetDefinition = {
                 function: interfaceIdExists,
             },
         },
-        'referenced-interfaces-defined-on-correct-node-in-architecture': {
+        'referenced-interfaces-defined-on-correct-node-in-pattern': {
             description: 'Connects relationships must reference interfaces that exist on the correct nodes',
             severity: 'error',
             message: '{{error}}',

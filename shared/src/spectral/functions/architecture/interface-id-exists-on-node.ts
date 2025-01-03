@@ -17,7 +17,6 @@ export function interfaceIdExistsOnNode(input, _, context) {
     }
 
     const nodeId = input.node;
-    console.log('id: ', nodeId);
     const nodeMatch: object[] = JSONPath({ path: `$.nodes[?(@['unique-id'] == '${nodeId}')]`, json: context.document.data });
     if (!nodeMatch || nodeMatch.length === 0) {
         // other rule will report undefined node
