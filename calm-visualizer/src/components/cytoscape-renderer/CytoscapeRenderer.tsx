@@ -182,8 +182,8 @@ const CytoscapeRenderer = ({
     function zoomOut() {
         //Obtain percentage as integer
         const currentPercentageZoom = Math.round(zoomLevel*100);
-        //Subtract 10% from the zoom or round to lower 10% interval
-        const newPercentageZoom = Math.ceil(currentPercentageZoom/10)*10 - 10;
+        //Subtract 10% from the zoom or round to lower 10% interval - but not less than zero
+        const newPercentageZoom = Math.max(Math.ceil(currentPercentageZoom/10)*10 - 10, 0);
         cy?.zoom(newPercentageZoom/100);
         setZoomLevel(newPercentageZoom/100);
     }
