@@ -5,6 +5,7 @@ import { idsAreUnique } from './functions/architecture/ids-are-unique';
 import { nodeIdExists } from './functions/architecture/node-id-exists';
 import { interfaceIdExists } from './functions/architecture/interface-id-exists';
 import { nodeHasRelationship } from './functions/architecture/node-has-relationship';
+import { interfaceIdExistsOnNode } from './functions/architecture/interface-id-exists-on-node';
 
 const architectureRules: RulesetDefinition = {
     rules: {
@@ -101,12 +102,22 @@ const architectureRules: RulesetDefinition = {
         },
 
         'referenced-interfaces-defined-in-architecture': {
-            description: 'Referenced interfaces must be defined ',
+            description: 'Referenced interfaces must be defined',
             severity: 'error',
             message: '{{error}}',
             given: '$.relationships[*].relationship-type.connects.*.interfaces[*]',
             then: {
                 function: interfaceIdExists
+            },
+        },
+        
+        'referenced-interfaces-defined-on-correct-node-in-architecture': {
+            description: 'Connects relationships must reference interfaces that exist on the correct nodes',
+            severity: 'error',
+            message: '{{error}}',
+            given: '$.relationships[*].relationship-type.connects.*',
+            then: {
+                function: interfaceIdExistsOnNode
             },
         },
 
