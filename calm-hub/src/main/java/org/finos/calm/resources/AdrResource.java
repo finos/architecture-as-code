@@ -12,8 +12,8 @@ import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.Adr;
 import org.finos.calm.domain.AdrBuilder;
-import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.ValueWrapper;
+import org.finos.calm.domain.exception.AdrNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.AdrStore;
 import org.slf4j.Logger;
@@ -78,10 +78,36 @@ public class AdrResource {
             logger.error("Invalid namespace [{}] when creating ADR", namespace, e);
             return invalidNamespaceResponse(namespace);
         } catch (JsonParseException e) {
-            logger.error("Cannot parse Architecture JSON for namespace [{}]. Architecture JSON : [{}]", namespace, adrJson, e);
+            logger.error("Cannot parse ADR JSON for namespace [{}]. ADR JSON : [{}]", namespace, adrJson, e);
             return invalidAdrJsonResponse(namespace);
         }
     }
+
+
+    @GET
+    @Path("{namespace}/adrs/{adrId}/revisions")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Retrieve a list of revisions for a given ADR",
+            description = "The most recent revision is the canonical ADR, with others available for audit or exploring changes."
+    )
+    public Response getAdrRevisions(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId) {
+        Adr adr = AdrBuilder.builder()
+                .namespace(namespace)
+                .id(adrId)
+                .build();
+
+        try {
+            return Response.ok(new ValueWrapper<>(store.getAdrRevisions(adr))).build();
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when getting revisions of ADR", adr, e);
+            return invalidNamespaceResponse(namespace);
+        } catch (AdrNotFoundException e) {
+            logger.error("Invalid ADR [{}] when getting versions of ADR", adr, e);
+            return invalidAdrResponse(adrId);
+        }
+    }
+
 
     private Response adrWithLocationResponse(Adr adr) throws URISyntaxException {
         return Response.created(new URI("/calm/namespaces/" + adr.namespace() + "/adrs/" + adr.id() + "/revisions/" + adr.revision())).build();
@@ -93,5 +119,9 @@ public class AdrResource {
 
     private Response invalidAdrJsonResponse(String adrJson) {
         return Response.status(Response.Status.BAD_REQUEST).entity("The ADR JSON could not be parsed: " + adrJson).build();
+    }
+
+    private Response invalidAdrResponse(int adrId) {
+        return Response.status(Response.Status.NOT_FOUND).entity("Invalid adrId provided: " + adrId).build();
     }
 }

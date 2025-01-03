@@ -78,4 +78,15 @@ public class MongoAdrIntegration {
                 .header("Location", containsString("calm/namespaces/finos/adrs/1"));
     }
 
+    @Test
+    @Order(3)
+    void end_to_end_verify_revisions() {
+        given()
+                .when().get("/calm/namespaces/finos/adrs/1/revisions")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(1))
+                .body("values[0]", equalTo(1));
+    }
+
 }

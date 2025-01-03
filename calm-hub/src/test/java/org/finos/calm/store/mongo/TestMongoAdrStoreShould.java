@@ -5,15 +5,19 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Adr;
 import org.finos.calm.domain.AdrBuilder;
 import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.exception.AdrNotFoundException;
+import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,7 +25,9 @@ import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
@@ -171,5 +177,73 @@ public class TestMongoAdrStoreShould {
                 eq(Filters.eq("namespace", validNamespace)),
                 eq(Updates.push("adrs", expectedDoc)),
                 any(UpdateOptions.class));
+    }
+
+    @Test
+    void get_adr_revisions_for_invalid_namespace_throws_exception() {
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
+        Adr adr = AdrBuilder.builder().namespace("does-not-exist").build();
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> mongoAdrStore.getAdrRevisions(adr));
+
+        verify(namespaceStore).namespaceExists(adr.namespace());
+    }
+
+    private FindIterable<Document> setupInvalidAdr() {
+        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        //Return the same find iterable as the projection unboxes, then return null
+        when(adrCollection.find(any(Bson.class)))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(null);
+
+        return findIterable;
+    }
+
+    @Test
+    void get_adr_revisions_for_invalid_adr_throws_exception() {
+        FindIterable<Document> findIterable = setupInvalidAdr();
+        Adr adr = AdrBuilder.builder().namespace(NAMESPACE).build();
+
+        assertThrows(AdrNotFoundException.class,
+                () -> mongoAdrStore.getAdrRevisions(adr));
+
+        verify(adrCollection).find(new Document("namespace", adr.namespace()));
+        verify(findIterable).projection(Projections.fields(Projections.include("adrs")));
+    }
+
+    @Test
+    void get_adr_revisions_for_valid_adr_returns_list_of_revisions() throws NamespaceNotFoundException, AdrNotFoundException {
+        mockSetupAdrDocumentWithRevisions();
+
+        Adr adr = AdrBuilder.builder().namespace(NAMESPACE).id(42).build();
+        List<Integer> adrRevisions = mongoAdrStore.getAdrRevisions(adr);
+
+        assertThat(adrRevisions, is(List.of(1)));
+    }
+
+    private void mockSetupAdrDocumentWithRevisions() {
+        Document mainDocument = setupAdrRevisionDocument();
+        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(adrCollection.find(any(Bson.class)))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(mainDocument);
+    }
+
+    private Document setupAdrRevisionDocument() {
+        //Set up an ADR document with 2 ADRs in (one with a valid revision)
+        Map<String, Document> revisionMap = new HashMap<>();
+        revisionMap.put("1", Document.parse(validJson));
+        Document targetStoredAdr = new Document("adrId", 42)
+                .append("revisions", new Document(revisionMap));
+
+        Document paddingAdr = new Document("adrId", 0);
+
+        return new Document("namespace", NAMESPACE)
+                .append("adrs", Arrays.asList(paddingAdr, targetStoredAdr));
     }
 }
