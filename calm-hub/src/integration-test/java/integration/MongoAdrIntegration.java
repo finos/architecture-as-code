@@ -7,42 +7,47 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.bson.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 
-import static io.restassured.RestAssured.given;
 import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
+import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
 @TestProfile(IntegrationTestProfile.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class MongoArchitectureIntegration {
+public class MongoAdrIntegration {
 
-    private static final Logger logger = LoggerFactory.getLogger(MongoArchitectureIntegration.class);
-    public static final String ARCHITECTURE = "{\"name\": \"demo-pattern\"}";
+    private static final Logger logger = LoggerFactory.getLogger(MongoAdrIntegration.class);
+    public static final String ADR = "{\"name\": \"test-adr\"}";
+
 
     @BeforeEach
-    public void setupArchitectures() {
+    public void setupAdrs() {
         String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
 
         // Safeguard: Fail fast if URI is not set
-        if (mongoUri == null || mongoUri.isBlank()) {
+        if(mongoUri == null || mongoUri.isBlank()) {
             logger.error("MongoDB URI is not set. Check the EndToEndResource configuration.");
             throw new IllegalStateException("MongoDB URI is not set. Check the EndToEndResource configuration.");
         }
 
-        try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
+        try(MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase("calmSchemas");
 
-            if (!database.listCollectionNames().into(new ArrayList<>()).contains("architectures")) {
-                database.createCollection("architectures");
-                database.getCollection("architectures").insertOne(
-                        new Document("namespace", "finos").append("architectures", new ArrayList<>())
+            if(!database.listCollectionNames().into(new ArrayList<>()).contains("adrs")) {
+                database.createCollection("adrs");
+                database.getCollection("adrs").insertOne(
+                        new Document("namespace", "finos").append("adrs", new ArrayList<>())
                 );
             }
 
@@ -55,7 +60,7 @@ public class MongoArchitectureIntegration {
     @Order(1)
     void end_to_end_get_with_no_architecture() {
         given()
-                .when().get("/calm/namespaces/finos/architectures")
+                .when().get("/calm/namespaces/finos/adrs")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -63,34 +68,25 @@ public class MongoArchitectureIntegration {
 
     @Test
     @Order(2)
-    void end_to_end_create_an_architecture() {
+    void end_to_end_create_an_adr() {
         given()
-                .body(ARCHITECTURE)
+                .body(ADR)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/architectures")
+                .when().post("/calm/namespaces/finos/adrs")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("calm/namespaces/finos/architectures/1"));
+                .header("Location", containsString("calm/namespaces/finos/adrs/1"));
     }
 
     @Test
     @Order(3)
-    void end_to_end_verify_versions() {
+    void end_to_end_verify_revisions() {
         given()
-                .when().get("/calm/namespaces/finos/architectures/1/versions")
+                .when().get("/calm/namespaces/finos/adrs/1/revisions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
-                .body("values[0]", equalTo("1.0.0"));
+                .body("values[0]", equalTo(1));
     }
 
-    @Test
-    @Order(4)
-    void end_to_end_verify_architecture() {
-        given()
-                .when().get("/calm/namespaces/finos/architectures/1/versions/1.0.0")
-                .then()
-                .statusCode(200)
-                .body(equalTo(ARCHITECTURE));
-    }
 }

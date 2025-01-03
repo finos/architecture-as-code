@@ -25,8 +25,10 @@ public class MongoSetup {
             database.createCollection("counters");
             Document patternStoreCounter = new Document("_id", "patternStoreCounter").append("sequence_value", 0);
             Document architectureStoreCounter = new Document("_id", "architectureStoreCounter").append("sequence_value", 0);
+            Document adrStoreCounter = new Document("_id", "adrStoreCounter").append("sequence_value", 0);
             database.getCollection("counters").insertOne(patternStoreCounter);
             database.getCollection("counters").insertOne(architectureStoreCounter);
+            database.getCollection("counters").insertOne(adrStoreCounter);
         }
     }
 }
