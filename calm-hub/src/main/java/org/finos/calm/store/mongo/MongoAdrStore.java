@@ -14,7 +14,9 @@ import org.finos.calm.domain.Adr;
 import org.finos.calm.domain.AdrBuilder;
 import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.exception.AdrNotFoundException;
+import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
+import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.AdrStore;
 import org.slf4j.Logger;
@@ -96,6 +98,29 @@ public class MongoAdrStore implements AdrStore {
         }
 
         throw new AdrNotFoundException();
+    }
+
+    @Override
+    public String getAdrRevision(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
+        Document result = retrieveAdrRevisions(adr);
+
+        List<Document> adrs = (List<Document>) result.get("adrs");
+        for (Document adrDoc : adrs) {
+            if (adr.id() == adrDoc.getInteger("adrId")) {
+                // Retrieve the versions map from the matching pattern
+                Document revisions = (Document) adrDoc.get("revisions");
+
+                // Return the ADR JSON blob for the specified version
+                Document revisionDoc = (Document) revisions.get(String.valueOf(adr.revision()));
+                log.info("RevisionDoc: [{}], Revision: [{}]", adrDoc.get("revisions"), adr.revision());
+                if(revisionDoc == null) {
+                    throw new AdrRevisionNotFoundException();
+                }
+                return revisionDoc.toJson();
+            }
+        }
+        //ADR Revisions is empty, no version to find
+        throw new AdrRevisionNotFoundException();
     }
 
     private Document retrieveAdrRevisions(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException {

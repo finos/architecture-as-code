@@ -12,8 +12,12 @@ import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.Adr;
 import org.finos.calm.domain.AdrBuilder;
+import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.AdrNotFoundException;
+import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
+import org.finos.calm.domain.exception.ArchitectureNotFoundException;
+import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.AdrStore;
 import org.slf4j.Logger;
@@ -100,14 +104,41 @@ public class AdrResource {
         try {
             return Response.ok(new ValueWrapper<>(store.getAdrRevisions(adr))).build();
         } catch (NamespaceNotFoundException e) {
-            logger.error("Invalid namespace [{}] when getting revisions of ADR", adr, e);
+            logger.error("Invalid namespace [{}] when getting revisions of ADR", namespace, e);
             return invalidNamespaceResponse(namespace);
         } catch (AdrNotFoundException e) {
-            logger.error("Invalid ADR [{}] when getting versions of ADR", adr, e);
+            logger.error("Invalid ADR [{}] when getting versions of ADR", adrId, e);
             return invalidAdrResponse(adrId);
         }
     }
 
+    @GET
+    @Path("{namespace}/adrs/{adrId}/revisions/{revision}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Retrieve a specific revision of an ADR",
+            description = "Retrieve a specific revision of an ADR"
+    )
+    public Response getAdrRevision(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, @PathParam("revision") int revision) {
+        Adr adr = AdrBuilder.builder()
+                .namespace(namespace)
+                .id(adrId)
+                .revision(revision)
+                .build();
+
+        try {
+            return Response.ok(store.getAdrRevision(adr)).build();
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when getting an ADR", namespace, e);
+            return invalidNamespaceResponse(namespace);
+        } catch (AdrNotFoundException e) {
+            logger.error("Invalid ADR [{}] when getting an ADR revision", adrId, e);
+            return invalidAdrResponse(adrId);
+        } catch (AdrRevisionNotFoundException e) {
+            logger.error("Invalid revision [{}] when getting an ADR", revision, e);
+            return invalidRevisionResponse(revision);
+        }
+    }
 
     private Response adrWithLocationResponse(Adr adr) throws URISyntaxException {
         return Response.created(new URI("/calm/namespaces/" + adr.namespace() + "/adrs/" + adr.id() + "/revisions/" + adr.revision())).build();
@@ -123,5 +154,9 @@ public class AdrResource {
 
     private Response invalidAdrResponse(int adrId) {
         return Response.status(Response.Status.NOT_FOUND).entity("Invalid adrId provided: " + adrId).build();
+    }
+
+    private Response invalidRevisionResponse(int revision) {
+        return Response.status(Response.Status.NOT_FOUND).entity("Invalid revision provided: " + revision).build();
     }
 }

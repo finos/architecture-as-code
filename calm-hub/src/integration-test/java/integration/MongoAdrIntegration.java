@@ -89,4 +89,14 @@ public class MongoAdrIntegration {
                 .body("values[0]", equalTo(1));
     }
 
+    @Test
+    @Order(4)
+    void end_to_end_verify_architecture() {
+        given()
+                .when().get("/calm/namespaces/finos/adrs/1/revisions/1")
+                .then()
+                .statusCode(200)
+                .body(equalTo(ADR));
+    }
+
 }

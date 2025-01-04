@@ -17,7 +17,8 @@ import org.finos.calm.domain.Adr;
 import org.finos.calm.domain.AdrBuilder;
 import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.exception.AdrNotFoundException;
-import org.finos.calm.domain.exception.ArchitectureNotFoundException;
+import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
+import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -224,6 +225,29 @@ public class TestMongoAdrStoreShould {
         assertThat(adrRevisions, is(List.of(1)));
     }
 
+    @Test
+    void throw_an_exception_for_an_invalid_adre_when_retrieving_adr_revision() {
+        FindIterable<Document> findIterable = setupInvalidAdr();
+        Adr adr = AdrBuilder.builder().namespace(NAMESPACE).build();
+
+        assertThrows(AdrNotFoundException.class,
+                () -> mongoAdrStore.getAdrRevision(adr));
+
+        verify(adrCollection).find(new Document("namespace", adr.namespace()));
+        verify(findIterable).projection(Projections.fields(Projections.include("adrs")));
+    }
+
+    @Test
+    void return_an_adr_revision() throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
+        mockSetupAdrDocumentWithRevisions();
+
+        Adr adr = AdrBuilder.builder().namespace(NAMESPACE)
+                .id(42).revision(1).build();
+
+        String adrRevision = mongoAdrStore.getAdrRevision(adr);
+        assertThat(adrRevision, is(validJson));
+    }
+
     private void mockSetupAdrDocumentWithRevisions() {
         Document mainDocument = setupAdrRevisionDocument();
         FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
@@ -245,5 +269,16 @@ public class TestMongoAdrStoreShould {
 
         return new Document("namespace", NAMESPACE)
                 .append("adrs", Arrays.asList(paddingAdr, targetStoredAdr));
+    }
+
+    @Test
+    void throw_an_exception_when_revision_of_adr_does_not_exist()  {
+        mockSetupAdrDocumentWithRevisions();
+
+        Adr adr = AdrBuilder.builder().namespace(NAMESPACE)
+                .id(42).revision(9).build();
+
+        assertThrows(AdrRevisionNotFoundException.class,
+                () -> mongoAdrStore.getAdrRevision(adr));
     }
 }

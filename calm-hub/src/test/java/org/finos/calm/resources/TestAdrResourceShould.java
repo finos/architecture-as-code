@@ -7,7 +7,9 @@ import org.finos.calm.domain.Adr;
 import org.finos.calm.domain.AdrBuilder;
 import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.exception.AdrNotFoundException;
+import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
+import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.AdrStore;
 import org.junit.jupiter.api.Test;
@@ -145,7 +147,7 @@ public class TestAdrResourceShould {
         verify(mockAdrStore, times(1)).createAdrForNamespace(expectedAdrToCreate);
     }
 
-    static Stream<Arguments> provideParametersForAdrVersionTests() {
+    static Stream<Arguments> provideParametersForAdrRevisionTests() {
         return Stream.of(
                 Arguments.of("invalid", new NamespaceNotFoundException(), 404),
                 Arguments.of("valid", new AdrNotFoundException(), 404),
@@ -154,8 +156,8 @@ public class TestAdrResourceShould {
     }
 
     @ParameterizedTest
-    @MethodSource("provideParametersForAdrVersionTests")
-    void respond_correctly_to_get_adr_versions_query(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException {
+    @MethodSource("provideParametersForAdrRevisionTests")
+    void respond_correctly_to_get_adr_revisions_query(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException {
         var revisions = List.of(1, 2);
         if (exceptionToThrow != null) {
             when(mockAdrStore.getAdrRevisions(any(Adr.class))).thenThrow(exceptionToThrow);
@@ -179,16 +181,64 @@ public class TestAdrResourceShould {
                     .statusCode(expectedStatusCode);
         }
 
-        verifyExpectedAdrForRevisions(namespace);
+        verifyExpectedAdrRevisions(namespace);
     }
 
-    private void verifyExpectedAdrForRevisions(String namespace) throws NamespaceNotFoundException, AdrNotFoundException {
+    private void verifyExpectedAdrRevisions(String namespace) throws NamespaceNotFoundException, AdrNotFoundException {
         Adr expectedAdrToRetrieve = AdrBuilder.builder()
                 .namespace(namespace)
                 .id(12)
                 .build();
 
         verify(mockAdrStore, times(1)).getAdrRevisions(expectedAdrToRetrieve);
+    }
+
+
+    static Stream<Arguments> provideParametersForGetAdrRevisionTests() {
+        return Stream.of(
+                Arguments.of("invalid", new NamespaceNotFoundException(), 404),
+                Arguments.of("valid", new AdrNotFoundException(), 404),
+                Arguments.of("valid", new AdrRevisionNotFoundException(), 404),
+                Arguments.of("valid", null, 200)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParametersForGetAdrRevisionTests")
+    void respond_correctly_to_get_adr_revision(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
+        if (exceptionToThrow != null) {
+            when(mockAdrStore.getAdrRevision(any(Adr.class))).thenThrow(exceptionToThrow);
+        } else {
+            String adr = "{ \"test\": \"json\" }";
+            when(mockAdrStore.getAdrRevision(any(Adr.class))).thenReturn(adr);
+        }
+
+        if (expectedStatusCode == 200) {
+            given()
+                    .when()
+                    .get("/calm/namespaces/" + namespace + "/adrs/12/revisions/1")
+                    .then()
+                    .statusCode(expectedStatusCode)
+                    .body(equalTo("{ \"test\": \"json\" }"));
+        } else {
+            given()
+                    .when()
+                    .get("/calm/namespaces/" + namespace + "/adrs/12/revisions/1")
+                    .then()
+                    .statusCode(expectedStatusCode);
+        }
+
+        verifyExpectedGetAdrRevision(namespace);
+    }
+
+    private void verifyExpectedGetAdrRevision(String namespace) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
+        Adr expectedAdrToRetrieve = AdrBuilder.builder()
+                .namespace(namespace)
+                .id(12)
+                .revision(1)
+                .build();
+
+        verify(mockAdrStore, times(1)).getAdrRevision(expectedAdrToRetrieve);
     }
 
 }
