@@ -58,7 +58,7 @@ public class MongoAdrIntegration {
 
     @Test
     @Order(1)
-    void end_to_end_get_with_no_architecture() {
+    void end_to_end_verify_get_with_no_architecture() {
         given()
                 .when().get("/calm/namespaces/finos/adrs")
                 .then()
@@ -68,7 +68,7 @@ public class MongoAdrIntegration {
 
     @Test
     @Order(2)
-    void end_to_end_create_an_adr() {
+    void end_to_end_verify_create_an_adr() {
         given()
                 .body(ADR)
                 .header("Content-Type", "application/json")
@@ -80,7 +80,7 @@ public class MongoAdrIntegration {
 
     @Test
     @Order(3)
-    void end_to_end_verify_revisions() {
+    void end_to_end_verify_get_revisions() {
         given()
                 .when().get("/calm/namespaces/finos/adrs/1/revisions")
                 .then()
@@ -91,9 +91,19 @@ public class MongoAdrIntegration {
 
     @Test
     @Order(4)
-    void end_to_end_verify_architecture() {
+    void end_to_end_verify_get_adr_revision() {
         given()
                 .when().get("/calm/namespaces/finos/adrs/1/revisions/1")
+                .then()
+                .statusCode(200)
+                .body(equalTo(ADR));
+    }
+
+    @Test
+    @Order(5)
+    void end_to_end_verify_get_adr() {
+        given()
+                .when().get("/calm/namespaces/finos/adrs/1")
                 .then()
                 .statusCode(200)
                 .body(equalTo(ADR));

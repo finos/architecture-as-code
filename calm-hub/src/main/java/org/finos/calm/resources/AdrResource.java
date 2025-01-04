@@ -87,6 +87,32 @@ public class AdrResource {
         }
     }
 
+    @GET
+    @Path("{namespace}/adrs/{adrId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Retrieve the latest revision of an ADR",
+            description = "Retrieve the latest revision of an ADR"
+    )
+    public Response getAdr(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId) {
+        Adr adr = AdrBuilder.builder()
+                .namespace(namespace)
+                .id(adrId)
+                .build();
+
+        try {
+            return Response.ok(store.getAdr(adr)).build();
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when getting an ADR", namespace, e);
+            return invalidNamespaceResponse(namespace);
+        } catch (AdrNotFoundException e) {
+            logger.error("Invalid ADR [{}] when getting an ADR", adrId, e);
+            return invalidAdrResponse(adrId);
+        } catch (AdrRevisionNotFoundException e) {
+            logger.error("Could not get latest revision of ADR [{}]", adrId, e);
+            return invalidLatestRevisionResponse(adrId);
+        }
+    }
 
     @GET
     @Path("{namespace}/adrs/{adrId}/revisions")
@@ -158,5 +184,9 @@ public class AdrResource {
 
     private Response invalidRevisionResponse(int revision) {
         return Response.status(Response.Status.NOT_FOUND).entity("Invalid revision provided: " + revision).build();
+    }
+
+    private Response invalidLatestRevisionResponse(int adrId) {
+        return Response.status(Response.Status.NOT_FOUND).entity("Latest revision not found for ADR: [{}]: " + adrId).build();
     }
 }

@@ -231,6 +231,34 @@ public class TestAdrResourceShould {
         verifyExpectedGetAdrRevision(namespace);
     }
 
+    @ParameterizedTest
+    @MethodSource("provideParametersForGetAdrRevisionTests")
+    void respond_correctly_to_get_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
+        if (exceptionToThrow != null) {
+            when(mockAdrStore.getAdr(any(Adr.class))).thenThrow(exceptionToThrow);
+        } else {
+            String adr = "{ \"test\": \"json\" }";
+            when(mockAdrStore.getAdr(any(Adr.class))).thenReturn(adr);
+        }
+
+        if (expectedStatusCode == 200) {
+            given()
+                    .when()
+                    .get("/calm/namespaces/" + namespace + "/adrs/12")
+                    .then()
+                    .statusCode(expectedStatusCode)
+                    .body(equalTo("{ \"test\": \"json\" }"));
+        } else {
+            given()
+                    .when()
+                    .get("/calm/namespaces/" + namespace + "/adrs/12")
+                    .then()
+                    .statusCode(expectedStatusCode);
+        }
+
+        verifyExpectedGetAdr(namespace);
+    }
+
     private void verifyExpectedGetAdrRevision(String namespace) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
         Adr expectedAdrToRetrieve = AdrBuilder.builder()
                 .namespace(namespace)
@@ -239,6 +267,15 @@ public class TestAdrResourceShould {
                 .build();
 
         verify(mockAdrStore, times(1)).getAdrRevision(expectedAdrToRetrieve);
+    }
+
+    private void verifyExpectedGetAdr(String namespace) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
+        Adr expectedAdrToRetrieve = AdrBuilder.builder()
+                .namespace(namespace)
+                .id(12)
+                .build();
+
+        verify(mockAdrStore, times(1)).getAdr(expectedAdrToRetrieve);
     }
 
 }

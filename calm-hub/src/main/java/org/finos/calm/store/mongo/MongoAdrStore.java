@@ -12,11 +12,8 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.Adr;
 import org.finos.calm.domain.AdrBuilder;
-import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.exception.AdrNotFoundException;
 import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
-import org.finos.calm.domain.exception.ArchitectureNotFoundException;
-import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.AdrStore;
 import org.slf4j.Logger;
@@ -24,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.Set;
 
 @ApplicationScoped
@@ -54,11 +52,11 @@ public class MongoAdrStore implements AdrStore {
             return List.of();
         }
 
-        List<Document> patterns = namespaceDocument.getList("adrs", Document.class);
+        List<Document> adrs = namespaceDocument.getList("adrs", Document.class);
         List<Integer> adrIds = new ArrayList<>();
 
-        for (Document pattern : patterns) {
-            adrIds.add(pattern.getInteger("adrId"));
+        for (Document adr : adrs) {
+            adrIds.add(adr.getInteger("adrId"));
         }
 
         return adrIds;
@@ -83,13 +81,46 @@ public class MongoAdrStore implements AdrStore {
     }
 
     @Override
+    public String getAdr(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
+        Document result = retrieveAdrRevisions(adr);
+        List<Document> adrs = (List<Document>) result.get("adrs");
+        for (Document adrDoc : adrs) {
+            if (adr.id() == adrDoc.getInteger("adrId")) {
+                // Extract the revisions map from the matching adr
+                Document revisions = (Document) adrDoc.get("revisions");
+                int latestRevision = getLatestRevision(adr, revisions);
+
+                // Return the ADR JSON blob for the specified revision
+                Document revisionDoc = (Document) revisions.get(String.valueOf(latestRevision));
+                log.info("RevisionDoc: [{}], Revision: [{}]", adrDoc.get("revisions"), latestRevision);
+                return revisionDoc.toJson();
+            }
+        }
+        throw new AdrNotFoundException();
+    }
+
+    private int getLatestRevision(Adr adr, Document revisionsDoc) throws AdrRevisionNotFoundException {
+        if(revisionsDoc == null || revisionsDoc.isEmpty()) {
+            log.error("Could not find the latest revision of ADR [{}]", adr.id());
+            throw new AdrRevisionNotFoundException();
+        }
+
+        Set<String> revisionKeys = revisionsDoc.keySet();
+        return revisionKeys.stream()
+                .map(Integer::parseInt)
+                .mapToInt(i -> i)
+                .max()
+                .getAsInt();
+    }
+
+    @Override
     public List<Integer> getAdrRevisions(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException {
         Document result = retrieveAdrRevisions(adr);
 
         List<Document> adrs = (List<Document>) result.get("adrs");
         for (Document adrDoc : adrs) {
             if (adr.id() == adrDoc.getInteger("adrId")) {
-                // Extract the revisions map from the matching pattern
+                // Extract the revisions map from the matching adr
                 Document revisions = (Document) adrDoc.get("revisions");
                 Set<String> revisionKeys = revisions.keySet();
 
@@ -107,10 +138,15 @@ public class MongoAdrStore implements AdrStore {
         List<Document> adrs = (List<Document>) result.get("adrs");
         for (Document adrDoc : adrs) {
             if (adr.id() == adrDoc.getInteger("adrId")) {
-                // Retrieve the versions map from the matching pattern
+                // Retrieve the revisions map from the matching adr
                 Document revisions = (Document) adrDoc.get("revisions");
 
-                // Return the ADR JSON blob for the specified version
+                if(revisions == null || revisions.isEmpty()) {
+                    //ADR Revisions collection not initialized
+                    throw new AdrRevisionNotFoundException();
+                }
+
+                // Return the ADR JSON blob for the specified revision
                 Document revisionDoc = (Document) revisions.get(String.valueOf(adr.revision()));
                 log.info("RevisionDoc: [{}], Revision: [{}]", adrDoc.get("revisions"), adr.revision());
                 if(revisionDoc == null) {
@@ -119,7 +155,7 @@ public class MongoAdrStore implements AdrStore {
                 return revisionDoc.toJson();
             }
         }
-        //ADR Revisions is empty, no version to find
+        //ADR Revisions is empty, no revisions to find
         throw new AdrRevisionNotFoundException();
     }
 

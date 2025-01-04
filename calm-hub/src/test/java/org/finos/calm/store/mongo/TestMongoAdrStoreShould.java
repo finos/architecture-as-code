@@ -226,7 +226,18 @@ public class TestMongoAdrStoreShould {
     }
 
     @Test
-    void throw_an_exception_for_an_invalid_adre_when_retrieving_adr_revision() {
+    void get_adr_revision_for_invalid_namespace_throws_exception() {
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
+        Adr adr = AdrBuilder.builder().namespace("does-not-exist").build();
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> mongoAdrStore.getAdrRevision(adr));
+
+        verify(namespaceStore).namespaceExists(adr.namespace());
+    }
+
+    @Test
+    void throw_an_exception_for_an_invalid_adr_when_retrieving_adr_revision() {
         FindIterable<Document> findIterable = setupInvalidAdr();
         Adr adr = AdrBuilder.builder().namespace(NAMESPACE).build();
 
@@ -280,5 +291,69 @@ public class TestMongoAdrStoreShould {
 
         assertThrows(AdrRevisionNotFoundException.class,
                 () -> mongoAdrStore.getAdrRevision(adr));
+    }
+
+    @Test
+    void throw_an_exception_when_no_revision_exists_when_getting_adr()  {
+        mockSetupAdrDocumentWithNoRevisions();
+
+        Adr adr = AdrBuilder.builder().namespace(NAMESPACE)
+                .id(42).revision(1).build();
+
+        assertThrows(AdrRevisionNotFoundException.class,
+                () -> mongoAdrStore.getAdr(adr));
+    }
+
+    private Document setupAdrWithNoRevisions() {
+        //Set up an ADR document with 1 ADR with No Revisions
+
+        Document targetStoredAdr = new Document("adrId", 42);
+
+        return new Document("namespace", NAMESPACE)
+                .append("adrs", List.of(targetStoredAdr));
+    }
+
+    private void mockSetupAdrDocumentWithNoRevisions() {
+        Document mainDocument = setupAdrWithNoRevisions();
+        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(adrCollection.find(any(Bson.class)))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(mainDocument);
+    }
+
+    @Test
+    void throw_an_exception_for_an_invalid_adr_when_retrieving_adr() {
+        FindIterable<Document> findIterable = setupInvalidAdr();
+        Adr adr = AdrBuilder.builder().namespace(NAMESPACE).id(7).build();
+
+        assertThrows(AdrNotFoundException.class,
+                () -> mongoAdrStore.getAdr(adr));
+
+        verify(adrCollection).find(new Document("namespace", adr.namespace()));
+        verify(findIterable).projection(Projections.fields(Projections.include("adrs")));
+    }
+
+    @Test
+    void get_adr_for_invalid_namespace_throws_exception() {
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
+        Adr adr = AdrBuilder.builder().namespace("does-not-exist").build();
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> mongoAdrStore.getAdr(adr));
+
+        verify(namespaceStore).namespaceExists(adr.namespace());
+    }
+
+    @Test
+    void return_the_latest_adr_revision() throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
+        mockSetupAdrDocumentWithRevisions();
+
+        Adr adr = AdrBuilder.builder().namespace(NAMESPACE)
+                .id(42).revision(1).build();
+
+        String adrRevision = mongoAdrStore.getAdr(adr);
+        assertThat(adrRevision, is(validJson));
     }
 }
