@@ -11,6 +11,7 @@ import { ValidationOutput, ValidationOutcome } from './validation.output.js';
 import { SpectralResult } from './spectral.result.js';
 import createJUnitReport from './output-formats/junit-output.js';
 import prettyFormat from './output-formats/pretty-output';
+import { checkCoreSchemaVersion, getBundledSchemaVersion } from '../bundled-schemas';
 
 let logger: winston.Logger; // defined later at startup
 
@@ -64,9 +65,12 @@ export function formatOutput(
 
 function buildAjv2020(debug: boolean): Ajv2020 {
     const strictType = debug ? 'log' : false;
+    const bundledSchemaVersion = getBundledSchemaVersion(debug);
     return new Ajv2020({
         strict: strictType, allErrors: true, loadSchema: async (uri) => {
             try {
+                // validate schema version
+                checkCoreSchemaVersion(uri, bundledSchemaVersion, debug);
                 const response = await fetch(uri);
                 if (!response.ok) {
                     throw new Error(`Unable to fetch schema from ${uri}`);
