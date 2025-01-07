@@ -15,10 +15,8 @@ import org.bson.conversions.Bson;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Adr;
 import org.finos.calm.domain.AdrBuilder;
-import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.exception.AdrNotFoundException;
 import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
-import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -122,9 +121,9 @@ public class TestMongoAdrStoreShould {
         when(documentMock.getList("adrs", Document.class))
                 .thenReturn(Arrays.asList(doc1, doc2));
 
-        List<Integer> architectureIds = mongoAdrStore.getAdrsForNamespace(NAMESPACE);
+        List<Integer> adrIds = mongoAdrStore.getAdrsForNamespace(NAMESPACE);
 
-        assertThat(architectureIds, is(Arrays.asList(1001, 1002)));
+        assertThat(adrIds, is(Arrays.asList(1001, 1002)));
         verify(namespaceStore).namespaceExists(NAMESPACE);
     }
 
@@ -142,7 +141,7 @@ public class TestMongoAdrStoreShould {
     @Test
     void return_a_json_parse_exception_when_an_invalid_json_object_is_presented_when_creating_an_adr() {
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextArchitectureSequenceValue()).thenReturn(42);
+        when(counterStore.getNextAdrSequenceValue()).thenReturn(42);
         Adr adr = AdrBuilder.builder().namespace(NAMESPACE)
                 .adr("Invalid JSON")
                 .build();
@@ -355,5 +354,62 @@ public class TestMongoAdrStoreShould {
 
         String adrRevision = mongoAdrStore.getAdr(adr);
         assertThat(adrRevision, is(validJson));
+    }
+
+    @Test
+    void throw_an_exception_when_update_adr_with_a_namespace_that_doesnt_exists() {
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
+
+        Adr adr = AdrBuilder.builder()
+                .namespace(NAMESPACE)
+                .id(42)
+                .build();
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> mongoAdrStore.updateAdrForNamespace(adr));
+
+        verify(namespaceStore, times(1)).namespaceExists(adr.namespace());
+    }
+
+    @Test
+    void throw_an_exception_when_updating_an_adr_that_doesnt_exist() {
+        mockSetupAdrDocumentWithRevisions();
+
+        Adr adr = AdrBuilder.builder()
+                .namespace(NAMESPACE)
+                .id(22)
+                .build();
+
+        assertThrows(AdrNotFoundException.class,
+                () -> mongoAdrStore.updateAdrForNamespace(adr));
+    }
+
+    @Test
+    void throw_an_exception_when_updating_an_adr_but_no_revisions_exist() {
+        mockSetupAdrDocumentWithNoRevisions();
+
+        Adr adr = AdrBuilder.builder()
+                .namespace(NAMESPACE)
+                .id(42)
+                .adr(validJson)
+                .build();
+
+        assertThrows(AdrRevisionNotFoundException.class,
+                () -> mongoAdrStore.updateAdrForNamespace(adr));
+    }
+
+    @Test
+    void return_successfully_when_correctly_updating_an_adr() throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
+        mockSetupAdrDocumentWithRevisions();
+        Adr adr = AdrBuilder.builder()
+                .namespace(NAMESPACE)
+                .id(42)
+                .revision(2)
+                .adr(validJson)
+                .build();
+
+        mongoAdrStore.updateAdrForNamespace(adr);
+
+        verify(adrCollection, times(1)).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
     }
 }

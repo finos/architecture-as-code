@@ -80,17 +80,6 @@ public class MongoAdrIntegration {
 
     @Test
     @Order(3)
-    void end_to_end_verify_get_revisions() {
-        given()
-                .when().get("/calm/namespaces/finos/adrs/1/revisions")
-                .then()
-                .statusCode(200)
-                .body("values", hasSize(1))
-                .body("values[0]", equalTo(1));
-    }
-
-    @Test
-    @Order(4)
     void end_to_end_verify_get_adr_revision() {
         given()
                 .when().get("/calm/namespaces/finos/adrs/1/revisions/1")
@@ -100,13 +89,38 @@ public class MongoAdrIntegration {
     }
 
     @Test
-    @Order(5)
+    @Order(4)
     void end_to_end_verify_get_adr() {
         given()
                 .when().get("/calm/namespaces/finos/adrs/1")
                 .then()
                 .statusCode(200)
                 .body(equalTo(ADR));
+    }
+
+    @Test
+    @Order(5)
+    void end_to_end_verify_update_an_adr() {
+        given()
+                .body(ADR)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/adrs/1")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("calm/namespaces/finos/adrs/1"));
+    }
+
+    @Test
+    @Order(6)
+    void end_to_end_verify_get_revisions() {
+        given()
+                .when().get("/calm/namespaces/finos/adrs/1/revisions")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(2))
+                .body("values[0]", equalTo(1))
+                .body("values[1]", equalTo(2));
+
     }
 
 }

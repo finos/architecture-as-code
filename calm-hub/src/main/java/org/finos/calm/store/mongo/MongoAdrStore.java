@@ -1,5 +1,6 @@
 package org.finos.calm.store.mongo;
 
+import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -21,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.OptionalInt;
 import java.util.Set;
 
 @ApplicationScoped
@@ -159,6 +159,26 @@ public class MongoAdrStore implements AdrStore {
         throw new AdrRevisionNotFoundException();
     }
 
+    @Override
+    public Adr updateAdrForNamespace(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
+        Document result = retrieveAdrRevisions(adr);
+        List<Document> adrs = (List<Document>) result.get("adrs");
+        for (Document adrDoc : adrs) {
+            if (adr.id() == adrDoc.getInteger("adrId")) {
+                // Extract the revisions map from the matching adr
+                Document revisions = (Document) adrDoc.get("revisions");
+                int newRevision = getLatestRevision(adr, revisions) + 1;
+
+                Adr newAdr = AdrBuilder.builder(adr).revision(newRevision).build();
+
+                writeAdrToMongo(newAdr);
+                return newAdr;
+
+            }
+        }
+        throw new AdrNotFoundException();
+    }
+
     private Document retrieveAdrRevisions(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException {
         if(!namespaceStore.namespaceExists(adr.namespace())) {
             throw new NamespaceNotFoundException();
@@ -174,5 +194,21 @@ public class MongoAdrStore implements AdrStore {
         }
 
         return result;
+    }
+
+    private void writeAdrToMongo(Adr adr) throws AdrNotFoundException {
+
+        Document adrDocument = Document.parse(adr.adr());
+        Document filter = new Document("namespace", adr.namespace())
+                .append("adrs.adrId", adr.id());
+        Document update = new Document("$set",
+                new Document("adrs.$.revisions." + adr.revision(), adrDocument));
+
+        try {
+            adrCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
+        } catch (MongoWriteException ex) {
+            log.error("Failed to write ADR to mongo [{}]", adr, ex);
+            throw new AdrNotFoundException();
+        }
     }
 }

@@ -12,12 +12,9 @@ import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.Adr;
 import org.finos.calm.domain.AdrBuilder;
-import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.AdrNotFoundException;
 import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
-import org.finos.calm.domain.exception.ArchitectureNotFoundException;
-import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.AdrStore;
 import org.slf4j.Logger;
@@ -84,6 +81,38 @@ public class AdrResource {
         } catch (JsonParseException e) {
             logger.error("Cannot parse ADR JSON for namespace [{}]. ADR JSON : [{}]", namespace, adrJson, e);
             return invalidAdrJsonResponse(namespace);
+        }
+    }
+
+    @POST
+    @Path("{namespace}/adrs/{adrId}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Update ADR for namespace",
+            description = "Updates an ADR for a given namespace. Creates a new revision."
+    )
+    public Response updateAdrForNamespace(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, String adrJson) throws URISyntaxException {
+        Adr adr = AdrBuilder.builder()
+                .namespace(namespace)
+                .id(adrId)
+                .adr(adrJson)
+                .build();
+
+        try {
+            return adrWithLocationResponse(store.updateAdrForNamespace(adr));
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when creating ADR", namespace, e);
+            return invalidNamespaceResponse(namespace);
+        } catch (JsonParseException e) {
+            logger.error("Cannot parse ADR JSON for namespace [{}]. ADR JSON : [{}]", namespace, adrJson, e);
+            return invalidAdrJsonResponse(namespace);
+        } catch(AdrNotFoundException e) {
+            logger.error("Invalid ADR [{}] when creating new revision of ADR", adrId, e);
+            return invalidAdrResponse(adrId);
+        } catch(AdrRevisionNotFoundException e) {
+            logger.error("No existing revision of ADR [{}] found", adrId, e);
+            return invalidLatestRevisionResponse(adrId);
         }
     }
 

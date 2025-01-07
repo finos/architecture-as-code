@@ -5,11 +5,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Adr;
 import org.finos.calm.domain.AdrBuilder;
-import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.exception.AdrNotFoundException;
 import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
-import org.finos.calm.domain.exception.ArchitectureNotFoundException;
-import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.AdrStore;
 import org.junit.jupiter.api.Test;
@@ -135,7 +132,7 @@ public class TestAdrResourceShould {
                 .post("/calm/namespaces/finos/adrs")
                 .then()
                 .statusCode(201)
-                //Derived from stubbed architecture in resource
+                //Derived from stubbed adr in resource
                 .header("Location", containsString("/calm/namespaces/finos/adrs/12/revisions/1"));
 
         Adr expectedAdrToCreate = AdrBuilder.builder()
@@ -145,6 +142,49 @@ public class TestAdrResourceShould {
                 .build();
 
         verify(mockAdrStore, times(1)).createAdrForNamespace(expectedAdrToCreate);
+    }
+
+    //Update ADR Tests
+
+    static Stream<Arguments> provideParametersForUpdateAdrTests() {
+        return Stream.of(
+                Arguments.of("invalid", new NamespaceNotFoundException(), 404),
+                Arguments.of("valid", new AdrNotFoundException(), 404),
+                Arguments.of("valid", new AdrRevisionNotFoundException(), 404),
+                Arguments.of("valid", null, 201)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParametersForUpdateAdrTests")
+    void return_a_404_when_invalid_namespace_is_provided_on_update_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
+        String adrJson = "{ \"test\": \"json\" }";
+        if (exceptionToThrow != null) {
+            when(mockAdrStore.updateAdrForNamespace(any(Adr.class))).thenThrow(exceptionToThrow);
+        } else {
+            Adr adr = AdrBuilder.builder()
+                    .adr(adrJson)
+                    .id(2)
+                    .namespace(namespace)
+                    .build();
+            when(mockAdrStore.updateAdrForNamespace(any(Adr.class))).thenReturn(adr);
+        }
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(adrJson)
+                .when()
+                .post("/calm/namespaces/invalid/adrs/1")
+                .then()
+                .statusCode(expectedStatusCode);
+
+        Adr expectedAdr = AdrBuilder.builder()
+                .adr(adrJson)
+                .id(1)
+                .namespace("invalid")
+                .build();
+
+        verify(mockAdrStore, times(1)).updateAdrForNamespace(expectedAdr);
     }
 
     static Stream<Arguments> provideParametersForAdrRevisionTests() {
