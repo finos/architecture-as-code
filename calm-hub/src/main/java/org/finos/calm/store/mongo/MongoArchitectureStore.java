@@ -43,6 +43,12 @@ public class MongoArchitectureStore implements ArchitectureStore {
         }
 
         Document namespaceDocument = architectureCollection.find(Filters.eq("namespace", namespace)).first();
+
+        //protects from an unpopulated mongo collection
+        if(namespaceDocument == null || namespaceDocument.isEmpty()) {
+            return List.of();
+        }
+
         List<Document> patterns = namespaceDocument.getList("architectures", Document.class);
         List<Integer> architectureIds = new ArrayList<>();
 
