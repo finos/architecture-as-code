@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import './cytoscape.css';
 import { useEffect, useRef, useState } from 'react';
 import cytoscape, { Core, EdgeSingular, NodeSingular } from 'cytoscape';
@@ -27,11 +28,11 @@ const fcoseLayoutOptions = {
     nodeSeparation: 175,
     // Power iteration tolerance
     piTol: 0.0000001,
-    nodeRepulsion: (node) => 450000,
+    nodeRepulsion: (_node: unknown) => 450000,
     // Ideal edge (non nested) length
-    idealEdgeLength: (edge) => 500,
+    idealEdgeLength: (_edge: unknown) => 500,
     // Divisor to compute edge forces
-    edgeElasticity: (edge) => 0.85,
+    edgeElasticity: (_edge: unknown) => 0.85,
     // Nesting factor (multiplier) to compute ideal edge length for nested edges
     nestingFactor: 0.1,
     // Maximum number of iterations to perform - this is a suggested value and might be adjusted by the algorithm as required
@@ -50,6 +51,8 @@ const fcoseLayoutOptions = {
 export type Node = {
     classes?: string;
     data: {
+        description: string;
+        type: string;
         label: string;
         id: string;
         [idx: string]: string;
@@ -67,11 +70,20 @@ export type Edge = {
 };
 
 interface Props {
+    title?: string;
+    isNodeDescActive: boolean;
+    isConDescActive: boolean;
     nodes: Node[];
     edges: Edge[];
 }
 
-const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
+const CytoscapeRenderer = ({
+    title,
+    nodes = [],
+    edges = [],
+    isConDescActive,
+    isNodeDescActive,
+}: Props) => {
     const cyRef = useRef<HTMLDivElement>(null);
     const [cy, setCy] = useState<Core | null>(null);
     const [selectedNode, setSelectedNode] = useState<Node['data'] | null>(null);
@@ -79,8 +91,7 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
 
     useEffect(() => {
         if (cy) {
-            //@ts-expect-error types are missing from the library
-            cy.nodeHtmlLabel([
+            (cy as any).nodeHtmlLabel([
                 {
                     query: '.node',
                     halign: 'center',
@@ -90,7 +101,8 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                     tpl: (data: Node['data']) => {
                         return `<div class="node element">
                                     <p class="title">${data.label}</p>
-                                    <p class="type">[database]</p>
+                                    <p class="type">${data.type}</p>
+                                    <p class="description">${isNodeDescActive ? data.description : ''}</p>
                                 </div>`;
                     },
                 },
@@ -130,19 +142,11 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
                 elements: [...nodes, ...edges], // graph data
                 style: [
                     {
-                        selector: 'node',
-                        style: {
-                            width: '200px',
-                            height: '100px',
-                            shape: 'rectangle',
-                        },
-                    },
-                    {
                         selector: 'edge',
                         style: {
                             width: 2,
                             'curve-style': 'bezier',
-                            label: 'data(label)', // labels from data property
+                            label: isConDescActive ? 'data(label)' : '', // labels from data property
                             'target-arrow-shape': 'triangle',
                             'text-wrap': 'ellipsis',
                             'text-background-color': 'white',
@@ -164,16 +168,20 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
 
     return (
         <div className="relative flex m-auto border">
+            {title && (
+                <div className="graph-title absolute m-5 bg-primary-content shadow-md">
+                    <span className="text-m">Architecture: {title}</span>
+                </div>
+            )}
             <div
                 ref={cyRef}
-                className="flex-1 bg-white"
+                className="flex-1 bg-white visualizer"
                 style={{
                     height: '100vh',
                 }}
             />
-
             {selectedNode && (
-                <div className="absolute right-0 top-0 h-full">
+                <div className="absolute right-0 h-full">
                     <Sidebar
                         selectedData={selectedNode}
                         closeSidebar={() => setSelectedNode(null)}
@@ -182,7 +190,7 @@ const CytoscapeRenderer = ({ nodes = [], edges = [] }: Props) => {
             )}
 
             {selectedEdge && (
-                <div className="absolute right-0 top-0 h-full">
+                <div className="absolute right-0 h-full">
                     <Sidebar
                         selectedData={selectedEdge}
                         closeSidebar={() => setSelectedEdge(null)}
