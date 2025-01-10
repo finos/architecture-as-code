@@ -1,0 +1,14 @@
+cli:
+  - "cli/**"
+shared:
+  - "shared/**"
+docs:
+  - "docs/**"
+calm-hub:
+  - "calm-hub/**"
+calm:
+  - "calm/**"
+config:
+  - "pom.xml"
+  - "**/package.json"
+  - "**/package-lock.json"
