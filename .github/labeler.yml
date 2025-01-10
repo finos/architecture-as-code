@@ -1,4 +1,4 @@
-CLI:
+cli:
   - "cli/**"
 shared:
   - "shared/**"
@@ -6,7 +6,7 @@ docs:
   - "docs/**"
 calm-hub:
   - "calm-hub/**"
-CALM:
+calm:
   - "calm/**"
 config:
   - "pom.xml"
