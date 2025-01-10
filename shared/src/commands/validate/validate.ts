@@ -267,42 +267,17 @@ export async function validate(
     debug: boolean = false): Promise<ValidationOutcome> {
 
     logger = initLogger(debug);
-    let errors = false;
-    let warnings = false;
     try {
-        const ajv = buildAjv2020(debug);
-
-        await loadMetaSchemas(ajv, metaSchemaPath);
-
-        logger.info(`Loading pattern from : ${jsonSchemaLocation}`);
-        const jsonSchema = await getFileFromUrlOrPath(jsonSchemaLocation);
-
-        const spectralResultForPattern: SpectralResult = await runSpectralValidations(stripRefs(jsonSchema), validationRulesForPattern);
-
-        if (jsonSchemaArchitectureLocation === undefined) {
-            return validatePatternOnly(spectralResultForPattern, jsonSchema, ajv);
+        if (jsonSchemaArchitectureLocation && jsonSchemaLocation) {
+            return await validateArchitectureAgainstPattern(jsonSchemaArchitectureLocation, jsonSchemaLocation, metaSchemaPath, debug);
+        } else if (jsonSchemaLocation) {
+            return await validatePatternOnly(jsonSchemaLocation, metaSchemaPath, debug);
+        } else if (jsonSchemaArchitectureLocation) {
+            return await validateArchitectureOnly(jsonSchemaArchitectureLocation);
+        } else {
+            logger.debug('You must provide at least an architecture or a pattern');
+            throw new Error('You must provide at least an architecture or a pattern');
         }
-
-        const validateSchema = await ajv.compileAsync(jsonSchema);
-
-        logger.info(`Loading architecture from : ${jsonSchemaArchitectureLocation}`);
-        const jsonSchemaArchitecture = await getFileFromUrlOrPath(jsonSchemaArchitectureLocation);
-
-        const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(jsonSchemaArchitecture, validationRulesForArchitecture);
-
-        const spectralResult = mergeSpectralResults(spectralResultForPattern, spectralResultForArchitecture);
-
-        errors = spectralResult.errors;
-        warnings = spectralResult.warnings;
-
-        let jsonSchemaValidations = [];
-        if (!validateSchema(jsonSchemaArchitecture)) {
-            logger.debug(`JSON Schema validation raw output: ${prettifyJson(validateSchema.errors)}`);
-            errors = true;
-            jsonSchemaValidations = convertJsonSchemaIssuesToValidationOutputs(validateSchema.errors);
-        }
-
-        return new ValidationOutcome(jsonSchemaValidations, spectralResult.spectralIssues, errors, warnings);
     } catch (error) {
         logger.error('An error occured:', error);
         process.exit(1);
@@ -310,28 +285,87 @@ export async function validate(
 }
 
 /**
- * Run validations for the case where only the pattern is provided. 
- * This essentially tries to compile the pattern, and returns the errors thrown if it fails.
+ * Run the spectral rules for the pattern and the architecture, and then compile the pattern and validate the architecture against it.
  * 
- * @param spectralValidationResults The results from running Spectral on the pattern.
- * @param patternSchema The pattern as a JS object, parsed from the file.
- * @param ajv The AJV instance to compile with.
- * @param failOnWarnings Whether or not to treat a warning as a failure in the validation process.
+ * @param jsonSchemaArchitectureLocation the location of the architecture to validate.
+ * @param jsonSchemaLocation the location of the pattern to validate against.
+ * @param metaSchemaPath the path of the meta schemas to use for ajv.
+ * @param debug the flag to enable debug logging.
+ * @returns the validation outcome with the results of the spectral and json schema validations.
  */
-function validatePatternOnly(spectralValidationResults: SpectralResult, patternSchema: object, ajv: Ajv2020): ValidationOutcome {
-    logger.debug('Architecture was not provided, only the JSON Schema will be validated');
+async function validateArchitectureAgainstPattern(jsonSchemaArchitectureLocation:string, jsonSchemaLocation:string, metaSchemaPath:string, debug: boolean): Promise<ValidationOutcome>{
+    const ajv = buildAjv2020(debug);
+    await loadMetaSchemas(ajv, metaSchemaPath);
+
+    logger.info(`Loading pattern from : ${jsonSchemaLocation}`);
+    const jsonSchema = await getFileFromUrlOrPath(jsonSchemaLocation);
+    const spectralResultForPattern: SpectralResult = await runSpectralValidations(stripRefs(jsonSchema), validationRulesForPattern);
+    const validateSchema = await ajv.compileAsync(jsonSchema);
+
+    logger.info(`Loading architecture from : ${jsonSchemaArchitectureLocation}`);
+    const jsonSchemaArchitecture = await getFileFromUrlOrPath(jsonSchemaArchitectureLocation);
+
+    const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(jsonSchemaArchitecture, validationRulesForArchitecture);
+
+    const spectralResult = mergeSpectralResults(spectralResultForPattern, spectralResultForArchitecture);
+
+    let errors = spectralResult.errors;
+    const warnings = spectralResult.warnings;
+
+    let jsonSchemaValidations = [];
+
+    if (!validateSchema(jsonSchemaArchitecture)) {
+        logger.debug(`JSON Schema validation raw output: ${prettifyJson(validateSchema.errors)}`);
+        errors = true;
+        jsonSchemaValidations = convertJsonSchemaIssuesToValidationOutputs(validateSchema.errors);
+    }
+
+    return new ValidationOutcome(jsonSchemaValidations, spectralResult.spectralIssues, errors, warnings);
+}
+
+/**
+ * Run validations for the case where only the pattern is provided. 
+ * This essentially runs the spectral validations and tries to compile the pattern.
+ * 
+ * @param jsonSchemaLocation the location of the patterns JSON Schema to validate.
+ * @param metaSchemaPath the path of the meta schemas to use for ajv.
+ * @param debug the flag to enable debug logging.
+ * @returns the validation outcome with the results of the spectral validation and the pattern compilation.
+ */
+async function validatePatternOnly(jsonSchemaLocation: string, metaSchemaPath: string, debug: boolean): Promise<ValidationOutcome> {
+    logger.debug('Architecture was not provided, only the Pattern Schema will be validated');
+    const ajv = buildAjv2020(debug);
+    await loadMetaSchemas(ajv, metaSchemaPath);
+
+    const patternSchema = await getFileFromUrlOrPath(jsonSchemaLocation);
+    const spectralValidationResults: SpectralResult = await runSpectralValidations(stripRefs(patternSchema), validationRulesForPattern);
+    
     let errors = spectralValidationResults.errors;
     const warnings = spectralValidationResults.warnings;
     const jsonSchemaErrors = [];
 
     try {
-        ajv.compile(patternSchema);
+        await ajv.compileAsync(patternSchema); 
     } catch (error) {
         errors = true;
         jsonSchemaErrors.push(new ValidationOutput('json-schema', 'error', error.message, '/'));
     }
 
-    return new ValidationOutcome(jsonSchemaErrors, [], errors, warnings);
+    return new ValidationOutcome(jsonSchemaErrors, spectralValidationResults.spectralIssues, errors, warnings);// added spectral to return object
+}
+
+/**
+ * Run the spectral validations for the case where only the architecture is provided.
+ * 
+ * @param architectureSchemaLocation The location of the architecture schema.
+ * @returns the validation outcome with the results of the spectral validation.
+ */
+async function validateArchitectureOnly(architectureSchemaLocation: string): Promise<ValidationOutcome> {
+    logger.debug('Pattern was not provided, only the Architecture will be validated');
+    
+    const jsonSchemaArchitecture = await getFileFromUrlOrPath(architectureSchemaLocation);
+    const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(jsonSchemaArchitecture, validationRulesForArchitecture); 
+    return new ValidationOutcome([], spectralResultForArchitecture.spectralIssues, spectralResultForArchitecture.errors, spectralResultForArchitecture.warnings);
 }
 
 function extractSpectralRuleNames(): string[] {
