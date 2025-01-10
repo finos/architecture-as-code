@@ -1,10 +1,16 @@
 {
-    "testing.openTesting": "neverOpen",
-    "jest.outputConfig": {
-        "revealOn": "run",
-        "revealWithFocus": "none",
-        "clearOnRun": "none"
-    },
-    "java.compile.nullAnalysis.mode": "automatic",
-    "java.configuration.updateBuildConfiguration": "automatic"
+  "testing.openTesting": "neverOpen",
+  "jest.outputConfig": {
+    "revealOn": "run",
+    "revealWithFocus": "none",
+    "clearOnRun": "none"
+  },
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "java.compile.nullAnalysis.mode": "automatic",
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnPaste": false
 }

@@ -1,0 +1,15 @@
+.node {
+    padding: 2rem;
+    border: 2px black solid;
+    position: absolute;
+}
+
+.container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+.z-1 {
+    z-index: 1;
+}

@@ -30,10 +30,7 @@
           "description": "If latency exceeds this threshold, an alert will be triggered."
         }
       },
-      "required": [
-        "expected-latency",
-        "alert-threshold"
-      ]
+      "required": ["expected-latency", "alert-threshold"]
     },
     "throughput": {
       "type": "object",
@@ -43,9 +40,7 @@
           "description": "Define the expected message rate that the flow should handle e.g. 1000 per second"
         }
       },
-      "required": [
-        "expected-message-rate"
-      ]
+      "required": ["expected-message-rate"]
     },
     "availability": {
       "type": "object",
@@ -57,19 +52,13 @@
           "maximum": 100
         }
       },
-      "required": [
-        "uptime-guarantee"
-      ]
+      "required": ["uptime-guarantee"]
     },
     "data-integrity": {
       "type": "object",
       "properties": {
         "message-reliability": {
-          "enum": [
-            "atLeastOnce",
-            "atMostOnce",
-            "exactlyOnce"
-          ],
+          "enum": ["atLeastOnce", "atMostOnce", "exactlyOnce"],
           "description": "Guarantee that messages are delivered in the correct order and without duplication."
         },
         "loss-tolerance": {
@@ -79,10 +68,7 @@
           "maximum": 100
         }
       },
-      "required": [
-        "message-reliability",
-        "loss-tolerance"
-      ]
+      "required": ["message-reliability", "loss-tolerance"]
     },
     "error-handling": {
       "type": "object",
@@ -102,9 +88,7 @@
           "required": ["max-retries", "retry-interval"]
         }
       },
-      "required": [
-        "retry-logic"
-      ]
+      "required": ["retry-logic"]
     },
     "monitoring": {
       "type": "object",
@@ -118,10 +102,7 @@
           "description": "Specify the reporting frequency for the consumer, e.g., daily, weekly, or monthly."
         }
       },
-      "required": [
-        "real-time-monitoring",
-        "consumer-reporting"
-      ]
+      "required": ["real-time-monitoring", "consumer-reporting"]
     },
     "incident-response": {
       "type": "object",
@@ -142,16 +123,10 @@
               "description": "Specify the escalation path for SLA violations."
             }
           },
-          "required": [
-            "incident-start-time-post-alert",
-            "escalation-path"
-          ]
+          "required": ["incident-start-time-post-alert", "escalation-path"]
         }
       },
-      "required": [
-        "incident-resolution-time",
-        "escalation-protocols"
-      ]
+      "required": ["incident-resolution-time", "escalation-protocols"]
     },
     "review-adjustments": {
       "type": "object",
@@ -161,9 +136,7 @@
           "description": "Outline a schedule for regularly reviewing the SLA."
         }
       },
-      "required": [
-        "sla-review"
-      ]
+      "required": ["sla-review"]
     }
   },
   "required": [
