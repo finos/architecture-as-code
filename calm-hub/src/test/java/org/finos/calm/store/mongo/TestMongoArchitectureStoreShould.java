@@ -89,6 +89,18 @@ public class TestMongoArchitectureStoreShould {
     }
 
     @Test
+    void get_architectures_for_namespace_returns_empty_list_when_mongo_collection_not_created() throws NamespaceNotFoundException {
+        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(architectureCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
+                .thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(null);
+
+        assertThat(mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE), is(empty()));
+        verify(namespaceStore).namespaceExists(NAMESPACE);
+    }
+
+    @Test
     void get_architecture_for_namespace_returns_values() throws NamespaceNotFoundException {
         FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);

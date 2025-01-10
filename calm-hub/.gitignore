@@ -116,6 +116,9 @@ fabric.properties
 .idea/**/azureSettings.xml
 
 ### Java ###
+# META-INF
+META-INF/
+
 # Compiled class file
 *.class
 

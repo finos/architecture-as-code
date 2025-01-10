@@ -16,7 +16,7 @@
       },
       {
         "unique-id": "api-consumer",
-        "node-type": "system",
+        "node-type": "system", 
         "name": "API Consumer",
         "description": "The API Consumer making an authenticated and authorized request",
         "interfaces": []

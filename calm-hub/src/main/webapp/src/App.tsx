@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ValueTable } from './components/value-table';
-import { JsonRenderer } from './components/json-view';
+import { ValueTable } from './components/value-table.js';
+import { JsonRenderer } from './components/json-view.js';
 
 type Namespace = string;
 type PatternID = string;
