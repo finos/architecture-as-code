@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="25" failures="0" errors="0" skipped="0">
+    <testsuite name="JSON Schema Validation" tests="1" failures="0"
+        errors="0" skipped="0">
+        <testcase name="JSON Schema Validation succeeded" />
+    </testsuite>
+    <testsuite name="Spectral Suite" tests="24"
+        failures="0" errors="0" skipped="0">
+        <testcase name="architecture-has-nodes-relationships" />
+        <testcase name="architecture-has-no-empty-properties" />
+        <testcase
+            name="architecture-has-no-placeholder-properties-numerical" />
+        <testcase name="architecture-has-no-placeholder-properties-string" />
+        <testcase name="architecture-has-no-placeholder-properties-boolean" />
+        <testcase name="relationship-references-existing-nodes-in-architecture" />
+        <testcase
+            name="connects-relationship-references-existing-nodes-in-architecture" />
+        <testcase name="referenced-interfaces-defined-in-architecture" />
+        <testcase name="referenced-interfaces-defined-on-correct-node-in-architecture" />
+        <testcase name="composition-relationships-reference-existing-nodes-in-architecture" />
+        <testcase name="architecture-nodes-must-be-referenced" />
+        <testcase
+            name="unique-ids-must-be-unique-in-architecture" />
+        <testcase name="pattern-has-nodes-relationships" />
+        <testcase name="pattern-has-no-empty-properties" />
+        <testcase name="pattern-has-no-placeholder-properties-numerical" />
+        <testcase
+            name="pattern-has-no-placeholder-properties-string" />
+        <testcase name="connects-relationship-references-existing-nodes-in-pattern" />
+        <testcase name="group-relationship-references-existing-nodes-in-pattern" />
+        <testcase name="avoid-boolean-properties" />
+        <testcase
+            name="relationship-references-existing-nodes-in-pattern" />
+        <testcase name="referenced-interfaces-defined-in-pattern" />
+        <testcase name="referenced-interfaces-defined-on-correct-node-in-pattern" />
+        <testcase name="pattern-nodes-must-be-referenced" />
+        <testcase name="unique-ids-must-be-unique-in-pattern" />
+    </testsuite>
+</testsuites>

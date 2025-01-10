@@ -1,0 +1,53 @@
+{
+  "$schema": "https://calm.finos.org/draft/2024-12/meta/flow.json",
+  "$id": "https://calm.finos.org/traderx/flow/update-trade",
+  "unique-id": "flow-update-trade",
+  "name": "Trade Processing - Update Trade",
+  "description": "The process flow for handling update trade events",
+  "transitions": [
+    {
+      "relationship-unique-id": "trade-processor-connects-to-trade-feed",
+      "sequence-number": 1,
+      "summary": "Update Trade Request (trades/update)",
+      "direction": "destination-to-source"
+    },
+    {
+      "relationship-unique-id": "trade-processor-connects-to-traderx-db",
+      "sequence-number": 2,
+      "summary": "Update Trade"
+    },
+    {
+      "relationship-unique-id": "trade-processor-connects-to-trade-feed",
+      "sequence-number": 3,
+      "summary": "Publish TradeUpdatedEvent (accounts/$id/trades)"
+    },
+    {
+      "relationship-unique-id": "trade-processor-connects-to-trade-feed",
+      "sequence-number": 3,
+      "summary": "Publish PositionEvent (accounts/$id/positions)"
+    },
+    {
+      "relationship-unique-id": "web-gui-process-uses-trade-feed",
+      "sequence-number": 4,
+      "summary": "Trade Updated",
+      "direction": "destination-to-source"
+    },
+    {
+      "relationship-unique-id": "web-gui-process-uses-trade-feed",
+      "sequence-number": 4,
+      "summary": "Position Updated",
+      "direction": "destination-to-source"
+    }
+  ],
+  "controls": {
+    "trade-processing-sla": {
+      "description": "Control requirement for flow SLA",
+      "requirements": [
+        {
+          "control-requirement-url": "https://calm.finos.org/traderx/control/flow-sla-control-requirement",
+          "control-config-url": "https://calm.finos.org/traderx/control/trade-processing-control-configuration"
+        }
+      ]
+    }
+  }
+}

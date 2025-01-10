@@ -1,0 +1,45 @@
+# Stage 1: Build
+FROM maven:3.9-eclipse-temurin-17 AS build
+
+# Install Node.js, npm, and required tools (including rsync)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get update && apt-get install -y nodejs rsync \
+    && npm install -g npm@latest
+
+# Set the working directory
+WORKDIR /workspace
+
+# Copy the Maven project files
+COPY pom.xml .
+
+# Pre-download dependencies (to leverage Docker layer caching)
+RUN mvn dependency:go-offline -B
+
+# Copy the source code
+COPY src src
+
+# Build the Quarkus application (including frontend build)
+RUN mvn package -DskipITs
+
+# Stage 2: Runtime
+FROM registry.access.redhat.com/ubi8/openjdk-21
+
+ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en'
+
+# Copy application files from the build stage
+COPY --from=build /workspace/target/quarkus-app/lib/ /deployments/lib/
+COPY --from=build /workspace/target/quarkus-app/*.jar /deployments/
+COPY --from=build /workspace/target/quarkus-app/app/ /deployments/app/
+COPY --from=build /workspace/target/quarkus-app/quarkus/ /deployments/quarkus/
+
+# Expose the application port
+EXPOSE 8080
+
+# Set the user and default environment variables
+USER 185
+ENV AB_JOLOKIA_OFF=""
+ENV JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
+
+# Run the application
+CMD ["java", "-jar", "/deployments/quarkus-run.jar"]

@@ -7,11 +7,11 @@ import {
     CALMDeployedInRelationship,
     CALMInteractsRelationship,
     CALMRelationship,
-    CALMInstantiation,
+    CALMArchitecture,
 } from '../../../../shared/src';
 
 interface DrawerProps {
-    calmInstance?: CALMInstantiation;
+    calmInstance?: CALMArchitecture;
     title?: string;
     isNodeDescActive: boolean;
     isConDescActive: boolean;
@@ -33,7 +33,7 @@ function isConnects(relationship: CALMRelationship): relationship is CALMConnect
     return 'connects' in relationship['relationship-type'];
 }
 
-const getComposedOfRelationships = (calmInstance: CALMInstantiation) => {
+const getComposedOfRelationships = (calmInstance: CALMArchitecture) => {
     const composedOfRelationships: {
         [idx: string]: {
             type: 'parent' | 'child';
@@ -56,7 +56,7 @@ const getComposedOfRelationships = (calmInstance: CALMInstantiation) => {
 
     return composedOfRelationships;
 };
-const getDeployedInRelationships = (calmInstance: CALMInstantiation) => {
+const getDeployedInRelationships = (calmInstance: CALMArchitecture) => {
     const deployedInRelationships: {
         [idx: string]: {
             type: 'parent' | 'child';

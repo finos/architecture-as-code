@@ -37,9 +37,9 @@ jobs:
       - name: Build workspace
         run: npm run build
 
-      - name: Install Spectral-CLI
-        run: npm install @stoplight/spectral-cli
+      - name: Install dependencies for Spectral
+        run: npm install @stoplight/spectral-cli rollup
 
       - name: Run Example Spectral Linting
-        run: npx spectral lint --ruleset ./shared/dist/spectral/rules-instantiation.js 'calm/samples/api-gateway-instantiation(*.json|*.yaml)'
+        run: npx spectral lint --ruleset ./shared/dist/spectral/rules-architecture.js 'calm/samples/api-gateway-architecture(*.json|*.yaml)'
 

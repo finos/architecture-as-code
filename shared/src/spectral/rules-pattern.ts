@@ -5,6 +5,7 @@ import nodeIdExists from './functions/pattern/node-id-exists';
 import idsAreUnique from './functions/pattern/ids-are-unique';
 import nodeHasRelationship from './functions/pattern/node-has-relationship';
 import { interfaceIdExists } from './functions/pattern/interface-id-exists';
+import { interfaceIdExistsOnNode } from './functions/pattern/interface-id-exists-on-node';
 
 
 const patternRules: RulesetDefinition = {
@@ -36,7 +37,7 @@ const patternRules: RulesetDefinition = {
         },
         'pattern-has-no-placeholder-properties-numerical': {
             description: 'Should not contain numerical placeholder properties set to -1',
-            message: 'Numerical placeholder (-1) detected in instantiated pattern.',
+            message: 'Numerical placeholder (-1) detected in architecture.',
             severity: 'warn',
             given: '$..*',
             then: {
@@ -45,7 +46,7 @@ const patternRules: RulesetDefinition = {
         },
         'pattern-has-no-placeholder-properties-string': {
             description: 'Should not contain placeholder values with pattern {{ PLACEHOLDER_NAME }}',
-            message: 'String placeholder detected in instantiated pattern.',
+            message: 'String placeholder detected in architecture.',
             severity: 'warn',
             given: '$..*',
             then: {
@@ -108,6 +109,15 @@ const patternRules: RulesetDefinition = {
             given: '$..relationship-type.const.connects.*.interfaces[*]',
             then: {
                 function: interfaceIdExists,
+            },
+        },
+        'referenced-interfaces-defined-on-correct-node-in-pattern': {
+            description: 'Connects relationships must reference interfaces that exist on the correct nodes',
+            severity: 'error',
+            message: '{{error}}',
+            given: '$..relationship-type.const.connects.*',
+            then: {
+                function: interfaceIdExistsOnNode
             },
         },
         'pattern-nodes-must-be-referenced': {
