@@ -33,7 +33,7 @@ function isConnects(relationship: CALMRelationship): relationship is CALMConnect
     return 'connects' in relationship['relationship-type'];
 }
 
-const getComposedOfRelationships = (calmInstance: CALMInstantiation) => {
+const getComposedOfRelationships = (calmInstance: CALMArchitecture) => {
     const composedOfRelationships: {
         [idx: string]: {
             type: 'parent' | 'child';
@@ -56,7 +56,7 @@ const getComposedOfRelationships = (calmInstance: CALMInstantiation) => {
 
     return composedOfRelationships;
 };
-const getDeployedInRelationships = (calmInstance: CALMInstantiation) => {
+const getDeployedInRelationships = (calmInstance: CALMArchitecture) => {
     const deployedInRelationships: {
         [idx: string]: {
             type: 'parent' | 'child';
@@ -139,7 +139,7 @@ function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive }: Draw
                 if (isInteracts(relationship)) {
                     return {
                         data: {
-                            id: relationship['unique-id'],
+                            id: relationship['uniqueId'],
                             label: relationship.description || '',
                             source: relationship['relationship-type'].interacts.actor,
                             target: relationship['relationship-type'].interacts.nodes[0],
@@ -151,7 +151,7 @@ function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive }: Draw
                     const target = relationship['relationship-type'].connects.destination.node;
                     return {
                         data: {
-                            id: relationship['unique-id'],
+                            id: relationship['uniqueId'],
                             label: relationship.description || '',
                             source,
                             target,
