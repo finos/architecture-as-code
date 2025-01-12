@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import './cytoscape.css';
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import cytoscape, { Core, EdgeSingular, NodeSingular } from 'cytoscape';
 import nodeHtmlLabel from 'cytoscape-node-html-label';
 import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
@@ -8,6 +8,7 @@ import coseBilkent from 'cytoscape-cose-bilkent';
 import expandCollapse from 'cytoscape-expand-collapse';
 import fcose from 'cytoscape-fcose';
 import Sidebar from '../sidebar/Sidebar';
+import { ZoomContext } from '../zoom-context.provider';
 
 //Make some information available on tooltip hover
 
@@ -86,11 +87,17 @@ const CytoscapeRenderer = ({
 }: Props) => {
     const cyRef = useRef<HTMLDivElement>(null);
     const [cy, setCy] = useState<Core | null>(null);
+    const { zoomLevel, updateZoom } = useContext(ZoomContext);
     const [selectedNode, setSelectedNode] = useState<Node['data'] | null>(null);
     const [selectedEdge, setSelectedEdge] = useState<Edge['data'] | null>(null);
 
     useEffect(() => {
         if (cy) {
+            //Ensure cytoscape zoom and context state are synchronised
+            if(cy.zoom() !== zoomLevel) {
+                updateZoom(cy.zoom());
+            }
+
             (cy as any).nodeHtmlLabel([
                 {
                     query: '.node',
@@ -123,6 +130,8 @@ const CytoscapeRenderer = ({
                 setSelectedNode(null);
                 setSelectedEdge(edge?.data()); // Update state with the clicked node's data
             });
+
+            cy.on('zoom', () => updateZoom(cy.zoom()));
 
             return () => {
                 cy.destroy();
@@ -166,11 +175,18 @@ const CytoscapeRenderer = ({
         );
     }, [nodes, edges]); // Re-render on cy, nodes or edges change
 
+    useEffect(() => {
+        //Ensure cytoscape zoom and context state are synchronised
+        if(cy?.zoom() !== zoomLevel) {
+            cy?.zoom(zoomLevel);
+        }
+    }, [zoomLevel])
+
     return (
         <div className="relative flex m-auto border">
             {title && (
-                <div className="graph-title absolute m-5 bg-primary-content shadow-md">
-                    <span className="text-m">Architecture: {title}</span>
+                <div className="graph-title absolute m-5 bg-gray-100 shadow-md">
+                    <span className="text-m">Architecture: {title}</span>    
                 </div>
             )}
             <div
