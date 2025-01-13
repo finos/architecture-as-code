@@ -287,10 +287,10 @@ export async function validate(
 /**
  * Run the spectral rules for the pattern and the architecture, and then compile the pattern and validate the architecture against it.
  * 
- * @param jsonSchemaArchitectureLocation the location of the architecture to validate.
- * @param jsonSchemaLocation the location of the pattern to validate against.
- * @param metaSchemaPath the path of the meta schemas to use for ajv.
- * @param debug the flag to enable debug logging.
+ * @param jsonSchemaArchitectureLocation - the location of the architecture to validate.
+ * @param jsonSchemaLocation - the location of the pattern to validate against.
+ * @param metaSchemaPath - the path of the meta schemas to use for ajv.
+ * @param debug - the flag to enable debug logging.
  * @returns the validation outcome with the results of the spectral and json schema validations.
  */
 async function validateArchitectureAgainstPattern(jsonSchemaArchitectureLocation:string, jsonSchemaLocation:string, metaSchemaPath:string, debug: boolean): Promise<ValidationOutcome>{
@@ -327,9 +327,9 @@ async function validateArchitectureAgainstPattern(jsonSchemaArchitectureLocation
  * Run validations for the case where only the pattern is provided. 
  * This essentially runs the spectral validations and tries to compile the pattern.
  * 
- * @param jsonSchemaLocation the location of the patterns JSON Schema to validate.
- * @param metaSchemaPath the path of the meta schemas to use for ajv.
- * @param debug the flag to enable debug logging.
+ * @param jsonSchemaLocation - the location of the patterns JSON Schema to validate.
+ * @param metaSchemaPath - the path of the meta schemas to use for ajv.
+ * @param debug - the flag to enable debug logging.
  * @returns the validation outcome with the results of the spectral validation and the pattern compilation.
  */
 async function validatePatternOnly(jsonSchemaLocation: string, metaSchemaPath: string, debug: boolean): Promise<ValidationOutcome> {
@@ -357,7 +357,7 @@ async function validatePatternOnly(jsonSchemaLocation: string, metaSchemaPath: s
 /**
  * Run the spectral validations for the case where only the architecture is provided.
  * 
- * @param architectureSchemaLocation The location of the architecture schema.
+ * @param architectureSchemaLocation - The location of the architecture schema.
  * @returns the validation outcome with the results of the spectral validation.
  */
 async function validateArchitectureOnly(architectureSchemaLocation: string): Promise<ValidationOutcome> {
