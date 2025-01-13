@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -12,6 +13,9 @@ import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.Adr;
 import org.finos.calm.domain.AdrBuilder;
+import org.finos.calm.domain.AdrContent;
+import org.finos.calm.domain.AdrStatus;
+import org.finos.calm.domain.NewAdr;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.AdrNotFoundException;
 import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
@@ -22,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.LocalDateTime;
 
 /**
  * Resource for managing ADRs in a given namespace
@@ -66,11 +71,17 @@ public class AdrResource {
             summary = "Create ADR for namespace",
             description = "Creates an ADR for a given namespace with an allocated ID and revision 1"
     )
-    public Response createAdrForNamespace(@PathParam("namespace") String namespace, String adrJson) throws URISyntaxException {
+    public Response createAdrForNamespace(@PathParam("namespace") String namespace, NewAdr newAdr) throws URISyntaxException {
+        AdrContent adrContent = AdrContent.builderFromNewAdr(newAdr)
+                .status(AdrStatus.DRAFT)
+                .creationDateTime(LocalDateTime.now())
+                .updateDateTime(LocalDateTime.now())
+                .build();
+
         Adr adr = AdrBuilder.builder()
                 .namespace(namespace)
                 .revision(1)
-                .adr(adrJson)
+                .adrContent(adrContent)
                 .build();
 
         try {
@@ -78,8 +89,8 @@ public class AdrResource {
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating ADR", namespace, e);
             return invalidNamespaceResponse(namespace);
-        } catch (JsonParseException e) {
-            logger.error("Cannot parse ADR JSON for namespace [{}]. ADR JSON : [{}]", namespace, adrJson, e);
+        } catch (JsonParseException | JsonProcessingException e) {
+            logger.error("Cannot parse ADR for namespace [{}]. ADR: [{}]", namespace, newAdr, e);
             return invalidAdrJsonResponse(namespace);
         }
     }
@@ -92,11 +103,15 @@ public class AdrResource {
             summary = "Update ADR for namespace",
             description = "Updates an ADR for a given namespace. Creates a new revision."
     )
-    public Response updateAdrForNamespace(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, String adrJson) throws URISyntaxException {
+    public Response updateAdrForNamespace(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, NewAdr newAdrRevision) throws URISyntaxException {
+        AdrContent adrContent = AdrContent.builderFromNewAdr(newAdrRevision)
+                .updateDateTime(LocalDateTime.now())
+                .build();
+
         Adr adr = AdrBuilder.builder()
                 .namespace(namespace)
                 .id(adrId)
-                .adr(adrJson)
+                .adrContent(adrContent)
                 .build();
 
         try {
@@ -104,8 +119,8 @@ public class AdrResource {
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating ADR", namespace, e);
             return invalidNamespaceResponse(namespace);
-        } catch (JsonParseException e) {
-            logger.error("Cannot parse ADR JSON for namespace [{}]. ADR JSON : [{}]", namespace, adrJson, e);
+        } catch (JsonParseException | JsonProcessingException e) {
+            logger.error("Cannot parse new ADR Revision for namespace [{}]. New ADR Revision: [{}]", namespace, newAdrRevision, e);
             return invalidAdrJsonResponse(namespace);
         } catch(AdrNotFoundException e) {
             logger.error("Invalid ADR [{}] when creating new revision of ADR", adrId, e);

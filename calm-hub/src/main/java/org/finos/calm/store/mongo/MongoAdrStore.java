@@ -1,5 +1,8 @@
 package org.finos.calm.store.mongo;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
@@ -13,6 +16,8 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.Adr;
 import org.finos.calm.domain.AdrBuilder;
+import org.finos.calm.domain.AdrContent;
+import org.finos.calm.domain.AdrContentBuilder;
 import org.finos.calm.domain.exception.AdrNotFoundException;
 import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -30,6 +35,7 @@ public class MongoAdrStore implements AdrStore {
     private final MongoCounterStore counterStore;
     private final MongoNamespaceStore namespaceStore;
     private final MongoCollection<Document> adrCollection;
+    private final ObjectMapper objectMapper;
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     public MongoAdrStore(MongoClient mongoClient, MongoCounterStore counterStore, MongoNamespaceStore namespaceStore) {
@@ -37,6 +43,8 @@ public class MongoAdrStore implements AdrStore {
         this.namespaceStore = namespaceStore;
         MongoDatabase database = mongoClient.getDatabase("calmSchemas");
         this.adrCollection = database.getCollection("adrs");
+        this.objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
     }
 
     @Override
@@ -63,14 +71,14 @@ public class MongoAdrStore implements AdrStore {
     }
 
     @Override
-    public Adr createAdrForNamespace(Adr adr) throws NamespaceNotFoundException {
+    public Adr createAdrForNamespace(Adr adr) throws NamespaceNotFoundException, JsonProcessingException {
         if(!namespaceStore.namespaceExists(adr.namespace())) {
             throw new NamespaceNotFoundException();
         }
 
         int id = counterStore.getNextAdrSequenceValue();
         Document adrDocument = new Document("adrId", id).append("revisions",
-                new Document(String.valueOf(adr.revision()), Document.parse(adr.adr())));
+                new Document(String.valueOf(adr.revision()), Document.parse(objectMapper.writeValueAsString(adr.adrContent()))));
 
         adrCollection.updateOne(
                 Filters.eq("namespace", adr.namespace()),
@@ -86,7 +94,7 @@ public class MongoAdrStore implements AdrStore {
         List<Document> adrs = (List<Document>) result.get("adrs");
         for (Document adrDoc : adrs) {
             if (adr.id() == adrDoc.getInteger("adrId")) {
-                // Extract the revisions map from the matching adr
+                // Extract the revisions map from the matching adrContent
                 Document revisions = (Document) adrDoc.get("revisions");
                 int latestRevision = getLatestRevision(adr, revisions);
 
@@ -120,7 +128,7 @@ public class MongoAdrStore implements AdrStore {
         List<Document> adrs = (List<Document>) result.get("adrs");
         for (Document adrDoc : adrs) {
             if (adr.id() == adrDoc.getInteger("adrId")) {
-                // Extract the revisions map from the matching adr
+                // Extract the revisions map from the matching adrContent
                 Document revisions = (Document) adrDoc.get("revisions");
                 Set<String> revisionKeys = revisions.keySet();
 
@@ -138,7 +146,7 @@ public class MongoAdrStore implements AdrStore {
         List<Document> adrs = (List<Document>) result.get("adrs");
         for (Document adrDoc : adrs) {
             if (adr.id() == adrDoc.getInteger("adrId")) {
-                // Retrieve the revisions map from the matching adr
+                // Retrieve the revisions map from the matching adrContent
                 Document revisions = (Document) adrDoc.get("revisions");
 
                 if(revisions == null || revisions.isEmpty()) {
@@ -160,16 +168,22 @@ public class MongoAdrStore implements AdrStore {
     }
 
     @Override
-    public Adr updateAdrForNamespace(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
+    public Adr updateAdrForNamespace(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException {
         Document result = retrieveAdrRevisions(adr);
         List<Document> adrs = (List<Document>) result.get("adrs");
         for (Document adrDoc : adrs) {
             if (adr.id() == adrDoc.getInteger("adrId")) {
-                // Extract the revisions map from the matching adr
+                // Extract the revisions map from the matching adrContent
                 Document revisions = (Document) adrDoc.get("revisions");
-                int newRevision = getLatestRevision(adr, revisions) + 1;
+                int latestRevision = getLatestRevision(adr, revisions);
+                Document revisionDoc = (Document) revisions.get(String.valueOf(latestRevision));
+                AdrContent latestAdrContent = objectMapper.readValue(revisionDoc.toJson(), AdrContent.class);
+                AdrContent newAdrContent = AdrContentBuilder.builder(adr.adrContent())
+                        .status(latestAdrContent.status())
+                        .creationDateTime(latestAdrContent.creationDateTime())
+                        .build();
 
-                Adr newAdr = AdrBuilder.builder(adr).revision(newRevision).build();
+                Adr newAdr = AdrBuilder.builder(adr).adrContent(newAdrContent).revision(latestRevision + 1).build();
 
                 writeAdrToMongo(newAdr);
                 return newAdr;
@@ -196,9 +210,9 @@ public class MongoAdrStore implements AdrStore {
         return result;
     }
 
-    private void writeAdrToMongo(Adr adr) throws AdrNotFoundException {
+    private void writeAdrToMongo(Adr adr) throws AdrNotFoundException, JsonProcessingException {
 
-        Document adrDocument = Document.parse(adr.adr());
+        Document adrDocument = Document.parse(objectMapper.writeValueAsString(adr.adrContent()));
         Document filter = new Document("namespace", adr.namespace())
                 .append("adrs.adrId", adr.id());
         Document update = new Document("$set",
