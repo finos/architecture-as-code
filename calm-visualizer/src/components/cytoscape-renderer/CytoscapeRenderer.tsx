@@ -69,6 +69,7 @@ export type Edge = {
     };
 };
 
+
 interface Props {
     title?: string;
     isNodeDescActive: boolean;
@@ -91,7 +92,8 @@ const CytoscapeRenderer = ({
 
     useEffect(() => {
         if (cy) {
-            (cy as any).nodeHtmlLabel([
+            /* eslint-disable @typescript-eslint/no-explicit-any */
+            (cy as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
                 {
                     query: '.node',
                     halign: 'center',
@@ -128,7 +130,7 @@ const CytoscapeRenderer = ({
                 cy.destroy();
             };
         }
-    }, [cy]);
+    }, [cy, isNodeDescActive]);
 
     useEffect(() => {
         // Initialize Cytoscape instance
@@ -164,7 +166,7 @@ const CytoscapeRenderer = ({
                 layout: fcoseLayoutOptions,
             })
         );
-    }, [nodes, edges]); // Re-render on cy, nodes or edges change
+    }, [nodes, edges, isConDescActive]); // Re-render on cy, nodes or edges change
 
     return (
         <div className="relative flex m-auto border">
