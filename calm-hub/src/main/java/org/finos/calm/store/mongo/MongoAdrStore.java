@@ -89,7 +89,7 @@ public class MongoAdrStore implements AdrStore {
     }
 
     @Override
-    public String getAdr(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
+    public Adr getAdr(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException {
         Document result = retrieveAdrRevisions(adr);
         List<Document> adrs = (List<Document>) result.get("adrs");
         for (Document adrDoc : adrs) {
@@ -101,7 +101,12 @@ public class MongoAdrStore implements AdrStore {
                 // Return the ADR JSON blob for the specified revision
                 Document revisionDoc = (Document) revisions.get(String.valueOf(latestRevision));
                 log.info("RevisionDoc: [{}], Revision: [{}]", adrDoc.get("revisions"), latestRevision);
-                return revisionDoc.toJson();
+                return AdrBuilder.builder()
+                        .namespace(adr.namespace())
+                        .id(adr.id())
+                        .revision(latestRevision)
+                        .adrContent(objectMapper.readValue(revisionDoc.toJson(), AdrContent.class))
+                        .build();
             }
         }
         throw new AdrNotFoundException();

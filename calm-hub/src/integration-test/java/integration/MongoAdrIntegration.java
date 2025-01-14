@@ -10,6 +10,7 @@ import io.quarkus.test.junit.TestProfile;
 import org.bson.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.finos.calm.domain.Adr;
+import org.finos.calm.domain.AdrBuilder;
 import org.finos.calm.domain.AdrContent;
 import org.finos.calm.domain.AdrContentBuilder;
 import org.finos.calm.domain.AdrDecision;
@@ -133,22 +134,27 @@ public class MongoAdrIntegration {
                 .extract()
                 .body()
                 .as(AdrContent.class);
-
         assertEquals(adrContent, result);
     }
 
     @Test
     @Order(4)
     void end_to_end_verify_get_adr() {
-        AdrContent result = given()
+        Adr result = given()
                 .when().get("/calm/namespaces/finos/adrs/1")
                 .then()
                 .statusCode(200)
                 .extract()
                 .body()
-                .as(AdrContent.class);
+                .as(Adr.class);
 
-        assertEquals(adrContent, result);
+        Adr expectedAdr = AdrBuilder.builder()
+                .namespace("finos")
+                .id(1)
+                .revision(1)
+                .adrContent(adrContent)
+                .build();
+        assertEquals(expectedAdr, result);
     }
 
     @Test

@@ -36,6 +36,7 @@ import java.util.Map;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -359,10 +360,11 @@ public class TestMongoAdrStoreShould {
         mockSetupAdrDocumentWithRevisions();
 
         Adr adr = AdrBuilder.builder().namespace(NAMESPACE)
-                .id(42).revision(1).build();
+                .id(42).build();
 
-        String adrRevision = mongoAdrStore.getAdr(adr);
-        assertThat(adrRevision.replaceAll("\\s+", ""), is(objectMapper.writeValueAsString(simpleAdr.adrContent()).replaceAll("\\s+", "")));
+        Adr latestAdr = mongoAdrStore.getAdr(adr);
+        Adr expectedAdr = AdrBuilder.builder(simpleAdr).revision(1).build();
+        assertEquals(expectedAdr, latestAdr);
     }
 
     @Test

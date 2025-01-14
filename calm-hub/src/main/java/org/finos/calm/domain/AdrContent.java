@@ -18,11 +18,9 @@ public record AdrContent(
         AdrStatus status,
         @JsonDeserialize(using = LocalDateTimeDeserializer.class)
         @JsonSerialize(using = LocalDateTimeSerializer.class)
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss:SSS")
         LocalDateTime creationDateTime,
         @JsonDeserialize(using = LocalDateTimeDeserializer.class)
         @JsonSerialize(using = LocalDateTimeSerializer.class)
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss:SSS")
         LocalDateTime updateDateTime,
         String contextAndProblemStatement,
         List<String> decisionDrivers,

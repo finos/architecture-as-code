@@ -62,7 +62,13 @@ public class AdrResource {
         }
     }
 
-
+    /**
+     * Create a new ADR in the DRAFT state
+     * @param namespace the namespace to create the ADR in
+     * @param newAdr the new ADR to be created
+     * @return created response with Location header
+     * @throws URISyntaxException cannot produce location URL
+     */
     @POST
     @Path("{namespace}/adrs")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -95,6 +101,14 @@ public class AdrResource {
         }
     }
 
+    /**
+     * Update an existing ADRs contents
+     * @param namespace the namespace the ADR is in
+     * @param adrId the ID of the ADR
+     * @param newAdrRevision the new ADR content
+     * @return created with a Location header
+     * @throws URISyntaxException cannot produce Location header
+     */
     @POST
     @Path("{namespace}/adrs/{adrId}")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -131,6 +145,7 @@ public class AdrResource {
         }
     }
 
+
     @GET
     @Path("{namespace}/adrs/{adrId}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -155,6 +170,8 @@ public class AdrResource {
         } catch (AdrRevisionNotFoundException e) {
             logger.error("Could not get latest revision of ADR [{}]", adrId, e);
             return invalidLatestRevisionResponse(adrId);
+        } catch(JsonProcessingException e) {
+            return invalidGetAdrResponse(adrId);
         }
     }
 
@@ -220,6 +237,10 @@ public class AdrResource {
 
     private Response invalidAdrJsonResponse(String adrJson) {
         return Response.status(Response.Status.BAD_REQUEST).entity("The ADR JSON could not be parsed: " + adrJson).build();
+    }
+
+    private Response invalidGetAdrResponse(int adrId) {
+        return Response.status(Response.Status.NOT_FOUND).entity("Could not process ADR when getting it: " + adrId).build();
     }
 
     private Response invalidAdrResponse(int adrId) {
