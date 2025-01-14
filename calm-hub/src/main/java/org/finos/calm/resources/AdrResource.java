@@ -11,6 +11,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.finos.calm.domain.Adr;
 import org.finos.calm.domain.AdrBuilder;
 import org.finos.calm.domain.AdrContent;
@@ -153,6 +157,12 @@ public class AdrResource {
             summary = "Retrieve the latest revision of an ADR",
             description = "Retrieve the latest revision of an ADR"
     )
+    @APIResponses(value = {
+            @APIResponse(
+                    responseCode = "200",
+                    content = @Content(schema = @Schema(implementation = Adr.class))
+            )
+    })
     public Response getAdr(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId) {
         Adr adr = AdrBuilder.builder()
                 .namespace(namespace)
@@ -206,6 +216,12 @@ public class AdrResource {
             summary = "Retrieve a specific revision of an ADR",
             description = "Retrieve a specific revision of an ADR"
     )
+    @APIResponses(value = {
+            @APIResponse(
+                    responseCode = "200",
+                    content = @Content(schema = @Schema(implementation = Adr.class))
+            )
+    })
     public Response getAdrRevision(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, @PathParam("revision") int revision) {
         Adr adr = AdrBuilder.builder()
                 .namespace(namespace)
@@ -224,6 +240,8 @@ public class AdrResource {
         } catch (AdrRevisionNotFoundException e) {
             logger.error("Invalid revision [{}] when getting an ADR", revision, e);
             return invalidRevisionResponse(revision);
+        } catch(JsonProcessingException e) {
+            return invalidGetAdrResponse(adrId);
         }
     }
 

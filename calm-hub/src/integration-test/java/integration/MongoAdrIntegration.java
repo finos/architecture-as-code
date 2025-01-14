@@ -127,14 +127,21 @@ public class MongoAdrIntegration {
     @Test
     @Order(3)
     void end_to_end_verify_get_adr_revision() throws JsonProcessingException {
-        AdrContent result = given()
+        Adr expectedAdr = AdrBuilder.builder()
+                .namespace("finos")
+                .id(1)
+                .revision(1)
+                .adrContent(adrContent)
+                .build();
+
+        Adr actualAdr = given()
                 .when().get("/calm/namespaces/finos/adrs/1/revisions/1")
                 .then()
                 .statusCode(200)
                 .extract()
                 .body()
-                .as(AdrContent.class);
-        assertEquals(adrContent, result);
+                .as(Adr.class);
+        assertEquals(expectedAdr, actualAdr);
     }
 
     @Test

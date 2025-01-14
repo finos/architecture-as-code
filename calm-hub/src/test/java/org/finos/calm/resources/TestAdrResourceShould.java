@@ -237,21 +237,31 @@ public class TestAdrResourceShould {
 
     @ParameterizedTest
     @MethodSource("provideParametersForGetAdrRevisionTests")
-    void respond_correctly_to_get_adr_revision(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
+    void respond_correctly_to_get_adr_revision(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException {
+        Adr adr = AdrBuilder.builder()
+                .namespace(namespace)
+                .id(12)
+                .revision(1)
+                .adrContent(AdrContentBuilder.builder().title("My title").build())
+                .build();
+
         if (exceptionToThrow != null) {
             when(mockAdrStore.getAdrRevision(any(Adr.class))).thenThrow(exceptionToThrow);
         } else {
-            String adr = "{ \"test\": \"json\" }";
             when(mockAdrStore.getAdrRevision(any(Adr.class))).thenReturn(adr);
         }
 
         if (expectedStatusCode == 200) {
-            given()
+            Adr actualAdr = given()
                     .when()
                     .get("/calm/namespaces/" + namespace + "/adrs/12/revisions/1")
                     .then()
                     .statusCode(expectedStatusCode)
-                    .body(equalTo("{ \"test\": \"json\" }"));
+                    .extract()
+                    .body()
+                    .as(Adr.class);
+
+            assertEquals(adr, actualAdr);
         } else {
             given()
                     .when()
@@ -300,7 +310,7 @@ public class TestAdrResourceShould {
         verifyExpectedGetAdr(namespace);
     }
 
-    private void verifyExpectedGetAdrRevision(String namespace) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
+    private void verifyExpectedGetAdrRevision(String namespace) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException {
         Adr expectedAdrToRetrieve = AdrBuilder.builder()
                 .namespace(namespace)
                 .id(12)

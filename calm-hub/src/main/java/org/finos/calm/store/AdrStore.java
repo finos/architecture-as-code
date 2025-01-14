@@ -14,6 +14,6 @@ public interface AdrStore {
     Adr createAdrForNamespace(Adr adr) throws NamespaceNotFoundException, JsonProcessingException;
     Adr getAdr(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException;
     List<Integer> getAdrRevisions(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException;
-    String getAdrRevision(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException;
+    Adr getAdrRevision(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException;
     Adr updateAdrForNamespace(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException;
 }

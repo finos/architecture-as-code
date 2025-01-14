@@ -264,8 +264,9 @@ public class TestMongoAdrStoreShould {
         Adr adr = AdrBuilder.builder().namespace(NAMESPACE)
                 .id(42).revision(1).build();
 
-        String adrRevision = mongoAdrStore.getAdrRevision(adr);
-        assertThat(adrRevision.replaceAll("\\s+", ""), is(objectMapper.writeValueAsString(simpleAdr.adrContent()).replaceAll("\\s+", "")));
+        Adr adrRevision = mongoAdrStore.getAdrRevision(adr);
+        Adr expectedAdrRevision = AdrBuilder.builder(simpleAdr).revision(1).build();
+        assertEquals(expectedAdrRevision, adrRevision);
     }
 
     private void mockSetupAdrDocumentWithRevisions() throws JsonProcessingException {
