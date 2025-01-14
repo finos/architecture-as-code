@@ -169,8 +169,9 @@ const CytoscapeRenderer = ({
     return (
         <div className="relative flex m-auto border">
             {title && (
-                <div className="graph-title absolute m-5 bg-primary-content shadow-md">
-                    <span className="text-m">Architecture: {title}</span>
+                <div className="graph-title absolute m-5 bg-primary shadow-md">
+                    <span className="text-m font-thin">Architecture: </span>
+                    <span className="text-m font-semibold">{title}</span>
                 </div>
             )}
             <div
