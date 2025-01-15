@@ -12,7 +12,6 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.finos.calm.domain.Adr;
 import org.finos.calm.domain.AdrBuilder;
 import org.finos.calm.domain.AdrContent;
-import org.finos.calm.domain.AdrContentBuilder;
 import org.finos.calm.domain.AdrDecision;
 import org.finos.calm.domain.AdrDecisionBuilder;
 import org.finos.calm.domain.AdrLinkBuilder;
@@ -47,10 +46,8 @@ public class MongoAdrIntegration {
     ObjectMapper objectMapper;
 
     private static final Logger logger = LoggerFactory.getLogger(MongoAdrIntegration.class);
-    public static final String ADR = "{\"name\": \"test-adrContent\"}";
 
     private final String TITLE = "My ADR";
-    private final String DRAFT = "DRAFT";
     private final String PROBLEM_STATEMENT = "My problem is...";
     private final List<String> DECISION_DRIVERS = List.of("a", "b", "c");
     private final AdrOption OPTION_A = AdrOptionBuilder.builder().name("Option 1").description("optionDescription")
@@ -187,6 +184,27 @@ public class MongoAdrIntegration {
                 .body("values[0]", equalTo(1))
                 .body("values[1]", equalTo(2));
 
+    }
+
+    @Test
+    @Order(7)
+    void end_to_end_verify_update_an_adr_status() throws JsonProcessingException {
+        given()
+                .when().post("/calm/namespaces/finos/adrs/1/status/PROPOSED")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("calm/namespaces/finos/adrs/1"));
+    }
+
+    @Test
+    @Order(8)
+    void end_to_end_verify_status_changed() throws JsonProcessingException {
+
+        given()
+                .when().get("/calm/namespaces/finos/adrs/1/revisions/3")
+                .then()
+                .statusCode(200)
+                .body("adrContent.status", equalTo("PROPOSED"));
     }
 
 }

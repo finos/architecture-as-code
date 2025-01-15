@@ -2,7 +2,9 @@ package org.finos.calm.store;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.finos.calm.domain.Adr;
+import org.finos.calm.domain.AdrStatus;
 import org.finos.calm.domain.exception.AdrNotFoundException;
+import org.finos.calm.domain.exception.AdrPersistenceError;
 import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 
@@ -13,7 +15,8 @@ public interface AdrStore {
     List<Integer> getAdrsForNamespace(String namespace) throws NamespaceNotFoundException;
     Adr createAdrForNamespace(Adr adr) throws NamespaceNotFoundException, JsonProcessingException;
     Adr getAdr(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException;
-    List<Integer> getAdrRevisions(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException;
+    List<Integer> getAdrRevisions(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException;
     Adr getAdrRevision(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException;
-    Adr updateAdrForNamespace(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException;
+    Adr updateAdrForNamespace(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrPersistenceError;
+    Adr updateAdrStatus(Adr adr, AdrStatus adrStatus) throws AdrNotFoundException, NamespaceNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrPersistenceError;
 }

@@ -22,6 +22,7 @@ import org.finos.calm.domain.AdrStatus;
 import org.finos.calm.domain.NewAdr;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.AdrNotFoundException;
+import org.finos.calm.domain.exception.AdrPersistenceError;
 import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.AdrStore;
@@ -146,10 +147,18 @@ public class AdrResource {
         } catch(AdrRevisionNotFoundException e) {
             logger.error("No existing revision of ADR [{}] found", adrId, e);
             return invalidLatestRevisionResponse(adrId);
+        } catch(AdrPersistenceError e) {
+            logger.error("Error saving updated ADR [{}]", adr);
+            return serverErrorSavingAdr(adrId);
         }
     }
 
-
+    /**
+     * Gets the latest revision of an ADR
+     * @param namespace the namespace the ADR belongs to
+     * @param adrId the ID of the requested ADR
+     * @return the requested ADR document
+     */
     @GET
     @Path("{namespace}/adrs/{adrId}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -185,6 +194,12 @@ public class AdrResource {
         }
     }
 
+    /**
+     * Gets the list of revisions of an ADR
+     * @param namespace the namespace the ADR belongs to
+     * @param adrId the ID of the requested ADR
+     * @return a list of revision numbers
+     */
     @GET
     @Path("{namespace}/adrs/{adrId}/revisions")
     @Produces(MediaType.APPLICATION_JSON)
@@ -206,9 +221,19 @@ public class AdrResource {
         } catch (AdrNotFoundException e) {
             logger.error("Invalid ADR [{}] when getting versions of ADR", adrId, e);
             return invalidAdrResponse(adrId);
+        } catch(AdrRevisionNotFoundException e) {
+            logger.error("Could not find any revisions of ADR: [{}]", adrId, e);
+            return invalidAdrRevisions(adrId);
         }
     }
 
+    /**
+     * Gets a specific revision of an ADR
+     * @param namespace the namespace the ADR belongs to
+     * @param adrId the ID of the requested ADR
+     * @param revision the revision of the ADR being requested
+     * @return the requested revision of the requested ADR
+     */
     @GET
     @Path("{namespace}/adrs/{adrId}/revisions/{revision}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -245,6 +270,48 @@ public class AdrResource {
         }
     }
 
+    /**
+     * Update the status of an existing ADR
+     * @param namespace the namespace the ADR is in
+     * @param adrId the ID of the ADR
+     * @param adrStatus the new status of the ADR
+     * @return created with a Location header
+     * @throws URISyntaxException cannot produce Location header
+     */
+    @POST
+    @Path("{namespace}/adrs/{adrId}/status/{adrStatus}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Update the status of ADR for namespace",
+            description = "Updates the status of an ADR for a given namespace. Creates a new revision."
+    )
+    public Response updateAdrStatusForNamespace(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, @PathParam("adrStatus") AdrStatus adrStatus) throws URISyntaxException {
+
+        Adr adr = AdrBuilder.builder()
+                .namespace(namespace)
+                .id(adrId)
+                .build();
+
+        try {
+            return adrWithLocationResponse(store.updateAdrStatus(adr, adrStatus));
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when updating status of ADR", namespace, e);
+            return invalidNamespaceResponse(namespace);
+        } catch (JsonParseException | JsonProcessingException e) {
+            logger.error("Cannot parse existing ADR Revision for namespace [{}] while updating status of ADR [{}].", namespace, adrId, e);
+            return invalidAdrJsonResponse(namespace);
+        } catch(AdrNotFoundException e) {
+            logger.error("Invalid ADR [{}] when updating the status of ADR", adrId, e);
+            return invalidAdrResponse(adrId);
+        } catch(AdrRevisionNotFoundException e) {
+            logger.error("No existing revision of ADR [{}] found", adrId, e);
+            return invalidLatestRevisionResponse(adrId);
+        } catch(AdrPersistenceError e) {
+            logger.error("Error saving updated ADR [{}]", adr);
+            return serverErrorSavingAdr(adrId);
+        }
+    }
+
     private Response adrWithLocationResponse(Adr adr) throws URISyntaxException {
         return Response.created(new URI("/calm/namespaces/" + adr.namespace() + "/adrs/" + adr.id() + "/revisions/" + adr.revision())).build();
     }
@@ -271,5 +338,13 @@ public class AdrResource {
 
     private Response invalidLatestRevisionResponse(int adrId) {
         return Response.status(Response.Status.NOT_FOUND).entity("Latest revision not found for ADR: [{}]: " + adrId).build();
+    }
+
+    private Response invalidAdrRevisions(int adrId) {
+        return Response.status(Response.Status.NOT_FOUND).entity("Revisions not found for ADR: [{}]: " + adrId).build();
+    }
+
+    private Response serverErrorSavingAdr(int adrId) {
+        return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Could not save update of ADR: [{}]:" + adrId).build();
     }
 }

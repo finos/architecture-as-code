@@ -18,7 +18,9 @@ import org.finos.calm.domain.Adr;
 import org.finos.calm.domain.AdrBuilder;
 import org.finos.calm.domain.AdrContent;
 import org.finos.calm.domain.AdrContentBuilder;
+import org.finos.calm.domain.AdrStatus;
 import org.finos.calm.domain.exception.AdrNotFoundException;
+import org.finos.calm.domain.exception.AdrPersistenceError;
 import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.AdrStore;
@@ -90,18 +92,13 @@ public class MongoAdrStore implements AdrStore {
     }
 
     @Override
-    public List<Integer> getAdrRevisions(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException {
-        try {
-            Document adrDoc = retrieveAdrDoc(adr);
-            Document revisions = retrieveRevisionsDoc(adrDoc, adr);
-            return revisions.keySet()
-                    .stream()
-                    .map(Integer::parseInt)
-                    .toList();
-
-        } catch (AdrRevisionNotFoundException e) {
-            return List.of();
-        }
+    public List<Integer> getAdrRevisions(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
+        Document adrDoc = retrieveAdrDoc(adr);
+        Document revisions = retrieveRevisionsDoc(adrDoc, adr);
+        return revisions.keySet()
+                .stream()
+                .map(Integer::parseInt)
+                .toList();
     }
 
     @Override
@@ -121,7 +118,7 @@ public class MongoAdrStore implements AdrStore {
     }
 
     @Override
-    public Adr updateAdrForNamespace(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException {
+    public Adr updateAdrForNamespace(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrPersistenceError {
         Document adrDoc = retrieveAdrDoc(adr);
         Adr latestRevision = retrieveLatestRevision(adr, adrDoc);
 
@@ -136,6 +133,22 @@ public class MongoAdrStore implements AdrStore {
 
         writeAdrToMongo(newAdr);
         return newAdr;
+    }
+
+    @Override
+    public Adr updateAdrStatus(Adr adr, AdrStatus adrStatus) throws AdrNotFoundException, NamespaceNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrPersistenceError {
+        Document adrDoc = retrieveAdrDoc(adr);
+        Adr latestRevision = retrieveLatestRevision(adr, adrDoc);
+
+        int newRevisionNum = latestRevision.revision() + 1;
+        Adr newRevision = AdrBuilder.builder(latestRevision)
+                .revision(newRevisionNum)
+                .adrContent(AdrContentBuilder.builder(latestRevision.adrContent())
+                        .status(adrStatus)
+                        .build())
+                .build();
+        writeAdrToMongo(newRevision);
+        return newRevision;
     }
 
     private List<Document> retrieveAdrsDocs(String namespace) throws NamespaceNotFoundException, AdrNotFoundException {
@@ -193,7 +206,7 @@ public class MongoAdrStore implements AdrStore {
                 .build();
     }
 
-    private void writeAdrToMongo(Adr adr) throws AdrNotFoundException, JsonProcessingException {
+    private void writeAdrToMongo(Adr adr) throws JsonProcessingException, AdrPersistenceError {
 
         Document adrDocument = Document.parse(objectMapper.writeValueAsString(adr.adrContent()));
         Document filter = new Document("namespace", adr.namespace())
@@ -205,7 +218,7 @@ public class MongoAdrStore implements AdrStore {
             adrCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
         } catch(MongoWriteException ex) {
             log.error("Failed to write ADR to mongo [{}]", adr, ex);
-            throw new AdrNotFoundException();
+            throw new AdrPersistenceError();
         }
     }
 }
