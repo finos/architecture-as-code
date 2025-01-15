@@ -1,0 +1,49 @@
+{
+  "nodes": [
+    {
+      "unique-id": "api-producer",
+      "node-type": "service",
+      "name": "API Producer",
+      "description": "The API Producer serving content",
+      "interfaces": [
+        {
+          "unique-id": "producer-ingress",
+          "host": "{{ HOST }}",
+          "port": -1
+        }
+      ]
+    },
+    {
+      "unique-id": "database-for-api-producer",
+      "node-type": "database",
+      "name": "Database",
+      "description": "The database for storing content content",
+      "interfaces": [
+        {
+          "unique-id": "db-connection",
+          "host": "{{ HOST }}",
+          "port": -1
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "api-producer-database",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-producer"
+          },
+          "destination": {
+            "node": "database-for-api-producer",
+            "interfaces": [
+              "db-connection"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "metadata": []
+}
