@@ -40,23 +40,20 @@ function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
                         <div className="text-xl font-bold mb-2">Node Details</div>
                         <div className="space-y-2">
                             <p>
-                                <span className="font-semibold">unique-id: {selectedData.id}</span>
+                                <span className="font-light">unique-id: </span>
+                                <span className="font-semibold">{selectedData.id}</span>
                             </p>
-
                             <p>
-                                <span className="font-semibold">name: {selectedData.label}</span>
+                                <span className="font-light">name: </span>
+                                <span className="font-semibold">{selectedData.label}</span>
                             </p>
-
                             <p>
-                                <span className="font-semibold">
-                                    node-type: {selectedData.type}
-                                </span>
+                                <span className="font-light">node-type: </span>
+                                <span className="font-semibold">{selectedData.type}</span>
                             </p>
-
                             <p>
-                                <span className="font-semibold">
-                                    description: {selectedData.description}
-                                </span>
+                                <span className="font-light">description: </span>
+                                <span className="font-semibold">{selectedData.description}</span>
                             </p>
                         </div>
                     </div>
@@ -67,21 +64,23 @@ function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
                         <div className="text-xl font-bold mb-2">Edge Details</div>
                         <div className="space-y-2">
                             <p>
-                                <span className="font-semibold">unique-id: {selectedData.id}</span>
+                                <span className="font-light">unique-id: </span>
+                                <span className="font-semibold">{selectedData.id}</span>
                             </p>
 
                             <p>
-                                <span className="font-semibold">
-                                    description: {selectedData.label}
-                                </span>
+                                <span className="font-light">description: </span>
+                                <span className="font-semibold">{selectedData.label}</span>
                             </p>
 
                             <p>
-                                <span className="font-semibold">source: {selectedData.source}</span>
+                                <span className="font-light">source: </span>
+                                <span className="font-semibold">{selectedData.label}</span>
                             </p>
 
                             <p>
-                                <span className="font-semibold">target: {selectedData.target}</span>
+                                <span className="font-light">target: </span>
+                                <span className="font-semibold">{selectedData.target}</span>
                             </p>
                         </div>
                     </div>

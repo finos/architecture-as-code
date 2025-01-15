@@ -2,12 +2,12 @@ import { useState } from 'react';
 import './App.css';
 import Drawer from './components/drawer/Drawer';
 import Navbar from './components/navbar/Navbar';
-import { CALMInstantiation } from '../../shared/src/types';
+import { CALMArchitecture } from '../../shared/src/types';
 import React from 'react';
 
 function App() {
     const [title, setTitle] = useState<string | undefined>(undefined);
-    const [instance, setCALMInstance] = useState<CALMInstantiation | undefined>(undefined);
+    const [instance, setCALMInstance] = useState<CALMArchitecture | undefined>(undefined);
     const [isConDescActive, setConDescActive] = React.useState(false);
     const [isNodeDescActive, setNodeDescActive] = React.useState(false);
 
