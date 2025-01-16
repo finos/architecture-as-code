@@ -18,11 +18,11 @@ function Navbar({
     };
 
     return (
-        <div className="navbar bg-base-300">
+        <div className="navbar bg-secondary text-secondary-content">
             <div className="flex-1">
-                <a className="btn btn-ghost text-xl">CALM</a>
+                <a className="btn btn-ghost text-2xl">CALM</a>
                 <div className="divider divider-horizontal"></div>
-                <span className="text-lg">Visualizer</span>
+                <span className="text-lg font-thin">Visualizer</span>
             </div>
             <div className="flex-none">
                 <ul className="menu menu-horizontal px-1" aria-label="navbar-menu-items">
@@ -30,7 +30,7 @@ function Navbar({
                         <details>
                             <summary>Upload</summary>
                             <ul className="p-2 z-1" aria-label="upload-dropdown-items">
-                                <li>
+                                <li className=" text-secondary">
                                     <label>
                                         Architecture
                                         <input
@@ -54,7 +54,9 @@ function Navbar({
                         <div className="divider divider-horizontal"></div>
                         <div className="toggles menu-horizontal">
                             <label className="label cursor-pointer">
-                                <span className="label label-text">Connection Descriptions</span>
+                                <span className="label label-text text-secondary-content">
+                                    Connection Descriptions
+                                </span>
                                 <input
                                     type="checkbox"
                                     className="toggle"
@@ -64,7 +66,9 @@ function Navbar({
                                 />
                             </label>
                             <label className="label cursor-pointer">
-                                <span className="label label-text">Node Descriptions</span>
+                                <span className="label label-text text-secondary-content">
+                                    Node Descriptions
+                                </span>
                                 <input
                                     type="checkbox"
                                     className="toggle"

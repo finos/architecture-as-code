@@ -1,50 +1,45 @@
-# React + TypeScript + Vite
+## Calm Visualizer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Calm Visualizer is a tool designed to help visualize and manage software architecture through a UI.
 
-Currently, two official plugins are available:
+### Features
 
--   [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
--   [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Visualize uploaded architecure JSON file using cytoscape JS
+- Toggle connection and node descriptions
 
-## Expanding the ESLint configuration
+### Installation
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+To install Calm Visualizer, clone the repository and install the dependencies:
 
--   Configure the top-level `parserOptions` property like this:
-
-```js
-export default tseslint.config({
-    languageOptions: {
-        // other options...
-        parserOptions: {
-            project: ['./tsconfig.node.json', './tsconfig.app.json'],
-            tsconfigRootDir: import.meta.dirname,
-        },
-    },
-});
+```sh
+cd calm-visualizer
+npm install
 ```
 
--   Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
--   Optionally add `...tseslint.configs.stylisticTypeChecked`
--   Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+### Usage
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react';
+To start the UI, run:
 
-export default tseslint.config({
-    // Set the react version
-    settings: { react: { version: '18.3' } },
-    plugins: {
-        // Add the react plugin
-        react,
-    },
-    rules: {
-        // other rules...
-        // Enable its recommended rules
-        ...react.configs.recommended.rules,
-        ...react.configs['jsx-runtime'].rules,
-    },
-});
+```sh
+npm run dev
 ```
+
+This will start the UI and you can access the application at `http://localhost:5174`.
+
+### Building for Production
+
+To build the application for production, run:
+
+```sh
+npm run build
+```
+
+This will create a `dist` directory with the production build of the application.
+
+## License
+
+Copyright 2024 FINOS
+
+Distributed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
+
+SPDX-License-Identifier: [Apache-2.0](https://spdx.org/licenses/Apache-2.0)
