@@ -21,6 +21,16 @@ if (db.counters.countDocuments({ _id: "architectureStoreCounter" }) === 1) {
     print("architectureStoreCounter already exists, no initialization needed");
 }
 
+if (db.counters.countDocuments({ _id: "flowStoreCounter" }) === 1) {
+    db.counters.insertOne({
+        _id: "flowStoreCounter",
+        sequence_value: 1
+    });
+    print("Initialized flowStoreCounter with sequence_value 1");
+} else {
+    print("flowStoreCounter already exists, no initialization needed");
+}
+
 db.schemas.insertMany([               // Insert initial documents into the schemas collection
     {
         version: "2024-10",
@@ -757,5 +767,879 @@ db.schemas.insertMany([               // Insert initial documents into the schem
 ]);
 
 db.namespaces.insertMany([
-    { namespace: "finos" }
+    { namespace: "finos" },
+    { namespace: "custom" },
+    { namespace: "traderx" }
+]);
+
+db.patterns.insertMany([
+    {
+        namespace: "finos",
+        patterns: [
+            {
+                patternId: NumberInt(1),
+                versions:
+                    {
+                        "1-0-0" : {
+                            "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
+                            "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/pattern/api-gateway",
+                            "title": "API Gateway Pattern",
+                            "type": "object",
+                            "properties": {
+                                "nodes": {
+                                    "type": "array",
+                                    "minItems": 4,
+                                    "prefixItems": [
+                                        {
+                                            "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/node",
+                                            "properties": {
+                                                "well-known-endpoint": {
+                                                    "type": "string"
+                                                },
+                                                "description": {
+                                                    "const": "The API Gateway used to verify authorization and access to downstream system"
+                                                },
+                                                "node-type": {
+                                                    "const": "system"
+                                                },
+                                                "name": {
+                                                    "const": "API Gateway"
+                                                },
+                                                "unique-id": {
+                                                    "const": "api-gateway"
+                                                },
+                                                "interfaces": {
+                                                    "type": "array",
+                                                    "minItems": 1,
+                                                    "prefixItems": [
+                                                        {
+                                                            "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/host-port-interface",
+                                                            "properties": {
+                                                                "unique-id": {
+                                                                    "const": "api-gateway-ingress"
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "well-known-endpoint",
+                                                "interfaces"
+                                            ]
+                                        },
+                                        {
+                                            "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/node",
+                                            "properties": {
+                                                "description": {
+                                                    "const": "The API Consumer making an authenticated and authorized request"
+                                                },
+                                                "node-type": {
+                                                    "const": "system"
+                                                },
+                                                "name": {
+                                                    "const": "API Consumer"
+                                                },
+                                                "unique-id": {
+                                                    "const": "api-consumer"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/node",
+                                            "properties": {
+                                                "description": {
+                                                    "const": "The API Producer serving content"
+                                                },
+                                                "node-type": {
+                                                    "const": "system"
+                                                },
+                                                "name": {
+                                                    "const": "API Producer"
+                                                },
+                                                "unique-id": {
+                                                    "const": "api-producer"
+                                                },
+                                                "interfaces": {
+                                                    "type": "array",
+                                                    "minItems": 1,
+                                                    "prefixItems": [
+                                                        {
+                                                            "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/host-port-interface",
+                                                            "properties": {
+                                                                "unique-id": {
+                                                                    "const": "producer-ingress"
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "interfaces"
+                                            ]
+                                        },
+                                        {
+                                            "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/node",
+                                            "properties": {
+                                                "description": {
+                                                    "const": "The Identity Provider used to verify the bearer token"
+                                                },
+                                                "node-type": {
+                                                    "const": "system"
+                                                },
+                                                "name": {
+                                                    "const": "Identity Provider"
+                                                },
+                                                "unique-id": {
+                                                    "const": "idp"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                "relationships": {
+                                    "type": "array",
+                                    "minItems": 4,
+                                    "prefixItems": [
+                                        {
+                                            "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/relationship",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "api-consumer-api-gateway"
+                                                },
+                                                "description": {
+                                                    "const": "Issue calculation request"
+                                                },
+                                                "relationship-type": {
+                                                    "const": {
+                                                        "connects": {
+                                                            "source": {
+                                                                "node": "api-consumer"
+                                                            },
+                                                            "destination": {
+                                                                "node": "api-gateway",
+                                                                "interfaces": [
+                                                                    "api-gateway-ingress"
+                                                                ]
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "parties": {},
+                                                "protocol": {
+                                                    "const": "HTTPS"
+                                                },
+                                                "authentication": {
+                                                    "const": "OAuth2"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/relationship",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "api-gateway-idp"
+                                                },
+                                                "description": {
+                                                    "const": "Validate bearer token"
+                                                },
+                                                "relationship-type": {
+                                                    "const": {
+                                                        "connects": {
+                                                            "source": {
+                                                                "node": "api-gateway"
+                                                            },
+                                                            "destination": {
+                                                                "node": "idp"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "protocol": {
+                                                    "const": "HTTPS"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/relationship",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "api-gateway-api-producer"
+                                                },
+                                                "description": {
+                                                    "const": "Forward request"
+                                                },
+                                                "relationship-type": {
+                                                    "const": {
+                                                        "connects": {
+                                                            "source": {
+                                                                "node": "api-gateway"
+                                                            },
+                                                            "destination": {
+                                                                "node": "api-producer",
+                                                                "interfaces": [
+                                                                    "producer-ingress"
+                                                                ]
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "protocol": {
+                                                    "const": "HTTPS"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/relationship",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "api-consumer-idp"
+                                                },
+                                                "description": {
+                                                    "const": "Acquire a bearer token"
+                                                },
+                                                "relationship-type": {
+                                                    "const": {
+                                                        "connects": {
+                                                            "source": {
+                                                                "node": "api-consumer"
+                                                            },
+                                                            "destination": {
+                                                                "node": "idp"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "protocol": {
+                                                    "const": "HTTPS"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "nodes",
+                                "relationships"
+                            ]
+                        }
+                    }
+            }
+        ]
+    },
+    {
+        namespace: "custom",
+        patterns: [
+        ]
+    }
+]);
+
+db.flows.insertMany([
+        {
+            namespace: "finos",
+            flows: [
+                {
+                    flowId: NumberInt(1),
+                    versions:
+                        {
+                            "1-0-0" : {
+                                "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
+                                "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow/flow-1",
+                                "title": "Flow 1",
+                                "description": "This is a non-compliant flow document. Just creating something to simulate"
+                            }
+                        }
+                },
+                {
+                    flowId: NumberInt(2),
+                    versions:
+                        {
+                            "1-0-0" : {
+                                "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
+                                "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow/flow-2",
+                                "title": "Flow 2",
+                                "description": "This is a non-compliant flow document. Just creating something to simulate"
+
+
+                            }
+                        }
+                }
+            ]
+        },
+        {
+            namespace: "traderx",
+            flows: [
+                {
+                    flowId: NumberInt(1),
+                    versions:
+                        {
+                            "1-0-0" : {
+                                "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
+                                "$id": "https://calm.finos.org/traderx/flows/add-update-account.json",
+                                "unique-id": "flow-add-update-account",
+                                "name": "Add or Update Account",
+                                "description": "Flow for adding or updating account information in the database.",
+                                "transitions": [
+                                    {
+                                        "relationship-unique-id": "web-gui-process-uses-accounts-service",
+                                        "sequence-number": 1,
+                                        "summary": "Submit Account Create/Update"
+                                    },
+                                    {
+                                        "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
+                                        "sequence-number": 2,
+                                        "summary": "inserts or updates account"
+                                    },
+                                    {
+                                        "relationship-unique-id": "web-gui-process-uses-accounts-service",
+                                        "sequence-number": 3,
+                                        "summary": "Returns Account Create/Update Response Status",
+                                        "direction": "destination-to-source"
+                                    }
+                                ],
+                                "controls": {
+                                    "add-update-account-sla": {
+                                        "description": "Control requirement for flow SLA",
+                                        "requirements": [
+                                            {
+                                                "control-requirement-url": "https://calm.finos.org/samples/traderx/controls/flow-sla-control-requirement.json",
+                                                "control-config": "https://calm.finos.org/samples/traderx/flows/add-update-account/add-update-account-control-configuration.json"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+
+                        }
+                },
+                {
+                    flowId: NumberInt(2),
+                    versions:
+                        {
+                            "1-0-0" : {
+                                "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
+                                "$id": "https://calm.finos.org/samples/traderx/flows/load-list-of-accounts.json",
+                                "unique-id": "flow-load-list-of-accounts",
+                                "name": "Load List of Accounts",
+                                "description": "Flow for loading a list of accounts from the database to populate the GUI drop-down for user account selection.",
+                                "transitions": [
+                                    {
+                                        "relationship-unique-id": "web-gui-process-uses-accounts-service",
+                                        "sequence-number": 1,
+                                        "summary": "Load list of accounts"
+                                    },
+                                    {
+                                        "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
+                                        "sequence-number": 2,
+                                        "summary": "Query for all Accounts"
+                                    },
+                                    {
+                                        "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
+                                        "sequence-number": 3,
+                                        "summary": "Returns list of accounts",
+                                        "direction": "destination-to-source"
+                                    },
+                                    {
+                                        "relationship-unique-id": "web-gui-process-uses-accounts-service",
+                                        "sequence-number": 4,
+                                        "summary": "Returns list of accounts",
+                                        "direction": "destination-to-source"
+                                    }
+                                ]
+                            }
+
+                        }
+                }
+            ]
+        }
+    ]
+);
+
+db.architectures.insertMany([
+    {
+        namespace: "finos",
+        architectures: [   {
+            architectureId: NumberInt(1),
+            versions:
+                {
+                    "1-0-0": {
+                        "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
+                        "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/arch-1",
+                        "title": "Architecture 1",
+                        "description": "This is a non-compliant arch document. Just creating something to simulate"
+                    }
+                }
+        }]
+    },
+    {
+        namespace: "custom",
+        architectures: []
+    },
+    {
+        namespace: "traderx",
+        architectures: [   {
+            architectureId: NumberInt(1),
+            versions:
+                {
+                    "1-0-0": {
+                        "$schema": "https://calm.finos.org/draft/2024-10/meta/calm.json",
+                        "nodes": [
+                            {
+                                "unique-id": "traderx-system",
+                                "node-type": "system",
+                                "name": "TraderX",
+                                "description": "Simple Trading System"
+                            },
+                            {
+                                "unique-id": "traderx-trader",
+                                "node-type": "actor",
+                                "name": "Trader",
+                                "description": "Person who manages accounts and executes trades"
+                            },
+                            {
+                                "unique-id": "web-client",
+                                "node-type": "webclient",
+                                "name": "Web Client",
+                                "description": "Browser based web interface for TraderX",
+                                "data-classification": "Confidential",
+                                "run-as": "user"
+                            },
+                            {
+                                "unique-id": "web-gui-process",
+                                "node-type": "service",
+                                "name": "Web GUI",
+                                "description": "Allows employees to manage accounts and book trades",
+                                "data-classification": "Confidential",
+                                "run-as": "systemId"
+                            },
+                            {
+                                "unique-id": "position-service",
+                                "node-type": "service",
+                                "name": "Position Service",
+                                "description": "Server process which processes trading activity and updates positions",
+                                "data-classification": "Confidential",
+                                "run-as": "systemId"
+                            },
+                            {
+                                "unique-id": "traderx-db",
+                                "node-type": "database",
+                                "name": "TraderX DB",
+                                "description": "Database which stores account, trade and position state",
+                                "data-classification": "Confidential",
+                                "run-as": "systemId"
+                            },
+                            {
+                                "unique-id": "internal-bank-network",
+                                "node-type": "network",
+                                "name": "Bank ABC Internal Network",
+                                "description": "Internal network for Bank ABC",
+                                "instance": "Internal Network"
+                            },
+                            {
+                                "unique-id": "reference-data-service",
+                                "node-type": "service",
+                                "name": "Reference Data Service",
+                                "description": "Service which provides reference data",
+                                "data-classification": "Confidential",
+                                "run-as": "systemId"
+                            },
+                            {
+                                "unique-id": "trading-services",
+                                "node-type": "service",
+                                "name": "Trading Services",
+                                "description": "Service which provides trading services",
+                                "data-classification": "Confidential",
+                                "run-as": "systemId"
+                            },
+                            {
+                                "unique-id": "trade-feed",
+                                "node-type": "service",
+                                "name": "Trade Feed",
+                                "description": "Message bus for streaming updates to trades and positions",
+                                "data-classification": "Confidential",
+                                "run-as": "systemId"
+                            },
+                            {
+                                "unique-id": "trade-processor",
+                                "node-type": "service",
+                                "name": "Trade Processor",
+                                "description": "Process incoming trade requests, settle and persist",
+                                "data-classification": "Confidential",
+                                "run-as": "systemId"
+                            },
+                            {
+                                "unique-id": "accounts-service",
+                                "node-type": "service",
+                                "name": "Accounts Service",
+                                "description": "Service which provides account management",
+                                "data-classification": "Confidential",
+                                "run-as": "systemId"
+                            },
+                            {
+                                "unique-id": "people-service",
+                                "node-type": "service",
+                                "name": "People Service",
+                                "description": "Service which provides user details management",
+                                "data-classification": "Confidential",
+                                "run-as": "systemId"
+                            },
+                            {
+                                "unique-id": "user-directory",
+                                "node-type": "ldap",
+                                "name": "User Directory",
+                                "description": "Golden source of user data",
+                                "data-classification": "PII",
+                                "run-as": "systemId"
+                            }
+                        ],
+                        "relationships": [
+                            {
+                                "unique-id": "trader-executes-trades",
+                                "description": "Executes Trades",
+                                "relationship-type": {
+                                    "interacts": {
+                                        "actor": "traderx-trader",
+                                        "nodes": [
+                                            "web-client"
+                                        ]
+                                    }
+                                }
+                            },
+                            {
+                                "unique-id": "trader-manages-accounts",
+                                "description": "Manage Accounts",
+                                "relationship-type": {
+                                    "interacts": {
+                                        "actor": "traderx-trader",
+                                        "nodes": [
+                                            "web-client"
+                                        ]
+                                    }
+                                }
+                            },
+                            {
+                                "unique-id": "trader-views-trade-status",
+                                "description": "View Trade Status / Positions",
+                                "relationship-type": {
+                                    "interacts": {
+                                        "actor": "traderx-trader",
+                                        "nodes": [
+                                            "web-client"
+                                        ]
+                                    }
+                                }
+                            },
+                            {
+                                "unique-id": "web-client-uses-web-gui",
+                                "description": "Web client interacts with the Web GUI process.",
+                                "relationship-type": {
+                                    "connects": {
+                                        "source": {
+                                            "node": "web-client"
+                                        },
+                                        "destination": {
+                                            "node": "web-gui-process"
+                                        }
+                                    }
+                                },
+                                "protocol": "HTTPS"
+                            },
+                            {
+                                "unique-id": "web-gui-uses-position-service-for-position-queries",
+                                "description": "Load positions for account.",
+                                "relationship-type": {
+                                    "connects": {
+                                        "source": {
+                                            "node": "web-gui-process"
+                                        },
+                                        "destination": {
+                                            "node": "position-service"
+                                        }
+                                    }
+                                },
+                                "protocol": "HTTPS"
+                            },
+                            {
+                                "unique-id": "web-gui-uses-position-service-for-trade-queries",
+                                "description": "Load trades for account.",
+                                "relationship-type": {
+                                    "connects": {
+                                        "source": {
+                                            "node": "web-gui-process"
+                                        },
+                                        "destination": {
+                                            "node": "position-service"
+                                        }
+                                    }
+                                },
+                                "protocol": "HTTPS"
+                            },
+                            {
+                                "unique-id": "position-service-uses-traderx-db-for-positions",
+                                "description": "Looks up default positions for a given account.",
+                                "relationship-type": {
+                                    "connects": {
+                                        "source": {
+                                            "node": "position-service"
+                                        },
+                                        "destination": {
+                                            "node": "traderx-db"
+                                        }
+                                    }
+                                },
+                                "protocol": "JDBC"
+                            },
+                            {
+                                "unique-id": "position-service-uses-traderx-db-for-trades",
+                                "description": "Looks up all trades for a given account.",
+                                "relationship-type": {
+                                    "connects": {
+                                        "source": {
+                                            "node": "position-service"
+                                        },
+                                        "destination": {
+                                            "node": "traderx-db"
+                                        }
+                                    }
+                                },
+                                "protocol": "JDBC"
+                            },
+                            {
+                                "unique-id": "traderx-system-is-deployed-in-internal-bank-network",
+                                "relationship-type": {
+                                    "deployed-in": {
+                                        "container": "internal-bank-network",
+                                        "nodes": [
+                                            "traderx-system"
+                                        ]
+                                    }
+                                }
+                            },
+                            {
+                                "unique-id": "traderx-system-is-composed-of",
+                                "relationship-type": {
+                                    "composed-of": {
+                                        "container": "traderx-system",
+                                        "nodes": [
+                                            "web-client",
+                                            "web-gui-process",
+                                            "position-service",
+                                            "traderx-db",
+                                            "people-service",
+                                            "reference-data-service",
+                                            "trading-services",
+                                            "trade-feed",
+                                            "trade-processor",
+                                            "accounts-service"
+                                        ]
+                                    }
+                                }
+                            },
+                            {
+                                "unique-id": "traderx-system-components-are-deployed-in-internal-bank-network",
+                                "relationship-type": {
+                                    "deployed-in": {
+                                        "container": "internal-bank-network",
+                                        "nodes": [
+                                            "web-client",
+                                            "web-gui-process",
+                                            "position-service",
+                                            "traderx-db",
+                                            "people-service",
+                                            "reference-data-service",
+                                            "trading-services",
+                                            "trade-feed",
+                                            "trade-processor",
+                                            "accounts-service",
+                                            "user-directory"
+                                        ]
+                                    }
+                                }
+                            },
+                            {
+                                "unique-id": "web-gui-process-uses-reference-data-service",
+                                "description": "Looks up securities to assist with creating a trade ticket.",
+                                "relationship-type": {
+                                    "connects": {
+                                        "source": {
+                                            "node": "web-gui-process"
+                                        },
+                                        "destination": {
+                                            "node": "reference-data-service"
+                                        }
+                                    }
+                                },
+                                "protocol": "HTTPS"
+                            },
+                            {
+                                "unique-id": "web-gui-process-uses-trading-services",
+                                "description": "Creates new trades and cancels existing trades.",
+                                "relationship-type": {
+                                    "connects": {
+                                        "source": {
+                                            "node": "web-gui-process"
+                                        },
+                                        "destination": {
+                                            "node": "trading-services"
+                                        }
+                                    }
+                                },
+                                "protocol": "HTTPS"
+                            },
+                            {
+                                "unique-id": "web-gui-process-uses-trade-feed",
+                                "description": "Subscribes to trade/position updates feed for currently viewed account.",
+                                "relationship-type": {
+                                    "connects": {
+                                        "source": {
+                                            "node": "web-gui-process"
+                                        },
+                                        "destination": {
+                                            "node": "trade-feed"
+                                        }
+                                    }
+                                },
+                                "protocol": "WebSocket"
+                            },
+                            {
+                                "unique-id": "trade-processor-connects-to-trade-feed",
+                                "description": "Processes incoming trade requests, persist and publish updates.",
+                                "relationship-type": {
+                                    "connects": {
+                                        "source": {
+                                            "node": "trade-processor"
+                                        },
+                                        "destination": {
+                                            "node": "trade-feed"
+                                        }
+                                    }
+                                },
+                                "protocol": "SocketIO"
+                            },
+                            {
+                                "unique-id": "trade-processor-connects-to-traderx-db",
+                                "description": "Looks up current positions when bootstrapping state, persist trade state and position state.",
+                                "relationship-type": {
+                                    "connects": {
+                                        "source": {
+                                            "node": "trade-processor"
+                                        },
+                                        "destination": {
+                                            "node": "traderx-db"
+                                        }
+                                    }
+                                },
+                                "protocol": "JDBC"
+                            },
+                            {
+                                "unique-id": "web-gui-process-uses-accounts-service",
+                                "description": "Creates/Updates accounts. Gets list of accounts.",
+                                "relationship-type": {
+                                    "connects": {
+                                        "source": {
+                                            "node": "web-gui-process"
+                                        },
+                                        "destination": {
+                                            "node": "accounts-service"
+                                        }
+                                    }
+                                },
+                                "protocol": "HTTPS"
+                            },
+                            {
+                                "unique-id": "web-gui-process-uses-people-service",
+                                "description": "Looks up people data based on typeahead from GUI.",
+                                "relationship-type": {
+                                    "connects": {
+                                        "source": {
+                                            "node": "web-gui-process"
+                                        },
+                                        "destination": {
+                                            "node": "people-service"
+                                        }
+                                    }
+                                },
+                                "protocol": "HTTPS"
+                            },
+                            {
+                                "unique-id": "people-service-connects-to-user-directory",
+                                "description": "Looks up people data.",
+                                "relationship-type": {
+                                    "connects": {
+                                        "source": {
+                                            "node": "people-service"
+                                        },
+                                        "destination": {
+                                            "node": "user-directory"
+                                        }
+                                    }
+                                },
+                                "protocol": "LDAP"
+                            },
+                            {
+                                "unique-id": "trading-services-connects-to-reference-data-service",
+                                "description": "Validates securities when creating trades.",
+                                "relationship-type": {
+                                    "connects": {
+                                        "source": {
+                                            "node": "trading-services"
+                                        },
+                                        "destination": {
+                                            "node": "reference-data-service"
+                                        }
+                                    }
+                                },
+                                "protocol": "HTTPS"
+                            },
+                            {
+                                "unique-id": "trading-services-uses-trade-feed",
+                                "description": "Publishes updates to trades and positions after persisting in the DB.",
+                                "relationship-type": {
+                                    "connects": {
+                                        "source": {
+                                            "node": "trading-services"
+                                        },
+                                        "destination": {
+                                            "node": "trade-feed"
+                                        }
+                                    }
+                                },
+                                "protocol": "HTTPS"
+                            },
+                            {
+                                "unique-id": "trading-services-uses-account-service",
+                                "description": "Validates accounts when creating trades.",
+                                "relationship-type": {
+                                    "connects": {
+                                        "source": {
+                                            "node": "trading-services"
+                                        },
+                                        "destination": {
+                                            "node": "accounts-service"
+                                        }
+                                    }
+                                },
+                                "protocol": "HTTPS"
+                            },
+                            {
+                                "unique-id": "accounts-service-uses-traderx-db-for-accounts",
+                                "description": "CRUD operations on account",
+                                "relationship-type": {
+                                    "connects": {
+                                        "source": {
+                                            "node": "accounts-service"
+                                        },
+                                        "destination": {
+                                            "node": "traderx-db"
+                                        }
+                                    }
+                                },
+                                "protocol": "JDBC"
+                            }
+                        ]
+                    }
+                }
+        }]
+    }
 ]);

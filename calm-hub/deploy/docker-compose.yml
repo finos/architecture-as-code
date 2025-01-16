@@ -9,8 +9,10 @@ services:
     networks:
       - calm-net
   calmhub:
-    image: jpgough/calm-hub:latest
-    container_name: calm-hub
+    build:
+      context: ..
+      dockerfile: src/main/docker/Dockerfile.jvm
+    image: calm-hub:latest
     ports:
       - "8080:8080"
     environment:
