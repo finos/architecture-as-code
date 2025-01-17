@@ -2,22 +2,15 @@
 import './cytoscape.css';
 import { useContext, useEffect, useRef, useState } from 'react';
 import cytoscape, { Core, EdgeSingular, NodeSingular } from 'cytoscape';
-import nodeHtmlLabel from 'cytoscape-node-html-label';
 import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
-import coseBilkent from 'cytoscape-cose-bilkent';
 import expandCollapse from 'cytoscape-expand-collapse';
-import fcose from 'cytoscape-fcose';
 import Sidebar from '../sidebar/Sidebar';
 import { ZoomContext } from '../zoom-context.provider';
 
 //Make some information available on tooltip hover
 
-nodeHtmlLabel(cytoscape);
 nodeEdgeHtmlLabel(cytoscape);
 expandCollapse(cytoscape);
-
-cytoscape.use(fcose);
-cytoscape.use(coseBilkent);
 
 const breadthFirstLayout = {
     name: 'breadthfirst',
@@ -28,7 +21,7 @@ const breadthFirstLayout = {
     avoidOverlap: true,
     padding: 30,
     spacingFactor: 1.25,
-}
+};
 
 export type Node = {
     classes?: string;
@@ -109,10 +102,6 @@ const CytoscapeRenderer = ({
             });
 
             cy.on('zoom', () => updateZoom(cy.zoom()));
-
-            return () => {
-                cy.destroy();
-            };
         }
     }, [cy, zoomLevel, updateZoom, isNodeDescActive]);
 
@@ -145,8 +134,8 @@ const CytoscapeRenderer = ({
                         style: {
                             width: '200px',
                             height: '100px',
-                            shape: 'rectangle'
-                        }
+                            shape: 'rectangle',
+                        },
                     },
                     {
                         selector: ':parent',
