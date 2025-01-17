@@ -75,7 +75,7 @@ function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
 
                             <p>
                                 <span className="font-light">source: </span>
-                                <span className="font-semibold">{selectedData.label}</span>
+                                <span className="font-semibold">{selectedData.source}</span>
                             </p>
 
                             <p>
