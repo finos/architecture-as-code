@@ -23,6 +23,8 @@
   },
   "devDependencies": {
     "link": "^2.1.1",
-    "npm-run-all2": "^5.0.0"
+    "npm-run-all2": "^5.0.0",
+    "vitest": "^2.1.8",
+    "jsdom": "^25.0.1"
   }
 }

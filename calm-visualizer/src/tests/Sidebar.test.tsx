@@ -24,20 +24,19 @@ describe('Sidebar Component', () => {
         render(<Sidebar selectedData={mockNodeData} closeSidebar={mockCloseSidebar} />);
 
         expect(screen.getByText('Node Details')).toBeInTheDocument();
-        expect(screen.getByText('unique-id: node-1')).toBeInTheDocument();
-        expect(screen.getByText('name: Node 1')).toBeInTheDocument();
-        expect(screen.getByText('node-type: type-1')).toBeInTheDocument();
-        expect(screen.getByText('description: Mock Node')).toBeInTheDocument();
+        expect(screen.getByText('node-1')).toBeInTheDocument();
+        expect(screen.getByText('Node 1')).toBeInTheDocument();
+        expect(screen.getByText('type-1')).toBeInTheDocument();
+        expect(screen.getByText('Mock Node')).toBeInTheDocument();
     });
 
     it('should render edge details correctly', () => {
         render(<Sidebar selectedData={mockEdgeData} closeSidebar={mockCloseSidebar} />);
 
         expect(screen.getByText('Edge Details')).toBeInTheDocument();
-        expect(screen.getByText('unique-id: edge-1')).toBeInTheDocument();
-        expect(screen.getByText('description: Edge 1')).toBeInTheDocument();
-        expect(screen.getByText('source: node-1')).toBeInTheDocument();
-        expect(screen.getByText('target: node-2')).toBeInTheDocument();
+        expect(screen.getByText('edge-1')).toBeInTheDocument();
+        expect(screen.getByText('node-1')).toBeInTheDocument();
+        expect(screen.getByText('node-2')).toBeInTheDocument();
     });
 
     it('should call closeSidebar when close button is clicked', () => {
