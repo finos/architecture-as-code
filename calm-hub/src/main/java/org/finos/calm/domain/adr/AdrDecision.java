@@ -1,4 +1,4 @@
-package org.finos.calm.domain;
+package org.finos.calm.domain.adr;
 
 import io.soabase.recordbuilder.core.RecordBuilder;
 

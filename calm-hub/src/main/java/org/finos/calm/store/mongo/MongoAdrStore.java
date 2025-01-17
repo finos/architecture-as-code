@@ -14,13 +14,14 @@ import com.mongodb.client.model.Updates;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.finos.calm.domain.Adr;
-import org.finos.calm.domain.AdrBuilder;
-import org.finos.calm.domain.AdrContent;
-import org.finos.calm.domain.AdrContentBuilder;
-import org.finos.calm.domain.AdrStatus;
+import org.finos.calm.domain.adr.Adr;
+import org.finos.calm.domain.adr.AdrBuilder;
+import org.finos.calm.domain.adr.AdrContent;
+import org.finos.calm.domain.adr.AdrContentBuilder;
+import org.finos.calm.domain.adr.AdrStatus;
 import org.finos.calm.domain.exception.AdrNotFoundException;
-import org.finos.calm.domain.exception.AdrPersistenceError;
+import org.finos.calm.domain.exception.AdrParseException;
+import org.finos.calm.domain.exception.AdrPersistenceException;
 import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.AdrStore;
@@ -68,14 +69,22 @@ public class MongoAdrStore implements AdrStore {
     }
 
     @Override
-    public Adr createAdrForNamespace(Adr adr) throws NamespaceNotFoundException, JsonProcessingException {
+    public Adr createAdrForNamespace(Adr adr) throws NamespaceNotFoundException, AdrParseException {
         if(!namespaceStore.namespaceExists(adr.namespace())) {
             throw new NamespaceNotFoundException();
         }
 
+        String adrContentStr;
+        try {
+        adrContentStr = objectMapper.writeValueAsString(adr.adrContent());
+        } catch(JsonProcessingException e) {
+            log.error("Could not write ADR Content to String", e);
+            throw new AdrParseException();
+        }
+
         int id = counterStore.getNextAdrSequenceValue();
         Document adrDocument = new Document("adrId", id).append("revisions",
-                new Document(String.valueOf(adr.revision()), Document.parse(objectMapper.writeValueAsString(adr.adrContent()))));
+                new Document(String.valueOf(adr.revision()), Document.parse(adrContentStr)));
 
         adrCollection.updateOne(
                 Filters.eq("namespace", adr.namespace()),
@@ -86,7 +95,7 @@ public class MongoAdrStore implements AdrStore {
     }
 
     @Override
-    public Adr getAdr(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException {
+    public Adr getAdr(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException {
         Document adrDoc = retrieveAdrDoc(adr);
         return retrieveLatestRevision(adr, adrDoc);
     }
@@ -102,7 +111,7 @@ public class MongoAdrStore implements AdrStore {
     }
 
     @Override
-    public Adr getAdrRevision(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException {
+    public Adr getAdrRevision(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException {
         Document adrDoc = retrieveAdrDoc(adr);
         Document revisionsDoc = retrieveRevisionsDoc(adrDoc, adr);
 
@@ -112,13 +121,18 @@ public class MongoAdrStore implements AdrStore {
         if(revisionDoc == null) {
             throw new AdrRevisionNotFoundException();
         }
-        return AdrBuilder.builder(adr)
-                .adrContent(objectMapper.readValue(revisionDoc.toJson(), AdrContent.class))
-                .build();
+        try {
+            return AdrBuilder.builder(adr)
+                    .adrContent(objectMapper.readValue(revisionDoc.toJson(), AdrContent.class))
+                    .build();
+        } catch(JsonProcessingException e) {
+            log.error("Could not parse stored ADR to ADR Content.", e);
+            throw new AdrParseException();
+        }
     }
 
     @Override
-    public Adr updateAdrForNamespace(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrPersistenceError {
+    public Adr updateAdrForNamespace(Adr adr) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrPersistenceException, AdrParseException {
         Document adrDoc = retrieveAdrDoc(adr);
         Adr latestRevision = retrieveLatestRevision(adr, adrDoc);
 
@@ -136,7 +150,7 @@ public class MongoAdrStore implements AdrStore {
     }
 
     @Override
-    public Adr updateAdrStatus(Adr adr, AdrStatus adrStatus) throws AdrNotFoundException, NamespaceNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrPersistenceError {
+    public Adr updateAdrStatus(Adr adr, AdrStatus adrStatus) throws AdrNotFoundException, NamespaceNotFoundException, AdrRevisionNotFoundException, AdrPersistenceException, AdrParseException {
         Document adrDoc = retrieveAdrDoc(adr);
         Adr latestRevision = retrieveLatestRevision(adr, adrDoc);
 
@@ -185,7 +199,7 @@ public class MongoAdrStore implements AdrStore {
         return revisionsDoc;
     }
 
-    private Adr retrieveLatestRevision(Adr adr, Document adrDoc) throws AdrRevisionNotFoundException, JsonProcessingException {
+    private Adr retrieveLatestRevision(Adr adr, Document adrDoc) throws AdrRevisionNotFoundException, AdrParseException {
         Document revisionsDoc = retrieveRevisionsDoc(adrDoc, adr);
 
         Set<String> revisionKeys = revisionsDoc.keySet();
@@ -198,27 +212,37 @@ public class MongoAdrStore implements AdrStore {
         // Return the ADR JSON blob for the specified revision
         Document revisionDoc = (Document) revisionsDoc.get(String.valueOf(latestRevision));
         log.info("RevisionDoc: [{}], Revision: [{}]", revisionDoc, latestRevision);
-        return AdrBuilder.builder()
-                .namespace(adr.namespace())
-                .id(adr.id())
-                .revision(latestRevision)
-                .adrContent(objectMapper.readValue(revisionDoc.toJson(), AdrContent.class))
-                .build();
+        try {
+            return AdrBuilder.builder()
+                    .namespace(adr.namespace())
+                    .id(adr.id())
+                    .revision(latestRevision)
+                    .adrContent(objectMapper.readValue(revisionDoc.toJson(), AdrContent.class))
+                    .build();
+        } catch(JsonProcessingException e) {
+            log.error("Could not parse stored ADR to ADR Content.", e);
+            throw new AdrParseException();
+        }
     }
 
-    private void writeAdrToMongo(Adr adr) throws JsonProcessingException, AdrPersistenceError {
-
-        Document adrDocument = Document.parse(objectMapper.writeValueAsString(adr.adrContent()));
-        Document filter = new Document("namespace", adr.namespace())
-                .append("adrs.adrId", adr.id());
-        Document update = new Document("$set",
-                new Document("adrs.$.revisions." + adr.revision(), adrDocument));
+    private void writeAdrToMongo(Adr adr) throws AdrPersistenceException, AdrParseException {
 
         try {
+            Document adrDocument = Document.parse(objectMapper.writeValueAsString(adr.adrContent()));
+            Document filter = new Document("namespace", adr.namespace())
+                    .append("adrs.adrId", adr.id());
+            Document update = new Document("$set",
+                    new Document("adrs.$.revisions." + adr.revision(), adrDocument));
+
             adrCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
+
         } catch(MongoWriteException ex) {
             log.error("Failed to write ADR to mongo [{}]", adr, ex);
-            throw new AdrPersistenceError();
+            throw new AdrPersistenceException();
+        } catch(JsonProcessingException e) {
+            log.error("Could not write ADR Content to String", e);
+            throw new AdrParseException();
         }
+
     }
 }

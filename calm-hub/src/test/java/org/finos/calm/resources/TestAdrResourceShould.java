@@ -1,16 +1,15 @@
 package org.finos.calm.resources;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import org.bson.json.JsonParseException;
-import org.finos.calm.domain.Adr;
-import org.finos.calm.domain.AdrBuilder;
-import org.finos.calm.domain.AdrContentBuilder;
-import org.finos.calm.domain.AdrStatus;
+import org.finos.calm.domain.adr.Adr;
+import org.finos.calm.domain.adr.AdrBuilder;
+import org.finos.calm.domain.adr.AdrContentBuilder;
+import org.finos.calm.domain.adr.AdrStatus;
 import org.finos.calm.domain.exception.AdrNotFoundException;
-import org.finos.calm.domain.exception.AdrPersistenceError;
+import org.finos.calm.domain.exception.AdrParseException;
+import org.finos.calm.domain.exception.AdrPersistenceException;
 import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.AdrStore;
@@ -75,15 +74,14 @@ public class TestAdrResourceShould {
     static Stream<Arguments> provideParametersForCreateAdrTests() {
         return Stream.of(
                 Arguments.of("invalid", new NamespaceNotFoundException(), 404, nullValue()),
-                Arguments.of("invalid", new JsonParseException(), 400, nullValue()),
+                Arguments.of("invalid", new AdrParseException(), 500, nullValue()),
                 Arguments.of("valid", null, 201, containsString("/calm/namespaces/valid/adrs/12/revisions/1"))
         );
     }
 
-
     @ParameterizedTest
     @MethodSource("provideParametersForCreateAdrTests")
-    void respond_correctly_when_creating_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode, Matcher<?> locationHeader) throws NamespaceNotFoundException, JsonProcessingException {
+    void respond_correctly_when_creating_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode, Matcher<?> locationHeader) throws NamespaceNotFoundException, AdrParseException {
         if (exceptionToThrow != null) {
             when(mockAdrStore.createAdrForNamespace(any(Adr.class))).thenThrow(exceptionToThrow);
         } else {
@@ -91,7 +89,7 @@ public class TestAdrResourceShould {
                     .adrContent(
                             AdrContentBuilder.builder()
                                     .title("My ADR")
-                                    .status(AdrStatus.DRAFT)
+                                    .status(AdrStatus.draft)
                                     .creationDateTime(LocalDateTime.now())
                                     .updateDateTime(LocalDateTime.now())
                                     .build()
@@ -118,7 +116,7 @@ public class TestAdrResourceShould {
                 .adrContent(
                         AdrContentBuilder.builder()
                                 .title("My ADR")
-                                .status(AdrStatus.DRAFT)
+                                .status(AdrStatus.draft)
                                 .build())
                 .revision(1)
                 .namespace(namespace)
@@ -134,15 +132,15 @@ public class TestAdrResourceShould {
                 Arguments.of("invalid", new NamespaceNotFoundException(), 404),
                 Arguments.of("valid", new AdrNotFoundException(), 404),
                 Arguments.of("valid", new AdrRevisionNotFoundException(), 404),
-                Arguments.of("valid", new JsonParseException(), 400),
-                Arguments.of("valid", new AdrPersistenceError(), 500),
+                Arguments.of("valid", new AdrParseException(), 500),
+                Arguments.of("valid", new AdrPersistenceException(), 500),
                 Arguments.of("valid", null, 201)
         );
     }
 
     @ParameterizedTest
     @MethodSource("provideParametersForUpdateAdrTests")
-    void respond_correctly_to_update_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrPersistenceError {
+    void respond_correctly_to_update_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrPersistenceException, AdrParseException {
         String adrJson = "{ \"title\": \"My ADR\" }";
         if (exceptionToThrow != null) {
             when(mockAdrStore.updateAdrForNamespace(any(Adr.class))).thenThrow(exceptionToThrow);
@@ -151,7 +149,7 @@ public class TestAdrResourceShould {
                     .adrContent(
                             AdrContentBuilder.builder()
                                     .title("My ADR")
-                                    .status(AdrStatus.DRAFT)
+                                    .status(AdrStatus.draft)
                                     .creationDateTime(LocalDateTime.now())
                                     .updateDateTime(LocalDateTime.now())
                                     .build()
@@ -236,14 +234,14 @@ public class TestAdrResourceShould {
                 Arguments.of("invalid", new NamespaceNotFoundException(), 404),
                 Arguments.of("valid", new AdrNotFoundException(), 404),
                 Arguments.of("valid", new AdrRevisionNotFoundException(), 404),
-                Arguments.of("valid", new InvalidFormatException("error", "value", String.class), 404),
+                Arguments.of("valid", new AdrParseException(), 500),
                 Arguments.of("valid", null, 200)
         );
     }
 
     @ParameterizedTest
     @MethodSource("provideParametersForGetAdrRevisionTests")
-    void respond_correctly_to_get_adr_revision(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException {
+    void respond_correctly_to_get_adr_revision(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException {
         Adr adr = AdrBuilder.builder()
                 .namespace(namespace)
                 .id(12)
@@ -281,7 +279,7 @@ public class TestAdrResourceShould {
 
     @ParameterizedTest
     @MethodSource("provideParametersForGetAdrRevisionTests")
-    void respond_correctly_to_get_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException {
+    void respond_correctly_to_get_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrParseException {
         Adr adr = AdrBuilder.builder()
                 .namespace(namespace)
                 .id(12)
@@ -323,15 +321,15 @@ public class TestAdrResourceShould {
                 Arguments.of("invalid", new NamespaceNotFoundException(), 404),
                 Arguments.of("valid", new AdrNotFoundException(), 404),
                 Arguments.of("valid", new AdrRevisionNotFoundException(), 404),
-                Arguments.of("valid", new JsonParseException(), 400),
-                Arguments.of("valid", new AdrPersistenceError(), 500),
+                Arguments.of("valid", new AdrParseException(), 500),
+                Arguments.of("valid", new AdrPersistenceException(), 500),
                 Arguments.of("valid", null, 201)
         );
     }
 
     @ParameterizedTest
     @MethodSource("provideParametersForUpdateAdrStatusTests")
-    void respond_correctly_on_update_adr_status(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrPersistenceError {
+    void respond_correctly_on_update_adr_status(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrPersistenceException, AdrParseException {
         String adrJson = "{ \"title\": \"My ADR\" }";
         if (exceptionToThrow != null) {
             when(mockAdrStore.updateAdrStatus(any(Adr.class), any(AdrStatus.class))).thenThrow(exceptionToThrow);
@@ -340,7 +338,7 @@ public class TestAdrResourceShould {
                     .adrContent(
                             AdrContentBuilder.builder()
                                     .title("My ADR")
-                                    .status(AdrStatus.PROPOSED)
+                                    .status(AdrStatus.proposed)
                                     .creationDateTime(LocalDateTime.now())
                                     .updateDateTime(LocalDateTime.now())
                                     .build()
@@ -356,7 +354,7 @@ public class TestAdrResourceShould {
                 .header("Content-Type", "application/json")
                 .body(adrJson)
                 .when()
-                .post("/calm/namespaces/" + namespace +"/adrs/1/status/PROPOSED")
+                .post("/calm/namespaces/" + namespace +"/adrs/1/status/proposed")
                 .then()
                 .statusCode(expectedStatusCode);
 
@@ -365,10 +363,10 @@ public class TestAdrResourceShould {
                 .namespace(namespace)
                 .build();
 
-        verify(mockAdrStore, times(1)).updateAdrStatus(expectedAdr, AdrStatus.PROPOSED);
+        verify(mockAdrStore, times(1)).updateAdrStatus(expectedAdr, AdrStatus.proposed);
     }
 
-    private void verifyExpectedGetAdrRevision(String namespace) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException {
+    private void verifyExpectedGetAdrRevision(String namespace) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException {
         Adr expectedAdrToRetrieve = AdrBuilder.builder()
                 .namespace(namespace)
                 .id(12)
@@ -378,7 +376,7 @@ public class TestAdrResourceShould {
         verify(mockAdrStore, times(1)).getAdrRevision(expectedAdrToRetrieve);
     }
 
-    private void verifyExpectedGetAdr(String namespace) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException {
+    private void verifyExpectedGetAdr(String namespace) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrParseException {
         Adr expectedAdrToRetrieve = AdrBuilder.builder()
                 .namespace(namespace)
                 .id(12)

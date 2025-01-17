@@ -1,8 +1,7 @@
-package org.finos.calm.domain;
+package org.finos.calm.domain.adr;
 
 import io.soabase.recordbuilder.core.RecordBuilder;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RecordBuilder.Options(enableWither = false)

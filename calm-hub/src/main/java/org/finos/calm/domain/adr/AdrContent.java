@@ -1,6 +1,5 @@
-package org.finos.calm.domain;
+package org.finos.calm.domain.adr;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
@@ -40,12 +39,19 @@ public record AdrContent(
                 .links(newAdr.links());
     }
 
+    // does not include datetimes in equals
     @Override
     public boolean equals(Object o) {
         if(this == o) return true;
         if(o == null || getClass() != o.getClass()) return false;
         AdrContent that = (AdrContent) o;
-        return Objects.equals(title, that.title) && status == that.status  && Objects.equals(contextAndProblemStatement, that.contextAndProblemStatement) && Objects.equals(decisionDrivers, that.decisionDrivers) && Objects.equals(consideredOptions, that.consideredOptions) && Objects.equals(decisionOutcome, that.decisionOutcome) && Objects.equals(links, that.links);
+        return Objects.equals(title, that.title) &&
+                status == that.status &&
+                Objects.equals(contextAndProblemStatement, that.contextAndProblemStatement) &&
+                Objects.equals(decisionDrivers, that.decisionDrivers) &&
+                Objects.equals(consideredOptions, that.consideredOptions) &&
+                Objects.equals(decisionOutcome, that.decisionOutcome) &&
+                Objects.equals(links, that.links);
     }
 
     @Override

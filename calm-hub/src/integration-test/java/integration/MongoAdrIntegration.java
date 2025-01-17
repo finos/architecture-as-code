@@ -9,17 +9,17 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.bson.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.finos.calm.domain.Adr;
-import org.finos.calm.domain.AdrBuilder;
-import org.finos.calm.domain.AdrContent;
-import org.finos.calm.domain.AdrDecision;
-import org.finos.calm.domain.AdrDecisionBuilder;
-import org.finos.calm.domain.AdrLinkBuilder;
-import org.finos.calm.domain.AdrOption;
-import org.finos.calm.domain.AdrOptionBuilder;
-import org.finos.calm.domain.AdrStatus;
-import org.finos.calm.domain.NewAdr;
-import org.finos.calm.domain.NewAdrBuilder;
+import org.finos.calm.domain.adr.Adr;
+import org.finos.calm.domain.adr.AdrBuilder;
+import org.finos.calm.domain.adr.AdrContent;
+import org.finos.calm.domain.adr.AdrDecision;
+import org.finos.calm.domain.adr.AdrDecisionBuilder;
+import org.finos.calm.domain.adr.AdrLinkBuilder;
+import org.finos.calm.domain.adr.AdrOption;
+import org.finos.calm.domain.adr.AdrOptionBuilder;
+import org.finos.calm.domain.adr.AdrStatus;
+import org.finos.calm.domain.adr.NewAdr;
+import org.finos.calm.domain.adr.NewAdrBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class MongoAdrIntegration {
 
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
     private static final Logger logger = LoggerFactory.getLogger(MongoAdrIntegration.class);
 
@@ -70,7 +70,7 @@ public class MongoAdrIntegration {
             .links(List.of(AdrLinkBuilder.builder().rel("abc").href("http://abc.com").build()))
             .build();
 
-    private final AdrContent adrContent = AdrContent.builderFromNewAdr(newAdr).status(AdrStatus.DRAFT).build();
+    private final AdrContent adrContent = AdrContent.builderFromNewAdr(newAdr).status(AdrStatus.draft).build();
 
     @BeforeEach
     public void setupAdrs() {
@@ -190,7 +190,7 @@ public class MongoAdrIntegration {
     @Order(7)
     void end_to_end_verify_update_an_adr_status() throws JsonProcessingException {
         given()
-                .when().post("/calm/namespaces/finos/adrs/1/status/PROPOSED")
+                .when().post("/calm/namespaces/finos/adrs/1/status/proposed")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/adrs/1"));
@@ -204,7 +204,7 @@ public class MongoAdrIntegration {
                 .when().get("/calm/namespaces/finos/adrs/1/revisions/3")
                 .then()
                 .statusCode(200)
-                .body("adrContent.status", equalTo("PROPOSED"));
+                .body("adrContent.status", equalTo("proposed"));
     }
 
 }
