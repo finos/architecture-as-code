@@ -1,4 +1,4 @@
-import './Navbar.css'
+import './Navbar.css';
 import React, { useContext } from 'react';
 import { ZoomContext } from '../zoom-context.provider';
 
@@ -22,18 +22,18 @@ function Navbar({
 
     function zoomIn() {
         //Obtain percentage as integer
-        const currentPercentageZoom = Math.round(zoomLevel*100);
+        const currentPercentageZoom = Math.round(zoomLevel * 100);
         //Add 10% to the zoom or round to upper 10% interval
-        const newPercentageZoom = Math.floor(currentPercentageZoom/10)*10 + 10;
-        updateZoom(newPercentageZoom/100);
+        const newPercentageZoom = Math.floor(currentPercentageZoom / 10) * 10 + 10;
+        updateZoom(newPercentageZoom / 100);
     }
 
     function zoomOut() {
         //Obtain percentage as integer
-        const currentPercentageZoom = Math.round(zoomLevel*100);
+        const currentPercentageZoom = Math.round(zoomLevel * 100);
         //Subtract 10% from the zoom or round to lower 10% interval - but not less than zero
-        const newPercentageZoom = Math.max(Math.ceil(currentPercentageZoom/10)*10 - 10, 0);
-        updateZoom(newPercentageZoom/100);
+        const newPercentageZoom = Math.max(Math.ceil(currentPercentageZoom / 10) * 10 - 10, 0);
+        updateZoom(newPercentageZoom / 100);
     }
 
     return (
@@ -70,13 +70,20 @@ function Navbar({
 
                 {isGraphRendered && (
                     <>
-                        <div className="divider divider-horizontal"></div>  
+                        <div className="divider divider-horizontal"></div>
                         <div className="toggles menu-horizontal">
                             <div className="label">
-                                <span className="label label-text">Zoom: {(zoomLevel*100).toFixed(0)}%</span>
-                                <button className='ms-1 ps-2 pe-2 zoom-button' onClick={zoomIn}>+</button>
-                                <button className='ms-1 ps-2 pe-2 zoom-button' onClick={zoomOut}>-</button>
-                            </div> 
+                                <span className="label label-text text-secondary-content">
+                                    Zoom: {(zoomLevel * 100).toFixed(0)}%
+                                </span>
+                                <button className="btn btn-xs ms-1 ps-2 pe-2" onClick={zoomIn}>
+                                    +
+                                </button>
+                                <button className="btn btn-xs ms-1 ps-2 pe-2" onClick={zoomOut}>
+                                    -
+                                </button>
+                            </div>
+                            <div className="divider divider-horizontal"></div>
                             <label className="label cursor-pointer">
                                 <span className="label label-text text-secondary-content">
                                     Connection Descriptions

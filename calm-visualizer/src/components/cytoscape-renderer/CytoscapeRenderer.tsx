@@ -12,9 +12,6 @@ import { ZoomContext } from '../zoom-context.provider';
 nodeEdgeHtmlLabel(cytoscape);
 expandCollapse(cytoscape);
 
-cytoscape.use(fcose);
-cytoscape.use(coseBilkent);
-
 const breadthFirstLayout = {
     name: 'breadthfirst',
     fit: true,
