@@ -2,7 +2,6 @@
 import './cytoscape.css';
 import { useEffect, useRef, useState } from 'react';
 import cytoscape, { Core, EdgeSingular, NodeSingular } from 'cytoscape';
-import nodeHtmlLabel from 'cytoscape-node-html-label';
 import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
 import coseBilkent from 'cytoscape-cose-bilkent';
 import expandCollapse from 'cytoscape-expand-collapse';
@@ -11,7 +10,6 @@ import Sidebar from '../sidebar/Sidebar';
 
 //Make some information available on tooltip hover
 
-nodeHtmlLabel(cytoscape);
 nodeEdgeHtmlLabel(cytoscape);
 expandCollapse(cytoscape);
 
@@ -69,7 +67,6 @@ export type Edge = {
     };
 };
 
-
 interface Props {
     title?: string;
     isNodeDescActive: boolean;
@@ -125,10 +122,6 @@ const CytoscapeRenderer = ({
                 setSelectedNode(null);
                 setSelectedEdge(edge?.data()); // Update state with the clicked node's data
             });
-
-            return () => {
-                cy.destroy();
-            };
         }
     }, [cy, isNodeDescActive]);
 
