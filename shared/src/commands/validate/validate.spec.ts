@@ -57,13 +57,18 @@ describe('validate-all', () => {
             fetchMock.restore();
         });
 
+        it('returns error when the the Pattern and the Architecture are undefined or an empty string', async () => {
+            await expect(validate('', undefined, metaSchemaLocation, debugDisabled))
+                .rejects
+                .toThrow();
+            expect(mockExit).toHaveBeenCalledWith(1);
+        });
 
         it('returns validation error when the JSON Schema pattern cannot be found in the input path', async () => {
             await expect(validate('../test_fixtures/api-gateway-implementation.json', 'thisFolderDoesNotExist/api-gateway.json', metaSchemaLocation, debugDisabled))
                 .rejects
                 .toThrow();
             expect(mockExit).toHaveBeenCalledWith(1);
-
         });
 
         it('returns validation error when the architecture file cannot be found in the input path', async () => {
@@ -493,6 +498,75 @@ describe('validate-all', () => {
     
             expect(mockExit)
                 .toHaveBeenCalledWith(1);
+        });
+    });
+
+    describe('validate - architecture only', () => {
+    
+        let mockExit;
+    
+        beforeEach(() => {
+            mockRunFunction.mockReturnValue([]);
+            mockExit = jest.spyOn(process, 'exit')
+                .mockImplementation((code) => {
+                    if (code != 0) {
+                        throw new Error('Expected successful run, code was nonzero: ' + code);
+                    }
+                    return undefined as never;
+                });
+        });
+    
+        afterEach(() => {
+            fetchMock.restore();
+        });
+
+        it('exits with non zero exit code when the architecture cannot be found', async () => {
+            fetchMock.mock('http://exist/api-gateway-implementation.json', 404);
+    
+            await expect(validateAndExitConditionally('http://exist/api-gateway-implementation.json', '', metaSchemaLocation, debugDisabled))
+                .rejects
+                .toThrow();
+            
+            expect(mockExit)
+                .toHaveBeenCalledWith(1);
+        });
+    
+        it('exits with non zero exit code when the architecture does not pass all the spectral validations ', async () => {
+            const expectedSpectralOutput: ISpectralDiagnostic[] = [
+                {
+                    code: 'example-error',
+                    message: 'Example error',
+                    severity: 0,
+                    path: ['/nodes'],
+                    range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
+                }
+            ];
+    
+            mockRunFunction.mockReturnValue(expectedSpectralOutput);
+    
+            const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8');
+            fetchMock.mock('http://exist/api-gateway-implementation.json', apiGateway);
+    
+            await expect(validateAndExitConditionally('http://exist/api-gateway-implementation.json', '', metaSchemaLocation, debugDisabled))
+                .rejects
+                .toThrow();
+            
+            expect(mockExit)
+                .toHaveBeenCalledWith(1);
+        });
+
+        it('exits with zero exit code when the architecture passes all the spectral validations ', async () => {
+            const expectedSpectralOutput: ISpectralDiagnostic[] = [];
+    
+            mockRunFunction.mockReturnValue(expectedSpectralOutput);
+    
+            const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8');
+            fetchMock.mock('http://exist/api-gateway-implementation.json', apiGateway);
+    
+            await expect(validateAndExitConditionally('http://exist/api-gateway-implementation.json', undefined, metaSchemaLocation, debugDisabled));
+            
+            expect(mockExit)
+                .toHaveBeenCalledWith(0);
         });
     });
 });
