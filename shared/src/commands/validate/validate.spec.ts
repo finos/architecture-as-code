@@ -35,10 +35,10 @@ jest.mock('../helper.js', () => {
 
 jest.mock('../bundled-schemas.js', () => {
     return {
-        getBundledSchemaVersion: (debug: boolean) => null,
-        checkCoreSchemaVersion: (uri: string, bundledVersion: string, debug: boolean) => null
-    }
-})
+        getBundledSchemaVersion: () => null,
+        checkCoreSchemaVersion: () => null
+    };
+});
 
 const metaSchemaLocation = 'test_fixtures/calm';
 const debugDisabled = false;
