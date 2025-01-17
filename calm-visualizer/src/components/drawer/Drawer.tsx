@@ -139,7 +139,7 @@ function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive }: Draw
                 if (isInteracts(relationship)) {
                     return {
                         data: {
-                            id: relationship['unique-id'],
+                            id: relationship.uniqueId,
                             label: relationship.description || '',
                             source: relationship['relationship-type'].interacts.actor,
                             target: relationship['relationship-type'].interacts.nodes[0],
@@ -151,7 +151,7 @@ function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive }: Draw
                     const target = relationship['relationship-type'].connects.destination.node;
                     return {
                         data: {
-                            id: relationship['unique-id'],
+                            id: relationship.uniqueId,
                             label: relationship.description || '',
                             source,
                             target,
