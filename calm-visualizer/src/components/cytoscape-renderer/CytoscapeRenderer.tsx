@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import './cytoscape.css';
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import cytoscape, { Core, EdgeSingular, NodeSingular } from 'cytoscape';
 import nodeHtmlLabel from 'cytoscape-node-html-label';
 import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
@@ -8,6 +8,7 @@ import coseBilkent from 'cytoscape-cose-bilkent';
 import expandCollapse from 'cytoscape-expand-collapse';
 import fcose from 'cytoscape-fcose';
 import Sidebar from '../sidebar/Sidebar';
+import { ZoomContext } from '../zoom-context.provider';
 
 //Make some information available on tooltip hover
 
@@ -18,35 +19,16 @@ expandCollapse(cytoscape);
 cytoscape.use(fcose);
 cytoscape.use(coseBilkent);
 
-const fcoseLayoutOptions = {
-    name: 'fcose',
-    animate: false,
-    samplingType: true,
-    // Sample size to construct distance matrix
-    sampleSize: 25,
-    // Separation amount between nodes
-    nodeSeparation: 175,
-    // Power iteration tolerance
-    piTol: 0.0000001,
-    nodeRepulsion: (_node: unknown) => 450000,
-    // Ideal edge (non nested) length
-    idealEdgeLength: (_edge: unknown) => 500,
-    // Divisor to compute edge forces
-    edgeElasticity: (_edge: unknown) => 0.85,
-    // Nesting factor (multiplier) to compute ideal edge length for nested edges
-    nestingFactor: 0.1,
-    // Maximum number of iterations to perform - this is a suggested value and might be adjusted by the algorithm as required
-    numIter: 25000,
-    gravity: 0.9,
-    // Gravity range (constant) for compounds
-    gravityRangeCompound: 1.5,
-    // Gravity force (constant) for compounds
-    gravityCompound: 1.0,
-    // Gravity range (constant)
-    gravityRange: 3.8,
-    // Initial cooling factor for incremental layout
-    initialEnergyOnIncremental: 0.3,
-};
+const breadthFirstLayout = {
+    name: 'breadthfirst',
+    fit: true,
+    directed: true,
+    circle: false,
+    grid: true,
+    avoidOverlap: true,
+    padding: 30,
+    spacingFactor: 1.25,
+}
 
 export type Node = {
     classes?: string;
@@ -69,7 +51,6 @@ export type Edge = {
     };
 };
 
-
 interface Props {
     title?: string;
     isNodeDescActive: boolean;
@@ -87,19 +68,20 @@ const CytoscapeRenderer = ({
 }: Props) => {
     const cyRef = useRef<HTMLDivElement>(null);
     const [cy, setCy] = useState<Core | null>(null);
+    const { zoomLevel, updateZoom } = useContext(ZoomContext);
     const [selectedNode, setSelectedNode] = useState<Node['data'] | null>(null);
     const [selectedEdge, setSelectedEdge] = useState<Edge['data'] | null>(null);
 
     useEffect(() => {
         if (cy) {
+            //Ensure cytoscape zoom and context state are synchronised
+            if (cy.zoom() !== zoomLevel) {
+                updateZoom(cy.zoom());
+            }
             /* eslint-disable @typescript-eslint/no-explicit-any */
             (cy as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
                 {
                     query: '.node',
-                    halign: 'center',
-                    valign: 'center',
-                    halignBox: 'center',
-                    valignBox: 'center',
                     tpl: (data: Node['data']) => {
                         return `<div class="node element">
                                     <p class="title">${data.label}</p>
@@ -126,11 +108,13 @@ const CytoscapeRenderer = ({
                 setSelectedEdge(edge?.data()); // Update state with the clicked node's data
             });
 
+            cy.on('zoom', () => updateZoom(cy.zoom()));
+
             return () => {
                 cy.destroy();
             };
         }
-    }, [cy, isNodeDescActive]);
+    }, [cy, zoomLevel, updateZoom, isNodeDescActive]);
 
     useEffect(() => {
         // Initialize Cytoscape instance
@@ -157,16 +141,32 @@ const CytoscapeRenderer = ({
                         },
                     },
                     {
+                        selector: 'node',
+                        style: {
+                            width: '200px',
+                            height: '100px',
+                            shape: 'rectangle'
+                        }
+                    },
+                    {
                         selector: ':parent',
                         style: {
                             label: 'data(label)',
                         },
                     },
                 ],
-                layout: fcoseLayoutOptions,
+                layout: breadthFirstLayout,
+                boxSelectionEnabled: true,
             })
         );
     }, [nodes, edges, isConDescActive]); // Re-render on cy, nodes or edges change
+
+    useEffect(() => {
+        //Ensure cytoscape zoom and context state are synchronised
+        if (cy?.zoom() !== zoomLevel) {
+            cy?.zoom(zoomLevel);
+        }
+    }, [zoomLevel]);
 
     return (
         <div className="relative flex m-auto border">

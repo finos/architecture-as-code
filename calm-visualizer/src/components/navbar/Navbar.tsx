@@ -1,4 +1,6 @@
-import React from 'react';
+import './Navbar.css'
+import React, { useContext } from 'react';
+import { ZoomContext } from '../zoom-context.provider';
 
 interface NavbarProps {
     handleUpload: (instanceFile: File) => void;
@@ -16,6 +18,23 @@ function Navbar({
     const upload = (file: File) => {
         handleUpload(file);
     };
+    const { zoomLevel, updateZoom } = useContext(ZoomContext);
+
+    function zoomIn() {
+        //Obtain percentage as integer
+        const currentPercentageZoom = Math.round(zoomLevel*100);
+        //Add 10% to the zoom or round to upper 10% interval
+        const newPercentageZoom = Math.floor(currentPercentageZoom/10)*10 + 10;
+        updateZoom(newPercentageZoom/100);
+    }
+
+    function zoomOut() {
+        //Obtain percentage as integer
+        const currentPercentageZoom = Math.round(zoomLevel*100);
+        //Subtract 10% from the zoom or round to lower 10% interval - but not less than zero
+        const newPercentageZoom = Math.max(Math.ceil(currentPercentageZoom/10)*10 - 10, 0);
+        updateZoom(newPercentageZoom/100);
+    }
 
     return (
         <div className="navbar bg-secondary text-secondary-content">
@@ -51,8 +70,13 @@ function Navbar({
 
                 {isGraphRendered && (
                     <>
-                        <div className="divider divider-horizontal"></div>
+                        <div className="divider divider-horizontal"></div>  
                         <div className="toggles menu-horizontal">
+                            <div className="label">
+                                <span className="label label-text">Zoom: {(zoomLevel*100).toFixed(0)}%</span>
+                                <button className='ms-1 ps-2 pe-2 zoom-button' onClick={zoomIn}>+</button>
+                                <button className='ms-1 ps-2 pe-2 zoom-button' onClick={zoomOut}>-</button>
+                            </div> 
                             <label className="label cursor-pointer">
                                 <span className="label label-text text-secondary-content">
                                     Connection Descriptions
