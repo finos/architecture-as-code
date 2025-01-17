@@ -94,11 +94,11 @@ const CytoscapeRenderer = ({
     useEffect(() => {
         if (cy) {
             //Ensure cytoscape zoom and context state are synchronised
-            if(cy.zoom() !== zoomLevel) {
+            if (cy.zoom() !== zoomLevel) {
                 updateZoom(cy.zoom());
             }
-
-            (cy as any).nodeHtmlLabel([
+            /* eslint-disable @typescript-eslint/no-explicit-any */
+            (cy as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
                 {
                     query: '.node',
                     halign: 'center',
@@ -137,7 +137,7 @@ const CytoscapeRenderer = ({
                 cy.destroy();
             };
         }
-    }, [cy]);
+    }, [cy, zoomLevel, updateZoom, isNodeDescActive]);
 
     useEffect(() => {
         // Initialize Cytoscape instance
@@ -173,20 +173,21 @@ const CytoscapeRenderer = ({
                 layout: fcoseLayoutOptions,
             })
         );
-    }, [nodes, edges]); // Re-render on cy, nodes or edges change
+    }, [nodes, edges, isConDescActive]); // Re-render on cy, nodes or edges change
 
     useEffect(() => {
         //Ensure cytoscape zoom and context state are synchronised
-        if(cy?.zoom() !== zoomLevel) {
+        if (cy?.zoom() !== zoomLevel) {
             cy?.zoom(zoomLevel);
         }
-    }, [zoomLevel])
+    }, [zoomLevel]);
 
     return (
         <div className="relative flex m-auto border">
             {title && (
-                <div className="graph-title absolute m-5 bg-gray-100 shadow-md">
-                    <span className="text-m">Architecture: {title}</span>    
+                <div className="graph-title absolute m-5 bg-primary shadow-md">
+                    <span className="text-m font-thin">Architecture: </span>
+                    <span className="text-m font-semibold">{title}</span>
                 </div>
             )}
             <div

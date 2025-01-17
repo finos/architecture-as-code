@@ -53,7 +53,7 @@ program
 program
     .command('validate')
     .description('Validate that an architecture conforms to a given CALM pattern.')
-    .requiredOption(PATTERN_OPTION, 'Path to the pattern file to use. May be a file path or a URL.')
+    .option(PATTERN_OPTION, 'Path to the pattern file to use. May be a file path or a URL.')
     .option(ARCHITECTURE_OPTION, 'Path to the architecture file to use. May be a file path or a URL.')
     .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.', CALM_META_SCHEMA_DIRECTORY)
     .option(STRICT_OPTION, 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
@@ -65,6 +65,9 @@ program
     .option(OUTPUT_OPTION, 'Path location at which to output the generated file.')
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
     .action(async (options) => {
+        if(!options.pattern && !options.architecture) {
+            program.error(`error: one of the required options '${PATTERN_OPTION}' or '${ARCHITECTURE_OPTION}' was not specified`);
+        }
         const outcome = await validate(options.architecture, options.pattern, options.schemaDirectory, options.verbose);
         const content = getFormattedOutput(outcome, options.format);
         writeOutputFile(options.output, content);
