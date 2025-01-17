@@ -19,7 +19,6 @@
         "cytoscape-expand-collapse": "^4.1.1",
         "cytoscape-fcose": "^2.2.0",
         "cytoscape-node-edge-html-label": "^1.0.6",
-        "cytoscape-node-html-label": "^1.2.2",
         "file-saver": "^2.0.5",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
