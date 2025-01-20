@@ -1,26 +1,30 @@
 {
-    "name": "@finos/calm-workspace",
-    "version": "0.0.0",
-    "private": true,
-    "workspaces": [
-        "shared",
-        "cli",
-        "docs"
-    ],
-    "scripts": {
-        "build": "npm run build --workspaces --if-present",
-        "build:cli": "npm run build --workspace shared --workspace cli",
-        "build:docs": "npm run build --workspace docs",
-        "test": "npm run test --workspaces --if-present",
-        "lint": "npm run lint --workspaces --if-present",
-        "lint-fix": "npm run lint-fix --workspaces --if-present",
-        "watch": "run-p watch:cli watch:shared",
-        "watch:cli": "npm run watch --workspace cli",
-        "watch:shared": "npm run watch --workspace shared",
-        "link:cli": "npm link --workspace cli"
-    },
-    "devDependencies": {
-        "npm-run-all2": "^5.0.0",
-        "ts-jest": "^29.2.5"
-    }
+  "name": "@finos/calm-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "cli",
+    "docs",
+    "calm-visualizer"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "build:cli": "npm run build --workspace shared --workspace cli",
+    "build:docs": "npm run build --workspace docs",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "lint-fix": "npm run lint-fix --workspaces --if-present",
+    "watch": "run-p watch:cli watch:shared",
+    "watch:cli": "npm run watch --workspace cli",
+    "watch:shared": "npm run watch --workspace shared",
+    "link:cli": "npm link --workspace cli",
+    "visualizer:run": "npm run dev --workspace calm-visualizer"
+  },
+  "devDependencies": {
+    "link": "^2.1.1",
+    "npm-run-all2": "^5.0.0",
+    "vitest": "^2.1.8",
+    "jsdom": "^25.0.1"
+  }
 }

@@ -17,7 +17,7 @@ jest.mock('../helper', () => {
 jest.mock('./schema-directory');
 
 jest.mock('../../consts', () => ({
-    get CALM_META_SCHEMA_DIRECTORY() { return '../calm/draft/2024-04/meta'; }
+    get CALM_META_SCHEMA_DIRECTORY() { return '../calm/draft/2024-10/meta'; }
 }));
 
 
@@ -49,7 +49,7 @@ describe('runGenerate', () => {
             .toBeTruthy();
     });
 
-    it('instantiates to calm instantiation file', async () => {
+    it('instantiates to calm architecture file', async () => {
         const outPath = path.join(tempDirectoryPath, 'output.json');
         await runGenerate(testPath, outPath, false, false);
 

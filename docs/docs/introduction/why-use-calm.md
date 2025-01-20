@@ -39,7 +39,7 @@ By defining architecture as code, CALM allows you to manage your architectural d
 
 One of CALM’s key strengths is its ability to automate the validation of architectural designs against predefined patterns. This helps ensure that your system adheres to best practices and organizational standards:
 
-- **Pattern-Based Validation**: Use CALM CLI to validate architectural instantiations, catching issues early in the design phase.
+- **Pattern-Based Validation**: Use CALM CLI to validate architectural architectures, catching issues early in the design phase.
 - **CI/CD Integration**: Incorporate architectural validation into your CI/CD pipelines, automatically checking compliance and preventing deviations from approved designs.
 
 ### 4. **Visualization and Communication**

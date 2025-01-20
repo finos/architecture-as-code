@@ -15,10 +15,12 @@ version = 1
 ##  $ flox show gum     <- show all versions of a package
 ## -------------------------------------------------------------------
 [install]
-nodejs = { pkg-path = "nodejs" }
 libuuid.pkg-path = "libuuid"
 libuuid.systems = ["aarch64-linux", "x86_64-linux"]
 gum.pkg-path = "gum"
+jdk21.pkg-path = "jdk21"
+maven3.pkg-path = "maven3"
+nodejs_22.pkg-path = "nodejs_22"
 
 
 ## Environment Variables ---------------------------------------------
@@ -34,12 +36,25 @@ gum.pkg-path = "gum"
 ## -------------------------------------------------------------------
 [hook]
 on-activate = """
+  export MAVEN_USER_HOME="$(realpath $FLOX_ENV_CACHE)/m2"
+  export MAVEN_OPTS="-Dmaven.repo.local=$MAVEN_USER_HOME/repository"
+
   if [ ! -d "$FLOX_ENV_PROJECT"/node_modules ]; then
+    echo "First activation of environment.  Setting some things up - you may want to get a cup of tea..."
+
+    # Install Java dependencies
+    mvnw-deps() {
+      cd translator
+      ./mvnw dependency:resolve dependency:resolve-plugins
+      cd ..
+    }
+    export -f mvnw-deps
+    gum spin --spinner minidot --title "Installing Java dependencies..." --show-output -- bash -c mvnw-deps
+
     # Install nodejs dependencies
-    echo "First activation of environment.  Setting some things up."
     gum spin --spinner minidot --title "Installing node packages..." --show-output -- npm install
 
-    gum confirm "Perform initial build (recommended)?" && npm run build && npx link cli
+    gum confirm "Perform initial CLI build (recommended)?" && npm run build && npx link cli
   fi
 """
 

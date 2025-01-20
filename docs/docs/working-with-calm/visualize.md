@@ -10,17 +10,17 @@ The `visualize` command allows you to create visual representations of your arch
 
 ## Basic Usage
 
-To visualize an instantiation or a pattern, use the `visualize` command with either the `--instantiation` or `--pattern` option:
+To visualize an architecture or a pattern, use the `visualize` command with either the `--architecture` or `--pattern` option:
 
 ```shell
-calm visualize -i instantiation.json
+calm visualize -a architecture.json
 ```
 
 This command generates an SVG file (`calm-visualization.svg` by default) that you can open in a browser or other image viewer.
 
 ## Command Options
 
-- **`-i, --instantiation <file>`**: Path to an instantiation file of a CALM pattern.
+- **`-a, --architecture <file>`**: Path to an architecture file of a CALM pattern.
 - **`-p, --pattern <file>`**: Path to a CALM pattern file.
 - **`-o, --output <file>`**: Path where the SVG file will be saved (default: `calm-visualization.svg`).
 - **`-v, --verbose`**: Enable verbose logging to see detailed output.

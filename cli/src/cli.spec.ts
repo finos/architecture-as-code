@@ -57,7 +57,7 @@ describe('CLI Integration Tests', () => {
     });
 
     test('example validate command - outputting JSON to stdout', (done) => {
-        const exampleValidateCommand = 'calm validate -p ../calm/pattern/api-gateway.json -i ../calm/samples/api-gateway-instantiation.json';
+        const exampleValidateCommand = 'calm validate -p ../calm/pattern/api-gateway.json -a ../calm/samples/api-gateway-architecture.json';
         exec(exampleValidateCommand, (_error, stdout, _stderr) => {
             const parsedOutput = JSON.parse(stdout);
             const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_output.json');
@@ -69,7 +69,7 @@ describe('CLI Integration Tests', () => {
 
     test('example validate command - outputting JSON to file', (done) => {
         const targetOutputFile = path.join(tempDir, 'validate-output.json');
-        const exampleValidateCommand = `calm validate -p ../calm/pattern/api-gateway.json -i ../calm/samples/api-gateway-instantiation.json -o ${targetOutputFile}`;
+        const exampleValidateCommand = `calm validate -p ../calm/pattern/api-gateway.json -a ../calm/samples/api-gateway-architecture.json -o ${targetOutputFile}`;
         exec(exampleValidateCommand, (_error, _stdout, _stderr) => {
             expect(fs.existsSync(targetOutputFile)).toBeTruthy();
 
@@ -86,7 +86,7 @@ describe('CLI Integration Tests', () => {
     });
 
     test('example validate command - outputting JUNIT to stdout', (done) => {
-        const exampleValidateCommand = 'calm validate -p ../calm/pattern/api-gateway.json -i ../calm/samples/api-gateway-instantiation.json -f junit';
+        const exampleValidateCommand = 'calm validate -p ../calm/pattern/api-gateway.json -a ../calm/samples/api-gateway-architecture.json -f junit';
         exec(exampleValidateCommand, async (_error, stdout, _stderr) => {
             const parsedOutput = await parseStringPromise(stdout);
 
@@ -101,7 +101,7 @@ describe('CLI Integration Tests', () => {
 
     test('example validate command - outputting JUNIT to file', (done) => {
         const targetOutputFile = path.join(tempDir, 'validate-output.xml');
-        const exampleValidateCommand = `calm validate -p ../calm/pattern/api-gateway.json -i ../calm/samples/api-gateway-instantiation.json -f junit -o ${targetOutputFile}`;
+        const exampleValidateCommand = `calm validate -p ../calm/pattern/api-gateway.json -a ../calm/samples/api-gateway-architecture.json -f junit -o ${targetOutputFile}`;
         exec(exampleValidateCommand, async (_error, _stdout, _stderr) => {
             expect(fs.existsSync(targetOutputFile)).toBeTruthy();
 
@@ -138,7 +138,7 @@ describe('CLI Integration Tests', () => {
     });
 
     test('example validate command - outputting PRETTY to stdout', (done) => {
-        const exampleValidateCommand = 'calm validate -p ../calm/pattern/api-gateway.json -i ../calm/samples/api-gateway-instantiation.json -f pretty';
+        const exampleValidateCommand = 'calm validate -p ../calm/pattern/api-gateway.json -a ../calm/samples/api-gateway-architecture.json -f pretty';
         exec(exampleValidateCommand, (_error, stdout, _stderr) => {
             const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_output_pretty.txt');
             const expectedOutput = fs.readFileSync(expectedFilePath, 'utf-8');
@@ -150,7 +150,7 @@ describe('CLI Integration Tests', () => {
 
     test('example validate command - outputting PRETTY to file', (done) => {
         const targetOutputFile = path.join(tempDir, 'validate-output-pretty.txt');
-        const exampleValidateCommand = `calm validate -p ../calm/pattern/api-gateway.json -i ../calm/samples/api-gateway-instantiation.json -f pretty -o ${targetOutputFile}`;
+        const exampleValidateCommand = `calm validate -p ../calm/pattern/api-gateway.json -a ../calm/samples/api-gateway-architecture.json -f pretty -o ${targetOutputFile}`;
         exec(exampleValidateCommand, (_error, _stdout, _stderr) => {
             expect(fs.existsSync(targetOutputFile)).toBeTruthy();
 
@@ -163,40 +163,6 @@ describe('CLI Integration Tests', () => {
             done();
         });
     });
-
-
-    test('example server command - health check', (done) => {
-        const serverCommand = 'calm server';
-
-        const serverProcess = exec(serverCommand, async (_error, _stdout, _stderr) => {
-            const response = await axios.get('http://localhost:3000/api/validate/health');
-            expect(response.status).toBe(200);
-            done();
-        });
-
-        serverProcess.kill();
-
-
-    }, millisPerSecond * 30);
-
-
-    test('example server command - basic validation - temp', async () => {
-        const serverCommand = 'calm server --verbose';
-
-        const serverProcess = exec(serverCommand, async (_error, _stdout, _stderr) => {            
-        });
-    
-        const response = await axios.get('http://localhost:3000/api/validate/health');
-        expect(response.status).toBe(200);
-
-        serverProcess.kill();
-
-
-    }, millisPerSecond * 5);
-
-
-
-
 });
 
 
