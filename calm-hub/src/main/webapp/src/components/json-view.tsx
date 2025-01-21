@@ -7,7 +7,7 @@ interface JsonRendererProps {
 
 export function JsonRenderer({ jsonString }: JsonRendererProps) {
     const defaultMessage = (
-        <div className=" text-center">Please select a pattern to load.</div>
+        <div className=" text-center">Please select a document to load.</div>
     );
     const jsonView = (
         <JsonView

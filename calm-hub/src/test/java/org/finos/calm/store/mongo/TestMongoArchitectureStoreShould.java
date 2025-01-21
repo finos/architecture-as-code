@@ -18,7 +18,6 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Architecture;
-import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.exception.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
