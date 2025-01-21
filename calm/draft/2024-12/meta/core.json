@@ -26,6 +26,12 @@
       "items": {
         "$ref": "flow.json#/defs/flow"
       }
+    },
+    "pattern-options": {
+      "type": "array",
+        "items": {
+            "$ref": "#/defs/pattern-option"
+        }
     }
   },
   "defs": {
@@ -264,6 +270,49 @@
       "items": {
         "type": "object"
       }
+    },
+    "pattern-option": {
+      "type": "object",
+      "properties": {
+        "user-prompt": {
+          "type": "string"
+        },
+        "choices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/defs/choice"
+          }
+        }
+      },
+      "required": [
+        "user-prompt",
+        "choices"
+      ]
+    },
+    "choice": {
+      "type": "object",
+      "properties": {
+        "user-prompt": {
+          "type": "string"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type" : "string"
+          }
+        },
+        "relationship": {
+          "type": "array",
+          "items": {
+            "type" : "string"
+          }
+        }
+      },
+      "required": [
+        "user-prompt",
+        "nodes",
+        "relationship"
+      ]
     }
   }
 }
