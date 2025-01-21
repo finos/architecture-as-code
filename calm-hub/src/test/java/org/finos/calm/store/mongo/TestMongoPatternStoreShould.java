@@ -134,7 +134,7 @@ public class TestMongoPatternStoreShould {
     @Test
     void return_a_json_parse_exception_when_an_invalid_json_object_is_presented() {
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextSequenceValue()).thenReturn(42);
+        when(counterStore.getNextPatternSequenceValue()).thenReturn(42);
         Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos")
                 .setPattern("Invalid JSON")
                 .build();
@@ -148,7 +148,7 @@ public class TestMongoPatternStoreShould {
         String validNamespace = "finos";
         int sequenceNumber = 42;
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextSequenceValue()).thenReturn(sequenceNumber);
+        when(counterStore.getNextPatternSequenceValue()).thenReturn(sequenceNumber);
         Pattern patternToCreate = new Pattern.PatternBuilder().setPattern(validJson)
                 .setNamespace(validNamespace)
                 .build();

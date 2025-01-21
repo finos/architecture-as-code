@@ -67,7 +67,7 @@ public class MongoPatternStore implements PatternStore {
             throw new NamespaceNotFoundException();
         }
 
-        int id = counterStore.getNextSequenceValue();
+        int id = counterStore.getNextPatternSequenceValue();
         Document patternDocument = new Document("patternId", id).append("versions",
                 new Document("1-0-0", Document.parse(pattern.getPatternJson())));
 

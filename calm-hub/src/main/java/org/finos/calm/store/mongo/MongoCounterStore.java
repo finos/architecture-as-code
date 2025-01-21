@@ -18,7 +18,7 @@ public class MongoCounterStore {
         this.counterCollection = database.getCollection("counters");
     }
 
-    public int getNextSequenceValue() {
+    public int getNextPatternSequenceValue() {
         return nextValueForCounter("patternStoreCounter");
     }
 
@@ -26,8 +26,13 @@ public class MongoCounterStore {
         return nextValueForCounter("architectureStoreCounter");
     }
 
+
     public int getNextAdrSequenceValue() {
         return nextValueForCounter("adrStoreCounter");
+    }
+
+    public int getNextFlowSequenceValue() {
+        return nextValueForCounter("flowStoreCounter");
     }
 
     private int nextValueForCounter(String counterId) {
