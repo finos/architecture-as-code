@@ -1,0 +1,180 @@
+{
+  "$schema": "https://calm.finos.org/draft/2024-12/meta/calm.json",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/one-of-example/pattern-options.json",
+  "title": "One of Example Prototype Pattern",
+  "type": "object",
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        {
+          "oneOf": [
+            {
+              "$ref": "https://calm.finos.org/draft/2024-12/meta/core.json#/defs/node",
+              "properties": {
+                "description": {
+                  "const": "Application A"
+                },
+                "node-type": {
+                  "const": "system"
+                },
+                "name": {
+                  "const": "Application A"
+                },
+                "unique-id": {
+                  "const": "application-a"
+                }
+              }
+            },
+            {
+              "$ref": "https://calm.finos.org/draft/2024-12/meta/core.json#/defs/node",
+              "properties": {
+                "description": {
+                  "const": "Application B"
+                },
+                "node-type": {
+                  "const": "system"
+                },
+                "name": {
+                  "const": "Application b"
+                },
+                "unique-id": {
+                  "const": "application-b"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2024-12/meta/core.json#/defs/node",
+          "properties": {
+            "description": {
+              "const": "A sample application that doesn't change that accesses a db"
+            },
+            "node-type": {
+              "const": "system"
+            },
+            "name": {
+              "const": "Application C"
+            },
+            "unique-id": {
+              "const": "application-c"
+            }
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2024-12/meta/core.json#/defs/node",
+          "properties": {
+            "description": {
+              "const": "The database that the application accesses"
+            },
+            "node-type": {
+              "const": "database"
+            },
+            "name": {
+              "const": "Database"
+            },
+            "unique-id": {
+              "const": "database"
+            }
+          }
+        }
+      ]
+    },
+    "relationships": {
+      "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+      "prefixItems": [
+        {
+          "oneOf": [
+            {
+              "$ref": "https://calm.finos.org/draft/2024-12/meta/core.json#/defs/relationship",
+              "properties": {
+                "unique-id": {
+                  "const": "application-a-application-c"
+                },
+                "description": {
+                  "const": "Application A optionally connects to Application C"
+                },
+                "relationship-type": {
+                  "const": {
+                    "connects": {
+                      "source": {
+                        "node": "application-a"
+                      },
+                      "destination": {
+                        "node": "application-c"
+                      }
+                    }
+                  }
+                },
+                "protocol": {
+                  "const": "HTTPS"
+                }
+              }
+            },
+            {
+              "$ref": "https://calm.finos.org/draft/2024-12/meta/core.json#/defs/relationship",
+              "properties": {
+                "unique-id": {
+                  "const": "application-b-application-c"
+                },
+                "description": {
+                  "const": "Application B connects to Application C optionally in a pattern"
+                },
+                "relationship-type": {
+                  "const": {
+                    "connects": {
+                      "source": {
+                        "node": "application-b"
+                      },
+                      "destination": {
+                        "node": "application-c"
+                      }
+                    }
+                  }
+                },
+                "protocol": {
+                  "const": "HTTPS"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2024-12/meta/core.json#/defs/relationship",
+          "properties": {
+            "unique-id": {
+              "const": "application-c-database"
+            },
+            "description": {
+              "const": "Application C connects to the database in all patterns"
+            },
+            "relationship-type": {
+              "const": {
+                "connects": {
+                  "source": {
+                    "node": "application-c"
+                  },
+                  "destination": {
+                    "node": "database"
+                  }
+                }
+              }
+            },
+            "protocol": {
+              "const": "HTTPS"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "required": [
+    "nodes",
+    "relationships"
+  ]
+}
