@@ -6,12 +6,12 @@ import java.util.List;
 
 @RecordBuilder.Options(enableWither = false)
 @RecordBuilder
-public record NewAdr(
+public record NewAdrRequest(
     String title,
     String contextAndProblemStatement,
     List<String> decisionDrivers,
-    List<AdrOption> consideredOptions,
-    AdrDecision decisionOutcome,
-    List<AdrLink> links
+    List<Option> consideredOptions,
+    Decision decisionOutcome,
+    List<Link> links
 ) {
 }

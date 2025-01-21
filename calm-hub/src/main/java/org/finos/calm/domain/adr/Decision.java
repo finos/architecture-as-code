@@ -4,5 +4,5 @@ import io.soabase.recordbuilder.core.RecordBuilder;
 
 @RecordBuilder.Options(enableWither = false)
 @RecordBuilder
-public record AdrDecision(AdrOption chosenOption, String rationale) {
+public record Decision(Option chosenOption, String rationale) {
 }

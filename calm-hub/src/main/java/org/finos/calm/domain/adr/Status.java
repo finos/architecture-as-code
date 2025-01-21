@@ -1,6 +1,6 @@
 package org.finos.calm.domain.adr;
 
-public enum AdrStatus {
+public enum Status {
     draft,
     proposed,
     accepted,

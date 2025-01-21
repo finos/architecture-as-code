@@ -1,6 +1,5 @@
 package org.finos.calm.resources;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -9,17 +8,16 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.finos.calm.domain.adr.Adr;
-import org.finos.calm.domain.adr.AdrBuilder;
-import org.finos.calm.domain.adr.AdrContent;
-import org.finos.calm.domain.adr.AdrStatus;
-import org.finos.calm.domain.adr.NewAdr;
+import org.finos.calm.domain.adr.AdrMeta;
+import org.finos.calm.domain.adr.AdrMetaBuilder;
+import org.finos.calm.domain.adr.Status;
+import org.finos.calm.domain.adr.NewAdrRequest;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.AdrNotFoundException;
 import org.finos.calm.domain.exception.AdrParseException;
@@ -74,7 +72,7 @@ public class AdrResource {
      * Create a new ADR in the DRAFT state
      *
      * @param namespace the namespace to create the ADR in
-     * @param newAdr    the new ADR to be created
+     * @param newAdrRequest    the new ADR to be created
      * @return created response with Location header
      */
     @POST
@@ -85,21 +83,21 @@ public class AdrResource {
             summary = "Create ADR for namespace",
             description = "Creates an ADR for a given namespace with an allocated ID and revision 1"
     )
-    public Response createAdrForNamespace(@PathParam("namespace") String namespace, NewAdr newAdr) {
-        AdrContent adrContent = AdrContent.builderFromNewAdr(newAdr)
-                .status(AdrStatus.draft)
+    public Response createAdrForNamespace(@PathParam("namespace") String namespace, NewAdrRequest newAdrRequest) {
+        Adr adrContent = Adr.builderFromNewAdr(newAdrRequest)
+                .status(Status.draft)
                 .creationDateTime(LocalDateTime.now())
                 .updateDateTime(LocalDateTime.now())
                 .build();
 
-        Adr adr = AdrBuilder.builder()
+        AdrMeta adrMeta = AdrMetaBuilder.builder()
                 .namespace(namespace)
                 .revision(1)
                 .adrContent(adrContent)
                 .build();
 
         try {
-            return adrWithLocationResponse(store.createAdrForNamespace(adr));
+            return adrWithLocationResponse(store.createAdrForNamespace(adrMeta));
         } catch(Exception e) {
             return handleException(e, namespace);
         }
@@ -110,7 +108,7 @@ public class AdrResource {
      *
      * @param namespace      the namespace the ADR is in
      * @param adrId          the ID of the ADR
-     * @param newAdrRevision the new ADR content
+     * @param newAdrRequest the new ADR content
      * @return created with a Location header
      */
     @POST
@@ -121,19 +119,19 @@ public class AdrResource {
             summary = "Update ADR for namespace",
             description = "Updates an ADR for a given namespace. Creates a new revision."
     )
-    public Response updateAdrForNamespace(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, NewAdr newAdrRevision) {
-        AdrContent adrContent = AdrContent.builderFromNewAdr(newAdrRevision)
+    public Response updateAdrForNamespace(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, NewAdrRequest newAdrRequest) {
+        Adr adrContent = Adr.builderFromNewAdr(newAdrRequest)
                 .updateDateTime(LocalDateTime.now())
                 .build();
 
-        Adr adr = AdrBuilder.builder()
+        AdrMeta adrMeta = AdrMetaBuilder.builder()
                 .namespace(namespace)
                 .id(adrId)
                 .adrContent(adrContent)
                 .build();
 
         try {
-            return adrWithLocationResponse(store.updateAdrForNamespace(adr));
+            return adrWithLocationResponse(store.updateAdrForNamespace(adrMeta));
         } catch(Exception e) {
             return handleException(e, namespace);
         }
@@ -156,17 +154,17 @@ public class AdrResource {
     @APIResponses(value = {
             @APIResponse(
                     responseCode = "200",
-                    content = @Content(schema = @Schema(implementation = Adr.class))
+                    content = @Content(schema = @Schema(implementation = AdrMeta.class))
             )
     })
     public Response getAdr(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId) {
-        Adr adr = AdrBuilder.builder()
+        AdrMeta adrMeta = AdrMetaBuilder.builder()
                 .namespace(namespace)
                 .id(adrId)
                 .build();
 
         try {
-            return Response.ok(store.getAdr(adr)).build();
+            return Response.ok(store.getAdr(adrMeta)).build();
         } catch(Exception e) {
             return handleException(e, namespace, adrId);
         }
@@ -187,13 +185,13 @@ public class AdrResource {
             description = "The most recent revision is the canonical ADR, with others available for audit or exploring changes."
     )
     public Response getAdrRevisions(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId) {
-        Adr adr = AdrBuilder.builder()
+        AdrMeta adrMeta = AdrMetaBuilder.builder()
                 .namespace(namespace)
                 .id(adrId)
                 .build();
 
         try {
-            return Response.ok(new ValueWrapper<>(store.getAdrRevisions(adr))).build();
+            return Response.ok(new ValueWrapper<>(store.getAdrRevisions(adrMeta))).build();
         } catch(NamespaceNotFoundException | AdrNotFoundException | AdrRevisionNotFoundException e) {
             return handleException(e, namespace, adrId);
         }
@@ -217,18 +215,18 @@ public class AdrResource {
     @APIResponses(value = {
             @APIResponse(
                     responseCode = "200",
-                    content = @Content(schema = @Schema(implementation = Adr.class))
+                    content = @Content(schema = @Schema(implementation = AdrMeta.class))
             )
     })
     public Response getAdrRevision(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, @PathParam("revision") int revision) {
-        Adr adr = AdrBuilder.builder()
+        AdrMeta adrMeta = AdrMetaBuilder.builder()
                 .namespace(namespace)
                 .id(adrId)
                 .revision(revision)
                 .build();
 
         try {
-            return Response.ok(store.getAdrRevision(adr)).build();
+            return Response.ok(store.getAdrRevision(adrMeta)).build();
         } catch(Exception e) {
             return handleException(e, namespace, adrId, revision);
         }
@@ -239,7 +237,7 @@ public class AdrResource {
      *
      * @param namespace the namespace the ADR is in
      * @param adrId     the ID of the ADR
-     * @param adrStatus the new status of the ADR
+     * @param status the new status of the ADR
      * @return created with a Location header
      * @throws URISyntaxException cannot produce Location header
      */
@@ -250,22 +248,22 @@ public class AdrResource {
             summary = "Update the status of ADR for namespace",
             description = "Updates the status of an ADR for a given namespace. Creates a new revision."
     )
-    public Response updateAdrStatusForNamespace(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, @PathParam("status") AdrStatus adrStatus) throws URISyntaxException {
+    public Response updateAdrStatusForNamespace(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, @PathParam("status") Status status) throws URISyntaxException {
 
-        Adr adr = AdrBuilder.builder()
+        AdrMeta adrMeta = AdrMetaBuilder.builder()
                 .namespace(namespace)
                 .id(adrId)
                 .build();
 
         try {
-            return adrWithLocationResponse(store.updateAdrStatus(adr, adrStatus));
+            return adrWithLocationResponse(store.updateAdrStatus(adrMeta, status));
         } catch(Exception e) {
             return handleException(e, namespace, adrId);
         }
     }
 
-    private Response adrWithLocationResponse(Adr adr) throws URISyntaxException {
-        return Response.created(new URI("/calm/namespaces/" + adr.namespace() + "/adrs/" + adr.id() + "/revisions/" + adr.revision())).build();
+    private Response adrWithLocationResponse(AdrMeta adrMeta) throws URISyntaxException {
+        return Response.created(new URI("/calm/namespaces/" + adrMeta.namespace() + "/adrs/" + adrMeta.id() + "/revisions/" + adrMeta.revision())).build();
     }
 
     private Response handleException(Exception e, String namespace) {

@@ -2,7 +2,9 @@ package org.finos.calm.domain.adr;
 
 import io.soabase.recordbuilder.core.RecordBuilder;
 
+import java.util.List;
+
 @RecordBuilder.Options(enableWither = false)
 @RecordBuilder
-public record AdrLink(String rel, String href) {
+public record Option(String name, String description, List<String> positiveConsequences, List<String> negativeConsequences) {
 }
