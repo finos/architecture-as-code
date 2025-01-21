@@ -8,6 +8,10 @@
     background-color: white;
 }
 
+.selected-node {
+    background-color: #CCE1F9;
+}
+
 :focus {
     border: 1px solid;
     border-color: blue;
