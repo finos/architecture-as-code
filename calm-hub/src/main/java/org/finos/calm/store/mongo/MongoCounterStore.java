@@ -26,6 +26,11 @@ public class MongoCounterStore {
         return nextValueForCounter("architectureStoreCounter");
     }
 
+
+    public int getNextAdrSequenceValue() {
+        return nextValueForCounter("adrStoreCounter");
+    }
+
     public int getNextFlowSequenceValue() {
         return nextValueForCounter("flowStoreCounter");
     }
