@@ -44,6 +44,16 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-mongodb-client</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.soabase.record-builder</groupId>
+      <artifactId>record-builder-core</artifactId>
+      <version>44</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
 
     <!-- Testing -->
     <dependency>
@@ -165,6 +175,11 @@
       <groupId>org.jacoco</groupId>
       <artifactId>jacoco-maven-plugin</artifactId>
       <version>0.8.12</version>
+        <configuration>
+        <excludes>
+          <exclude>**/*Builder.*</exclude>
+        </excludes>
+      </configuration>
       <executions>
         <execution>
           <id>default-prepare-agent</id>
@@ -199,6 +214,21 @@
           </configuration>
         </execution>
       </executions>
+    </plugin>
+
+    <!-- Record Builder Plugin -->
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-compiler-plugin</artifactId>
+      <configuration>
+        <annotationProcessorPaths>
+          <path>
+            <groupId>io.soabase.record-builder</groupId>
+            <artifactId>record-builder-processor</artifactId>
+            <version>44</version>
+          </path>
+        </annotationProcessorPaths>
+      </configuration>
     </plugin>
     </plugins>
   </build>

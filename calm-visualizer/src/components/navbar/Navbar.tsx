@@ -1,4 +1,6 @@
-import React from 'react';
+import './Navbar.css';
+import React, { useContext } from 'react';
+import { ZoomContext } from '../zoom-context.provider';
 
 interface NavbarProps {
     handleUpload: (instanceFile: File) => void;
@@ -16,13 +18,30 @@ function Navbar({
     const upload = (file: File) => {
         handleUpload(file);
     };
+    const { zoomLevel, updateZoom } = useContext(ZoomContext);
+
+    function zoomIn() {
+        //Obtain percentage as integer
+        const currentPercentageZoom = Math.round(zoomLevel * 100);
+        //Add 10% to the zoom or round to upper 10% interval
+        const newPercentageZoom = Math.floor(currentPercentageZoom / 10) * 10 + 10;
+        updateZoom(newPercentageZoom / 100);
+    }
+
+    function zoomOut() {
+        //Obtain percentage as integer
+        const currentPercentageZoom = Math.round(zoomLevel * 100);
+        //Subtract 10% from the zoom or round to lower 10% interval - but not less than zero
+        const newPercentageZoom = Math.max(Math.ceil(currentPercentageZoom / 10) * 10 - 10, 0);
+        updateZoom(newPercentageZoom / 100);
+    }
 
     return (
-        <div className="navbar bg-base-300">
+        <div className="navbar bg-secondary text-secondary-content">
             <div className="flex-1">
-                <a className="btn btn-ghost text-xl">CALM</a>
+                <a className="btn btn-ghost text-2xl">CALM</a>
                 <div className="divider divider-horizontal"></div>
-                <span className="text-lg">Visualizer</span>
+                <span className="text-lg font-thin">Visualizer</span>
             </div>
             <div className="flex-none">
                 <ul className="menu menu-horizontal px-1" aria-label="navbar-menu-items">
@@ -30,7 +49,7 @@ function Navbar({
                         <details>
                             <summary>Upload</summary>
                             <ul className="p-2 z-1" aria-label="upload-dropdown-items">
-                                <li>
+                                <li className=" text-secondary">
                                     <label>
                                         Architecture
                                         <input
@@ -53,8 +72,22 @@ function Navbar({
                     <>
                         <div className="divider divider-horizontal"></div>
                         <div className="toggles menu-horizontal">
+                            <div className="label">
+                                <span className="label label-text text-secondary-content">
+                                    Zoom: {(zoomLevel * 100).toFixed(0)}%
+                                </span>
+                                <button className="btn btn-xs ms-1 ps-2 pe-2" onClick={zoomIn}>
+                                    +
+                                </button>
+                                <button className="btn btn-xs ms-1 ps-2 pe-2" onClick={zoomOut}>
+                                    -
+                                </button>
+                            </div>
+                            <div className="divider divider-horizontal"></div>
                             <label className="label cursor-pointer">
-                                <span className="label label-text">Connection Descriptions</span>
+                                <span className="label label-text text-secondary-content">
+                                    Connection Descriptions
+                                </span>
                                 <input
                                     type="checkbox"
                                     className="toggle"
@@ -64,7 +97,9 @@ function Navbar({
                                 />
                             </label>
                             <label className="label cursor-pointer">
-                                <span className="label label-text">Node Descriptions</span>
+                                <span className="label label-text text-secondary-content">
+                                    Node Descriptions
+                                </span>
                                 <input
                                     type="checkbox"
                                     className="toggle"

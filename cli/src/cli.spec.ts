@@ -161,6 +161,27 @@ describe('CLI Integration Tests', () => {
             done();
         });
     });
+
+    test('example validate command - fails when neither an architecture or a pattern is provided', (done) => {
+        const calmValidateCommand = 'calm validate';
+        exec(calmValidateCommand, (error, _stdout, stderr) => {
+            expect(error).not.toBeNull();
+            expect(stderr).toContain('error: one of the required options \'-p, --pattern <file>\' or \'-a, --architecture <file>\' was not specified');
+            done();
+        });
+    });
+
+    test('example validate command - validates an architecture only', (done) => {
+        const calmValidateArchitectureOnlyCommand = 'calm validate -a ../calm/samples/api-gateway-architecture.json';
+        exec(calmValidateArchitectureOnlyCommand, (error, stdout, _stderr) => {
+            const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_architecture_only_output.json');
+            const expectedOutput = fs.readFileSync(expectedFilePath, 'utf-8');
+            expect(error).toBeNull();
+            expect(stdout).toContain(expectedOutput);
+            done();
+        });
+    });
+
 });
 
 
