@@ -21,7 +21,7 @@ In modern software development, architecture is often disconnected from the actu
 - **Ensuring Control and Compliance**: Align architectural designs with organizational standards and policies, making it easier to measure and enforce compliance.
 
 > **Quick Start**  
-> To get started with CALM, [install the CLI](working-with-calm/installation) and try your first commands to visualize and validate architectures.
+> To get started with CALM, [install the CLI](working-with-calm/installation) and try your first commands to generate and validate architectures.
 
 ## Key Benefits
 

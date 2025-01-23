@@ -26,7 +26,6 @@ A set of tools for interacting with the Common Architecture Language Model (CALM
 Options: -V, --version output the version number -h, --help display help for command
 
 Commands:
-  visualize [options]  Produces an SVG file representing a visualization of the CALM Specification.
   generate [options]   Generate an architecture from a CALM pattern file.
   validate [options]   Validate that an architecture conforms to a given CALM pattern.
   help [command]       display help for command

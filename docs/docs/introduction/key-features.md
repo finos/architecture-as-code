@@ -26,7 +26,7 @@ One of the most powerful aspects of CALM is its ability to validate architecture
 
 Understanding complex architectures can be challenging, especially when dealing with large systems. CALM provides visualization tools that generate intuitive, easy-to-understand diagrams directly from your architectural definitions.
 
-- **Instant Diagrams**: Use the `visualize` command in CALM CLI to produce SVG files representing your architecture, facilitating discussions and reviews.
+- **Instant Diagrams**: Use the `calm-visualizer` app to generate a diagram from your architecture, facilitating discussions and reviews.
 - **Dynamic Views**: Switch between different views of the same architecture, highlighting specific relationships or components as needed.
 
 ## 4. Patterns and Reuse
