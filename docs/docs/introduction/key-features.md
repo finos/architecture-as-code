@@ -40,7 +40,5 @@ CALM supports the creation and reuse of architectural patterns, allowing you to 
 
 CALM is designed to work with your existing toolchain, making it easy to adopt without disrupting your current workflows.
 
-- **Translators**: Convert CALM schemas into other formats like C4 models or Kubernetes manifests, allowing you to maintain compatibility with popular architecture frameworks.
-- **Custom Validation**: Extend CALM’s validation capabilities with bespoke rules to meet your specific requirements.
 
 
