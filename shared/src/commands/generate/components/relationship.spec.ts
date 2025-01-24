@@ -1,6 +1,6 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 
-import { SchemaDirectory } from '../schema-directory';
+import { SchemaDirectory } from '../../../schema-directory';
 import { instantiateRelationships } from './relationship';
 
 jest.mock('../../helper', () => {
@@ -14,7 +14,7 @@ jest.mock('../../helper', () => {
     };
 });
 
-jest.mock('../schema-directory');
+jest.mock('../../../schema-directory');
 
 let mockSchemaDir;
 

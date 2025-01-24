@@ -5,7 +5,7 @@ import {mkdirp} from 'mkdirp';
 import * as winston from 'winston';
 import {initLogger} from '../helper.js';
 import {CALMArchitecture} from '../../types.js';
-import {SchemaDirectory} from './schema-directory.js';
+import {SchemaDirectory} from '../../schema-directory.js';
 import {instantiateNodes} from './components/node.js';
 import {instantiateRelationships} from './components/relationship.js';
 import {CALM_META_SCHEMA_DIRECTORY} from '../../consts.js';

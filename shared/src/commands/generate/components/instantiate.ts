@@ -1,7 +1,7 @@
 import { Logger } from 'winston';
 import { initLogger } from '../../helper.js';
-import { SchemaDirectory } from '../schema-directory.js';
-import { appendPath, logRequiredMessage, mergeSchemas, renderPath } from '../util.js';
+import { SchemaDirectory } from '../../../schema-directory.js';
+import { appendPath, logRequiredMessage, mergeSchemas, renderPath } from '../../../util.js';
 import { getConstValue, getEnumPlaceholder, getPropertyValue } from './property.js';
 
 export function instantiateGenericObject(definition: object, schemaDirectory: SchemaDirectory, objectType: string, path: string[], debug: boolean = false, instantiateAll: boolean = false): object | string {

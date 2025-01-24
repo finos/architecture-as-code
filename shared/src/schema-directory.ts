@@ -3,7 +3,7 @@ import { join } from 'path';
 import pointer from 'json-pointer';
 import { mergeSchemas, updateStringValuesRecursively } from './util.js';
 import { Logger } from 'winston';
-import { initLogger } from '../helper.js';
+import { initLogger } from './commands/helper.js';
 
 /**
  * Stores a directory of schemas and resolves references against that directory.
@@ -57,6 +57,7 @@ export class SchemaDirectory {
             } else {
                 this.logger.error(err);
             }
+            // TODO propagate error out
             process.exit(1);
         }
     }
