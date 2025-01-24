@@ -57,8 +57,7 @@ export class SchemaDirectory {
             } else {
                 this.logger.error(err);
             }
-            // TODO propagate error out
-            process.exit(1);
+            throw err;
         }
     }
 

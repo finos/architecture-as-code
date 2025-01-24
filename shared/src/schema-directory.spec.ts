@@ -21,6 +21,15 @@ describe('SchemaDirectory', () => {
         await schemaDir.loadSchemas(__dirname + '/../../calm/draft/2024-03');
         expect(schemaDir.getLoadedSchemas().length).toBe(2);
     });
+    
+    it('throw exception when directory does not exist', async () => {
+        const schemaDir = new SchemaDirectory();
+        
+        expect(async () => {
+            await schemaDir.loadSchemas("bad-directory");
+        })
+        .rejects.toThrow();
+    });
 
     it('loads all specs from given directory including subdirectories - 2024-10 schema', async () => {
         const schemaDir = new SchemaDirectory();
