@@ -53,7 +53,7 @@ export class SchemaDirectory {
             });
         } catch (err) {
             if (err.code === 'ENOENT') {
-                this.logger.error('Schema Path not found: ', dir, ', error: ', err);
+                this.logger.error('Schema Path not found: ' + dir + ', error: ' + err.message);
             } else {
                 this.logger.error(err);
             }
