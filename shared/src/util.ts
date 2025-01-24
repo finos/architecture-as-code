@@ -1,5 +1,4 @@
 import _ from 'lodash';
-import { Logger } from 'winston';
 import pointer from 'json-pointer';
 
 /**
