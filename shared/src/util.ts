@@ -1,5 +1,4 @@
 import _ from 'lodash';
-import { Logger } from 'winston';
 import pointer from 'json-pointer';
 
 /**
@@ -17,14 +16,6 @@ export function mergeSchemas(s1: object, s2: object) {
 
     newSchema['required'] = newRequired;
     return newSchema;
-}
-
-export function logRequiredMessage(logger: Logger, required: string[], generateAll: boolean) {
-    if (generateAll) {
-        logger.debug('--generateAll was set, ignoring required list and generating all properties.');
-    } else {
-        logger.debug('Required properties: ' + required);
-    }
 }
 
 export function appendPath<T>(path: T[], element: T) : T[] {

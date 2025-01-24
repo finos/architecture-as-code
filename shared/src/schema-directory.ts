@@ -3,7 +3,7 @@ import { join } from 'path';
 import pointer from 'json-pointer';
 import { mergeSchemas, updateStringValuesRecursively } from './util.js';
 import { Logger } from 'winston';
-import { initLogger } from '../helper.js';
+import { initLogger } from './commands/helper.js';
 
 /**
  * Stores a directory of schemas and resolves references against that directory.
@@ -53,11 +53,11 @@ export class SchemaDirectory {
             });
         } catch (err) {
             if (err.code === 'ENOENT') {
-                this.logger.error('Schema Path not found: ', dir, ', error: ', err);
+                this.logger.error('Schema Path not found: ' + dir + ', error: ' + err.message);
             } else {
                 this.logger.error(err);
             }
-            process.exit(1);
+            throw err;
         }
     }
 
