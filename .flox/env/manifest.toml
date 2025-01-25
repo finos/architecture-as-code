@@ -43,18 +43,12 @@ on-activate = """
     echo "First activation of environment.  Setting some things up - you may want to get a cup of tea..."
 
     # Install Java dependencies
-    mvnw-deps() {
-      cd translator
-      ./mvnw dependency:resolve dependency:resolve-plugins
-      cd ..
-    }
-    export -f mvnw-deps
-    gum spin --spinner minidot --title "Installing Java dependencies..." --show-output -- bash -c mvnw-deps
+    gum spin --spinner minidot --title "Installing Java dependencies..." --show-output -- ./mvnw dependency:resolve dependency:resolve-plugins
 
     # Install nodejs dependencies
     gum spin --spinner minidot --title "Installing node packages..." --show-output -- npm install
 
-    gum confirm "Perform initial CLI build (recommended)?" && npm run build && npx link cli
+    echo "Build CLI with \"npm run build\" then \"npx link cli\"."
   fi
 """
 
