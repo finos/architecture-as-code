@@ -44,6 +44,29 @@
         "licenses": []
       },
       "semver": {}
+    },
+    "services": {
+      "calmhub-server": {
+        "command": "cd $FLOX_ENV_PROJECT/calm-hub && ../mvnw package && ../mvnw quarkus:dev",
+        "vars": null,
+        "is-daemon": null,
+        "shutdown": null,
+        "systems": null
+      },
+      "calmhub-ui": {
+        "command": "cd $FLOX_ENV_PROJECT/calm-hub/src/main/webapp && npm start",
+        "vars": null,
+        "is-daemon": null,
+        "shutdown": null,
+        "systems": null
+      },
+      "mongodb": {
+        "command": "cd $FLOX_ENV_PROJECT/calm-hub/local-dev && docker-compose up",
+        "vars": null,
+        "is-daemon": null,
+        "shutdown": null,
+        "systems": null
+      }
     }
   },
   "packages": [

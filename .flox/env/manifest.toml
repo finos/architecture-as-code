@@ -77,7 +77,9 @@ on-activate = """
 ##  $ flox activate --start-services  <- Activates & starts all
 ## -------------------------------------------------------------------
 [services]
-# myservice.command = "python3 -m http.server"
+mongodb.command = "cd $FLOX_ENV_PROJECT/calm-hub/local-dev && docker-compose up"
+calmhub-server.command = "cd $FLOX_ENV_PROJECT/calm-hub && ../mvnw package && ../mvnw quarkus:dev"
+calmhub-ui.command = "cd $FLOX_ENV_PROJECT/calm-hub/src/main/webapp && npm start"
 
 
 ## Other Environment Options -----------------------------------------
