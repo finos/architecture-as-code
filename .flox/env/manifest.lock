@@ -3,6 +3,12 @@
   "manifest": {
     "version": 1,
     "install": {
+      "docker": {
+        "pkg-path": "docker"
+      },
+      "docker-compose": {
+        "pkg-path": "docker-compose"
+      },
       "gum": {
         "pkg-path": "gum"
       },
@@ -24,7 +30,7 @@
       }
     },
     "hook": {
-      "on-activate": "  export MAVEN_USER_HOME=\"$(realpath $FLOX_ENV_CACHE)/m2\"\n  export MAVEN_OPTS=\"-Dmaven.repo.local=$MAVEN_USER_HOME/repository\"\n\n  if [ ! -d \"$FLOX_ENV_PROJECT\"/node_modules ]; then\n    echo \"First activation of environment.  Setting some things up - you may want to get a cup of tea...\"\n\n    # Install Java dependencies\n    mvnw-deps() {\n      cd translator\n      ./mvnw dependency:resolve dependency:resolve-plugins\n      cd ..\n    }\n    export -f mvnw-deps\n    gum spin --spinner minidot --title \"Installing Java dependencies...\" --show-output -- bash -c mvnw-deps\n\n    # Install nodejs dependencies\n    gum spin --spinner minidot --title \"Installing node packages...\" --show-output -- npm install\n\n    gum confirm \"Perform initial CLI build (recommended)?\" && npm run build && npx link cli\n  fi\n"
+      "on-activate": "  export MAVEN_USER_HOME=\"$(realpath $FLOX_ENV_CACHE)/m2\"\n  export MAVEN_OPTS=\"-Dmaven.repo.local=$MAVEN_USER_HOME/repository\"\n\n  if [ ! -d \"$FLOX_ENV_PROJECT\"/node_modules ]; then\n    echo \"First activation of environment.  Setting some things up - you may want to get a cup of tea...\"\n\n    # Install Java dependencies\n    gum spin --spinner minidot --title \"Installing Java dependencies...\" --show-output -- ./mvnw dependency:resolve dependency:resolve-plugins\n\n    # Install nodejs dependencies\n    gum spin --spinner minidot --title \"Installing node packages...\" --show-output -- npm install\n\n    echo \"Build CLI with \"npm run build\" then \"npx link cli\".\"\n  fi\n"
     },
     "profile": {},
     "options": {
@@ -42,20 +48,261 @@
   },
   "packages": [
     {
+      "attr_path": "docker",
+      "broken": false,
+      "derivation": "/nix/store/1m41rlq3m5xbdx19yczzbn7clbf9r3hz-docker-27.4.1.drv",
+      "description": "Open source project to pack, ship and run any application as a lightweight container",
+      "install_id": "docker",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "name": "docker-27.4.1",
+      "pname": "docker",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "27.4.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/4j3f6xqn2wi3590fw54hj9pcwz58dcbd-docker-27.4.1"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "docker",
+      "broken": false,
+      "derivation": "/nix/store/zdzbivzijm4ikrz8mhp57rgkqbj9l0gy-docker-27.4.1.drv",
+      "description": "Open source project to pack, ship and run any application as a lightweight container",
+      "install_id": "docker",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "name": "docker-27.4.1",
+      "pname": "docker",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "27.4.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/c8wf4nvpxqmc92yx2yc01ixhklpqkswk-docker-27.4.1"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "docker",
+      "broken": false,
+      "derivation": "/nix/store/7gan3k1j8h4gds6w7spidvf0araivz8p-docker-27.4.1.drv",
+      "description": "Open source project to pack, ship and run any application as a lightweight container",
+      "install_id": "docker",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "name": "docker-27.4.1",
+      "pname": "docker",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "27.4.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/rflmb941mrih44am3girmnadq04vqghv-docker-27.4.1"
+      },
+      "system": "x86_64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "docker",
+      "broken": false,
+      "derivation": "/nix/store/5xy7d710ifmfrzyjx49jd4c5d1k499rg-docker-27.4.1.drv",
+      "description": "Open source project to pack, ship and run any application as a lightweight container",
+      "install_id": "docker",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "name": "docker-27.4.1",
+      "pname": "docker",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "27.4.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/bfvmfq48yv5nz0wgg2c1pbc43ijlhjz7-docker-27.4.1"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "docker-compose",
+      "broken": false,
+      "derivation": "/nix/store/gpcb857amm9s8yx9wc7anvpbz8369hfl-docker-compose-2.32.2.drv",
+      "description": "Docker CLI plugin to define and run multi-container applications with Docker",
+      "install_id": "docker-compose",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "name": "docker-compose-2.32.2",
+      "pname": "docker-compose",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.32.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/z1lx4rn2n1jfbp83jjl83qzfniz56v8n-docker-compose-2.32.2"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "docker-compose",
+      "broken": false,
+      "derivation": "/nix/store/frp5az1nlnrj3sql3paz5qgxk6zn1kv0-docker-compose-2.32.2.drv",
+      "description": "Docker CLI plugin to define and run multi-container applications with Docker",
+      "install_id": "docker-compose",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "name": "docker-compose-2.32.2",
+      "pname": "docker-compose",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.32.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/cdjj4rf7gvldgv3yn9mj5wjxypf51p8g-docker-compose-2.32.2"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "docker-compose",
+      "broken": false,
+      "derivation": "/nix/store/ps4f1bd5b6ph9xlvwgpm4fhpr6wzr3ag-docker-compose-2.32.2.drv",
+      "description": "Docker CLI plugin to define and run multi-container applications with Docker",
+      "install_id": "docker-compose",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "name": "docker-compose-2.32.2",
+      "pname": "docker-compose",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.32.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/72lapq24xp7kbm5likw4v86v4cy4s1s8-docker-compose-2.32.2"
+      },
+      "system": "x86_64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "docker-compose",
+      "broken": false,
+      "derivation": "/nix/store/p8xc8sjcsj3bwn1fjy0969sw8zhxzm9v-docker-compose-2.32.2.drv",
+      "description": "Docker CLI plugin to define and run multi-container applications with Docker",
+      "install_id": "docker-compose",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "name": "docker-compose-2.32.2",
+      "pname": "docker-compose",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.32.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/rxx7z7sjindad4qzhkzpv7x9lxd8b3hk-docker-compose-2.32.2"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
       "attr_path": "gum",
       "broken": false,
       "derivation": "/nix/store/saqsc2cnrj5kdswscdl8f7za5pjh29f7-gum-0.14.5.drv",
       "description": "Tasty Bubble Gum for your shell",
       "install_id": "gum",
       "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "name": "gum-0.14.5",
       "pname": "gum",
-      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
-      "rev_count": 729082,
-      "rev_date": "2024-12-27T09:21:16Z",
-      "scrape_date": "2024-12-28T03:56:01Z",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -77,14 +324,15 @@
       "description": "Tasty Bubble Gum for your shell",
       "install_id": "gum",
       "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "name": "gum-0.14.5",
       "pname": "gum",
-      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
-      "rev_count": 729082,
-      "rev_date": "2024-12-27T09:21:16Z",
-      "scrape_date": "2024-12-28T03:56:01Z",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -106,14 +354,15 @@
       "description": "Tasty Bubble Gum for your shell",
       "install_id": "gum",
       "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "name": "gum-0.14.5",
       "pname": "gum",
-      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
-      "rev_count": 729082,
-      "rev_date": "2024-12-27T09:21:16Z",
-      "scrape_date": "2024-12-28T03:56:01Z",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -135,14 +384,15 @@
       "description": "Tasty Bubble Gum for your shell",
       "install_id": "gum",
       "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "name": "gum-0.14.5",
       "pname": "gum",
-      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
-      "rev_count": 729082,
-      "rev_date": "2024-12-27T09:21:16Z",
-      "scrape_date": "2024-12-28T03:56:01Z",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -164,14 +414,15 @@
       "description": "Certified builds of OpenJDK",
       "install_id": "jdk21",
       "license": "GPL-2.0-only",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "name": "zulu-ca-jdk-21.0.4",
       "pname": "jdk21",
-      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
-      "rev_count": 729082,
-      "rev_date": "2024-12-27T09:21:16Z",
-      "scrape_date": "2024-12-28T03:56:01Z",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -193,14 +444,15 @@
       "description": "Open-source Java Development Kit",
       "install_id": "jdk21",
       "license": "GPL-2.0-only",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "name": "openjdk-21.0.5+11",
       "pname": "jdk21",
-      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
-      "rev_count": 729082,
-      "rev_date": "2024-12-27T09:21:16Z",
-      "scrape_date": "2024-12-28T03:56:01Z",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -223,14 +475,15 @@
       "description": "Certified builds of OpenJDK",
       "install_id": "jdk21",
       "license": "GPL-2.0-only",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "name": "zulu-ca-jdk-21.0.4",
       "pname": "jdk21",
-      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
-      "rev_count": 729082,
-      "rev_date": "2024-12-27T09:21:16Z",
-      "scrape_date": "2024-12-28T03:56:01Z",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -252,14 +505,15 @@
       "description": "Open-source Java Development Kit",
       "install_id": "jdk21",
       "license": "GPL-2.0-only",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "name": "openjdk-21.0.5+11",
       "pname": "jdk21",
-      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
-      "rev_count": 729082,
-      "rev_date": "2024-12-27T09:21:16Z",
-      "scrape_date": "2024-12-28T03:56:01Z",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -282,14 +536,15 @@
       "description": "Set of system utilities for Linux",
       "install_id": "libuuid",
       "license": "[ GPL-2.0-only, GPL-2.0-or-later, GPL-3.0-or-later, LGPL-2.1-or-later, BSD-3-Clause, BSD-4-Clause-UC, Public Domain ]",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "name": "util-linux-minimal-2.39.4",
       "pname": "libuuid",
-      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
-      "rev_count": 729082,
-      "rev_date": "2024-12-27T09:21:16Z",
-      "scrape_date": "2024-12-28T03:56:01Z",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -320,14 +575,15 @@
       "description": "Set of system utilities for Linux",
       "install_id": "libuuid",
       "license": "[ GPL-2.0-only, GPL-2.0-or-later, GPL-3.0-or-later, LGPL-2.1-or-later, BSD-3-Clause, BSD-4-Clause-UC, Public Domain ]",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "name": "util-linux-minimal-2.39.4",
       "pname": "libuuid",
-      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
-      "rev_count": 729082,
-      "rev_date": "2024-12-27T09:21:16Z",
-      "scrape_date": "2024-12-28T03:56:01Z",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -358,14 +614,15 @@
       "description": "Build automation tool (used primarily for Java projects)",
       "install_id": "maven3",
       "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "name": "maven-3.9.9",
       "pname": "maven3",
-      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
-      "rev_count": 729082,
-      "rev_date": "2024-12-27T09:21:16Z",
-      "scrape_date": "2024-12-28T03:56:01Z",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -387,14 +644,15 @@
       "description": "Build automation tool (used primarily for Java projects)",
       "install_id": "maven3",
       "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "name": "maven-3.9.9",
       "pname": "maven3",
-      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
-      "rev_count": 729082,
-      "rev_date": "2024-12-27T09:21:16Z",
-      "scrape_date": "2024-12-28T03:56:01Z",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -416,14 +674,15 @@
       "description": "Build automation tool (used primarily for Java projects)",
       "install_id": "maven3",
       "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "name": "maven-3.9.9",
       "pname": "maven3",
-      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
-      "rev_count": 729082,
-      "rev_date": "2024-12-27T09:21:16Z",
-      "scrape_date": "2024-12-28T03:56:01Z",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -445,14 +704,15 @@
       "description": "Build automation tool (used primarily for Java projects)",
       "install_id": "maven3",
       "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "name": "maven-3.9.9",
       "pname": "maven3",
-      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
-      "rev_count": 729082,
-      "rev_date": "2024-12-27T09:21:16Z",
-      "scrape_date": "2024-12-28T03:56:01Z",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -474,14 +734,15 @@
       "description": "Event-driven I/O framework for the V8 JavaScript engine",
       "install_id": "nodejs_22",
       "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "name": "nodejs-22.11.0",
       "pname": "nodejs_22",
-      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
-      "rev_count": 729082,
-      "rev_date": "2024-12-27T09:21:16Z",
-      "scrape_date": "2024-12-28T03:56:01Z",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -504,14 +765,15 @@
       "description": "Event-driven I/O framework for the V8 JavaScript engine",
       "install_id": "nodejs_22",
       "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "name": "nodejs-22.11.0",
       "pname": "nodejs_22",
-      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
-      "rev_count": 729082,
-      "rev_date": "2024-12-27T09:21:16Z",
-      "scrape_date": "2024-12-28T03:56:01Z",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -534,14 +796,15 @@
       "description": "Event-driven I/O framework for the V8 JavaScript engine",
       "install_id": "nodejs_22",
       "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "name": "nodejs-22.11.0",
       "pname": "nodejs_22",
-      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
-      "rev_count": 729082,
-      "rev_date": "2024-12-27T09:21:16Z",
-      "scrape_date": "2024-12-28T03:56:01Z",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -564,14 +827,15 @@
       "description": "Event-driven I/O framework for the V8 JavaScript engine",
       "install_id": "nodejs_22",
       "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=634fd46801442d760e09493a794c4f15db2d0cbb",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "name": "nodejs-22.11.0",
       "pname": "nodejs_22",
-      "rev": "634fd46801442d760e09493a794c4f15db2d0cbb",
-      "rev_count": 729082,
-      "rev_date": "2024-12-27T09:21:16Z",
-      "scrape_date": "2024-12-28T03:56:01Z",
+      "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
+      "rev_count": 738172,
+      "rev_date": "2025-01-14T19:41:48Z",
+      "scrape_date": "2025-01-16T00:14:48Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,

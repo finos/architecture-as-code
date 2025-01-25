@@ -21,6 +21,8 @@ gum.pkg-path = "gum"
 jdk21.pkg-path = "jdk21"
 maven3.pkg-path = "maven3"
 nodejs_22.pkg-path = "nodejs_22"
+docker-compose.pkg-path = "docker-compose"
+docker.pkg-path = "docker"
 
 
 ## Environment Variables ---------------------------------------------
