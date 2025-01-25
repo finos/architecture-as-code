@@ -3,9 +3,8 @@ package org.finos.calm.resources;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
-import org.finos.calm.domain.adr.AdrMetaBuilder;
-import org.finos.calm.domain.adr.AdrBuilder;
 import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.exception.AdrNotFoundException;
 import org.finos.calm.domain.exception.AdrParseException;
@@ -85,18 +84,18 @@ public class TestAdrResourceShould {
         if (exceptionToThrow != null) {
             when(mockAdrStore.createAdrForNamespace(any(AdrMeta.class))).thenThrow(exceptionToThrow);
         } else {
-            AdrMeta adrMeta = AdrMetaBuilder.builder()
-                    .adrContent(
-                            AdrBuilder.builder()
-                                    .title("My ADR")
-                                    .status(Status.draft)
-                                    .creationDateTime(LocalDateTime.now())
-                                    .updateDateTime(LocalDateTime.now())
+            AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
+                    .setAdr(
+                            new Adr.AdrBuilder()
+                                    .setTitle("My ADR")
+                                    .setStatus(Status.draft)
+                                    .setCreationDateTime(LocalDateTime.now())
+                                    .setUpdateDateTime(LocalDateTime.now())
                                     .build()
                     )
-                    .id(12)
-                    .revision(1)
-                    .namespace(namespace)
+                    .setId(12)
+                    .setRevision(1)
+                    .setNamespace(namespace)
                     .build();
             when(mockAdrStore.createAdrForNamespace(any(AdrMeta.class))).thenReturn(adrMeta);
         }
@@ -112,14 +111,14 @@ public class TestAdrResourceShould {
                 .statusCode(expectedStatusCode)
                 .header("Location", locationHeader);
 
-        AdrMeta expectedAdrMeta = AdrMetaBuilder.builder()
-                .adrContent(
-                        AdrBuilder.builder()
-                                .title("My ADR")
-                                .status(Status.draft)
+        AdrMeta expectedAdrMeta = new AdrMeta.AdrMetaBuilder()
+                .setAdr(
+                        new Adr.AdrBuilder()
+                                .setTitle("My ADR")
+                                .setStatus(Status.draft)
                                 .build())
-                .revision(1)
-                .namespace(namespace)
+                .setRevision(1)
+                .setNamespace(namespace)
                 .build();
 
         verify(mockAdrStore, times(1)).createAdrForNamespace(expectedAdrMeta);
@@ -145,18 +144,18 @@ public class TestAdrResourceShould {
         if (exceptionToThrow != null) {
             when(mockAdrStore.updateAdrForNamespace(any(AdrMeta.class))).thenThrow(exceptionToThrow);
         } else {
-            AdrMeta adrMeta = AdrMetaBuilder.builder()
-                    .adrContent(
-                            AdrBuilder.builder()
-                                    .title("My ADR")
-                                    .status(Status.draft)
-                                    .creationDateTime(LocalDateTime.now())
-                                    .updateDateTime(LocalDateTime.now())
+            AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
+                    .setAdr(
+                            new Adr.AdrBuilder()
+                                    .setTitle("My ADR")
+                                    .setStatus(Status.draft)
+                                    .setCreationDateTime(LocalDateTime.now())
+                                    .setUpdateDateTime(LocalDateTime.now())
                                     .build()
                     )
-                    .id(1)
-                    .revision(2)
-                    .namespace(namespace)
+                    .setId(1)
+                    .setRevision(2)
+                    .setNamespace(namespace)
                     .build();
             when(mockAdrStore.updateAdrForNamespace(any(AdrMeta.class))).thenReturn(adrMeta);
         }
@@ -169,13 +168,13 @@ public class TestAdrResourceShould {
                 .then()
                 .statusCode(expectedStatusCode);
 
-        AdrMeta expectedAdrMeta = AdrMetaBuilder.builder()
-                .adrContent(
-                        AdrBuilder.builder()
-                                .title("My ADR")
+        AdrMeta expectedAdrMeta = new AdrMeta.AdrMetaBuilder()
+                .setAdr(
+                        new Adr.AdrBuilder()
+                                .setTitle("My ADR")
                                 .build())
-                .id(1)
-                .namespace(namespace)
+                .setId(1)
+                .setNamespace(namespace)
                 .build();
 
         verify(mockAdrStore, times(1)).updateAdrForNamespace(expectedAdrMeta);
@@ -220,9 +219,9 @@ public class TestAdrResourceShould {
     }
 
     private void verifyExpectedAdrRevisions(String namespace) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
-        AdrMeta expectedAdrToRetrieveMeta = AdrMetaBuilder.builder()
-                .namespace(namespace)
-                .id(12)
+        AdrMeta expectedAdrToRetrieveMeta = new AdrMeta.AdrMetaBuilder()
+                .setNamespace(namespace)
+                .setId(12)
                 .build();
 
         verify(mockAdrStore, times(1)).getAdrRevisions(expectedAdrToRetrieveMeta);
@@ -242,11 +241,11 @@ public class TestAdrResourceShould {
     @ParameterizedTest
     @MethodSource("provideParametersForGetAdrRevisionTests")
     void respond_correctly_to_get_adr_revision(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException {
-        AdrMeta adrMeta = AdrMetaBuilder.builder()
-                .namespace(namespace)
-                .id(12)
-                .revision(1)
-                .adrContent(AdrBuilder.builder().title("My title").build())
+        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
+                .setNamespace(namespace)
+                .setId(12)
+                .setRevision(1)
+                .setAdr(new Adr.AdrBuilder().setTitle("My title").build())
                 .build();
 
         if (exceptionToThrow != null) {
@@ -280,11 +279,11 @@ public class TestAdrResourceShould {
     @ParameterizedTest
     @MethodSource("provideParametersForGetAdrRevisionTests")
     void respond_correctly_to_get_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrParseException {
-        AdrMeta adrMeta = AdrMetaBuilder.builder()
-                .namespace(namespace)
-                .id(12)
-                .revision(2)
-                .adrContent(AdrBuilder.builder().title("My title").build())
+        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
+                .setNamespace(namespace)
+                .setId(12)
+                .setRevision(2)
+                .setAdr(new Adr.AdrBuilder().setTitle("My title").build())
                 .build();
 
         if (exceptionToThrow != null) {
@@ -334,18 +333,18 @@ public class TestAdrResourceShould {
         if (exceptionToThrow != null) {
             when(mockAdrStore.updateAdrStatus(any(AdrMeta.class), any(Status.class))).thenThrow(exceptionToThrow);
         } else {
-            AdrMeta adrMeta = AdrMetaBuilder.builder()
-                    .adrContent(
-                            AdrBuilder.builder()
-                                    .title("My ADR")
-                                    .status(Status.proposed)
-                                    .creationDateTime(LocalDateTime.now())
-                                    .updateDateTime(LocalDateTime.now())
+            AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
+                    .setAdr(
+                            new Adr.AdrBuilder()
+                                    .setTitle("My ADR")
+                                    .setStatus(Status.proposed)
+                                    .setCreationDateTime(LocalDateTime.now())
+                                    .setUpdateDateTime(LocalDateTime.now())
                                     .build()
                     )
-                    .id(1)
-                    .revision(2)
-                    .namespace(namespace)
+                    .setId(1)
+                    .setRevision(2)
+                    .setNamespace(namespace)
                     .build();
             when(mockAdrStore.updateAdrStatus(any(AdrMeta.class), any(Status.class))).thenReturn(adrMeta);
         }
@@ -358,28 +357,28 @@ public class TestAdrResourceShould {
                 .then()
                 .statusCode(expectedStatusCode);
 
-        AdrMeta expectedAdrMeta = AdrMetaBuilder.builder()
-                .id(1)
-                .namespace(namespace)
+        AdrMeta expectedAdrMeta = new AdrMeta.AdrMetaBuilder()
+                .setId(1)
+                .setNamespace(namespace)
                 .build();
 
         verify(mockAdrStore, times(1)).updateAdrStatus(expectedAdrMeta, Status.proposed);
     }
 
     private void verifyExpectedGetAdrRevision(String namespace) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException {
-        AdrMeta expectedAdrToRetrieveMeta = AdrMetaBuilder.builder()
-                .namespace(namespace)
-                .id(12)
-                .revision(1)
+        AdrMeta expectedAdrToRetrieveMeta = new AdrMeta.AdrMetaBuilder()
+                .setNamespace(namespace)
+                .setId(12)
+                .setRevision(1)
                 .build();
 
         verify(mockAdrStore, times(1)).getAdrRevision(expectedAdrToRetrieveMeta);
     }
 
     private void verifyExpectedGetAdr(String namespace) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrParseException {
-        AdrMeta expectedAdrToRetrieveMeta = AdrMetaBuilder.builder()
-                .namespace(namespace)
-                .id(12)
+        AdrMeta expectedAdrToRetrieveMeta = new AdrMeta.AdrMetaBuilder()
+                .setNamespace(namespace)
+                .setId(12)
                 .build();
 
         verify(mockAdrStore, times(1)).getAdr(expectedAdrToRetrieveMeta);
