@@ -12,8 +12,8 @@
       "gum": {
         "pkg-path": "gum"
       },
-      "jdk21": {
-        "pkg-path": "jdk21"
+      "jdk23": {
+        "pkg-path": "jdk23"
       },
       "libuuid": {
         "pkg-path": "libuuid",
@@ -408,15 +408,15 @@
       "priority": 5
     },
     {
-      "attr_path": "jdk21",
+      "attr_path": "jdk23",
       "broken": false,
-      "derivation": "/nix/store/l5a27j5b0n89h5n19pvxjpipcfasxr3z-zulu-ca-jdk-21.0.4.drv",
+      "derivation": "/nix/store/gpgp222z3lwijmdxhdlybff46sd34k8h-zulu-ca-jdk-23.0.0.drv",
       "description": "Certified builds of OpenJDK",
-      "install_id": "jdk21",
+      "install_id": "jdk23",
       "license": "GPL-2.0-only",
       "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
-      "name": "zulu-ca-jdk-21.0.4",
-      "pname": "jdk21",
+      "name": "zulu-ca-jdk-23.0.0",
+      "pname": "jdk23",
       "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "rev_count": 738172,
       "rev_date": "2025-01-14T19:41:48Z",
@@ -426,27 +426,27 @@
         "unstable"
       ],
       "unfree": false,
-      "version": "zulu-ca-jdk-21.0.4",
+      "version": "zulu-ca-jdk-23.0.0",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/i43yq5k7nphs1paam9xyrzypzjkn97p1-zulu-ca-jdk-21.0.4"
+        "out": "/nix/store/mmsg51qmsgp1lhylx96ix4kl0wn9b9fx-zulu-ca-jdk-23.0.0"
       },
       "system": "aarch64-darwin",
       "group": "toplevel",
       "priority": 5
     },
     {
-      "attr_path": "jdk21",
+      "attr_path": "jdk23",
       "broken": false,
-      "derivation": "/nix/store/28sls8nn9nr33jy5in88wz77mf06gb7y-openjdk-21.0.5+11.drv",
+      "derivation": "/nix/store/pwbv9az3nnvky1j0kv9sdjw6c0l3z3ci-openjdk-23.0.1+11.drv",
       "description": "Open-source Java Development Kit",
-      "install_id": "jdk21",
+      "install_id": "jdk23",
       "license": "GPL-2.0-only",
       "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
-      "name": "openjdk-21.0.5+11",
-      "pname": "jdk21",
+      "name": "openjdk-23.0.1+11",
+      "pname": "jdk23",
       "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "rev_count": 738172,
       "rev_date": "2025-01-14T19:41:48Z",
@@ -456,28 +456,28 @@
         "unstable"
       ],
       "unfree": false,
-      "version": "openjdk-21.0.5+11",
+      "version": "openjdk-23.0.1+11",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "debug": "/nix/store/kv4krs3vzdgpfcp51xgg4cfgdwx4kvmf-openjdk-21.0.5+11-debug",
-        "out": "/nix/store/p7bxwzgpnbsafz0iz1a0yrnnzmjr0pqy-openjdk-21.0.5+11"
+        "debug": "/nix/store/v7xhjv7cx72l71wk6lljzrmj1zdhn32q-openjdk-23.0.1+11-debug",
+        "out": "/nix/store/n20dwghm2qcpkx2kw6sqb5vaay6xk6bd-openjdk-23.0.1+11"
       },
       "system": "aarch64-linux",
       "group": "toplevel",
       "priority": 5
     },
     {
-      "attr_path": "jdk21",
+      "attr_path": "jdk23",
       "broken": false,
-      "derivation": "/nix/store/f61wj8dkr70x8pkyr2gwn946k0v0jpid-zulu-ca-jdk-21.0.4.drv",
+      "derivation": "/nix/store/0x6z3s91i0h41l0pyps79asi5b1kgr5z-zulu-ca-jdk-23.0.0.drv",
       "description": "Certified builds of OpenJDK",
-      "install_id": "jdk21",
+      "install_id": "jdk23",
       "license": "GPL-2.0-only",
       "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
-      "name": "zulu-ca-jdk-21.0.4",
-      "pname": "jdk21",
+      "name": "zulu-ca-jdk-23.0.0",
+      "pname": "jdk23",
       "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "rev_count": 738172,
       "rev_date": "2025-01-14T19:41:48Z",
@@ -487,27 +487,27 @@
         "unstable"
       ],
       "unfree": false,
-      "version": "zulu-ca-jdk-21.0.4",
+      "version": "zulu-ca-jdk-23.0.0",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/ij352rjrmfcw6pyfm8q4bkjvw2knzwih-zulu-ca-jdk-21.0.4"
+        "out": "/nix/store/njvhdy2ikgyhwdx7dbpchhx110l40p8i-zulu-ca-jdk-23.0.0"
       },
       "system": "x86_64-darwin",
       "group": "toplevel",
       "priority": 5
     },
     {
-      "attr_path": "jdk21",
+      "attr_path": "jdk23",
       "broken": false,
-      "derivation": "/nix/store/7cg8jrm8xr34v8w92ybw181kwv7hh5i7-openjdk-21.0.5+11.drv",
+      "derivation": "/nix/store/iy7lwvzhywyx8sgf6snpfli9p3h2sasa-openjdk-23.0.1+11.drv",
       "description": "Open-source Java Development Kit",
-      "install_id": "jdk21",
+      "install_id": "jdk23",
       "license": "GPL-2.0-only",
       "locked_url": "https://github.com/flox/nixpkgs?rev=eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
-      "name": "openjdk-21.0.5+11",
-      "pname": "jdk21",
+      "name": "openjdk-23.0.1+11",
+      "pname": "jdk23",
       "rev": "eb62e6aa39ea67e0b8018ba8ea077efe65807dc8",
       "rev_count": 738172,
       "rev_date": "2025-01-14T19:41:48Z",
@@ -517,13 +517,13 @@
         "unstable"
       ],
       "unfree": false,
-      "version": "openjdk-21.0.5+11",
+      "version": "openjdk-23.0.1+11",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "debug": "/nix/store/ihdvawhishsymc3dcdj22w400f3pwnv2-openjdk-21.0.5+11-debug",
-        "out": "/nix/store/v5p972p1lsfnb3v62jy3qcf69as7x8wp-openjdk-21.0.5+11"
+        "debug": "/nix/store/88xs0bcqym2bdmx3qp42vr8rcx5g9d8q-openjdk-23.0.1+11-debug",
+        "out": "/nix/store/zqrpvgh2d18gp07ajv0mxn2gani3qdf5-openjdk-23.0.1+11"
       },
       "system": "x86_64-linux",
       "group": "toplevel",
