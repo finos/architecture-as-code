@@ -1,7 +1,7 @@
 import { SchemaDirectory } from './schema-directory';
 import { readFile } from 'node:fs/promises';
 
-jest.mock('../helper', () => {
+jest.mock('./commands/helper', () => {
     return {
         initLogger: () => {
             return {
@@ -18,14 +18,23 @@ describe('SchemaDirectory', () => {
     it('loads all specs from given directory including subdirectories', async () => {
         const schemaDir = new SchemaDirectory();
         
-        await schemaDir.loadSchemas('../calm/draft/2024-03');
+        await schemaDir.loadSchemas(__dirname + '/../../calm/draft/2024-03');
         expect(schemaDir.getLoadedSchemas().length).toBe(2);
+    });
+    
+    it('throw exception when directory does not exist', async () => {
+        const schemaDir = new SchemaDirectory();
+        
+        expect(async () => {
+            await schemaDir.loadSchemas('bad-directory');
+        })
+            .rejects.toThrow();
     });
 
     it('loads all specs from given directory including subdirectories - 2024-10 schema', async () => {
         const schemaDir = new SchemaDirectory();
         
-        await schemaDir.loadSchemas('../calm/draft/2024-10');
+        await schemaDir.loadSchemas(__dirname + '/../../calm/draft/2024-10');
         expect(schemaDir.getLoadedSchemas().length).toBe(8);
         
         const loadedSchemas = schemaDir.getLoadedSchemas();
@@ -48,7 +57,7 @@ describe('SchemaDirectory', () => {
     it('resolves a reference from a loaded schema', async () => {
         const schemaDir = new SchemaDirectory();
         
-        await schemaDir.loadSchemas('../calm/draft/2024-03');
+        await schemaDir.loadSchemas(__dirname + '/../../calm/draft/2024-03');
         const nodeRef = 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/core.json#/defs/node';
         const nodeDef = schemaDir.getDefinition(nodeRef);
 
@@ -59,7 +68,7 @@ describe('SchemaDirectory', () => {
     it('recursively resolve references from a loaded schema', async () => {
         const schemaDir = new SchemaDirectory();
         
-        await schemaDir.loadSchemas('../calm/draft/2024-04');
+        await schemaDir.loadSchemas(__dirname + '/../../calm/draft/2024-04');
         const interfaceRef = 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/host-port-interface';
         const interfaceDef = schemaDir.getDefinition(interfaceRef);
 
@@ -72,7 +81,7 @@ describe('SchemaDirectory', () => {
     it('qualify relative references within same file to absolute IDs', async () => {
         const schemaDir = new SchemaDirectory();
         
-        await schemaDir.loadSchemas('../calm/draft/2024-04');
+        await schemaDir.loadSchemas(__dirname + '/../../calm/draft/2024-04');
         const interfaceRef = 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/rate-limit-interface';
         const interfaceDef = schemaDir.getDefinition(interfaceRef);
 
@@ -107,7 +116,7 @@ describe('SchemaDirectory', () => {
     it('look up self-definitions without schema ID at top level from the pattern itself', async () => {
         const schemaDir = new SchemaDirectory();
 
-        await schemaDir.loadSchemas('../calm/draft/2024-04');
+        await schemaDir.loadSchemas(__dirname + '/../../calm/draft/2024-04');
 
         const selfRefPatternStr = await readFile('test_fixtures/api-gateway-self-reference.json', 'utf-8');
         const selfRefPattern = JSON.parse(selfRefPatternStr);

@@ -44,8 +44,17 @@
         "description": {
           "type": "string"
         },
-        "detailed-architecture": {
-          "type": "string"
+        "details": {
+          "type": "object",
+          "properties": {
+            "detailed-architecture": {
+              "type": "string"
+            },
+            "required-pattern": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
         },
         "data-classification": {
           "$ref": "#/defs/data-classification"
