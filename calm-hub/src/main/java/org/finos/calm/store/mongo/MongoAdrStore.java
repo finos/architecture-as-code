@@ -16,8 +16,6 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
-import org.finos.calm.domain.adr.AdrMetaBuilder;
-import org.finos.calm.domain.adr.AdrBuilder;
 import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.exception.AdrNotFoundException;
 import org.finos.calm.domain.exception.AdrParseException;
@@ -70,13 +68,13 @@ public class MongoAdrStore implements AdrStore {
 
     @Override
     public AdrMeta createAdrForNamespace(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrParseException {
-        if(!namespaceStore.namespaceExists(adrMeta.namespace())) {
+        if(!namespaceStore.namespaceExists(adrMeta.getNamespace())) {
             throw new NamespaceNotFoundException();
         }
 
-        String adrContentStr;
+        String adrStr;
         try {
-        adrContentStr = objectMapper.writeValueAsString(adrMeta.adrContent());
+        adrStr = objectMapper.writeValueAsString(adrMeta.getAdr());
         } catch(JsonProcessingException e) {
             log.error("Could not write ADR Content to String", e);
             throw new AdrParseException();
@@ -84,14 +82,14 @@ public class MongoAdrStore implements AdrStore {
 
         int id = counterStore.getNextAdrSequenceValue();
         Document adrDocument = new Document("adrId", id).append("revisions",
-                new Document(String.valueOf(adrMeta.revision()), Document.parse(adrContentStr)));
+                new Document(String.valueOf(adrMeta.getRevision()), Document.parse(adrStr)));
 
         adrCollection.updateOne(
-                Filters.eq("namespace", adrMeta.namespace()),
+                Filters.eq("namespace", adrMeta.getNamespace()),
                 Updates.push("adrs", adrDocument),
                 new UpdateOptions().upsert(true));
 
-        return AdrMetaBuilder.builder(adrMeta).id(id).build();
+        return new AdrMeta.AdrMetaBuilder(adrMeta).setId(id).build();
     }
 
     @Override
@@ -116,14 +114,14 @@ public class MongoAdrStore implements AdrStore {
         Document revisionsDoc = retrieveRevisionsDoc(adrDoc, adrMeta);
 
         // Return the ADR JSON blob for the specified revision
-        Document revisionDoc = (Document) revisionsDoc.get(String.valueOf(adrMeta.revision()));
-        log.info("RevisionDoc: [{}], Revision: [{}]", adrDoc.get("revisions"), adrMeta.revision());
+        Document revisionDoc = (Document) revisionsDoc.get(String.valueOf(adrMeta.getRevision()));
+        log.info("RevisionDoc: [{}], Revision: [{}]", adrDoc.get("revisions"), adrMeta.getRevision());
         if(revisionDoc == null) {
             throw new AdrRevisionNotFoundException();
         }
         try {
-            return AdrMetaBuilder.builder(adrMeta)
-                    .adrContent(objectMapper.readValue(revisionDoc.toJson(), Adr.class))
+            return new AdrMeta.AdrMetaBuilder(adrMeta)
+                    .setAdr(objectMapper.readValue(revisionDoc.toJson(), Adr.class))
                     .build();
         } catch(JsonProcessingException e) {
             log.error("Could not parse stored ADR to ADR Content.", e);
@@ -136,13 +134,13 @@ public class MongoAdrStore implements AdrStore {
         Document adrDoc = retrieveAdrDoc(adrMeta);
         AdrMeta latestRevision = retrieveLatestRevision(adrMeta, adrDoc);
 
-        int newRevision = latestRevision.revision() + 1;
-        AdrMeta newAdrMeta = AdrMetaBuilder.builder(adrMeta)
-                .adrContent(AdrBuilder.builder(adrMeta.adrContent())
-                        .status(latestRevision.adrContent().status())
-                        .creationDateTime(latestRevision.adrContent().creationDateTime())
+        int newRevision = latestRevision.getRevision() + 1;
+        AdrMeta newAdrMeta = new AdrMeta.AdrMetaBuilder(adrMeta)
+                .setAdr(new Adr.AdrBuilder(adrMeta.getAdr())
+                        .setStatus(latestRevision.getAdr().getStatus())
+                        .setCreationDateTime(latestRevision.getAdr().getCreationDateTime())
                         .build())
-                .revision(newRevision)
+                .setRevision(newRevision)
                 .build();
 
         writeAdrToMongo(newAdrMeta);
@@ -154,11 +152,11 @@ public class MongoAdrStore implements AdrStore {
         Document adrDoc = retrieveAdrDoc(adrMeta);
         AdrMeta latestRevision = retrieveLatestRevision(adrMeta, adrDoc);
 
-        int newRevisionNum = latestRevision.revision() + 1;
-        AdrMeta newRevision = AdrMetaBuilder.builder(latestRevision)
-                .revision(newRevisionNum)
-                .adrContent(AdrBuilder.builder(latestRevision.adrContent())
-                        .status(status)
+        int newRevisionNum = latestRevision.getRevision() + 1;
+        AdrMeta newRevision = new AdrMeta.AdrMetaBuilder(latestRevision)
+                .setRevision(newRevisionNum)
+                .setAdr(new Adr.AdrBuilder(latestRevision.getAdr())
+                        .setStatus(status)
                         .build())
                 .build();
         writeAdrToMongo(newRevision);
@@ -183,8 +181,8 @@ public class MongoAdrStore implements AdrStore {
     }
 
     private Document retrieveAdrDoc(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException {
-        List<Document> adrsDoc = retrieveAdrsDocs(adrMeta.namespace());
-        Optional<Document> adrOpt = adrsDoc.stream().filter(adrDoc -> adrMeta.id() == adrDoc.getInteger("adrId")).findAny();
+        List<Document> adrsDoc = retrieveAdrsDocs(adrMeta.getNamespace());
+        Optional<Document> adrOpt = adrsDoc.stream().filter(adrDoc -> adrMeta.getId() == adrDoc.getInteger("adrId")).findAny();
         return adrOpt.orElseThrow(AdrNotFoundException::new);
     }
 
@@ -192,7 +190,7 @@ public class MongoAdrStore implements AdrStore {
         Document revisionsDoc = (Document) adrDoc.get("revisions");
 
         if(revisionsDoc == null || revisionsDoc.isEmpty()) {
-            log.error("Could not find the latest revision of ADR [{}]", adrMeta.id());
+            log.error("Could not find the latest revision of ADR [{}]", adrMeta.getId());
             throw new AdrRevisionNotFoundException();
         }
 
@@ -213,11 +211,11 @@ public class MongoAdrStore implements AdrStore {
         Document revisionDoc = (Document) revisionsDoc.get(String.valueOf(latestRevision));
         log.info("RevisionDoc: [{}], Revision: [{}]", revisionDoc, latestRevision);
         try {
-            return AdrMetaBuilder.builder()
-                    .namespace(adrMeta.namespace())
-                    .id(adrMeta.id())
-                    .revision(latestRevision)
-                    .adrContent(objectMapper.readValue(revisionDoc.toJson(), Adr.class))
+            return new AdrMeta.AdrMetaBuilder()
+                    .setNamespace(adrMeta.getNamespace())
+                    .setId(adrMeta.getId())
+                    .setRevision(latestRevision)
+                    .setAdr(objectMapper.readValue(revisionDoc.toJson(), Adr.class))
                     .build();
         } catch(JsonProcessingException e) {
             log.error("Could not parse stored ADR to ADR Content.", e);
@@ -228,11 +226,11 @@ public class MongoAdrStore implements AdrStore {
     private void writeAdrToMongo(AdrMeta adrMeta) throws AdrPersistenceException, AdrParseException {
 
         try {
-            Document adrDocument = Document.parse(objectMapper.writeValueAsString(adrMeta.adrContent()));
-            Document filter = new Document("namespace", adrMeta.namespace())
-                    .append("adrs.adrId", adrMeta.id());
+            Document adrDocument = Document.parse(objectMapper.writeValueAsString(adrMeta.getAdr()));
+            Document filter = new Document("namespace", adrMeta.getNamespace())
+                    .append("adrs.adrId", adrMeta.getId());
             Document update = new Document("$set",
-                    new Document("adrs.$.revisions." + adrMeta.revision(), adrDocument));
+                    new Document("adrs.$.revisions." + adrMeta.getRevision(), adrDocument));
 
             adrCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
 
