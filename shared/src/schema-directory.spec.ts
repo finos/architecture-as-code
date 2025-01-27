@@ -26,7 +26,7 @@ describe('SchemaDirectory', () => {
         const schemaDir = new SchemaDirectory();
         
         expect(async () => {
-            await schemaDir.loadSchemas("bad-directory");
+            await schemaDir.loadSchemas('bad-directory');
         }).rejects.toThrow();
     });
 

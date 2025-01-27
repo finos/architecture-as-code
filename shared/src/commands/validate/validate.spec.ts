@@ -27,6 +27,7 @@ jest.mock('../helper.js', () => {
             return {
                 info: jest.fn(),
                 debug: jest.fn(),
+                warn: jest.fn(),
                 error: jest.fn()
             };
         }
@@ -74,7 +75,7 @@ describe('validation support functions', () => {
             exitBasedOffOfValidationOutcome(expectedValidationOutcome, true);
             expect(mockExit).toHaveBeenCalledWith(1);
         });
-    })
+    });
 
     describe('sortSpectralIssueBySeverity', () => {
 
@@ -239,7 +240,7 @@ describe('validation support functions', () => {
         });
 
     });
-})
+});
 
 describe('validate pattern and architecture', () => {
     beforeEach(() => {
@@ -516,7 +517,6 @@ describe('validate - architecture only', () => {
         fetchMock.mock('http://exist/api-gateway-implementation.json', apiGateway);
 
         const response = await validate('http://exist/api-gateway-implementation.json', '', metaSchemaLocation, debugDisabled);
-        console.log(response);
         
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();

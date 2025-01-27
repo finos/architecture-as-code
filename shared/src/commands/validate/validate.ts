@@ -1,5 +1,5 @@
 import Ajv2020, { ErrorObject } from 'ajv/dist/2020.js';
-import { existsSync, promises as fs, readdirSync, readFileSync, statSync } from 'fs';
+import { existsSync, promises as fs } from 'fs';
 import { Spectral, ISpectralDiagnostic, RulesetDefinition } from '@stoplight/spectral-core';
 
 import validationRulesForPattern from '../../spectral/rules-pattern';
