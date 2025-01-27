@@ -116,25 +116,6 @@ async function runSpectralValidations(
 
 
 /**
- * This is essentially the old function, just wrapped into the nicer functions.
- * @param jsonSchemaArchitectureLocation 
- * @param jsonSchemaLocation 
- * @param metaSchemaPath 
- * @param debug 
- * @param failOnWarnings 
- */
-export async function validateAndExitConditionally(
-    jsonSchemaArchitectureLocation: string,
-    jsonSchemaLocation: string,
-    metaSchemaPath: string,
-    debug: boolean = false,
-    failOnWarnings: boolean = false
-): Promise<void> {
-    const outcome = await validate(jsonSchemaArchitectureLocation, jsonSchemaLocation, metaSchemaPath, debug);
-    exitBasedOffOfValidationOutcome(outcome, failOnWarnings);
-}
-
-/**
  * Validation - with simple input parameters and output validation outcomes.
  * @param jsonSchemaArchitectureLocation 
  * @param jsonSchemaLocation 
@@ -162,7 +143,7 @@ export async function validate(
         }
     } catch (error) {
         logger.error('An error occured:', error);
-        process.exit(1);
+        throw error;
     }
 }
 
