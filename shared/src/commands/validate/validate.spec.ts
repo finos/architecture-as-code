@@ -507,7 +507,7 @@ describe('validate - architecture only', () => {
         expect(response.allValidationOutputs().length).toBeGreaterThan(0);
     });
 
-    it.only('returns no errors when the architecture passes all the spectral validations ', async () => {
+    it('returns no errors when the architecture passes all the spectral validations with no errors', async () => {
         const expectedSpectralOutput: ISpectralDiagnostic[] = [];
 
         mockRunFunction.mockReturnValue(expectedSpectralOutput);
@@ -521,9 +521,9 @@ describe('validate - architecture only', () => {
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).not.toBeTruthy();
-        expect(response.hasWarnings).toBeTruthy();
+        expect(response.hasWarnings).not.toBeTruthy();
         expect(response.allValidationOutputs()).not.toBeNull();
-        expect(response.allValidationOutputs().length).toBeGreaterThan(0);
+        expect(response.allValidationOutputs().length).toBe(0);
     });
 });
 
