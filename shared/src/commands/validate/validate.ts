@@ -11,7 +11,7 @@ import { ValidationOutput, ValidationOutcome } from './validation.output.js';
 import { SpectralResult } from './spectral.result.js';
 import createJUnitReport from './output-formats/junit-output.js';
 import prettyFormat from './output-formats/pretty-output';
-import { SchemaDirectory } from '@finos/calm-shared/schema-directory';
+import { SchemaDirectory } from '../../schema-directory.js';
 
 let logger: winston.Logger; // defined later at startup
 
