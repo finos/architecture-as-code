@@ -57,7 +57,7 @@ program
  * Run the validate command and exit with the right status code based on the result.
  * @param options Options passed through from the argument parser.
  */
-async function runValidate(options: any) {
+async function runValidate(options) {
     if (!options.pattern && !options.architecture) {
         program.error(`error: one of the required options '${PATTERN_OPTION}' or '${ARCHITECTURE_OPTION}' was not specified`);
     }
@@ -69,7 +69,7 @@ async function runValidate(options: any) {
     }
     catch (err) {
         const logger = initLogger(options.verbose);
-        logger.error("An error occurred while validating: " + err.message);
+        logger.error('An error occurred while validating: ' + err.message);
         logger.debug(err.stack);
         process.exit(1);
     }
