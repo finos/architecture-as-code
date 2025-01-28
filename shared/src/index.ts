@@ -1,7 +1,6 @@
 export {
     validate,
     formatOutput as getFormattedOutput,
-    validateAndExitConditionally,
     exitBasedOffOfValidationOutcome,
 } from './commands/validate/validate.js';
 export { OutputFormat } from './commands/validate/validate.js';
