@@ -3,6 +3,7 @@
         "baseUrl": ".",
         "paths": {
             "@finos/calm-shared": ["shared/src"],
+            "@finos/calm-shared/model": ["shared/src/model"],
             "@finos/calm-shared/*": ["shared/src/*"]
         },
         "composite": true,
@@ -23,11 +24,13 @@
     },
     "references": [
         { "path": "./shared" },
-        { "path": "./cli" }
+        { "path": "./cli" },
+        { "path": "./calm-visualizer"}
     ],
     "include": [
         "shared/**/*",
-        "cli/**/*"
+        "cli/**/*",
+        "calm-visualizer/**/*"
     ],
     "exclude": [
         "node_modules",

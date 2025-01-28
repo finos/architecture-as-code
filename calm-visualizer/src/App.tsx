@@ -9,12 +9,14 @@ import { ZoomProvider } from './components/zoom-context.provider';
 function App() {
     const [title, setTitle] = useState<string | undefined>(undefined);
     const [instance, setCALMInstance] = useState<CALMArchitecture | undefined>(undefined);
+    const [rawCalm, setRawCalm] = useState<string>('');
     const [isConDescActive, setConDescActive] = React.useState(false);
     const [isNodeDescActive, setNodeDescActive] = React.useState(false);
 
     async function handleFile(instanceFile: File) {
         const title = instanceFile.name;
         const file = await instanceFile.text();
+        setRawCalm(file);
         const instance = JSON.parse(file);
 
         setTitle(title);
@@ -34,6 +36,7 @@ function App() {
                     isNodeDescActive={isNodeDescActive}
                     isConDescActive={isConDescActive}
                     calmInstance={instance}
+                    rawCalm={rawCalm}
                     title={title}
                 />
             </div>
