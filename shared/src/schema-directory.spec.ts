@@ -27,8 +27,7 @@ describe('SchemaDirectory', () => {
         
         expect(async () => {
             await schemaDir.loadSchemas('bad-directory');
-        })
-            .rejects.toThrow();
+        }).rejects.toThrow();
     });
 
     it('loads all specs from given directory including subdirectories - 2024-10 schema', async () => {

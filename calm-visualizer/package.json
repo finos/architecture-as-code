@@ -9,7 +9,7 @@
         "lint": "eslint .",
         "format": "prettier --write .",
         "preview": "vite preview",
-        "test": "vitest"
+        "test": "vitest run"
     },
     "dependencies": {
         "cytoscape": "^3.30.3",
