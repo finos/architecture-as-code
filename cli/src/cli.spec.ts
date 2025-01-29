@@ -163,6 +163,30 @@ describe('CLI Integration Tests', () => {
             done();
         });
     });
+
+    test('example server command - starts server and responds to requests', (done) => {
+        const serverCommand = 'calm server -p 3001 --schema-directory ../../dist/calm/';
+        const serverProcess = exec(serverCommand, async (error, _stdout, _stderr) => {
+            if (error) {
+                done(error);
+            }
+        });
+        console.log('Server started');
+        // Give the server some time to start
+        setTimeout(async () => {
+            try {
+                console.log('Sending request');
+                const response = await axios.get('http://localhost:3001/calm/validate/health');
+                console.log('Response received');
+                expect(response.status).toBe(200);
+                serverProcess.kill();
+                done();
+            } catch (error) {
+                serverProcess.kill();
+                done(error);
+            }
+        }, 5000);
+    });
 });
 
 

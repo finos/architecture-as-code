@@ -1,9 +1,18 @@
-import express from 'express';
-
-import { validationRouter } from './validation-route';
-
 import { Router } from 'express';
+import { ValidationRouter } from './validation-route';
 
-export const allRoutes: Router = express.Router();
+const VALIDATE_ROUTE_PATH = '/calm/validate';
 
-allRoutes.use('/api/validate', validationRouter);
+export class CLIServerRoutes {
+    router: Router;
+
+    constructor(schemaDirectoryPath: string) {
+        this.router = Router();
+        this.initializeRoutes(schemaDirectoryPath);
+    }
+
+    private initializeRoutes(schemaDirectoryPath: string) {
+        new ValidationRouter(this.router, schemaDirectoryPath);
+        this.router.use(VALIDATE_ROUTE_PATH, this.router);
+    }
+}

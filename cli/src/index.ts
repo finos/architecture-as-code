@@ -6,7 +6,7 @@ import path from 'path';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
 import express from 'express';
-import { allRoutes } from './routes/routes';
+import { CLIServerRoutes } from './routes/routes';
 import { Application } from 'express';
 import { version } from '../package.json';
 import { initLogger } from '@finos/calm-shared/commands/helper';
@@ -84,10 +84,17 @@ program
     .command('server')
     .description('Start a HTTP server to proxy CLI commands.')
     .option('-p, --port <port>', 'Port to run the server on', '3000')
+    .requiredOption(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
     .action((options) => {
 
         const app: Application = express();
+
+        // Usage example
+        console.info(options)
+        
+        const cliServerRoutesInstance = new CLIServerRoutes(options.schemaDirectory);
+        const allRoutes = cliServerRoutesInstance.router;
         app.use(express.json());
         app.use('/', allRoutes);
 
