@@ -82,7 +82,7 @@ async function runValidate(options) {
 
 program
     .command('server')
-    .description('Start a HTTP server to proxy CLI commands.')
+    .description('Start a HTTP server to proxy CLI commands. (experimental)')
     .option('-p, --port <port>', 'Port to run the server on', '3000')
     .requiredOption(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
