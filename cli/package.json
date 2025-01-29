@@ -1,6 +1,6 @@
 {
   "name": "@finos/calm-cli",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
   "main": "dist/index.js",
   "files": [
@@ -31,7 +31,7 @@
     "@types/supertest": "^6.0.2",
     "axios": "^1.7.9",
     "canvas": "^3.0.0",
-    "commander": "^12.0.0",
+    "commander": "^13.0.0",
     "copyfiles": "^2.4.1",
     "jest-environment-node": "^29.7.0",
     "mkdirp": "^3.0.1"

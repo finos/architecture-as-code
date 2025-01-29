@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-import { CALM_META_SCHEMA_DIRECTORY, getFormattedOutput, runGenerate, validate, visualizeArchitecture, visualizePattern, exitBasedOffOfValidationOutcome } from '@finos/calm-shared';
+import { CALM_META_SCHEMA_DIRECTORY, getFormattedOutput, runGenerate, validate, exitBasedOffOfValidationOutcome } from '@finos/calm-shared';
 import { Option, program } from 'commander';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
@@ -9,6 +9,7 @@ import express from 'express';
 import { allRoutes } from './routes/routes';
 import { Application } from 'express';
 import { version } from '../package.json';
+import { initLogger } from '@finos/calm-shared/commands/helper';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -25,23 +26,6 @@ program
     .name('calm')
     .version(version)
     .description('A set of tools for interacting with the Common Architecture Language Model (CALM)');
-
-program
-    .command('visualize')
-    .description('Produces an SVG file representing a visualization of the CALM Specification.')
-    .addOption(new Option(ARCHITECTURE_OPTION, 'Path to an architecture of a CALM pattern.').conflicts('pattern'))
-    .addOption(new Option(PATTERN_OPTION, 'Path to a CALM pattern.').conflicts('architecture'))
-    .requiredOption(OUTPUT_OPTION, 'Path location at which to output the SVG.', 'calm-visualization.svg')
-    .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
-    .action(async (options) => {
-        if (options.architecture) {
-            await visualizeArchitecture(options.architecture, options.output, !!options.verbose);
-        } else if (options.pattern) {
-            await visualizePattern(options.pattern, options.output, !!options.verbose);
-        } else {
-            program.error(`error: one of required options '${ARCHITECTURE_OPTION}' or '${PATTERN_OPTION}' not specified`);
-        }
-    });
 
 program
     .command('generate')
@@ -70,14 +54,31 @@ program
     .option(OUTPUT_OPTION, 'Path location at which to output the generated file.')
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
     .action(async (options) => {
-        if(!options.pattern && !options.architecture) {
-            program.error(`error: one of the required options '${PATTERN_OPTION}' or '${ARCHITECTURE_OPTION}' was not specified`);
-        }
+        await runValidate(options);
+    });
+
+
+/**
+ * Run the validate command and exit with the right status code based on the result.
+ * @param options Options passed through from the argument parser.
+ */
+async function runValidate(options) {
+    if (!options.pattern && !options.architecture) {
+        program.error(`error: one of the required options '${PATTERN_OPTION}' or '${ARCHITECTURE_OPTION}' was not specified`);
+    }
+    try {
         const outcome = await validate(options.architecture, options.pattern, options.schemaDirectory, options.verbose);
         const content = getFormattedOutput(outcome, options.format);
         writeOutputFile(options.output, content);
         exitBasedOffOfValidationOutcome(outcome, options.strict);
-    });
+    }
+    catch (err) {
+        const logger = initLogger(options.verbose);
+        logger.error('An error occurred while validating: ' + err.message);
+        logger.debug(err.stack);
+        process.exit(1);
+    }
+}
 
 program
     .command('server')

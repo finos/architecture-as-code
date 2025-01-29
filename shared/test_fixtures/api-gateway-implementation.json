@@ -23,6 +23,12 @@
       "node-type": "system",
       "port": -1,
       "unique-id": "api-producer"
+    },
+    {
+      "unique-id": "idp",
+      "node-type": "system",
+      "name": "Identity Provider",
+      "description": "The Identity Provider used to verify the bearer token"
     }
   ],
   "relationships": [

@@ -14,7 +14,7 @@ import org.mockito.Mockito;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
@@ -38,11 +38,47 @@ public class TestMongoCounterStoreShould {
     }
 
     @Test
-    void return_the_next_value_in_sequence() {
+    void return_the_next_value_in_sequence_for_patterns() {
         Document document = new Document("sequence_value", 42);
-        when(counterCollection.findOneAndUpdate(any(Document.class), any(Document.class),
+        when(counterCollection.findOneAndUpdate(
+                argThat(arg -> arg instanceof Document &&
+                        ((Document) arg).containsKey("_id") &&
+                        "patternStoreCounter".equals(((Document) arg).get("_id"))),
+                any(Document.class),
                 any(FindOneAndUpdateOptions.class))).thenReturn(document);
 
-        assertThat(counterStore.getNextSequenceValue(), equalTo(42));
+        assertThat(counterStore.getNextPatternSequenceValue(), equalTo(42));
+    }
+
+
+    @Test
+    void return_the_next_value_in_sequence_for_architectures() {
+        Document document = new Document("sequence_value", 10);
+
+        when(counterCollection.findOneAndUpdate(
+                argThat(arg -> arg instanceof Document &&
+                        ((Document) arg).containsKey("_id") &&
+                        "architectureStoreCounter".equals(((Document) arg).get("_id"))),
+                any(Document.class),
+                any(FindOneAndUpdateOptions.class))).thenReturn(document);
+
+        assertThat(counterStore.getNextArchitectureSequenceValue(), equalTo(10));
+    }
+
+
+    @Test
+    void return_the_next_value_in_sequence_for_flows() {
+        Document document = new Document("sequence_value", 25);
+
+        when(counterCollection.findOneAndUpdate(
+                argThat(arg -> arg instanceof Document &&
+                        ((Document) arg).containsKey("_id") &&
+                        "flowStoreCounter".equals(((Document) arg).get("_id"))),
+                any(Document.class),
+                any(FindOneAndUpdateOptions.class)
+        )).thenReturn(document);
+
+
+        assertThat(counterStore.getNextFlowSequenceValue(), equalTo(25));
     }
 }

@@ -1,6 +1,5 @@
 package integration;
 
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
