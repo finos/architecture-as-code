@@ -1,20 +1,23 @@
-import { getFormattedOutput, validate, SchemaDirectory, CALM_META_SCHEMA_DIRECTORY } from '@finos/calm-shared';
+import { getFormattedOutput, validate, SchemaDirectory, initLogger } from '@finos/calm-shared';
 import { Router, Request, Response } from 'express';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { v4 as uuidv4 } from 'uuid';
-import { log } from 'console';
+import winston from 'winston';
+
 
 export class ValidationRouter {
 
     private schemaDirectoryPath: string;
     private schemaDirectory: SchemaDirectory;
+    private logger: winston.Logger;
 
-    constructor(router: Router, schemaDirectoryPath: string) {
+    constructor(router: Router, schemaDirectoryPath: string, debug: boolean = false) {
         this.schemaDirectory = new SchemaDirectory(true)
         this.schemaDirectoryPath = schemaDirectoryPath
-        this.initializeRoutes(router);
+        this.logger = initLogger(debug);
+        this.initializeRoutes(router)
     }
 
     private initializeRoutes(router: Router) {
@@ -25,22 +28,22 @@ export class ValidationRouter {
     private validateSchema = async (req: Request, res: Response) => {
         const schema = req.body['$schema'];
         if (!schema) {
-            return res.status(400).json({ error: 'The "$schema" field is missing from the request body.' });
+            return res.status(400).json({ error: 'The "$schema" field is missing from the request body' });
         }
         console.info("Path loading schemas is " + this.schemaDirectoryPath)
 
         await this.schemaDirectory.loadSchemas(this.schemaDirectoryPath)
         console.info("Loaded schemas: " + this.schemaDirectory.getLoadedSchemas())
         const foundSchema = this.schemaDirectory.getSchema(schema)
-        if (foundSchema == undefined) {
+        if (!foundSchema) {
             return res.status(400).json({ error: 'The "$schema" field referenced is not available to the server' });
         }
         const tempInstantiation = await createTemporaryFile()
         const tempPattern = await createTemporaryFile()
         try {
 
-            await fs.writeFile(tempInstantiation, JSON.stringify(req.body, null, 4));
-            await fs.writeFile(tempPattern, JSON.stringify(foundSchema, null, 4));
+            await fs.writeFile(tempInstantiation, JSON.stringify(req.body, null, 4), { mode: 0o600 });
+            await fs.writeFile(tempPattern, JSON.stringify(foundSchema, null, 4), { mode: 0o600 });
 
             const outcome = await validate(tempInstantiation, tempPattern, this.schemaDirectoryPath, true);
             const content = getFormattedOutput(outcome, 'json');
@@ -49,18 +52,17 @@ export class ValidationRouter {
             res.status(500).json({ error: error.message });
         } finally {
             [tempInstantiation, tempPattern].forEach(element => {
-                fs.unlink(element).catch(() => { });
-                fs.rmdir(element).catch(() => { });
+                fs.unlink(element).catch(() => {
+                    this.logger.warn("Failed to delete temporary file " + element);
+                });
             });
         }
     };
 
     private healthCheck(_req: Request, res: Response) {
-        res.status(200).json({ status: 'OK' });
+        res.status(200).type('json').send({ status: 'OK' });
     }
 }
-
-
 
 async function createTemporaryFile(): Promise<string> {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'calm-'));

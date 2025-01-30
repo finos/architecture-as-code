@@ -41,7 +41,6 @@ export class SchemaDirectory {
 
             const schemaPaths = files.filter(str => str.match(/^.*(json)$/))
                 .map(schemaPath => join(dir, schemaPath));
-            console.info("Schema Paths found: " + schemaPaths)
             for (const schemaPath of schemaPaths) {
                 const schema = await this.loadSchema(schemaPath);
                 if (schema){

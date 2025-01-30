@@ -5,6 +5,8 @@ import * as os from 'os';
 import { parseStringPromise } from 'xml2js';
 import util from 'util';
 import axios from 'axios';
+import { initLogger } from '@finos/calm-shared';
+import { time } from 'console';
 
 
 const execPromise = util.promisify(exec);
@@ -164,28 +166,39 @@ describe('CLI Integration Tests', () => {
         });
     });
 
-    test('example server command - starts server and responds to requests', (done) => {
-        const serverCommand = 'calm server -p 3001 --schema-directory ../../dist/calm/';
-        const serverProcess = exec(serverCommand, async (error, _stdout, _stderr) => {
-            if (error) {
-                done(error);
-            }
+    test('example validate command - fails when neither an architecture or a pattern is provided', (done) => {
+        const calmValidateCommand = 'calm validate';
+        exec(calmValidateCommand, (error, _stdout, stderr) => {
+            expect(error).not.toBeNull();
+            expect(stderr).toContain('error: one of the required options \'-p, --pattern <file>\' or \'-a, --architecture <file>\' was not specified');
+            done();
         });
-        console.log('Server started');
+    });
+
+    test('example validate command - validates an architecture only', (done) => {
+        const calmValidateArchitectureOnlyCommand = 'calm validate -a ../calm/samples/api-gateway-architecture.json';
+        exec(calmValidateArchitectureOnlyCommand, (error, stdout, _stderr) => {
+            const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_architecture_only_output.json');
+            const expectedOutput = fs.readFileSync(expectedFilePath, 'utf-8');
+            expect(error).toBeNull();
+            expect(stdout).toContain(expectedOutput);
+            done();
+        });
+    });
+
+    test('example server command - starts server and responds to requests', async () => {
+        const serverCommand = 'calm server -p 3001 --schemaDirectory ../../dist/calm/';
+        const serverProcess = exec(serverCommand);
         // Give the server some time to start
-        setTimeout(async () => {
-            try {
-                console.log('Sending request');
-                const response = await axios.get('http://localhost:3001/calm/validate/health');
-                console.log('Response received');
-                expect(response.status).toBe(200);
-                serverProcess.kill();
-                done();
-            } catch (error) {
-                serverProcess.kill();
-                done(error);
-            }
-        }, 5000);
+        await new Promise(resolve => setTimeout(resolve, 10000));
+        try {
+            const response = await axios.get('http://127.0.0.1:3001/calm/validate/health');
+            expect(response.status).toBe(200);
+        } catch (error) {
+            throw error;
+        } finally {
+            serverProcess.kill();
+        }
     });
 });
 

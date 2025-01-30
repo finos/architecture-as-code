@@ -28,15 +28,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/supertest": "^6.0.2",
-    "axios": "^1.7.9",
-    "canvas": "^3.0.0",
     "commander": "^13.0.0",
     "copyfiles": "^2.4.1",
-    "jest-environment-node": "^29.7.0",
+    
     "mkdirp": "^3.0.1"
   },
   "devDependencies": {
+    "@types/supertest": "^6.0.2",
+    "jest-environment-node": "^29.7.0",
+    "axios": "^1.7.9",
     "@jest/globals": "^29.7.0",
     "@types/jest": "^29.5.14",
     "@types/json-pointer": "^1.0.34",
