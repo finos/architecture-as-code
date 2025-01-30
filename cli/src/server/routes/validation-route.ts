@@ -14,10 +14,10 @@ export class ValidationRouter {
     private logger: winston.Logger;
 
     constructor(router: Router, schemaDirectoryPath: string, debug: boolean = false) {
-        this.schemaDirectory = new SchemaDirectory(true)
-        this.schemaDirectoryPath = schemaDirectoryPath
+        this.schemaDirectory = new SchemaDirectory(true);
+        this.schemaDirectoryPath = schemaDirectoryPath;
         this.logger = initLogger(debug);
-        this.initializeRoutes(router)
+        this.initializeRoutes(router);
     }
 
     private initializeRoutes(router: Router) {
@@ -30,16 +30,16 @@ export class ValidationRouter {
         if (!schema) {
             return res.status(400).json({ error: 'The "$schema" field is missing from the request body' });
         }
-        console.info("Path loading schemas is " + this.schemaDirectoryPath)
+        console.info('Path loading schemas is ' + this.schemaDirectoryPath);
 
-        await this.schemaDirectory.loadSchemas(this.schemaDirectoryPath)
-        console.info("Loaded schemas: " + this.schemaDirectory.getLoadedSchemas())
-        const foundSchema = this.schemaDirectory.getSchema(schema)
+        await this.schemaDirectory.loadSchemas(this.schemaDirectoryPath);
+        console.info('Loaded schemas: ' + this.schemaDirectory.getLoadedSchemas());
+        const foundSchema = this.schemaDirectory.getSchema(schema);
         if (!foundSchema) {
             return res.status(400).json({ error: 'The "$schema" field referenced is not available to the server' });
         }
-        const tempInstantiation = await createTemporaryFile()
-        const tempPattern = await createTemporaryFile()
+        const tempInstantiation = await createTemporaryFile();
+        const tempPattern = await createTemporaryFile();
         try {
 
             await fs.writeFile(tempInstantiation, JSON.stringify(req.body, null, 4), { mode: 0o600 });
@@ -53,7 +53,7 @@ export class ValidationRouter {
         } finally {
             [tempInstantiation, tempPattern].forEach(element => {
                 fs.unlink(element).catch(() => {
-                    this.logger.warn("Failed to delete temporary file " + element);
+                    this.logger.warn('Failed to delete temporary file ' + element);
                 });
             });
         }
@@ -67,6 +67,6 @@ export class ValidationRouter {
 async function createTemporaryFile(): Promise<string> {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'calm-'));
     const tempFilePath = path.join(tempDir, `calm-instantiation-${uuidv4()}.json`);
-    return tempFilePath
+    return tempFilePath;
 }
 

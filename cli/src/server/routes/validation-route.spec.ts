@@ -13,7 +13,7 @@ const app: Application = express();
 app.use(express.json());
 
 const router: express.Router = express.Router();
-const validationRouter = new ValidationRouter(router, schemaDirectory);
+new ValidationRouter(router, schemaDirectory);
 app.use('/calm/validate', router);
 
 describe('ValidationRouter', () => {

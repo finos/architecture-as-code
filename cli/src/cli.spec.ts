@@ -5,8 +5,6 @@ import * as os from 'os';
 import { parseStringPromise } from 'xml2js';
 import util from 'util';
 import axios from 'axios';
-import { initLogger } from '@finos/calm-shared';
-import { time } from 'console';
 
 
 const execPromise = util.promisify(exec);
@@ -194,8 +192,6 @@ describe('CLI Integration Tests', () => {
         try {
             const response = await axios.get('http://127.0.0.1:3001/calm/validate/health');
             expect(response.status).toBe(200);
-        } catch (error) {
-            throw error;
         } finally {
             serverProcess.kill();
         }
