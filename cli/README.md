@@ -161,7 +161,7 @@ You would get an output which includes a warning like this:
 which is just letting you know that you have left in some placeholder values which might have been generated with the generate command.
 This isn't a full break, but it implies that you've forgotten to fill out a detail in your architecture.
 
-## Calm CLI server
+## Calm CLI server (Experimental)
 
 It may be required to have the operations of the CALM CLI available over rest.
 The `validate` command has been made available over an API
@@ -171,7 +171,7 @@ calm server --schemaDirectory calm
 ```
 
 ```shell
-curl http://127.0.0.1:3000/calm/validate/health
+curl http://127.0.0.1:3000/health
 
 # Missing schema key
 curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/validate --data @cli/test_fixtures/validation_route/invalid_api_gateway_instantiation_missing_schema_key.json

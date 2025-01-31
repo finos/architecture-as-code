@@ -1,6 +1,3 @@
-
-
-
 import express, { Application } from 'express';
 import { CLIServerRoutes } from './routes/routes';
 

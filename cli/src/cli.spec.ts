@@ -190,7 +190,7 @@ describe('CLI Integration Tests', () => {
         // Give the server some time to start
         await new Promise(resolve => setTimeout(resolve, 10000));
         try {
-            const response = await axios.get('http://127.0.0.1:3001/calm/validate/health');
+            const response = await axios.get('http://127.0.0.1:3001/health');
             expect(response.status).toBe(200);
         } finally {
             serverProcess.kill();

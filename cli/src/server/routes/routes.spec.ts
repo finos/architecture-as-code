@@ -1,8 +1,7 @@
 import { Router } from 'express';
 import { CLIServerRoutes } from './routes';
 import { ValidationRouter } from './validation-route';
-
-
+import { HealthRouter } from './health-route';
 
 const mockUse = jest.fn();
 const mockRouter = {
@@ -19,6 +18,12 @@ jest.mock('./validation-route', () => {
     };
 });
 
+jest.mock('./health-route', () => {
+    return {
+        HealthRouter: jest.fn()
+    };
+});
+
 describe('CLIServerRoutes', () => {
     let schemaDirectoryPath: string;
     let cliServerRoutes: CLIServerRoutes;
@@ -28,7 +33,6 @@ describe('CLIServerRoutes', () => {
         schemaDirectoryPath = '/path/to/schema';
         cliServerRoutes = new CLIServerRoutes(schemaDirectoryPath);
         mockRouter = cliServerRoutes.router;
-
     });
 
     it('should initialize router', () => {
@@ -38,5 +42,10 @@ describe('CLIServerRoutes', () => {
     it('should set up validate route', () => {
         expect(mockRouter.use).toHaveBeenCalledWith('/calm/validate', mockRouter);
         expect(ValidationRouter).toHaveBeenCalled();
+    });
+
+    it('should set up health route', () => {
+        expect(mockRouter.use).toHaveBeenCalledWith('/health', mockRouter);
+        expect(HealthRouter).toHaveBeenCalled();
     });
 });
