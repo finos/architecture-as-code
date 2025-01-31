@@ -15,7 +15,7 @@ describe('CLI Integration Tests', () => {
     const millisPerSecond = 1000;
     const integrationTestPrefix = 'calm-test';
     const projectRoot = __dirname;
-    jest.setTimeout(30 * millisPerSecond); // Uncomment this line to set the timeout for Jest tests
+    jest.setTimeout(30 * millisPerSecond);
 
     beforeAll(async () => {
         tempDir = fs.mkdtempSync(path.join(os.tmpdir(), integrationTestPrefix));
@@ -188,7 +188,7 @@ describe('CLI Integration Tests', () => {
         const serverCommand = 'calm server -p 3001 --schemaDirectory ../../dist/calm/';
         const serverProcess = exec(serverCommand);
         // Give the server some time to start
-        await new Promise(resolve => setTimeout(resolve, 10000));
+        await new Promise(resolve => setTimeout(resolve, 5 * millisPerSecond));
         try {
             const response = await axios.get('http://127.0.0.1:3001/health');
             expect(response.status).toBe(200);
