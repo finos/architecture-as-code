@@ -61,13 +61,6 @@ describe('ValidationRouter', () => {
         expect(response.body).toHaveProperty('hasWarnings');
     });
 
-    test('should return 200 for health check', async () => {
-        const response = await request(app)
-            .get('/calm/validate/health');
-
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual({ status: 'OK' });
-    });
 });
 
 // });

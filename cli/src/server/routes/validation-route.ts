@@ -1,10 +1,11 @@
-import { getFormattedOutput, validate, SchemaDirectory, initLogger } from '@finos/calm-shared';
+import { validate, SchemaDirectory, initLogger } from '@finos/calm-shared';
 import { Router, Request, Response } from 'express';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { v4 as uuidv4 } from 'uuid';
 import winston from 'winston';
+import { ValidationOutcome } from '@finos/calm-shared/commands/validate/validation.output';
 
 
 export class ValidationRouter {
@@ -22,13 +23,12 @@ export class ValidationRouter {
 
     private initializeRoutes(router: Router) {
         router.post('/', this.validateSchema);
-        router.get('/health', this.healthCheck);
     }
 
-    private validateSchema = async (req: Request, res: Response) => {
+    private validateSchema = async (req: Request<string>, res: Response<ValidationOutcome | ErrorResponse>) => {
         const schema = req.body['$schema'];
         if (!schema) {
-            return res.status(400).json({ error: 'The "$schema" field is missing from the request body' });
+            return res.status(400).type('json').send(new ErrorResponse('The "$schema" field is missing from the request body'));
         }
         console.info('Path loading schemas is ' + this.schemaDirectoryPath);
 
@@ -36,7 +36,8 @@ export class ValidationRouter {
         console.info('Loaded schemas: ' + this.schemaDirectory.getLoadedSchemas());
         const foundSchema = this.schemaDirectory.getSchema(schema);
         if (!foundSchema) {
-            return res.status(400).json({ error: 'The "$schema" field referenced is not available to the server' });
+            // return res.status(400).json({ error: 'The "$schema" field referenced is not available to the server' });
+            return res.status(400).type('json').send(new ErrorResponse('The "$schema" field referenced is not available to the server'));
         }
         const tempInstantiation = await createTemporaryFile();
         const tempPattern = await createTemporaryFile();
@@ -46,10 +47,9 @@ export class ValidationRouter {
             await fs.writeFile(tempPattern, JSON.stringify(foundSchema, null, 4), { mode: 0o600 });
 
             const outcome = await validate(tempInstantiation, tempPattern, this.schemaDirectoryPath, true);
-            const content = getFormattedOutput(outcome, 'json');
-            res.status(201).type('json').send(content);
+            return res.status(201).type('json').send(outcome);
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            return res.status(500).type('json').send(new ErrorResponse(error.message));
         } finally {
             [tempInstantiation, tempPattern].forEach(element => {
                 fs.unlink(element).catch(() => {
@@ -58,10 +58,6 @@ export class ValidationRouter {
             });
         }
     };
-
-    private healthCheck(_req: Request, res: Response) {
-        res.status(200).type('json').send({ status: 'OK' });
-    }
 }
 
 async function createTemporaryFile(): Promise<string> {
@@ -70,3 +66,10 @@ async function createTemporaryFile(): Promise<string> {
     return tempFilePath;
 }
 
+
+class ErrorResponse {
+    error: string;
+    constructor(error: string) {
+        this.error = error;
+    }
+};
