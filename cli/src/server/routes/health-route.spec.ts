@@ -19,7 +19,6 @@ describe('HealthRouter', () => {
     test('should return 200 for health check', async () => {
         const response = await request(app)
             .get('/health');
-        console.log('123123'+JSON.stringify(response));
         expect(response.status).toBe(200);
         expect(response.body).toEqual({ status: 'OK' });
     });
