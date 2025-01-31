@@ -1,6 +1,3 @@
-
-
-
 import request from 'supertest';
 import * as fs from 'fs';
 
@@ -8,15 +5,20 @@ import express, { Application } from 'express';
 import { ValidationRouter } from './validation-route';
 import path from 'path';
 
-const schemaDirectory = __dirname + '/../../../../calm';
-const app: Application = express();
-app.use(express.json());
-
-const router: express.Router = express.Router();
-new ValidationRouter(router, schemaDirectory);
-app.use('/calm/validate', router);
+const schemaDirectory : string = __dirname + '/../../../../calm';
 
 describe('ValidationRouter', () => {
+    let app: Application;
+
+    beforeEach(() => {
+        app = express();
+        app.use(express.json());
+
+        const router: express.Router = express.Router();
+        new ValidationRouter(router, schemaDirectory);
+        app.use('/calm/validate', router);
+    });
+
     test('should return 400 when $schema is not specified', async () => {
         const expectedFilePath = path.join(__dirname, '../../../test_fixtures/validation_route/invalid_api_gateway_instantiation_missing_schema_key.json');
         const invalidArchitectureMissingSchema = JSON.parse(
