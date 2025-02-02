@@ -54,6 +54,35 @@ From the `calm-hub` directory
 1. `../mvnw package`
 2. `../mvnw quarkus:dev`
 
+### Secure profile
+
+#### Launch keycloak
+
+In the `keycloak-dev` directory
+
+Create certs for KeyCloak:
+- `mkdir ./certs`
+- `openssl req -x509 -newkey rsa:2048 -keyout ./certs/key.pem -out ./certs/cert.pem -days 90 -nodes`
+
+Launch KeyCloak:
+```shell
+export KC_BOOTSTRAP_ADMIN_PASSWORD=<set me>
+docker-compose up
+```
+- Open KeyCloak UI: http://localhost:8083, login with admin user.
+- Switch realm from `master` to `calm-hub-realm`
+- Create a `demo` user with a temporary credentials under `calm-hub-realm` realm.
+- Assign the `calm-hub-readonly` role to the `demo` user.
+
+#### Server Side with secure profile 
+
+From the `calm-hub` directory
+
+1. `openssl req -x509 -newkey rsa:2048 -keyout ./src/main/resources/key.pem -out ./src/main/resources/cert.pem -days 90 -nodes`
+2. `../mvnw package`
+3. `../mvnw quarkus:dev -Dquarkus.profile=secure`
+4. Open Clam UI: https://localhost:8443
+
 ### UI with hot reload (from src/main/webapp)
 
 The first time, you may need to run `npm install`.
