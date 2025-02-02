@@ -24,6 +24,7 @@ import org.finos.calm.domain.exception.AdrParseException;
 import org.finos.calm.domain.exception.AdrPersistenceException;
 import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.security.ScopesAllowed;
 import org.finos.calm.store.AdrStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,6 +57,7 @@ public class AdrResource {
     @GET
     @Path("{namespace}/adrs")
     @Produces(MediaType.APPLICATION_JSON)
+    @ScopesAllowed({"write:adrs", "read:adrs"})
     @Operation(
             summary = "Retrieve ADRs in a given namespace",
             description = "ADRs stored in a given namespace"
@@ -63,7 +65,7 @@ public class AdrResource {
     public Response getAdrsForNamespace(@PathParam("namespace") String namespace) {
         try {
             return Response.ok(new ValueWrapper<>(store.getAdrsForNamespace(namespace))).build();
-        } catch(Exception e) {
+        } catch (Exception e) {
             return handleException(e, namespace);
         }
     }
@@ -71,14 +73,15 @@ public class AdrResource {
     /**
      * Create a new ADR in the DRAFT state
      *
-     * @param namespace the namespace to create the ADR in
-     * @param newAdrRequest    the new ADR to be created
+     * @param namespace     the namespace to create the ADR in
+     * @param newAdrRequest the new ADR to be created
      * @return created response with Location header
      */
     @POST
     @Path("{namespace}/adrs")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @ScopesAllowed({"write:adrs"})
     @Operation(
             summary = "Create ADR for namespace",
             description = "Creates an ADR for a given namespace with an allocated ID and revision 1"
@@ -98,7 +101,7 @@ public class AdrResource {
 
         try {
             return adrWithLocationResponse(store.createAdrForNamespace(adrMeta));
-        } catch(Exception e) {
+        } catch (Exception e) {
             return handleException(e, namespace);
         }
     }
@@ -106,8 +109,8 @@ public class AdrResource {
     /**
      * Update an existing ADRs contents
      *
-     * @param namespace      the namespace the ADR is in
-     * @param adrId          the ID of the ADR
+     * @param namespace     the namespace the ADR is in
+     * @param adrId         the ID of the ADR
      * @param newAdrRequest the new ADR content
      * @return created with a Location header
      */
@@ -115,6 +118,7 @@ public class AdrResource {
     @Path("{namespace}/adrs/{adrId}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @ScopesAllowed({"write:adrs"})
     @Operation(
             summary = "Update ADR for namespace",
             description = "Updates an ADR for a given namespace. Creates a new revision."
@@ -132,7 +136,7 @@ public class AdrResource {
 
         try {
             return adrWithLocationResponse(store.updateAdrForNamespace(adrMeta));
-        } catch(Exception e) {
+        } catch (Exception e) {
             return handleException(e, namespace);
         }
     }
@@ -147,6 +151,7 @@ public class AdrResource {
     @GET
     @Path("{namespace}/adrs/{adrId}")
     @Produces(MediaType.APPLICATION_JSON)
+    @ScopesAllowed({"write:adrs", "read:adrs"})
     @Operation(
             summary = "Retrieve the latest revision of an ADR",
             description = "Retrieve the latest revision of an ADR"
@@ -165,7 +170,7 @@ public class AdrResource {
 
         try {
             return Response.ok(store.getAdr(adrMeta)).build();
-        } catch(Exception e) {
+        } catch (Exception e) {
             return handleException(e, namespace, adrId);
         }
     }
@@ -180,6 +185,7 @@ public class AdrResource {
     @GET
     @Path("{namespace}/adrs/{adrId}/revisions")
     @Produces(MediaType.APPLICATION_JSON)
+    @ScopesAllowed({"write:adrs", "read:adrs"})
     @Operation(
             summary = "Retrieve a list of revisions for a given ADR",
             description = "The most recent revision is the canonical ADR, with others available for audit or exploring changes."
@@ -192,7 +198,7 @@ public class AdrResource {
 
         try {
             return Response.ok(new ValueWrapper<>(store.getAdrRevisions(adrMeta))).build();
-        } catch(NamespaceNotFoundException | AdrNotFoundException | AdrRevisionNotFoundException e) {
+        } catch (NamespaceNotFoundException | AdrNotFoundException | AdrRevisionNotFoundException e) {
             return handleException(e, namespace, adrId);
         }
     }
@@ -208,6 +214,7 @@ public class AdrResource {
     @GET
     @Path("{namespace}/adrs/{adrId}/revisions/{revision}")
     @Produces(MediaType.APPLICATION_JSON)
+    @ScopesAllowed({"write:adrs", "read:adrs"})
     @Operation(
             summary = "Retrieve a specific revision of an ADR",
             description = "Retrieve a specific revision of an ADR"
@@ -227,7 +234,7 @@ public class AdrResource {
 
         try {
             return Response.ok(store.getAdrRevision(adrMeta)).build();
-        } catch(Exception e) {
+        } catch (Exception e) {
             return handleException(e, namespace, adrId, revision);
         }
     }
@@ -237,13 +244,14 @@ public class AdrResource {
      *
      * @param namespace the namespace the ADR is in
      * @param adrId     the ID of the ADR
-     * @param status the new status of the ADR
+     * @param status    the new status of the ADR
      * @return created with a Location header
      * @throws URISyntaxException cannot produce Location header
      */
     @POST
     @Path("{namespace}/adrs/{adrId}/status/{status}")
     @Produces(MediaType.APPLICATION_JSON)
+    @ScopesAllowed({"write:adrs"})
     @Operation(
             summary = "Update the status of ADR for namespace",
             description = "Updates the status of an ADR for a given namespace. Creates a new revision."
@@ -257,7 +265,7 @@ public class AdrResource {
 
         try {
             return adrWithLocationResponse(store.updateAdrStatus(adrMeta, status));
-        } catch(Exception e) {
+        } catch (Exception e) {
             return handleException(e, namespace, adrId);
         }
     }
@@ -300,7 +308,7 @@ public class AdrResource {
     }
 
     private Response handleAdrRevisionNotFoundException(int adrId, int revision, Exception ex) {
-        if(revision == 0) {
+        if (revision == 0) {
             logger.error("Could not find latest revision of ADR [{}]", adrId, ex);
             return Response.status(Response.Status.NOT_FOUND).entity("Latest revision not found for ADR: [{}]: " + adrId).build();
         } else {

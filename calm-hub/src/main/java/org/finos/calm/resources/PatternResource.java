@@ -11,6 +11,7 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
+import org.finos.calm.security.ScopesAllowed;
 import org.finos.calm.store.PatternStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,7 @@ public class PatternResource {
     @GET
     @Path("{namespace}/patterns")
     @Produces(MediaType.APPLICATION_JSON)
+    @ScopesAllowed({"write:patterns", "read:patterns"})
     @Operation(
             summary = "Retrieve patterns in a given namespace",
             description = "Patterns stored in a given namespace"
@@ -52,6 +54,7 @@ public class PatternResource {
     @Path("{namespace}/patterns")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @ScopesAllowed({"write:patterns"})
     @Operation(
             summary = "Create pattern for namespace",
             description = "Creates a pattern for a given namespace with an allocated ID and version 1.0.0"
@@ -76,6 +79,7 @@ public class PatternResource {
     @GET
     @Path("{namespace}/patterns/{patternId}/versions")
     @Produces(MediaType.APPLICATION_JSON)
+    @ScopesAllowed({"write:patterns", "read:patterns"})
     @Operation(
             summary = "Retrieve a list of versions for a given pattern",
             description = "Pattern versions are not opinionated, outside of the first version created"
@@ -100,6 +104,7 @@ public class PatternResource {
     @GET
     @Path("{namespace}/patterns/{patternId}/versions/{version}")
     @Produces(MediaType.APPLICATION_JSON)
+    @ScopesAllowed({"write:patterns", "read:patterns"})
     @Operation(
             summary = "Retrieve a specific pattern at a given version",
             description = "Retrieve patterns at a specific version"
@@ -129,6 +134,7 @@ public class PatternResource {
     @Path("{namespace}/patterns/{patternId}/versions/{version}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @ScopesAllowed({"write:patterns"})
     public Response createVersionedPattern(@PathParam("namespace") String namespace, @PathParam("patternId") int patternId, @PathParam("version") String version, String patternJson) throws URISyntaxException {
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace(namespace)
@@ -156,6 +162,7 @@ public class PatternResource {
     @Path("{namespace}/patterns/{patternId}/versions/{version}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @ScopesAllowed({"write:patterns"})
     @Operation(
             summary = "Updates a Pattern (if available)",
             description = "In mutable version stores pattern updates are supported by this endpoint, operation unavailable returned in repositories without configuration specified"
@@ -168,7 +175,7 @@ public class PatternResource {
                 .setPattern(patternJson)
                 .build();
 
-        if(!allowPutOperations) {
+        if (!allowPutOperations) {
             return Response.status(Response.Status.FORBIDDEN).entity("This Calm Hub does not support PUT operations").build();
         }
 
