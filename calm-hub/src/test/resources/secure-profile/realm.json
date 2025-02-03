@@ -1,0 +1,110 @@
+{
+  "realm": "calm-hub-realm",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "calm-hub-client-app",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "calm-hub-client-app-secret",
+      "authorizationServicesEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "attributes": {
+        "access.token.lifespan": "300",
+        "refresh.token.lifespan": "1800"
+      },
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email",
+        "read:patterns",
+        "read:namespaces"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone"
+      ]
+    },
+    {
+      "clientId": "calm-hub-producer-app",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "authorizationServicesEnabled": true
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "admin"
+      }
+    ],
+    "client": {
+      "calm-hub-client-app": [
+        {
+          "name": "read:patterns"
+        },
+        {
+          "name": "read:namespaces"
+        }
+      ]
+    }
+  },
+  "clientScopes": [
+    {
+      "name": "read:patterns",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "calm-hub-producer-app",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "read:namespaces",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "calm-hub-producer-app",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "scopeMappings": [
+    {
+      "client": "calm-hub-client-app",
+      "clientScope": "read:patterns",
+      "roles": [
+        "read:patterns"
+      ]
+    },
+    {
+      "client": "calm-hub-client-app",
+      "clientScope": "read:namespaces",
+      "roles": [
+        "read:namespaces"
+      ]
+    }
+  ]
+}
