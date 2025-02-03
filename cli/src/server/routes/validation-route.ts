@@ -7,7 +7,6 @@ import { v4 as uuidv4 } from 'uuid';
 import winston from 'winston';
 import { ValidationOutcome } from '@finos/calm-shared/commands/validate/validation.output';
 
-
 export class ValidationRouter {
 
     private schemaDirectoryPath: string;
@@ -25,27 +24,32 @@ export class ValidationRouter {
         router.post('/', this.validateSchema);
     }
 
-    private validateSchema = async (req: Request<string>, res: Response<ValidationOutcome | ErrorResponse>) => {
-        const schema = req.body['$schema'];
+    private validateSchema = async (req: Request<ValidationRequest>, res: Response<ValidationOutcome | ErrorResponse>) => {
+        let architecture;
+        try {
+            architecture = JSON.parse(req.body.architecture);
+        } catch (error) {
+            this.logger.error('Invalid JSON format for architecture ' + error);
+            return res.status(400).type('json').send(new ErrorResponse('Invalid JSON format for architecture'));
+        }
+        
+        const schema = architecture['$schema'];
         if (!schema) {
             return res.status(400).type('json').send(new ErrorResponse('The "$schema" field is missing from the request body'));
         }
-        console.info('Path loading schemas is ' + this.schemaDirectoryPath);
+        this.logger.info('Path loading schemas is ' + this.schemaDirectoryPath);
 
         await this.schemaDirectory.loadSchemas(this.schemaDirectoryPath);
-        console.info('Loaded schemas: ' + this.schemaDirectory.getLoadedSchemas());
         const foundSchema = this.schemaDirectory.getSchema(schema);
         if (!foundSchema) {
-            // return res.status(400).json({ error: 'The "$schema" field referenced is not available to the server' });
             return res.status(400).type('json').send(new ErrorResponse('The "$schema" field referenced is not available to the server'));
         }
         const tempInstantiation = await createTemporaryFile();
         const tempPattern = await createTemporaryFile();
         try {
 
-            await fs.writeFile(tempInstantiation, JSON.stringify(req.body, null, 4), { mode: 0o600 });
+            await fs.writeFile(tempInstantiation, JSON.stringify(architecture, null, 4), { mode: 0o600 });
             await fs.writeFile(tempPattern, JSON.stringify(foundSchema, null, 4), { mode: 0o600 });
-
             const outcome = await validate(tempInstantiation, tempPattern, this.schemaDirectoryPath, true);
             return res.status(201).type('json').send(outcome);
         } catch (error) {
@@ -73,3 +77,7 @@ class ErrorResponse {
         this.error = error;
     }
 };
+
+class ValidationRequest {
+    architecture: string;
+}
