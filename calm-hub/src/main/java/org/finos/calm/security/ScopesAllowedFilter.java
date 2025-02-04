@@ -67,9 +67,9 @@ public class ScopesAllowedFilter implements ContainerRequestFilter {
                 .anyMatch(tokenScopes::contains);
 
         if (hasMatch) {
-            logger.info("Request allowed, ScopesAllowed are: {}, there is a matching scope found in accessToken: {}", requiredScopes, tokenScopes);
+            logger.info("Request allowed, ScopesAllowed are: {}, there is a matching scope found in accessToken: [{}]", requiredScopes, tokenScopes);
         } else {
-            logger.error("Request denied, ScopesAllowed are: {}, no matching scopes found in accessToken: {}", requiredScopes, tokenScopes);
+            logger.error("Request denied, ScopesAllowed are: {}, no matching scopes found in accessToken: [{}]", requiredScopes, tokenScopes);
         }
         return hasMatch;
     }

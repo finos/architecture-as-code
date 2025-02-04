@@ -61,8 +61,13 @@ From the `calm-hub` directory
 In the `keycloak-dev` directory
 
 Create certs for KeyCloak:
-- `mkdir ./certs`
-- `openssl req -x509 -newkey rsa:2048 -keyout ./certs/key.pem -out ./certs/cert.pem -days 90 -nodes`
+1. `mkdir ./certs`
+2. ```shell
+   openssl req -x509 -newkey rsa:2048 \
+      -keyout ./certs/key.pem \
+      -out ./certs/cert.pem -days 90 -nodes \
+      -subj "/C=GB/ST=England/L=Manchester/O=finos/OU=Technology/CN=idp.finos.org"
+   ```
 
 Launch KeyCloak:
 ```shell
@@ -78,7 +83,13 @@ docker-compose up
 
 From the `calm-hub` directory
 
-1. `openssl req -x509 -newkey rsa:2048 -keyout ./src/main/resources/key.pem -out ./src/main/resources/cert.pem -days 90 -nodes`
+1. Create a server side certificates
+    ```shell
+    openssl req -x509 -newkey rsa:2048 \
+      -keyout ./src/main/resources/key.pem \
+      -out ./src/main/resources/cert.pem -days 90 -nodes \
+      -subj "/C=GB/ST=England/L=Manchester/O=finos/OU=Technology/CN=calm-hub.finos.org"
+    ```
 2. `../mvnw package`
 3. `../mvnw quarkus:dev -Dquarkus.profile=secure`
 4. Open Clam UI: https://localhost:8443

@@ -27,6 +27,7 @@ public class KeycloakTestResource implements QuarkusTestResourceLifecycleManager
         keycloakContainer.start();
         String authServerUrl = keycloakContainer.getAuthServerUrl() + "/realms/calm-hub-realm";
         logger.info("quarkus.oidc.auth-server-url: {}", authServerUrl);
+
         System.setProperty("quarkus.oidc.auth-server-url", authServerUrl);
         return Map.of("quarkus.oidc.auth-server-url", authServerUrl);
     }
