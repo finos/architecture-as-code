@@ -31,6 +31,28 @@ Commands:
   help [command]       display help for command
 ```
 
+### Configuring the CLI to fetch schemas from CALMHub
+
+The CLI supports two operating modes: CALMHub and the local file system.
+
+In file system mode, schemas are loaded from a directory on startup. 
+By passing the `--schemaDirectory` option this mode is enabled. 
+All files within this directory will be recursively loaded.
+
+In CALMHub mode, a URL is required for where to find CALMHub.
+This can be provided either by `--calmHubUri` or via a central config file in your home directory.
+
+This file should be created in the user's home directory, with filename '.calm.json'. 
+As a Unix style file path: '~/.calm.json'
+
+This file should look like the following:
+
+```json
+{
+  "calmHubUrl": "https://my-calmhub.com"
+}
+```
+
 ### Generating an architecture from a CALM pattern file
 
 This command lets you create a shell of an architecture from a pattern file.
