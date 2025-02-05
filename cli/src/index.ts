@@ -8,6 +8,8 @@ import { writeFileSync } from 'fs';
 import { version } from '../package.json';
 import { initLogger } from '@finos/calm-shared/logger';
 import { startServer } from './server/cli-server';
+import { DocumentLoaderOptions } from '@finos/calm-shared/document-loader/document-loader';
+import { loadCliConfig } from './cli-config';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -36,7 +38,7 @@ program
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
     .option(GENERATE_ALL_OPTION, 'Generate all properties, ignoring the "required" field.', false)
     .action(async (options) => {
-            const docLoaderOpts = parseDocumentLoaderConfig(options);
+            const docLoaderOpts = await parseDocumentLoaderConfig(options);
             await runGenerate(options.pattern, options.output, !!options.verbose, options.generateAll, docLoaderOpts)
         }
     );
@@ -102,7 +104,7 @@ function writeOutputFile(output: string, validationsOutput: string) {
     }
 }
 
-function parseDocumentLoaderConfig(options): DocumentLoaderOptions {
+async function parseDocumentLoaderConfig(options): Promise<DocumentLoaderOptions> {
     if (options.calmHubUrl && options.schemaDirectory) {
         program.error('At most one of --schemaDirectory and --calmHubUrl is supported; both were provided.');
     }
@@ -119,10 +121,15 @@ function parseDocumentLoaderConfig(options): DocumentLoaderOptions {
         }
     }
 
-    return {
-        loadMode: 'filesystem',
-        schemaDirectoryPath: CALM_META_SCHEMA_DIRECTORY
+    const userConfig = await loadCliConfig();
+    if (userConfig && userConfig.calmHubUrl) {
+        return {
+            loadMode: 'calmhub',
+            calmHubUrl: userConfig.calmHubUrl
+        }
     }
+
+    throw Error('Either a filesystem path or CALMHub URL must be supplied for loading required documents')
 }
 
 program.parse(process.argv);
