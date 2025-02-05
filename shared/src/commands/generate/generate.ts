@@ -10,6 +10,7 @@ import {instantiateNodes} from './components/node.js';
 import {instantiateRelationships} from './components/relationship.js';
 import {CALM_META_SCHEMA_DIRECTORY} from '../../consts.js';
 import {instantiateAllMetadata} from './components/metadata.js';
+import { FileSystemDocumentLoader } from '@finos/calm-shared/document-loader/file-system-document-loader.js';
 
 let logger: winston.Logger; // defined later at startup
 
@@ -36,14 +37,16 @@ function loadFile(path: string): object {
 
 export async function generate(patternPath: string, debug: boolean, instantiateAll: boolean, schemaDirectoryPath?: string): Promise<CALMArchitecture> {
     logger = initLogger(debug);
-    const schemaDirectory = new SchemaDirectory(debug);
+    // TODO allow it to load multiple directories
+    const documentLoader = new FileSystemDocumentLoader(CALM_META_SCHEMA_DIRECTORY, debug);
+    const schemaDirectory = new SchemaDirectory(documentLoader);
 
     try {
 
         await schemaDirectory.loadSchemas(CALM_META_SCHEMA_DIRECTORY);
-        if (schemaDirectoryPath) {
-            await schemaDirectory.loadSchemas(schemaDirectoryPath);
-        }
+        // if (schemaDirectoryPath) {
+        //     await schemaDirectory.loadSchemas(schemaDirectoryPath);
+        // }
     }
     catch (err) {
         logger.error('Error while trying to load schemas: ' + err.message);
@@ -53,9 +56,9 @@ export async function generate(patternPath: string, debug: boolean, instantiateA
     const pattern = loadFile(patternPath);
     schemaDirectory.loadCurrentPatternAsSchema(pattern);
 
-    const outputNodes = instantiateNodes(pattern, schemaDirectory, debug, instantiateAll);
-    const relationshipNodes = instantiateRelationships(pattern, schemaDirectory, debug, instantiateAll);
-    const metadata = instantiateAllMetadata(pattern, schemaDirectory, debug, instantiateAll);
+    const outputNodes = await instantiateNodes(pattern, schemaDirectory, debug, instantiateAll);
+    const relationshipNodes = await instantiateRelationships(pattern, schemaDirectory, debug, instantiateAll);
+    const metadata = await instantiateAllMetadata(pattern, schemaDirectory, debug, instantiateAll);
 
     const patternSchemaId = pattern['$id'];
 

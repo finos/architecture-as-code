@@ -12,6 +12,7 @@ import { SpectralResult } from './spectral.result.js';
 import createJUnitReport from './output-formats/junit-output.js';
 import prettyFormat from './output-formats/pretty-output';
 import { SchemaDirectory } from '../../schema-directory.js';
+import { FileSystemDocumentLoader } from '@finos/calm-shared/document-loader/file-system-document-loader';
 
 let logger: winston.Logger; // defined later at startup
 
@@ -80,7 +81,10 @@ function buildAjv2020(schemaDirectory: SchemaDirectory, debug: boolean): Ajv2020
 async function loadMetaSchemas(metaSchemaLocation: string): Promise<SchemaDirectory> {
     logger.info(`Loading meta schema(s) from ${metaSchemaLocation}`);
 
-    const schemaDirectory = new SchemaDirectory();
+
+    // TODO pass debug
+    const documentLoader = new FileSystemDocumentLoader(metaSchemaLocation, true);
+    const schemaDirectory = new SchemaDirectory(documentLoader);
     await schemaDirectory.loadSchemas(metaSchemaLocation);
 
     return schemaDirectory;

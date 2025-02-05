@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "build:shared": "npm run build --workspace shared",
     "build:cli": "npm run build --workspace shared --workspace cli",
     "build:docs": "npm run build --workspace docs",
     "test": "npm run test --workspaces --if-present",

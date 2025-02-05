@@ -4,12 +4,12 @@ import { SchemaDirectory } from '../../../schema-directory.js';
 import { appendPath, mergeSchemas, renderPath } from '../../../util.js';
 import { getConstValue, getEnumPlaceholder, getPropertyValue } from './property.js';
 
-export function instantiateGenericObject(definition: object, schemaDirectory: SchemaDirectory, objectType: string, path: string[], debug: boolean = false, instantiateAll: boolean = false): object | string {
+export async function instantiateGenericObject(definition: object, schemaDirectory: SchemaDirectory, objectType: string, path: string[], debug: boolean = false, instantiateAll: boolean = false): Promise<object | string> {
     const logger = initLogger(debug);
     let fullDefinition = definition;
     if (definition['$ref']) {
         const ref = definition['$ref'];
-        const schemaDef = schemaDirectory.getDefinition(ref); 
+        const schemaDef = await schemaDirectory.getDefinition(ref); 
 
         fullDefinition = mergeSchemas(schemaDef, definition);
 
@@ -48,18 +48,18 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
         else if (detail?.type === 'object') {
             // recursive instantiation
             logger.debug(`${renderedPath}: Recursively instantiating an object`);
-            out[key] = instantiateGenericObject(detail, schemaDirectory, objectType, currentPath, instantiateAll, debug);
+            out[key] = await instantiateGenericObject(detail, schemaDirectory, objectType, currentPath, instantiateAll, debug);
         }
         else if (detail['$ref']) {
             logger.debug(`${renderedPath}: Recursively instantiating a ${objectType} object via a $ref`);
-            out[key] = instantiateGenericObject(detail, schemaDirectory, objectType, currentPath, instantiateAll, debug);
+            out[key] = await instantiateGenericObject(detail, schemaDirectory, objectType, currentPath, instantiateAll, debug);
         }
         else if (detail?.type === 'array' && isArrayObjectComplex(detail, logger, renderedPath)) {
             logger.debug(`${renderedPath}: Recursively instantiating an array object.`);
 
             // isArrayObjectComplex ensures this is present
             const prefixItems = detail.prefixItems;
-            out[key] = instantiateArray(prefixItems, schemaDirectory, objectType, currentPath, instantiateAll, debug);
+            out[key] = await instantiateArray(prefixItems, schemaDirectory, objectType, currentPath, instantiateAll, debug);
         }
         else {
             out[key] = getPropertyValue(key, detail);
@@ -92,7 +92,7 @@ function isArrayObjectComplex(detail: object, logger: Logger, pathContext: strin
     return false;
 }
 
-export function instantiateArray(prefixItems: object[], schemaDirectory: SchemaDirectory, objectType: string, path: string[], instantiateAll: boolean, debug: boolean) {
+export async function instantiateArray(prefixItems: object[], schemaDirectory: SchemaDirectory, objectType: string, path: string[], instantiateAll: boolean, debug: boolean) {
     const logger = initLogger(debug);
     const output = [];
 
@@ -100,7 +100,8 @@ export function instantiateArray(prefixItems: object[], schemaDirectory: SchemaD
     logger.debug(`${renderedPath}: Instantiating elements of array as defined in prefixItems`);
     for (const [index, element] of prefixItems.entries()) {
         const currentPath = appendPath<string>(path, index.toString());
-        output.push(instantiateGenericObject(element, schemaDirectory, objectType, currentPath, debug, instantiateAll));
+        const obj = await instantiateGenericObject(element, schemaDirectory, objectType, currentPath, debug, instantiateAll);
+        output.push(obj);
     }
 
     return output;

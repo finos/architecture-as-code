@@ -63,3 +63,15 @@ export interface CALMComposedOfRelationship {
   ['unique-id']: string,
   description?: string
 }
+
+// export enum CalmDocumentTypes {
+//   ARCHITECTURE = 'architecture',
+//   PATTERN = 'pattern'
+// }
+
+// export type CalmDocumentType = `${CalmDocumentTypes}`
+
+// export const ARCHITECTURE = 'architecture';
+// export const PATTERN = 'pattern';
+// export const SCHEMA = 'schema';
+export type CalmDocumentType = 'architecture' | 'pattern' | 'schema';

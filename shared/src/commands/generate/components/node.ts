@@ -12,8 +12,8 @@ import { instantiateGenericObject } from './instantiate.js';
  * @param debug Whether to log debug detail.
  * @returns An instantiated node.
  */
-export function instantiateNode(nodeDef: any, schemaDirectory: SchemaDirectory, path: string[], debug: boolean = false, instantiateAll: boolean = false): any {
-    return instantiateGenericObject(nodeDef, schemaDirectory, 'node', path, debug, instantiateAll);
+export async function instantiateNode(nodeDef: any, schemaDirectory: SchemaDirectory, path: string[], debug: boolean = false, instantiateAll: boolean = false): Promise<any> {
+    return await instantiateGenericObject(nodeDef, schemaDirectory, 'node', path, debug, instantiateAll);
 }
 
 /**
@@ -23,7 +23,7 @@ export function instantiateNode(nodeDef: any, schemaDirectory: SchemaDirectory, 
  * @param debug Whether to log debug detail.
  * @returns An array of instantiated nodes.
  */
-export function instantiateNodes(pattern: any, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): any {
+export async function instantiateNodes(pattern: any, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): Promise<any> {
     const logger = initLogger(debug);
     const nodes = pattern?.properties?.nodes?.prefixItems;
     if (!nodes) {
@@ -37,7 +37,8 @@ export function instantiateNodes(pattern: any, schemaDirectory: SchemaDirectory,
 
     for (const [index, node] of nodes.entries()) {
         const path = appendPath<string>(['nodes'], index);
-        outputNodes.push(instantiateNode(node, schemaDirectory, path, debug, instantiateAll));
+        const instantiatedNode = await instantiateNode(node, schemaDirectory, path, debug, instantiateAll);
+        outputNodes.push(instantiatedNode);
     }
     return outputNodes;
 }

@@ -19,7 +19,7 @@ jest.mock('../../../schema-directory');
 let mockSchemaDir;
 
 beforeEach(() => {
-    mockSchemaDir = new SchemaDirectory();
+    mockSchemaDir = new SchemaDirectory(null);
 });
 
 function getSamplePatternRelationship(properties: any, required: string[] = []): any {

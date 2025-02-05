@@ -14,8 +14,8 @@ import { instantiateGenericObject } from './instantiate.js';
  * @param debug Whether to log debug detail
  * @returns An instantiated relationship.
  */
-function instantiateRelationship(relationshipDef: object, schemaDirectory: SchemaDirectory, path: string[], debug: boolean = false, instantiateAll: boolean = false): object {
-    const relationship = instantiateGenericObject(relationshipDef, schemaDirectory, 'relationship', path, debug, instantiateAll);
+async function instantiateRelationship(relationshipDef: object, schemaDirectory: SchemaDirectory, path: string[], debug: boolean = false, instantiateAll: boolean = false): Promise<object> {
+    const relationship = await instantiateGenericObject(relationshipDef, schemaDirectory, 'relationship', path, debug, instantiateAll);
     if (typeof relationship !== 'object') {
         const message = 'Expected an object during instantiation, got a string. Could there be a top-level $ref to an enum or string type?';
         initLogger(debug).error(message);
@@ -31,7 +31,7 @@ function instantiateRelationship(relationshipDef: object, schemaDirectory: Schem
  * @param debug Whether to log debug detail.
  * @returns An array of instantiated relationships.
  */
-export function instantiateRelationships(pattern: any, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): any {
+export async function instantiateRelationships(pattern: any, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): Promise<any> {
     const logger = initLogger(debug);
     const relationships = pattern?.properties?.relationships?.prefixItems;
 
@@ -46,7 +46,8 @@ export function instantiateRelationships(pattern: any, schemaDirectory: SchemaDi
     const outputRelationships = [];
     for (const [index, relationship] of relationships.entries()) {
         const path = appendPath<string>(['relationships'], index);
-        outputRelationships.push(instantiateRelationship(relationship, schemaDirectory, path, debug, instantiateAll));
+        const obj = await instantiateRelationship(relationship, schemaDirectory, path, debug, instantiateAll);
+        outputRelationships.push(obj);
     }
 
     return outputRelationships;

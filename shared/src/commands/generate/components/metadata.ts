@@ -3,8 +3,8 @@ import { SchemaDirectory } from '../../../schema-directory.js';
 import { appendPath } from '../../../util.js';
 import { instantiateGenericObject } from './instantiate.js';
 
-export function instantiateMetadataObject(definition: object, schemaDirectory: SchemaDirectory, path: string[], debug: boolean = false, instantiateAll: boolean = false): object {
-    const metadata = instantiateGenericObject(definition, schemaDirectory, 'metadata', path, debug, instantiateAll);
+export async function instantiateMetadataObject(definition: object, schemaDirectory: SchemaDirectory, path: string[], debug: boolean = false, instantiateAll: boolean = false): Promise<object> {
+    const metadata = await instantiateGenericObject(definition, schemaDirectory, 'metadata', path, debug, instantiateAll);
     if (typeof metadata !== 'object') {
         const message = 'Expected an object during instantiation, got a string. Could there be a top-level $ref to an enum or string type?';
         initLogger(debug).error(message);
@@ -13,7 +13,7 @@ export function instantiateMetadataObject(definition: object, schemaDirectory: S
     return metadata;
 }
 
-export function instantiateAllMetadata(pattern: object, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): object[] {
+export async function instantiateAllMetadata(pattern: object, schemaDirectory: SchemaDirectory, debug: boolean = false, instantiateAll: boolean = false): Promise<object[]> {
     const logger = initLogger(debug);
     const metadataObjects = pattern['properties']?.metadata?.prefixItems;
     if (!metadataObjects) {
@@ -27,7 +27,8 @@ export function instantiateAllMetadata(pattern: object, schemaDirectory: SchemaD
 
     for (const [index, metadataObj] of metadataObjects.entries()) {
         const path = appendPath<string>(['metadata'], index);
-        outputMetadata.push(instantiateMetadataObject(metadataObj, schemaDirectory, path, debug, instantiateAll));
+        const obj = await instantiateMetadataObject(metadataObj, schemaDirectory, path, debug, instantiateAll); 
+        outputMetadata.push(obj);
     }
     return outputMetadata;
 }
