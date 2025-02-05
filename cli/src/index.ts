@@ -17,6 +17,7 @@ const PATTERN_OPTION = '-p, --pattern <file>';
 const SCHEMAS_OPTION = '-s, --schemaDirectory <path>';
 const STRICT_OPTION = '--strict';
 const VERBOSE_OPTION = '-v, --verbose';
+const CALMHUB_URL_OPTION = '-c, --calmHubUrl <url>';
 
 
 
@@ -31,10 +32,13 @@ program
     .requiredOption(PATTERN_OPTION, 'Path to the pattern file to use. May be a file path or a URL.')
     .requiredOption(OUTPUT_OPTION, 'Path location at which to output the generated file.', 'architecture.json')
     .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
+    .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
     .option(GENERATE_ALL_OPTION, 'Generate all properties, ignoring the "required" field.', false)
-    .action(async (options) =>
-        await runGenerate(options.pattern, options.output, !!options.verbose, options.generateAll, options.schemaDirectory)
+    .action(async (options) => {
+            const docLoaderOpts = parseDocumentLoaderConfig(options);
+            await runGenerate(options.pattern, options.output, !!options.verbose, options.generateAll, docLoaderOpts)
+        }
     );
 
 program
@@ -95,6 +99,29 @@ function writeOutputFile(output: string, validationsOutput: string) {
         writeFileSync(output, validationsOutput);
     } else {
         process.stdout.write(validationsOutput);
+    }
+}
+
+function parseDocumentLoaderConfig(options): DocumentLoaderOptions {
+    if (options.calmHubUrl && options.schemaDirectory) {
+        program.error('At most one of --schemaDirectory and --calmHubUrl is supported; both were provided.');
+    }
+    if (options.calmHubUrl) {
+        return {
+            loadMode: 'calmhub',
+            calmHubUrl: options.calmHubUrl
+        }
+    }
+    if (options.schemaDirectory) {
+        return {
+            loadMode: 'filesystem',
+            schemaDirectoryPath: options.schemaDirectory
+        }
+    }
+
+    return {
+        loadMode: 'filesystem',
+        schemaDirectoryPath: CALM_META_SCHEMA_DIRECTORY
     }
 }
 

@@ -11,6 +11,8 @@ import {instantiateRelationships} from './components/relationship.js';
 import {CALM_META_SCHEMA_DIRECTORY} from '../../consts.js';
 import {instantiateAllMetadata} from './components/metadata.js';
 import { FileSystemDocumentLoader } from '@finos/calm-shared/document-loader/file-system-document-loader.js';
+import { DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/document-loader/document-loader.js';
+import { CALMHubDocumentLoader } from '@finos/calm-shared/document-loader/calmhub-document-loader.js';
 
 let logger: winston.Logger; // defined later at startup
 
@@ -34,11 +36,19 @@ function loadFile(path: string): object {
     }
 }
 
+function getDocumentLoader(docLoaderOpts: DocumentLoaderOptions, debug: boolean): DocumentLoader {
+    switch(docLoaderOpts.loadMode) {
+        case 'filesystem': 
+            // TODO allow it to load multiple directories so we can load core schemas and an additional schemaDir
+            return new FileSystemDocumentLoader(CALM_META_SCHEMA_DIRECTORY, debug);
+        case 'calmhub':
+            return new CALMHubDocumentLoader(docLoaderOpts.calmHubUrl, debug);
+    }
+}
 
-export async function generate(patternPath: string, debug: boolean, instantiateAll: boolean, schemaDirectoryPath?: string): Promise<CALMArchitecture> {
+export async function generate(patternPath: string, debug: boolean, instantiateAll: boolean, docLoaderOpts: DocumentLoaderOptions): Promise<CALMArchitecture> {
     logger = initLogger(debug);
-    // TODO allow it to load multiple directories
-    const documentLoader = new FileSystemDocumentLoader(CALM_META_SCHEMA_DIRECTORY, debug);
+    const documentLoader = getDocumentLoader(docLoaderOpts, debug);
     const schemaDirectory = new SchemaDirectory(documentLoader);
 
     try {
@@ -78,9 +88,9 @@ export async function generate(patternPath: string, debug: boolean, instantiateA
     return final;
 }
 
-export async function runGenerate(patternPath: string, outputPath: string, debug: boolean, instantiateAll: boolean, schemaDirectoryPath?: string): Promise<void> {
+export async function runGenerate(patternPath: string, outputPath: string, debug: boolean, instantiateAll: boolean, docLoaderOpts: DocumentLoaderOptions): Promise<void> {
     try {
-        const final = await generate(patternPath, debug, instantiateAll, schemaDirectoryPath);
+        const final = await generate(patternPath, debug, instantiateAll, docLoaderOpts);
         const output = JSON.stringify(final, null, 2);
         const dirname = path.dirname(outputPath);
 

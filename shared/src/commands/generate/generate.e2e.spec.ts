@@ -33,7 +33,7 @@ describe('generate spec e2e', () => {
     it('instantiate file with self-reference', async () => {
         const patternPath = 'test_fixtures/api-gateway-self-reference.json';
         const outPath = path.join(tempDirectoryPath, 'output.json');
-        await runGenerate(patternPath, outPath, true, false);
+        await runGenerate(patternPath, outPath, true, false, { loadMode: 'filesystem', schemaDirectoryPath: ''});
 
         expect(existsSync(outPath))
             .toBeTruthy();

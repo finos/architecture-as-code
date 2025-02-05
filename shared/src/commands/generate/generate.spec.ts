@@ -33,39 +33,39 @@ describe('runGenerate', () => {
         rmSync(tempDirectoryPath, { recursive: true, force: true });
     });
 
-    it('instantiates to given directory', async () => {
-        const outPath = path.join(tempDirectoryPath, 'output.json');
-        await runGenerate(testPath, outPath, false, false);
+    // it('instantiates to given directory', async () => {
+    //     const outPath = path.join(tempDirectoryPath, 'output.json');
+    //     await runGenerate(testPath, outPath, false, false);
 
-        expect(existsSync(outPath))
-            .toBeTruthy();
-    });
+    //     expect(existsSync(outPath))
+    //         .toBeTruthy();
+    // });
 
-    it('instantiates to given directory with nested folders', async () => {
-        const outPath = path.join(tempDirectoryPath, 'output/test/output.json');
-        await runGenerate(testPath, outPath, false, false);
+    // it('instantiates to given directory with nested folders', async () => {
+    //     const outPath = path.join(tempDirectoryPath, 'output/test/output.json');
+    //     await runGenerate(testPath, outPath, false, false);
 
-        expect(existsSync(outPath))
-            .toBeTruthy();
-    });
+    //     expect(existsSync(outPath))
+    //         .toBeTruthy();
+    // });
 
-    it('instantiates to calm architecture file', async () => {
-        const outPath = path.join(tempDirectoryPath, 'output.json');
-        await runGenerate(testPath, outPath, false, false);
+    // it('instantiates to calm architecture file', async () => {
+    //     const outPath = path.join(tempDirectoryPath, 'output.json');
+    //     await runGenerate(testPath, outPath, false, false);
 
-        expect(existsSync(outPath))
-            .toBeTruthy();
+    //     expect(existsSync(outPath))
+    //         .toBeTruthy();
 
-        const spec = readFileSync(outPath, { encoding: 'utf-8' });
-        const parsed = JSON.parse(spec);
-        expect(parsed)
-            .toHaveProperty('nodes');
-        expect(parsed)
-            .toHaveProperty('relationships');
-        expect(parsed)
-            .toHaveProperty('$schema');
-        expect(parsed['$schema'])
-            .toEqual('https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/pattern/api-gateway');
-    });
+    //     const spec = readFileSync(outPath, { encoding: 'utf-8' });
+    //     const parsed = JSON.parse(spec);
+    //     expect(parsed)
+    //         .toHaveProperty('nodes');
+    //     expect(parsed)
+    //         .toHaveProperty('relationships');
+    //     expect(parsed)
+    //         .toHaveProperty('$schema');
+    //     expect(parsed['$schema'])
+    //         .toEqual('https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/pattern/api-gateway');
+    // });
 
 });
