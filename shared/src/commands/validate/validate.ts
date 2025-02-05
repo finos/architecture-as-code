@@ -83,7 +83,7 @@ async function loadMetaSchemas(metaSchemaLocation: string): Promise<SchemaDirect
 
 
     // TODO pass debug
-    const documentLoader = new FileSystemDocumentLoader(metaSchemaLocation, true);
+    const documentLoader = new FileSystemDocumentLoader([metaSchemaLocation], true);
     const schemaDirectory = new SchemaDirectory(documentLoader);
     await schemaDirectory.loadSchemas(metaSchemaLocation);
 

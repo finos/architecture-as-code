@@ -39,8 +39,11 @@ function loadFile(path: string): object {
 function getDocumentLoader(docLoaderOpts: DocumentLoaderOptions, debug: boolean): DocumentLoader {
     switch(docLoaderOpts.loadMode) {
         case 'filesystem': 
-            // TODO allow it to load multiple directories so we can load core schemas and an additional schemaDir
-            return new FileSystemDocumentLoader(CALM_META_SCHEMA_DIRECTORY, debug);
+            const directoryPaths = [CALM_META_SCHEMA_DIRECTORY];
+            if (docLoaderOpts.schemaDirectoryPath) {
+                directoryPaths.push(docLoaderOpts.schemaDirectoryPath);
+            }
+            return new FileSystemDocumentLoader(directoryPaths, debug);
         case 'calmhub':
             return new CALMHubDocumentLoader(docLoaderOpts.calmHubUrl, debug);
     }

@@ -8,24 +8,30 @@ import { SchemaDirectory } from "../schema-directory";
 
 export class FileSystemDocumentLoader implements DocumentLoader {
     private readonly logger: Logger;
-    private readonly directoryPath: string;
+    private readonly directoryPaths: string[];
     // private schemaDirectory: SchemaDirectory;
 
-    constructor(directoryPath: string, debug: boolean) {
+    constructor(directoryPaths: string[], debug: boolean) {
         this.logger = initLogger(debug);
-        this.directoryPath = directoryPath;
+        this.directoryPaths = directoryPaths;
         // this.schemaDirectory = schemaDirectory;
     }
 
     async initialise(schemaDirectory: SchemaDirectory): Promise<void> {
+        for (const directoryPath of this.directoryPaths) {
+            await this.loadDocumentsFromDirectory(schemaDirectory, directoryPath);
+        }
+    }
+
+    async loadDocumentsFromDirectory(schemaDirectory: SchemaDirectory, directoryPath: string): Promise<void> {
         try {
             // const map = new Map<string, object>();
 
-            this.logger.debug('Loading schemas from ' + this.directoryPath);
-            const files = await readdir(this.directoryPath, { recursive: true });
+            this.logger.debug('Loading schemas from ' + directoryPath);
+            const files = await readdir(directoryPath, { recursive: true });
 
             const schemaPaths = files.filter(str => str.match(/^.*(json|yaml|yml)$/))
-                .map(schemaPath => join(this.directoryPath, schemaPath));
+                .map(schemaPath => join(directoryPath, schemaPath));
 
             for (const schemaPath of schemaPaths) {
                 const schemaDef = await this.loadDocument(schemaPath);
@@ -35,7 +41,7 @@ export class FileSystemDocumentLoader implements DocumentLoader {
             }
         } catch (err) {
             if (err.code === 'ENOENT') {
-                this.logger.error('Specified directory not found while loading documents: ' + this.directoryPath + ', error: ' + err.message);
+                this.logger.error('Specified directory not found while loading documents: ' + directoryPath + ', error: ' + err.message);
             } else {
                 this.logger.error(err);
             }

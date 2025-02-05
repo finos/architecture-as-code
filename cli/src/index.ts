@@ -129,7 +129,11 @@ async function parseDocumentLoaderConfig(options): Promise<DocumentLoaderOptions
         }
     }
 
-    throw Error('Either a filesystem path or CALMHub URL must be supplied for loading required documents')
+    console.log('Warning, no schema loading mechanism was defined. Only the bundled core schemas will be available; you may see empty definitions or errors.')
+    return {
+        loadMode: 'filesystem',
+        schemaDirectoryPath: undefined
+    }
 }
 
 program.parse(process.argv);
