@@ -30,6 +30,7 @@ export class SchemaDirectory {
     /**
      * Load the schemas from the configured directory path.
      * Subsequent loads could overwrite schemas if they have the same ID.
+     * Throws an error if any schema fails to load.
      */
     public async loadSchemas(dir: string): Promise<void> {
         try {
@@ -38,12 +39,13 @@ export class SchemaDirectory {
             this.logger.debug('Loading schemas from ' + dir);
             const files = await readdir(dir, { recursive: true });
 
-            const schemaPaths = files.filter(str => str.match(/^.*(json|yaml|yml)$/))
+            const schemaPaths = files.filter(str => str.match(/^.*(json)$/))
                 .map(schemaPath => join(dir, schemaPath));
-
             for (const schemaPath of schemaPaths) {
                 const schema = await this.loadSchema(schemaPath);
-                map.set(schema['$id'], schema);
+                if (schema){
+                    map.set(schema['$id'], schema);
+                }
             }
 
             map.forEach((val, key) => this.schemas.set(key, val));
@@ -175,8 +177,6 @@ export class SchemaDirectory {
         if (!parsed['$schema']) {
             this.logger.warn('Warning, loaded schema does not have $schema set and therefore may be invalid. Path: ', schemaPath);
         }
-
-        this.logger.debug('Loaded schema with $id: ' + schemaId);
         
         return parsed;
     }

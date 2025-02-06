@@ -7,6 +7,7 @@ import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
 import { version } from '../package.json';
 import { initLogger } from '@finos/calm-shared/commands/helper';
+import { startServer } from './server/cli-server';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -16,6 +17,8 @@ const PATTERN_OPTION = '-p, --pattern <file>';
 const SCHEMAS_OPTION = '-s, --schemaDirectory <path>';
 const STRICT_OPTION = '--strict';
 const VERBOSE_OPTION = '-v, --verbose';
+
+
 
 program
     .name('calm')
@@ -74,6 +77,16 @@ async function runValidate(options) {
         process.exit(1);
     }
 }
+
+program
+    .command('server')
+    .description('Start a HTTP server to proxy CLI commands. (experimental)')
+    .option('-p, --port <port>', 'Port to run the server on', '3000')
+    .requiredOption(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
+    .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+    .action((options) => {
+        startServer(options);
+    });
 
 function writeOutputFile(output: string, validationsOutput: string) {
     if (output) {
