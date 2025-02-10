@@ -26,3 +26,5 @@ node_modules/
 **/tsconfig.tsbuildinfo
 
 !/.mvn/wrapper/maven-wrapper.jar
+
+coverage/
