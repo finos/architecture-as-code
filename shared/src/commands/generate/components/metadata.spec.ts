@@ -1,7 +1,7 @@
 import { SchemaDirectory } from '../../../schema-directory';
 import { instantiateAllMetadata, instantiateMetadataObject } from './metadata';
 
-jest.mock('../../helper', () => {
+jest.mock('../../../logger', () => {
     return {
         initLogger: () => {
             return {

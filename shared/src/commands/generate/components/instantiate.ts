@@ -1,5 +1,5 @@
 import { Logger } from 'winston';
-import { initLogger } from '../../helper.js';
+import { initLogger } from '../../../logger.js';
 import { SchemaDirectory } from '../../../schema-directory.js';
 import { appendPath, mergeSchemas, renderPath } from '../../../util.js';
 import { getConstValue, getEnumPlaceholder, getPropertyValue } from './property.js';

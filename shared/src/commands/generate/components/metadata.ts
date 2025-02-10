@@ -1,4 +1,4 @@
-import { initLogger } from '../../helper.js';
+import { initLogger } from '../../../logger.js';
 import { SchemaDirectory } from '../../../schema-directory.js';
 import { appendPath } from '../../../util.js';
 import { instantiateGenericObject } from './instantiate.js';
