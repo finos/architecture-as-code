@@ -10,5 +10,14 @@ module.exports = {
         '^.+\\.ts?$': 'ts-jest', 
     },
     rootDir: '.',
-    watchPathIgnorePatterns: ['<rootDir>/../shared/']
+    watchPathIgnorePatterns: ['<rootDir>/../shared/'],
+    collectCoverage: true,
+    coverageThreshold: {
+        global: {
+            branches: 95,
+            functions: 90,
+            lines: 90,
+            statements: 90,
+        }
+    }
 };
