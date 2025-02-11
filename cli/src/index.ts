@@ -6,7 +6,7 @@ import path from 'path';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
 import { version } from '../package.json';
-import { initLogger } from '@finos/calm-shared/commands/helper';
+import { initLogger } from '@finos/calm-shared/logger';
 import { startServer } from './server/cli-server';
 
 const FORMAT_OPTION = '-f, --format <format>';

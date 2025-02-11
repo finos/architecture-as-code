@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import {mkdirp} from 'mkdirp';
 
 import * as winston from 'winston';
-import {initLogger} from '../helper.js';
+import {initLogger} from '../../logger.js';
 import {CALMArchitecture} from '../../types.js';
 import {SchemaDirectory} from '../../schema-directory.js';
 import {instantiateNodes} from './components/node.js';
