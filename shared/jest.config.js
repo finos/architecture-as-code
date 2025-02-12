@@ -21,5 +21,9 @@ module.exports = {
             lines: 75,
             statements: 75,
         }
-    }
+    },
+    coveragePathIgnorePatterns: [
+        '/node_modules/',
+        '/test_fixtures/'
+    ]
 };

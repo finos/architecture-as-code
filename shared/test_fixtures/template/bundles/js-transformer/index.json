@@ -1,0 +1,14 @@
+{
+  "name": "JS Transformer Bundle",
+  "transformer": "transformer",
+  "templates": [
+    {
+      "template": "main.hbs",
+      "from": "document",
+      "output": "js-transformer.txt",
+      "output-type": "single"
+    }
+  ]
+}
+
+
