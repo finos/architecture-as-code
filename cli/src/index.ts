@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-import { CALM_META_SCHEMA_DIRECTORY, getFormattedOutput, runGenerate, validate, exitBasedOffOfValidationOutcome } from '@finos/calm-shared';
+import { CALM_META_SCHEMA_DIRECTORY, getFormattedOutput, runGenerate, validate, exitBasedOffOfValidationOutcome, TemplateProcessor } from '@finos/calm-shared';
 import { Option, program } from 'commander';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
@@ -97,5 +97,22 @@ function writeOutputFile(output: string, validationsOutput: string) {
         process.stdout.write(validationsOutput);
     }
 }
+program
+    .command('template')
+    .description('Generate files from a CALM model using a Handlebars template bundle')
+    .requiredOption('--input <path>', 'Path to the CALM model JSON file')
+    .requiredOption('--bundle <path>', 'Path to the template bundle directory')
+    .requiredOption('--output <path>', 'Path to output directory')
+    .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+    .action(async (options) => {
+        if(options.verbose){
+            process.env.DEBUG = 'true';
+        }
+
+        const processor = new TemplateProcessor(options.input, options.bundle, options.output);
+        await processor.processTemplate();
+    });
+
+
 
 program.parse(process.argv);

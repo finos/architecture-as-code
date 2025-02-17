@@ -1,0 +1,12 @@
+{
+  "name": "control-generation",
+  "transformer": "control-transformer",
+  "templates": [
+    {
+      "template": "control-requirement.hbs",
+      "from": "control-specification",
+      "output": "{{id}}.json",
+      "output-type": "single"
+    }
+  ]
+}
