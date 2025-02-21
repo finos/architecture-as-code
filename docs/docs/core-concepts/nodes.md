@@ -20,9 +20,14 @@ Each node within the CALM schema has several key properties that define its beha
 - **node-type**: Specifies the type of the node, such as actor, system, service, database, network, or webclient. This helps categorize the node and determine its function within the system.
 - **name**: A human-readable name for the node, making it easy to identify and reference in diagrams and discussions.
 - **description**: A brief description of the node, explaining its purpose or role within the architecture.
-- **detailed-architecture**: Optional; allows for linking to a more detailed architectural representation of the node, which can be useful for complex systems or nested architectures.
+- **details**: Optional; Contains the properties that allow you to point to a more detailed architecture and what that architecture should conform to:
+  - **detailed-architecture**: Allows for linking to a more detailed architectural representation of the node, which can be useful for complex systems or nested architectures.
+  - **required-pattern**: The pattern that the detailed architecture must conform to
+- **data-classification**: Optional; An enum that specifies the classification of data handled, e.g. PII
+- **run-as**: Optional; A string value for the identity that the node will run as. This could be a unix id like www-data or a numeric id 1000
+- **instance**: Optional; UNSURE, this value has been lost to the ether
 - **interfaces**: An optional array defining the interfaces the node exposes, detailing how it interacts with other components.
-- **controls**: Optional controls that specify security or operational policies applied to the node, such as access restrictions or compliance requirements.
+- **controls**: Optional controls that specify security or operational policies applied to the node, such as access restrictions or compliance requirements.  §
 
 ### Example of a Node Definition
 
@@ -41,7 +46,15 @@ Here’s a simple example of a node definition:
       "host": "payments.example.com",
       "port": 443
     }
-  ]
+  ],
+  "details":{
+    "detailed-architecture": "http://calm-hub/architecture-5",
+    "required-pattern": "http://calm-hub/pattern-2"
+  },
+  "data-classification": "PII",
+  "run-as": "3000",
+  "instance": "?????"
+  
 }
 ```
 
@@ -50,5 +63,5 @@ Here’s a simple example of a node definition:
 Nodes are versatile and can be used to represent various levels of your architecture. Use them to:
 
 - **Define Systems and Services**: Break down your architecture into manageable components, each defined as a node.
-- **Capture Detailed Information**: Utilize the detailed-architecture field to link to more granular designs, enabling deeper exploration when needed.
+- **Capture Detailed Information**: Utilize the details field to link to more granular designs, enabling deeper exploration when needed.
 - **Expose Interfaces**: Clearly define how each node interacts with others, enhancing understanding and enabling more robust architectural validations.
