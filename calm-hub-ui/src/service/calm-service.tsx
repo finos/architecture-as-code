@@ -1,11 +1,18 @@
-import { Namespace, Pattern, PatternID, Version, Flow, FlowID, Architecture, ArchitectureID} from "../model/calm.js";
+import {
+    Namespace,
+    Pattern,
+    PatternID,
+    Version,
+    Flow,
+    FlowID,
+    Architecture,
+    ArchitectureID,
+} from '../model/calm.js';
 
 /**
  * Fetch namespaces and set them using the provided setter function.
  */
-export async function fetchNamespaces(
-    setNamespaces: (namespaces: Namespace[]) => void
-) {
+export async function fetchNamespaces(setNamespaces: (namespaces: Namespace[]) => void) {
     try {
         const res = await fetch('/calm/namespaces');
         const data = await res.json();
@@ -34,10 +41,7 @@ export async function fetchPatternIDs(
 /**
  * Fetch flow IDs for a given namespace and set them using the provided setter function.
  */
-export async function fetchFlowIDs(
-    namespace: string,
-    setFlowIDs: (flowIDs: FlowID[]) => void
-) {
+export async function fetchFlowIDs(namespace: string, setFlowIDs: (flowIDs: FlowID[]) => void) {
     try {
         const res = await fetch(`/calm/namespaces/${namespace}/flows`);
         const data = await res.json();
@@ -152,7 +156,9 @@ export async function fetchArchitectureVersions(
     setVersions: (versions: Version[]) => void
 ) {
     try {
-        const res = await fetch(`/calm/namespaces/${namespace}/architectures/${architectureID}/versions`);
+        const res = await fetch(
+            `/calm/namespaces/${namespace}/architectures/${architectureID}/versions`
+        );
         const data = await res.json();
         setVersions(data.values);
     } catch (error) {

@@ -25,12 +25,17 @@ function Visualizer() {
     return (
         <ZoomProvider>
             <div className="h-screen flex flex-col">
-                <Navbar
-                />
-                <Menu  handleUpload={handleFile}
+                <Navbar />
+                <Menu
+                    handleUpload={handleFile}
                     isGraphRendered={instance ? true : false}
-                    toggleNodeDesc={() => setNodeDescActive((isNodeDescActive) => !isNodeDescActive)}
-                    toggleConnectionDesc={() => setConDescActive((isConDescActive) => !isConDescActive)}/>
+                    toggleNodeDesc={() =>
+                        setNodeDescActive((isNodeDescActive) => !isNodeDescActive)
+                    }
+                    toggleConnectionDesc={() =>
+                        setConDescActive((isConDescActive) => !isConDescActive)
+                    }
+                />
                 <Drawer
                     isNodeDescActive={isNodeDescActive}
                     isConDescActive={isConDescActive}
