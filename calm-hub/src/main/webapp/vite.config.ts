@@ -8,5 +8,10 @@ export default defineConfig({
   build: {
     outDir: 'build/',
     emptyOutDir: true
+  },
+  server: {
+    proxy: {
+      '/calm' :'http://localhost:8080'
+    }
   }
 })
