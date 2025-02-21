@@ -8,8 +8,8 @@ calm-hub:
   - "calm-hub/**"
 calm:
   - "calm/**"
-calm-visualizer:
-  - "calm-visualizer/**"
+calm-hub-ui:
+  - "calm-hub-ui/**"
 config:
   - "pom.xml"
   - "**/package.json"

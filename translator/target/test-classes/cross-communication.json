@@ -1,0 +1,94 @@
+{
+  "$schema": "../../../../calm/draft/2024-04/meta/calm.json",
+  "nodes": [
+    {
+      "unique-id": "system1",
+      "node-type": "system",
+      "name": "System1",
+      "description": "System1"
+    },
+    {
+      "unique-id": "system2",
+      "node-type": "system",
+      "name": "System2",
+      "description": "System2"
+    },
+    {
+      "unique-id": "service1",
+      "node-type": "service",
+      "name": "Service1",
+      "description": "service1",
+      "data-classification": "Confidential",
+      "run-as": "systemId"
+    },
+    {
+      "unique-id": "service2",
+      "node-type": "service",
+      "name": "Service2",
+      "description": "service2",
+      "data-classification": "Confidential",
+      "run-as": "systemId"
+    },
+    {
+      "unique-id": "service3",
+      "node-type": "service",
+      "name": "Service3",
+      "description": "service3",
+      "data-classification": "Confidential",
+      "run-as": "systemId"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "system1-composed-of",
+      "relationship-type": {
+        "composed-of": {
+          "container": "system1",
+          "nodes": [
+            "service1"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "system2-composed-of",
+      "relationship-type": {
+        "composed-of": {
+          "container": "system2",
+          "nodes": [
+            "service2",
+            "service3"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "service1-to-service2",
+      "description": "Service 1 to Service 2",
+      "relationship-type": {
+        "connects": {
+          "destination": {
+            "node": "service2"
+          },
+          "source": {
+            "node": "service1"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "service2-to-service3",
+      "description": "Service 2 to Service 3",
+      "relationship-type": {
+        "connects": {
+            "destination": {
+                "node": "service3"
+            },
+            "source": {
+                "node": "service2"
+            }
+        }
+      }
+    }
+  ]
+}
