@@ -26,7 +26,7 @@
     "vite": "^6.0.11",
     "vite-plugin-svgr": "^4.3.0",
     "vite-tsconfig-paths": "^5.1.4",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^4.0.0"
   },
   "resolutions": {
     "css-what": "6.1.0",
