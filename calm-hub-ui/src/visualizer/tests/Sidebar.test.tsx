@@ -3,7 +3,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { Edge, Node } from '../components/cytoscape-renderer/CytoscapeRenderer.js';
 import Sidebar from '../components/sidebar/Sidebar.js';
 
-
 describe('Sidebar Component', () => {
     const mockCloseSidebar = vi.fn();
 
