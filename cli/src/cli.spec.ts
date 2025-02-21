@@ -4,6 +4,8 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { parseStringPromise } from 'xml2js';
 import util from 'util';
+import axios from 'axios';
+
 
 const execPromise = util.promisify(exec);
 
@@ -182,6 +184,18 @@ describe('CLI Integration Tests', () => {
         });
     });
 
+    test('example server command - starts server and responds to requests', async () => {
+        const serverCommand = 'calm server -p 3001 --schemaDirectory ../../dist/calm/';
+        const serverProcess = exec(serverCommand);
+        // Give the server some time to start
+        await new Promise(resolve => setTimeout(resolve, 5 * millisPerSecond));
+        try {
+            const response = await axios.get('http://127.0.0.1:3001/health');
+            expect(response.status).toBe(200);
+        } finally {
+            serverProcess.kill();
+        }
+    });
 });
 
 

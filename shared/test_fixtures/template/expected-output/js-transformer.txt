@@ -1,0 +1,16 @@
+## DocuFlow System
+DocuFlow is a document management system that allows users to upload, process, and store documents securely.
+
+## Nodes
+    ### SYSTEM: DocuFlow
+    - **ID:** document-system
+    - **Description:** Main document management system
+    ### SERVICE: Upload Service
+    - **ID:** svc-upload
+    - **Description:** Handles user document uploads
+    ### SERVICE: Storage Service
+    - **ID:** svc-storage
+    - **Description:** Stores and retrieves documents securely
+    ### DATABASE: Document Database
+    - **ID:** db-docs
+    - **Description:** Stores metadata and document references

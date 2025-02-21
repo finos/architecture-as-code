@@ -1,0 +1,7 @@
+{
+  "name": "Simple Test Bundle",
+  "transformer": "simple-transformer",
+  "templates": [
+    { "template": "main.hbs", "from": "document", "output": "users.txt", "output-type": "single" }
+  ]
+}

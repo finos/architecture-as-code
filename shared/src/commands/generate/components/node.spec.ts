@@ -3,7 +3,7 @@
 import { SchemaDirectory } from '../../../schema-directory';
 import { instantiateNodes } from './node';
 
-jest.mock('../../helper', () => {
+jest.mock('../../../logger', () => {
     return {
         initLogger: () => {
             return {

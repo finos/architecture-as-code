@@ -1,6 +1,6 @@
 import * as winston from 'winston';
 
-export function initLogger(debug: boolean): winston.Logger {
+export function initLogger(debug: boolean, label?: string): winston.Logger {
     const level = debug ? 'debug' : 'info';
     return winston.createLogger({
         transports: [
@@ -11,13 +11,14 @@ export function initLogger(debug: boolean): winston.Logger {
         ],
         level: level,
         format: winston.format.combine(
+            winston.format.label({ label}),
             winston.format.cli(),
             winston.format.errors({ stack: true }),
-            winston.format.printf(({ level, message, stack }) => {
+            winston.format.printf(({ level, message, stack, label }) => {
                 if (stack) {
-                    return `${level}: ${message} - ${stack}`;
+                    return `${level} [${label}]: ${message} - ${stack}`;
                 }
-                return `${level}: ${message}`;
+                return `${level} [${label}]: ${message}`;
             }),
         )
     });
