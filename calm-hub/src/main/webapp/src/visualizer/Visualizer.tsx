@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import './App.css';
-import Drawer from './components/drawer/Drawer';
-import Navbar from './components/navbar/Navbar';
-import { CALMArchitecture } from '../../shared/src/types';
+import './Visualizer.css';
+import Drawer from './components/drawer/Drawer.js';
+import Navbar from '../components/navbar/Navbar.js';
 import React from 'react';
-import { ZoomProvider } from './components/zoom-context.provider';
+import { ZoomProvider } from './components/zoom-context.provider.js';
+import { CALMArchitecture } from '../../../../../../shared/src/types.js';
+import Menu from './components/menu/Menu.js';
 
-function App() {
+function Visualizer() {
     const [title, setTitle] = useState<string | undefined>(undefined);
     const [instance, setCALMInstance] = useState<CALMArchitecture | undefined>(undefined);
     const [isConDescActive, setConDescActive] = React.useState(false);
@@ -25,11 +26,11 @@ function App() {
         <ZoomProvider>
             <div className="h-screen flex flex-col">
                 <Navbar
-                    handleUpload={handleFile}
+                />
+                <Menu  handleUpload={handleFile}
                     isGraphRendered={instance ? true : false}
                     toggleNodeDesc={() => setNodeDescActive((isNodeDescActive) => !isNodeDescActive)}
-                    toggleConnectionDesc={() => setConDescActive((isConDescActive) => !isConDescActive)}
-                />
+                    toggleConnectionDesc={() => setConDescActive((isConDescActive) => !isConDescActive)}/>
                 <Drawer
                     isNodeDescActive={isNodeDescActive}
                     isConDescActive={isConDescActive}
@@ -41,4 +42,4 @@ function App() {
     );
 }
 
-export default App;
+export default Visualizer;

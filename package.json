@@ -6,7 +6,7 @@
     "shared",
     "cli",
     "docs",
-    "calm-visualizer"
+    "calm-visualizer" // Todo: Remove this workspace
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
