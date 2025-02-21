@@ -5,12 +5,7 @@ interface ValueTableProps {
     currentValue: string | undefined;
 }
 
-export function ValueTable({
-    header,
-    values,
-    callback,
-    currentValue,
-}: ValueTableProps) {
+export function ValueTable({ header, values, callback, currentValue }: ValueTableProps) {
     return (
         <div className="border grow">
             <div className="p-5">
@@ -26,11 +21,7 @@ export function ValueTable({
                     }
 
                     return (
-                        <div
-                            key={value}
-                            className={styles}
-                            onClick={() => callback(value)}
-                        >
+                        <div key={value} className={styles} onClick={() => callback(value)}>
                             {value}
                         </div>
                     );

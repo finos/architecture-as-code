@@ -10,13 +10,9 @@ type Pattern = string;
 
 function Hub() {
     const [namespaces, setNamespaces] = useState<Namespace[]>([]);
-    const [currentNamespace, setCurrentNamespace] = useState<
-        Namespace | undefined
-    >();
+    const [currentNamespace, setCurrentNamespace] = useState<Namespace | undefined>();
     const [patternIDs, setPatternIDs] = useState<PatternID[]>([]);
-    const [currentPatternID, setCurrentPatternID] = useState<
-        PatternID | undefined
-    >();
+    const [currentPatternID, setCurrentPatternID] = useState<PatternID | undefined>();
     const [versions, setVersions] = useState<Version[]>([]);
     const [currentVersion, setCurrentVersion] = useState<Version | undefined>();
     const [pattern, setPattern] = useState<Pattern | undefined>();
@@ -48,14 +44,8 @@ function Hub() {
             .catch(console.log);
     }
 
-    function loadPattern(
-        namespace: string,
-        patternID: string,
-        version: string
-    ) {
-        fetch(
-            `/calm/namespaces/${namespace}/patterns/${patternID}/versions/${version}`
-        )
+    function loadPattern(namespace: string, patternID: string, version: string) {
+        fetch(`/calm/namespaces/${namespace}/patterns/${patternID}/versions/${version}`)
             .then((res) => res.json())
             .then((data) => {
                 setPattern(data);
@@ -64,56 +54,58 @@ function Hub() {
     }
 
     return (
-        <><Navbar/>
-        <div className="flex flex-col h-full flex-1">
-            <div className="flex flex-row h-[90%]">
-                <div className="flex flex-row w-1/3">
-                    <ValueTable
-                        header="Namespaces"
-                        values={namespaces}
-                        callback={(namespace) => {
-                            if (namespace !== currentNamespace) {
-                                setPattern(undefined);
-                                setCurrentPatternID(undefined);
-                                setCurrentVersion(undefined);
-                                setVersions([]);
-                                setCurrentNamespace(namespace);
-                                loadPatternIDs(namespace);
-                            }
-                        } }
-                        currentValue={currentNamespace} />
-                    <ValueTable
-                        header="Patterns"
-                        values={patternIDs}
-                        callback={(patternID) => {
-                            if (patternID !== currentPatternID) {
-                                setPattern(undefined);
-                                setCurrentVersion(undefined);
-                                setCurrentPatternID(patternID);
-                                loadVersions(currentNamespace || '', patternID);
-                            }
-                        } }
-                        currentValue={currentPatternID} />
-                    <ValueTable
-                        header="Versions"
-                        values={versions}
-                        callback={(version) => {
-                            setCurrentVersion(version);
-                            loadPattern(
-                                currentNamespace || '',
-                                currentPatternID || '',
-                                version
-                            );
-                        } }
-                        currentValue={currentVersion} />
+        <>
+            <Navbar />
+            <div className="flex flex-col h-full flex-1">
+                <div className="flex flex-row h-[90%]">
+                    <div className="flex flex-row w-1/3">
+                        <ValueTable
+                            header="Namespaces"
+                            values={namespaces}
+                            callback={(namespace) => {
+                                if (namespace !== currentNamespace) {
+                                    setPattern(undefined);
+                                    setCurrentPatternID(undefined);
+                                    setCurrentVersion(undefined);
+                                    setVersions([]);
+                                    setCurrentNamespace(namespace);
+                                    loadPatternIDs(namespace);
+                                }
+                            }}
+                            currentValue={currentNamespace}
+                        />
+                        <ValueTable
+                            header="Patterns"
+                            values={patternIDs}
+                            callback={(patternID) => {
+                                if (patternID !== currentPatternID) {
+                                    setPattern(undefined);
+                                    setCurrentVersion(undefined);
+                                    setCurrentPatternID(patternID);
+                                    loadVersions(currentNamespace || '', patternID);
+                                }
+                            }}
+                            currentValue={currentPatternID}
+                        />
+                        <ValueTable
+                            header="Versions"
+                            values={versions}
+                            callback={(version) => {
+                                setCurrentVersion(version);
+                                loadPattern(
+                                    currentNamespace || '',
+                                    currentPatternID || '',
+                                    version
+                                );
+                            }}
+                            currentValue={currentVersion}
+                        />
+                    </div>
+                    <JsonRenderer jsonString={pattern} />
                 </div>
-                <JsonRenderer jsonString={pattern} />
             </div>
-        </div></>
+        </>
     );
 }
 
 export default Hub;
-
-
-
