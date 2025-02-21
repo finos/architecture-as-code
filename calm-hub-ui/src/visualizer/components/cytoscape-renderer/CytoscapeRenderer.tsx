@@ -65,14 +65,14 @@ const CytoscapeRenderer = ({
     const [selectedNode, setSelectedNode] = useState<Node['data'] | null>(null);
     const [selectedEdge, setSelectedEdge] = useState<Edge['data'] | null>(null);
 
-    function getNodeLabelTemplateGenerator(selected=false): (data: Node["data"]) => string {
+    function getNodeLabelTemplateGenerator(selected = false): (data: Node['data']) => string {
         return (data: Node['data']) => {
             return `<div class="node element ${selected ? 'selected-node' : ''}">
                         <p class="title">${data.label}</p>
                         <p class="type">${data.type}</p>
                         <p class="description">${isNodeDescActive ? data.description : ''}</p>
                     </div>`;
-        }
+        };
     }
 
     useEffect(() => {
@@ -85,11 +85,11 @@ const CytoscapeRenderer = ({
             (cy as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
                 {
                     query: '.node',
-                    tpl: getNodeLabelTemplateGenerator(false)
+                    tpl: getNodeLabelTemplateGenerator(false),
                 },
                 {
                     query: '.node:selected',
-                    tpl: getNodeLabelTemplateGenerator(true)
+                    tpl: getNodeLabelTemplateGenerator(true),
                 },
             ]);
 
@@ -168,7 +168,7 @@ const CytoscapeRenderer = ({
     return (
         <div className="relative flex m-auto border">
             {title && (
-            <div className="graph-title absolute m-5 bg-primary-content shadow-md">
+                <div className="graph-title absolute m-5 bg-primary-content shadow-md">
                     <span className="text-m font-thin">Architecture: </span>
                     <span className="text-m font-semibold">{title}</span>
                 </div>
