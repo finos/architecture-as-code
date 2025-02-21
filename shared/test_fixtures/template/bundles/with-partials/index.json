@@ -1,0 +1,13 @@
+{
+  "name": "CALM-Based Partial Template Bundle",
+  "transformer": "with-partials-transformer",
+  "templates": [
+    {
+      "template": "main.hbs",
+      "from": "document",
+      "output": "actual-with-partials.txt",
+      "output-type": "single",
+      "partials": ["header.hbs", "footer.hbs"]
+    }
+  ]
+}

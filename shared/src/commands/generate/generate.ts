@@ -3,9 +3,9 @@ import * as path from 'node:path';
 import {mkdirp} from 'mkdirp';
 
 import * as winston from 'winston';
-import {initLogger} from '../helper.js';
+import {initLogger} from '../../logger.js';
 import {CALMArchitecture} from '../../types.js';
-import {SchemaDirectory} from './schema-directory.js';
+import {SchemaDirectory} from '../../schema-directory.js';
 import {instantiateNodes} from './components/node.js';
 import {instantiateRelationships} from './components/relationship.js';
 import {CALM_META_SCHEMA_DIRECTORY} from '../../consts.js';
@@ -38,9 +38,16 @@ export async function generate(patternPath: string, debug: boolean, instantiateA
     logger = initLogger(debug);
     const schemaDirectory = new SchemaDirectory(debug);
 
-    await schemaDirectory.loadSchemas(CALM_META_SCHEMA_DIRECTORY);
-    if (schemaDirectoryPath) {
-        await schemaDirectory.loadSchemas(schemaDirectoryPath);
+    try {
+
+        await schemaDirectory.loadSchemas(CALM_META_SCHEMA_DIRECTORY);
+        if (schemaDirectoryPath) {
+            await schemaDirectory.loadSchemas(schemaDirectoryPath);
+        }
+    }
+    catch (err) {
+        logger.error('Error while trying to load schemas: ' + err.message);
+        throw err;
     }
 
     const pattern = loadFile(patternPath);
@@ -69,13 +76,20 @@ export async function generate(patternPath: string, debug: boolean, instantiateA
 }
 
 export async function runGenerate(patternPath: string, outputPath: string, debug: boolean, instantiateAll: boolean, schemaDirectoryPath?: string): Promise<void> {
-    const final = await generate(patternPath, debug, instantiateAll, schemaDirectoryPath);
+    try {
+        const final = await generate(patternPath, debug, instantiateAll, schemaDirectoryPath);
+        const output = JSON.stringify(final, null, 2);
+        const dirname = path.dirname(outputPath);
 
-    const output = JSON.stringify(final, null, 2);
-    const dirname = path.dirname(outputPath);
+        logger.debug('Writing output to ' + outputPath);
 
-    logger.debug('Writing output to ' + outputPath);
-
-    mkdirp.sync(dirname);
-    fs.writeFileSync(outputPath, output);
+        mkdirp.sync(dirname);
+        fs.writeFileSync(outputPath, output);
+    }
+    catch (err) {
+        logger.error('Error while generating architecture from pattern: ' + err.message);
+        if (debug) {
+            logger.error(err.stack);
+        }
+    }
 }

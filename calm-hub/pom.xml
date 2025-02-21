@@ -44,6 +44,10 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-mongodb-client</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
 
     <!-- Testing -->
     <dependency>
@@ -86,7 +90,7 @@
     <plugins>
       <!-- Quarkus Maven Plugin -->
       <plugin>
-        <groupId>${quarkus.platform.group-id}</groupId>
+        <groupId>io.quarkus</groupId>
         <artifactId>quarkus-maven-plugin</artifactId>
         <version>${quarkus.platform.version}</version>
         <extensions>true</extensions>
@@ -165,6 +169,11 @@
       <groupId>org.jacoco</groupId>
       <artifactId>jacoco-maven-plugin</artifactId>
       <version>0.8.12</version>
+        <configuration>
+        <excludes>
+          <exclude>**/*Builder.*</exclude>
+        </excludes>
+      </configuration>
       <executions>
         <execution>
           <id>default-prepare-agent</id>

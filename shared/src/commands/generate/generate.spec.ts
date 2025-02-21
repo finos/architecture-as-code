@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 
-jest.mock('../helper', () => {
+jest.mock('../../logger', () => {
     return {
         initLogger: () => {
             return {
@@ -14,7 +14,7 @@ jest.mock('../helper', () => {
     };
 });
 
-jest.mock('./schema-directory');
+jest.mock('../../schema-directory');
 
 jest.mock('../../consts', () => ({
     get CALM_META_SCHEMA_DIRECTORY() { return '../calm/draft/2024-10/meta'; }

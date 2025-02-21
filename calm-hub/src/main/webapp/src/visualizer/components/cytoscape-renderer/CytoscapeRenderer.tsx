@@ -65,6 +65,16 @@ const CytoscapeRenderer = ({
     const [selectedNode, setSelectedNode] = useState<Node['data'] | null>(null);
     const [selectedEdge, setSelectedEdge] = useState<Edge['data'] | null>(null);
 
+    function getNodeLabelTemplateGenerator(selected=false): (data: Node["data"]) => string {
+        return (data: Node['data']) => {
+            return `<div class="node element ${selected ? 'selected-node' : ''}">
+                        <p class="title">${data.label}</p>
+                        <p class="type">${data.type}</p>
+                        <p class="description">${isNodeDescActive ? data.description : ''}</p>
+                    </div>`;
+        }
+    }
+
     useEffect(() => {
         if (cy) {
             //Ensure cytoscape zoom and context state are synchronised
@@ -75,13 +85,11 @@ const CytoscapeRenderer = ({
             (cy as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
                 {
                     query: '.node',
-                    tpl: (data: Node['data']) => {
-                        return `<div class="node element">
-                                    <p class="title">${data.label}</p>
-                                    <p class="type">${data.type}</p>
-                                    <p class="description">${isNodeDescActive ? data.description : ''}</p>
-                                </div>`;
-                    },
+                    tpl: getNodeLabelTemplateGenerator(false)
+                },
+                {
+                    query: '.node:selected',
+                    tpl: getNodeLabelTemplateGenerator(true)
                 },
             ]);
 

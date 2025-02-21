@@ -35,5 +35,5 @@ jobs:
       - name: Build workspace
         run: npm run build --workspace=shared
 
-      - name: Run tests for Shared
+      - name: Run tests with coverage for Shared
         run: npm run test --workspace=shared

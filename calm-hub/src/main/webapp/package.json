@@ -8,7 +8,7 @@
     "build": "vite build",
     "serve": "vite preview",
     "prod": "vite build && mkdir -p ../resources/META-INF/resources && rsync -a build/* ../resources/META-INF/resources",
-    "test": "vitest",
+    "test": "vitest run",
     "lint": "eslint .",        
     "format": "prettier --write ."
   },
@@ -33,7 +33,7 @@
     "react-json-view-lite": "^2.0.1",
     "react-router-dom": "^7.2.0",
     "typescript": "^4.9.5",
-    "vite": "^6.0.7",
+    "vite": "^6.0.11",
     "vite-plugin-svgr": "^4.3.0",
     "vite-tsconfig-paths": "^5.1.4",
     "web-vitals": "^2.1.4"
@@ -42,7 +42,7 @@
     "css-what": "6.1.0",
     "express": "4.21.2",
     "nth-check": "2.1.1",
-    "postcss": "8.4.49"
+    "postcss": "8.5.1"
   },
   "proxy": "http://127.0.0.1:8080/",
   "eslintConfig": {

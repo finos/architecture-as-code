@@ -1,9 +1,9 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 
-import { SchemaDirectory } from '../schema-directory';
+import { SchemaDirectory } from '../../../schema-directory';
 import { instantiateNodes } from './node';
 
-jest.mock('../../helper', () => {
+jest.mock('../../../logger', () => {
     return {
         initLogger: () => {
             return {
@@ -14,7 +14,7 @@ jest.mock('../../helper', () => {
     };
 });
 
-jest.mock('../schema-directory');
+jest.mock('../../../schema-directory');
 
 let mockSchemaDir;
 
