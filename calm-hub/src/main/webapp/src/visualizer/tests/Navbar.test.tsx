@@ -1,16 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
-import Navbar from '../components/navbar/Navbar';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-describe('Navbar', () => {
+describe('Menu', () => {
     const handleUploadMock = vi.fn();
     const toggleConnectionDescMock = vi.fn();
     const toggleNodeDescMock = vi.fn();
 
     const setup = () => {
         return render(
-            <Navbar
+            <Menu
                 handleUpload={handleUploadMock}
                 toggleConnectionDesc={toggleConnectionDescMock}
                 toggleNodeDesc={toggleNodeDescMock}
@@ -19,7 +18,7 @@ describe('Navbar', () => {
         );
     };
 
-    it('should render Navbar', async () => {
+    it('should render Menu', async () => {
         setup();
         expect(screen.getByRole('checkbox', { name: 'connection-description' })).not.toBeChecked();
     });

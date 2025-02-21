@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import Drawer from '../components/drawer/Drawer';
+import Drawer from '../components/drawer/Drawer.js';
 
 
 describe('Drawer', () => {
