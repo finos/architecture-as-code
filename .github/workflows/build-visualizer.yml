@@ -5,12 +5,12 @@ on:
     branches:
       - "main"
     paths:
-      - "calm-visualizer/**"
+      - "calm-hub-ui/**"
   push:
     branches:
       - "main"
     paths:
-      - "calm-visualizer/**"
+      - "calm-hub-ui/**"
 
 jobs:
   shared:

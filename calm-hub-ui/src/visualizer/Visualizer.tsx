@@ -4,7 +4,7 @@ import Drawer from './components/drawer/Drawer.js';
 import Navbar from '../components/navbar/Navbar.js';
 import React from 'react';
 import { ZoomProvider } from './components/zoom-context.provider.js';
-import { CALMArchitecture } from '../../../../../../shared/src/types.js';
+import { CALMArchitecture } from '../../../shared/src/types.js';
 import Menu from './components/menu/Menu.js';
 
 function Visualizer() {

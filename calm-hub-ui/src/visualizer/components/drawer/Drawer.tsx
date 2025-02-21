@@ -8,7 +8,7 @@ import {
     CALMInteractsRelationship,
     CALMRelationship,
     CALMArchitecture,
-} from '../../../../../../../../shared/src/types.js';
+} from '../../../../../shared/src/types.js';
 
 interface DrawerProps {
     calmInstance?: CALMArchitecture;
