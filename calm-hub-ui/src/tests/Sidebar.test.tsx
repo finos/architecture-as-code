@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { Edge, Node } from '../components/cytoscape-renderer/CytoscapeRenderer.js';
-import Sidebar from '../components/sidebar/Sidebar.js';
+import { Edge, Node } from '../visualizer/components/cytoscape-renderer/CytoscapeRenderer.js';
+import Sidebar from '../visualizer/components/sidebar/Sidebar.js';
 
 describe('Sidebar Component', () => {
     const mockCloseSidebar = vi.fn();

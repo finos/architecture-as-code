@@ -20,7 +20,7 @@
     "watch:cli": "npm run watch --workspace cli",
     "watch:shared": "npm run watch --workspace shared",
     "link:cli": "npm link --workspace cli",
-    "hub-ui:run": "npm run dev --workspace calm-hub-ui"
+    "calm-hub-ui:run": "npm run dev --workspace calm-hub-ui"
   },
   "devDependencies": {
     "link": "^2.1.1",
