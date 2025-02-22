@@ -6,12 +6,11 @@ import React from 'react';
 function App() {
     return (
         <Router>
-        <Routes>
-            <Route path="/hub" element={<Hub />} />
-            <Route path="/visualizer" element={<Visualizer />} />
-        </Routes>
-    </Router>
-
+            <Routes>
+                <Route path="/" element={<Hub />} />
+                <Route path="/visualizer" element={<Visualizer />} />
+            </Routes>
+        </Router>
     );
 }
 
