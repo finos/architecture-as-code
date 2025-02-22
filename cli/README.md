@@ -161,6 +161,30 @@ You would get an output which includes a warning like this:
 which is just letting you know that you have left in some placeholder values which might have been generated with the generate command.
 This isn't a full break, but it implies that you've forgotten to fill out a detail in your architecture.
 
+## Calm CLI server (Experimental)
+
+It may be required to have the operations of the CALM CLI available over rest.
+The `validate` command has been made available over an API
+
+```shell
+calm server --schemaDirectory calm
+```
+
+```shell
+curl http://127.0.0.1:3000/health
+
+# Missing schema key
+curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/validate --data @cli/test_fixtures/validation_route/invalid_api_gateway_instantiation_missing_schema_key.json
+
+# Schema value is invalid
+curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/validate --data @cli/test_fixtures/validation_route/invalid_api_gateway_instantiation_schema_points_to_missing_schema.json
+
+# instantiation is valid
+curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/validate --data @cli/test_fixtures/validation_route/valid_instantiation.json
+
+
+```
+
 ## Coding for the CLI
 
 The CLI module has its logic split into two modules, `cli` and `shared`. Both are managed by [npm workspaces](https://docs.npmjs.com/cli/v8/using-npm/workspaces).
@@ -182,7 +206,7 @@ npm run build
 # Step 3: Link the workspace locally for testing
 npm run link:cli
 
-# Step 4 : Run `watch` to check for changes automatically and re-bundle. This watching is via `chokidar` and isn't instant - give it a second or two to propogate changes.
+# Step 4 : Run `watch` to check for changes automatically and re-bundle. This watching is via `chokidar` and isn't instant - give it a second or two to propagate changes.
 npm run watch
 ```
 
