@@ -1,0 +1,18 @@
+{{> header.hbs }}
+
+## Nodes
+{{#each nodes}}
+    ### {{uppercase node-type}}: {{name}}
+    - **ID:** {{unique-id}}
+    - **Description:** {{description}}
+{{/each}}
+
+## Relationships
+{{#each relationships}}
+    {{#if relationship-type.connects}}
+        ### {{relationship-type.connects.source.node}} → {{relationship-type.connects.destination.node}}
+        - **Description:** {{description}}
+    {{/if}}
+{{/each}}
+
+{{> footer.hbs }}
