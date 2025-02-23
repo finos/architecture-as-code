@@ -325,8 +325,12 @@ async function loadFileFromUrl(fileUrl: string) {
     if (!res.ok) {
         throw new Error(`The http request to ${fileUrl} did not succeed. Status code ${res.status}`);
     }
-    const body = await res.json();
-    return body;
+    const text = await res.text();
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        throw new Error(`Response from ${fileUrl} is not valid JSON: ${text}`);
+    }
 }
 
 /**
