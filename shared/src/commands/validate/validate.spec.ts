@@ -246,10 +246,12 @@ describe('validate pattern and architecture', () => {
     beforeEach(() => {
         mockRunFunction.mockReturnValue([]);
         jest.useFakeTimers();
+        fetchMock.reset();
     });
 
     afterEach(() => {
         fetchMock.restore();
+        jest.clearAllMocks();
     });
 
     it('throws error when the the Pattern and the Architecture are undefined or an empty string', async () => {
@@ -286,8 +288,7 @@ describe('validate pattern and architecture', () => {
 
     it('throws error when the architecture URL returns a 404', async () => {
         const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
-
-        fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+        fetchMock.mock('http://exist/api-gateway.json', { status: 200, body: apiGateway, headers: { 'content-type': 'application/json' } });
         fetchMock.mock('https://does-not-exist/api-gateway-implementation.json', 404);
 
         await expect(validate('https://does-not-exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
@@ -299,8 +300,8 @@ describe('validate pattern and architecture', () => {
         const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
 
         const markdown = ' #This is markdown';
-        fetchMock.mock('http://exist/api-gateway.json', apiGateway);
-        fetchMock.mock('https://url/with/non/json/response', markdown);
+        fetchMock.mock('http://exist/api-gateway.json', { status: 200, body: apiGateway, headers: { 'content-type': 'application/json' } });
+        fetchMock.mock('https://url/with/non/json/response', { status: 200, body: markdown, headers: { 'content-type': 'text/markdown' } });
 
         await expect(validate('https://url/with/non/json/response', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled))
             .rejects
@@ -317,12 +318,19 @@ describe('validate pattern and architecture', () => {
     it('has error when the architecture does not match the json schema', async () => {
 
         const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
-        fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+        fetchMock.mock('http://exist/api-gateway.json', { status: 200, body: apiGateway, headers: { 'content-type': 'application/json' } });
 
         const apiGatewayArchitecture = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation-that-does-not-match-schema.json'), 'utf8');
-        fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayArchitecture);
+        fetchMock.mock('https://exist/api-gateway-implementation.json', { status: 200, body: apiGatewayArchitecture, headers: { 'content-type': 'application/json' } });
 
         const response = await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled);
+
+        console.log('Response:', {
+            hasErrors: response.hasErrors,
+            hasWarnings: response.hasWarnings,
+            jsonSchemaValidations: response.jsonSchemaValidationOutputs,
+            spectralValidations: response.spectralSchemaValidationOutputs
+        });
 
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
@@ -346,12 +354,18 @@ describe('validate pattern and architecture', () => {
         mockRunFunction.mockReturnValue(expectedSpectralOutput);
 
         const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
-        fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+        fetchMock.mock('http://exist/api-gateway.json', { status: 200, body: apiGateway, headers: { 'content-type': 'application/json' } });
 
         const apiGatewayArchitecture = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation-that-does-not-pass-the-spectral-validation.json'), 'utf8');
-        fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayArchitecture);
+        fetchMock.mock('https://exist/api-gateway-implementation.json', { status: 200, body: apiGatewayArchitecture, headers: { 'content-type': 'application/json' } });
 
         const response = await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled);
+        console.log('Response:', {
+            hasErrors: response.hasErrors,
+            hasWarnings: response.hasWarnings,
+            jsonSchemaValidations: response.jsonSchemaValidationOutputs,
+            spectralValidations: response.spectralSchemaValidationOutputs
+        });
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).toBeTruthy();
@@ -373,12 +387,18 @@ describe('validate pattern and architecture', () => {
         mockRunFunction.mockReturnValue(expectedSpectralOutput);
 
         const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-with-no-relationships.json'), 'utf8');
-        fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+        fetchMock.mock('http://exist/api-gateway.json', { status: 200, body: apiGateway, headers: { 'content-type': 'application/json' } });
 
         const apiGatewayArchitecture = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8');
-        fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayArchitecture);
+        fetchMock.mock('https://exist/api-gateway-implementation.json', { status: 200, body: apiGatewayArchitecture, headers: { 'content-type': 'application/json' } });
 
         const response = await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled);
+        console.log('Response:', {
+            hasErrors: response.hasErrors,
+            hasWarnings: response.hasWarnings,
+            jsonSchemaValidations: response.jsonSchemaValidationOutputs,
+            spectralValidations: response.spectralSchemaValidationOutputs
+        });
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).toBeTruthy();
@@ -400,12 +420,18 @@ describe('validate pattern and architecture', () => {
         mockRunFunction.mockReturnValue(expectedSpectralOutput);
 
         const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
-        fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+        fetchMock.mock('http://exist/api-gateway.json', { status: 200, body: apiGateway, headers: { 'content-type': 'application/json' } });
 
         const apiGatewayArchitecture = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8');
-        fetchMock.mock('https://exist/api-gateway-implementation.json', apiGatewayArchitecture);
+        fetchMock.mock('https://exist/api-gateway-implementation.json', { status: 200, body: apiGatewayArchitecture, headers: { 'content-type': 'application/json' } });
 
         const response = await validate('https://exist/api-gateway-implementation.json', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled);
+        console.log('Response:', {
+            hasErrors: response.hasErrors,
+            hasWarnings: response.hasWarnings,
+            jsonSchemaValidations: response.jsonSchemaValidationOutputs,
+            spectralValidations: response.spectralSchemaValidationOutputs
+        });
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).not.toBeTruthy();
@@ -423,6 +449,7 @@ describe('validate pattern only', () => {
 
     afterEach(() => {
         fetchMock.restore();
+        jest.clearAllMocks();
     });
 
     it('has errors when the pattern does not pass all the spectral validations ', async () => {
@@ -439,9 +466,15 @@ describe('validate pattern only', () => {
         mockRunFunction.mockReturnValue(expectedSpectralOutput);
 
         const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8');
-        fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+        fetchMock.mock('http://exist/api-gateway.json', { status: 200, body: apiGateway, headers: { 'content-type': 'application/json' } });
 
         const response = await validate('', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled);
+        console.log('Response:', {
+            hasErrors: response.hasErrors,
+            hasWarnings: response.hasWarnings,
+            jsonSchemaValidations: response.jsonSchemaValidationOutputs,
+            spectralValidations: response.spectralSchemaValidationOutputs
+        });
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).toBeTruthy();
@@ -456,9 +489,15 @@ describe('validate pattern only', () => {
         mockRunFunction.mockReturnValue(expectedSpectralOutput);
 
         const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/bad-schema/bad-json-schema.json'), 'utf8');
-        fetchMock.mock('http://exist/api-gateway.json', apiGateway);
+        fetchMock.mock('http://exist/api-gateway.json', { status: 200, body: apiGateway, headers: { 'content-type': 'application/json' } });
 
         const response = await validate('', 'http://exist/api-gateway.json', metaSchemaLocation, debugDisabled);
+        console.log('Response:', {
+            hasErrors: response.hasErrors,
+            hasWarnings: response.hasWarnings,
+            jsonSchemaValidations: response.jsonSchemaValidationOutputs,
+            spectralValidations: response.spectralSchemaValidationOutputs
+        });
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).toBeTruthy();
@@ -474,6 +513,7 @@ describe('validate - architecture only', () => {
 
     afterEach(() => {
         fetchMock.restore();
+        jest.clearAllMocks();
     });
 
     it('throw error when the architecture cannot be found', async () => {
@@ -498,9 +538,15 @@ describe('validate - architecture only', () => {
         mockRunFunction.mockReturnValue(expectedSpectralOutput);
 
         const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8');
-        fetchMock.mock('http://exist/api-gateway-implementation.json', apiGateway);
+        fetchMock.mock('http://exist/api-gateway-implementation.json', { status: 200, body: apiGateway, headers: { 'content-type': 'application/json' } });
 
         const response = await validate('http://exist/api-gateway-implementation.json', '', metaSchemaLocation, debugDisabled);
+        console.log('Response:', {
+            hasErrors: response.hasErrors,
+            hasWarnings: response.hasWarnings,
+            jsonSchemaValidations: response.jsonSchemaValidationOutputs,
+            spectralValidations: response.spectralSchemaValidationOutputs
+        });
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).toBeTruthy();
@@ -514,10 +560,15 @@ describe('validate - architecture only', () => {
         mockRunFunction.mockReturnValue(expectedSpectralOutput);
 
         const apiGateway = readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8');
-        fetchMock.mock('http://exist/api-gateway-implementation.json', apiGateway);
+        fetchMock.mock('http://exist/api-gateway-implementation.json', { status: 200, body: apiGateway, headers: { 'content-type': 'application/json' } });
 
         const response = await validate('http://exist/api-gateway-implementation.json', '', metaSchemaLocation, debugDisabled);
-        
+        console.log('Response:', {
+            hasErrors: response.hasErrors,
+            hasWarnings: response.hasWarnings,
+            jsonSchemaValidations: response.jsonSchemaValidationOutputs,
+            spectralValidations: response.spectralSchemaValidationOutputs
+        });
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).not.toBeTruthy();

@@ -3,10 +3,11 @@
     "compilerOptions": {
         "outDir": "./dist",
         "rootDir": "src",
-        "module": "commonjs",
+        "module": "es2022", 
         "target": "es2021",
         "moduleResolution": "node",
         "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
         "declaration": true,
         "declarationMap": true,
         "sourceMap": true,
