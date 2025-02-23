@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 
-jest.mock('../helper', () => {
+jest.mock('../../logger', () => {
     return {
         initLogger: () => {
             return {

@@ -21,7 +21,7 @@ jest.mock('@stoplight/spectral-core', () => {
     };
 });
 
-jest.mock('../helper.js', () => {
+jest.mock('../../logger.js', () => {
     return {
         initLogger: () => {
             return {

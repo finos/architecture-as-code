@@ -1,12 +1,13 @@
 #! /usr/bin/env node
 
-import { CALM_META_SCHEMA_DIRECTORY, getFormattedOutput, runGenerate, validate, exitBasedOffOfValidationOutcome } from '@finos/calm-shared';
+import { CALM_META_SCHEMA_DIRECTORY, getFormattedOutput, runGenerate, validate, exitBasedOffOfValidationOutcome, TemplateProcessor } from '@finos/calm-shared';
 import { Option, program } from 'commander';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
 import { version } from '../package.json';
-import { initLogger } from '@finos/calm-shared/commands/helper';
+import { initLogger } from '@finos/calm-shared/logger';
+import { startServer } from './server/cli-server';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -16,6 +17,8 @@ const PATTERN_OPTION = '-p, --pattern <file>';
 const SCHEMAS_OPTION = '-s, --schemaDirectory <path>';
 const STRICT_OPTION = '--strict';
 const VERBOSE_OPTION = '-v, --verbose';
+
+
 
 program
     .name('calm')
@@ -75,6 +78,16 @@ async function runValidate(options) {
     }
 }
 
+program
+    .command('server')
+    .description('Start a HTTP server to proxy CLI commands. (experimental)')
+    .option('-p, --port <port>', 'Port to run the server on', '3000')
+    .requiredOption(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
+    .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+    .action((options) => {
+        startServer(options);
+    });
+
 function writeOutputFile(output: string, validationsOutput: string) {
     if (output) {
         const dirname = path.dirname(output);
@@ -84,5 +97,22 @@ function writeOutputFile(output: string, validationsOutput: string) {
         process.stdout.write(validationsOutput);
     }
 }
+program
+    .command('template')
+    .description('Generate files from a CALM model using a Handlebars template bundle')
+    .requiredOption('--input <path>', 'Path to the CALM model JSON file')
+    .requiredOption('--bundle <path>', 'Path to the template bundle directory')
+    .requiredOption('--output <path>', 'Path to output directory')
+    .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+    .action(async (options) => {
+        if(options.verbose){
+            process.env.DEBUG = 'true';
+        }
+
+        const processor = new TemplateProcessor(options.input, options.bundle, options.output);
+        await processor.processTemplate();
+    });
+
+
 
 program.parse(process.argv);

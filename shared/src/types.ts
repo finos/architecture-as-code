@@ -6,7 +6,7 @@ export interface CALMArchitecture {
 export type NodeType = 'actor' | 'system' | 'service' | 'database' | 'network' | 'ldap' | 'dataclient';
 
 export interface CALMNode {
-  name: string, 
+  name: string,
   class?: string,
   'unique-id': string,
   'node-type': NodeType,

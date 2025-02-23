@@ -1,0 +1,27 @@
+===== ARCHITECTURE REVIEW =====
+System generated report based on CALM Model
+===========================================
+
+## Nodes
+    ### SYSTEM: DocuFlow
+    - **ID:** document-system
+    - **Description:** Main document management system
+    ### SERVICE: Upload Service
+    - **ID:** svc-upload
+    - **Description:** Handles user document uploads
+    ### SERVICE: Storage Service
+    - **ID:** svc-storage
+    - **Description:** Stores and retrieves documents securely
+    ### DATABASE: Document Database
+    - **ID:** db-docs
+    - **Description:** Stores metadata and document references
+
+## Relationships
+        ### svc-upload → svc-storage
+        - **Description:** Upload Service sends documents to Storage Service for long-term storage
+        ### svc-storage → db-docs
+        - **Description:** Storage Service stores document metadata in the Document Database
+
+===========================================
+This document is auto-generated based on architecture standards.
+===== END OF REPORT =====

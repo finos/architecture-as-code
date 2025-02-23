@@ -197,7 +197,7 @@
         "network",
         "ldap",
         "webclient",
-        "data-assset"
+        "data-asset"
       ]
     },
     "interacts-type": {

@@ -7,7 +7,7 @@ jest.mock('../../consts', () => ({
     get CALM_META_SCHEMA_DIRECTORY() { return 'test_fixtures/calm'; }
 }));
 
-jest.mock('../helper', () => {
+jest.mock('../../logger', () => {
     return {
         initLogger: () => {
             return {
