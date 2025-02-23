@@ -56,12 +56,12 @@ public class CoreSchemaResource {
         Map<String, Object> schemas = coreSchemaStore.getSchemasForVersion(version);
         if (schemas == null) {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("Version not found: " + version)
+                    .entity("Version not found: " + StringEscapeUtils.escapeHtml4(version))
                     .build();
         }
         if(!schemas.containsKey(schemaName)) {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("Schema: [" + schemaName + "] not found for version: [" + version + "]").build();
+                    .entity("Schema: [" + StringEscapeUtils.escapeHtml4(schemaName) + "] not found for version: [" + StringEscapeUtils.escapeHtml4(version) + "]").build();
         }
 
         return Response.ok(schemas.get(schemaName)).build();
