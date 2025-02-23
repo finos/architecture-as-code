@@ -7,7 +7,7 @@ import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.store.CoreSchemaStore;
-
+import org.apache.commons.text.StringEscapeUtils;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -39,7 +39,7 @@ public class CoreSchemaResource {
         Map<String, Object> schemas = coreSchemaStore.getSchemasForVersion(version);
         if (schemas == null) {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("Version not found: " + version)
+                    .entity("Version not found: " + StringEscapeUtils.escapeHtml4(version))
                     .build();
         }
         return Response.ok(new ValueWrapper<>(new ArrayList<>(schemas.keySet()))).build();
