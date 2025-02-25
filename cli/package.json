@@ -30,8 +30,8 @@
   "dependencies": {
     "commander": "^13.0.0",
     "copyfiles": "^2.4.1",
-    
-    "mkdirp": "^3.0.1"
+    "mkdirp": "^3.0.1",
+    "express-rate-limit": "^7.5.0"
   },
   "devDependencies": {
     "@types/supertest": "^6.0.2",
