@@ -1,0 +1,219 @@
+{
+  "$schema": "https://calm.finos.org/draft/2025-01/meta/calm.json",
+  "$id": "https://calm.finos.org/draft/2025-01/prototype/options-prototype.pattern.json",
+  "title": "Application A/B/C + Database Pattern",
+  "type": "object",
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,        
+      "prefixItems": [
+        {
+          "oneOf": [
+            {
+              "$ref": "https://calm.finos.org/draft/2025-01/meta/core.json#/defs/node",
+              "type": "object",
+              "properties": {
+                "unique-id": {
+                  "const": "application-a"
+                },
+                "name": {
+                  "const": "Application A"
+                },
+                "description": {
+                  "const": "Application A, optionally used in this architecture"
+                },
+                "node-type": {
+                  "const": "service"
+                }
+              }
+            },
+            {
+              "$ref": "https://calm.finos.org/draft/2025-01/meta/core.json#/defs/node",
+              "type": "object",
+              "properties": {
+                "unique-id": {
+                  "const": "application-b"
+                },
+                "name": {
+                  "const": "Application B"
+                },
+                "description": {
+                  "const": "Application B, optionally used in this architecture"
+                },
+                "node-type": {
+                  "const": "service"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-01/meta/core.json#/defs/node",
+          "type": "object",
+          "properties": {
+            "unique-id": {
+              "const": "application-c"
+            },
+            "name": {
+              "const": "Application C"
+            },
+            "description": {
+              "const": "Internal application that may receive calls from A and B"
+            },
+            "node-type": {
+              "const": "service"
+            }
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-01/meta/core.json#/defs/node",
+          "type": "object",
+          "properties": {
+            "unique-id": {
+              "const": "database"
+            },
+            "name": {
+              "const": "Database"
+            },
+            "description": {
+              "const": "Database used by Application C"
+            },
+            "node-type": {
+              "const": "database"
+            }
+          }
+        }
+      ]
+    },
+    "relationships": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "prefixItems": [
+        {
+          "oneOf": [
+            {
+              "$ref": "https://calm.finos.org/draft/2025-01/meta/core.json#/defs/relationship",
+              "type": "object",
+              "properties": {
+                "unique-id": {
+                  "const": "application-a-to-c"
+                },
+                "description": {
+                  "const": "Application A connects to Application C"
+                },
+                "relationship-type": {
+                  "const": {
+                    "connects": {
+                      "source": { "node": "application-a" },
+                      "destination": { "node": "application-c" }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "$ref": "https://calm.finos.org/draft/2025-01/meta/core.json#/defs/relationship",
+              "type": "object",
+              "properties": {
+                "unique-id": {
+                  "const": "application-b-to-c"
+                },
+                "description": {
+                  "const": "Application B connects to Application C"
+                },
+                "relationship-type": {
+                  "const": {
+                    "connects": {
+                      "source": { "node": "application-b" },
+                      "destination": { "node": "application-c" }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-01/meta/core.json#/defs/relationship",
+          "type": "object",
+          "properties": {
+            "unique-id": {
+              "const": "application-c-to-database"
+            },
+            "description": {
+              "const": "Application C connects to the Database"
+            },
+            "relationship-type": {
+              "const": {
+                "connects": {
+                  "source": { "node": "application-c" },
+                  "destination": { "node": "database" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-01/meta/core.json#/defs/options",
+          "type": "object",
+          "properties": {
+            "unique-id": {
+                "const": "connection-options"
+            },
+            "description": {
+                "const": "The choice of nodes and relationships in the pattern"
+            },
+            "options": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 1,
+                "prefixItems": [
+                    {
+                        "oneOf": [
+                          {
+                              "$ref": "https://calm.finos.org/draft/2025-01/meta/core.json#/defs/option-type",
+                              "type": "object",
+                              "properties": {
+                                "description": {
+                                  "const": "Application A connects to Application C"
+                                },
+                                "nodes": {
+                                  "const": ["application-a"]
+                                },
+                                "relationships": {
+                                  "const": ["application-a-to-c"]
+                                }
+                              }
+                          },
+                          {
+                            "$ref": "https://calm.finos.org/draft/2025-01/meta/core.json#/defs/option-type",
+                            "type": "object",
+                            "properties": {
+                              "description": {
+                                "const": "Application B connects to Application C"
+                              },
+                              "nodes": {
+                                "const": ["application-b"]
+                              },
+                              "relationships": {
+                                "const": ["application-b-to-c"]
+                              }
+                            }
+                          }
+                        ]
+                    }
+                ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "required": [
+    "nodes",
+    "relationships"
+  ]
+}

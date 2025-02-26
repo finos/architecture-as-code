@@ -1,0 +1,70 @@
+{
+  "$schema": "https://calm.finos.org/draft/2025-01/prototype/options-prototype.pattern.json",
+  "$id": "https://calm.finos.org/draft/2025-01/prototype/application-a.architecture.json",
+  "title": "Application A/B/C + Database Pattern Example",
+  "nodes": [
+    {
+      "unique-id": "application-a",
+      "name": "Application A",
+      "description": "Application A, optionally used in this architecture",
+      "node-type": "service"
+    },
+    {
+      "unique-id": "application-c",
+      "name": "Application C",
+      "description": "Internal application that may receive calls from A and B",
+      "node-type": "service"
+    },
+    {
+      "unique-id": "database",
+      "name": "Database",
+      "description": "Database used by Application C",
+      "node-type": "database"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "application-a-to-c",
+      "description": "Application A connects to Application C",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "application-a"
+          },
+          "destination": {
+            "node": "application-c"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "application-c-to-database",
+      "description": "Application C connects to the Database",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "application-c"
+          },
+          "destination": {
+            "node": "database"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "connection-options",
+      "description": "The choice of nodes and relationships in the pattern",
+      "options": [
+        {
+          "description": "Application A connects to Application C",
+          "nodes": [
+            "application-a"
+          ],
+          "relationships": [
+            "application-a-to-c"
+          ]
+        }
+      ]
+    }
+  ]
+}
