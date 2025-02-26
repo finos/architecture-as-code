@@ -6,6 +6,7 @@ import os from 'os';
 import { v4 as uuidv4 } from 'uuid';
 import winston from 'winston';
 import { ValidationOutcome } from '@finos/calm-shared/commands/validate/validation.output';
+import rateLimit from 'express-rate-limit';
 
 export class ValidationRouter {
 
@@ -14,9 +15,14 @@ export class ValidationRouter {
     private logger: winston.Logger;
 
     constructor(router: Router, schemaDirectoryPath: string, debug: boolean = false) {
+        const limiter = rateLimit({
+            windowMs: 15 * 60 * 1000, // 15 minutes
+            max: 100, // limit each IP to 100 requests per windowMs
+        });
         this.schemaDirectory = new SchemaDirectory(true);
         this.schemaDirectoryPath = schemaDirectoryPath;
         this.logger = initLogger(debug);
+        router.use(limiter);
         this.initializeRoutes(router);
     }
 
