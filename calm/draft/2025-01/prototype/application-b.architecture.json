@@ -54,17 +54,19 @@
     {
       "unique-id": "connection-options",
       "description": "The choice of nodes and relationships in the pattern",
-      "options": [
-        {
-          "description": "Application B connects to Application C",
-          "nodes": [
-            "application-b"
-          ],
-          "relationships": [
-            "application-b-to-c"
-          ]
-        }
-      ]
+      "relationship-type": {
+        "options": [
+          {
+            "description": "Application B connects to Application C",
+            "nodes": [
+              "application-b"
+            ],
+            "relationships": [
+              "application-b-to-c"
+            ]
+          }
+        ]
+      }
     }
   ]
 }
