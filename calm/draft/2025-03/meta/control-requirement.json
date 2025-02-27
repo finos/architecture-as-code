@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://calm.finos.org/draft/2025-01/meta/control-requirement.json",
+  "$id": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
   "title": "Common Architecture Language Model Control Requirement",
   "description": "Schema for defining control requirements within the Common Architecture Language Model.",
   "type": "object",

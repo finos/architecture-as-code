@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://calm.finos.org/draft/2025-01/meta/control.json",
+  "$id": "https://calm.finos.org/draft/2025-03/meta/control.json",
   "title": "Common Architecture Language Model Controls",
   "description": "Controls model requirements for domains. For example, a security domain contains a series of control requirements",
   "defs": {
