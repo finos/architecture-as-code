@@ -23,6 +23,7 @@ import org.finos.calm.domain.exception.AdrParseException;
 import org.finos.calm.domain.exception.AdrPersistenceException;
 import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.sanitizer.AdrSanitizer;
 import org.finos.calm.store.AdrStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,10 +41,12 @@ import java.util.function.Function;
 public class AdrResource {
 
     private final AdrStore store;
+    private final AdrSanitizer adrSanitizer;
     private final Logger logger = LoggerFactory.getLogger(AdrResource.class);
 
-    public AdrResource(AdrStore store) {
+    public AdrResource(AdrStore store, AdrSanitizer adrSanitizer) {
         this.store = store;
+        this.adrSanitizer = adrSanitizer;
     }
 
     /**
@@ -83,7 +86,9 @@ public class AdrResource {
             description = "Creates an ADR for a given namespace with an allocated ID and revision 1"
     )
     public Response createAdrForNamespace(@PathParam("namespace") String namespace, NewAdrRequest newAdrRequest) {
-        Adr adr = new Adr.AdrBuilder(newAdrRequest)
+        NewAdrRequest safeNewAdrRequest = adrSanitizer.sanitizeNewAdrRequest(newAdrRequest);
+
+        Adr adr = new Adr.AdrBuilder(safeNewAdrRequest)
                 .setStatus(Status.draft)
                 .setCreationDateTime(LocalDateTime.now())
                 .setUpdateDateTime(LocalDateTime.now())
@@ -119,7 +124,9 @@ public class AdrResource {
             description = "Updates an ADR for a given namespace. Creates a new revision."
     )
     public Response updateAdrForNamespace(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, NewAdrRequest newAdrRequest) {
-        Adr adr = new Adr.AdrBuilder(newAdrRequest)
+        NewAdrRequest safeNewAdrRequest = adrSanitizer.sanitizeNewAdrRequest(newAdrRequest);
+
+        Adr adr = new Adr.AdrBuilder(safeNewAdrRequest)
                 .setUpdateDateTime(LocalDateTime.now())
                 .build();
 
