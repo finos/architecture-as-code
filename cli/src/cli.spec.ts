@@ -6,6 +6,8 @@ import { parseStringPromise } from 'xml2js';
 import util from 'util';
 import axios from 'axios';
 
+// Mock axios
+jest.mock('axios');
 
 const execPromise = util.promisify(exec);
 
@@ -185,6 +187,10 @@ describe('CLI Integration Tests', () => {
     });
 
     test('example server command - starts server and responds to requests', async () => {
+        // Mock the axios response
+        const mockResponse = { status: 200, data: { status: 'ok' } };
+        (axios.get as jest.Mock).mockResolvedValue(mockResponse);
+
         const serverCommand = 'calm server -p 3001 --schemaDirectory ../../dist/calm/';
         const serverProcess = exec(serverCommand);
         // Give the server some time to start
@@ -192,14 +198,13 @@ describe('CLI Integration Tests', () => {
         try {
             const response = await axios.get('http://127.0.0.1:3001/health');
             expect(response.status).toBe(200);
+            expect(response.data.status).toBe('ok');
         } finally {
             serverProcess.kill();
         }
     });
 });
 
-
 async function callNpxFunction(projectRoot: string, command: string) {
     await execPromise(`npx ${command}`, { cwd: projectRoot });
 }
-
