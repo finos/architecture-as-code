@@ -44,8 +44,17 @@
         "description": {
           "type": "string"
         },
-        "detailed-architecture": {
-          "type": "string"
+        "details": {
+          "type": "object",
+          "properties": {
+            "detailed-architecture": {
+              "type": "string"
+            },
+            "required-pattern": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
         },
         "data-classification": {
           "$ref": "#/defs/data-classification"
@@ -100,6 +109,9 @@
             },
             "composed-of": {
               "$ref": "#/defs/composed-of-type"
+            },
+            "options": {
+              "$ref": "#/defs/option-type"
             }
           },
           "oneOf": [
@@ -121,6 +133,11 @@
             {
               "required": [
                 "connects"
+              ]
+            },
+            {
+              "required": [
+                "options"
               ]
             }
           ]
@@ -188,7 +205,7 @@
         "network",
         "ldap",
         "webclient",
-        "data-assset"
+        "data-asset"
       ]
     },
     "interacts-type": {
@@ -258,6 +275,50 @@
           }
         }
       }
+    },
+    "option-type": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/defs/decision"
+      }
+    },
+    "decision": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "relationships": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "controls": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "metadata": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "description",
+        "nodes",
+        "relationships"
+      ]
     },
     "metadata": {
       "type": "array",
