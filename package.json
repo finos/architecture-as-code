@@ -26,7 +26,6 @@
     "link": "^2.1.1",
     "npm-run-all2": "^5.0.0",
     "vitest": "^3.0.6"
-
   },
   "dependencies": {
     "@finos/calm-shared": "^0.2.2"
