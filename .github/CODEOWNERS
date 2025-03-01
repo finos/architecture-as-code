@@ -10,15 +10,12 @@
 
 /shared/ @aidanm3341 @lbulanti-ms @willosborne @grahampacker-ms @jpgough-ms @rocketstack-matt @Thels
 
-# Define the group responsible for dependency files
-@finos/architecture-as-code-maintainers
-
 # Ownership for dependency-related files at the root level
-/package.json @finos/dependency-owners
-/package-lock.json @finos/dependency-owners
-/pom.xml @finos/dependency-owners
+/package.json @finos/architecture-as-code-maintainers
+/package-lock.json @finos/architecture-as-code-maintainers
+/pom.xml @finos/architecture-as-code-maintainers
 
 # Ownership for dependency-related files across all subdirectories
-**/package.json @finos/dependency-owners
-**/package-lock.json @finos/dependency-owners
-**/pom.xml @finos/dependency-owners
+**/package.json @finos/architecture-as-code-maintainers
+**/package-lock.json @finos/architecture-as-code-maintainers
+**/pom.xml @finos/architecture-as-code-maintainers
