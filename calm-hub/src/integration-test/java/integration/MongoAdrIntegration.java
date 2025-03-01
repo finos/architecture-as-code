@@ -43,8 +43,8 @@ public class MongoAdrIntegration {
 
     private static final Logger logger = LoggerFactory.getLogger(MongoAdrIntegration.class);
 
-    private final String TITLE = "<b>My ADR</b>";
-    private final String EXPECTED_TITLE = "My ADR";
+    private final String TITLE = "<b>My ADR</b><script><img>";
+    private final String EXPECTED_TITLE = "<b>My ADR</b>";
     private final String PROBLEM_STATEMENT = "<a>My problem is...</a>";
     private final String EXPECTED_PROBLEM_STATEMENT = "My problem is...";
     private final List<String> DECISION_DRIVERS = List.of("a", "b", "c");
