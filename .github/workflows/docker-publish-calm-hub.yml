@@ -65,7 +65,7 @@ jobs:
       
       # Step 8: Build and push Docker image
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: calm-hub
           file: calm-hub/src/main/docker/Dockerfile.jvm
