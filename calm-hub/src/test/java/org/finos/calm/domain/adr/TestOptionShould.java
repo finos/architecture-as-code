@@ -4,7 +4,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 class TestOptionShould {
 
@@ -22,35 +23,35 @@ class TestOptionShould {
                 List.of("blahblah"),
                 List.of("blahblah")
         );
-        assertEquals(expectedOption, unsafelyConstructedOption);
+        assertThat(unsafelyConstructedOption, is(expectedOption));
     }
 
     @Test
     void sanitize_name_on_set() {
         Option option = new Option();
         option.setName("<h1><b><i>My Name</i></b></h1><script>");
-        assertEquals("<h1><b><i>My Name</i></b></h1>", option.getName());
+        assertThat(option.getName(), is("<h1><b><i>My Name</i></b></h1>"));
     }
 
     @Test
     void sanitize_description_on_set() {
         Option option = new Option();
         option.setDescription("this is an option<img><a>");
-        assertEquals("this is an option", option.getDescription());
+        assertThat(option.getDescription(), is("this is an option"));
     }
 
     @Test
     void sanitize_positive_consequences_on_set() {
         Option option = new Option();
         option.setPositiveConsequences(List.of("blahblah<script>"));
-        assertEquals(List.of("blahblah"), option.getPositiveConsequences());
+        assertThat(option.getPositiveConsequences(), is(List.of("blahblah")));
     }
 
     @Test
     void sanitize_negative_consequences_on_set() {
         Option option = new Option();
         option.setNegativeConsequences(List.of("blahblah<script>"));
-        assertEquals(List.of("blahblah"), option.getNegativeConsequences());
+        assertThat(option.getNegativeConsequences(), is(List.of("blahblah")));
     }
 
 }

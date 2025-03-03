@@ -32,7 +32,8 @@ import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 @QuarkusTest
 @TestProfile(IntegrationTestProfile.class)
@@ -126,7 +127,7 @@ public class MongoAdrIntegration {
                 .extract()
                 .body()
                 .as(AdrMeta.class);
-        assertEquals(expectedAdrMeta, actualAdrMeta);
+        assertThat(actualAdrMeta, is(expectedAdrMeta));
     }
 
     @Test
@@ -146,7 +147,7 @@ public class MongoAdrIntegration {
                 .setRevision(1)
                 .setAdr(adr)
                 .build();
-        assertEquals(expectedAdrMeta, actualAdrMeta);
+        assertThat(actualAdrMeta, is(expectedAdrMeta));
     }
 
     @Test

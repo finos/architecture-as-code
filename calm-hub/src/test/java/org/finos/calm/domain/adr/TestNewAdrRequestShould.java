@@ -4,7 +4,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 class TestNewAdrRequestShould {
 
@@ -26,28 +27,28 @@ class TestNewAdrRequestShould {
                 null,
                 null
         );
-        assertEquals(expectedNewAdrRequest, unsafelyConstructedNewAdrRequest);
+        assertThat(unsafelyConstructedNewAdrRequest, is(expectedNewAdrRequest));
     }
 
     @Test
     void sanitize_title_on_set() {
         NewAdrRequest newAdrRequest = new NewAdrRequest();
         newAdrRequest.setTitle("<b>My Title</b><img><script>");
-        assertEquals("<b>My Title</b>", newAdrRequest.getTitle());
+        assertThat(newAdrRequest.getTitle(), is("<b>My Title</b>"));
     }
 
     @Test
     void sanitize_context_on_set() {
         NewAdrRequest newAdrRequest = new NewAdrRequest();
         newAdrRequest.setContextAndProblemStatement("<b>My Context</b><img><script>");
-        assertEquals("<b>My Context</b>", newAdrRequest.getContextAndProblemStatement());
+        assertThat(newAdrRequest.getContextAndProblemStatement(), is("<b>My Context</b>"));
     }
 
     @Test
     void sanitize_decision_drivers_on_set() {
         NewAdrRequest newAdrRequest = new NewAdrRequest();
         newAdrRequest.setDecisionDrivers(List.of("DriverA<a><img>", "DriverB<script>"));
-        assertEquals(List.of("DriverA", "DriverB"), newAdrRequest.getDecisionDrivers());
+        assertThat(newAdrRequest.getDecisionDrivers(), is(List.of("DriverA", "DriverB")));
     }
 
 }

@@ -28,7 +28,9 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
@@ -264,7 +266,7 @@ public class TestAdrResourceShould {
                     .body()
                     .as(AdrMeta.class);
 
-            assertEquals(adrMeta, actualAdrMeta);
+            assertThat(actualAdrMeta, is(adrMeta));
         } else {
             given()
                     .when()
@@ -301,7 +303,7 @@ public class TestAdrResourceShould {
                     .extract()
                     .body()
                     .as(AdrMeta.class);
-            assertEquals(adrMeta, actualAdrMeta);
+            assertThat(actualAdrMeta, is(adrMeta));
         } else {
             given()
                     .when()

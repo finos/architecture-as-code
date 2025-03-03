@@ -2,7 +2,8 @@ package org.finos.calm.domain.adr;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 class TestDecisionShould {
 
@@ -17,13 +18,13 @@ class TestDecisionShould {
                 "<b>My Decision</b>"
         );
 
-        assertEquals(expectedSafeDecision, unsafelyConstructedDecision);
+        assertThat(unsafelyConstructedDecision, is(expectedSafeDecision));
     }
 
     @Test
     void sanitize_rational_on_set() {
         Decision decision = new Decision();
         decision.setRationale("<b>My Decision</b><img><a>");
-        assertEquals("<b>My Decision</b>", decision.getRationale());
+        assertThat(decision.getRationale(), is("<b>My Decision</b>"));
     }
 }
