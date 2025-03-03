@@ -44,35 +44,21 @@ public final class Option {
     }
 
     public void setName(String name) {
-        if(name == null) {
-            this.name = null;
-        } else {
-            this.name = OPTION_POLICY.sanitize(name);
-        }
+        this.name = (name == null) ? null : OPTION_POLICY.sanitize(name);
     }
 
     public void setDescription(String description) {
-        if(description == null) {
-            this.description = null;
-        } else {
-            this.description = OPTION_POLICY.sanitize(description);
-        }
+        this.description = (description == null) ? null : OPTION_POLICY.sanitize(description);
     }
 
     public void setPositiveConsequences(List<String> positiveConsequences) {
-        if(positiveConsequences == null) {
-            this.positiveConsequences = null;
-        } else {
-            this.positiveConsequences = positiveConsequences.stream().map(OPTION_POLICY::sanitize).toList();
-        }
+        this.positiveConsequences =
+                (positiveConsequences == null) ? null : positiveConsequences.stream().map(OPTION_POLICY::sanitize).toList();
     }
 
     public void setNegativeConsequences(List<String> negativeConsequences) {
-        if(negativeConsequences == null) {
-            this.negativeConsequences = null;
-        } else {
-            this.negativeConsequences = negativeConsequences.stream().map(OPTION_POLICY::sanitize).toList();
-        }
+        this.negativeConsequences =
+                (negativeConsequences == null) ? null : negativeConsequences.stream().map(OPTION_POLICY::sanitize).toList();
     }
 
     @Override

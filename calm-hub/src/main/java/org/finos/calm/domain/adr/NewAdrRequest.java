@@ -63,27 +63,18 @@ public final class NewAdrRequest {
     }
 
     public void setTitle(String title) {
-        if(title == null) {
-            this.title = null;
-        } else {
-            this.title = NEW_ADR_REQUEST_POLICY.sanitize(title);
-        }
+        this.title = (title == null) ? null : NEW_ADR_REQUEST_POLICY.sanitize(title);
     }
 
     public void setContextAndProblemStatement(String contextAndProblemStatement) {
-        if(contextAndProblemStatement == null) {
-            this.contextAndProblemStatement = null;
-        } else {
-            this.contextAndProblemStatement = NEW_ADR_REQUEST_POLICY.sanitize(contextAndProblemStatement);
-        }
+        this.contextAndProblemStatement =
+                (contextAndProblemStatement == null) ? null : NEW_ADR_REQUEST_POLICY.sanitize(contextAndProblemStatement);
     }
 
     public void setDecisionDrivers(List<String> decisionDrivers) {
-        if(decisionDrivers == null) {
-            this.decisionDrivers = null;
-        } else {
-            this.decisionDrivers = decisionDrivers.stream().map(NEW_ADR_REQUEST_POLICY::sanitize).toList();
-        }
+        this.decisionDrivers =
+                (decisionDrivers == null) ? null : decisionDrivers.stream().map(NEW_ADR_REQUEST_POLICY::sanitize).toList();
+
     }
 
     public void setConsideredOptions(List<Option> consideredOptions) {
@@ -97,5 +88,19 @@ public final class NewAdrRequest {
     public void setLinks(List<Link> links) {
         this.links = links;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if(this == o) return true;
+        if(o == null || getClass() != o.getClass()) return false;
+        NewAdrRequest that = (NewAdrRequest) o;
+        return Objects.equals(title, that.title) && Objects.equals(contextAndProblemStatement, that.contextAndProblemStatement) && Objects.equals(decisionDrivers, that.decisionDrivers) && Objects.equals(consideredOptions, that.consideredOptions) && Objects.equals(decisionOutcome, that.decisionOutcome) && Objects.equals(links, that.links);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(title, contextAndProblemStatement, decisionDrivers, consideredOptions, decisionOutcome, links);
+    }
+
 
 }

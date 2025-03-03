@@ -1,13 +1,9 @@
 package org.finos.calm.resources;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
-import org.finos.calm.domain.adr.Decision;
-import org.finos.calm.domain.adr.Link;
-import org.finos.calm.domain.adr.Option;
 import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.exception.AdrNotFoundException;
 import org.finos.calm.domain.exception.AdrParseException;
@@ -21,7 +17,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
@@ -46,46 +41,6 @@ public class TestAdrResourceShould {
 
     @InjectMock
     AdrStore mockAdrStore;
-
-    private final String UNSAFE_NEW_ADR_REQUEST = """
-              {
-              "title": "<b>My Title</b>",
-              "contextAndProblemStatement": "<a><img><b>Context and Problem Statement</b>",
-              "decisionDrivers": [
-                "blah<table></table><script>"
-              ],
-              "consideredOptions": [
-                {
-                  "name": "blah<script>",
-                  "description": "blah<script>",
-                  "positiveConsequences": [
-                    "blah<script>"
-                  ],
-                  "negativeConsequences": [
-                    "blah<script>"
-                  ]
-                }
-              ],
-              "decisionOutcome": {
-                "chosenOption": {
-                  "name": "blah<script>",
-                  "description": "blah<script>",
-                  "positiveConsequences": [
-                    "blah<script>"
-                  ],
-                  "negativeConsequences": [
-                    "blah<script>"
-                  ]
-                },
-                "rationale": "blah<script>"
-              },
-              "links": [
-                {
-                  "rel": "blah<script>",
-                  "href": "blah<script>"
-                }
-              ]
-            }""";
     private final AdrMeta SIMPLE_ADR_META = new AdrMeta.AdrMetaBuilder()
             .setAdr(
                     new Adr.AdrBuilder()
@@ -99,52 +54,6 @@ public class TestAdrResourceShould {
             .setRevision(1)
             .setNamespace("finos")
             .build();
-    private final AdrMeta SANITIZED_ADR_META = new AdrMeta.AdrMetaBuilder(SIMPLE_ADR_META)
-            .setAdr(
-                    new Adr.AdrBuilder()
-                            .setTitle("<b>My Title</b>")
-                            .setContextAndProblemStatement("<b>Context and Problem Statement</b>")
-                            .setDecisionDrivers(List.of("blah<table></table>"))
-                            .setConsideredOptions(List.of(new Option("blah", "blah", List.of("blah"), List.of("blah"))))
-                            .setDecisionOutcome(new Decision(new Option("blah", "blah", List.of("blah"), List.of("blah")), "blah"))
-                            .setLinks(List.of(new Link("blah", "blah")))
-                            .setStatus(Status.draft)
-                            .setCreationDateTime(LocalDateTime.now())
-                            .setUpdateDateTime(LocalDateTime.now())
-                            .build()
-            )
-            .setId(0)
-            .build();
-    private final String NEW_ADR_REQUEST_WITH_NULL_VALUES = """
-              {
-              "title": null,
-              "contextAndProblemStatement": null,
-              "decisionDrivers": null,
-              "consideredOptions": [
-                {
-                  "name": null,
-                  "description": null,
-                  "positiveConsequences": null,
-                  "negativeConsequences": null
-                }
-              ],
-              "decisionOutcome": {
-                "chosenOption": {
-                  "name": null,
-                  "description": null,
-                  "positiveConsequences": null,
-                  "negativeConsequences": null
-                },
-                "rationale": null
-              },
-              "links": [
-                {
-                  "rel": null,
-                  "href": null
-                }
-              ]
-            }""";
-
 
     @Test
     void return_a_404_when_an_invalid_namespace_is_provided_on_get_adrs() throws NamespaceNotFoundException {
@@ -213,37 +122,6 @@ public class TestAdrResourceShould {
                 .build();
 
         verify(mockAdrStore, times(1)).createAdrForNamespace(expectedAdrMeta);
-    }
-
-    @Test
-    void respond_correctly_and_sanitize_inputs_when_creating_adr() throws AdrParseException, NamespaceNotFoundException {
-        ArgumentCaptor<AdrMeta> adrMetaArgumentCaptor = ArgumentCaptor.forClass(AdrMeta.class);
-        when(mockAdrStore.createAdrForNamespace(adrMetaArgumentCaptor.capture())).thenReturn(SIMPLE_ADR_META);
-
-        given()
-                .header("Content-Type", "application/json")
-                .body(UNSAFE_NEW_ADR_REQUEST)
-                .when()
-                .post("/calm/namespaces/finos/adrs")
-                .then()
-                .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/adrs/12/revisions/1"));
-
-        assertEquals(SANITIZED_ADR_META, adrMetaArgumentCaptor.getValue());
-    }
-
-    @Test
-    void respond_correctly_and_sanitize_null_inputs_when_creating_adr() throws AdrParseException, NamespaceNotFoundException {
-        when(mockAdrStore.createAdrForNamespace(any(AdrMeta.class))).thenReturn(SIMPLE_ADR_META);
-        given()
-                .header("Content-Type", "application/json")
-                .body(NEW_ADR_REQUEST_WITH_NULL_VALUES)
-                .when()
-                .post("/calm/namespaces/finos/adrs")
-                .then()
-                .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/adrs/12/revisions/1"));
-
     }
 
 //    //Update ADR Tests
@@ -400,7 +278,7 @@ public class TestAdrResourceShould {
 
     @ParameterizedTest
     @MethodSource("provideParametersForGetAdrRevisionTests")
-    void respond_correctly_to_get_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrParseException {
+    void respond_correctly_to_get_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException {
         AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace(namespace)
                 .setId(12)
@@ -497,7 +375,7 @@ public class TestAdrResourceShould {
         verify(mockAdrStore, times(1)).getAdrRevision(expectedAdrToRetrieveMeta);
     }
 
-    private void verifyExpectedGetAdr(String namespace) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrParseException {
+    private void verifyExpectedGetAdr(String namespace) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException {
         AdrMeta expectedAdrToRetrieveMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace(namespace)
                 .setId(12)

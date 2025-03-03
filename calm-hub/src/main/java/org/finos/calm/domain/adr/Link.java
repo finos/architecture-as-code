@@ -32,19 +32,11 @@ public final class Link {
     }
 
     public void setRel(String rel) {
-        if(rel == null) {
-            this.rel = null;
-        } else {
-            this.rel = LINK_POLICY.sanitize(rel);
-        }
+        this.rel = (rel == null) ? null : LINK_POLICY.sanitize(rel);
     }
 
     public void setHref(String href) {
-        if(href == null) {
-            this.href = null;
-        } else {
-            this.href = LINK_POLICY.sanitize(href);
-        }
+        this.href = (href == null) ? null : LINK_POLICY.sanitize(href);
     }
 
     @Override
@@ -61,4 +53,11 @@ public final class Link {
         return Objects.hash(rel, href);
     }
 
+    @Override
+    public String toString() {
+        return "Link{" +
+                "rel='" + rel + '\'' +
+                ", href='" + href + '\'' +
+                '}';
+    }
 }

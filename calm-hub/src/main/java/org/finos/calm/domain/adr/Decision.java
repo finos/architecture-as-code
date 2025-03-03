@@ -35,11 +35,7 @@ public final class Decision {
     }
 
     public void setRationale(String rationale) {
-        if(rationale == null) {
-            this.rationale = null;
-        } else {
-            this.rationale = DECISION_POLICY.sanitize(rationale);
-        }
+        this.rationale = (rationale == null) ? null : DECISION_POLICY.sanitize(rationale);
     }
 
     @Override
