@@ -13,6 +13,7 @@ module.exports = {
     moduleNameMapper: {
         '^(\\.{1,2}/.*)\\.js$': '$1'
     },
+    setupFilesAfterEnv: ['./src/test/setup-msw.ts'],
     collectCoverage: true,
     coverageThreshold: {
         global: {
