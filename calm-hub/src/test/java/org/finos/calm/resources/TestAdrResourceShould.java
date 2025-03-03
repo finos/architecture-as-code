@@ -1,6 +1,5 @@
 package org.finos.calm.resources;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.finos.calm.domain.adr.Adr;
@@ -29,7 +28,9 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
@@ -42,6 +43,19 @@ public class TestAdrResourceShould {
 
     @InjectMock
     AdrStore mockAdrStore;
+    private final AdrMeta SIMPLE_ADR_META = new AdrMeta.AdrMetaBuilder()
+            .setAdr(
+                    new Adr.AdrBuilder()
+                            .setTitle("My ADR")
+                            .setStatus(Status.draft)
+                            .setCreationDateTime(LocalDateTime.now())
+                            .setUpdateDateTime(LocalDateTime.now())
+                            .build()
+            )
+            .setId(12)
+            .setRevision(1)
+            .setNamespace("finos")
+            .build();
 
     @Test
     void return_a_404_when_an_invalid_namespace_is_provided_on_get_adrs() throws NamespaceNotFoundException {
@@ -84,19 +98,7 @@ public class TestAdrResourceShould {
         if (exceptionToThrow != null) {
             when(mockAdrStore.createAdrForNamespace(any(AdrMeta.class))).thenThrow(exceptionToThrow);
         } else {
-            AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
-                    .setAdr(
-                            new Adr.AdrBuilder()
-                                    .setTitle("My ADR")
-                                    .setStatus(Status.draft)
-                                    .setCreationDateTime(LocalDateTime.now())
-                                    .setUpdateDateTime(LocalDateTime.now())
-                                    .build()
-                    )
-                    .setId(12)
-                    .setRevision(1)
-                    .setNamespace(namespace)
-                    .build();
+            AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder(SIMPLE_ADR_META).setNamespace(namespace).build();
             when(mockAdrStore.createAdrForNamespace(any(AdrMeta.class))).thenReturn(adrMeta);
         }
 
@@ -264,7 +266,7 @@ public class TestAdrResourceShould {
                     .body()
                     .as(AdrMeta.class);
 
-            assertEquals(adrMeta, actualAdrMeta);
+            assertThat(actualAdrMeta, is(adrMeta));
         } else {
             given()
                     .when()
@@ -278,7 +280,7 @@ public class TestAdrResourceShould {
 
     @ParameterizedTest
     @MethodSource("provideParametersForGetAdrRevisionTests")
-    void respond_correctly_to_get_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrParseException {
+    void respond_correctly_to_get_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException {
         AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace(namespace)
                 .setId(12)
@@ -301,7 +303,7 @@ public class TestAdrResourceShould {
                     .extract()
                     .body()
                     .as(AdrMeta.class);
-            assertEquals(adrMeta, actualAdrMeta);
+            assertThat(actualAdrMeta, is(adrMeta));
         } else {
             given()
                     .when()
@@ -375,7 +377,7 @@ public class TestAdrResourceShould {
         verify(mockAdrStore, times(1)).getAdrRevision(expectedAdrToRetrieveMeta);
     }
 
-    private void verifyExpectedGetAdr(String namespace) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, JsonProcessingException, AdrParseException {
+    private void verifyExpectedGetAdr(String namespace) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException {
         AdrMeta expectedAdrToRetrieveMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace(namespace)
                 .setId(12)

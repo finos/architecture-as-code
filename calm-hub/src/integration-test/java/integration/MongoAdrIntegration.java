@@ -32,7 +32,8 @@ import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 @QuarkusTest
 @TestProfile(IntegrationTestProfile.class)
@@ -43,8 +44,10 @@ public class MongoAdrIntegration {
 
     private static final Logger logger = LoggerFactory.getLogger(MongoAdrIntegration.class);
 
-    private final String TITLE = "My ADR";
-    private final String PROBLEM_STATEMENT = "My problem is...";
+    private final String TITLE = "<b>My ADR</b><script><img>";
+    private final String EXPECTED_TITLE = "<b>My ADR</b>";
+    private final String PROBLEM_STATEMENT = "<a>My problem is...</a>";
+    private final String EXPECTED_PROBLEM_STATEMENT = "My problem is...";
     private final List<String> DECISION_DRIVERS = List.of("a", "b", "c");
     private final Option OPTION_A = new Option("Option A", "optionDescription", List.of("a"), List.of("b"));
     private final Option OPTION_B = new Option("Option B", "optionDescription", List.of("c"), List.of("d"));
@@ -56,7 +59,7 @@ public class MongoAdrIntegration {
     private final NewAdrRequest newAdr = new NewAdrRequest(TITLE, PROBLEM_STATEMENT, DECISION_DRIVERS,
             CONSIDERED_OPTIONS, DECISION_OUTCOME, LINKS);
 
-    private final Adr adr = new Adr.AdrBuilder(newAdr).setStatus(Status.draft).build();
+    private final Adr adr = new Adr.AdrBuilder(newAdr).setTitle(EXPECTED_TITLE).setContextAndProblemStatement(EXPECTED_PROBLEM_STATEMENT).setStatus(Status.draft).build();
 
     @BeforeEach
     public void setupAdrs() {
@@ -124,7 +127,7 @@ public class MongoAdrIntegration {
                 .extract()
                 .body()
                 .as(AdrMeta.class);
-        assertEquals(expectedAdrMeta, actualAdrMeta);
+        assertThat(actualAdrMeta, is(expectedAdrMeta));
     }
 
     @Test
@@ -144,7 +147,7 @@ public class MongoAdrIntegration {
                 .setRevision(1)
                 .setAdr(adr)
                 .build();
-        assertEquals(expectedAdrMeta, actualAdrMeta);
+        assertThat(actualAdrMeta, is(expectedAdrMeta));
     }
 
     @Test
