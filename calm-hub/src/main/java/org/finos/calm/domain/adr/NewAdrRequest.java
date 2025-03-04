@@ -33,9 +33,9 @@ public final class NewAdrRequest {
         setTitle(title);
         setContextAndProblemStatement(contextAndProblemStatement);
         setDecisionDrivers(decisionDrivers);
-        setConsideredOptions(consideredOptions);
-        setDecisionOutcome(decisionOutcome);
-        setLinks(links);
+        this.consideredOptions = consideredOptions;
+        this.decisionOutcome = decisionOutcome;
+        this.links = links;
     }
 
     public String getTitle() {

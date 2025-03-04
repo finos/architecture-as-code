@@ -18,8 +18,8 @@ public final class Decision {
     }
 
     public Decision(Option chosenOption, String rationale) {
-        setChosenOption(chosenOption);
         setRationale(rationale);
+        this.chosenOption = chosenOption;
     }
 
     public Option getChosenOption() {
