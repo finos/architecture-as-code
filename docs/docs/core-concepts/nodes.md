@@ -25,7 +25,6 @@ Each node within the CALM schema has several key properties that define its beha
   - **required-pattern**: The pattern that the detailed architecture must conform to
 - **data-classification**: Optional; An enum that specifies the classification of data handled, e.g. PII
 - **run-as**: Optional; A string value for the identity that the node will run as. This could be a unix id like www-data or a numeric id 1000
-- **instance**: Optional; UNSURE, this value has been lost to the ether
 - **interfaces**: An optional array defining the interfaces the node exposes, detailing how it interacts with other components.
 - **controls**: Optional controls that specify security or operational policies applied to the node, such as access restrictions or compliance requirements.  §
 
@@ -52,9 +51,7 @@ Here’s a simple example of a node definition:
     "required-pattern": "http://calm-hub/pattern-2"
   },
   "data-classification": "PII",
-  "run-as": "3000",
-  "instance": "?????"
-  
+  "run-as": "3000",  
 }
 ```
 

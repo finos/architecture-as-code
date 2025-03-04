@@ -28,15 +28,15 @@ Controls are made up of:
             "name": "Example System",
             "description": "Example System",
             "controls": {
-            "cbom": {
-                "description": "Control requirements for delivering patterns",
-                "requirements": [
-                    {
-                        "control-requirement": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-specification.json",
-                        "control-config": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-configuration.json"
-                    }
-                ]
-            }
+                "cbom": {
+                    "description": "Control requirements for delivering patterns",
+                    "requirements": [
+                        {
+                            "control-requirement-url": "http://calm.finos.org/draft/calm/control-example/pre-prod-review-specification.json",
+                            "control-config-url": "http://calm.finos.org/draft/calm/control-example/pre-prod-review-configuration.json"
+                        }
+                    ]
+                }
             }
         }
     ],
