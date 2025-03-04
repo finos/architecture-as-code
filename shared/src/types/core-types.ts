@@ -30,7 +30,6 @@ export type CalmNodeSchema = {
     details?: CalmNodeDetailsSchema;
     'data-classification'?: CalmDataClassificationSchema;
     'run-as'?: string;
-    instance?: string;
     interfaces?:  (CalmInterfaceTypeSchema | CalmHostPortInterfaceSchema | CalmHostnameInterfaceSchema | CalmPathInterfaceSchema | CalmOAuth2AudienceInterfaceSchema | CalmURLInterfaceSchema | CalmRateLimitInterfaceSchema | CalmContainerImageInterfaceSchema | CalmPortInterfaceSchema)[];
     controls?: CalmControlsSchema;
     metadata?: CalmMetadataSchema;
