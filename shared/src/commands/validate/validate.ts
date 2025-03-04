@@ -6,7 +6,7 @@ import validationRulesForPattern from '../../spectral/rules-pattern';
 import validationRulesForArchitecture from '../../spectral/rules-architecture';
 import { DiagnosticSeverity } from '@stoplight/types';
 import * as winston from 'winston';
-import { initLogger } from '../helper.js';
+import { initLogger } from '../../logger.js';
 import { ValidationOutput, ValidationOutcome } from './validation.output.js';
 import { SpectralResult } from './spectral.result.js';
 import createJUnitReport from './output-formats/junit-output.js';

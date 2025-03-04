@@ -1,0 +1,7 @@
+{
+  "name": "Simple Test Bundle",
+  "transformer": "repeated-transformer",
+  "templates": [
+    { "template": "main.hbs", "from": "nodes", "output": "{{id}}.txt", "output-type": "repeated" }
+  ]
+}

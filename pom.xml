@@ -12,7 +12,7 @@
     <properties>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
-        <quarkus.platform.version>3.18.0</quarkus.platform.version>
+        <quarkus.platform.version>3.19.1</quarkus.platform.version>
     </properties>
 
     <modules>
@@ -43,7 +43,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.13.0</version>
+                    <version>3.14.0</version>
                     <configuration>
                         <source>21</source>
                         <target>21</target>
