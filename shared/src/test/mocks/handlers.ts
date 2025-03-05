@@ -8,42 +8,66 @@ export interface HandlerConfig {
     response: string | number | object | { fixture: string };
 }
 
+/**
+ * Handle status code responses (e.g., 404)
+ */
+function handleMockStatusCode(url: string, status: number) {
+    return http.get(url, () => {
+        return new HttpResponse(null, { status });
+    });
+}
+
+/**
+ * Handle string responses
+ */
+function handleMockStringResponse(url: string, response: string) {
+    return http.get(url, () => {
+        return HttpResponse.text(response);
+    });
+}
+
+/**
+ * Handle fixture file responses
+ */
+function handleMockFixtureResponse(url: string, fixturePath: string) {
+    // Use the same path resolution approach as in the original tests
+    const resolvedPath = path.resolve(__dirname, '../../../test_fixtures', fixturePath);
+    try {
+        const fixtureContent = fs.readFileSync(resolvedPath, 'utf8');
+        
+        return http.get(url, () => {
+            return HttpResponse.text(fixtureContent, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+        });
+    } catch (error) {
+        console.error(`Error reading fixture file: ${resolvedPath}`, error);
+        throw error;
+    }
+}
+
+/**
+ * Handle JSON responses
+ */
+function handleMockJsonResponse(url: string, response: object) {
+    return http.get(url, () => {
+        return HttpResponse.json(response);
+    });
+}
+
 // We'll export a function that creates handlers based on test needs
 export function createHandlers(mocks: HandlerConfig[]) {
     return mocks.map(mock => {
         if (typeof mock.response === 'number') {
-            // Handle status code responses (e.g., 404)
-            return http.get(mock.url, () => {
-                return new HttpResponse(null, { status: mock.response as number });
-            });
+            return handleMockStatusCode(mock.url, mock.response);
         } else if (typeof mock.response === 'string') {
-            // Handle string responses
-            return http.get(mock.url, () => {
-                return HttpResponse.text(mock.response as string);
-            });
+            return handleMockStringResponse(mock.url, mock.response);
         } else if (typeof mock.response === 'object' && mock.response !== null && 'fixture' in mock.response) {
-            // Handle fixture file responses
-            // Use the same path resolution approach as in the original tests
-            const fixturePath = path.resolve(__dirname, '../../../test_fixtures', mock.response.fixture);
-            try {
-                const fixtureContent = fs.readFileSync(fixturePath, 'utf8');
-                
-                return http.get(mock.url, () => {
-                    return HttpResponse.text(fixtureContent, {
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                });
-            } catch (error) {
-                console.error(`Error reading fixture file: ${fixturePath}`, error);
-                throw error;
-            }
+            return handleMockFixtureResponse(mock.url, mock.response.fixture);
         } else {
-            // Handle JSON responses
-            return http.get(mock.url, () => {
-                return HttpResponse.json(mock.response);
-            });
+            return handleMockJsonResponse(mock.url, mock.response);
         }
     });
 }
