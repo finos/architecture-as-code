@@ -18,8 +18,7 @@
         "openid",
         "profile",
         "email",
-        "read:patterns",
-        "read:namespaces"
+        "architectures:read"
       ],
       "optionalClientScopes": [
         "address",
@@ -37,42 +36,21 @@
   "roles": {
     "realm": [
       {
-        "name": "admin"
+        "name": "admin",
+        "clientRole": false
       }
     ],
     "client": {
       "calm-hub-client-app": [
         {
-          "name": "read:patterns"
-        },
-        {
-          "name": "read:namespaces"
+          "name": "architectures:read"
         }
       ]
     }
   },
   "clientScopes": [
     {
-      "name": "read:patterns",
-      "protocol": "openid-connect",
-      "attributes": {
-        "include.in.token.scope": "true"
-      },
-      "protocolMappers": [
-        {
-          "name": "audience",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "config": {
-            "included.client.audience": "calm-hub-producer-app",
-            "id.token.claim": "true",
-            "access.token.claim": "true"
-          }
-        }
-      ]
-    },
-    {
-      "name": "read:namespaces",
+      "name": "architectures:read",
       "protocol": "openid-connect",
       "attributes": {
         "include.in.token.scope": "true"
@@ -94,16 +72,9 @@
   "scopeMappings": [
     {
       "client": "calm-hub-client-app",
-      "clientScope": "read:patterns",
+      "clientScope": "architectures:read",
       "roles": [
-        "read:patterns"
-      ]
-    },
-    {
-      "client": "calm-hub-client-app",
-      "clientScope": "read:namespaces",
-      "roles": [
-        "read:namespaces"
+        "architectures:read"
       ]
     }
   ]

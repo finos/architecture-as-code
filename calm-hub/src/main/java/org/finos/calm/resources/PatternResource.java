@@ -36,7 +36,7 @@ public class PatternResource {
     @GET
     @Path("{namespace}/patterns")
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:patterns", "read:patterns"})
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     @Operation(
             summary = "Retrieve patterns in a given namespace",
             description = "Patterns stored in a given namespace"
@@ -54,7 +54,7 @@ public class PatternResource {
     @Path("{namespace}/patterns")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:patterns"})
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     @Operation(
             summary = "Create pattern for namespace",
             description = "Creates a pattern for a given namespace with an allocated ID and version 1.0.0"
@@ -79,7 +79,7 @@ public class PatternResource {
     @GET
     @Path("{namespace}/patterns/{patternId}/versions")
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:patterns", "read:patterns"})
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     @Operation(
             summary = "Retrieve a list of versions for a given pattern",
             description = "Pattern versions are not opinionated, outside of the first version created"
@@ -104,7 +104,7 @@ public class PatternResource {
     @GET
     @Path("{namespace}/patterns/{patternId}/versions/{version}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:patterns", "read:patterns"})
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     @Operation(
             summary = "Retrieve a specific pattern at a given version",
             description = "Retrieve patterns at a specific version"
@@ -134,7 +134,7 @@ public class PatternResource {
     @Path("{namespace}/patterns/{patternId}/versions/{version}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:patterns"})
+    @ScopesAllowed({"architectures:all"})
     public Response createVersionedPattern(@PathParam("namespace") String namespace, @PathParam("patternId") int patternId, @PathParam("version") String version, String patternJson) throws URISyntaxException {
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace(namespace)
@@ -162,7 +162,7 @@ public class PatternResource {
     @Path("{namespace}/patterns/{patternId}/versions/{version}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:patterns"})
+    @ScopesAllowed({"architectures:all"})
     @Operation(
             summary = "Updates a Pattern (if available)",
             description = "In mutable version stores pattern updates are supported by this endpoint, operation unavailable returned in repositories without configuration specified"

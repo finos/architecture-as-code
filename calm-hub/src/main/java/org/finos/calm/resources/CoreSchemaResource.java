@@ -6,6 +6,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.ValueWrapper;
+import org.finos.calm.security.ScopesAllowed;
 import org.finos.calm.store.CoreSchemaStore;
 
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ public class CoreSchemaResource {
 
     @GET
     @Path("{version}/meta")
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     @Operation(
             summary = "Published CALM Schemas for Version",
             description = "Retrieve the names of CALM Schemas in a given version"
@@ -47,6 +49,7 @@ public class CoreSchemaResource {
 
     @GET
     @Path("{version}/meta/{schemaName}")
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     @Operation(
             summary = "Retrieve a specific schema by schema name",
             description = "Retrieve a specific schema from the CALM Hub"

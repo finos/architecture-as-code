@@ -58,23 +58,24 @@ From the `calm-hub` directory
 
 #### Launch keycloak
 
-In the `keycloak-dev` directory
+From the `keycloak-dev` directory in `calm-hub`
 
 Create certs for KeyCloak:
-1. `mkdir ./certs`
-2. ```shell
-   openssl req -x509 -newkey rsa:2048 \
-      -keyout ./certs/key.pem \
-      -out ./certs/cert.pem -days 90 -nodes \
-      -subj "/C=GB/ST=England/L=Manchester/O=finos/OU=Technology/CN=idp.finos.org"
-   ```
+
+```shell
+  mkdir ./certs &&
+  openssl req -x509 -newkey rsa:2048 \
+    -keyout ./certs/key.pem \
+    -out ./certs/cert.pem -days 90 -nodes \
+    -subj "/C=GB/ST=England/L=Manchester/O=finos/OU=Technology/CN=idp.finos.org"
+```
 
 Launch KeyCloak:
 ```shell
 export KC_BOOTSTRAP_ADMIN_PASSWORD=<set me>
 docker-compose up
 ```
-- Open KeyCloak UI: http://localhost:8083, login with admin user.
+- Open KeyCloak UI: https://localhost:9443, login with admin user.
 - Switch realm from `master` to `calm-hub-realm`
 - Create a `demo` user with a temporary credentials under `calm-hub-realm` realm.
 - Assign the `calm-hub-readonly` role to the `demo` user.
@@ -92,7 +93,7 @@ From the `calm-hub` directory
     ```
 2. `../mvnw package`
 3. `../mvnw quarkus:dev -Dquarkus.profile=secure`
-4. Open Clam UI: https://localhost:8443
+4. Open Calm UI: https://localhost:8443
 
 ### UI with hot reload (from src/main/webapp)
 
