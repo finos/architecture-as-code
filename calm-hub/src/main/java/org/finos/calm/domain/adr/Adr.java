@@ -153,12 +153,12 @@ public class Adr {
         }
 
         public AdrBuilder(NewAdrRequest newAdrRequest) {
-            this.title = newAdrRequest.title();
-            this.contextAndProblemStatement = newAdrRequest.contextAndProblemStatement();
-            this.decisionDrivers = newAdrRequest.decisionDrivers();
-            this.consideredOptions = newAdrRequest.consideredOptions();
-            this.decisionOutcome = newAdrRequest.decisionOutcome();
-            this.links = newAdrRequest.links();
+            this.title = newAdrRequest.getTitle();
+            this.contextAndProblemStatement = newAdrRequest.getContextAndProblemStatement();
+            this.decisionDrivers = newAdrRequest.getDecisionDrivers();
+            this.consideredOptions = newAdrRequest.getConsideredOptions();
+            this.decisionOutcome = newAdrRequest.getDecisionOutcome();
+            this.links = newAdrRequest.getLinks();
         }
 
         public AdrBuilder setTitle(String title) {
