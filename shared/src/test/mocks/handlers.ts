@@ -2,11 +2,14 @@ import { http, HttpResponse } from 'msw';
 import fs from 'fs';
 import path from 'path';
 
-// We'll export a function that creates handlers based on test needs
-export const createHandlers = (mocks: {
+// Define a reusable interface for handler configuration
+export interface HandlerConfig {
     url: string;
     response: string | number | object | { fixture: string };
-}[]) => {
+}
+
+// We'll export a function that creates handlers based on test needs
+export function createHandlers(mocks: HandlerConfig[]) {
     return mocks.map(mock => {
         if (typeof mock.response === 'number') {
             // Handle status code responses (e.g., 404)
@@ -43,4 +46,4 @@ export const createHandlers = (mocks: {
             });
         }
     });
-};
+}
