@@ -57,7 +57,7 @@ public class AdrResource {
     @GET
     @Path("{namespace}/adrs")
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:adrs", "read:adrs"})
+    @ScopesAllowed({"adrs:all", "adrs:read"})
     @Operation(
             summary = "Retrieve ADRs in a given namespace",
             description = "ADRs stored in a given namespace"
@@ -81,7 +81,7 @@ public class AdrResource {
     @Path("{namespace}/adrs")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:adrs"})
+    @ScopesAllowed({"adrs:all"})
     @Operation(
             summary = "Create ADR for namespace",
             description = "Creates an ADR for a given namespace with an allocated ID and revision 1"
@@ -118,7 +118,7 @@ public class AdrResource {
     @Path("{namespace}/adrs/{adrId}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:adrs"})
+    @ScopesAllowed({"adrs:all"})
     @Operation(
             summary = "Update ADR for namespace",
             description = "Updates an ADR for a given namespace. Creates a new revision."
@@ -151,7 +151,7 @@ public class AdrResource {
     @GET
     @Path("{namespace}/adrs/{adrId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:adrs", "read:adrs"})
+    @ScopesAllowed({"adrs:all", "adrs:read"})
     @Operation(
             summary = "Retrieve the latest revision of an ADR",
             description = "Retrieve the latest revision of an ADR"
@@ -185,7 +185,7 @@ public class AdrResource {
     @GET
     @Path("{namespace}/adrs/{adrId}/revisions")
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:adrs", "read:adrs"})
+    @ScopesAllowed({"adrs:all", "adrs:read"})
     @Operation(
             summary = "Retrieve a list of revisions for a given ADR",
             description = "The most recent revision is the canonical ADR, with others available for audit or exploring changes."
@@ -214,7 +214,7 @@ public class AdrResource {
     @GET
     @Path("{namespace}/adrs/{adrId}/revisions/{revision}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:adrs", "read:adrs"})
+    @ScopesAllowed({"adrs:all", "adrs:read"})
     @Operation(
             summary = "Retrieve a specific revision of an ADR",
             description = "Retrieve a specific revision of an ADR"
@@ -251,7 +251,7 @@ public class AdrResource {
     @POST
     @Path("{namespace}/adrs/{adrId}/status/{status}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:adrs"})
+    @ScopesAllowed({"adrs:all"})
     @Operation(
             summary = "Update the status of ADR for namespace",
             description = "Updates the status of an ADR for a given namespace. Creates a new revision."

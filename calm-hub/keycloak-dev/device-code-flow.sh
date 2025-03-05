@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CLIENT_ID="calm-hub-device-flow"
-SCOPE="write:patterns read:patterns"
+SCOPE="architectures:all architectures:read"
 DEVICE_AUTH_ENDPOINT="https://localhost:9443/realms/calm-hub-realm/protocol/openid-connect/auth/device"
 DEVICE_AUTH_RESPONSE=$(curl --insecure -X POST \
   -H "Content-Type: application/x-www-form-urlencoded" \
@@ -16,7 +16,7 @@ VERIFICATION_URI_COMPLETE=$(echo "$DEVICE_AUTH_RESPONSE" | jq -r '.verification_
 EXPIRES_IN=$(echo "$DEVICE_AUTH_RESPONSE" | jq -r '.expires_in')
 INTERVAL=$(echo "$DEVICE_AUTH_RESPONSE" | jq -r '.interval')
 
-echo -e "Please open the link on a browser $VERIFICATION_URI, User Code:[$USER_CODE] \nCorresponding device code [$DEVICE_CODE] will expires in $EXPIRES_IN seconds.\n"
+echo -e "\nOpen the link in a browser \033[3m[$VERIFICATION_URI]\033[0m, and authenticate with the UserCode:[$USER_CODE] \n the associated device code for this request will expires in $EXPIRES_IN seconds.\n"
 
 # Poll the token endpoint
 TOKEN_URL="https://localhost:9443/realms/calm-hub-realm/protocol/openid-connect/token"
@@ -54,10 +54,10 @@ poll_token() {
 #Start token polling
 poll_token
 
-echo "Proceed to get patterns"
+echo -e "\nPress enter to get patterns"
 read
 if [[ -n $ACCESS_TOKEN ]]; then
-  curl --insecure -v -X GET "https://localhost:8443/calm/namespaces/finos/patterns" \
+  curl --insecure -v "https://localhost:8443/calm/namespaces/finos/patterns" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $ACCESS_TOKEN"
 fi

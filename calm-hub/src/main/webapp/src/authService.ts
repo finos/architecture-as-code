@@ -5,7 +5,7 @@ const config = {
   client_id: 'calm-hub-authz-code',
   redirect_uri: window.location.origin,
   response_type: 'code',
-  scope: 'openid profile read:patterns read:flows read:architectures read:namespaces read:adrs',
+  scope: 'openid profile architectures:read adrs:all',
   post_logout_redirect_uri: window.location.origin,
   automaticSilentRenew: true,
   filterProtocolClaims: true,

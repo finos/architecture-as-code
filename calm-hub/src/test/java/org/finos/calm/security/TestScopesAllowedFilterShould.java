@@ -51,10 +51,10 @@ public class TestScopesAllowedFilterShould {
     public void allow_the_request_when_token_scopes_matching() throws NoSuchMethodException {
         Method method = TestNamespaceResource.class.getMethod("createNamespace");
         when(resourceInfo.getResourceMethod()).thenReturn(method);
-        when(jwt.getClaim("scope")).thenReturn("openid write:namespaces");
+        when(jwt.getClaim("scope")).thenReturn("openid architectures:all");
 
         scopesAllowedFilter.filter(requestContext);
-        //verify(logger).info("Request allowed, ScopesAllowed are: [write:namespaces], there is a matching scope found in accessToken: openid write:namespaces");
+        //verify(logger).info("Request allowed, ScopesAllowed are: [architectures:all], there is a matching scope found in accessToken: openid architectures:all");
         verify(requestContext, never()).abortWith(any());
     }
 
@@ -62,10 +62,10 @@ public class TestScopesAllowedFilterShould {
     public void abort_the_request_when_token_scopes_not_matching() throws NoSuchMethodException {
         Method method = TestNamespaceResource.class.getMethod("createNamespace");
         when(resourceInfo.getResourceMethod()).thenReturn(method);
-        when(jwt.getClaim("scope")).thenReturn("openid read:namespaces");
+        when(jwt.getClaim("scope")).thenReturn("openid architectures:read");
 
         scopesAllowedFilter.filter(requestContext);
-        //verify(logger).error("Request denied, ScopesAllowed are: [write:namespaces], no matching scopes found in accessToken: openid read:namespaces");
+        //verify(logger).error("Request denied, ScopesAllowed are: [architectures:all], no matching scopes found in accessToken: openid architectures:read");
         verify(requestContext)
                 .abortWith(argThat(response -> response.getStatus() == HttpStatus.SC_FORBIDDEN));
     }
@@ -75,7 +75,7 @@ public class TestScopesAllowedFilterShould {
             return List.of("test", "dev");
         }
 
-        @ScopesAllowed({"write:namespaces"})
+        @ScopesAllowed({"architectures:all"})
         public void createNamespace() {
         }
     }

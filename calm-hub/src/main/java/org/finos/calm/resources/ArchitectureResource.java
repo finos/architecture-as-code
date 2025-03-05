@@ -44,7 +44,7 @@ public class ArchitectureResource {
     @GET
     @Path("{namespace}/architectures")
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:architectures", "read:architectures"})
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     @Operation(
             summary = "Retrieve architectures in a given namespace",
             description = "Architecture stored in a given namespace"
@@ -62,7 +62,7 @@ public class ArchitectureResource {
     @Path("{namespace}/architectures")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:architectures"})
+    @ScopesAllowed({"architectures:all"})
     @Operation(
             summary = "Create architecture for namespace",
             description = "Creates a architecture for a given namespace with an allocated ID and version 1.0.0"
@@ -87,7 +87,7 @@ public class ArchitectureResource {
     @GET
     @Path("{namespace}/architectures/{architectureId}/versions")
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:architectures", "read:architectures"})
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     @Operation(
             summary = "Retrieve a list of versions for a given architecture",
             description = "Architecture versions are not opinionated, outside of the first version created"
@@ -112,7 +112,7 @@ public class ArchitectureResource {
     @GET
     @Path("{namespace}/architectures/{architectureId}/versions/{version}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:architectures", "read:architectures"})
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     @Operation(
             summary = "Retrieve a specific architecture at a given version",
             description = "Retrieve architectures at a specific version"
@@ -142,7 +142,7 @@ public class ArchitectureResource {
     @Path("{namespace}/architectures/{architectureId}/versions/{version}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:architectures"})
+    @ScopesAllowed({"architectures:all"})
     public Response createVersionedArchitecture(@PathParam("namespace") String namespace, @PathParam("architectureId") int architectureId, @PathParam("version") String version, String architectureJson) throws URISyntaxException {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
@@ -170,7 +170,7 @@ public class ArchitectureResource {
     @Path("{namespace}/architectures/{architectureId}/versions/{version}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @ScopesAllowed({"write:architectures"})
+    @ScopesAllowed({"architectures:all"})
     @Operation(
             summary = "Updates an architecture (if available)",
             description = "In mutable version stores architecture updates are supported by this endpoint, operation unavailable returned in repositories without configuration specified"

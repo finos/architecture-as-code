@@ -17,7 +17,7 @@ public class NamespaceResource {
     }
 
     @GET
-    @ScopesAllowed({"read:namespaces", "write:namespaces"})
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     @Operation(
             summary = "Available Namespaces",
             description = "The available namespaces available in this Calm Hub"

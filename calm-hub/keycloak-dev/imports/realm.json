@@ -127,11 +127,9 @@
       "authenticationFlowBindingOverrides": {},
       "fullScopeAllowed": true,
       "optionalClientScopes": [
-        "read:patterns",
-        "read:flows",
-        "read:namespaces",
-        "read:architectures",
-        "read:adrs",
+        "adrs:read",
+        "adrs:all",
+        "architectures:read",
         "email",
         "web-origins",
         "profile"
@@ -173,12 +171,8 @@
         "profile"
       ],
       "optionalClientScopes": [
-        "write:patterns",
-        "read:patterns",
-        "write:namespaces",
-        "write:adrs",
-        "write:architectures",
-        "write:flows"
+        "adrs:read",
+        "architectures:all"
       ]
     }
   ],
@@ -500,7 +494,7 @@
       ]
     },
     {
-      "name": "read:patterns",
+      "name": "adrs:read",
       "protocol": "openid-connect",
       "attributes": {
         "include.in.token.scope": "true"
@@ -519,7 +513,7 @@
       ]
     },
     {
-      "name": "write:patterns",
+      "name": "adrs:all",
       "protocol": "openid-connect",
       "protocolMappers": [
         {
@@ -535,7 +529,7 @@
       ]
     },
     {
-      "name": "read:flows",
+      "name": "architectures:read",
       "protocol": "openid-connect",
       "protocolMappers": [
         {
@@ -551,103 +545,7 @@
       ]
     },
     {
-      "name": "write:flows",
-      "protocol": "openid-connect",
-      "protocolMappers": [
-        {
-          "name": "audience",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "config": {
-            "included.client.audience": "calm-hub-producer-app",
-            "id.token.claim": "true",
-            "access.token.claim": "true"
-          }
-        }
-      ]
-    },
-    {
-      "name": "read:namespaces",
-      "protocol": "openid-connect",
-      "protocolMappers": [
-        {
-          "name": "audience",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "config": {
-            "included.client.audience": "calm-hub-producer-app",
-            "id.token.claim": "true",
-            "access.token.claim": "true"
-          }
-        }
-      ]
-    },
-    {
-      "name": "write:namespaces",
-      "protocol": "openid-connect",
-      "protocolMappers": [
-        {
-          "name": "audience",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "config": {
-            "included.client.audience": "calm-hub-producer-app",
-            "id.token.claim": "true",
-            "access.token.claim": "true"
-          }
-        }
-      ]
-    },
-    {
-      "name": "read:architectures",
-      "protocol": "openid-connect",
-      "protocolMappers": [
-        {
-          "name": "audience",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "config": {
-            "included.client.audience": "calm-hub-producer-app",
-            "id.token.claim": "true",
-            "access.token.claim": "true"
-          }
-        }
-      ]
-    },
-    {
-      "name": "write:architectures",
-      "protocol": "openid-connect",
-      "protocolMappers": [
-        {
-          "name": "audience",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "config": {
-            "included.client.audience": "calm-hub-producer-app",
-            "id.token.claim": "true",
-            "access.token.claim": "true"
-          }
-        }
-      ]
-    },
-    {
-      "name": "read:adrs",
-      "protocol": "openid-connect",
-      "protocolMappers": [
-        {
-          "name": "audience",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "config": {
-            "included.client.audience": "calm-hub-producer-app",
-            "id.token.claim": "true",
-            "access.token.claim": "true"
-          }
-        }
-      ]
-    },
-    {
-      "name": "write:adrs",
+      "name": "architectures:all",
       "protocol": "openid-connect",
       "protocolMappers": [
         {
@@ -664,16 +562,10 @@
     }
   ],
   "defaultOptionalClientScopes": [
-    "read:patterns",
-    "write:namespaces",
-    "write:patterns",
-    "read:namespaces",
-    "read:adrs",
-    "read:architectures",
-    "write:architectures",
-    "write:adrs",
-    "read:flows",
-    "write:flows",
+    "adrs:read",
+    "adrs:all",
+    "architectures:read",
+    "architectures:all",
     "offline_access",
     "service_account"
   ],
@@ -689,31 +581,13 @@
   },
   "scopeMappings": [
     {
-      "clientScope": "read:adrs",
+      "clientScope": "adrs:read",
       "roles": [
         "calm-hub-readonly"
       ]
     },
     {
-      "clientScope": "read:flows",
-      "roles": [
-        "calm-hub-readonly"
-      ]
-    },
-    {
-      "clientScope": "read:patterns",
-      "roles": [
-        "calm-hub-readonly"
-      ]
-    },
-    {
-      "clientScope": "read:architectures",
-      "roles": [
-        "calm-hub-readonly"
-      ]
-    },
-    {
-      "clientScope": "read:namespaces",
+      "clientScope": "architectures:read",
       "roles": [
         "calm-hub-readonly"
       ]
