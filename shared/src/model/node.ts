@@ -33,7 +33,6 @@ export class CalmNode {
         public metadata: CalmMetadata,
         public dataClassification?: CalmDataClassification,
         public runAs?: string,
-        public instance?: string,
 
     ) {}
 
@@ -49,7 +48,6 @@ export class CalmNode {
             data.metadata ? CalmMetadata.fromJson(data.metadata): new CalmMetadata({}),
             data['data-classification'],
             data['run-as'],
-            data.instance,
         );
     }
 }

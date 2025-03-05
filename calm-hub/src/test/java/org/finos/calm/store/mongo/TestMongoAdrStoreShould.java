@@ -41,7 +41,6 @@ import java.util.Map;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -271,7 +270,7 @@ public class TestMongoAdrStoreShould {
 
         AdrMeta adrMetaRevision = mongoAdrStore.getAdrRevision(adrMeta);
         AdrMeta expectedAdrRevisionMeta = new AdrMeta.AdrMetaBuilder(simpleAdrMeta).setRevision(1).build();
-        assertEquals(expectedAdrRevisionMeta, adrMetaRevision);
+        assertThat(adrMetaRevision, is(expectedAdrRevisionMeta));
     }
 
     private void mockSetupAdrDocumentWithRevisions() throws JsonProcessingException {
@@ -370,7 +369,7 @@ public class TestMongoAdrStoreShould {
 
         AdrMeta latestAdrMeta = mongoAdrStore.getAdr(adrMeta);
         AdrMeta expectedAdrMeta = new AdrMeta.AdrMetaBuilder(simpleAdrMeta).setRevision(1).build();
-        assertEquals(expectedAdrMeta, latestAdrMeta);
+        assertThat(latestAdrMeta, is(expectedAdrMeta));
     }
 
     @Test
