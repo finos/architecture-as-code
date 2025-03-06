@@ -69,7 +69,7 @@ public class ScopesAllowedIntegration {
                 .preemptive()
                 .basic("calm-hub-client-app", "calm-hub-client-app-secret")
                 .formParam("grant_type", "client_credentials")
-                .formParam("scope", "read:patterns read:namespaces")
+                .formParam("scope", "architectures:read")
                 .when()
                 .post(authServerUrl.concat("/protocol/openid-connect/token"))
                 .then()
