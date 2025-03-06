@@ -32,40 +32,37 @@ public class TestScopesAllowedFilterShould {
     private ScopesAllowedFilter scopesAllowedFilter;
 
     @BeforeEach
-    public void setup() {
+    void setup() {
         MockitoAnnotations.openMocks(this);
         scopesAllowedFilter = new ScopesAllowedFilter(jwt, resourceInfo);
     }
 
     @Test
-    public void allow_the_request_when_scopes_not_defined_on_resource() throws NoSuchMethodException {
+    void allow_the_request_when_scopes_not_defined_on_resource() throws NoSuchMethodException {
         Method method = TestNamespaceResource.class.getMethod("getNamespacesUnsecured");
         when(resourceInfo.getResourceMethod()).thenReturn(method);
 
         scopesAllowedFilter.filter(requestContext);
-        //verify(logger).warn("Unsecured endpoint accessed: "+ method);
         verify(requestContext, never()).abortWith(any());
     }
 
     @Test
-    public void allow_the_request_when_token_scopes_matching() throws NoSuchMethodException {
+    void allow_the_request_when_token_scopes_matching() throws NoSuchMethodException {
         Method method = TestNamespaceResource.class.getMethod("createNamespace");
         when(resourceInfo.getResourceMethod()).thenReturn(method);
         when(jwt.getClaim("scope")).thenReturn("openid architectures:all");
 
         scopesAllowedFilter.filter(requestContext);
-        //verify(logger).info("Request allowed, ScopesAllowed are: [architectures:all], there is a matching scope found in accessToken: openid architectures:all");
         verify(requestContext, never()).abortWith(any());
     }
 
     @Test
-    public void abort_the_request_when_token_scopes_not_matching() throws NoSuchMethodException {
+    void abort_the_request_when_token_scopes_not_matching() throws NoSuchMethodException {
         Method method = TestNamespaceResource.class.getMethod("createNamespace");
         when(resourceInfo.getResourceMethod()).thenReturn(method);
         when(jwt.getClaim("scope")).thenReturn("openid architectures:read");
 
         scopesAllowedFilter.filter(requestContext);
-        //verify(logger).error("Request denied, ScopesAllowed are: [architectures:all], no matching scopes found in accessToken: openid architectures:read");
         verify(requestContext)
                 .abortWith(argThat(response -> response.getStatus() == HttpStatus.SC_FORBIDDEN));
     }

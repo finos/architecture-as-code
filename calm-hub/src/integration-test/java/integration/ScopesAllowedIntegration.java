@@ -24,10 +24,10 @@ import static org.hamcrest.Matchers.empty;
 public class ScopesAllowedIntegration {
 
     private static final Logger logger = LoggerFactory.getLogger(ScopesAllowedIntegration.class);
-    public static final String PATTERN = "{\"name\": \"demo-pattern\"}";
+    private static final String PATTERN = "{\"name\": \"demo-pattern\"}";
 
     @BeforeEach
-    public void setupPatterns() {
+    void setupPatterns() {
         String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
 
         // Safeguard: Fail fast if URI is not set

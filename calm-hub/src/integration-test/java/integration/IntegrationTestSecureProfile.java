@@ -31,7 +31,10 @@ public class IntegrationTestSecureProfile implements QuarkusTestProfile {
                 "quarkus.profile", "secure",
                 "quarkus.http.ssl-port", "0",
                 "quarkus.http.insecure-requests", "enabled",
-                "quarkus.http.port", "8080"
+                "quarkus.http.port", "8080",
+                "quarkus.http.ssl.certificate.key-files","",
+                "quarkus.http.ssl.certificate.key-store-file-type","",
+                "quarkus.http.ssl.certificate.files",""
         );
     }
 }
