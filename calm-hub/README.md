@@ -76,9 +76,10 @@ export KC_BOOTSTRAP_ADMIN_PASSWORD=<set me>
 docker-compose up
 ```
 - Open KeyCloak UI: https://localhost:9443, login with admin user.
-- Switch realm from `master` to `calm-hub-realm`
-- Create a `demo` user with a temporary credentials under `calm-hub-realm` realm.
-- Assign the `calm-hub-readonly` role to the `demo` user.
+- Switch realm from `master` to `calm-hub-realm`.
+- You can find a `demo` user with a temporary credentials under `calm-hub-realm` realm.
+- During the local development, the `demo` user you can use to authenticate with `keycloak-dev` when you integrate the `calm-ui` with `authorization-code` flow type.
+
 
 #### Server Side with secure profile 
 
