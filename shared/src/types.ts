@@ -13,7 +13,6 @@ export interface CALMNode {
   description: string,
   'data-classification'?: string,
   'run-as'?: string,
-  instance?: string
 }
 
 export type CALMRelationship = CALMInteractsRelationship | CALMConnectsRelationship | CALMDeployedInRelationship | CALMComposedOfRelationship;

@@ -23,7 +23,6 @@ const nodeData: CalmNodeSchema = {
     metadata: [{ key: 'value' }],
     'data-classification': 'Public',
     'run-as': 'admin',
-    instance: 'instance-1'
 };
 
 
@@ -55,7 +54,6 @@ describe('CalmNode', () => {
         expect(node.metadata).toEqual({ data: { key: 'value' } });
         expect(node.dataClassification).toBe('Public');
         expect(node.runAs).toBe('admin');
-        expect(node.instance).toBe('instance-1');
     });
 
     it('should handle optional fields in CalmNode', () => {
@@ -78,7 +76,6 @@ describe('CalmNode', () => {
         expect(nodeWithoutOptionalFields).toBeInstanceOf(CalmNode);
         expect(nodeWithoutOptionalFields.uniqueId).toBe('node-002');
         expect(nodeWithoutOptionalFields.runAs).toBeUndefined();
-        expect(nodeWithoutOptionalFields.instance).toBeUndefined();
     });
 
     it('should handle empty interfaces, controls, and metadata', () => {
