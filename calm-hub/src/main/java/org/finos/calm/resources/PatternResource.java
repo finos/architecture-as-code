@@ -11,6 +11,7 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
+import org.finos.calm.security.ScopesAllowed;
 import org.finos.calm.store.PatternStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,7 @@ public class PatternResource {
             summary = "Retrieve patterns in a given namespace",
             description = "Patterns stored in a given namespace"
     )
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     public Response getPatternsForNamespace(@PathParam("namespace") String namespace) {
         try {
             return Response.ok(new ValueWrapper<>(store.getPatternsForNamespace(namespace))).build();
@@ -56,6 +58,7 @@ public class PatternResource {
             summary = "Create pattern for namespace",
             description = "Creates a pattern for a given namespace with an allocated ID and version 1.0.0"
     )
+    @ScopesAllowed({"architectures:all"})
     public Response createPatternForNamespace(@PathParam("namespace") String namespace, String patternJson) throws URISyntaxException {
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace(namespace)
@@ -80,6 +83,7 @@ public class PatternResource {
             summary = "Retrieve a list of versions for a given pattern",
             description = "Pattern versions are not opinionated, outside of the first version created"
     )
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     public Response getPatternVersions(@PathParam("namespace") String namespace, @PathParam("patternId") int patternId) {
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace(namespace)
@@ -104,6 +108,7 @@ public class PatternResource {
             summary = "Retrieve a specific pattern at a given version",
             description = "Retrieve patterns at a specific version"
     )
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     public Response getPattern(@PathParam("namespace") String namespace, @PathParam("patternId") int patternId, @PathParam("version") String version) {
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace(namespace)
@@ -129,6 +134,7 @@ public class PatternResource {
     @Path("{namespace}/patterns/{patternId}/versions/{version}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @ScopesAllowed({"architectures:all"})
     public Response createVersionedPattern(@PathParam("namespace") String namespace, @PathParam("patternId") int patternId, @PathParam("version") String version, String patternJson) throws URISyntaxException {
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace(namespace)
@@ -160,6 +166,7 @@ public class PatternResource {
             summary = "Updates a Pattern (if available)",
             description = "In mutable version stores pattern updates are supported by this endpoint, operation unavailable returned in repositories without configuration specified"
     )
+    @ScopesAllowed({"architectures:all"})
     public Response updateVersionedPattern(@PathParam("namespace") String namespace, @PathParam("patternId") int patternId, @PathParam("version") String version, String patternJson) throws URISyntaxException {
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace(namespace)

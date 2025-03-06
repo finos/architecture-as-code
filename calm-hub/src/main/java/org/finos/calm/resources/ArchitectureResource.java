@@ -11,6 +11,7 @@ import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.security.ScopesAllowed;
 import org.finos.calm.store.ArchitectureStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +48,7 @@ public class ArchitectureResource {
             summary = "Retrieve architectures in a given namespace",
             description = "Architecture stored in a given namespace"
     )
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     public Response getArchitecturesForNamespace(@PathParam("namespace") String namespace) {
         try {
             return Response.ok(new ValueWrapper<>(store.getArchitecturesForNamespace(namespace))).build();
@@ -64,6 +66,7 @@ public class ArchitectureResource {
             summary = "Create architecture for namespace",
             description = "Creates a architecture for a given namespace with an allocated ID and version 1.0.0"
     )
+    @ScopesAllowed({"architectures:all"})
     public Response createArchitectureForNamespace(@PathParam("namespace") String namespace, String architectureJson) throws URISyntaxException {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
@@ -88,6 +91,7 @@ public class ArchitectureResource {
             summary = "Retrieve a list of versions for a given architecture",
             description = "Architecture versions are not opinionated, outside of the first version created"
     )
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     public Response getArchitectureVersions(@PathParam("namespace") String namespace, @PathParam("architectureId") int architectureId) {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
@@ -112,6 +116,7 @@ public class ArchitectureResource {
             summary = "Retrieve a specific architecture at a given version",
             description = "Retrieve architectures at a specific version"
     )
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     public Response getArchitecture(@PathParam("namespace") String namespace, @PathParam("architectureId") int architectureId, @PathParam("version") String version) {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
@@ -137,6 +142,7 @@ public class ArchitectureResource {
     @Path("{namespace}/architectures/{architectureId}/versions/{version}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @ScopesAllowed({"architectures:all"})
     public Response createVersionedArchitecture(@PathParam("namespace") String namespace, @PathParam("architectureId") int architectureId, @PathParam("version") String version, String architectureJson) throws URISyntaxException {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
@@ -168,6 +174,7 @@ public class ArchitectureResource {
             summary = "Updates an architecture (if available)",
             description = "In mutable version stores architecture updates are supported by this endpoint, operation unavailable returned in repositories without configuration specified"
     )
+    @ScopesAllowed({"architectures:all"})
     public Response updateVersionedArchitecture(@PathParam("namespace") String namespace, @PathParam("architectureId") int architectureId, @PathParam("version") String version, String architectureJson) throws URISyntaxException {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
