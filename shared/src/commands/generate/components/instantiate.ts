@@ -1,7 +1,7 @@
 import { Logger } from 'winston';
-import { initLogger } from '../../helper.js';
-import { SchemaDirectory } from '../schema-directory.js';
-import { appendPath, logRequiredMessage, mergeSchemas, renderPath } from '../util.js';
+import { initLogger } from '../../../logger.js';
+import { SchemaDirectory } from '../../../schema-directory.js';
+import { appendPath, mergeSchemas, renderPath } from '../../../util.js';
 import { getConstValue, getEnumPlaceholder, getPropertyValue } from './property.js';
 
 export function instantiateGenericObject(definition: object, schemaDirectory: SchemaDirectory, objectType: string, path: string[], debug: boolean = false, instantiateAll: boolean = false): object | string {
@@ -104,4 +104,12 @@ export function instantiateArray(prefixItems: object[], schemaDirectory: SchemaD
     }
 
     return output;
+}
+
+function logRequiredMessage(logger: Logger, required: string[], generateAll: boolean) {
+    if (generateAll) {
+        logger.debug('--generateAll was set, ignoring required list and generating all properties.');
+    } else {
+        logger.debug('Required properties: ' + required);
+    }
 }

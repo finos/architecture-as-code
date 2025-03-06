@@ -6,14 +6,13 @@ export interface CALMArchitecture {
 export type NodeType = 'actor' | 'system' | 'service' | 'database' | 'network' | 'ldap' | 'dataclient';
 
 export interface CALMNode {
-  name: string, 
+  name: string,
   class?: string,
   'unique-id': string,
   'node-type': NodeType,
   description: string,
   'data-classification'?: string,
   'run-as'?: string,
-  instance?: string
 }
 
 export type CALMRelationship = CALMInteractsRelationship | CALMConnectsRelationship | CALMDeployedInRelationship | CALMComposedOfRelationship;

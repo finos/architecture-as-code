@@ -12,7 +12,7 @@
   <artifactId>calm-hub</artifactId>
   <version>1.0.0-SNAPSHOT</version>
   <properties>
-    <compiler-plugin.version>3.13.0</compiler-plugin.version>
+    <compiler-plugin.version>3.14.0</compiler-plugin.version>
     <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -20,6 +20,11 @@
   </properties>
 
   <dependencies>
+  <dependency>
+  <groupId>org.apache.commons</groupId>
+  <artifactId>commons-text</artifactId>
+  <version>1.13.0</version>
+  </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-jsonb</artifactId>
@@ -45,12 +50,6 @@
       <artifactId>quarkus-mongodb-client</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.soabase.record-builder</groupId>
-      <artifactId>record-builder-core</artifactId>
-      <version>44</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-jsr310</artifactId>
     </dependency>
@@ -61,6 +60,11 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-security</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
+      <artifactId>owasp-java-html-sanitizer</artifactId>
+      <version>20240325.1</version>
     </dependency>
 
     <!-- Testing -->
@@ -104,7 +108,7 @@
     <plugins>
       <!-- Quarkus Maven Plugin -->
       <plugin>
-        <groupId>${quarkus.platform.group-id}</groupId>
+        <groupId>io.quarkus</groupId>
         <artifactId>quarkus-maven-plugin</artifactId>
         <version>${quarkus.platform.version}</version>
         <extensions>true</extensions>
@@ -223,21 +227,6 @@
         </execution>
       </executions>
     </plugin>
-
-    <!-- Record Builder Plugin -->
-    <plugin>
-      <groupId>org.apache.maven.plugins</groupId>
-      <artifactId>maven-compiler-plugin</artifactId>
-      <configuration>
-        <annotationProcessorPaths>
-          <path>
-            <groupId>io.soabase.record-builder</groupId>
-            <artifactId>record-builder-processor</artifactId>
-            <version>44</version>
-          </path>
-        </annotationProcessorPaths>
-      </configuration>
-    </plugin>
     </plugins>
   </build>
   <profiles>
@@ -262,13 +251,13 @@
         <dependency>
           <groupId>org.testcontainers</groupId>
           <artifactId>testcontainers</artifactId>
-          <version>1.20.4</version>
+          <version>1.20.6</version>
           <scope>test</scope>
         </dependency>
         <dependency>
           <groupId>org.testcontainers</groupId>
           <artifactId>mongodb</artifactId>
-          <version>1.20.4</version>
+          <version>1.20.6</version>
           <scope>test</scope>
         </dependency>
         <dependency>
@@ -280,7 +269,7 @@
         <dependency>
           <groupId>org.testcontainers</groupId>
           <artifactId>junit-jupiter</artifactId>
-          <version>1.20.4</version>
+          <version>1.20.6</version>
           <scope>test</scope>
         </dependency>
       </dependencies>

@@ -7,6 +7,18 @@ jest.mock('../../consts', () => ({
     get CALM_META_SCHEMA_DIRECTORY() { return 'test_fixtures/calm'; }
 }));
 
+jest.mock('../../logger', () => {
+    return {
+        initLogger: () => {
+            return {
+                info: () => {},
+                warn: () => {},
+                debug: () => {}
+            };
+        }
+    };
+});
+
 describe('generate spec e2e', () => {
     let tempDirectoryPath;
 

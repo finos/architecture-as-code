@@ -1,7 +1,7 @@
 # CALM CLI
 
 A command line interface to interact with the CALM schema.
-You can use these tools to create an architecture from a CALM pattern, validate that an architecture conforms to a given pattern, and create visualizations of architectures and patterns so that you can see what your architecture looks like.
+You can use these tools to create an architecture from a CALM pattern, or validate that an architecture conforms to a given pattern.
 
 ## Using the CLI
 
@@ -26,7 +26,6 @@ Options:
   -h, --help           display help for command
 
 Commands:
-  visualize [options]  Produces an SVG file representing a visualization of the CALM Specification.
   generate [options]   Generate an architecture from a CALM pattern file.
   validate [options]   Validate that an architecture conforms to a given CALM pattern.
   help [command]       display help for command
@@ -79,7 +78,6 @@ Options:
   -v, --verbose                 Enable verbose logging. (default: false)
   -h, --help                    display help for command
 ```
-
 
 This command can output warnings and errors - the command will only exit with an error code if there are errors present in the output.
 Warnings are sometimes provided as hints about how to improve the architecture, but they are not essential for the architecture to match the pattern.
@@ -163,32 +161,36 @@ You would get an output which includes a warning like this:
 which is just letting you know that you have left in some placeholder values which might have been generated with the generate command.
 This isn't a full break, but it implies that you've forgotten to fill out a detail in your architecture.
 
-### Visualizing the CALM schema
+## Calm CLI server (Experimental)
 
-In order to take a look at the architecture that you're working on, beyond just staring at a json file, you can use the visualize command.
-This command accepts either an architecture or a pattern as it's input (not both), and will output an SVG file.
-You can then open up that file in the browser to see a box and line diagram which represents your architecture.
+It may be required to have the operations of the CALM CLI available over rest.
+The `validate` command has been made available over an API
 
 ```shell
-% calm visualize --help
-Usage: calm visualize [options]
+calm server --schemaDirectory calm
+```
 
-Produces an SVG file representing a visualization of the CALM Specification.
+```shell
+curl http://127.0.0.1:3000/health
 
-Options:
-  -a, --architecture <file>   Path to an architecture of a CALM pattern.
-  -p, --pattern <file>        Path to a CALM pattern.
-  -o, --output <file>         Path location at which to output the SVG. (default: "calm-visualization.svg")
-  -v, --verbose               Enable verbose logging. (default: false)
-  -h, --help                  display help for command
+# Missing schema key
+curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/validate --data @cli/test_fixtures/validation_route/invalid_api_gateway_instantiation_missing_schema_key.json
+
+# Schema value is invalid
+curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/validate --data @cli/test_fixtures/validation_route/invalid_api_gateway_instantiation_schema_points_to_missing_schema.json
+
+# instantiation is valid
+curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/validate --data @cli/test_fixtures/validation_route/valid_instantiation.json
+
+
 ```
 
 ## Coding for the CLI
 
-The CLI module has its logic split into two modules, `cli` and `shared`.  Both are managed by [npm workspaces](https://docs.npmjs.com/cli/v8/using-npm/workspaces).
+The CLI module has its logic split into two modules, `cli` and `shared`. Both are managed by [npm workspaces](https://docs.npmjs.com/cli/v8/using-npm/workspaces).
 
-* `cli` module is for anything pertaining to the calling of the core logic, the CLI wrapper
-* `shared` module is where the logic being delegated to actually sits, so that it can be re-used for other use-cases if required.
+- `cli` module is for anything pertaining to the calling of the core logic, the CLI wrapper
+- `shared` module is where the logic being delegated to actually sits, so that it can be re-used for other use-cases if required.
 
 ### Getting Started
 
@@ -204,17 +206,16 @@ npm run build
 # Step 3: Link the workspace locally for testing
 npm run link:cli
 
-# Step 4 : Run `watch` to check for changes automatically and re-bundle. This watching is via `chokidar` and isn't instant - give it a second or two to propogate changes.
+# Step 4 : Run `watch` to check for changes automatically and re-bundle. This watching is via `chokidar` and isn't instant - give it a second or two to propagate changes.
 npm run watch
 ```
-
 
 ### CLI Tests
 
 There are currently two types of tests;
 
-* `cli` tests - these are end-to-end and involve linking the package as part of the test so that we can assert on actual `calm X` invocations.
-* `shared` tests - these are where the core logic tests live, like how validation behaves etc.
+- `cli` tests - these are end-to-end and involve linking the package as part of the test so that we can assert on actual `calm X` invocations.
+- `shared` tests - these are where the core logic tests live, like how validation behaves etc.
 
 ## Releasing the CLI
 
@@ -222,15 +223,15 @@ Publishing of the CLI to NPM is controlled via [this action](https://github.com/
 
 ### Through the Github UI
 
-* Go to your repository on GitHub.
-* Click on the Releases tab (under "Code").
-* Click the Draft a new release button.
-* Fill in:
-  * Tag version: Enter the version number (e.g., v1.0.0).
-  * Release title: Name the release (e.g., "First Release").
-  * Description: Add details about what’s included in the release.
-  * Target: Leave as main (or your default branch).
-* Click Publish release to create the release and trigger the workflow.
+- Go to your repository on GitHub.
+- Click on the Releases tab (under "Code").
+- Click the Draft a new release button.
+- Fill in:
+  - Tag version: Enter the version number (e.g., v1.0.0).
+  - Release title: Name the release (e.g., "First Release").
+  - Description: Add details about what’s included in the release.
+  - Target: Leave as main (or your default branch).
+- Click Publish release to create the release and trigger the workflow.
 
 ### Through the GitHub CLI (`gh`)
 
@@ -241,5 +242,3 @@ gh auth login
 # Step 2: Create the release.
 gh release create <version> --title "<release_title>" --notes "<release_description>"
 ```
-
-

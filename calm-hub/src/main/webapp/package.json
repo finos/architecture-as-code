@@ -10,10 +10,10 @@
     "prod": "vite build && mkdir -p ../resources/META-INF/resources && rsync -a build/* ../resources/META-INF/resources"
   },
   "dependencies": {
-    "@patternfly/patternfly": "^4.215.1",
-    "@testing-library/jest-dom": "^5.16.5",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
+    "@patternfly/patternfly": "^6.0.0",
+    "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.0.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
@@ -22,18 +22,18 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-json-view-lite": "^2.0.1",
-    "typescript": "^4.9.5",
+    "typescript": "^5.0.0",
     "vite": "^6.0.11",
     "vite-plugin-svgr": "^4.3.0",
     "vite-tsconfig-paths": "^5.1.4",
-    "web-vitals": "^2.1.4",
+    "web-vitals": "^4.0.0",
     "oidc-client": "^1.11.5"
   },
   "resolutions": {
     "css-what": "6.1.0",
     "express": "4.21.2",
     "nth-check": "2.1.1",
-    "postcss": "8.4.49"
+    "postcss": "8.5.3"
   },
   "proxy": "http://127.0.0.1:8080/",
   "eslintConfig": {
@@ -56,7 +56,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.20",
-    "eslint": "^8.57.1",
+    "eslint": "^9.0.0",
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.0.0",
     "jsdom": "^25.0.1",

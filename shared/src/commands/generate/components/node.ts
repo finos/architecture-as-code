@@ -1,8 +1,8 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 
-import { initLogger } from '../../helper.js';
-import { SchemaDirectory } from '../schema-directory.js';
-import { appendPath } from '../util.js';
+import { initLogger } from '../../../logger.js';
+import { SchemaDirectory } from '../../../schema-directory.js';
+import { appendPath } from '../../../util.js';
 import { instantiateGenericObject } from './instantiate.js';
 
 /**

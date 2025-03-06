@@ -113,10 +113,38 @@ The UI is now ready for hot reloading and development across the stack.
 
 #### Building a Docker Image
 
-1. `docker build --platform linux/amd64,linux/arm64 -f src/main/docker/Dockerfile.jvm -t calm-hub .`
+1. `docker buildx build --platform linux/amd64,linux/arm64 -f src/main/docker/Dockerfile.jvm -t calm-hub --push .`
+
+#### Automated Docker Builds with GitHub Actions
+
+The repository includes a GitHub Action workflow that builds and pushes multi-architecture Docker images to Docker Hub through manual triggering.
+
+To set up automated Docker builds:
+
+1. Add the following secrets to your GitHub repository:
+   - `DOCKER_USERNAME`: Your Docker Hub username
+   - `DOCKER_PASSWORD`: Your Docker Hub password or access token
+
+2. Trigger the workflow manually from the GitHub Actions tab by selecting the "Docker Publish Calm Hub" workflow.
+
+3. You can specify a custom tag for the Docker image when triggering the workflow, or use the default "latest" tag.
+
+#### How to Specify a Custom Tag
+
+To specify a custom tag when triggering the workflow:
+
+1. Go to the GitHub repository in your browser
+2. Click on the "Actions" tab
+3. Select "Docker Publish Calm Hub" from the workflows list on the left
+4. Click the "Run workflow" button
+5. A dropdown will appear with an input field for "Image tag"
+6. Enter your desired tag (e.g., "v1.0.0", "stable", etc.)
+7. Click the green "Run workflow" button to start the build
+
+The Docker image will be built and pushed to Docker Hub as `username/calm-hub:your-custom-tag`.
 
 #### Experimental - Multistage Docker Build
 
-1. `docker build --platform linux/amd64,linux/arm64 -f src/main/docker/Dockerfile.multistage -t calm-hub .`
+1. `docker buildx build --platform linux/amd64,linux/arm64 -f src/main/docker/Dockerfile.multistage -t calm-hub .`
 
 Known limitations, doesn't run integration tests.

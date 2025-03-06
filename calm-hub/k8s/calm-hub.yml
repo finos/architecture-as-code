@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: calmhub
-          image: jpgough/calm-hub:latest
+          image: finos/calm-hub:latest
           ports:
             - containerPort: 8080
 

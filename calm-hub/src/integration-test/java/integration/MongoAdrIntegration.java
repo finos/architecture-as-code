@@ -11,14 +11,10 @@ import org.bson.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
-import org.finos.calm.domain.adr.AdrMetaBuilder;
 import org.finos.calm.domain.adr.Decision;
-import org.finos.calm.domain.adr.DecisionBuilder;
-import org.finos.calm.domain.adr.LinkBuilder;
+import org.finos.calm.domain.adr.Link;
 import org.finos.calm.domain.adr.NewAdrRequest;
-import org.finos.calm.domain.adr.NewAdrRequestBuilder;
 import org.finos.calm.domain.adr.Option;
-import org.finos.calm.domain.adr.OptionBuilder;
 import org.finos.calm.domain.adr.Status;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
@@ -36,7 +32,8 @@ import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 @QuarkusTest
 @TestProfile(IntegrationTestProfile.class)
@@ -47,30 +44,22 @@ public class MongoAdrIntegration {
 
     private static final Logger logger = LoggerFactory.getLogger(MongoAdrIntegration.class);
 
-    private final String TITLE = "My ADR";
-    private final String PROBLEM_STATEMENT = "My problem is...";
+    private final String TITLE = "<b>My ADR</b><script><img>";
+    private final String EXPECTED_TITLE = "<b>My ADR</b>";
+    private final String PROBLEM_STATEMENT = "<a>My problem is...</a>";
+    private final String EXPECTED_PROBLEM_STATEMENT = "My problem is...";
     private final List<String> DECISION_DRIVERS = List.of("a", "b", "c");
-    private final Option OPTION_A = OptionBuilder.builder().name("Option 1").description("optionDescription")
-            .positiveConsequences(List.of("a")).negativeConsequences(List.of("b")).build();
-    private final Option OPTION_B = OptionBuilder.builder().name("Option 2").description("optionDescription")
-            .positiveConsequences(List.of("c")).negativeConsequences(List.of("d")).build();
+    private final Option OPTION_A = new Option("Option A", "optionDescription", List.of("a"), List.of("b"));
+    private final Option OPTION_B = new Option("Option B", "optionDescription", List.of("c"), List.of("d"));
     private final List<Option> CONSIDERED_OPTIONS = List.of(OPTION_A, OPTION_B);
     private final String RATIONALE = "This is the best option";
-    private final Decision DECISION_OUTCOME = DecisionBuilder.builder()
-            .rationale(RATIONALE)
-            .chosenOption(OPTION_A)
-            .build();
+    private final Decision DECISION_OUTCOME = new Decision(OPTION_A, RATIONALE);
+    private final List<Link> LINKS = List.of(new Link("abc", "http://abc.com"));
 
-    private final NewAdrRequest newAdr = NewAdrRequestBuilder.builder()
-            .title(TITLE)
-            .contextAndProblemStatement(PROBLEM_STATEMENT)
-            .decisionDrivers(DECISION_DRIVERS)
-            .consideredOptions(CONSIDERED_OPTIONS)
-            .decisionOutcome(DECISION_OUTCOME)
-            .links(List.of(LinkBuilder.builder().rel("abc").href("http://abc.com").build()))
-            .build();
+    private final NewAdrRequest newAdr = new NewAdrRequest(TITLE, PROBLEM_STATEMENT, DECISION_DRIVERS,
+            CONSIDERED_OPTIONS, DECISION_OUTCOME, LINKS);
 
-    private final Adr adr = Adr.builderFromNewAdr(newAdr).status(Status.draft).build();
+    private final Adr adr = new Adr.AdrBuilder(newAdr).setTitle(EXPECTED_TITLE).setContextAndProblemStatement(EXPECTED_PROBLEM_STATEMENT).setStatus(Status.draft).build();
 
     @BeforeEach
     public void setupAdrs() {
@@ -123,12 +112,12 @@ public class MongoAdrIntegration {
 
     @Test
     @Order(3)
-    void end_to_end_verify_get_adr_revision() throws JsonProcessingException {
-        AdrMeta expectedAdrMeta = AdrMetaBuilder.builder()
-                .namespace("finos")
-                .id(1)
-                .revision(1)
-                .adrContent(adr)
+    void end_to_end_verify_get_adr_revision() {
+        AdrMeta expectedAdrMeta = new AdrMeta.AdrMetaBuilder()
+                .setNamespace("finos")
+                .setId(1)
+                .setRevision(1)
+                .setAdr(adr)
                 .build();
 
         AdrMeta actualAdrMeta = given()
@@ -138,7 +127,7 @@ public class MongoAdrIntegration {
                 .extract()
                 .body()
                 .as(AdrMeta.class);
-        assertEquals(expectedAdrMeta, actualAdrMeta);
+        assertThat(actualAdrMeta, is(expectedAdrMeta));
     }
 
     @Test
@@ -152,13 +141,13 @@ public class MongoAdrIntegration {
                 .body()
                 .as(AdrMeta.class);
 
-        AdrMeta expectedAdrMeta = AdrMetaBuilder.builder()
-                .namespace("finos")
-                .id(1)
-                .revision(1)
-                .adrContent(adr)
+        AdrMeta expectedAdrMeta = new AdrMeta.AdrMetaBuilder()
+                .setNamespace("finos")
+                .setId(1)
+                .setRevision(1)
+                .setAdr(adr)
                 .build();
-        assertEquals(expectedAdrMeta, actualAdrMeta);
+        assertThat(actualAdrMeta, is(expectedAdrMeta));
     }
 
     @Test
@@ -204,7 +193,7 @@ public class MongoAdrIntegration {
                 .when().get("/calm/namespaces/finos/adrs/1/revisions/3")
                 .then()
                 .statusCode(200)
-                .body("adrContent.status", equalTo("proposed"));
+                .body("adr.status", equalTo("proposed"));
     }
 
 }

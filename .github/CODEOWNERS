@@ -6,8 +6,16 @@
 
 /cli/ @aidanm3341 @lbulanti-ms @willosborne @grahampacker-ms @jpgough-ms @rocketstack-matt @Thels
 
-/calm-visualizer/ @oliviajanejohns @aidanm3341 @aamanrebello @yoofitt96
+/calm-visualizer/ @oliviajanejohns @aidanm3341 @jpgough-ms @rocketstack-matt
 
 /shared/ @aidanm3341 @lbulanti-ms @willosborne @grahampacker-ms @jpgough-ms @rocketstack-matt @Thels
 
-/translator/ @Budlee @matthewgardner @jpgough-ms @rocketstack-matt
+# Ownership for dependency-related files at the root level
+/package.json @finos/architecture-as-code-maintainers
+/package-lock.json @finos/architecture-as-code-maintainers
+/pom.xml @finos/architecture-as-code-maintainers
+
+# Ownership for dependency-related files across all subdirectories
+**/package.json @finos/architecture-as-code-maintainers
+**/package-lock.json @finos/architecture-as-code-maintainers
+**/pom.xml @finos/architecture-as-code-maintainers

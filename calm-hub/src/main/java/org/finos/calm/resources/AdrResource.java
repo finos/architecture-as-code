@@ -15,7 +15,6 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
-import org.finos.calm.domain.adr.AdrMetaBuilder;
 import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.adr.NewAdrRequest;
 import org.finos.calm.domain.ValueWrapper;
@@ -87,16 +86,16 @@ public class AdrResource {
             description = "Creates an ADR for a given namespace with an allocated ID and revision 1"
     )
     public Response createAdrForNamespace(@PathParam("namespace") String namespace, NewAdrRequest newAdrRequest) {
-        Adr adrContent = Adr.builderFromNewAdr(newAdrRequest)
-                .status(Status.draft)
-                .creationDateTime(LocalDateTime.now())
-                .updateDateTime(LocalDateTime.now())
+        Adr adr = new Adr.AdrBuilder(newAdrRequest)
+                .setStatus(Status.draft)
+                .setCreationDateTime(LocalDateTime.now())
+                .setUpdateDateTime(LocalDateTime.now())
                 .build();
 
-        AdrMeta adrMeta = AdrMetaBuilder.builder()
-                .namespace(namespace)
-                .revision(1)
-                .adrContent(adrContent)
+        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
+                .setNamespace(namespace)
+                .setRevision(1)
+                .setAdr(adr)
                 .build();
 
         try {
@@ -124,14 +123,14 @@ public class AdrResource {
             description = "Updates an ADR for a given namespace. Creates a new revision."
     )
     public Response updateAdrForNamespace(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, NewAdrRequest newAdrRequest) {
-        Adr adrContent = Adr.builderFromNewAdr(newAdrRequest)
-                .updateDateTime(LocalDateTime.now())
+        Adr adr = new Adr.AdrBuilder(newAdrRequest)
+                .setUpdateDateTime(LocalDateTime.now())
                 .build();
 
-        AdrMeta adrMeta = AdrMetaBuilder.builder()
-                .namespace(namespace)
-                .id(adrId)
-                .adrContent(adrContent)
+        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
+                .setNamespace(namespace)
+                .setId(adrId)
+                .setAdr(adr)
                 .build();
 
         try {
@@ -163,9 +162,9 @@ public class AdrResource {
             )
     })
     public Response getAdr(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId) {
-        AdrMeta adrMeta = AdrMetaBuilder.builder()
-                .namespace(namespace)
-                .id(adrId)
+        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
+                .setNamespace(namespace)
+                .setId(adrId)
                 .build();
 
         try {
@@ -191,9 +190,9 @@ public class AdrResource {
             description = "The most recent revision is the canonical ADR, with others available for audit or exploring changes."
     )
     public Response getAdrRevisions(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId) {
-        AdrMeta adrMeta = AdrMetaBuilder.builder()
-                .namespace(namespace)
-                .id(adrId)
+        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
+                .setNamespace(namespace)
+                .setId(adrId)
                 .build();
 
         try {
@@ -226,10 +225,10 @@ public class AdrResource {
             )
     })
     public Response getAdrRevision(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, @PathParam("revision") int revision) {
-        AdrMeta adrMeta = AdrMetaBuilder.builder()
-                .namespace(namespace)
-                .id(adrId)
-                .revision(revision)
+        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
+                .setNamespace(namespace)
+                .setId(adrId)
+                .setRevision(revision)
                 .build();
 
         try {
@@ -258,9 +257,9 @@ public class AdrResource {
     )
     public Response updateAdrStatusForNamespace(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, @PathParam("status") Status status) throws URISyntaxException {
 
-        AdrMeta adrMeta = AdrMetaBuilder.builder()
-                .namespace(namespace)
-                .id(adrId)
+        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
+                .setNamespace(namespace)
+                .setId(adrId)
                 .build();
 
         try {
@@ -271,7 +270,7 @@ public class AdrResource {
     }
 
     private Response adrWithLocationResponse(AdrMeta adrMeta) throws URISyntaxException {
-        return Response.created(new URI("/calm/namespaces/" + adrMeta.namespace() + "/adrs/" + adrMeta.id() + "/revisions/" + adrMeta.revision())).build();
+        return Response.created(new URI("/calm/namespaces/" + adrMeta.getNamespace() + "/adrs/" + adrMeta.getId() + "/revisions/" + adrMeta.getRevision())).build();
     }
 
     private Response handleException(Exception e, String namespace) {
