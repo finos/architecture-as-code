@@ -1,0 +1,78 @@
+{
+  "nodes": [
+    {
+      "unique-id": "application-c",
+      "node-type": "service",
+      "name": "Application C",
+      "description": "Internal application that may receive calls from A and B",
+      "interfaces": []
+    },
+    {
+      "unique-id": "database",
+      "node-type": "database",
+      "name": "Database",
+      "description": "Database used by Application C",
+      "interfaces": []
+    },
+    {
+      "unique-id": "application-b",
+      "node-type": "service",
+      "name": "Application B",
+      "description": "Application B, optionally used in this architecture",
+      "interfaces": []
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "application-c-to-database",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "application-c"
+          },
+          "destination": {
+            "node": "database"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "connection-options",
+      "relationship-type": {
+        "interacts": {
+          "actor": "{{ ACTOR }}",
+          "nodes": [
+            "{{ NODES }}"
+          ]
+        },
+        "connects": {
+          "source": {},
+          "destination": {}
+        },
+        "deployed-in": {},
+        "composed-of": {
+          "container": "{{ CONTAINER }}",
+          "nodes": [
+            "{{ NODES }}"
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "unique-id": "application-b-to-c",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "application-b"
+          },
+          "destination": {
+            "node": "application-c"
+          }
+        }
+      }
+    }
+  ],
+  "metadata": [],
+  "$schema": "https://calm.finos.org/draft/2025-03/prototype/options-prototype.pattern.json"
+}

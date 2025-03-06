@@ -8,6 +8,8 @@ import { writeFileSync } from 'fs';
 import { version } from '../package.json';
 import { initLogger } from '@finos/calm-shared/logger';
 import { startServer } from './server/cli-server';
+import { optionsFor, selectOption } from '@finos/calm-shared/commands/generate/generate';
+import inquirer from 'inquirer';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -33,9 +35,35 @@ program
     .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
     .option(GENERATE_ALL_OPTION, 'Generate all properties, ignoring the "required" field.', false)
-    .action(async (options) =>
-        await runGenerate(options.pattern, options.output, !!options.verbose, options.generateAll, options.schemaDirectory)
-    );
+    .action(async (options) => {    
+        const patternOptions = await optionsFor(options.pattern, !!options.verbose);
+        
+        const questions = [];
+
+        for(const option of patternOptions) {
+            const choiceDescriptions = option.choices.map(choice => choice.description);
+            questions.push(
+                {
+                    type: 'list',
+                    name: `${patternOptions.indexOf(option)}`,
+                    message: 'There is a list of options with this pattern, please choose an option which best suits your architecture.',
+                    choices: choiceDescriptions
+                }
+            );
+        }
+        const answers = await inquirer.prompt(questions);
+
+        const chosenChoices = [];
+        for(const answer in answers) {
+            const patternOption = patternOptions[parseInt(answer)];
+            const choice = patternOption.choices.find(choice => choice.description === answers[answer]);
+            chosenChoices.push(choice);
+        }
+
+        const pattern = selectOption(options.pattern, !!options.verbose, {choices: chosenChoices});
+
+        await runGenerate(pattern, options.output, !!options.verbose, options.generateAll, options.schemaDirectory);
+    });
 
 program
     .command('validate')
