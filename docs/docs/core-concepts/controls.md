@@ -15,7 +15,7 @@ Controls are made up of:
 * control-requirement-url: This is a schema the specifies how the control should be defined
 * control-config-url: The location of the implementation of control requirement, this defines how the control was fulfilled.
 
-## Example of control
+## Example of control applied to a node
 
 ```json
 {
@@ -31,8 +31,8 @@ Controls are made up of:
                     "description": "Control requirements for delivering patterns",
                     "requirements": [
                         {
-                            "control-requirement-url": "http://calm.finos.org/draft/calm/control-example/pre-prod-review-specification.json",
-                            "control-config-url": "http://calm.finos.org/draft/calm/control-example/pre-prod-review-configuration.json"
+                            "control-requirement-url": "http://calm.finos.org/controls/domains-example/security/schema/permitted-connection.json",
+                            "control-config-url": "http://calm.finos.org/controls/domains-example/security/configuration/permitted-connection.json"
                         }
                     ]
                 }
@@ -51,12 +51,12 @@ We can see this here with a control for permitted connections that only allow ce
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/permitted-connection.json",
+  "$id": "http://calm.finos.org/controls/domains-example/security/schema/permitted-connection.json",
   "title": "Permits a connection between two components in the architecture",
   "type": "object",
   "allOf": [
     {
-      "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2025-03/meta/control-requirement.json"
+      "$ref": "http://calm.finos.org/controls/2025-03/meta/control-requirement.json"
     }
   ],
   "properties": {
@@ -103,7 +103,7 @@ We can see in this configurtation that it is implementing the control requiremen
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/permitted-connection.json",
+  "$schema": "http://calm.finos.org/controls/domains-example/security/configuration/permitted-connection.json",
   "control-id": "security-002",
   "name": "Permitted Connection",
   "description": "Permits a connection using an approved protocol",

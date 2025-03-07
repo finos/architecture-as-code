@@ -1,7 +1,7 @@
 ---
 id: core-concepts-index
 title: Core Concepts
-sidebar_position: 1
+sidebar_position: 2
 ---
 
 # Core Concepts
