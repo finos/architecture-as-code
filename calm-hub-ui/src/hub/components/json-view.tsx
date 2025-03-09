@@ -6,15 +6,9 @@ interface JsonRendererProps {
 }
 
 export function JsonRenderer({ jsonString }: JsonRendererProps) {
-    const defaultMessage = (
-        <div className=" text-center">Please select a document to load.</div>
-    );
+    const defaultMessage = <div className=" text-center">Please select a document to load.</div>;
     const jsonView = (
-        <JsonView
-            data={jsonString || ''}
-            shouldExpandNode={allExpanded}
-            style={defaultStyles}
-        />
+        <JsonView data={jsonString || ''} shouldExpandNode={allExpanded} style={defaultStyles} />
     );
 
     const content = jsonString ? jsonView : defaultMessage;

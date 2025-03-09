@@ -1,119 +1,161 @@
 import { useEffect, useState } from 'react';
 import { ValueTable } from './components/value-table.js';
 import { JsonRenderer } from './components/json-view.js';
+import {
+    Namespace,
+    PatternID,
+    FlowID,
+    ArchitectureID,
+    Version,
+    Pattern,
+    Flow,
+    Architecture,
+} from '../model/calm.js';
+import {
+    fetchNamespaces,
+    fetchPatternIDs,
+    fetchFlowIDs,
+    fetchArchitectureIDs,
+    fetchPatternVersions,
+    fetchFlowVersions,
+    fetchArchitectureVersions,
+    fetchPattern,
+    fetchFlow,
+    fetchArchitecture,
+} from '../service/calm-service.js';
 import Navbar from '../components/navbar/Navbar.js';
-
-type Namespace = string;
-type PatternID = string;
-type Version = string;
-type Pattern = string;
 
 function Hub() {
     const [namespaces, setNamespaces] = useState<Namespace[]>([]);
-    const [currentNamespace, setCurrentNamespace] = useState<
-        Namespace | undefined
-    >();
+    const [currentNamespace, setCurrentNamespace] = useState<Namespace | undefined>();
     const [patternIDs, setPatternIDs] = useState<PatternID[]>([]);
-    const [currentPatternID, setCurrentPatternID] = useState<
-        PatternID | undefined
-    >();
-    const [versions, setVersions] = useState<Version[]>([]);
+    const [flowIDs, setFlowIDs] = useState<FlowID[]>([]);
+    const [architectureIDs, setArchitectureIDs] = useState<ArchitectureID[]>([]);
+    const [currentPatternOrFlowID, setCurrentPatternOrFlowID] = useState<string | undefined>();
     const [currentVersion, setCurrentVersion] = useState<Version | undefined>();
-    const [pattern, setPattern] = useState<Pattern | undefined>();
+    const [currentCalmType, setCurrentCalmType] = useState<string | undefined>();
+
+    const [data, setData] = useState<Pattern | Flow | Architecture | undefined>();
+    const [versions, setVersions] = useState<Version[]>([]);
 
     useEffect(() => {
-        fetch('/calm/namespaces')
-            .then((res) => res.json())
-            .then((data) => {
-                setNamespaces(data.values);
-            })
-            .catch(console.log);
+        fetchNamespaces(setNamespaces);
     }, []);
 
-    function loadPatternIDs(namespace: string) {
-        fetch(`/calm/namespaces/${namespace}/patterns`)
-            .then((res) => res.json())
-            .then((data) => {
-                setPatternIDs(data.values.map((num: number) => num.toString()));
-            })
-            .catch(console.log);
-    }
+    const handleNamespaceSelection = (namespace: Namespace) => {
+        setPatternIDs([]);
+        setFlowIDs([]);
+        setArchitectureIDs([]);
+        setVersions([]);
+        setCurrentCalmType(undefined);
+        setData(undefined);
+        setCurrentNamespace(namespace);
+        fetchPatternIDs(namespace, setPatternIDs);
+    };
 
-    function loadVersions(namespace: string, patternID: string) {
-        fetch(`/calm/namespaces/${namespace}/patterns/${patternID}/versions`)
-            .then((res) => res.json())
-            .then((data) => {
-                setVersions(data.values);
-            })
-            .catch(console.log);
-    }
+    const handleCalmTypeSelection = (calmType: string) => {
+        setCurrentCalmType(calmType);
 
-    function loadPattern(
-        namespace: string,
-        patternID: string,
-        version: string
-    ) {
-        fetch(
-            `/calm/namespaces/${namespace}/patterns/${patternID}/versions/${version}`
-        )
-            .then((res) => res.json())
-            .then((data) => {
-                setPattern(data);
-            })
-            .catch(console.log);
-    }
+        if (calmType === 'Patterns') {
+            fetchPatternIDs(currentNamespace!, setPatternIDs);
+            setFlowIDs([]);
+            setArchitectureIDs([]);
+        } else if (calmType === 'Flows') {
+            fetchFlowIDs(currentNamespace!, setFlowIDs);
+            setPatternIDs([]);
+            setArchitectureIDs([]);
+        } else if (calmType === 'Architectures') {
+            fetchArchitectureIDs(currentNamespace!, setArchitectureIDs);
+            setPatternIDs([]);
+            setFlowIDs([]);
+        }
+        setVersions([]);
+        setData(undefined);
+    };
+
+    const handlePatternOrFlowSelection = (selectedID: string) => {
+        setCurrentPatternOrFlowID(selectedID);
+
+        if (currentCalmType === 'Patterns') {
+            fetchPatternVersions(currentNamespace!, selectedID, setVersions);
+        } else if (currentCalmType === 'Flows') {
+            fetchFlowVersions(currentNamespace!, selectedID, setVersions);
+        } else if (currentCalmType === 'Architectures') {
+            fetchArchitectureVersions(currentNamespace!, selectedID, setVersions);
+        }
+    };
+
+    const handleVersionSelection = (version: Version) => {
+        setCurrentVersion(version);
+
+        if (currentCalmType === 'Patterns') {
+            fetchPattern(currentNamespace || '', currentPatternOrFlowID || '', version, setData);
+        } else if (currentCalmType === 'Flows') {
+            fetchFlow(currentNamespace || '', currentPatternOrFlowID || '', version, setData);
+        } else if (currentCalmType === 'Architectures') {
+            fetchArchitecture(
+                currentNamespace || '',
+                currentPatternOrFlowID || '',
+                version,
+                setData
+            );
+        }
+    };
 
     return (
-        <><Navbar/>
-        <div className="flex flex-col h-full flex-1">
+        <>
+            <Navbar />
             <div className="flex flex-row h-[90%]">
                 <div className="flex flex-row w-1/3">
                     <ValueTable
                         header="Namespaces"
                         values={namespaces}
-                        callback={(namespace) => {
-                            if (namespace !== currentNamespace) {
-                                setPattern(undefined);
-                                setCurrentPatternID(undefined);
-                                setCurrentVersion(undefined);
-                                setVersions([]);
-                                setCurrentNamespace(namespace);
-                                loadPatternIDs(namespace);
+                        callback={handleNamespaceSelection}
+                        currentValue={currentNamespace}
+                    />
+                    {currentNamespace && (
+                        <ValueTable
+                            header="Calm Type"
+                            values={['Architectures', 'Patterns', 'Flows']}
+                            callback={handleCalmTypeSelection}
+                            currentValue={currentCalmType}
+                        />
+                    )}
+
+                    {currentNamespace && currentCalmType && (
+                        <ValueTable
+                            header={
+                                currentCalmType === 'Patterns'
+                                    ? 'Patterns'
+                                    : currentCalmType === 'Flows'
+                                      ? 'Flows'
+                                      : 'Architectures'
                             }
-                        } }
-                        currentValue={currentNamespace} />
-                    <ValueTable
-                        header="Patterns"
-                        values={patternIDs}
-                        callback={(patternID) => {
-                            if (patternID !== currentPatternID) {
-                                setPattern(undefined);
-                                setCurrentVersion(undefined);
-                                setCurrentPatternID(patternID);
-                                loadVersions(currentNamespace || '', patternID);
+                            values={
+                                currentCalmType === 'Patterns'
+                                    ? patternIDs
+                                    : currentCalmType === 'Flows'
+                                      ? flowIDs
+                                      : architectureIDs
                             }
-                        } }
-                        currentValue={currentPatternID} />
-                    <ValueTable
-                        header="Versions"
-                        values={versions}
-                        callback={(version) => {
-                            setCurrentVersion(version);
-                            loadPattern(
-                                currentNamespace || '',
-                                currentPatternID || '',
-                                version
-                            );
-                        } }
-                        currentValue={currentVersion} />
+                            callback={handlePatternOrFlowSelection}
+                            currentValue={currentPatternOrFlowID}
+                        />
+                    )}
+
+                    {currentNamespace && currentCalmType && (
+                        <ValueTable
+                            header="Versions"
+                            values={versions}
+                            callback={handleVersionSelection}
+                            currentValue={currentVersion}
+                        />
+                    )}
                 </div>
-                <JsonRenderer jsonString={pattern} />
+                <JsonRenderer jsonString={data} />
             </div>
-        </div></>
+        </>
     );
 }
 
 export default Hub;
-
-
-

@@ -1,9 +1,7 @@
 import './Navbar.css';
 import { NavLink } from 'react-router-dom';
 
-interface Props {}
-
-function Navbar({}: Props) {
+function Navbar() {
     return (
         <div className="navbar bg-primary border-b-2 border-base-200 text-primary-content">
             <div className="navbar-start flex items-center">
