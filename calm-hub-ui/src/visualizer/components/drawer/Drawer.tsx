@@ -1,6 +1,6 @@
-import Sidebar from '../sidebar/Sidebar';
+import Sidebar from '../sidebar/Sidebar.js';
 import { useState } from 'react';
-import CytoscapeRenderer, { Node, Edge } from '../cytoscape-renderer/CytoscapeRenderer.tsx';
+import CytoscapeRenderer, { Node, Edge } from '../cytoscape-renderer/CytoscapeRenderer.js';
 import {
     CALMComposedOfRelationship,
     CALMConnectsRelationship,
@@ -8,7 +8,7 @@ import {
     CALMInteractsRelationship,
     CALMRelationship,
     CALMArchitecture,
-} from '../../../../shared/src';
+} from '../../../../../shared/src/types.js';
 
 interface DrawerProps {
     calmInstance?: CALMArchitecture;

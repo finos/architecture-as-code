@@ -1,4 +1,4 @@
-import { Namespace, Pattern, PatternID, Version, Flow, FlowID, Architecture, ArchitectureID} from "../model/calm";
+import { Namespace, Pattern, PatternID, Version, Flow, FlowID, Architecture, ArchitectureID} from "../model/calm.js";
 
 /**
  * Fetch namespaces and set them using the provided setter function.
