@@ -7,7 +7,10 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.bson.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.finos.calm.security.CalmHubScopes;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,13 +20,14 @@ import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasItem;
 
 @QuarkusTest
 @TestProfile(IntegrationTestSecureProfile.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class ScopesAllowedIntegration {
+public class PermittedScopesIntegration {
 
-    private static final Logger logger = LoggerFactory.getLogger(ScopesAllowedIntegration.class);
+    private static final Logger logger = LoggerFactory.getLogger(PermittedScopesIntegration.class);
     private static final String PATTERN = "{\"name\": \"demo-pattern\"}";
 
     @BeforeEach
@@ -54,7 +58,7 @@ public class ScopesAllowedIntegration {
     void end_to_end_get_patterns_with_valid_scopes() {
         String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
         logger.info("authServerUrl {}", authServerUrl);
-        String accessToken = getAccessToken(authServerUrl);
+        String accessToken = getAccessToken(authServerUrl, CalmHubScopes.ARCHITECTURES_READ);
         given()
                 .auth().oauth2(accessToken)
                 .when().get("/calm/namespaces/finos/patterns")
@@ -63,13 +67,13 @@ public class ScopesAllowedIntegration {
                 .body("values", empty());
     }
 
-    private String getAccessToken(String authServerUrl) {
+    private String getAccessToken(String authServerUrl, String scope) {
         String accessToken = given()
                 .auth()
                 .preemptive()
                 .basic("calm-hub-client-app", "calm-hub-client-app-secret")
                 .formParam("grant_type", "client_credentials")
-                .formParam("scope", "architectures:read")
+                .formParam("scope", scope)
                 .when()
                 .post(authServerUrl.concat("/protocol/openid-connect/token"))
                 .then()
@@ -84,7 +88,7 @@ public class ScopesAllowedIntegration {
     void end_to_end_forbidden_create_pattern_when_matching_scopes_notfound() {
         String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
         logger.info("authServerUrl {}", authServerUrl);
-        String accessToken = getAccessToken(authServerUrl);
+        String accessToken = getAccessToken(authServerUrl, CalmHubScopes.ARCHITECTURES_READ);
 
         given()
                 .auth().oauth2(accessToken)
@@ -105,5 +109,34 @@ public class ScopesAllowedIntegration {
                 .when().post("/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(401);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {CalmHubScopes.ADRS_READ, CalmHubScopes.ADRS_ALL,
+            CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    @Order(4)
+    void end_to_end_get_namespaces_with_valid_access_token(String scope) {
+        String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
+        logger.info("authServerUrl {}", authServerUrl);
+        String accessToken = getAccessToken(authServerUrl, scope);
+        given()
+                .auth().oauth2(accessToken)
+                .when().get("/calm/namespaces")
+                .then()
+                .statusCode(200)
+                .body("values", hasItem("finos"));
+    }
+
+    @Test
+    @Order(5)
+    void end_to_end_forbidden_get_namespaces_when_matching_scopes_notfound() {
+        String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
+        logger.info("authServerUrl {}", authServerUrl);
+        String accessToken = getAccessToken(authServerUrl, "deny:all");
+        given()
+                .auth().oauth2(accessToken)
+                .when().get("/calm/namespaces")
+                .then()
+                .statusCode(403);
     }
 }

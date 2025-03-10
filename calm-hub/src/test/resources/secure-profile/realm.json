@@ -17,12 +17,16 @@
       "defaultClientScopes": [
         "openid",
         "profile",
-        "email",
-        "architectures:read"
+        "email"
       ],
       "optionalClientScopes": [
         "address",
-        "phone"
+        "phone",
+        "architectures:read",
+        "architectures:all",
+        "adrs:read",
+        "adrs:all",
+        "deny:all"
       ]
     },
     {
@@ -44,6 +48,18 @@
       "calm-hub-client-app": [
         {
           "name": "architectures:read"
+        },
+        {
+          "name": "architectures:all"
+        },
+        {
+          "name": "adrs:all"
+        },
+        {
+          "name": "adrs:read"
+        },
+        {
+          "name": "deny:all"
         }
       ]
     }
@@ -51,6 +67,82 @@
   "clientScopes": [
     {
       "name": "architectures:read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "calm-hub-producer-app",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "architectures:all",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "calm-hub-producer-app",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "adrs:all",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "calm-hub-producer-app",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "adrs:read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "calm-hub-producer-app",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "deny:all",
       "protocol": "openid-connect",
       "attributes": {
         "include.in.token.scope": "true"
@@ -75,6 +167,34 @@
       "clientScope": "architectures:read",
       "roles": [
         "architectures:read"
+      ]
+    },
+    {
+      "client": "calm-hub-client-app",
+      "clientScope": "architectures:all",
+      "roles": [
+        "architectures:all"
+      ]
+    },
+    {
+      "client": "calm-hub-client-app",
+      "clientScope": "adrs:read",
+      "roles": [
+        "adrs:read"
+      ]
+    },
+    {
+      "client": "calm-hub-client-app",
+      "clientScope": "adrs:all",
+      "roles": [
+        "adrs:all"
+      ]
+    },
+    {
+      "client": "calm-hub-client-app",
+      "clientScope": "deny:all",
+      "roles": [
+        "deny:all"
       ]
     }
   ]

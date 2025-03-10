@@ -19,26 +19,42 @@ import java.util.Objects;
 
 
 /**
- * A filter that checks if the JWT contains one of the required scopes specified in the @ScopesAllowed annotation.
+ * This filter is responsible for validating incoming JWT tokens and enforcing access control rules
+ * based on OAuth 2.0 authorization flows and RBAC (Role-Based Access Control).
+ *
+ * The Resource Server supports:
+ * 1. **Authorization Code Flow / Device Code Flow (End-User Authentication)**
+ *    - Tokens issued for an authenticated user **must undergo additional RBAC checks**
+ *      to ensure the user has the necessary permissions.
+ *    - OAuth scopes provide high-level access control, but **RBAC is required for fine-grained permissions**.
+ *
+ * 🔹 **TODO: Implement RBAC checks to enforce role-based access control on top of scopes.**
+ *
+ * Why RBAC?
+ * - Scopes define **what** actions a user can perform but do not control **who** can perform them.
+ * - RBAC ensures that even if a user has a valid scope, their role (e.g., Admin, Viewer)
+ *   dictates whether they can execute the request.
+ *
+ * This filter currently validates JWT tokens and scopes. **RBAC enforcement is a pending task.**
  */
 @ApplicationScoped
 @Provider
 @Priority(1)
 @IfBuildProfile("secure")
-public class ScopesAllowedFilter implements ContainerRequestFilter {
+public class AccessControlFilter implements ContainerRequestFilter {
 
     private final JsonWebToken jwt;
     private final ResourceInfo resourceInfo;
-    private final Logger logger = LoggerFactory.getLogger(ScopesAllowedFilter.class);
+    private final Logger logger = LoggerFactory.getLogger(AccessControlFilter.class);
 
-    public ScopesAllowedFilter(JsonWebToken jwt, ResourceInfo resourceInfo) {
+    public AccessControlFilter(JsonWebToken jwt, ResourceInfo resourceInfo) {
         this.jwt = jwt;
         this.resourceInfo = resourceInfo;
     }
 
     @Override
     public void filter(ContainerRequestContext requestContext) {
-        ScopesAllowed annotation = resourceInfo.getResourceMethod().getAnnotation(ScopesAllowed.class);
+        PermittedScopes annotation = resourceInfo.getResourceMethod().getAnnotation(PermittedScopes.class);
         if (Objects.isNull(annotation)) {
             logger.warn("Unsecured endpoint accessed: {}", resourceInfo.getResourceMethod());
             return;
@@ -67,9 +83,9 @@ public class ScopesAllowedFilter implements ContainerRequestFilter {
                 .anyMatch(tokenScopes::contains);
 
         if (hasMatch) {
-            logger.info("Request allowed, ScopesAllowed are: {}, there is a matching scope found in accessToken: [{}]", requiredScopes, tokenScopes);
+            logger.info("Request allowed, PermittedScopes are: {}, there is a matching scope found in accessToken: [{}]", requiredScopes, tokenScopes);
         } else {
-            logger.error("Request denied, ScopesAllowed are: {}, no matching scopes found in accessToken: [{}]", requiredScopes, tokenScopes);
+            logger.error("Request denied, PermittedScopes are: {}, no matching scopes found in accessToken: [{}]", requiredScopes, tokenScopes);
         }
         return hasMatch;
     }

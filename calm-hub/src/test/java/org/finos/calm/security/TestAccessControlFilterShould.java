@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.never;
 
 @QuarkusTest
-public class TestScopesAllowedFilterShould {
+public class TestAccessControlFilterShould {
 
     @Mock
     JsonWebToken jwt;
@@ -29,12 +29,12 @@ public class TestScopesAllowedFilterShould {
     @Mock
     ResourceInfo resourceInfo;
 
-    private ScopesAllowedFilter scopesAllowedFilter;
+    private AccessControlFilter accessControlFilter;
 
     @BeforeEach
     void setup() {
         MockitoAnnotations.openMocks(this);
-        scopesAllowedFilter = new ScopesAllowedFilter(jwt, resourceInfo);
+        accessControlFilter = new AccessControlFilter(jwt, resourceInfo);
     }
 
     @Test
@@ -42,7 +42,7 @@ public class TestScopesAllowedFilterShould {
         Method method = TestNamespaceResource.class.getMethod("getNamespacesUnsecured");
         when(resourceInfo.getResourceMethod()).thenReturn(method);
 
-        scopesAllowedFilter.filter(requestContext);
+        accessControlFilter.filter(requestContext);
         verify(requestContext, never()).abortWith(any());
     }
 
@@ -52,7 +52,7 @@ public class TestScopesAllowedFilterShould {
         when(resourceInfo.getResourceMethod()).thenReturn(method);
         when(jwt.getClaim("scope")).thenReturn("openid architectures:all");
 
-        scopesAllowedFilter.filter(requestContext);
+        accessControlFilter.filter(requestContext);
         verify(requestContext, never()).abortWith(any());
     }
 
@@ -62,7 +62,7 @@ public class TestScopesAllowedFilterShould {
         when(resourceInfo.getResourceMethod()).thenReturn(method);
         when(jwt.getClaim("scope")).thenReturn("openid architectures:read");
 
-        scopesAllowedFilter.filter(requestContext);
+        accessControlFilter.filter(requestContext);
         verify(requestContext)
                 .abortWith(argThat(response -> response.getStatus() == HttpStatus.SC_FORBIDDEN));
     }
@@ -72,7 +72,7 @@ public class TestScopesAllowedFilterShould {
             return List.of("test", "dev");
         }
 
-        @ScopesAllowed({"architectures:all"})
+        @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
         public void createNamespace() {
         }
     }
