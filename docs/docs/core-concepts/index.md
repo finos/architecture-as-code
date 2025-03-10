@@ -13,6 +13,7 @@ Explore each concept below:
 - [Nodes](nodes): Learn about the primary building blocks of your architecture.
 - [Interfaces](interfaces): Understand how nodes expose interaction points.
 - [Relationships](relationships): Discover how nodes connect and interact.
+- [Controls](controls): Understand how to apply domain controls to your architecture
 - [Metadata](metadata): Learn how to enrich your architecture with additional information.
 
 Continue through each section to get detailed explanations, examples, and best practices.
