@@ -6,6 +6,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.ValueWrapper;
+import org.finos.calm.security.ScopesAllowed;
 import org.finos.calm.store.CoreSchemaStore;
 import org.apache.commons.text.StringEscapeUtils;
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ public class CoreSchemaResource {
             summary = "Published CALM Schema Versions",
             description = "Retrieve the CALM Schema versions published by this CALM Hub"
     )
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     public ValueWrapper<String> schemaVersions() {
         return new ValueWrapper<>(coreSchemaStore.getVersions());
     }
@@ -35,6 +37,7 @@ public class CoreSchemaResource {
             summary = "Published CALM Schemas for Version",
             description = "Retrieve the names of CALM Schemas in a given version"
     )
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     public Response schemasForVersion(@PathParam("version") String version) {
         Map<String, Object> schemas = coreSchemaStore.getSchemasForVersion(version);
         if (schemas == null) {
@@ -51,6 +54,7 @@ public class CoreSchemaResource {
             summary = "Retrieve a specific schema by schema name",
             description = "Retrieve a specific schema from the CALM Hub"
     )
+    @ScopesAllowed({"architectures:all", "architectures:read"})
     public Response getSchema(@PathParam("version") String version,
                               @PathParam("schemaName") String schemaName) {
         Map<String, Object> schemas = coreSchemaStore.getSchemasForVersion(version);
