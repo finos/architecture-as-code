@@ -17,7 +17,6 @@ const coreData: CalmCoreSchema = {
             metadata: [{ key: 'value' }],
             'data-classification': 'Public',
             'run-as': 'admin',
-            instance: 'instance-1'
         }
     ],
     relationships: [

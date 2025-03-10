@@ -58,13 +58,14 @@
         "fetch-mock": "^9.11.0",
         "globals": "^16.0.0",
         "jest": "^29.7.0",
+        "msw": "^2.7.3",
         "ts-jest": "^29.2.5",
         "ts-node": "10.9.2",
         "typescript": "^5.4.3"
     },
     "overrides": {
         "path-to-regexp": "3.3.0",
-        "rollup": "4.34.9",
+        "rollup": "4.35.0",
         "jsonpath-plus": "^10.3.0"
     }
 }
