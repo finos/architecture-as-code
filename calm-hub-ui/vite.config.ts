@@ -11,6 +11,9 @@ export default defineConfig({
         environmentMatchGlobs: [['./src/**/*.tsx', 'jsdom']],
         setupFiles: ['./src/tests/vitest.setup.ts'],
     },
+    build: {
+        outDir: 'build',
+    },
     server: {
         proxy: {
             '/calm': 'http://localhost:8080',

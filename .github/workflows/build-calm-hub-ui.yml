@@ -1,4 +1,4 @@
-name: Build CALM Visualizer
+name: Build CALM Hub UI
 
 on:
   pull_request:
