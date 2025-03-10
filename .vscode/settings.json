@@ -12,5 +12,6 @@
   "java.compile.nullAnalysis.mode": "automatic",
   "java.configuration.updateBuildConfiguration": "automatic",
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "editor.formatOnPaste": false
+  "editor.formatOnPaste": false,
+  "testing.automaticallyOpenTestResults": "neverOpen"
 }
