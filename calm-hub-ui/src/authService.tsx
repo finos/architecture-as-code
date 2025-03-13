@@ -1,4 +1,4 @@
-import { UserManager, WebStorageStateStore, Log, User } from "oidc-client";
+import { UserManager, Log, User } from "oidc-client";
 
 const config = {
   authority: 'https://localhost:9443/realms/calm-hub-realm',
