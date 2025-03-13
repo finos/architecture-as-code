@@ -86,7 +86,6 @@ export const checkAuthorityService = async (): Promise<boolean> => {
   }
 };
 
-
 export const authService = {
   getUser,
   login,

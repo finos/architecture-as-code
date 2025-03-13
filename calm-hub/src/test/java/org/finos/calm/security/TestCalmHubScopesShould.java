@@ -2,16 +2,19 @@ package org.finos.calm.security;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TestCalmHubScopesShould {
 
     @Test
-    void prevent_instantiation() {
-        assertThrows(UnsupportedOperationException.class, () -> {
-            throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
-        });
+    void prevent_instantiation() throws Exception {
+        Constructor<CalmHubScopes> constructor = CalmHubScopes.class.getDeclaredConstructor();
+        constructor.setAccessible(true);
+        Exception actual = assertThrows(InvocationTargetException.class, constructor::newInstance);
+        assertTrue(actual.getCause() instanceof UnsupportedOperationException);
     }
 
     @Test
