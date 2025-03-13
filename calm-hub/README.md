@@ -11,21 +11,21 @@ cd deploy
 docker-compose up
 ```
 
-A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)   
+A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)  
 The API documentation can be found at: [http://localhost:8080/q/swagger-ui/#/](http://localhost:8080/q/swagger-ui/#/)
 
 ## Working with the project
 
 There are three main locations for the Java code base:
 
-* `src/main/java` - The location of the main code base
-* `src/test/java` - The location of the test code for the project
-* `src/integration-test/java` - The location of integration tests for the project
+- `src/main/java` - The location of the main code base
+- `src/test/java` - The location of the test code for the project
+- `src/integration-test/java` - The location of integration tests for the project
 
 The integration tests are set up a little different, as once TestContainers is configured - Docker is required for all tests (even where TestContainers are not used).
 Integration tests need to be run via Maven, with Docker up and running on your machine.
 
-The main location for the UI is located in [/calm-hub/src/main/webapp](/calm-hub/src/main/webapp) directory, when creating a final build this is packaged by Maven.
+The main location for the UI is located in [/calm-hub-ui/src](/calm-hub-ui/src) directory, when creating a final build this is packaged by Maven.
 
 ```shell
 #Run all tests including integration tests
@@ -101,7 +101,7 @@ The first time, you may need to run `npm install`.
 
 1. `npm start`
 
-The UI is now ready for hot reloading and development across the stack. 
+The UI is now ready for hot reloading and development across the stack.
 
 ### Building for Deployment
 
@@ -121,6 +121,7 @@ The repository includes a GitHub Action workflow that builds and pushes multi-ar
 To set up automated Docker builds:
 
 1. Add the following secrets to your GitHub repository:
+
    - `DOCKER_USERNAME`: Your Docker Hub username
    - `DOCKER_PASSWORD`: Your Docker Hub password or access token
 
