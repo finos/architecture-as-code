@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { allExpanded, defaultStyles, JsonView } from 'react-json-view-lite';
 import 'react-json-view-lite/dist/index.css';
+import { Data } from '../../model/calm.js';
 
 interface JsonRendererProps {
-    jsonString: string | undefined;
+    jsonString: Data | undefined;
 }
 
 export function JsonRenderer({ jsonString }: JsonRendererProps) {

@@ -27,16 +27,16 @@ function Visualizer() {
     }
     
     useEffect(() => {
-        setCALMInstance(data);
+        setTitle(data?.name)
+        setCALMInstance(data?.data);
       }, []);
-
 
     return (
         <ZoomProvider>
             <div className="h-screen flex flex-col">
                 <Navbar />
                 <Menu
-                    // handleUpload={handleFile}
+                    handleUpload={handleFile}
                     isGraphRendered={instance ? true : false}
                     toggleNodeDesc={() =>
                         setNodeDescActive((isNodeDescActive) => !isNodeDescActive)
