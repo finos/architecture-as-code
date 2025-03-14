@@ -20,11 +20,11 @@
   </properties>
 
   <dependencies>
-  <dependency>
-  <groupId>org.apache.commons</groupId>
-  <artifactId>commons-text</artifactId>
-  <version>1.13.0</version>
-  </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-text</artifactId>
+      <version>1.13.0</version>
+    </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-jsonb</artifactId>
@@ -57,6 +57,14 @@
       <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
       <artifactId>owasp-java-html-sanitizer</artifactId>
       <version>20240325.1</version>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-oidc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-security</artifactId>
     </dependency>
 
     <!-- Testing -->
@@ -256,6 +264,12 @@
           <groupId>org.testcontainers</groupId>
           <artifactId>junit-jupiter</artifactId>
           <version>1.20.6</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>com.github.dasniko</groupId>
+          <artifactId>testcontainers-keycloak</artifactId>
+          <version>3.6.0</version>
           <scope>test</scope>
         </dependency>
       </dependencies>
