@@ -38,7 +38,7 @@ function Navbar() {
                 <div className="hidden lg:flex">
                     <ul className="menu menu-horizontal px-1">
                         <li>
-                            <NavLink className="btn-ghost btn text-base-100" to="/hub">
+                            <NavLink className="btn-ghost btn text-base-100" to="/">
                                 Hub
                             </NavLink>
                         </li>
