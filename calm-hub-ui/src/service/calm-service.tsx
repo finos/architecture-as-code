@@ -1,12 +1,10 @@
 import {
     Namespace,
-    Pattern,
     PatternID,
     Version,
-    Flow,
     FlowID,
-    Architecture,
     ArchitectureID,
+    Data,
 } from '../model/calm.js';
 import { getToken } from "../authService";
 
@@ -113,7 +111,7 @@ export async function fetchPattern(
     namespace: string,
     patternID: string,
     version: string,
-    setPattern: (pattern: Pattern) => void
+    setPattern: (pattern: Data) => void
 ) {
     try {
         const accessToken = await getToken();
@@ -122,7 +120,8 @@ export async function fetchPattern(
                 method: 'GET',
                 headers: {'Authorization': `Bearer ${accessToken}`,},
             });
-        const data = await res.json();
+        const response = await res.json();
+        const data: Data = { name: namespace, data: response}
         setPattern(data);
     } catch (error) {
         console.error(
@@ -139,7 +138,7 @@ export async function fetchFlow(
     namespace: string,
     flowID: string,
     version: string,
-    setFlow: (flow: Flow) => void
+    setFlow: (flow: Data) => void
 ) {
     try {
         const accessToken = await getToken();
@@ -148,7 +147,8 @@ export async function fetchFlow(
                  method: 'GET',
                  headers: {'Authorization': `Bearer ${accessToken}`,},
              });
-        const data = await res.json();
+        const response = await res.json();
+        const data: Data = { name: namespace, data: response}
         setFlow(data);
     } catch (error) {
         console.error(
@@ -207,7 +207,7 @@ export async function fetchArchitecture(
     namespace: string,
     architectureID: string,
     version: string,
-    setArchitecture: (architecture: Architecture) => void
+    setArchitecture: (architecture: Data) => void
 ) {
     try {
         const accessToken = await getToken();
@@ -216,7 +216,8 @@ export async function fetchArchitecture(
                 method: 'GET',
                 headers: {'Authorization': `Bearer ${accessToken}`,},
             });
-        const data = await res.json();
+        const response = await res.json();
+        const data: Data = { name: namespace, data: response}
         setArchitecture(data);
     } catch (error) {
         console.error(
