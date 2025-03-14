@@ -1,0 +1,9 @@
+.edit-fields {
+    max-height: calc(100vh - 280px);
+    overflow-y: scroll;
+    padding-right: 1rem;
+}
+
+.non-edit-fields {
+    height: calc(100vh - 280px);
+}

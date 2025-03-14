@@ -1,3 +1,4 @@
+import './Sidebar.css';
 import { IoCloseOutline, IoPencil, IoSave, IoSaveOutline } from 'react-icons/io5';
 import { Edge, Node } from '../cytoscape-renderer/CytoscapeRenderer.js';
 import { useEffect, useState } from 'react';
@@ -48,7 +49,7 @@ function Sidebar({ selectedData, closeSidebar, updateElement }: SidebarProps) {
 
     const canEditID = isCALMNode && selectedData.isShell === true;
     return (
-        <div className="fixed right-0 h-full w-80 bg-base-300 shadow-lg z-10">
+        <div className="right-0 h-full w-80 bg-base-300">
             <label htmlFor="node-details" className="drawer-overlay" onClick={closeSidebar}></label>
             <div className="menu bg-base-300 text-base-content min-h-full w-80 p-4">
                 <div className="flex justify-between items-center mb-4">
@@ -92,7 +93,7 @@ function Sidebar({ selectedData, closeSidebar, updateElement }: SidebarProps) {
                 </div>
 
                 {isEditMode ? (
-                    <div className="space-y-4">
+                    <div className="space-y-4 edit-fields">
                         {isCALMNode && (
                             <>
                                 <div>
@@ -105,6 +106,7 @@ function Sidebar({ selectedData, closeSidebar, updateElement }: SidebarProps) {
                                         name="id"
                                         value={editedData.id}
                                         onChange={handleInputChange}
+                                        disabled={!canEditID}
                                         readOnly={!canEditID}
                                         className="input input-bordered w-full mt-1"
                                         placeholder="Enter unique ID"
@@ -170,6 +172,7 @@ function Sidebar({ selectedData, closeSidebar, updateElement }: SidebarProps) {
                                         type="text"
                                         name="id"
                                         value={editedData.id}
+                                        disabled={true}
                                         readOnly
                                         className="input input-bordered w-full mt-1"
                                     />
@@ -203,6 +206,7 @@ function Sidebar({ selectedData, closeSidebar, updateElement }: SidebarProps) {
                                         type="text"
                                         name="source"
                                         value={editedData.source}
+                                        disabled={true}
                                         readOnly
                                         className="input input-bordered w-full mt-1"
                                     />
@@ -219,6 +223,7 @@ function Sidebar({ selectedData, closeSidebar, updateElement }: SidebarProps) {
                                         type="text"
                                         name="target"
                                         value={editedData.target}
+                                        disabled={true}
                                         readOnly
                                         className="input input-bordered w-full mt-1"
                                     />
@@ -245,7 +250,7 @@ function Sidebar({ selectedData, closeSidebar, updateElement }: SidebarProps) {
                         </div>
                     </div>
                 ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-3 non-edit-fields">
                         {isCALMNode && (
                             <>
                                 <div className="mb-4">

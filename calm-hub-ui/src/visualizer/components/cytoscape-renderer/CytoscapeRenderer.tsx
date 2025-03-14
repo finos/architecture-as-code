@@ -613,18 +613,18 @@ const CytoscapeRenderer = ({
     }, [zoomLevel]);
 
     return (
-        <div className="relative flex flex-col h-screen">
+        <div className="relative flex flex-col">
             {renderToolbar()}
             <div className="flex flex-1 relative">
                 <div
                     ref={cyRef}
                     className="flex-1 bg-white visualizer"
                     style={{
-                        height: 'calc(100vh - 68px)',
+                        height: 'calc(100vh - 200px)',
                     }}
                 />
                 {selectedElement && (
-                    <div className="absolute right-0 h-full">
+                    <div className="absolute right-0">
                         <Sidebar
                             selectedData={selectedElement}
                             closeSidebar={() => setSelectedElement(null)}

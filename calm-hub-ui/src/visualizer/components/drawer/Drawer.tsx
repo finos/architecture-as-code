@@ -167,7 +167,7 @@ function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive }: Draw
     const nodes = getNodes();
 
     return (
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex">
             <div className={`drawer drawer-end ${selectedNode ? 'drawer-open' : ''}`}>
                 <input
                     type="checkbox"
