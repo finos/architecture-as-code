@@ -2,16 +2,16 @@ import React, { useContext } from 'react';
 import { ZoomContext } from '../zoom-context.provider.js';
 
 interface MenuProps {
-    handleUpload: (instanceFile: File) => void;
+    // handleUpload: (instanceFile: File) => void;
     isGraphRendered: boolean;
     toggleConnectionDesc: () => void;
     toggleNodeDesc: () => void;
 }
 
-function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeDesc }: MenuProps) {
-    const upload = (file: File) => {
-        handleUpload(file);
-    };
+function Menu({ isGraphRendered, toggleConnectionDesc, toggleNodeDesc }: MenuProps) {
+    // const upload = (file: File) => {
+    //     handleUpload(file);
+    // };
     const { zoomLevel, updateZoom } = useContext(ZoomContext);
 
     function zoomIn() {
@@ -79,7 +79,7 @@ function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeD
                         </div>
                     )}
                 </div>
-                <div className="menu-end">
+                {/* <div className="menu-end">
                     <ul className="menu menu-horizontal px-1" aria-label="navbar-menu-items">
                         <li>
                             <details>
@@ -103,7 +103,7 @@ function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeD
                             </details>
                         </li>
                     </ul>
-                </div>
+                </div> */}
             </div>
         </header>
     );
