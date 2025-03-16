@@ -49,8 +49,12 @@ function Sidebar({ selectedData, closeSidebar, updateElement }: SidebarProps) {
 
     const canEditID = isCALMNode && selectedData.isShell === true;
     return (
-        <div className="right-0 h-full w-80 bg-base-300">
-            <label htmlFor="node-details" className="drawer-overlay" onClick={closeSidebar}></label>
+        <div className="right-0 h-screen w-80 bg-base-300">
+            <label
+                htmlFor="node-details"
+                className="drawer-overlay h-screen"
+                onClick={closeSidebar}
+            ></label>
             <div className="menu bg-base-300 text-base-content min-h-full w-80 p-4">
                 <div className="flex justify-between items-center mb-4">
                     <div className="text-xl font-bold">
@@ -80,7 +84,7 @@ function Sidebar({ selectedData, closeSidebar, updateElement }: SidebarProps) {
                         )}
 
                         <button
-                        aria-label="close-sidebar"
+                            aria-label="close-sidebar"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 closeSidebar();
