@@ -1,0 +1,74 @@
+{
+  "$id": "docuflow-architecture",
+  "title": "DocuFlow System",
+  "description": "DocuFlow is a document management system that allows users to upload, process, and store documents securely.",
+  "nodes": [
+    {
+      "unique-id": "document-system",
+      "name": "DocuFlow",
+      "description": "Main document management system",
+      "node-type": "system"
+    },
+    {
+      "unique-id": "svc-upload",
+      "name": "Upload Service",
+      "description": "Handles user document uploads",
+      "node-type": "service"
+    },
+    {
+      "unique-id": "svc-storage",
+      "name": "Storage Service",
+      "description": "Stores and retrieves documents securely",
+      "node-type": "service"
+    },
+    {
+      "unique-id": "db-docs",
+      "name": "Document Database",
+      "description": "Stores metadata and document references",
+      "node-type": "database"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "rel-upload-to-storage",
+      "description": "Upload Service sends documents to Storage Service for long-term storage",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "svc-upload"
+          },
+          "destination": {
+            "node": "svc-storage"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "rel-storage-to-db",
+      "description": "Storage Service stores document metadata in the Document Database",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "svc-storage"
+          },
+          "destination": {
+            "node": "db-docs"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "document-system-system-is-composed-of",
+      "relationship-type": {
+        "composed-of": {
+          "container": "document-system",
+          "nodes": [
+            "svc-upload",
+            "svc-storage",
+            "db-docs"
+          ]
+        }
+      }
+    }
+  ]
+}

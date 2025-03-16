@@ -19,5 +19,8 @@ module.exports = {
             lines: 90,
             statements: 90,
         }
+    },
+    moduleNameMapper: {
+        '^@finos/calm-shared/(.*)$': '<rootDir>/../node_modules/@finos/calm-shared/dist/$1'
     }
 };

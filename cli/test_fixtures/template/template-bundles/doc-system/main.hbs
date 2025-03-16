@@ -1,0 +1,16 @@
+<h1>{{title}}</h1>
+<p>{{description}}</p>
+
+<h2>Nodes</h2>
+<ul>
+{{#each nodes}}
+    <li><strong>{{name}}</strong> ({{node-type}}): {{description}}</li>
+{{/each}}
+</ul>
+
+<h2>Relationships</h2>
+<ul>
+    {{#each relationships}}
+    <li>{{description}}</li>
+    {{/each}}
+</ul>
