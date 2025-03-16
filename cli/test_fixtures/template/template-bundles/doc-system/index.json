@@ -1,0 +1,12 @@
+{
+  "name": "CLI E2E Template Endpoint Test Bundle",
+  "transformer": "basic-transformer",
+  "templates": [
+    {
+      "template": "main.hbs",
+      "from": "document",
+      "output": "cli-e2e-output.html",
+      "output-type": "single"
+    }
+  ]
+}

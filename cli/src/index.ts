@@ -1,13 +1,11 @@
 #! /usr/bin/env node
 
-import { CALM_META_SCHEMA_DIRECTORY, getFormattedOutput, runGenerate, validate, exitBasedOffOfValidationOutcome, TemplateProcessor } from '@finos/calm-shared';
+import {CALM_META_SCHEMA_DIRECTORY, runGenerate, TemplateProcessor} from '@finos/calm-shared';
 import { Option, program } from 'commander';
-import path from 'path';
-import { mkdirp } from 'mkdirp';
-import { writeFileSync } from 'fs';
+
 import { version } from '../package.json';
-import { initLogger } from '@finos/calm-shared/logger';
 import { startServer } from './server/cli-server';
+import {checkValidateOptions, runValidate} from './validate/validate';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -17,8 +15,6 @@ const PATTERN_OPTION = '-p, --pattern <file>';
 const SCHEMAS_OPTION = '-s, --schemaDirectory <path>';
 const STRICT_OPTION = '--strict';
 const VERBOSE_OPTION = '-v, --verbose';
-
-
 
 program
     .name('calm')
@@ -52,31 +48,11 @@ program
     .option(OUTPUT_OPTION, 'Path location at which to output the generated file.')
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
     .action(async (options) => {
+        checkValidateOptions(program, options, PATTERN_OPTION, ARCHITECTURE_OPTION);
         await runValidate(options);
     });
 
 
-/**
- * Run the validate command and exit with the right status code based on the result.
- * @param options Options passed through from the argument parser.
- */
-async function runValidate(options) {
-    if (!options.pattern && !options.architecture) {
-        program.error(`error: one of the required options '${PATTERN_OPTION}' or '${ARCHITECTURE_OPTION}' was not specified`);
-    }
-    try {
-        const outcome = await validate(options.architecture, options.pattern, options.schemaDirectory, options.verbose);
-        const content = getFormattedOutput(outcome, options.format);
-        writeOutputFile(options.output, content);
-        exitBasedOffOfValidationOutcome(outcome, options.strict);
-    }
-    catch (err) {
-        const logger = initLogger(options.verbose);
-        logger.error('An error occurred while validating: ' + err.message);
-        logger.debug(err.stack);
-        process.exit(1);
-    }
-}
 
 program
     .command('server')
@@ -88,15 +64,7 @@ program
         startServer(options);
     });
 
-function writeOutputFile(output: string, validationsOutput: string) {
-    if (output) {
-        const dirname = path.dirname(output);
-        mkdirp.sync(dirname);
-        writeFileSync(output, validationsOutput);
-    } else {
-        process.stdout.write(validationsOutput);
-    }
-}
+
 program
     .command('template')
     .description('Generate files from a CALM model using a Handlebars template bundle')
@@ -112,7 +80,5 @@ program
         const processor = new TemplateProcessor(options.input, options.bundle, options.output);
         await processor.processTemplate();
     });
-
-
 
 program.parse(process.argv);
