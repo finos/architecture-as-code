@@ -59,6 +59,7 @@
     },
     {
       "unique-id": "document-system-system-is-composed-of",
+      "description": "Document System contains services",
       "relationship-type": {
         "composed-of": {
           "container": "document-system",
@@ -70,5 +71,8 @@
         }
       }
     }
+  ],
+  "flows": [
+    "https://calm.finos.org/docuflow/flow/document-upload"
   ]
 }
