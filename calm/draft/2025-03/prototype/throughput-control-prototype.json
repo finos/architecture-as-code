@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/control-requirement/throughput",
+  "title": "Throughput Requirement",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "expected-message-rate": {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/units.json#/defs/rate-unit",
+      "description": "Define the expected message rate that the flow should handle (e.g., 1000 per second)."
+    }
+  },
+  "required": [
+    "expected-message-rate"
+  ]
+}
