@@ -210,11 +210,13 @@ describe('CLI Integration Tests', () => {
 
         const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
         const testModelPath = path.join(fixtureDir, 'model/document-system.json');
+        const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
         const templateBundlePath = path.join(fixtureDir, 'template-bundles/doc-system');
+        const expectedOutput = path.join(fixtureDir, 'expected-output/cli-e2e-output.html');
         const outputDir = path.resolve(__dirname, 'output');
         const outputFile = path.join(outputDir, 'cli-e2e-output.html');
 
-        const templateCommand = `calm template --input ${testModelPath} --bundle ${templateBundlePath} --output ${outputDir}`;
+        const templateCommand = `calm template --input ${testModelPath} --bundle ${templateBundlePath} --output ${outputDir} --url-to-local-file-mapping ${localDirectory}`;
         await execPromise(templateCommand);
 
         await new Promise(resolve => setTimeout(resolve, 2 * millisPerSecond));
@@ -222,7 +224,14 @@ describe('CLI Integration Tests', () => {
         expect(fs.existsSync(outputFile)).toBe(true);
 
         if (fs.existsSync(outputFile)) {
-            fs.unlinkSync(outputFile);
+            const actualContent = fs.readFileSync(outputFile, 'utf8').trim();
+            const expectedContent = fs.readFileSync(expectedOutput, 'utf8').trim();
+
+            expect(actualContent).toEqual(expectedContent);
+
+            if (fs.existsSync(outputDir)) {
+                fs.rmSync(outputDir, { recursive: true, force: true });
+            }
         }
     });
 

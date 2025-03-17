@@ -3,7 +3,7 @@
   "transformer": "basic-transformer",
   "templates": [
     {
-      "template": "main.hbs",
+      "template": "main.html",
       "from": "document",
       "output": "cli-e2e-output.html",
       "output-type": "single"

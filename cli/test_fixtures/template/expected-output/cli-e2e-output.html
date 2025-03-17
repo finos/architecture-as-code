@@ -1,0 +1,27 @@
+<h1>DocuFlow System</h1>
+<p>DocuFlow is a document management system that allows users to upload, process, and store documents securely.</p>
+
+<h2>Nodes</h2>
+<ul>
+    <li><strong>DocuFlow</strong> (system): Main document management system</li>
+    <li><strong>Upload Service</strong> (service): Handles user document uploads</li>
+    <li><strong>Storage Service</strong> (service): Stores and retrieves documents securely</li>
+    <li><strong>Document Database</strong> (database): Stores metadata and document references</li>
+</ul>
+
+<h2>Relationships</h2>
+<ul>
+    <li>Upload Service sends documents to Storage Service for long-term storage</li>
+    <li>Storage Service stores document metadata in the Document Database</li>
+    <li>Document System contains services</li>
+</ul>
+<h2>Flows</h2>
+<div>
+    <h3>Document Upload Flow (flow-document-upload)</h3>
+    <p>Flow for uploading a document and storing metadata securely in the DocuFlow system.</p>
+    <h4>Transitions</h4>
+    <ul>
+        <li>Sequence 1: Upload Service sends document to Storage Service (Relationship: rel-upload-to-storage)</li>
+        <li>Sequence 2: Storage Service stores document metadata in Document Database (Relationship: rel-storage-to-db)</li>
+    </ul>
+</div>
