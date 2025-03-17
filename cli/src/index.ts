@@ -5,7 +5,8 @@ import { Option, program } from 'commander';
 
 import { version } from '../package.json';
 import { startServer } from './server/cli-server';
-import {checkValidateOptions, runValidate} from './validate/validate';
+import {checkValidateOptions, runValidate} from './command-helpers/validate';
+import {getUrlToLocalFileMap} from './command-helpers/template';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -71,13 +72,14 @@ program
     .requiredOption('--input <path>', 'Path to the CALM model JSON file')
     .requiredOption('--bundle <path>', 'Path to the template bundle directory')
     .requiredOption('--output <path>', 'Path to output directory')
+    .option('--url-to-local-file-mapping <path>', 'Path to mapping file which maps URLs to local paths', '')
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
     .action(async (options) => {
         if(options.verbose){
             process.env.DEBUG = 'true';
         }
-
-        const processor = new TemplateProcessor(options.input, options.bundle, options.output);
+        const localDirectory = getUrlToLocalFileMap(options.urlToLocalFileMapping);
+        const processor = new TemplateProcessor(options.input, options.bundle, options.output, localDirectory);
         await processor.processTemplate();
     });
 
