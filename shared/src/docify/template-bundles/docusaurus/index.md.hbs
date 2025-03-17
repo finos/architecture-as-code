@@ -1,0 +1,31 @@
+---
+id: index
+title: Welcome to CALM Documentation
+sidebar_position: 1
+slug: /
+---
+
+# Welcome to CALM Documentation
+
+This documentation is generated from the **CALM Architecture-as-Code** model.
+
+## High Level Architecture
+{{> c4-container.hbs}}
+
+### Nodes
+{{#each nodes}}
+    - [{{title}}](nodes/{{slug}})
+{{/each}}
+
+### Flows
+{{#each flows}}
+    - [{{title}}](flows/{{slug}})
+{{/each}}
+
+### Controls
+
+| ID    | Name             | Description                  | Domain    | Scope        | Applied To                |
+|-------|------------------|------------------------------|-----------|--------------|---------------------------|
+{{#controls}}
+|{{id}}|{{name}}|{{description}}|{{domain}}|{{scope}}|{{appliedTo}}|
+{{/controls}}

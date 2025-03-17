@@ -12,3 +12,12 @@ export { initLogger } from './logger.js';
 export { TemplateProcessor } from './template/template-processor.js';
 export * from './template/types.js';
 export * from './types';
+export { Docifier, DocifyMode } from './docify/docifier.js';
+export * from './model/flow.js';
+export * from './model/core.js';
+export * from './model/control.js';
+export * from './model/metadata.js';
+export * from './model/interface.js';
+export {C4Model} from './docify/graphing/c4.js';
+export {CalmRelationshipGraph} from './docify/graphing/relationship-graph.js';
+

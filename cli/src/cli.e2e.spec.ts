@@ -235,6 +235,36 @@ describe('CLI Integration Tests', () => {
         }
     });
 
+    test('example docify command - generates expected output', async () => {
+        const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
+        const testModelPath = path.join(fixtureDir, 'model/document-system.json');
+        const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
+        const outputDir = path.resolve(__dirname, 'output/documentation');
+
+        const expectedFiles = [
+            'docs/index.md',
+            'docs/flows/flow-document-upload.md',
+            'docs/nodes/document-system.md',
+            'docs/nodes/db-docs.md',
+            'docs/nodes/svc-storage.md',
+            'docs/nodes/svc-upload.md'
+        ].map(file => path.join(outputDir, file));
+
+        try {
+            const templateCommand = `calm docify --input ${testModelPath} --output ${outputDir} --url-to-local-file-mapping ${localDirectory}`;
+            await execPromise(templateCommand);
+
+            await new Promise(resolve => setTimeout(resolve, 2 * 1000));
+
+            for (const file of expectedFiles) {
+                expect(fs.existsSync(file)).toBeTruthy();
+            }
+        } finally {
+            if (fs.existsSync(outputDir)) {
+                fs.rmSync(outputDir, { recursive: true, force: true });
+            }
+        }
+    });
 
 
 });
