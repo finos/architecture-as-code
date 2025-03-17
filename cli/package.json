@@ -10,9 +10,10 @@
     "calm": "dist/index.js"
   },
   "scripts": {
-    "build": "tsup && npm run copy-calm-schema",
+    "build": "tsup && npm run copy-calm-schema && npm run copy-docify-templates",
     "watch": "node watch.mjs",
     "copy-calm-schema": "copyfiles \"../calm/draft/2024-10/meta/*\" dist/calm/",
+    "copy-docify-templates": "copyfiles \"../shared/src/docify/template-bundles/**/*\" dist --up 4",
     "test": "jest",
     "lint": "eslint src",
     "lint-fix": "eslint src --fix",

@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-import {CALM_META_SCHEMA_DIRECTORY, runGenerate, TemplateProcessor} from '@finos/calm-shared';
+import {CALM_META_SCHEMA_DIRECTORY, runGenerate, TemplateProcessor, Docifier} from '@finos/calm-shared';
 import { Option, program } from 'commander';
 
 import { version } from '../package.json';
@@ -82,5 +82,24 @@ program
         const processor = new TemplateProcessor(options.input, options.bundle, options.output, localDirectory);
         await processor.processTemplate();
     });
+
+program
+    .command('docify')
+    .description('Generate files from a CALM model using a Handlebars template bundle')
+    .requiredOption('--input <path>', 'Path to the CALM model JSON file')
+    .requiredOption('--output <path>', 'Path to output directory')
+    .option('--url-to-local-file-mapping <path>', 'Path to mapping file which maps URLs to local paths')
+    .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+    .action(async (options) => {
+        if (options.verbose) {
+            process.env.DEBUG = 'true';
+        }
+
+        const localDirectory = getUrlToLocalFileMap(options.urlToLocalFileMapping);
+
+        const docifier = new Docifier('WEBSITE', options.input,  options.output, localDirectory);
+        await docifier.docify();
+    });
+
 
 program.parse(process.argv);
