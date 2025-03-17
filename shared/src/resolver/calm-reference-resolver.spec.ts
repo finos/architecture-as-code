@@ -127,6 +127,7 @@ describe('CompositeReferenceResolver', () => {
 
     afterEach(() => {
         jest.restoreAllMocks();
+        jest.clearAllMocks();
     });
 
     it('returns true if the HTTP resolver can resolve', () => {
@@ -143,25 +144,53 @@ describe('CompositeReferenceResolver', () => {
         expect(resolver.canResolve('ftp://example.com/test.json')).toBe(false);
     });
 
+    it('uses file resolver if it succeeds', async () => {
+        existsSyncSpy.mockReturnValue(true);
+        readFileSyncSpy.mockReturnValue(JSON.stringify({ key: 'file-value' }));
 
-    it('uses HTTP resolver if it succeeds', async () => {
+        const result = await resolver.resolve('file:///test.json');
+        expect(result).toEqual({ key: 'file-value' });
+
+        expect(existsSyncSpy).toHaveBeenCalledWith('file:///test.json');
+        expect(readFileSyncSpy).toHaveBeenCalledWith('file:///test.json', 'utf-8');
+        expect(axiosGetSpy).not.toHaveBeenCalled(); // Should not call HTTP
+    });
+
+    it('falls back to HTTP resolver if file resolution fails', async () => {
+        existsSyncSpy.mockReturnValue(false); // File does not exist
         axiosGetSpy.mockResolvedValue({ data: { key: 'http-value' } });
+
         const result = await resolver.resolve('http://example.com/test.json');
         expect(result).toEqual({ key: 'http-value' });
+
+        expect(existsSyncSpy).toHaveBeenCalledWith('http://example.com/test.json');
+        expect(readFileSyncSpy).not.toHaveBeenCalled(); // Should not attempt to read file
+        expect(axiosGetSpy).toHaveBeenCalledWith('http://example.com/test.json');
     });
 
-    it('falls back to file resolver if HTTP fails', async () => {
-        axiosGetSpy.mockRejectedValue(new Error('HTTP error'));
-        existsSyncSpy.mockImplementation((ref: string) => ref === 'http://example.com/test.json');
-        readFileSyncSpy.mockReturnValue('{"key": "file-value"}');
-        const result = await resolver.resolve('http://example.com/test.json');
-        expect(result).toEqual({ key: 'file-value' });
-    });
-
-    it('throws error if neither resolver can resolve', async () => {
-        axiosGetSpy.mockRejectedValue(new Error('HTTP error'));
+    it('throws an error if neither file nor HTTP resolver can resolve', async () => {
         existsSyncSpy.mockReturnValue(false);
+        axiosGetSpy.mockRejectedValue(new Error('HTTP error'));
+
         await expect(resolver.resolve('http://nonexistent.com/test.json'))
             .rejects.toThrow('Composite resolver: Unable to resolve reference http://nonexistent.com/test.json');
+
+        expect(existsSyncSpy).toHaveBeenCalledWith('http://nonexistent.com/test.json');
+        expect(readFileSyncSpy).not.toHaveBeenCalled();
+        expect(axiosGetSpy).toHaveBeenCalledWith('http://nonexistent.com/test.json');
     });
+
+    it('prioritizes file resolver over HTTP when both are available', async () => {
+        existsSyncSpy.mockReturnValue(true);
+        readFileSyncSpy.mockReturnValue(JSON.stringify({ key: 'file-value' }));
+        axiosGetSpy.mockResolvedValue({ data: { key: 'http-value' } });
+
+        const result = await resolver.resolve('file:///test.json');
+        expect(result).toEqual({ key: 'file-value' });
+
+        expect(existsSyncSpy).toHaveBeenCalledWith('file:///test.json');
+        expect(readFileSyncSpy).toHaveBeenCalledWith('file:///test.json', 'utf-8');
+        expect(axiosGetSpy).not.toHaveBeenCalled();
+    });
+
 });

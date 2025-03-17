@@ -72,7 +72,7 @@ program
     .requiredOption('--input <path>', 'Path to the CALM model JSON file')
     .requiredOption('--bundle <path>', 'Path to the template bundle directory')
     .requiredOption('--output <path>', 'Path to output directory')
-    .option('--url-to-local-file-mapping <path>', 'Path to mapping file which maps URLs to local paths', '')
+    .option('--url-to-local-file-mapping <path>', 'Path to mapping file which maps URLs to local paths')
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
     .action(async (options) => {
         if(options.verbose){

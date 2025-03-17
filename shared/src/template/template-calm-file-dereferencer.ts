@@ -1,5 +1,6 @@
 import $RefParser from '@apidevtools/json-schema-ref-parser';
-import {CalmReferenceResolver} from '../resolver/calm-reference-resolver';
+import {CalmReferenceResolver} from '../resolver/calm-reference-resolver.js';
+import { initLogger } from '../logger.js';
 
 
 export type CalmDocument = string;
@@ -7,6 +8,7 @@ export type CalmDocument = string;
 export class TemplateCalmFileDereferencer {
     private urlFileMapping: Map<string, string>;
     private resolver: CalmReferenceResolver;
+    private static logger = initLogger(process.env.DEBUG === 'true', TemplateCalmFileDereferencer.name);
 
     constructor(urlFileMapping: Map<string, string>, resolver: CalmReferenceResolver) {
         this.urlFileMapping = urlFileMapping;
@@ -30,6 +32,7 @@ export class TemplateCalmFileDereferencer {
     }
 
     public async dereferenceCalmDoc(doc: CalmDocument): Promise<string> {
+        const logger =  TemplateCalmFileDereferencer.logger;
         const partiallyDereferenced = this.replaceUrlsWithRefs(JSON.parse(doc));
 
         const fullyDereferenced = await $RefParser.dereference(partiallyDereferenced, {
@@ -37,11 +40,11 @@ export class TemplateCalmFileDereferencer {
                 calmResolver: {
                     order: 1,
                     canRead: (file: { url: string }) => {
-                        console.log(`Checking if canRead: ${file.url}`);
+                        logger.debug(`Checking if canRead: ${file.url}`);
                         return this.resolver.canResolve(file.url);
                     },
                     read: async (file: { url: string }) => {
-                        console.log(`Resolving: ${file.url}`);
+                        logger.debug(`Resolving: ${file.url}`);
                         const result = await this.resolver.resolve(file.url);
                         const mappedContent = this.replaceUrlsWithRefs(result);
                         return JSON.stringify(mappedContent);

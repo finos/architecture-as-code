@@ -28,21 +28,21 @@ export class FileReferenceResolver implements CalmReferenceResolver {
 }
 
 export class InMemoryResolver implements CalmReferenceResolver {
-    private mockData: Record<string, unknown>;
+    private data: Record<string, unknown>;
 
-    constructor(mockData: Record<string, unknown>) {
-        this.mockData = mockData;
+    constructor(data: Record<string, unknown>) {
+        this.data = data;
     }
 
     canResolve(ref: string): boolean {
-        return ref in this.mockData;
+        return ref in this.data;
     }
 
     async resolve(ref: string): Promise<unknown> {
-        if (!this.mockData[ref]) {
+        if (!this.data[ref]) {
             throw new Error(`Mocked reference not found: ${ref}`);
         }
-        return this.mockData[ref];
+        return this.data[ref];
     }
 }
 
@@ -80,19 +80,23 @@ export class CompositeReferenceResolver implements CalmReferenceResolver {
     }
 
     canResolve(ref: string): boolean {
-        return this.httpResolver.canResolve(ref) || this.fileResolver.canResolve(ref);
+        return this.fileResolver.canResolve(ref) || this.httpResolver.canResolve(ref);
     }
 
     async resolve(ref: string): Promise<unknown> {
+        if (this.fileResolver.canResolve(ref)) {
+            try {
+                return await this.fileResolver.resolve(ref);
+            } catch (error) {
+                CompositeReferenceResolver.logger.debug(`File resolution failed for ${ref} with ${error} - falling back to http-based resolver`);
+            }
+        }
         if (this.httpResolver.canResolve(ref)) {
             try {
                 return await this.httpResolver.resolve(ref);
             } catch (error) {
-                CompositeReferenceResolver.logger.info(`HTTP resolution failed for ${ref} with ${error} - falling back to file-based resolver`);
+                CompositeReferenceResolver.logger.info(`HTTP resolution failed for ${ref} with ${error}`);
             }
-        }
-        if (this.fileResolver.canResolve(ref)) {
-            return await this.fileResolver.resolve(ref);
         }
         throw new Error(`Composite resolver: Unable to resolve reference ${ref}`);
     }
