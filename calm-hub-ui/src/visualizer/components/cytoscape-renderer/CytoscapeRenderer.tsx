@@ -24,27 +24,31 @@ const breadthFirstLayout = {
     spacingFactor: 1.25,
 };
 
+type NodeData = {
+    description: string;
+    type: string;
+    label: string;
+    id: string;
+    isShell?: boolean;
+    [idx: string]: string | boolean | undefined;
+}
+
+type EdgeData = {
+    id: string;
+    label: string;
+    source: string;
+    target: string;
+    isShell?: boolean;
+    [idx: string]: string | boolean | undefined;
+};
+
 export type Node = {
     classes?: string;
-    data: {
-        description: string;
-        type: string;
-        label: string;
-        id: string;
-        isShell?: boolean;
-        [idx: string]: string | boolean | undefined;
-    };
+    data: NodeData;
 };
 
 export type Edge = {
-    data: {
-        id: string;
-        label: string;
-        source: string;
-        target: string;
-        isShell?: boolean;
-        [idx: string]: string | boolean | undefined;
-    };
+    data: EdgeData;
 };
 
 interface Props {
@@ -67,7 +71,7 @@ const CytoscapeRenderer = ({
     const cyRef = useRef<HTMLDivElement>(null);
     const [cy, setCy] = useState<Core | null>(null);
     const { zoomLevel, updateZoom } = useContext(ZoomContext);
-    const [selectedElement, setSelectedElement] = useState<Node['data'] | Edge['data'] | null>(
+    const [selectedElement, setSelectedElement] = useState<NodeData | EdgeData | null>(
         null
     );
     const [edgeCreationSource, setEdgeCreationSource] = useState<string | null>(null);
@@ -135,8 +139,8 @@ const CytoscapeRenderer = ({
         };
     }, []);
 
-    function getNodeLabelTemplateGenerator(): (data: Node['data']) => string {
-        return (data: Node['data']) => {
+    function getNodeLabelTemplateGenerator(): (data: NodeData) => string {
+        return (data: NodeData) => {
             console.log('Rendering node label:', data);
             if (data.isShell) {
                 console.log('This is a shell node', data);
@@ -241,7 +245,7 @@ const CytoscapeRenderer = ({
         if (cy) {
             // Transform nodes to match the required format
             const formattedNodes = nodes
-                .map((node) => {
+                .map((node: Node) => {
                     // Skip shell nodes
                     if (node.data.isShell) return null;
 
@@ -257,7 +261,7 @@ const CytoscapeRenderer = ({
 
             // Transform edges to relationships format
             const formattedRelationships = edges
-                .map((edge) => {
+                .map((edge: Edge) => {
                     // Skip shell edges
                     if (edge.data.isShell) return null;
 
@@ -299,7 +303,7 @@ const CytoscapeRenderer = ({
         }
     };
 
-    const updateElement = (updatedData: Node['data'] | Edge['data']) => {
+    const updateElement = (updatedData: NodeData | EdgeData) => {
         if (!cy) return;
 
         if (updatedData.isShell) {
@@ -311,14 +315,14 @@ const CytoscapeRenderer = ({
             element.data(updatedData);
 
             if ('type' in updatedData) {
-                setNodes((prev) =>
-                    prev.map((node) =>
-                        node.data.id === updatedData.id ? { ...node, data: updatedData } : node
+                setNodes((prev: Node[]) =>
+                    prev.map((node: Node) =>
+                        node.data.id === updatedData.id ? { ...node, data: updatedData as NodeData } : node
                     )
                 );
             } else if ('source' in updatedData && 'target' in updatedData) {
-                setEdges((prev) =>
-                    prev.map((edge) =>
+                setEdges((prev: Edge[]) =>
+                    prev.map((edge: Edge) =>
                         edge.data.id === updatedData.id ? { ...edge, data: updatedData } : edge
                     )
                 );
@@ -378,11 +382,11 @@ const CytoscapeRenderer = ({
             (cy as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
                 {
                     query: '.node',
-                    tpl: getNodeLabelTemplateGenerator(false),
+                    tpl: getNodeLabelTemplateGenerator(),
                 },
                 {
                     query: '.node:selected',
-                    tpl: getNodeLabelTemplateGenerator(true),
+                    tpl: getNodeLabelTemplateGenerator(),
                 },
             ]);
 
