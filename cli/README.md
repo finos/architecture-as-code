@@ -37,19 +37,24 @@ This command lets you create a shell of an architecture from a pattern file.
 You can try it out using the example patterns provided in this repo under `calm/pattern`.
 
 ```shell
-% calm generate --help
-Usage: calm generate [options]
+calm
+Usage: calm [options] [command]
 
-Generate an architecture from a CALM pattern file.
+A set of tools for interacting with the Common Architecture Language Model (CALM)
 
 Options:
-  -p, --pattern <file>          Path to the pattern file to use. May be a file path or a URL.
-  -o, --output <file>           Path location at which to output the generated file. (default: "architecture.json")
-  -s, --schemaDirectory <path>  Path to the directory containing the meta schemas to use.
-  -v, --verbose                 Enable verbose logging. (default: false)
-  -g, --generateAll             Generates all properties, ignoring the "required" field. (default: false)
-  -h, --help                    display help for command
+  -V, --version       output the version number
+  -h, --help          display help for command
+
+Commands:
+  generate [options]  Generate an architecture from a CALM pattern file.
+  validate [options]  Validate that an architecture conforms to a given CALM pattern.
+  server [options]    Start a HTTP server to proxy CLI commands. (experimental)
+  template [options]  Generate files from a CALM model using a Handlebars template bundle.
+  docify [options]    Generate a documentation website off your CALM model.
+  help [command]      display help for command
 ```
+
 
 The most simple way to use this command is to call it with only the pattern option, which will generate an architecture with the default filename `architecture.json` in the current working directory.
 
@@ -183,6 +188,70 @@ curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/vali
 curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/validate --data @cli/test_fixtures/validation_route/valid_instantiation.json
 
 
+```
+## CALM Template
+
+The CALM Template system allows users to generate different machine or human-readable outputs from a CALM model by providing a **template bundle**.
+
+```shell
+calm template --help
+Usage: calm template [options]
+
+Generate files from a CALM model using a Handlebars template bundle.
+
+Options:
+  --input <path>                      Path to the CALM model JSON file.
+  --bundle <path>                     Path to the template bundle directory.
+  --output <path>                     Path to output directory.
+  --url-to-local-file-mapping <path>  Path to mapping file which maps URLs to local paths.
+  -v, --verbose                       Enable verbose logging. (default: false)
+  -h, --help                          display help for command
+```
+
+### Creating a Template Bundle
+
+A template bundle consists of:
+
+- `index.json`: Defines the structure of the template and how it maps to CALM model elements.
+- A **CalmTemplateTransformer** implementation: Transforms the CALM model into a format that can be rendered by Handlebars.
+- Handlebar templates define the final output format.
+- The `--url-to-local-file-mapping` option allows you to provide a JSON file that maps external URLs to local files.  
+  This is useful when working with files that are not yet published but are referenced in the model.
+ 
+  Example content
+
+    ```json
+    {
+        "https://calm.finos.org/docuflow/flow/document-upload": "flows/flow-document-upload.json"
+    }
+    ```
+Sample usage would be as follows (assuming at root of project)
+```shell
+calm template --input ./cli/test_fixtures/template/model/document-system.json   --bundle cli/test_fixtures/template/template-bundles/doc-system   --output one_pager   --url-to-local-file-mapping cli/test_fixtures/template/model/url-to-file-directory.json -v
+```
+
+
+## CALM Docify
+
+The **CALM Docify** command generates documentation from a CALM model.
+
+```shell
+calm docify --help
+Usage: calm docify [options]
+
+Generate a documentation website off your CALM model.
+
+Options:
+  --input <path>                      Path to the CALM model JSON file.
+  --output <path>                     Path to output directory.
+  --url-to-local-file-mapping <path>  Path to mapping file which maps URLs to local paths.
+  -v, --verbose                       Enable verbose logging. (default: false)
+  -h, --help                          display help for command
+```
+Sample usage for you to try is as follows (assuming at root of project)
+
+```shell
+calm docify --input ./cli/test_fixtures/template/model/document-system.json --output ./output/documentation --url-to-local-file-mapping ./cli/test_fixtures/template/model/url-to-file-directory.json
 ```
 
 ## Coding for the CLI
