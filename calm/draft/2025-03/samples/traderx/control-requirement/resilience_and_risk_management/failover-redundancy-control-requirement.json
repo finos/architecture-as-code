@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/control-requirement/failover-redundancy",
+  "title": "Failover & Redundancy Requirement",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "failover-strategy": {
+      "enum": [
+        "active-active",
+        "active-passive",
+        "geo-redundant"
+      ],
+      "description": "Defines the failover strategy for handling system failures."
+    },
+    "recovery-time-objective": {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/units.json#/defs/time-unit",
+      "description": "Recovery Time Objective (RTO), the maximum time allowed to restore service after a failure."
+    },
+    "recovery-point-objective": {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/units.json#/defs/time-unit",
+      "description": "Recovery Point Objective (RPO), the maximum acceptable data loss measured in time."
+    },
+    "failover-mechanism": {
+      "enum": [
+        "DNS failover",
+        "Cloud region switching",
+        "Kubernetes auto-recovery",
+        "Load balancer failover"
+      ],
+      "description": "Mechanism used to handle failover."
+    }
+  },
+  "required": [
+    "failover-strategy",
+    "recovery-time-objective",
+    "recovery-point-objective",
+    "failover-mechanism"
+  ],
+  "examples": [
+    {
+      "failover-strategy": "active-active",
+      "recovery-time-objective": {
+        "unit": "seconds",
+        "value": 5
+      },
+      "recovery-point-objective": {
+        "unit": "seconds",
+        "value": 1
+      },
+      "failover-mechanism": "Load balancer failover"
+    },
+    {
+      "failover-strategy": "active-passive",
+      "recovery-time-objective": {
+        "unit": "minutes",
+        "value": 10
+      },
+      "recovery-point-objective": {
+        "unit": "minutes",
+        "value": 2
+      },
+      "failover-mechanism": "Cloud region switching"
+    },
+    {
+      "failover-strategy": "geo-redundant",
+      "recovery-time-objective": {
+        "unit": "minutes",
+        "value": 15
+      },
+      "recovery-point-objective": {
+        "unit": "minutes",
+        "value": 5
+      },
+      "failover-mechanism": "DNS failover"
+    }
+  ]
+}

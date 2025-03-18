@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/control-requirement/throughput",
+  "title": "Throughput Requirement",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "expected-message-rate": {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/units.json#/defs/rate-unit",
+      "description": "Define the expected message rate that the flow should handle (e.g., 1000 per second)."
+    },
+    "peak-message-rate": {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/units.json#/defs/rate-unit",
+      "description": "Define the peak message rate that the system should be capable of handling (e.g., 5000 per second during burst scenarios)."
+    }
+  },
+  "required": [
+    "expected-message-rate",
+    "peak-message-rate"
+  ],
+  "examples": [
+    {
+      "expected-message-rate": {
+        "rate": 1000,
+        "per": "second"
+      },
+      "peak-message-rate": {
+        "rate": 5000,
+        "per": "second"
+      }
+    },
+    {
+      "expected-message-rate": {
+        "rate": 500,
+        "per": "second"
+      },
+      "peak-message-rate": {
+        "rate": 2000,
+        "per": "second"
+      }
+    },
+    {
+      "expected-message-rate": {
+        "rate": 50,
+        "per": "minute"
+      },
+      "peak-message-rate": {
+        "rate": 200,
+        "per": "minute"
+      }
+    }
+  ]
+}
