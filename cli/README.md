@@ -288,7 +288,19 @@ There are currently two types of tests;
 
 ## Releasing the CLI
 
-Publishing of the CLI to NPM is controlled via [this action](https://github.com/finos/architecture-as-code/blob/main/.github/workflows/publish-cli-to-npm.yml) - this action is triggered whenever a GitHub release is created. To create a github release you can do one of the following;
+Before performing this process, one must update the [package.json](package.json) to represent the new version and tag that will be created.
+
+```json
+{
+  "name": "@finos/calm-cli",
+  "version": "0.6.0",
+  "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)"
+}
+```
+
+Once this is done, publishing of the CLI to NPM is controlled via [this action](https://github.com/finos/architecture-as-code/blob/main/.github/workflows/publish-cli-to-npm.yml) - this action is triggered whenever a GitHub release is created. To create a github release you can do one of the following;
+
+
 
 ### Through the Github UI
 
@@ -297,7 +309,7 @@ Publishing of the CLI to NPM is controlled via [this action](https://github.com/
 - Click the Draft a new release button.
 - Fill in:
   - Tag version: Enter the version number (e.g., v1.0.0).
-  - Release title: Name the release (e.g., "First Release").
+  - Release title: Name the release to be the same as the tag version
   - Description: Add details about what’s included in the release.
   - Target: Leave as main (or your default branch).
 - Click Publish release to create the release and trigger the workflow.
