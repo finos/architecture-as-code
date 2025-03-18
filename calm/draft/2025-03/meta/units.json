@@ -48,6 +48,48 @@
         }
       ]
     },
+    "rate-unit": {
+      "type": "object",
+      "description": "A unit representing a rate (e.g., operations per second).",
+      "properties": {
+        "rate": {
+          "type": "number",
+          "minimum": 0,
+          "description": "The numeric value representing the rate."
+        },
+        "per": {
+          "enum": [
+            "nanosecond",
+            "microsecond",
+            "millisecond",
+            "second",
+            "minute",
+            "hour",
+            "week",
+            "month",
+            "quarter",
+            "year"
+          ],
+          "description": "The time unit defining the rate interval."
+        }
+      },
+      "required": ["rate", "per"],
+      "additionalProperties": false,
+      "examples": [
+        {
+          "rate": 30,
+          "per": "second"
+        },
+        {
+          "rate": 1000,
+          "per": "minute"
+        },
+        {
+          "rate": 5,
+          "per": "millisecond"
+        }
+      ]
+    },
     "cron-expression": {
       "type": "string",
       "title": "Cron Expression",
