@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/control-requirement/latency",
+  "title": "Latency Requirement",
+  "type": "object",
+  "properties": {
+    "latency-classification": {
+      "enum": ["low-latency", "real-time", "batch-processing"],
+      "description": "Defines the type of latency requirement for the system."
+    },
+    "expected-latency": {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/units.json#/defs/time-unit",
+      "description": "The expected latency for completion of flow."
+    },
+    "alert-threshold": {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/units.json#/defs/time-unit",
+      "description": "If latency exceeds this threshold, an alert will be triggered."
+    }
+  },
+  "required": [
+    "latency-classification",
+    "expected-latency",
+    "alert-threshold"
+  ],
+  "examples": [
+    {
+      "latency-classification": "low-latency",
+      "expected-latency": {
+        "unit": "microseconds",
+        "value": 500
+      },
+      "alert-threshold": {
+        "unit": "microseconds",
+        "value": 1000
+      }
+    },
+    {
+      "latency-classification": "real-time",
+      "expected-latency": {
+        "unit": "milliseconds",
+        "value": 10
+      },
+      "alert-threshold": {
+        "unit": "milliseconds",
+        "value": 50
+      }
+    },
+    {
+      "latency-classification": "batch-processing",
+      "expected-latency": {
+        "unit": "seconds",
+        "value": 30
+      },
+      "alert-threshold": {
+        "unit": "seconds",
+        "value": 60
+      }
+    }
+  ]
+}

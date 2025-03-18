@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/control-requirement/change-management",
+  "title": "Change Management Requirement",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "change-approval-process": {
+      "enum": [
+        "Material Change Review",
+        "CAB Review",
+        "Peer Review",
+        "Automated Approval",
+        "Emergency Change Process"
+      ],
+      "description": "Defines the approval workflow for changes."
+    },
+    "change-impact-level": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "description": "Defines the potential impact of a change."
+    },
+    "versioning-policy": {
+      "enum": [
+        "semantic-versioning",
+        "incremental-versioning",
+        "date-based-versioning"
+      ],
+      "description": "Defines how changes to systems and data are versioned."
+    },
+    "deployment-strategy": {
+      "enum": [
+        "blue-green",
+        "canary",
+        "rolling",
+        "big-bang",
+        "feature-flag"
+      ],
+      "description": "Defines how changes are deployed to production."
+    },
+    "rollback-strategy": {
+      "enum": [
+        "automated-rollback",
+        "manual-intervention",
+        "phased-rollback",
+        "hotfix-reversal"
+      ],
+      "description": "Defines the rollback procedures in case of a failed change."
+    },
+    "change-window": {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/units.json#/cron-expression",
+      "description": "Defines the allowed deployment time window using a cron expression."
+    },
+    "time-zone": {
+      "type": "string",
+      "description": "Defines the time zone in which the change window is applied (e.g., UTC, America/New_York)."
+    }
+  },
+  "required": [
+    "change-approval-process",
+    "change-impact-level",
+    "versioning-policy",
+    "deployment-strategy",
+    "rollback-strategy",
+    "change-window",
+    "time-zone"
+  ],
+  "examples": [
+    {
+      "change-approval-process": "Material Change Review",
+      "change-impact-level": "high",
+      "versioning-policy": "semantic-versioning",
+      "deployment-strategy": "blue-green",
+      "rollback-strategy": "automated-rollback",
+      "change-window": "0 2 * * 0",
+      "time-zone": "UTC"
+    },
+    {
+      "change-approval-process": "CAB Review",
+      "change-impact-level": "medium",
+      "versioning-policy": "incremental-versioning",
+      "deployment-strategy": "canary",
+      "rollback-strategy": "manual-intervention",
+      "change-window": "30 23 * * 5",
+      "time-zone": "America/New_York"
+    },
+    {
+      "change-approval-process": "Emergency Change Process",
+      "change-impact-level": "low",
+      "versioning-policy": "date-based-versioning",
+      "deployment-strategy": "hotfix",
+      "rollback-strategy": "hotfix-reversal",
+      "change-window": "*/5 * * * *",
+      "time-zone": "UTC"
+    }
+  ]
+}
