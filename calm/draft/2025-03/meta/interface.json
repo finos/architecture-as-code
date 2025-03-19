@@ -187,7 +187,7 @@
              "$ref": "#/defs/protocol-interface-type"
           },
           "uniqueItems": 1,
-          "mainItems": 1
+          "minItems": 1
         }
       },
     "required": [
