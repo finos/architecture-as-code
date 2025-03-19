@@ -176,6 +176,39 @@
       "required": [
         "port"
       ]
-    }
+    },
+    "protocol-interface": {
+      "$ref": "#/defs/interface-type",
+      "type": "object",
+      "properties": {
+        "protocol": {
+          "type": "array",
+          "items": {
+             "$ref": "#/defs/protocol-interface-type"
+          },
+          "uniqueItems": 1,
+          "mainItems": 1
+        }
+      },
+    "required": [
+      "protocol"
+    ]
+    },
+    "protocol-interface-type": {
+      "enum": [
+        "HTTP",
+        "HTTPS",
+        "UDP",
+        "TCP",
+        "SOAP",
+        "REST",
+        "websocket",
+        "SNMP",
+        "JMXMP",
+        "KNX",
+        "PTCP",
+        "Other Protocol"
+      ]
   }
+}
 }
