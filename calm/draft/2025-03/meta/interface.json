@@ -176,6 +176,32 @@
       "required": [
         "port"
       ]
-    }
+    },
+    "data-exchange":{
+      "$ref": "#/defs/interface-type",
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "array",
+          "items": {
+            "$ref": "#/defs/exchange-format"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "format"
+      ]
+  },
+  "exchange-format": {
+    "enum": [
+      "binary",
+      "file-upload",
+      "json",
+      "text",
+      "xml",
+      "other"
+    ]
   }
+}
 }
