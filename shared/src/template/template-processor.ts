@@ -6,17 +6,22 @@ import { TemplateEngine } from './template-engine.js';
 import { CalmTemplateTransformer, IndexFile } from './types.js';
 import { TemplateBundleFileLoader } from './template-bundle-file-loader.js';
 import { initLogger } from '../logger.js';
+import { TemplateCalmFileDereferencer } from './template-calm-file-dereferencer.js';
+import { CompositeReferenceResolver } from '../resolver/calm-reference-resolver.js';
+
 
 export class TemplateProcessor {
     private readonly inputPath: string;
     private readonly templateBundlePath: string;
     private readonly outputPath: string;
+    private readonly urlToLocalPathMapping:Map<string, string>;
     private static logger = initLogger(process.env.DEBUG === 'true', TemplateProcessor.name);
 
-    constructor(inputPath: string, templateBundlePath: string, outputPath: string) {
+    constructor(inputPath: string, templateBundlePath: string, outputPath: string, urlToLocalPathMapping:Map<string,string>) {
         this.inputPath = inputPath;
         this.templateBundlePath = templateBundlePath;
         this.outputPath = outputPath;
+        this.urlToLocalPathMapping = urlToLocalPathMapping;
     }
 
     public async processTemplate(): Promise<void> {
@@ -25,6 +30,7 @@ export class TemplateProcessor {
         const resolvedInputPath = path.resolve(this.inputPath);
         const resolvedBundlePath = path.resolve(this.templateBundlePath);
         const resolvedOutputPath = path.resolve(this.outputPath);
+        const calmResolver =  new TemplateCalmFileDereferencer(this.urlToLocalPathMapping, new CompositeReferenceResolver());
 
         const config = new TemplateBundleFileLoader(this.templateBundlePath).getConfig();
 
@@ -37,7 +43,8 @@ export class TemplateProcessor {
 
             const transformer = this.loadTransformer(config.transformer, resolvedBundlePath);
 
-            const transformedModel = transformer.getTransformedModel(calmJson);
+            const calmJsonDereferenced = await calmResolver.dereferenceCalmDoc(calmJson);
+            const transformedModel = transformer.getTransformedModel(calmJsonDereferenced);
 
             const templateLoader = new TemplateBundleFileLoader(this.templateBundlePath);
             const engine = new TemplateEngine(templateLoader, transformer);
@@ -87,6 +94,10 @@ export class TemplateProcessor {
             register({
                 transpileOnly: true,
                 compilerOptions: {
+                    target: 'es2021',
+                    module: 'commonjs',
+                    moduleResolution: 'node',
+                    esModuleInterop: true,
                     sourceMap: true,
                     inlineSourceMap: true,
                     inlineSources: true,

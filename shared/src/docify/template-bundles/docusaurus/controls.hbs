@@ -1,0 +1,17 @@
+## Controls
+
+{{#if controls.length}}
+    {{#each controls}}
+
+        ### {{kebabToTitleCase controlId}}
+
+        {{description}}
+
+        {{#each requirements}}
+            {{> table-template.html data=controlConfigUrl}}
+        {{/each}}
+
+    {{/each}}
+{{else}}
+    _No controls defined._
+{{/if}}

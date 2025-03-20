@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/control-requirement/access-review",
+  "title": "Access Review Requirement",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/traderx/control-requirement/review-adjustments"
+    }
+  ],
+  "properties": {
+    "review-scope": {
+      "enum": [
+        "all-users",
+        "privileged-users-only",
+        "system-accounts"
+      ],
+      "description": "Defines the scope of users for access review."
+    },
+    "review-method": {
+      "enum": [
+        "manual",
+        "automated",
+        "hybrid"
+      ],
+      "description": "Defines whether access reviews are conducted manually, automatically, or using a hybrid approach."
+    },
+    "approval-requirement": {
+      "type": "boolean",
+      "description": "Indicates whether access review decisions require explicit approval."
+    },
+    "remediation-policy": {
+      "enum": [
+        "immediate-revocation",
+        "notification-only",
+        "escalation"
+      ],
+      "description": "Defines how access issues are handled post-review."
+    }
+  },
+  "required": [
+    "review-scope",
+    "review-method",
+    "approval-requirement",
+    "remediation-policy"
+  ],
+  "examples": [
+    {
+      "review-scope": "privileged-users-only",
+      "review-method": "manual",
+      "approval-requirement": true,
+      "remediation-policy": "immediate-revocation",
+      "review-type": "Access",
+      "review-frequency": {
+        "unit": "months",
+        "value": 3
+      },
+      "stakeholders": ["Security", "IT Admin"],
+      "adjustment-actions": "escalate-issues"
+    }
+  ]
+}

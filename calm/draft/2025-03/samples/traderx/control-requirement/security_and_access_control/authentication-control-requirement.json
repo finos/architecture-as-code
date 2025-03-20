@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/control-requirement/authentication",
+  "title": "Authentication Requirement",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "auth-method": {
+      "enum": [
+        "OAuth",
+        "JWT",
+        "API Key",
+        "Basic Auth"
+      ],
+      "description": "Defines the authentication mechanism."
+    },
+    "token-expiry": {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/units.json#/defs/time-unit",
+      "description": "Defines the lifespan of authentication tokens."
+    },
+    "mfa-required": {
+      "type": "boolean",
+      "description": "Indicates whether multi-factor authentication (MFA) is required."
+    },
+    "sso-enabled": {
+      "type": "boolean",
+      "description": "Indicates if authentication is integrated with Single Sign-On (SSO)."
+    },
+    "refresh-tokens": {
+      "type": "boolean",
+      "description": "Indicates if refresh tokens are supported for authentication."
+    },
+    "token-revocation": {
+      "type": "boolean",
+      "description": "Indicates whether tokens can be manually revoked upon logout."
+    }
+  },
+  "required": [
+    "auth-method",
+    "token-expiry",
+    "mfa-required",
+    "sso-enabled",
+    "refresh-tokens",
+    "token-revocation"
+  ],
+  "examples": [
+    {
+      "auth-method": "OAuth",
+      "token-expiry": {
+        "unit": "hours",
+        "value": 1
+      },
+      "mfa-required": true,
+      "sso-enabled": true,
+      "refresh-tokens": true,
+      "token-revocation": true
+    },
+    {
+      "auth-method": "API Key",
+      "token-expiry": {
+        "unit": "days",
+        "value": 30
+      },
+      "mfa-required": false,
+      "sso-enabled": false,
+      "refresh-tokens": false,
+      "token-revocation": false
+    }
+  ]
+}

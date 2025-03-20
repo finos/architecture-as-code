@@ -3,8 +3,8 @@ name: Sync Docs to S3
 on:
   workflow_dispatch: {}
   push:
-    branches: [ "main" ]
-    paths: [ "docs/**" ]
+    branches: ["main"]
+    paths: ["docs/**"]
 
 jobs:
   sync-to-s3:
@@ -14,25 +14,25 @@ jobs:
         working-directory: docs
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - uses: actions/setup-node@v4
-      with:
-        node-version: 18
-        cache: npm
-        cache-dependency-path: ./docs/package-lock.json
-    - name: Install dependencies
-      run: npm ci
-    - name: Build website
-      run: npm run build
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Build website
+        run: npm run build
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_S3_ACCESS_KEY }}
-        aws-secret-access-key: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
-    - name: Sync docs to S3
-      run: |
-        aws s3 sync build s3://calm.finos.org/ --delete --include "*" --exclude "draft/*" --exclude "samples/*" --exclude "video/*"
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_S3_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Sync docs to S3
+        run: |
+          aws s3 sync build s3://calm.finos.org/ --delete --include "*" --exclude "draft/*" --exclude "samples/*" --exclude "video/*"
