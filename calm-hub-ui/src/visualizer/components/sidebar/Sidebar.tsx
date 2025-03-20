@@ -1,5 +1,5 @@
 import './Sidebar.css';
-import { IoCloseOutline, IoPencil, IoSave, IoSaveOutline } from 'react-icons/io5';
+import { IoCloseOutline, IoPencil, IoSave, IoSaveOutline, IoTrashOutline } from 'react-icons/io5';
 import { Edge, Node } from '../cytoscape-renderer/CytoscapeRenderer.js';
 import { useEffect, useState } from 'react';
 
@@ -7,6 +7,9 @@ interface SidebarProps {
     selectedData: Node['data'] | Edge['data'];
     closeSidebar: () => void;
     updateElement: (updatedData: Node['data'] | Edge['data']) => void;
+    deleteElement: (elementId: string) => void;
+    nodes: Node[]; // Added to access all nodes for the edge creation dropdown
+    createEdge: (sourceId: string, targetId: string, label: string) => void;
 }
 
 function isCALMNodeData(data: Node['data'] | Edge['data']): data is Node['data'] {
@@ -17,7 +20,14 @@ function isCALMEdgeData(data: Node['data'] | Edge['data']): data is Edge['data']
     return data.id != null && data.source != null && data.target != null;
 }
 
-function Sidebar({ selectedData, closeSidebar, updateElement }: SidebarProps) {
+function Sidebar({
+    selectedData,
+    closeSidebar,
+    updateElement,
+    deleteElement,
+    nodes,
+    createEdge,
+}: SidebarProps) {
     // Determine if we have selected a node or edge or something else
     const isCALMNode = isCALMNodeData(selectedData);
     const isCALMEdge = isCALMEdgeData(selectedData);
@@ -27,11 +37,24 @@ function Sidebar({ selectedData, closeSidebar, updateElement }: SidebarProps) {
     const [isEditMode, setIsEditMode] = useState(isShell);
     const [editedData, setEditedData] = useState<Node['data'] | Edge['data']>({ ...selectedData });
 
+    const [targetNodeId, setTargetNodeId] = useState<string>('');
+    const [newEdgeLabel, setNewEdgeLabel] = useState<string>('New Connection');
+
+    const [keepConnectionPanelOpen, setKeepConnectionPanelOpen] = useState(false);
+
     // Reset the edited data when the selected data changes
     useEffect(() => {
         setEditedData({ ...selectedData });
         setIsEditMode(selectedData.isShell === true);
-    }, [selectedData]);
+
+        if (!keepConnectionPanelOpen) {
+            setTargetNodeId('');
+            setNewEdgeLabel('New Connection');
+        }
+
+        // Reset flag when changing selection
+        setKeepConnectionPanelOpen(false);
+    }, [selectedData, keepConnectionPanelOpen]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -45,9 +68,100 @@ function Sidebar({ selectedData, closeSidebar, updateElement }: SidebarProps) {
         }
         updateElement(updatedData);
         setIsEditMode(false);
+
+        if (isShell && isCALMNode) {
+            setKeepConnectionPanelOpen(true);
+        }
+    };
+
+    const handleDelete = () => {
+        deleteElement(selectedData.id);
+        closeSidebar();
+    };
+
+    const handleCreateEdge = () => {
+        if (targetNodeId) {
+            createEdge(selectedData.id, targetNodeId, newEdgeLabel);
+            // Reset form
+            setTargetNodeId('');
+            setNewEdgeLabel('New Connection');
+
+            setKeepConnectionPanelOpen(true);
+        }
+    };
+
+    // Function to render edge creation panel
+    const renderEdgeCreationPanel = () => {
+        if (!isCALMNode || isEditMode || isShell) return null;
+
+        // Filter out current node and shell nodes for dropdown
+        const availableTargetNodes = nodes.filter(
+            (node) => node.data.id !== selectedData.id && !node.data.isShell
+        );
+
+        if (availableTargetNodes.length === 0) {
+            return (
+                <div className="mt-6 p-3 border border-blue-200 rounded-lg bg-blue-50">
+                    <h3 className="font-medium text-blue-800 mb-2">Create Connection</h3>
+                    <p className="text-sm text-gray-600">
+                        No other nodes available to connect to. Create more nodes first.
+                    </p>
+                </div>
+            );
+        }
+
+        return (
+            <div className="mt-6 p-3 border border-blue-200 rounded-lg bg-blue-50">
+                <h3 className="font-medium text-blue-800 mb-2">Create Connection</h3>
+
+                <div className="space-y-3">
+                    <div>
+                        <label className="block text-sm text-gray-600">Connect to node:</label>
+                        <select
+                            className="select select-bordered w-full mt-1"
+                            value={targetNodeId}
+                            onChange={(e) => setTargetNodeId(e.target.value)}
+                            aria-label="Dropdown for node selection"
+                        >
+                            <option value="" disabled>
+                                Select a target node
+                            </option>
+                            {availableTargetNodes.map((node) => (
+                                <option key={node.data.id} value={node.data.id}>
+                                    {node.data.label || node.data.id}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm text-gray-600">Connection label:</label>
+                        <input
+                            type="text"
+                            className="input input-bordered w-full mt-1"
+                            value={newEdgeLabel}
+                            onChange={(e) => setNewEdgeLabel(e.target.value)}
+                            placeholder="Describe the connection"
+                        />
+                    </div>
+
+                    <div className="flex justify-between mt-2">
+                        <button
+                            className="btn btn-sm btn-primary"
+                            onClick={handleCreateEdge}
+                            disabled={!targetNodeId}
+                        >
+                            Create Connection
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     const canEditID = isCALMNode && selectedData.isShell === true;
+    const isNewlyCreated =
+        selectedData.id.startsWith('node-') || selectedData.id.startsWith('edge-');
     return (
         <div className="right-0 h-screen w-80 bg-base-300">
             <label
@@ -73,16 +187,6 @@ function Sidebar({ selectedData, closeSidebar, updateElement }: SidebarProps) {
                         )}
                     </div>
                     <div className="flex gap-2">
-                        {!isEditMode && (
-                            <button
-                                onClick={() => setIsEditMode(true)}
-                                className="btn btn-square btn-sm bg-blue-500 hover:bg-blue-600 text-white"
-                                aria-label="Edit details"
-                            >
-                                <IoPencil size={20} />
-                            </button>
-                        )}
-
                         <button
                             aria-label="close-sidebar"
                             onClick={(e) => {
@@ -243,14 +347,26 @@ function Sidebar({ selectedData, closeSidebar, updateElement }: SidebarProps) {
                                 </p>
                             </div>
                         )}
-                        <div className="flex justify-end">
+
+                        <div className="flex justify-end mt-4">
                             <button
-                                onClick={saveChanges}
-                                className="btn btn-primary flex items-center gap-2"
-                                aria-label="Creat or Save changes"
+                                onClick={handleDelete}
+                                className="btn btn-error flex items-center gap-2 mr-2"
+                                aria-label="Delete element"
                             >
-                                <IoSaveOutline size={20} /> {isShell ? 'Create' : 'Save Changes'}
+                                <IoTrashOutline size={20} /> Delete
                             </button>
+
+                            {isEditMode && (
+                                <button
+                                    onClick={saveChanges}
+                                    className="btn btn-primary flex items-center gap-2 ml-2"
+                                    aria-label="Create or Save changes"
+                                >
+                                    <IoSaveOutline size={20} />
+                                    {isShell ? 'Create' : 'Save Changes'}
+                                </button>
+                            )}
                         </div>
                     </div>
                 ) : (
@@ -279,6 +395,7 @@ function Sidebar({ selectedData, closeSidebar, updateElement }: SidebarProps) {
                                         {selectedData.description || '(No description)'}
                                     </p>
                                 </div>
+                                {renderEdgeCreationPanel()}
                             </>
                         )}
 
@@ -308,6 +425,26 @@ function Sidebar({ selectedData, closeSidebar, updateElement }: SidebarProps) {
                         {!isCALMEdge && !isCALMNode && (
                             <div className="text-xl font-bold mb-2">Unknown Selected Entity</div>
                         )}
+
+                        <div className="flex justify-between mt-4">
+                            {isNewlyCreated && (
+                                <button
+                                    onClick={handleDelete}
+                                    className="btn btn-error flex items-center gap-2"
+                                    aria-label="Delete element"
+                                >
+                                    <IoTrashOutline size={20} /> Delete
+                                </button>
+                            )}
+
+                            <button
+                                onClick={() => setIsEditMode(true)}
+                                className="btn btn-primary flex items-center gap-2 ${isNewlyCreated ? '' : 'w-full'}`}"
+                                aria-label="Edit element"
+                            >
+                                <IoPencil size={20} /> Edit
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
