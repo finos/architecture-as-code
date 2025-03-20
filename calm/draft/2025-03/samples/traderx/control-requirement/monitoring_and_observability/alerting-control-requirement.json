@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/control-requirement/alerting",
+  "title": "Alerting & Notification Requirement",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "alert-types": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "email",
+          "pager",
+          "slack",
+          "sms"
+        ]
+      },
+      "description": "Defines the notification channels used for alerting."
+    },
+    "alert-severity-levels": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "LOW",
+          "MEDIUM",
+          "HIGH",
+          "CRITICAL"
+        ]
+      },
+      "description": "Defines the severity levels for alerts."
+    },
+    "alert-response-time": {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/units.json#/defs/time-unit",
+      "description": "Defines the expected response time for each alert."
+    }
+  },
+  "required": [
+    "alert-types",
+    "alert-severity-levels",
+    "alert-response-time"
+  ],
+  "examples": [
+    {
+      "alert-types": ["slack", "pager"],
+      "alert-severity-levels": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+      "alert-response-time": {
+        "unit": "minutes",
+        "value": 5
+      }
+    }
+  ]
+}

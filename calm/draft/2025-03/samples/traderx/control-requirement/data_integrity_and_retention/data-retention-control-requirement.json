@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/control-requirement/data-retention",
+  "title": "Data Retention Requirement",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "retention-period": {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/units.json#/defs/time-unit",
+      "description": "Defines how long data must be retained before deletion or archival."
+    },
+    "retention-policy": {
+      "enum": [
+        "delete",
+        "archive",
+        "anonymize",
+        "encrypt",
+        "move-to-cold-storage"
+      ],
+      "description": "Defines what happens when the retention period expires."
+    },
+    "data-scope": {
+      "enum": [
+        "structured",
+        "unstructured",
+        "log-data",
+        "metadata"
+      ],
+      "description": "Defines the type of data covered by the retention policy."
+    },
+    "compliance-requirement": {
+      "enum": [
+        "GDPR",
+        "HIPAA",
+        "SOX",
+        "Internal"
+      ],
+      "description": "Defines if the retention policy is tied to a regulatory requirement."
+    },
+    "retention-storage-location": {
+      "type": "string",
+      "description": "Defines where retained or archived data is stored (e.g., encrypted vault, cold storage, compliance archive)."
+    }
+  },
+  "required": [
+    "retention-period",
+    "retention-policy",
+    "data-scope"
+  ],
+  "examples": [
+    {
+      "retention-period": {
+        "unit": "years",
+        "value": 7
+      },
+      "retention-policy": "archive",
+      "data-scope": "structured",
+      "compliance-requirement": "SOX",
+      "retention-storage-location": "cold-storage"
+    },
+    {
+      "retention-period": {
+        "unit": "days",
+        "value": 90
+      },
+      "retention-policy": "delete",
+      "data-scope": "log-data",
+      "compliance-requirement": "Internal"
+    },
+    {
+      "retention-period": {
+        "unit": "months",
+        "value": 24
+      },
+      "retention-policy": "anonymize",
+      "data-scope": "metadata",
+      "compliance-requirement": "GDPR",
+      "retention-storage-location": "encrypted-vault"
+    }
+  ]
+}

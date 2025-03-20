@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/control-requirement/regulatory-compliance",
+  "title": "Regulatory Compliance Requirement",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/traderx/control-requirement/review-adjustments"
+    }
+  ],
+  "properties": {
+    "compliance-frameworks": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "GDPR",
+          "SOC 2",
+          "ISO 27001",
+          "PCI DSS",
+          "HIPAA"
+        ]
+      },
+      "description": "Defines the regulatory frameworks the system must comply with."
+    },
+    "audit-requirements": {
+      "type": "string",
+      "description": "Specifies the documentation and processes required for compliance audits."
+    },
+    "non-compliance-action": {
+      "enum": [
+        "escalate",
+        "audit",
+        "mitigate",
+        "notify",
+        "penalty"
+      ],
+      "description": "Defines what actions should be taken if compliance violations are detected."
+    }
+  },
+  "required": [
+    "compliance-frameworks",
+    "audit-requirements",
+    "non-compliance-action"
+  ],
+  "examples": [
+    {
+      "compliance-frameworks": ["GDPR"],
+      "audit-requirements": "Maintain user consent logs for at least 5 years.",
+      "non-compliance-action": "escalate",
+      "review-type": "Compliance",
+      "review-frequency": {
+        "unit": "years",
+        "value": 1
+      },
+      "stakeholders": ["Legal", "Compliance"],
+      "adjustment-actions": "update-policy"
+    }
+  ]
+}

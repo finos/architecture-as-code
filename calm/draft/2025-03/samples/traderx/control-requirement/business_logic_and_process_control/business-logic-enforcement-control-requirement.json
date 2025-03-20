@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/control-requirement/business-logic-enforcement",
+  "title": "Business Logic Enforcement Requirement",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "mandatory-business-rules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Defines mandatory business rules that must be enforced (e.g., order limits, compliance checks)."
+    },
+    "real-time-enforcement": {
+      "type": "boolean",
+      "description": "Indicates whether business rules should be enforced in real-time."
+    },
+    "enforcement-level": {
+      "enum": [
+        "strict",
+        "advisory",
+        "configurable"
+      ],
+      "description": "Defines the level of enforcement for business rules."
+    },
+    "rule-scope": {
+      "enum": [
+        "transaction",
+        "workflow",
+        "policy"
+      ],
+      "description": "Specifies whether business rules apply to transactions, workflows, or policies."
+    },
+    "exception-handling": {
+      "enum": [
+        "block",
+        "warn",
+        "escalate"
+      ],
+      "description": "Defines how violations should be handled (block, warn user, or escalate)."
+    },
+    "audit-tracking": {
+      "type": "boolean",
+      "description": "Indicates whether business rule violations should be logged for auditing purposes."
+    },
+    "audit-log-location": {
+      "type": "string",
+      "description": "Defines where audit logs are stored (e.g., SIEM, compliance database)."
+    }
+  },
+  "required": [
+    "mandatory-business-rules",
+    "real-time-enforcement",
+    "enforcement-level",
+    "rule-scope",
+    "exception-handling",
+    "audit-tracking"
+  ],
+  "examples": [
+    {
+      "mandatory-business-rules": ["Order must not exceed risk limit", "All trades must pass compliance checks"],
+      "real-time-enforcement": true,
+      "enforcement-level": "strict",
+      "rule-scope": "transaction",
+      "exception-handling": "block",
+      "audit-tracking": true,
+      "audit-log-location": "SIEM"
+    },
+    {
+      "mandatory-business-rules": ["Workflow approval required before executing large trades"],
+      "real-time-enforcement": false,
+      "enforcement-level": "advisory",
+      "rule-scope": "workflow",
+      "exception-handling": "warn",
+      "audit-tracking": false
+    },
+    {
+      "mandatory-business-rules": ["All policies must be reviewed every 6 months"],
+      "real-time-enforcement": false,
+      "enforcement-level": "configurable",
+      "rule-scope": "policy",
+      "exception-handling": "escalate",
+      "audit-tracking": true,
+      "audit-log-location": "compliance-database"
+    }
+  ]
+}

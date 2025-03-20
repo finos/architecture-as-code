@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/control-requirement/resource-utilization",
+  "title": "Resource Utilization Requirement",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "cpu-limit": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Defines the CPU utilization limit in percentage (0-100)."
+    },
+    "cpu-alert-threshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Defines the CPU usage threshold percentage that triggers an alert."
+    },
+    "memory-limit": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Defines the memory utilization limit in percentage (0-100)."
+    },
+    "memory-alert-threshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Defines the memory usage threshold percentage that triggers an alert."
+    },
+    "disk-usage-limit": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Defines the disk usage limit in percentage (0-100)."
+    },
+    "disk-alert-threshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Defines the disk usage threshold percentage that triggers an alert."
+    },
+    "network-utilization-limit": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Defines the network utilization limit in percentage (0-100)."
+    },
+    "network-alert-threshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Defines the network utilization threshold percentage that triggers an alert."
+    }
+  },
+  "required": [
+    "cpu-limit",
+    "cpu-alert-threshold",
+    "memory-limit",
+    "memory-alert-threshold",
+    "disk-usage-limit",
+    "disk-alert-threshold",
+    "network-utilization-limit",
+    "network-alert-threshold"
+  ],
+  "examples": [
+    {
+      "cpu-limit": 80,
+      "cpu-alert-threshold": 75,
+      "memory-limit": 75,
+      "memory-alert-threshold": 70,
+      "disk-usage-limit": 70,
+      "disk-alert-threshold": 65,
+      "network-utilization-limit": 85,
+      "network-alert-threshold": 80
+    },
+    {
+      "cpu-limit": 50,
+      "cpu-alert-threshold": 45,
+      "memory-limit": 60,
+      "memory-alert-threshold": 55,
+      "disk-usage-limit": 80,
+      "disk-alert-threshold": 75,
+      "network-utilization-limit": 40,
+      "network-alert-threshold": 35
+    },
+    {
+      "cpu-limit": 90,
+      "cpu-alert-threshold": 85,
+      "memory-limit": 90,
+      "memory-alert-threshold": 85,
+      "disk-usage-limit": 95,
+      "disk-alert-threshold": 90,
+      "network-utilization-limit": 90,
+      "network-alert-threshold": 85
+    }
+  ]
+}

@@ -85,7 +85,7 @@ program
 
 program
     .command('docify')
-    .description('Generate files from a CALM model using a Handlebars template bundle')
+    .description('Generate a documentation website off your CALM model')
     .requiredOption('--input <path>', 'Path to the CALM model JSON file')
     .requiredOption('--output <path>', 'Path to output directory')
     .option('--url-to-local-file-mapping <path>', 'Path to mapping file which maps URLs to local paths')
