@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/control-requirement/approval-workflow",
+  "title": "Approval Workflow Requirement",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "approval-required": {
+      "type": "boolean",
+      "description": "Indicates whether an approval process is required before execution."
+    },
+    "approval-method": {
+      "enum": [
+        "manual",
+        "automated",
+        "hybrid"
+      ],
+      "description": "Defines how approval is granted (manual review, automated checks, or a mix of both)."
+    },
+    "approval-tiers": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "manager",
+          "senior-architect",
+          "compliance",
+          "security-review",
+          "executive-approval",
+          "peer-review"
+        ]
+      },
+      "description": "Defines the levels of approval required."
+    },
+    "approval-time-limit": {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/units.json#/defs/time-unit",
+      "description": "Defines the maximum time allowed for an approval decision."
+    },
+    "escalation-policy": {
+      "enum": [
+        "auto-approve",
+        "notify-escalation-chain",
+        "block-action",
+        "reassign-to-fallback"
+      ],
+      "description": "Defines what happens if approval is delayed or rejected."
+    },
+    "fallback-approver": {
+      "type": "string",
+      "description": "Defines an alternative approver in case of escalation."
+    }
+  },
+  "required": [
+    "approval-required",
+    "approval-method",
+    "approval-tiers",
+    "approval-time-limit",
+    "escalation-policy"
+  ],
+  "examples": [
+    {
+      "approval-required": true,
+      "approval-method": "manual",
+      "approval-tiers": ["manager", "senior-architect"],
+      "approval-time-limit": {
+        "unit": "days",
+        "value": 2
+      },
+      "escalation-policy": "notify-escalation-chain",
+      "fallback-approver": "Director of Engineering"
+    },
+    {
+      "approval-required": true,
+      "approval-method": "automated",
+      "approval-tiers": ["security-review", "compliance"],
+      "approval-time-limit": {
+        "unit": "hours",
+        "value": 6
+      },
+      "escalation-policy": "auto-approve"
+    },
+    {
+      "approval-required": false,
+      "approval-method": "hybrid",
+      "approval-tiers": ["peer-review"],
+      "approval-time-limit": {
+        "unit": "minutes",
+        "value": 30
+      },
+      "escalation-policy": "block-action"
+    }
+  ]
+}

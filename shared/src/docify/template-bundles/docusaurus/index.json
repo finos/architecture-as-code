@@ -1,0 +1,81 @@
+{
+  "name": "docusaurus-docs",
+  "transformer": "docusaurus-transformer",
+  "templates": [
+    {
+      "template": "node.mdx.hbs",
+      "from": "nodes",
+      "output": "docs/nodes/{{id}}.md",
+      "output-type": "repeated",
+      "partials": [
+        "controls.hbs",
+        "relationships.hbs",
+        "table-template.html",
+        "row-template.html"
+      ]
+    },
+    {
+      "template": "sidebar.js.hbs",
+      "from": "docs",
+      "output": "sidebars.js",
+      "output-type": "single"
+    },
+    {
+      "template": "docusaurus.config.js",
+      "from": "docs",
+      "output": "docusaurus.config.js",
+      "output-type": "single"
+    },
+    {
+      "template": "remark-replace-links.js",
+      "from": "docs",
+      "output": "src/remark/remark-replace-links.js",
+      "output-type": "single"
+    },
+    {
+      "template": "custom.css",
+      "from": "docs",
+      "output": "static/css/custom.css",
+      "output-type": "single"
+    },
+    {
+      "template": "index.md.hbs",
+      "from": "docs",
+      "output": "docs/index.md",
+      "output-type": "single",
+      "partials": [
+        "c4-container.hbs"
+      ]
+    },
+    {
+      "template": "package.json",
+      "from": "docs",
+      "output": "package.json",
+      "output-type": "single"
+    },
+    {
+      "template": "json-doc.mdx.hbs",
+      "from": "controls",
+      "output": "docs/controls/{{id}}.md",
+      "output-type": "repeated"
+    },
+    {
+      "template": "control-requirement.hbs",
+      "from": "controlReqs",
+      "output": "docs/control-requirements/{{id}}.md",
+      "output-type": "repeated"
+    },
+    {
+      "template": "flow.mdx.hbs",
+      "from": "flows",
+      "output": "docs/flows/{{id}}.md",
+      "output-type": "repeated",
+      "partials": [
+        "controls.hbs",
+        "flow-sequence.hbs",
+        "table-template.html",
+        "row-template.html"
+      ]
+    }
+  ]
+}

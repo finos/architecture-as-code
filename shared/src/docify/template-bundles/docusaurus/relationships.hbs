@@ -1,0 +1,29 @@
+```mermaid
+graph TD;
+{{id}}[{{id}}]:::highlight;
+{{#each relatedRelationships}}
+{{#if (instanceOf relationshipType "CalmInteractsType")}}
+{{#each relationshipType.nodes}}
+{{../relationshipType.actor}} -- Interacts --> {{this}};
+{{/each}}
+{{else if (instanceOf relationshipType "CalmConnectsType")}}
+{{relationshipType.source.node }} -- Connects --> {{relationshipType.destination.node}};
+{{else if (instanceOf relationshipType "CalmComposedOfType")}}
+{{#if (eq relationshipType.container ../id)}}
+{{#each relationshipType.nodes}}
+{{../relationshipType.container}} -- Composed Of --> {{this}};
+{{/each}}
+{{/if}}
+{{#each relationshipType.nodes}}
+{{#if (eq this ../../id)}}
+{{../relationshipType.container}} -- Composed Of --> {{this}};
+{{/if}}
+
+{{/each}}
+{{/if}}
+{{/each}}
+
+classDef highlight fill:#f2bbae;
+
+```
+

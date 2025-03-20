@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/control-requirement/escalation-path",
+  "title": "Escalation Path Requirement",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "incident-severity-levels": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "LOW",
+          "MEDIUM",
+          "HIGH",
+          "CRITICAL"
+        ]
+      },
+      "description": "Defines different severity levels for incidents."
+    },
+    "escalation-levels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tier": {
+            "type": "string",
+            "description": "The team or individual responsible at this escalation level."
+          },
+          "response-time": {
+            "$ref": "https://calm.finos.org/draft/2025-03/meta/units.json#/defs/time-unit",
+            "description": "Expected response time for this escalation level."
+          }
+        },
+        "required": ["tier", "response-time"],
+        "additionalProperties": false
+      },
+      "description": "Defines escalation levels in sequence, each with its response-time target."
+    }
+  },
+  "required": [
+    "incident-severity-levels",
+    "escalation-levels"
+  ],
+  "examples": [
+    {
+      "incident-severity-levels": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+      "escalation-levels": [
+        {
+          "tier": "Support Team",
+          "response-time": {
+            "unit": "minutes",
+            "value": 60
+          }
+        },
+        {
+          "tier": "On-Call Engineer",
+          "response-time": {
+            "unit": "minutes",
+            "value": 30
+          }
+        },
+        {
+          "tier": "Incident Manager",
+          "response-time": {
+            "unit": "minutes",
+            "value": 15
+          }
+        },
+        {
+          "tier": "Executive Leadership",
+          "response-time": {
+            "unit": "minutes",
+            "value": 5
+          }
+        }
+      ]
+    },
+    {
+      "incident-severity-levels": ["MEDIUM", "HIGH", "CRITICAL"],
+      "escalation-levels": [
+        {
+          "tier": "L1 Support",
+          "response-time": {
+            "unit": "minutes",
+            "value": 45
+          }
+        },
+        {
+          "tier": "L2 Engineering",
+          "response-time": {
+            "unit": "minutes",
+            "value": 20
+          }
+        },
+        {
+          "tier": "CTO Office",
+          "response-time": {
+            "unit": "minutes",
+            "value": 10
+          }
+        }
+      ]
+    }
+  ]
+}
