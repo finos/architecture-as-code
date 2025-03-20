@@ -1,0 +1,34 @@
+<h1>{{title}}</h1>
+<p>{{description}}</p>
+
+<h2>Nodes</h2>
+<ul>
+{{#each nodes}}
+    <li><strong>{{name}}</strong> ({{node-type}}): {{description}}</li>
+{{/each}}
+</ul>
+
+<h2>Relationships</h2>
+<ul>
+    {{#each relationships}}
+    <li>{{description}}</li>
+    {{/each}}
+</ul>
+
+<h2>Flows</h2>
+{{#each flows}}
+{{#if unique-id}}
+<div>
+    <h3>{{name}} ({{unique-id}})</h3>
+    <p>{{description}}</p>
+    <h4>Transitions</h4>
+    <ul>
+    {{#each transitions}}
+        <li>Sequence {{sequence-number}}: {{summary}} (Relationship: {{relationship-unique-id}})</li>
+    {{/each}}
+    </ul>
+</div>
+{{else}}
+<div>{{this}}</div>
+    {{/if}}
+{{/each}}

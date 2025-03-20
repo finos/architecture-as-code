@@ -1,0 +1,12 @@
+{
+  "name": "Bundle with Dereferencing",
+  "transformer": "deref-transformer",
+  "templates": [
+    {
+      "template": "main.hbs",
+      "from": "document",
+      "output": "deref-output.html",
+      "output-type": "single"
+    }
+  ]
+}

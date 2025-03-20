@@ -27,7 +27,8 @@ describe('TemplateProcessor E2E', () => {
         const processor = new TemplateProcessor(
             path.join(DATA_DIR, 'simple-nodes.json'),
             path.join(FIXTURES_DIR, 'bundles/single-file'),
-            OUTPUT_DIR
+            OUTPUT_DIR,
+            new Map<string, string>()
         );
         await processor.processTemplate();
 
@@ -41,7 +42,8 @@ describe('TemplateProcessor E2E', () => {
         const processor = new TemplateProcessor(
             path.join(DATA_DIR, 'missing.json'),
             path.join(FIXTURES_DIR, 'bundles/single-file'),
-            OUTPUT_DIR
+            OUTPUT_DIR,
+            new Map<string, string>()
         );
         await expect(processor.processTemplate()).rejects.toThrow('CALM model file not found');
     });
@@ -50,7 +52,8 @@ describe('TemplateProcessor E2E', () => {
         const processor = new TemplateProcessor(
             path.join(DATA_DIR, 'simple-nodes.json'),
             path.join(FIXTURES_DIR, 'bundles/missing-index'),
-            OUTPUT_DIR
+            OUTPUT_DIR,
+            new Map<string, string>()
         );
         await expect(processor.processTemplate()).rejects.toThrow('index.json not found in template bundle');
     });
@@ -59,7 +62,8 @@ describe('TemplateProcessor E2E', () => {
         const processor = new TemplateProcessor(
             path.join(DATA_DIR, 'simple-nodes.json'),
             path.join(FIXTURES_DIR, 'bundles/missing-transformer'),
-            OUTPUT_DIR
+            OUTPUT_DIR,
+            new Map<string, string>()
         );
         await expect(processor.processTemplate()).rejects.toThrow('Transformer file not found');
     });
@@ -68,7 +72,8 @@ describe('TemplateProcessor E2E', () => {
         const processor = new TemplateProcessor(
             path.join(DATA_DIR, 'simple-nodes.json'),
             path.join(FIXTURES_DIR, 'bundles/bad-transformer'),
-            OUTPUT_DIR
+            OUTPUT_DIR,
+            new Map<string, string>()
         );
         await expect(processor.processTemplate()).rejects.toThrow('❌ Error generating template: ❌ Error loading transformer: TransformerClass is not a constructor');
     });
@@ -77,7 +82,8 @@ describe('TemplateProcessor E2E', () => {
         const processor = new TemplateProcessor(
             path.join(DATA_DIR, 'simple-nodes.json'),
             path.join(FIXTURES_DIR, 'bundles/failing-transformer'),
-            OUTPUT_DIR
+            OUTPUT_DIR,
+            new Map<string, string>()
         );
         await expect(processor.processTemplate()).rejects.toThrow('Error loading transformer');
     });
@@ -86,7 +92,8 @@ describe('TemplateProcessor E2E', () => {
         const processor = new TemplateProcessor(
             path.join(DATA_DIR, 'document-system.json'),
             path.join(FIXTURES_DIR, 'bundles/with-partials'),
-            OUTPUT_DIR
+            OUTPUT_DIR,
+            new Map<string, string>()
         );
         await processor.processTemplate();
 
@@ -105,7 +112,8 @@ describe('TemplateProcessor E2E', () => {
         const processor = new TemplateProcessor(
             path.join(DATA_DIR, 'simple-nodes.json'),
             path.join(FIXTURES_DIR, 'bundles/repeated'),
-            OUTPUT_DIR
+            OUTPUT_DIR,
+            new Map<string, string>()
         );
         await processor.processTemplate();
 
@@ -119,7 +127,8 @@ describe('TemplateProcessor E2E', () => {
         const processor = new TemplateProcessor(
             path.join(DATA_DIR, 'document-system.json'),
             path.join(FIXTURES_DIR, 'bundles/js-transformer'),
-            OUTPUT_DIR
+            OUTPUT_DIR,
+            new Map<string, string>()
         );
         await processor.processTemplate();
 
@@ -131,6 +140,25 @@ describe('TemplateProcessor E2E', () => {
         const actualContent = fs.readFileSync(actualFile, 'utf8').trim();
         const expectedContent = fs.readFileSync(expectedFile, 'utf8').trim();
 
+        expect(actualContent).toEqual(expectedContent);
+    });
+
+    it('should process a bundle with URL dereferencing', async () => {
+        const mapping = new Map<string, string>([
+            ['https://calm.finos.org/docuflow/flow/document-upload', path.join(DATA_DIR, 'flow-document-upload.json')]
+        ]);
+        const processor = new TemplateProcessor(
+            path.join(DATA_DIR, 'document-system.json'),
+            path.join(FIXTURES_DIR, 'bundles/dereferencing-transformer'),
+            OUTPUT_DIR,
+            mapping
+        );
+        await processor.processTemplate();
+        const actualFile = path.join(OUTPUT_DIR, 'deref-output.html');
+        const expectedFile = path.join(EXPECTED_OUTPUT_DIR, 'deref-output.html');
+        expect(fs.existsSync(actualFile)).toBe(true);
+        const actualContent = fs.readFileSync(actualFile, 'utf8').trim();
+        const expectedContent = fs.readFileSync(expectedFile, 'utf8').trim();
         expect(actualContent).toEqual(expectedContent);
     });
 

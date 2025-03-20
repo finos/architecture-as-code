@@ -2,6 +2,7 @@ import { TemplateEngine } from './template-engine';
 import { TemplateBundleFileLoader } from './template-bundle-file-loader';
 import { CalmTemplateTransformer, IndexFile } from './types';
 import fs from 'fs';
+import path from 'path';
 
 jest.mock('fs');
 
@@ -24,7 +25,6 @@ describe('TemplateEngine', () => {
 
         loggerInfoSpy = jest.spyOn(TemplateEngine['logger'], 'info').mockImplementation(jest.fn());
         loggerWarnSpy = jest.spyOn(TemplateEngine['logger'], 'warn').mockImplementation(jest.fn());
-
     });
 
     afterEach(() => {
@@ -105,7 +105,9 @@ describe('TemplateEngine', () => {
         mockFileLoader.getConfig.mockReturnValue(templateConfig);
         mockFileLoader.getTemplateFiles.mockReturnValue(templateFiles);
 
-        jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
+        jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+        const mkdirSyncSpy = jest.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
+        const writeFileSyncSpy = jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
 
         const engine = new TemplateEngine(mockFileLoader, mockTransformer);
 
@@ -118,9 +120,12 @@ describe('TemplateEngine', () => {
 
         engine.generate(userData, '/output');
 
-        expect(fs.writeFileSync).toHaveBeenCalledTimes(2);
-        expect(fs.writeFileSync).toHaveBeenCalledWith('/output/1.txt', 'User: Alice', 'utf8');
-        expect(fs.writeFileSync).toHaveBeenCalledWith('/output/2.txt', 'User: Bob', 'utf8');
+        expect(mkdirSyncSpy).toHaveBeenCalledWith('/output', { recursive: true });
+        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname('/output/1.txt'), { recursive: true });
+        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname('/output/2.txt'), { recursive: true });
+        expect(writeFileSyncSpy).toHaveBeenCalledTimes(2);
+        expect(writeFileSyncSpy).toHaveBeenCalledWith('/output/1.txt', 'User: Alice', 'utf8');
+        expect(writeFileSyncSpy).toHaveBeenCalledWith('/output/2.txt', 'User: Bob', 'utf8');
     });
 
     it('should handle single output templates', () => {
@@ -137,7 +142,9 @@ describe('TemplateEngine', () => {
         mockFileLoader.getConfig.mockReturnValue(templateConfig);
         mockFileLoader.getTemplateFiles.mockReturnValue(templateFiles);
 
-        jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
+        jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+        const mkdirSyncSpy = jest.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
+        const writeFileSyncSpy = jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
 
         const engine = new TemplateEngine(mockFileLoader, mockTransformer);
 
@@ -145,8 +152,10 @@ describe('TemplateEngine', () => {
 
         engine.generate(testData, '/output');
 
-        expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
-        expect(fs.writeFileSync).toHaveBeenCalledWith('/output/output.txt', 'User: Alice', 'utf8');
+        expect(mkdirSyncSpy).toHaveBeenCalledWith('/output', { recursive: true });
+        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname('/output/output.txt'), { recursive: true });
+        expect(writeFileSyncSpy).toHaveBeenCalledTimes(1);
+        expect(writeFileSyncSpy).toHaveBeenCalledWith('/output/output.txt', 'User: Alice', 'utf8');
     });
 
     it('should log a warning when registering a missing partial template', () => {
@@ -231,9 +240,4 @@ describe('TemplateEngine', () => {
 
         expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining('✅ Registering partial template: header.hbs'));
     });
-
-
-
-
-
 });
