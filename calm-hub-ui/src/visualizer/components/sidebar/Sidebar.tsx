@@ -1,5 +1,5 @@
 import './Sidebar.css';
-import { IoCloseOutline, IoPencil, IoSave, IoSaveOutline, IoTrashOutline } from 'react-icons/io5';
+import { IoCloseOutline, IoPencil, IoSaveOutline, IoTrashOutline } from 'react-icons/io5';
 import { Edge, Node } from '../cytoscape-renderer/CytoscapeRenderer.js';
 import { useEffect, useState } from 'react';
 

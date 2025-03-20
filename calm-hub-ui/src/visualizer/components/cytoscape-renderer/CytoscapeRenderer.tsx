@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import './cytoscape.css';
 import { useContext, useEffect, useRef, useState } from 'react';
-import cytoscape, { Core, EdgeSingular, NodeSingular } from 'cytoscape';
+import cytoscape, { Core, EdgeSingular, NodeSingular, EventObject } from 'cytoscape';
 import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
 import expandCollapse from 'cytoscape-expand-collapse';
 import Sidebar from '../sidebar/Sidebar.js';
@@ -161,6 +161,7 @@ const CytoscapeRenderer = ({
     }
     const refreshNodeLabels = () => {
         if (cy) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (cy as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
                 {
                     query: 'node',
@@ -468,7 +469,7 @@ const CytoscapeRenderer = ({
                 },
             ]);
 
-            cy.on('tap', 'node', (e: any) => {
+            cy.on('tap', 'node', (e: EventObject) => {
                 e.preventDefault();
                 const node = e.target;
                 const nodeData = node.data();
@@ -503,7 +504,7 @@ const CytoscapeRenderer = ({
                 setSelectedElement(nodeData);
             });
 
-            cy.on('tap', 'edge', (e: any) => {
+            cy.on('tap', 'edge', (e: EventObject) => {
                 e.preventDefault();
                 setEdgeCreationSource(null);
                 setSelectedElement(e.target.data()); // Update state with the clicked node's data
@@ -575,7 +576,7 @@ const CytoscapeRenderer = ({
         setNodes(initialNodes);
         setEdges(initialEdges);
 
-        cytoscapeInstance.on('tap', 'node', (e) => {
+        cytoscapeInstance.on('tap', 'node', (e: EventObject) => {
             const node = e.target;
             const nodeData = node.data();
 
@@ -614,14 +615,14 @@ const CytoscapeRenderer = ({
             setSelectedElement(nodeData);
         });
 
-        cytoscapeInstance.on('tap', 'edge', (e) => {
+        cytoscapeInstance.on('tap', 'edge', (e:EventObject) => {
             const edge = e.target;
             setSelectedElement(edge.data());
             setEdgeCreationSource(null);
             setIsInEdgeCreationMode(false);
         });
 
-        cytoscapeInstance.on('tap', (e) => {
+        cytoscapeInstance.on('tap', (e: EventObject) => {
             if (e.target === cytoscapeInstance) {
                 // Clicked on background
                 setSelectedElement(null);
