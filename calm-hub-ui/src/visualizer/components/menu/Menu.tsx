@@ -84,7 +84,7 @@ function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeD
                         <li>
                             <details>
                                 <summary>Upload</summary>
-                                <ul className="p-2 z-1" aria-label="upload-dropdown-items">
+                                <ul className="p-2 z-1 position-absolute end-0" aria-label="upload-dropdown-items">
                                     <li className="text-base-content">
                                         <label>
                                             Architecture
