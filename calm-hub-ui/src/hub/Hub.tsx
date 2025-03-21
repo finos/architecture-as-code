@@ -7,9 +7,7 @@ import {
     FlowID,
     ArchitectureID,
     Version,
-    Pattern,
-    Flow,
-    Architecture,
+    Data,
 } from '../model/calm.js';
 import {
     fetchNamespaces,
@@ -35,7 +33,7 @@ function Hub() {
     const [currentVersion, setCurrentVersion] = useState<Version | undefined>();
     const [currentCalmType, setCurrentCalmType] = useState<string | undefined>();
 
-    const [data, setData] = useState<Pattern | Flow | Architecture | undefined>();
+    const [data, setData] = useState<Data | undefined>();
     const [versions, setVersions] = useState<Version[]>([]);
 
     useEffect(() => {
@@ -152,7 +150,7 @@ function Hub() {
                         />
                     )}
                 </div>
-                <JsonRenderer jsonString={data} />
+                <JsonRenderer jsonString={ data } />
             </div>
         </>
     );
