@@ -10,7 +10,7 @@ You can use these tools to create an architecture from a CALM pattern, or valida
 Install the CLI on to your machine with this command:
 
 ```shell
-% npm install -g @finos/calm-cli
+% npm install -g @finos/calm-calm-cli
 ```
 
 Type `calm` into your terminal, and you should see the help text printed out.
@@ -174,22 +174,22 @@ calm server --schemaDirectory calm
 curl http://127.0.0.1:3000/health
 
 # Missing schema key
-curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/validate --data @cli/test_fixtures/validation_route/invalid_api_gateway_instantiation_missing_schema_key.json
+curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/validate --data @calm-cli/test_fixtures/validation_route/invalid_api_gateway_instantiation_missing_schema_key.json
 
 # Schema value is invalid
-curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/validate --data @cli/test_fixtures/validation_route/invalid_api_gateway_instantiation_schema_points_to_missing_schema.json
+curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/validate --data @calm-cli/test_fixtures/validation_route/invalid_api_gateway_instantiation_schema_points_to_missing_schema.json
 
 # instantiation is valid
-curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/validate --data @cli/test_fixtures/validation_route/valid_instantiation.json
+curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/validate --data @calm-cli/test_fixtures/validation_route/valid_instantiation.json
 
 
 ```
 
 ## Coding for the CLI
 
-The CLI module has its logic split into two modules, `cli` and `shared`. Both are managed by [npm workspaces](https://docs.npmjs.com/cli/v8/using-npm/workspaces).
+The CLI module has its logic split into two modules, `calm-cli` and `shared`. Both are managed by [npm workspaces](https://docs.npmjs.com/calm-cli/v8/using-npm/workspaces).
 
-- `cli` module is for anything pertaining to the calling of the core logic, the CLI wrapper
+- `calm-cli` module is for anything pertaining to the calling of the core logic, the CLI wrapper
 - `shared` module is where the logic being delegated to actually sits, so that it can be re-used for other use-cases if required.
 
 ### Getting Started
@@ -204,7 +204,7 @@ npm install
 npm run build
 
 # Step 3: Link the workspace locally for testing
-npm run link:cli
+npm run link:calm-cli
 
 # Step 4 : Run `watch` to check for changes automatically and re-bundle. This watching is via `chokidar` and isn't instant - give it a second or two to propagate changes.
 npm run watch
@@ -214,12 +214,12 @@ npm run watch
 
 There are currently two types of tests;
 
-- `cli` tests - these are end-to-end and involve linking the package as part of the test so that we can assert on actual `calm X` invocations.
+- `calm-cli` tests - these are end-to-end and involve linking the package as part of the test so that we can assert on actual `calm X` invocations.
 - `shared` tests - these are where the core logic tests live, like how validation behaves etc.
 
 ## Releasing the CLI
 
-Publishing of the CLI to NPM is controlled via [this action](https://github.com/finos/architecture-as-code/blob/main/.github/workflows/publish-cli-to-npm.yml) - this action is triggered whenever a GitHub release is created. To create a github release you can do one of the following;
+Publishing of the CLI to NPM is controlled via [this action](https://github.com/finos/architecture-as-code/blob/main/.github/workflows/publish-calm-cli-to-npm.yml) - this action is triggered whenever a GitHub release is created. To create a github release you can do one of the following;
 
 ### Through the Github UI
 

@@ -20,7 +20,7 @@ Before installing CALM, ensure that you have the following prerequisites install
 To install the CALM CLI globally on your machine, run the following command in your terminal:
 
 ```shell
-npm install -g @finos/calm-cli
+npm install -g @finos/calm-calm-cli
 ```
 
 Once the installation is complete, you can verify that the CLI is installed correctly by typing:

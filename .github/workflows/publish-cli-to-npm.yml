@@ -5,10 +5,9 @@ on:
     types: [published]
 
 jobs:
-  publish-cli:
+  publish-calm-cli:
     runs-on: ubuntu-latest
     steps:
-
       # Checkout the code
       - name: Checkout code
         uses: actions/checkout@v4
@@ -30,6 +29,6 @@ jobs:
 
       # Publish the CLI module
       - name: Publish CLI module
-        run: npm publish --workspace cli
+        run: npm publish --workspace calm-cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

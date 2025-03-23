@@ -63,8 +63,7 @@ To start using CALM, you can install the CALM CLI and begin exploring its capabi
 
 1. **Install the CLI**: Install the CALM CLI using npm with the following command:
    ```shell
-   npm install -g @finos/calm-cli
+   npm install -g @finos/calm-calm-cli
    ```
 2. **Explore the CLI Commands**: Use the CLI to generate and validate architectural patterns and architectures.
 3. **Join the Community**: Contribute to the CALM monorepo, engage with other architects, and help evolve the standard.
-

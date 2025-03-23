@@ -4,25 +4,25 @@
 
 ### [Flox](https://flox.dev) users
 
-  1. Clone the git repo and `cd` into the directory.
-  1. Run `flox activate`.  The first time you do this, it will locally install all the dependencies and Node packages, and configure the environment ready for you to develop and test.
-
+1. Clone the git repo and `cd` into the directory.
+1. Run `flox activate`. The first time you do this, it will locally install all the dependencies and Node packages, and configure the environment ready for you to develop and test.
 
 ### Everyone else
 
-  1. Install Node v22.11.0 (use `nvm` to manage Node versions if needed).
-  1. Make sure `libuuid.so` is installed (`ldconfig -p | grep libuuid`) and install it if not (instructions will depend on your OS).
-  1. Clone the git repo and `cd` into the directory
-  1. Run the following:
-  ```shell
-     npm install
-     npm run build
-     npx link cli
-  ```
+1. Install Node v22.11.0 (use `nvm` to manage Node versions if needed).
+1. Make sure `libuuid.so` is installed (`ldconfig -p | grep libuuid`) and install it if not (instructions will depend on your OS).
+1. Clone the git repo and `cd` into the directory
+1. Run the following:
+
+```shell
+   npm install
+   npm run build
+   npx link calm-cli
+```
 
 ## Building & linking the CLI
 
-When you've made a change to the CLI and want to test it out, you can rerun the build and link steps from within the `cli` directory:
+When you've made a change to the CLI and want to test it out, you can rerun the build and link steps from within the `calm-cli` directory:
 
 ```shell
 npm run build
@@ -46,8 +46,9 @@ Some other commands that you might find useful during development include:
 You can find the full list by examining the `package.json`
 
 ## OWASP DEPENDENCY-CHECK
+
 The [OWASP dependency check tool](https://jeremylong.github.io/DependencyCheck/) will run on PRs and periodically on the committed code, but it can be helpful to be able to run this locally to investigate CVEs.
 
-To use the dependency check tool locally, first install the tool following the instructions for your operating system [here](https://jeremylong.github.io/DependencyCheck/dependency-check-cli/index.html).
+To use the dependency check tool locally, first install the tool following the instructions for your operating system [here](https://jeremylong.github.io/DependencyCheck/dependency-check-calm-cli/index.html).
 
-Once that is done the tool is configured as a script in the package.json, run `npm run dependency-check`; the reports will be output to `cli/dependency-check-report`.
+Once that is done the tool is configured as a script in the package.json, run `npm run dependency-check`; the reports will be output to `calm-cli/dependency-check-report`.

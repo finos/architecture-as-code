@@ -1,5 +1,5 @@
 ---
-id: using-the-cli
+id: using-the-calm-cli
 title: Using the CLI
 sidebar_position: 3
 ---

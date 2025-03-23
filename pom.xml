@@ -17,7 +17,7 @@
 
     <modules>
         <module>calm-hub</module>
-        <module>cli</module>
+        <module>calm-cli</module>
         <module>calm</module>
         <module>docs</module>
         <module>shared</module>

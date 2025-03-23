@@ -54,7 +54,7 @@ on-activate = """
     # Install nodejs dependencies
     gum spin --spinner minidot --title "Installing node packages..." --show-output -- npm install
 
-    gum confirm "Perform initial CLI build (recommended)?" && npm run build && npx link cli
+    gum confirm "Perform initial CLI build (recommended)?" && npm run build && npx link calm-cli
   fi
 """
 

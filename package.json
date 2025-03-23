@@ -4,22 +4,22 @@
   "private": true,
   "workspaces": [
     "shared",
-    "cli",
+    "calm-cli",
     "docs",
     "calm-hub-ui"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "build:cli": "npm run build --workspace shared --workspace cli",
+    "build:calm-cli": "npm run build --workspace shared --workspace calm-cli",
     "build:docs": "npm run build --workspace docs",
     "test": "npm run test --workspaces --if-present",
-    "test:cli": "npm run build:cli && npm run test --workspace cli",
+    "test:calm-cli": "npm run build:calm-cli && npm run test --workspace calm-cli",
     "lint": "npm run lint --workspaces --if-present",
     "lint-fix": "npm run lint-fix --workspaces --if-present",
-    "watch": "run-p watch:cli watch:shared",
-    "watch:cli": "npm run watch --workspace cli",
+    "watch": "run-p watch:calm-cli watch:shared",
+    "watch:calm-cli": "npm run watch --workspace calm-cli",
     "watch:shared": "npm run watch --workspace shared",
-    "link:cli": "npm link --workspace cli",
+    "link:calm-cli": "npm link --workspace calm-cli",
     "calm-hub-ui:run": "npm run start --workspace calm-hub-ui"
   },
   "devDependencies": {

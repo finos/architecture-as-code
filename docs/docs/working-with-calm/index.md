@@ -11,7 +11,7 @@ This section will guide you through the practical aspects of using CALM to defin
 Explore the topics below to get hands-on experience with CALM:
 
 - [Installation](installation): Learn how to set up the CALM CLI on your machine.
-- [Using the CLI](using-the-cli): Understand the basic usage of the CALM CLI and how to access its commands.
+- [Using the CLI](using-the-calm-cli): Understand the basic usage of the CALM CLI and how to access its commands.
 - [Generate](generate): Discover how to generate architectural architectures from predefined patterns.
 - [Validate](validate): Learn how to validate your architecture against CALM patterns to ensure compliance.
 

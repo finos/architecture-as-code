@@ -5,17 +5,17 @@ on:
     branches:
       - "main"
     paths:
-      - "cli/**"
+      - "calm-cli/**"
       - "shared/**"
   push:
     branches:
       - "main"
     paths:
-      - "cli/**"
+      - "calm-cli/**"
       - "shared/**"
 
 jobs:
-  cli:
+  calm-cli:
     name: Build, Test, and Lint CLI Module
     runs-on: ubuntu-latest
 
@@ -32,10 +32,10 @@ jobs:
         run: npm ci
 
       - name: Lint CLI Module
-        run: npm run lint --workspace=cli
+        run: npm run lint --workspace=calm-cli
 
       - name: Build workspace
-        run: npm run build:cli
+        run: npm run build:calm-cli
 
       - name: Run tests with coverage for CLI
-        run: npm run test --workspace=cli
+        run: npm run test --workspace=calm-cli
