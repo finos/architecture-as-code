@@ -23,6 +23,8 @@ import org.finos.calm.domain.exception.AdrParseException;
 import org.finos.calm.domain.exception.AdrPersistenceException;
 import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.AdrStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +61,7 @@ public class AdrResource {
             summary = "Retrieve ADRs in a given namespace",
             description = "ADRs stored in a given namespace"
     )
+    @PermittedScopes({CalmHubScopes.ADRS_ALL, CalmHubScopes.ADRS_READ})
     public Response getAdrsForNamespace(@PathParam("namespace") String namespace) {
         try {
             return Response.ok(new ValueWrapper<>(store.getAdrsForNamespace(namespace))).build();
@@ -82,6 +85,7 @@ public class AdrResource {
             summary = "Create ADR for namespace",
             description = "Creates an ADR for a given namespace with an allocated ID and revision 1"
     )
+    @PermittedScopes({CalmHubScopes.ADRS_ALL})
     public Response createAdrForNamespace(@PathParam("namespace") String namespace, NewAdrRequest newAdrRequest) {
         Adr adr = new Adr.AdrBuilder(newAdrRequest)
                 .setStatus(Status.draft)
@@ -118,6 +122,7 @@ public class AdrResource {
             summary = "Update ADR for namespace",
             description = "Updates an ADR for a given namespace. Creates a new revision."
     )
+    @PermittedScopes({CalmHubScopes.ADRS_ALL})
     public Response updateAdrForNamespace(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, NewAdrRequest newAdrRequest) {
         Adr adr = new Adr.AdrBuilder(newAdrRequest)
                 .setUpdateDateTime(LocalDateTime.now())
@@ -156,6 +161,7 @@ public class AdrResource {
                     content = @Content(schema = @Schema(implementation = AdrMeta.class))
             )
     })
+    @PermittedScopes({CalmHubScopes.ADRS_ALL, CalmHubScopes.ADRS_READ})
     public Response getAdr(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId) {
         AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace(namespace)
@@ -183,6 +189,7 @@ public class AdrResource {
             summary = "Retrieve a list of revisions for a given ADR",
             description = "The most recent revision is the canonical ADR, with others available for audit or exploring changes."
     )
+    @PermittedScopes({CalmHubScopes.ADRS_ALL, CalmHubScopes.ADRS_READ})
     public Response getAdrRevisions(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId) {
         AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace(namespace)
@@ -217,6 +224,7 @@ public class AdrResource {
                     content = @Content(schema = @Schema(implementation = AdrMeta.class))
             )
     })
+    @PermittedScopes({CalmHubScopes.ADRS_ALL, CalmHubScopes.ADRS_READ})
     public Response getAdrRevision(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, @PathParam("revision") int revision) {
         AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace(namespace)
@@ -247,6 +255,7 @@ public class AdrResource {
             summary = "Update the status of ADR for namespace",
             description = "Updates the status of an ADR for a given namespace. Creates a new revision."
     )
+    @PermittedScopes({CalmHubScopes.ADRS_ALL})
     public Response updateAdrStatusForNamespace(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, @PathParam("status") Status status) throws URISyntaxException {
 
         AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()

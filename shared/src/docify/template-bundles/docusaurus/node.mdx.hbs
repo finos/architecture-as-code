@@ -1,0 +1,34 @@
+---
+id: {{id}}
+title: {{title}}
+---
+
+## Node Details
+<div className="table-container">
+| Field               | Value                    |
+|---------------------|--------------------------|
+| **Unique ID**       | {{id}}                   |
+| **Node Type**       | {{nodeType}}             |
+| **Name**            | {{name}}                 |
+| **Description**     | {{description}}          |
+| **Data Classification** | {{dataClassification}} |
+| **Run As**          | {{runAs}}                |
+</div>
+
+## Interfaces
+{{#if interfaces.length}}
+    | Unique ID | Host | Port | Url |
+    |-----------|------|------|-----|
+    {{#each interfaces}}
+        | {{uniqueId}} | {{host}} | {{port}} | {{url}} |
+    {{/each}}
+{{else}}
+    _No interfaces defined._
+{{/if}}
+
+
+## Related Nodes
+
+{{> relationships.hbs}}
+
+{{> controls.hbs}}

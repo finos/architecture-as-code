@@ -29,6 +29,7 @@
     "module": "commonjs",
     "type": "commonjs",
     "dependencies": {
+        "@apidevtools/json-schema-ref-parser": "^11.9.3",
         "@stoplight/spectral-cli": "^6.13.1",
         "@stoplight/spectral-core": "^1.19.1",
         "@stoplight/spectral-functions": "^1.9.3",
@@ -65,7 +66,7 @@
     },
     "overrides": {
         "path-to-regexp": "3.3.0",
-        "rollup": "4.35.0",
+        "rollup": "4.36.0",
         "jsonpath-plus": "^10.3.0"
     }
 }

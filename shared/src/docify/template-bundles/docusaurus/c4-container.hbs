@@ -1,0 +1,29 @@
+```mermaid
+C4Container
+{{#each C4model.elements}}
+    {{#if (eq this.elementType "System")}}
+        System_Boundary("{{this.name}}","{{this.description}}"){
+        {{#each this.children}}
+            {{#with (lookup ../../this.C4model.elements this)}}
+                Container({{this.uniqueId}},"{{this.name}}","","{{this.description}}")
+            {{/with}}
+        {{/each}}
+        }
+    {{/if}}
+    {{#if (eq this.elementType "Person")}}
+        Person({{this.uniqueId}},"{{this.name}}","{{this.description}}")
+    {{/if}}
+
+    {{#if (eq this.elementType "Container")}}
+        {{#unless parentId}}
+            Container({{this.uniqueId}},"{{this.name}}","","{{this.description}}")
+        {{/unless}}
+    {{/if}}
+{{/each}}
+
+{{#each C4model.relationships}}
+    Rel({{this.source}},{{this.destination}},"{{this.relationshipType}}")
+{{/each}}
+
+UpdateLayoutConfig($c4ShapeInRow="2", $c4BoundaryInRow="0")
+```

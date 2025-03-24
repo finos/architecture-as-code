@@ -27,7 +27,7 @@ function Navbar() {
                         className="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow"
                     >
                         <li>
-                            <NavLink to="/hub">Hub</NavLink>
+                            <NavLink to="/">Hub</NavLink>
                         </li>
                         <li>
                             <NavLink to="/visualizer">Visualizer</NavLink>
@@ -38,7 +38,7 @@ function Navbar() {
                 <div className="hidden lg:flex">
                     <ul className="menu menu-horizontal px-1">
                         <li>
-                            <NavLink className="btn-ghost btn text-base-100" to="/hub">
+                            <NavLink className="btn-ghost btn text-base-100" to="/">
                                 Hub
                             </NavLink>
                         </li>

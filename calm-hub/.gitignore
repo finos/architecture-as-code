@@ -315,5 +315,7 @@ psd
 thumb
 sketch
 
+# Ignore .pem files in the resources directory
+**/*.pem
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij,react,node,java,maven
