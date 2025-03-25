@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-import { CALM_META_SCHEMA_DIRECTORY, getFormattedOutput, runGenerate, validate, exitBasedOffOfValidationOutcome, TemplateProcessor } from '@finos/calm-shared';
+import { CALM_META_SCHEMA_DIRECTORY, runGenerate, TemplateProcessor } from '@finos/calm-shared';
 import { Option, program } from 'commander';
 
 import { version } from '../package.json';
