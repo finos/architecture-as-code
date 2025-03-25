@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/control-requirement/availability",
+  "title": "Availability Requirement",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "uptime-guarantee": {
+      "type": "number",
+      "description": "Percentage of availability required (e.g., 99.9%).",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "allowed-downtime": {
+      "type": "object",
+      "properties": {
+        "unit": {
+          "enum": ["minutes", "hours", "days"],
+          "description": "Time unit for downtime calculation."
+        },
+        "value": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Maximum allowed downtime in the given time unit."
+        }
+      },
+      "description": "Maximum allowable downtime corresponding to the uptime guarantee."
+    }
+  },
+  "required": [
+    "uptime-guarantee",
+    "allowed-downtime"
+  ],
+  "examples": [
+    {
+      "uptime-guarantee": 99.9,
+      "allowed-downtime": {
+        "unit": "minutes",
+        "value": 43.8
+      }
+    },
+    {
+      "uptime-guarantee": 99.99,
+      "allowed-downtime": {
+        "unit": "minutes",
+        "value": 4.38
+      }
+    },
+    {
+      "uptime-guarantee": 99.999,
+      "allowed-downtime": {
+        "unit": "minutes",
+        "value": 0.44
+      }
+    }
+  ]
+}

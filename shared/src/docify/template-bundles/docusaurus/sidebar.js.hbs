@@ -1,0 +1,27 @@
+module.exports = {
+    docs: [
+        {
+            type: 'doc',
+            id: 'index',
+            label: 'Home',
+        },
+        {
+            type: 'category',
+            label: 'Nodes',
+            items: [
+                {{#each nodes}}
+                'nodes/{{this.id}}'{{#unless @last}},{{/unless}}
+                {{/each}}
+            ],
+        },
+        {
+            type: 'category',
+            label: 'Flows',
+            items: [
+                {{#each flows}}
+                'flows/{{this.id}}'{{#unless @last}},{{/unless}}
+                {{/each}}
+            ],
+        }
+    ]
+};

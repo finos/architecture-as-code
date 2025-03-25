@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-import { CALM_META_SCHEMA_DIRECTORY, getFormattedOutput, runGenerate, validate, exitBasedOffOfValidationOutcome, TemplateProcessor, optionsFor } from '@finos/calm-shared';
+import { CALM_META_SCHEMA_DIRECTORY, getFormattedOutput, runGenerate, validate, exitBasedOffOfValidationOutcome, TemplateProcessor, optionsFor, Docifier} from '@finos/calm-shared';
 import { Option, program } from 'commander';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
@@ -163,6 +163,23 @@ program
         await processor.processTemplate();
     });
 
+program
+    .command('docify')
+    .description('Generate a documentation website off your CALM model')
+    .requiredOption('--input <path>', 'Path to the CALM model JSON file')
+    .requiredOption('--output <path>', 'Path to output directory')
+    .option('--url-to-local-file-mapping <path>', 'Path to mapping file which maps URLs to local paths')
+    .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+    .action(async (options) => {
+        if (options.verbose) {
+            process.env.DEBUG = 'true';
+        }
+
+        const localDirectory = getUrlToLocalFileMap(options.urlToLocalFileMapping);
+
+        const docifier = new Docifier('WEBSITE', options.input,  options.output, localDirectory);
+        await docifier.docify();
+    });
 
 
 program.parse(process.argv);
