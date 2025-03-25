@@ -7,17 +7,30 @@ jest.mock('../../consts', () => ({
     get CALM_META_SCHEMA_DIRECTORY() { return 'test_fixtures/calm'; }
 }));
 
-jest.mock('../../logger', () => {
-    return {
-        initLogger: () => {
-            return {
-                info: () => {},
-                warn: () => {},
-                debug: () => {}
-            };
-        }
-    };
-});
+jest.mock('winston', () => ({
+    info: jest.fn(),
+    debug: jest.fn(),
+    error: jest.fn().mockImplementation((err) => console.error(err)),
+    warn: jest.fn(),
+    format: {
+        colorize: jest.fn(),
+        combine: jest.fn(),
+        label: jest.fn(),
+        timestamp: jest.fn(),
+        printf: jest.fn(),
+        cli: jest.fn(),
+        errors: jest.fn()
+    },
+    createLogger: jest.fn().mockReturnValue({
+        info: jest.fn(),
+        debug: jest.fn(),
+        error: jest.fn().mockImplementation((err) => console.error(err)),
+        warn: jest.fn(),
+    }),
+    transports: {
+        Console: jest.fn()
+    }
+}));
 
 describe('generate spec e2e', () => {
     let tempDirectoryPath;
@@ -32,8 +45,9 @@ describe('generate spec e2e', () => {
 
     it('instantiate file with self-reference', async () => {
         const patternPath = 'test_fixtures/api-gateway-self-reference.json';
+        const testPattern: object = JSON.parse(readFileSync(patternPath, { encoding: 'utf8' }));
         const outPath = path.join(tempDirectoryPath, 'output.json');
-        await runGenerate(patternPath, outPath, true, false);
+        await runGenerate(testPattern, outPath, true, false);
 
         expect(existsSync(outPath))
             .toBeTruthy();

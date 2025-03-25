@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-import { CALM_META_SCHEMA_DIRECTORY, getFormattedOutput, runGenerate, validate, exitBasedOffOfValidationOutcome, TemplateProcessor } from '@finos/calm-shared';
+import { CALM_META_SCHEMA_DIRECTORY, getFormattedOutput, runGenerate, validate, exitBasedOffOfValidationOutcome, TemplateProcessor, optionsFor } from '@finos/calm-shared';
 import { Option, program } from 'commander';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
@@ -8,8 +8,10 @@ import { writeFileSync } from 'fs';
 import { version } from '../package.json';
 import { initLogger } from '@finos/calm-shared/logger';
 import { startServer } from './server/cli-server';
-import { optionsFor, selectOption } from '@finos/calm-shared/commands/generate/generate';
 import inquirer from 'inquirer';
+import { CalmChoice, CalmOption } from '@finos/calm-shared/commands/generate/components/options';
+import { loadFile } from './fileInput';
+import logger from 'winston';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -20,7 +22,28 @@ const SCHEMAS_OPTION = '-s, --schemaDirectory <path>';
 const STRICT_OPTION = '--strict';
 const VERBOSE_OPTION = '-v, --verbose';
 
-
+logger.configure({
+    transports: [
+        new logger.transports.Console({
+            //This seems odd, but we want to allow users to parse JSON output from the STDOUT. We can't do that if it's polluted.
+            stderrLevels: ['error', 'warn', 'info'],
+        })
+    ],
+    level: 'debug',
+    format: logger.format.combine(
+        logger.format.label({ label: 'calm' }),
+        logger.format.cli(),
+        logger.format.splat(),
+        logger.format.errors({ stack: true }),
+        logger.format.printf(({ level, message, stack, label }) => {
+            if (stack) {
+                return `${level} [${label}]: ${message} - ${stack}`;
+            }
+            return `${level} [${label}]: ${message}`;
+        }, ),
+    ),
+    
+});
 
 program
     .name('calm')
@@ -35,8 +58,10 @@ program
     .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
     .option(GENERATE_ALL_OPTION, 'Generate all properties, ignoring the "required" field.', false)
-    .action(async (options) => {    
-        const patternOptions = await optionsFor(options.pattern, !!options.verbose);
+    .action(async (options) => {
+        const pattern: object = loadFile(options.pattern);
+        const patternOptions: CalmOption[] = optionsFor(pattern);
+        logger.debug('Pattern options found: [%O]', patternOptions);
         
         const questions = [];
 
@@ -44,25 +69,22 @@ program
             const choiceDescriptions = option.choices.map(choice => choice.description);
             questions.push(
                 {
-                    type: 'list',
+                    type: option.optionType === 'oneOf' ? 'list' : 'checkbox',
                     name: `${patternOptions.indexOf(option)}`,
-                    message: 'There is a list of options with this pattern, please choose an option which best suits your architecture.',
+                    message: option.prompt,
                     choices: choiceDescriptions
                 }
             );
         }
-        const answers = await inquirer.prompt(questions);
+        const answers: string[] = await inquirer.prompt(questions)
+            .then(answers => Object.values(answers).flatMap(val => val));
+        logger.debug('User choice these options: [%O]', answers);
 
-        const chosenChoices = [];
-        for(const answer in answers) {
-            const patternOption = patternOptions[parseInt(answer)];
-            const choice = patternOption.choices.find(choice => choice.description === answers[answer]);
-            chosenChoices.push(choice);
-        }
+        const chosenChoices: CalmChoice[] = patternOptions.flatMap(option =>
+            option.choices.filter(choice => answers.find(answer => answer === choice.description))
+        );
 
-        const pattern = selectOption(options.pattern, !!options.verbose, {choices: chosenChoices});
-
-        await runGenerate(pattern, options.output, !!options.verbose, options.generateAll, options.schemaDirectory);
+        await runGenerate(pattern, options.output, !!options.verbose, options.generateAll, chosenChoices, options.schemaDirectory);
     });
 
 program

@@ -12,7 +12,7 @@
   "scripts": {
     "build": "tsup && npm run copy-calm-schema",
     "watch": "node watch.mjs",
-    "copy-calm-schema": "copyfiles \"../calm/draft/2024-10/meta/*\" dist/calm/",
+    "copy-calm-schema": "copyfiles \"../calm/draft/2025-03/meta/*\" dist/calm/",
     "test": "jest",
     "lint": "eslint src",
     "lint-fix": "eslint src --fix",
