@@ -1,6 +1,6 @@
 {
   "$schema": "https://calm.finos.org/draft/2025-03/prototype/anyOf/both-options-prototype.pattern.json",
-  "$id": "https://calm.finos.org/draft/2025-03/prototype/anyOf/neither-option.architecture.json",
+  "$id": "https://calm.finos.org/draft/2025-03/prototype/anyof/neither-option.architecture.json",
   "title": "Application without Database Pattern Example",
   "nodes": [
     {

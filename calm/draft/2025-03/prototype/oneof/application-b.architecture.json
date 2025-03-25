@@ -1,6 +1,6 @@
 {
-  "$schema": "https://calm.finos.org/draft/2025-03/prototype/oneOf/options-prototype.pattern.json",
-  "$id": "https://calm.finos.org/draft/2025-03/prototype/oneOf/application-b.architecture.json",
+  "$schema": "https://calm.finos.org/draft/2025-03/prototype/oneof/options-prototype.pattern.json",
+  "$id": "https://calm.finos.org/draft/2025-03/prototype/oneof/application-b.architecture.json",
   "title": "Application B/C + Database Pattern Example",
   "nodes": [
     {
