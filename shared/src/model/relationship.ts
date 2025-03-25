@@ -5,7 +5,7 @@ import {
     CalmConnectsRelationshipSchema, CalmDeployedInRelationshipSchema,
     CalmInteractsRelationshipSchema,
     CalmOptionsRelationshipSchema,
-    CalmOptionsTypeSchema,
+    CalmOptionTypeSchema,
     CalmRelationshipSchema,
     CalmRelationshipTypeSchema
 } from '../types/core-types.js';
@@ -98,20 +98,20 @@ export class CalmComposedOfType extends CalmRelationshipType {
     }
 }
 
-export class CalmOptionsType {
+export class CalmOptionType {
     constructor(public description: string, public nodes: string[], public relationships: string[]) {}
 
-    static fromJson(data: CalmOptionsTypeSchema) {
-        return new CalmOptionsType(data.description, data.nodes, data.relationships);
+    static fromJson(data: CalmOptionTypeSchema) {
+        return new CalmOptionType(data.description, data.nodes, data.relationships);
     }
 }
 
 export class CalmOptionsRelationshipType extends CalmRelationshipType {
-    constructor(public options: CalmOptionsType[]) {
+    constructor(public options: CalmOptionType[]) {
         super();
     }
 
     static fromJson(data: CalmOptionsRelationshipSchema): CalmOptionsRelationshipType {
-        return new CalmOptionsRelationshipType(data.map(calmOptionData => CalmOptionsType.fromJson(calmOptionData)));
+        return new CalmOptionsRelationshipType(data.map(calmOptionData => CalmOptionType.fromJson(calmOptionData)));
     }
 }
