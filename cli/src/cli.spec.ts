@@ -1,9 +1,11 @@
 jest.mock('@finos/calm-shared', () => ({
-    ...jest.requireActual('@finos/calm-shared'),
     runGenerate: jest.fn(),
     TemplateProcessor: jest.fn().mockImplementation(() => ({
         processTemplate: jest.fn().mockResolvedValue(undefined),
     })),
+    Docifier: jest.fn().mockImplementation(() => ({
+        docify: jest.fn().mockResolvedValue(undefined),
+    }))
 }));
 
 jest.mock('./server/cli-server', () => ({
@@ -115,14 +117,14 @@ describe('CLI Commands', () => {
                 'outDir',
                 '--verbose'
             ];
-            const { getUrlToLocalFileMap } = jest.requireMock('./command-helpers/template');
-            (getUrlToLocalFileMap as jest.Mock).mockReturnValue(new Map<string,string>);
+            const {getUrlToLocalFileMap} = jest.requireMock('./command-helpers/template');
+            (getUrlToLocalFileMap as jest.Mock).mockReturnValue(new Map<string, string>);
 
             // eslint-disable-next-line @typescript-eslint/no-require-imports
             const TemplateProcessorMock = (require('@finos/calm-shared').TemplateProcessor as jest.Mock);
             await import('./index');
             expect(TemplateProcessorMock.mock.calls.length).toBe(1);
-            expect(TemplateProcessorMock.mock.calls[0]).toEqual(['model.json', 'templateDir', 'outDir', new Map<string,string>()]);
+            expect(TemplateProcessorMock.mock.calls[0]).toEqual(['model.json', 'templateDir', 'outDir', new Map<string, string>()]);
         });
 
         it('should instantiate TemplateProcessor with additional url to file map', async () => {
@@ -144,13 +146,46 @@ describe('CLI Commands', () => {
                 ['https://calm.finos.org/docuflow/flow/document-upload', 'flows/flow-document-upload.json'],
             ]);
 
-            const { getUrlToLocalFileMap } = jest.requireMock('./command-helpers/template');
+            const {getUrlToLocalFileMap} = jest.requireMock('./command-helpers/template');
             (getUrlToLocalFileMap as jest.Mock).mockReturnValue(urlToLocalFileMap);
             // eslint-disable-next-line @typescript-eslint/no-require-imports
             const TemplateProcessorMock = (require('@finos/calm-shared').TemplateProcessor as jest.Mock);
             await import('./index');
             expect(TemplateProcessorMock.mock.calls.length).toBe(1);
             expect(TemplateProcessorMock.mock.calls[0]).toEqual(['model.json', 'templateDir', 'outDir', urlToLocalFileMap]);
+        });
+    });
+
+
+    describe('Docify Command', () => {
+
+        it('should instantiate Docifier with additional url to file map', async () => {
+            process.argv = [
+                'node',
+                'cli.js',
+                'docify',
+                '--input',
+                'model.json',
+                '--output',
+                'outDir',
+                '--url-to-local-file-mapping',
+                'url-to-file-directory.json',
+                '--verbose'
+            ];
+
+            const urlToLocalFileMap = new Map<string, string>([
+                ['https://calm.finos.org/docuflow/flow/document-upload', 'flows/flow-document-upload.json'],
+            ]);
+
+            const { getUrlToLocalFileMap } = jest.requireMock('./command-helpers/template');
+            (getUrlToLocalFileMap as jest.Mock).mockReturnValue(urlToLocalFileMap);
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const DocifierMock = require('@finos/calm-shared').Docifier;
+            await import('./index');
+
+            expect(DocifierMock).toHaveBeenCalledTimes(1);
+            expect(DocifierMock).toHaveBeenCalledWith('WEBSITE', 'model.json', 'outDir', urlToLocalFileMap);
+
         });
     });
 });

@@ -25,7 +25,7 @@ CALM structures architecture into three primary components: nodes, relationships
 Nodes represent the individual elements of your architecture, such as services, databases, networks, and people. They are the "building blocks" of your system and can be used to model components at various levels of abstraction.
 
 - **Examples of Nodes**: A microservice, a database, a front-end application, or even a person interacting with the system.
-- **Properties**: Nodes have key properties such as `unique-id`, `node-type`, `name`, and `description``, which help define their purpose and role within the architecture.
+- **Properties**: Nodes have key properties such as `unique-id`, `node-type`, `name`, and `description`, which help define their purpose and role within the architecture.
 
 ### 2. **Relationships**
 

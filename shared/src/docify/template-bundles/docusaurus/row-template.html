@@ -1,0 +1,18 @@
+<tr>
+    <td>
+        <b>{{kebabToTitleCase @key}}</b>
+    </td>
+    <td>
+        {{#if (isObject this)}}
+        {{> table-template.html data=this}}
+        {{else if (isArray this)}}
+        <ul>
+            {{#each this}}
+            <li>{{this}}</li>
+            {{/each}}
+        </ul>
+        {{else}}
+        {{this}}
+        {{/if}}
+    </td>
+</tr>
