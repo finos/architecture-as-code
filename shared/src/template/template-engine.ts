@@ -19,7 +19,6 @@ export class TemplateEngine {
         this.templates = this.compileTemplates(fileLoader.getTemplateFiles());
         this.registerTemplateHelpers();
     }
- 
 
     private compileTemplates(templateFiles: Record<string, string>): Record<string, Handlebars.TemplateDelegate> {
         const logger = TemplateEngine.logger;
@@ -48,6 +47,11 @@ export class TemplateEngine {
     public generate(data: any, outputDir: string): void {
         const logger = TemplateEngine.logger;
         logger.info('\n🔹 Starting Template Generation...');
+
+        if (!fs.existsSync(outputDir)) {
+            logger.info(`📂 Output directory does not exist. Creating: ${outputDir}`);
+            fs.mkdirSync(outputDir, { recursive: true });
+        }
 
         for (const templateEntry of this.config.templates) {
             this.processTemplate(templateEntry, data, outputDir);
@@ -85,14 +89,16 @@ export class TemplateEngine {
             }
 
             for (const instance of dataSource) {
-                const filename = output.replace('{{id}}', instance.id); //TODO: Improve output naming for repeated use case.
+                const filename = output.replace('{{id}}', instance.id);//TODO: Improve output naming for use case.
                 const outputPath = path.join(outputDir, filename);
+                fs.mkdirSync(path.dirname(outputPath), { recursive: true });
                 fs.writeFileSync(outputPath, this.templates[template](instance), 'utf8');
                 logger.info(`✅ Generated: ${outputPath}`);
             }
         } else if (outputType === 'single') {
-            const filename = output.replace('{{id}}', dataSource.id); //TODO: Improve output naming for repeated use case.
+            const filename = output.replace('{{id}}', dataSource.id);//TODO: Improve output naming for use case.
             const outputPath = path.join(outputDir, filename);
+            fs.mkdirSync(path.dirname(outputPath), { recursive: true });
             fs.writeFileSync(outputPath, this.templates[template](dataSource), 'utf8');
             logger.info(`✅ Generated: ${outputPath}`);
         } else {

@@ -11,21 +11,21 @@ cd deploy
 docker-compose up
 ```
 
-A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)   
+A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)  
 The API documentation can be found at: [http://localhost:8080/q/swagger-ui/#/](http://localhost:8080/q/swagger-ui/#/)
 
 ## Working with the project
 
 There are three main locations for the Java code base:
 
-* `src/main/java` - The location of the main code base
-* `src/test/java` - The location of the test code for the project
-* `src/integration-test/java` - The location of integration tests for the project
+- `src/main/java` - The location of the main code base
+- `src/test/java` - The location of the test code for the project
+- `src/integration-test/java` - The location of integration tests for the project
 
 The integration tests are set up a little different, as once TestContainers is configured - Docker is required for all tests (even where TestContainers are not used).
 Integration tests need to be run via Maven, with Docker up and running on your machine.
 
-The main location for the UI is located in [/calm-hub/src/main/webapp](/calm-hub/src/main/webapp) directory, when creating a final build this is packaged by Maven.
+The main location for the UI is located in [/calm-hub-ui/src](/calm-hub-ui/src) directory, when creating a final build this is packaged by Maven.
 
 ```shell
 #Run all tests including integration tests
@@ -54,13 +54,54 @@ From the `calm-hub` directory
 1. `../mvnw package`
 2. `../mvnw quarkus:dev`
 
+
+### Secure profile
+
+#### Launch keycloak
+
+From the `keycloak-dev` directory in `calm-hub`
+
+Create certs for KeyCloak:
+
+```shell
+  mkdir ./certs &&
+  openssl req -x509 -newkey rsa:2048 \
+    -keyout ./certs/key.pem \
+    -out ./certs/cert.pem -days 90 -nodes \
+    -subj "/C=GB/ST=England/L=Manchester/O=finos/OU=Technology/CN=idp.finos.org"
+```
+
+Launch KeyCloak:
+```shell
+export KC_BOOTSTRAP_ADMIN_PASSWORD=<set me>
+docker-compose up
+```
+- Open KeyCloak UI: https://localhost:9443, login with admin user.
+- Switch realm from `master` to `calm-hub-realm`.
+- You can find a `demo` user with a temporary credentials under `calm-hub-realm` realm.
+- During the local development, the `demo` user you can use to authenticate with `keycloak-dev` when you integrate the `calm-ui` with `authorization-code` flow type.
+
+#### Server Side with secure profile
+
+From the `calm-hub` directory
+1. Create a server side certificates
+    ```shell
+    openssl req -x509 -newkey rsa:2048 \
+      -keyout ./src/main/resources/key.pem \
+      -out ./src/main/resources/cert.pem -days 90 -nodes \
+      -subj "/C=GB/ST=England/L=Manchester/O=finos/OU=Technology/CN=calm-hub.finos.org"
+    ```
+2. `../mvnw package`
+3. `../mvnw quarkus:dev -Dquarkus.profile=secure`
+4. Open Calm UI: https://localhost:8443
+
 ### UI with hot reload (from src/main/webapp)
 
 The first time, you may need to run `npm install`.
 
 1. `npm start`
 
-The UI is now ready for hot reloading and development across the stack. 
+The UI is now ready for hot reloading and development across the stack.
 
 ### Building for Deployment
 
@@ -80,6 +121,7 @@ The repository includes a GitHub Action workflow that builds and pushes multi-ar
 To set up automated Docker builds:
 
 1. Add the following secrets to your GitHub repository:
+
    - `DOCKER_USERNAME`: Your Docker Hub username
    - `DOCKER_PASSWORD`: Your Docker Hub password or access token
 

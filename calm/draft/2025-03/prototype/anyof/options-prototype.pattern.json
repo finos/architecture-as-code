@@ -123,6 +123,26 @@
           "type": "object",
           "properties": {
             "unique-id": {
+              "const": "application-c-to-database"
+            },
+            "description": {
+              "const": "Application C connects to the Database"
+            },
+            "relationship-type": {
+              "const": {
+                "connects": {
+                  "source": { "node": "application-c" },
+                  "destination": { "node": "database" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/options",
+          "type": "object",
+          "properties": {
+            "unique-id": {
                 "const": "connection-options"
             },
             "description": {

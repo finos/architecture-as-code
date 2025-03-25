@@ -1,6 +1,7 @@
 {
   "name": "@finos/calm-cli",
   "version": "0.6.0",
+  "version": "0.6.0",
   "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
   "main": "dist/index.js",
   "files": [
@@ -10,6 +11,7 @@
     "calm": "dist/index.js"
   },
   "scripts": {
+    "build": "tsup && npm run copy-calm-schema && npm run copy-docify-templates",
     "build": "tsup && npm run copy-calm-schema && npm run copy-docify-templates",
     "watch": "node watch.mjs",
     "copy-calm-schema": "copyfiles \"../calm/draft/2025-03/meta/*\" dist/calm/",
