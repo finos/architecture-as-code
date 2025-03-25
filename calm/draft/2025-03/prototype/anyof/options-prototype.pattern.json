@@ -1,6 +1,6 @@
 {
   "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
-  "$id": "https://calm.finos.org/draft/2025-03/prototype/anyOf/options-prototype.pattern.json",
+  "$id": "https://calm.finos.org/draft/2025-03/prototype/anyof/options-prototype.pattern.json",
   "title": "Application + Database A and/or B Pattern",
   "type": "object",
   "properties": {
