@@ -55,13 +55,13 @@ export type CalmComposedOfRelationshipSchema = {
     nodes: string[];
 };
 
-export type CalmOptionsTypeSchema = {
+export type CalmOptionTypeSchema = {
     description: string,
     nodes: string[],
     relationships: string[]
 }
 
-export type CalmOptionsRelationshipSchema = CalmOptionsTypeSchema[];
+export type CalmOptionsRelationshipSchema = CalmOptionTypeSchema[];
 
 export type CalmRelationshipTypeSchema = {
     interacts?: CalmInteractsRelationshipSchema;
