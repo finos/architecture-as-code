@@ -1,5 +1,5 @@
 {
-  "$schema": "https://calm.finos.org/draft/2025-03/prototype/anyOf/both-options-prototype.pattern.json",
+  "$schema": "https://calm.finos.org/draft/2025-03/prototype/anyof/both-options-prototype.pattern.json",
   "$id": "https://calm.finos.org/draft/2025-03/prototype/anyof/both-options.architecture.json",
   "title": "Application + Database A and B Pattern Example",
   "nodes": [
