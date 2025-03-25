@@ -4,6 +4,8 @@ import {
     CalmComposedOfRelationshipSchema,
     CalmConnectsRelationshipSchema, CalmDeployedInRelationshipSchema,
     CalmInteractsRelationshipSchema,
+    CalmOptionsRelationshipSchema,
+    CalmOptionTypeSchema,
     CalmRelationshipSchema,
     CalmRelationshipTypeSchema
 } from '../types/core-types.js';
@@ -34,8 +36,6 @@ export class CalmRelationship {
         );
     }
 
-
-
     static deriveRelationshipType(data: CalmRelationshipTypeSchema): CalmRelationshipType {
         if (data.interacts) {
             return CalmInteractsType.fromJson(data.interacts);
@@ -45,6 +45,8 @@ export class CalmRelationship {
             return CalmDeployedInType.fromJson(data['deployed-in']);
         } else if (data['composed-of']) {
             return CalmComposedOfType.fromJson(data['composed-of']);
+        } else if (data.options) {
+            return CalmOptionsRelationshipType.fromJson(data.options);
         } else {
             throw new Error('Invalid relationship type data');
         }
@@ -93,5 +95,23 @@ export class CalmComposedOfType extends CalmRelationshipType {
 
     static fromJson(data: CalmComposedOfRelationshipSchema): CalmComposedOfType {
         return new CalmComposedOfType(data.container, data.nodes);
+    }
+}
+
+export class CalmOptionType {
+    constructor(public description: string, public nodes: string[], public relationships: string[]) {}
+
+    static fromJson(data: CalmOptionTypeSchema) {
+        return new CalmOptionType(data.description, data.nodes, data.relationships);
+    }
+}
+
+export class CalmOptionsRelationshipType extends CalmRelationshipType {
+    constructor(public options: CalmOptionType[]) {
+        super();
+    }
+
+    static fromJson(data: CalmOptionsRelationshipSchema): CalmOptionsRelationshipType {
+        return new CalmOptionsRelationshipType(data.map(calmOptionData => CalmOptionType.fromJson(calmOptionData)));
     }
 }

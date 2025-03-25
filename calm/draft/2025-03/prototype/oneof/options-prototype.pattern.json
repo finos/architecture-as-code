@@ -1,6 +1,6 @@
 {
   "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
-  "$id": "https://calm.finos.org/draft/2025-03/prototype/options-prototype.pattern.json",
+  "$id": "https://calm.finos.org/draft/2025-03/prototype/oneof/options-prototype.pattern.json",
   "title": "Application A/B/C + Database Pattern",
   "type": "object",
   "properties": {
@@ -157,7 +157,7 @@
           }
         },
         {
-          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/options",
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
           "type": "object",
           "properties": {
             "unique-id": {
