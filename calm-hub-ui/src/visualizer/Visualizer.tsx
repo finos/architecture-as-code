@@ -29,7 +29,7 @@ function Visualizer() {
     useEffect(() => {
         setTitle(data?.name)
         setCALMInstance(data?.data);
-      }, []);
+      }, [data]);
 
     return (
         <ZoomProvider>
