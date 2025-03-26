@@ -1,7 +1,7 @@
 import { SchemaDirectory } from './schema-directory';
 import { readFile } from 'node:fs/promises';
 
-jest.mock('./logger', () => {
+vi.mock('./logger', () => {
     return {
         initLogger: () => {
             return {

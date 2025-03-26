@@ -4,7 +4,7 @@ import { ValidationOutcome } from '../validation.output';
 describe('prettyFormat', () => {
     it('should format validation outcome with errors and warnings', () => {
         const validationOutcome: ValidationOutcome = {
-            allValidationOutputs: jest.fn().mockReturnValue([
+            allValidationOutputs: vi.fn().mockReturnValue([
                 { severity: 'error', message: 'Error 1' },
                 { severity: 'warning', message: 'Warning 1' }
             ]),
@@ -29,7 +29,7 @@ describe('prettyFormat', () => {
 
     it('should format validation outcome with only errors', () => {
         const validationOutcome: ValidationOutcome = {
-            allValidationOutputs: jest.fn().mockReturnValue([
+            allValidationOutputs: vi.fn().mockReturnValue([
                 { severity: 'error', message: 'Error 1' }
             ]),
             hasErrors: true,
@@ -53,7 +53,7 @@ describe('prettyFormat', () => {
 
     it('should format validation outcome with only warnings', () => {
         const validationOutcome: ValidationOutcome = {
-            allValidationOutputs: jest.fn().mockReturnValue([
+            allValidationOutputs: vi.fn().mockReturnValue([
                 { severity: 'warning', message: 'Warning 1' }
             ]),
             hasErrors: false,
@@ -77,7 +77,7 @@ describe('prettyFormat', () => {
 
     it('should format validation outcome with no issues', () => {
         const validationOutcome: ValidationOutcome = {
-            allValidationOutputs: jest.fn().mockReturnValue([]),
+            allValidationOutputs: vi.fn().mockReturnValue([]),
             hasErrors: false,
             hasWarnings: false,
             jsonSchemaValidationOutputs: [],

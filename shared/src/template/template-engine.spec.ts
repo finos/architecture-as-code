@@ -4,32 +4,32 @@ import { CalmTemplateTransformer, IndexFile } from './types';
 import fs from 'fs';
 import path from 'path';
 
-jest.mock('fs');
+vi.mock('fs');
 
 describe('TemplateEngine', () => {
-    let mockFileLoader: jest.Mocked<TemplateBundleFileLoader>;
-    let mockTransformer: jest.Mocked<CalmTemplateTransformer>;
-    let loggerInfoSpy: jest.SpyInstance;
-    let loggerWarnSpy: jest.SpyInstance;
+    let mockFileLoader: vi.mocked<TemplateBundleFileLoader>;
+    let mockTransformer: vi.mocked<CalmTemplateTransformer>;
+    let loggerInfoSpy: vi.SpyInstance;
+    let loggerWarnSpy: vi.SpyInstance;
 
     beforeEach(() => {
         mockFileLoader = {
-            getConfig: jest.fn(),
-            getTemplateFiles: jest.fn(),
-        } as unknown as jest.Mocked<TemplateBundleFileLoader>;
+            getConfig: vi.fn(),
+            getTemplateFiles: vi.fn(),
+        } as unknown as vi.mocked<TemplateBundleFileLoader>;
 
         mockTransformer = {
-            registerTemplateHelpers: jest.fn().mockReturnValue({}),
-            getTransformedModel: jest.fn(),
-        } as unknown as jest.Mocked<CalmTemplateTransformer>;
+            registerTemplateHelpers: vi.fn().mockReturnValue({}),
+            getTransformedModel: vi.fn(),
+        } as unknown as vi.mocked<CalmTemplateTransformer>;
 
-        loggerInfoSpy = jest.spyOn(TemplateEngine['logger'], 'info').mockImplementation(jest.fn());
-        loggerWarnSpy = jest.spyOn(TemplateEngine['logger'], 'warn').mockImplementation(jest.fn());
+        loggerInfoSpy = vi.spyOn(TemplateEngine['logger'], 'info').mockImplementation(vi.fn());
+        loggerWarnSpy = vi.spyOn(TemplateEngine['logger'], 'warn').mockImplementation(vi.fn());
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
-        jest.clearAllMocks();
+        vi.restoreAllMocks();
+        vi.clearAllMocks();
     });
 
     it('should log compiled templates', () => {
@@ -105,9 +105,9 @@ describe('TemplateEngine', () => {
         mockFileLoader.getConfig.mockReturnValue(templateConfig);
         mockFileLoader.getTemplateFiles.mockReturnValue(templateFiles);
 
-        jest.spyOn(fs, 'existsSync').mockReturnValue(false);
-        const mkdirSyncSpy = jest.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
-        const writeFileSyncSpy = jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
+        vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+        const mkdirSyncSpy = vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
+        const writeFileSyncSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
 
         const engine = new TemplateEngine(mockFileLoader, mockTransformer);
 
@@ -142,9 +142,9 @@ describe('TemplateEngine', () => {
         mockFileLoader.getConfig.mockReturnValue(templateConfig);
         mockFileLoader.getTemplateFiles.mockReturnValue(templateFiles);
 
-        jest.spyOn(fs, 'existsSync').mockReturnValue(false);
-        const mkdirSyncSpy = jest.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
-        const writeFileSyncSpy = jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
+        vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+        const mkdirSyncSpy = vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
+        const writeFileSyncSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
 
         const engine = new TemplateEngine(mockFileLoader, mockTransformer);
 

@@ -8,18 +8,18 @@ import {
 } from './calm-reference-resolver';
 
 describe('FileReferenceResolver', () => {
-    let existsSyncSpy: jest.SpyInstance;
-    let readFileSyncSpy: jest.SpyInstance;
+    let existsSyncSpy: vi.SpyInstance;
+    let readFileSyncSpy: vi.SpyInstance;
     let resolver: FileReferenceResolver;
 
     beforeEach(() => {
         resolver = new FileReferenceResolver();
-        existsSyncSpy = jest.spyOn(fs, 'existsSync');
-        readFileSyncSpy = jest.spyOn(fs, 'readFileSync');
+        existsSyncSpy = vi.spyOn(fs, 'existsSync');
+        readFileSyncSpy = vi.spyOn(fs, 'readFileSync');
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     it('returns true if file exists', () => {
@@ -68,15 +68,15 @@ describe('InMemoryResolver', () => {
 
 describe('HttpReferenceResolver', () => {
     let resolver: HttpReferenceResolver;
-    let axiosGetSpy: jest.SpyInstance;
+    let axiosGetSpy: vi.SpyInstance;
 
     beforeEach(() => {
         resolver = new HttpReferenceResolver();
-        axiosGetSpy = jest.spyOn(axios, 'get');
+        axiosGetSpy = vi.spyOn(axios, 'get');
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     it('returns true for http URL', () => {
@@ -114,20 +114,20 @@ describe('HttpReferenceResolver', () => {
 
 describe('CompositeReferenceResolver', () => {
     let resolver: CompositeReferenceResolver;
-    let axiosGetSpy: jest.SpyInstance;
-    let existsSyncSpy: jest.SpyInstance;
-    let readFileSyncSpy: jest.SpyInstance;
+    let axiosGetSpy: vi.SpyInstance;
+    let existsSyncSpy: vi.SpyInstance;
+    let readFileSyncSpy: vi.SpyInstance;
 
     beforeEach(() => {
         resolver = new CompositeReferenceResolver();
-        axiosGetSpy = jest.spyOn(axios, 'get');
-        existsSyncSpy = jest.spyOn(fs, 'existsSync');
-        readFileSyncSpy = jest.spyOn(fs, 'readFileSync');
+        axiosGetSpy = vi.spyOn(axios, 'get');
+        existsSyncSpy = vi.spyOn(fs, 'existsSync');
+        readFileSyncSpy = vi.spyOn(fs, 'readFileSync');
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
-        jest.clearAllMocks();
+        vi.restoreAllMocks();
+        vi.clearAllMocks();
     });
 
     it('returns true if the HTTP resolver can resolve', () => {

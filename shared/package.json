@@ -12,7 +12,7 @@
         "build": "tsc",
         "watch": "tsc -watch -p ./",
         "clean": "rimraf dist tsconfig.tsbuildinfo",
-        "test": "jest --verbose",
+        "test": "vitest run",
         "lint": "eslint src",
         "lint-fix": "eslint src --fix",
         "dependency-check": "dependency-check --project 'calm-shared' --scan . --out ./dependency-check-report --format ALL --suppression ../.github/node-cve-ignore-list.xml"
@@ -62,7 +62,8 @@
         "msw": "^2.7.3",
         "ts-jest": "^29.2.5",
         "ts-node": "10.9.2",
-        "typescript": "^5.4.3"
+        "typescript": "^5.4.3",
+        "vitest": "^3.0.9"
     },
     "overrides": {
         "path-to-regexp": "3.3.0",
