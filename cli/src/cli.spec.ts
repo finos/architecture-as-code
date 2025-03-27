@@ -1,198 +1,112 @@
-describe('TODO Temp Test', () => {
-    it('TODO should work', () => {
-        expect(true).toBe(true);
+import { Command } from 'commander';
+import { setupCLI } from './cli';
+
+let calmShared: typeof import('@finos/calm-shared');
+let validateModule: typeof import('./command-helpers/validate');
+let serverModule: typeof import('./server/cli-server');
+let templateModule: typeof import('./command-helpers/template');
+
+describe('CLI Commands', () => {
+    let program: Command;
+
+    beforeEach(async () => {
+        vi.resetModules();
+        vi.clearAllMocks();
+
+        calmShared = await import('@finos/calm-shared');
+        validateModule = await import('./command-helpers/validate');
+        serverModule = await import('./server/cli-server');
+        templateModule = await import('./command-helpers/template');
+
+        vi.spyOn(calmShared, 'runGenerate').mockResolvedValue(undefined);
+        vi.spyOn(calmShared.TemplateProcessor.prototype, 'processTemplate').mockResolvedValue(undefined);
+        vi.spyOn(calmShared.Docifier.prototype, 'docify').mockResolvedValue(undefined);
+
+        vi.spyOn(validateModule, 'runValidate').mockResolvedValue(undefined);
+        vi.spyOn(validateModule, 'checkValidateOptions').mockResolvedValue(undefined);
+
+        vi.spyOn(serverModule, 'startServer').mockImplementation(vi.fn());
+        vi.spyOn(templateModule, 'getUrlToLocalFileMap').mockReturnValue(new Map());
+
+        program = new Command();
+        setupCLI(program);
+    });
+
+    describe('Generate Command', () => {
+        it('should call runGenerate with correct arguments', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'generate',
+                '-p', 'pattern.json',
+                '-o', 'output.json',
+                '--verbose',
+                '--generateAll',
+                '--schemaDirectory', 'schemas',
+            ]);
+
+            expect(calmShared.runGenerate).toHaveBeenCalledWith(
+                'pattern.json', 'output.json', true, true, 'schemas'
+            );
+        });
+    });
+
+    describe('Validate Command', () => {
+        it('should call runValidate with correct options', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'validate',
+                '-p', 'pattern.json',
+                '-a', 'arch.json',
+            ]);
+
+            expect(validateModule.checkValidateOptions).toHaveBeenCalled();
+            expect(validateModule.runValidate).toHaveBeenCalledWith(expect.objectContaining({
+                pattern: 'pattern.json',
+                architecture: 'arch.json',
+            }));
+        });
+    });
+
+    describe('Server Command', () => {
+        it('should call startServer with correct options', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'server',
+                '--port', '4000',
+                '--schemaDirectory', 'mySchemas',
+                '--verbose',
+            ]);
+
+            expect(serverModule.startServer).toHaveBeenCalledWith({
+                port: '4000',
+                schemaDirectory: 'mySchemas',
+                verbose: true,
+            });
+        });
+    });
+
+    describe('Template Command', () => {
+        it('should instantiate TemplateProcessor and call processTemplate', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'template',
+                '--input', 'model.json',
+                '--bundle', 'templateDir',
+                '--output', 'outDir',
+                '--verbose',
+            ]);
+
+            expect(calmShared.TemplateProcessor.prototype.processTemplate).toHaveBeenCalled();
+        });
+    });
+
+    describe('Docify Command', () => {
+        it('should instantiate Docifier and call docify', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--input', 'model.json',
+                '--output', 'outDir',
+                '--url-to-local-file-mapping', 'url-to-file-directory.json',
+                '--verbose',
+            ]);
+
+            expect(calmShared.Docifier.prototype.docify).toHaveBeenCalled();
+        });
     });
 });
-
-// jest.mock('@finos/calm-shared', () => ({
-//     runGenerate: jest.fn(),
-//     TemplateProcessor: jest.fn().mockImplementation(() => ({
-//         processTemplate: jest.fn().mockResolvedValue(undefined),
-//     })),
-//     Docifier: jest.fn().mockImplementation(() => ({
-//         docify: jest.fn().mockResolvedValue(undefined),
-//     }))
-// }));
-
-// jest.mock('./server/cli-server', () => ({
-//     startServer: jest.fn(),
-// }));
-
-// jest.mock('./command-helpers/validate', () => ({
-//     runValidate: jest.fn(() => Promise.resolve()),
-//     checkValidateOptions: jest.fn(() => Promise.resolve()),
-// }));
-
-// jest.mock('./command-helpers/template', () => ({
-//     getUrlToLocalFileMap: jest.fn()
-// }));
-
-// describe('CLI Commands', () => {
-//     beforeEach(() => {
-//         jest.resetModules();
-//         jest.clearAllMocks();
-//     });
-
-//     describe('Generate Command', () => {
-//         it('should call runGenerate with correct arguments', async () => {
-//             process.argv = [
-//                 'node',
-//                 'cli.js',
-//                 'generate',
-//                 '-p',
-//                 'pattern.json',
-//                 '-o',
-//                 'output.json',
-//                 '--verbose',
-//                 '--generateAll',
-//                 '--schemaDirectory',
-//                 'schemas'
-//             ];
-//             await import('./index');
-//             const { runGenerate } = jest.requireMock('@finos/calm-shared');
-//             expect(runGenerate).toHaveBeenCalledTimes(1);
-//             expect(runGenerate).toHaveBeenCalledWith(
-//                 'pattern.json',
-//                 'output.json',
-//                 true,
-//                 true,
-//                 'schemas'
-//             );
-//         });
-//     });
-
-//     describe('Validate Command', () => {
-//         it('should call runValidate with correct options', async () => {
-//             process.argv = [
-//                 'node',
-//                 'cli.js',
-//                 'validate',
-//                 '-p',
-//                 'pattern.json',
-//                 '-a',
-//                 'arch.json'
-//             ];
-//             const { runValidate, checkValidateOptions } = jest.requireMock('./command-helpers/validate');
-//             await import('./index');
-//             expect(checkValidateOptions).toHaveBeenCalledTimes(1);
-//             expect(runValidate).toHaveBeenCalledTimes(1);
-//             expect(runValidate.mock.calls[0][0]).toEqual(
-//                 expect.objectContaining({
-//                     pattern: 'pattern.json',
-//                     architecture: 'arch.json'
-//                 })
-//             );
-//         });
-
-//     });
-
-//     describe('Server Command', () => {
-//         it('should call startServer with correct options', async () => {
-//             process.argv = [
-//                 'node',
-//                 'cli.js',
-//                 'server',
-//                 '--port',
-//                 '4000',
-//                 '--schemaDirectory',
-//                 'mySchemas',
-//                 '--verbose'
-//             ];
-//             await import('./index');
-//             const { startServer } = jest.requireMock('./server/cli-server');
-//             expect(startServer).toHaveBeenCalledTimes(1);
-//             expect(startServer).toHaveBeenCalledWith({
-//                 port: '4000',
-//                 schemaDirectory: 'mySchemas',
-//                 verbose: true
-//             });
-//         });
-//     });
-
-//     describe('Template Command', () => {
-//         it('should instantiate TemplateProcessor with correct arguments and call processTemplate', async () => {
-//             process.argv = [
-//                 'node',
-//                 'cli.js',
-//                 'template',
-//                 '--input',
-//                 'model.json',
-//                 '--bundle',
-//                 'templateDir',
-//                 '--output',
-//                 'outDir',
-//                 '--verbose'
-//             ];
-//             const {getUrlToLocalFileMap} = jest.requireMock('./command-helpers/template');
-//             (getUrlToLocalFileMap as jest.Mock).mockReturnValue(new Map<string, string>);
-
-//             // eslint-disable-next-line @typescript-eslint/no-require-imports
-//             const TemplateProcessorMock = (require('@finos/calm-shared').TemplateProcessor as jest.Mock);
-//             await import('./index');
-//             expect(TemplateProcessorMock.mock.calls.length).toBe(1);
-//             expect(TemplateProcessorMock.mock.calls[0]).toEqual(['model.json', 'templateDir', 'outDir', new Map<string, string>()]);
-//         });
-
-//         it('should instantiate TemplateProcessor with additional url to file map', async () => {
-//             process.argv = [
-//                 'node',
-//                 'cli.js',
-//                 'template',
-//                 '--input',
-//                 'model.json',
-//                 '--bundle',
-//                 'templateDir',
-//                 '--output',
-//                 'outDir',
-//                 '--url-to-local-file-mapping',
-//                 'url-to-file-directory.json',
-//                 '--verbose'
-//             ];
-//             const urlToLocalFileMap = new Map<string, string>([
-//                 ['https://calm.finos.org/docuflow/flow/document-upload', 'flows/flow-document-upload.json'],
-//             ]);
-
-//             const {getUrlToLocalFileMap} = jest.requireMock('./command-helpers/template');
-//             (getUrlToLocalFileMap as jest.Mock).mockReturnValue(urlToLocalFileMap);
-//             // eslint-disable-next-line @typescript-eslint/no-require-imports
-//             const TemplateProcessorMock = (require('@finos/calm-shared').TemplateProcessor as jest.Mock);
-//             await import('./index');
-//             expect(TemplateProcessorMock.mock.calls.length).toBe(1);
-//             expect(TemplateProcessorMock.mock.calls[0]).toEqual(['model.json', 'templateDir', 'outDir', urlToLocalFileMap]);
-//         });
-//     });
-
-
-//     describe('Docify Command', () => {
-
-//         it('should instantiate Docifier with additional url to file map', async () => {
-//             process.argv = [
-//                 'node',
-//                 'cli.js',
-//                 'docify',
-//                 '--input',
-//                 'model.json',
-//                 '--output',
-//                 'outDir',
-//                 '--url-to-local-file-mapping',
-//                 'url-to-file-directory.json',
-//                 '--verbose'
-//             ];
-
-//             const urlToLocalFileMap = new Map<string, string>([
-//                 ['https://calm.finos.org/docuflow/flow/document-upload', 'flows/flow-document-upload.json'],
-//             ]);
-
-//             const { getUrlToLocalFileMap } = jest.requireMock('./command-helpers/template');
-//             (getUrlToLocalFileMap as jest.Mock).mockReturnValue(urlToLocalFileMap);
-//             // eslint-disable-next-line @typescript-eslint/no-require-imports
-//             const DocifierMock = require('@finos/calm-shared').Docifier;
-//             await import('./index');
-
-//             expect(DocifierMock).toHaveBeenCalledTimes(1);
-//             expect(DocifierMock).toHaveBeenCalledWith('WEBSITE', 'model.json', 'outDir', urlToLocalFileMap);
-
-//         });
-//     });
-// });
-
