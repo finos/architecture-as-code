@@ -2,7 +2,7 @@
 
 import { getConstValue, getEnumPlaceholder, getPropertyValue } from './property';
 
-jest.mock('../../../logger', () => {
+vi.mock('../../../logger', () => {
     return {
         initLogger: () => {
             return {

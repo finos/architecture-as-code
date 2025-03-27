@@ -3,7 +3,7 @@
 import { SchemaDirectory } from '../../../schema-directory';
 import { instantiateGenericObject } from './instantiate';
 
-jest.mock('../../../logger', () => {
+vi.mock('../../../logger', () => {
     return {
         initLogger: () => {
             return {
@@ -14,7 +14,7 @@ jest.mock('../../../logger', () => {
     };
 });
 
-jest.mock('../../../schema-directory');
+vi.mock('../../../schema-directory');
 
 let mockSchemaDir;
 
@@ -98,7 +98,7 @@ describe('instantiateGenericObject', () => {
             }
         };
 
-        const spy = jest.spyOn(mockSchemaDir, 'getDefinition');
+        const spy = vi.spyOn(mockSchemaDir, 'getDefinition');
         spy.mockReturnValue(returnedDef);
 
 

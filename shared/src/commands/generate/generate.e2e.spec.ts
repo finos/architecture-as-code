@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { runGenerate } from './generate';
 
-jest.mock('../../consts', () => ({
+vi.mock('../../consts', () => ({
     get CALM_META_SCHEMA_DIRECTORY() { return 'test_fixtures/calm'; }
 }));
 

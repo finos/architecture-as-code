@@ -16,7 +16,7 @@
     "watch": "node watch.mjs",
     "copy-calm-schema": "copyfiles \"../calm/draft/2025-03/meta/*\" dist/calm/",
     "copy-docify-templates": "copyfiles \"../shared/src/docify/template-bundles/**/*\" dist --up 4",
-    "test": "jest",
+    "test": "vitest run",
     "lint": "eslint src",
     "lint-fix": "eslint src --fix",
     "dependency-check": "dependency-check --project 'calm-cli' --scan . --out ./dependency-check-report --format ALL --suppression ../.github/node-cve-ignore-list.xml"

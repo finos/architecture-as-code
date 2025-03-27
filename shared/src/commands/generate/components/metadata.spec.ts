@@ -1,7 +1,7 @@
 import { SchemaDirectory } from '../../../schema-directory';
 import { instantiateAllMetadata, instantiateMetadataObject } from './metadata';
 
-jest.mock('../../../logger', () => {
+vi.mock('../../../logger', () => {
     return {
         initLogger: () => {
             return {
@@ -12,7 +12,7 @@ jest.mock('../../../logger', () => {
     };
 });
 
-jest.mock('../../../schema-directory');
+vi.mock('../../../schema-directory');
 
 let mockSchemaDir;
 
@@ -95,7 +95,7 @@ describe('instantiateMetadataObject', () => {
             }
         };
 
-        const spy = jest.spyOn(mockSchemaDir, 'getDefinition');
+        const spy = vi.spyOn(mockSchemaDir, 'getDefinition');
         spy.mockReturnValue(returnedDef);
 
 
