@@ -3,7 +3,7 @@
 import { SchemaDirectory } from '../../../schema-directory';
 import { instantiateRelationships } from './relationship';
 
-jest.mock('../../../logger', () => {
+vi.mock('../../../logger', () => {
     return {
         initLogger: () => {
             return {
@@ -14,7 +14,7 @@ jest.mock('../../../logger', () => {
     };
 });
 
-jest.mock('../../../schema-directory');
+vi.mock('../../../schema-directory');
 
 let mockSchemaDir;
 
@@ -135,7 +135,7 @@ describe('instantiateRelationships', () => {
             }
         };
 
-        const spy = jest.spyOn(mockSchemaDir, 'getDefinition');
+        const spy = vi.spyOn(mockSchemaDir, 'getDefinition');
         spy.mockReturnValue({
             properties: {
                 'property-name': {
