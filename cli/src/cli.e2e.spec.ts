@@ -12,7 +12,7 @@ vi.mock('axios');
 const execPromise = util.promisify(exec);
 
 const millisPerSecond = 1000;
-const integrationTestPrefix = 'calm-pack-test';
+const integrationTestPrefix = 'calm-consumer-test';
 let tempDir: string;
 const repoRoot = path.resolve(__dirname);
 
