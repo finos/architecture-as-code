@@ -1,12 +1,12 @@
 #! /usr/bin/env node
 
-import { CALM_META_SCHEMA_DIRECTORY, runGenerate, TemplateProcessor } from '@finos/calm-shared';
+import { CALM_META_SCHEMA_DIRECTORY, Docifier, runGenerate, TemplateProcessor } from '@finos/calm-shared';
 import { Option, program } from 'commander';
 
 import { version } from '../package.json';
 import { startServer } from './server/cli-server';
 import inquirer from 'inquirer';
-import { CalmChoice, CalmOption } from '@finos/calm-shared/commands/generate/components/options';
+import { CalmChoice, CalmOption, optionsFor } from '@finos/calm-shared/commands/generate/components/options';
 import { loadFile } from './fileInput';
 import logger from 'winston';
 import {checkValidateOptions, runValidate} from './command-helpers/validate';

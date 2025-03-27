@@ -1,9 +1,6 @@
  
 
-import { CalmNode, CalmNodeDetails } from '@finos/calm-shared/model/node';
 import { CalmChoice, CalmOption, optionsFor, selectChoices } from './options';
-import { CalmMetadata } from '@finos/calm-shared/model/metadata';
-import { CalmRelationship } from '@finos/calm-shared/model/relationship';
 
 jest.mock('winston', () => ({
     info: jest.fn(),
@@ -76,43 +73,40 @@ function buildPatternOption(optionType: 'oneOf' | 'anyOf', ...choices: object[])
     return option;
 }
 
-function buildNode(node: CalmNode): object {
+function buildNode(uniqueId: string): object {
     return {
         '$ref': 'https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node',
         'type': 'object',
         'properties': {
             'unique-id': {
-                'const': node.uniqueId
+                'const': uniqueId
             },
             'name': {
-                'const': node.name
+                'const': uniqueId + ' name'
             },
             'description': {
-                'const': node.description
+                'const': uniqueId + ' description'
             },
             'node-type': {
-                'const': node.nodeType
+                'const': 'service'
             }
         }
     };
 }
 
-function buildRelationship(relationship: CalmRelationship): object {
+function buildConnectsRelationship(prompt: string, source: string, destination: string): object {
     return {
         '$ref': 'https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship',
         'type': 'object',
         'properties': {
-            'unique-id': {
-                'const': relationship.uniqueId
-            },
             'description': {
-                'const': relationship.description
+                'const': prompt
             },
-            'relationship-type': relationship.relationshipType{
+            'relationship-type': {
                 'const': {
                     'connects': {
-                        'source': { 'node': 'application-c' },
-                        'destination': { 'node': 'node-1' }
+                        'source': { 'node': source },
+                        'destination': { 'node': destination }
                     }
                 }
             }
@@ -244,27 +238,61 @@ describe('Pattern Options', () => {
 
     describe('selectChoices', () => {
         it('should remove items not selected from pattern', () => {
-            const node = buildNode(new CalmNode(
-                'node-1',
-                'service',
-                'Node 1',
-                'This is node 1',
-                new CalmNodeDetails('', ''),
-                [],
-                [],
-                new CalmMetadata({}),
-            ));
-            
+            const applicationA = buildNode('application-a');
+            const applicationB = buildNode('application-b');
+            const applicationC = buildNode('application-c');
+            const connectsRelationshipA = buildConnectsRelationship('app a to app c', 'application-a', 'application-c');
+            const connectsRelationshipB = buildConnectsRelationship('app b to app c', 'application-b', 'application-c');
+
             const pattern = buildPattern(
-                [node],
-                [buildPatternOptionRelationship(
-                    'The choice of nodes and relationships in the pattern', 
-                    buildPatternOption('anyOf', buildPatternChoice(applicationAtoC), buildPatternChoice(applicationBtoC))
-                )]
+                [
+                    { 'oneOf': [ applicationA, applicationB ] },
+                    applicationC
+                ],
+                [
+                    buildPatternOptionRelationship(
+                        'The choice of nodes and relationships in the pattern', 
+                        buildPatternOption('oneOf', buildPatternChoice(applicationAtoC), buildPatternChoice(applicationBtoC))
+                    ),
+                    {
+                        'oneOf': [ connectsRelationshipA, connectsRelationshipB ]
+                    }
+                ]
             );
 
-            const expectedPattern = buildPattern();
+            // only choose app a, NOT app b
+            const choices: CalmChoice[] = [
+                {
+                    description: 'app a',
+                    nodes: ['application-a'],
+                    relationships: ['application-a-to-c']
+                }
+            ];
+
+            const expectedPattern = buildPattern(
+                [applicationA, applicationC],
+                [connectsRelationshipA]
+            );
             expect(selectChoices(pattern, choices)).toEqual(expectedPattern);
+        });
+
+        it('should not affect a normal pattern', () => {
+            const applicationA = buildNode('application-a');
+            const applicationB = buildNode('application-b');
+            const applicationC = buildNode('application-c');
+            const connectsRelationshipA = buildConnectsRelationship('app a to app c', 'application-a', 'application-c');
+            const connectsRelationshipB = buildConnectsRelationship('app b to app c', 'application-b', 'application-c');
+
+            const pattern = buildPattern(
+                [ applicationA, applicationB, applicationC],
+                [ connectsRelationshipA, connectsRelationshipB ]
+            );
+
+            const expectedPattern = buildPattern(
+                [applicationA, applicationB, applicationC],
+                [connectsRelationshipA, connectsRelationshipB]
+            );
+            expect(selectChoices(pattern, [])).toEqual(expectedPattern);
         });
     });
 });
