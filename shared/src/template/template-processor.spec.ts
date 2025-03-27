@@ -1,5 +1,5 @@
 import fs from 'fs';
-// import path from 'path';
+import path from 'path';
 import { TemplateProcessor } from './template-processor';
 import { CalmTemplateTransformer, IndexFile } from './types';
 vi.mock('fs');
@@ -52,7 +52,7 @@ vi.mock('./template-calm-file-dereferencer', () => {
 describe('TemplateProcessor', () => {
     let mockTransformer: vi.mocked<CalmTemplateTransformer>;
     let loggerInfoSpy: vi.SpyInstance;
-
+    let loggerErrorSpy: vi.SpyInstance;
     beforeEach(() => {
         mockTransformer = {
             registerTemplateHelpers: vi.fn().mockReturnValue({}),
@@ -60,7 +60,7 @@ describe('TemplateProcessor', () => {
         } as unknown as vi.mocked<CalmTemplateTransformer>;
 
         loggerInfoSpy = vi.spyOn(TemplateProcessor['logger'], 'info').mockImplementation(vi.fn());
-
+        loggerErrorSpy = vi.spyOn(TemplateProcessor['logger'], 'error').mockImplementation(vi.fn());
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.spyOn(TemplateProcessor.prototype as any, 'loadTransformer').mockReturnValue(mockTransformer);
 
@@ -75,10 +75,7 @@ describe('TemplateProcessor', () => {
         (fs.mkdirSync as vi.mock).mockImplementation(() => {});
     });
 
-    afterEach(() => {
-        vi.restoreAllMocks();
-        vi.clearAllMocks();
-    });
+    afterEach(() => {});
 
     it('should successfully process a template', async () => {
         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map<string, string>());
@@ -89,57 +86,58 @@ describe('TemplateProcessor', () => {
         expect(mockTransformer.getTransformedModel).toHaveBeenCalledWith('{"some": "dereferencedData"}');
     });
 
-    //     it('should throw an error if the input file is missing', async () => {
-    //         (fs.existsSync as vi.mock).mockImplementation((filePath: string) => {
-    //             return !filePath.includes('simple-nodes.json');
-    //         });
-    //         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map<string, string>());
-    //         await expect(processor.processTemplate()).rejects.toThrow('CALM model file not found: ' + path.resolve('simple-nodes.json'));
-    //         expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ CALM model file not found'));
-    //     });
+    it('should throw an error if the input file is missing', async () => {
+        (fs.existsSync as vi.mock).mockImplementation((filePath: string) => {
+            return !filePath.includes('simple-nodes.json');
+        });
+        const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map<string, string>());
+        await expect(processor.processTemplate()).rejects.toThrow('CALM model file not found: ' + path.resolve('simple-nodes.json'));
+        expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ CALM model file not found'));
+    });
 
-    //     it('should throw an error if the transformer field is missing in config', async () => {
-    //         const configNoTransformer = {
-    //             name: 'Test Bundle',
-    //             templates: []
-    //         };
-    //         mockTemplateLoader.getConfig.mockReturnValue(configNoTransformer);
-    //         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map<string, string>());
-    //         await expect(processor.processTemplate()).rejects.toThrow(
-    //             'Missing "transformer" field in index.json. Define a transformer for this template bundle.'
-    //         );
-    //         expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ Missing "transformer" field in index.json.'));
-    //     });
+    it('should throw an error if the transformer field is missing in config', async () => {
+        const configNoTransformer = {
+            name: 'Test Bundle',
+            templates: []
+        };
 
-    //     it('should throw an error if loadTransformer fails', async () => {
-    //         const configWithBadTransformer = {
-    //             name: 'Test Bundle',
-    //             templates: [],
-    //             transformer: 'NonExistentTransformer'
-    //         };
-    //         mockTemplateLoader.getConfig.mockReturnValue(configWithBadTransformer);
+        mockTemplateLoader.getConfig.mockReturnValue(configNoTransformer);
+        const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map<string, string>());
+        await expect(processor.processTemplate()).rejects.toThrow(
+            'Missing "transformer" field in index.json. Define a transformer for this template bundle.'
+        );
+        expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ Missing "transformer" field in index.json.'));
+    });
 
-    //         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    //         vi.spyOn(TemplateProcessor.prototype as any, 'loadTransformer').mockImplementation(() => {
-    //             throw new Error('TransformerClass is undefined.');
-    //         });
-    //         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map<string, string>());
-    //         await expect(processor.processTemplate()).rejects.toThrow('❌ Error generating template: TransformerClass is undefined.');
-    //         expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ Error generating template: TransformerClass is undefined.'));
-    //     });
+    it('should throw an error if loadTransformer fails', async () => {
+        const configWithBadTransformer = {
+            name: 'Test Bundle',
+            templates: [],
+            transformer: 'NonExistentTransformer'
+        };
+        mockTemplateLoader.getConfig.mockReturnValue(configWithBadTransformer);
 
-    //     it('should pass the urlToLocalPathMapping to the TemplateCalmFileRefResolver', async () => {
-    //         const mapping = new Map<string, string>([['http://example.com/file', '/local/path/file']]);
-    //         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', mapping);
-    //         await processor.processTemplate();
-    //         const { TemplateCalmFileDereferencer } = vi.requireMock('./template-calm-file-dereferencer');
-    //         expect(TemplateCalmFileDereferencer).toHaveBeenCalledWith(mapping, expect.anything());
-    //     });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        vi.spyOn(TemplateProcessor.prototype as any, 'loadTransformer').mockImplementation(() => {
+            throw new Error('TransformerClass is undefined.');
+        });
+        const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map<string, string>());
+        await expect(processor.processTemplate()).rejects.toThrow('❌ Error generating template: TransformerClass is undefined.');
+        expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ Error generating template: TransformerClass is undefined.'));
+    });
 
-//     it('should throw an error if dereferencing the CALM doc fails', async () => {
-//         (mockDereferencer.dereferenceCalmDoc as vi.mock).mockRejectedValue(new Error('Dereference failed'));
-//         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map<string, string>());
-//         await expect(processor.processTemplate()).rejects.toThrow('Dereference failed');
-//         expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Dereference failed'));
-//     });
+    it('should pass the urlToLocalPathMapping to the TemplateCalmFileRefResolver', async () => {
+        const mapping = new Map<string, string>([['http://example.com/file', '/local/path/file']]);
+        const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', mapping);
+        await processor.processTemplate();
+        const { TemplateCalmFileDereferencer } = await vi.importMock('./template-calm-file-dereferencer');
+        expect(TemplateCalmFileDereferencer).toHaveBeenCalledWith(mapping, expect.anything());
+    });
+
+    it('should throw an error if dereferencing the CALM doc fails', async () => {
+        (mockDereferencer.dereferenceCalmDoc as vi.mock).mockRejectedValue(new Error('Dereference failed'));
+        const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map<string, string>());
+        await expect(processor.processTemplate()).rejects.toThrow('Dereference failed');
+        expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Dereference failed'));
+    });
 });
