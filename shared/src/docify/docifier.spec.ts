@@ -1,9 +1,9 @@
 import { Docifier } from './docifier';
 import { TemplateProcessor } from '../template/template-processor';
 
-jest.mock('../template/template-processor');
+vi.mock('../template/template-processor');
 
-const mockedTemplateProcessor = TemplateProcessor as jest.MockedClass<typeof TemplateProcessor>;
+const mockedTemplateProcessor = TemplateProcessor as vi.mockedClass<typeof TemplateProcessor>;
 
 describe('Docifier', () => {
     const inputPath = 'some/input/path';
@@ -11,7 +11,7 @@ describe('Docifier', () => {
     const urlToLocalPathMapping = new Map<string, string>();
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     it('should throw an error when mode is "SAD"', () => {
@@ -21,7 +21,7 @@ describe('Docifier', () => {
     });
 
     it('should instantiate TemplateProcessor for mode "WEBSITE" and call processTemplate', async () => {
-        const processTemplateMock = jest.fn().mockResolvedValue(undefined);
+        const processTemplateMock = vi.fn().mockResolvedValue(undefined);
 
         mockedTemplateProcessor.mockImplementationOnce(() => ({
             processTemplate: processTemplateMock,

@@ -3,24 +3,24 @@ import { CLIServerRoutes } from './routes';
 import { ValidationRouter } from './validation-route';
 import { HealthRouter } from './health-route';
 
-const mockUse = jest.fn();
+const mockUse = vi.fn();
 const mockRouter = {
     use: mockUse
 };
 
-jest.mock('express', () => ({
-    Router: jest.fn(() => mockRouter)
+vi.mock('express', () => ({
+    Router: vi.fn(() => mockRouter)
 }));
 
-jest.mock('./validation-route', () => {
+vi.mock('./validation-route', () => {
     return {
-        ValidationRouter: jest.fn()
+        ValidationRouter: vi.fn()
     };
 });
 
-jest.mock('./health-route', () => {
+vi.mock('./health-route', () => {
     return {
-        HealthRouter: jest.fn()
+        HealthRouter: vi.fn()
     };
 });
 

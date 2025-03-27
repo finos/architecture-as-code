@@ -12,7 +12,8 @@
     "moduleResolution": "node",
     "types": [
       "node",
-      "jest"
+      "jest",
+      "../vitest/globals"
     ],
     "typeRoots": [
       "node_modules/@types",
