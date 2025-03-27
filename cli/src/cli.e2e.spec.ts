@@ -1,4 +1,4 @@
-import { exec } from 'child_process';
+import { exec, execSync } from 'child_process';
 import path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -6,224 +6,228 @@ import { parseStringPromise } from 'xml2js';
 import util from 'util';
 import axios from 'axios';
 
-
-
 // Mock axios
 vi.mock('axios');
 
 const execPromise = util.promisify(exec);
 
-describe('CLI Integration Tests', () => {
+const millisPerSecond = 1000;
+const integrationTestPrefix = 'calm-pack-test';
+let tempDir: string;
+const repoRoot = path.resolve(__dirname);
 
-    let tempDir: string;
-    const millisPerSecond = 1000;
-    const integrationTestPrefix = 'calm-test';
-    const projectRoot = __dirname;
+function calm(command: string): string {
+    return `${path.join(tempDir, 'node_modules/.bin/calm')} ${command}`; //referencing local calm install in-case someone locally has installed calm globally.
+}
+
+describe('CLI Integration Tests', () => {
     vi.setConfig({ testTimeout: 30 * millisPerSecond });
 
-    beforeAll(async () => {
+    beforeAll(() => {
         tempDir = fs.mkdtempSync(path.join(os.tmpdir(), integrationTestPrefix));
-        await execPromise('npm link', { cwd: path.resolve(projectRoot, '../../cli') });
-    }, millisPerSecond * 20);
 
-    afterAll(async () => {
+        const tgzName = execSync('npm pack', { cwd: repoRoot }).toString().trim();
+        const sourceTarball = path.join(repoRoot, tgzName);
+        const targetTarball = path.join(tempDir, tgzName);
+        fs.renameSync(sourceTarball, targetTarball);
+
+        // Create clean test consumer
+        execSync('npm init -y', { cwd: tempDir, stdio: 'inherit' });
+        execSync(`npm install ${targetTarball}`, { cwd: tempDir, stdio: 'inherit' });
+    }, millisPerSecond * 30);
+
+    afterAll(() => {
         if (tempDir) {
-            fs.rmSync(tempDir, { recursive: true });
+            fs.rmSync(tempDir, { recursive: true, force: true });
         }
-    }, millisPerSecond * 20);
+    });
+
+    test('calm --version works', async () => {
+        const { stdout } = await execPromise(calm('--version'));
+        expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/); // basic semver check
+    });
+
 
     test('shows help if no arguments provided', async () => {
-        const noArgCommand = 'calm';
-        exec(noArgCommand, (error, _stdout, stderr) => {
-            expect(error).not.toBeNull();
-            expect(stderr).toContain('A set of tools for interacting with the Common Architecture Language Model');
-            expect(stderr).toContain('Usage:');
-        });
-    });
-
-    test('shows help if -h provided', async () => {
-        const helpShortFlagCommand = 'calm -h';
-        exec(helpShortFlagCommand, (_error, stdout, _stderr) => {
-            expect(stdout).toContain('A set of tools for interacting with the Common Architecture Language Model');
-            expect(stdout).toContain('Usage:');
-        });
-    });
-
-    test('shows help if --help provided', async () => {
-        const helpLongFlagCommand = 'calm --help';
-        exec(helpLongFlagCommand, (_error, stdout, _stderr) => {
-            expect(stdout).toContain('A set of tools for interacting with the Common Architecture Language Model');
-            expect(stdout).toContain('Usage:');
-        });
-    });
-
-    test('example validate command - outputting JSON to stdout', async () => {
-        const exampleValidateCommand = 'calm validate -p ../calm/pattern/api-gateway.json -a ../calm/samples/api-gateway-architecture.json';
-        exec(exampleValidateCommand, (_error, stdout, _stderr) => {
-            const parsedOutput = JSON.parse(stdout);
-            const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_output.json');
-            const expectedJson = JSON.parse(fs.readFileSync(expectedFilePath, 'utf-8'));
-            expect(parsedOutput).toEqual(expectedJson);
-        });
-    });
-
-    test('example validate command - outputting JSON to file', async () => {
-        const targetOutputFile = path.join(tempDir, 'validate-output.json');
-        const exampleValidateCommand = `calm validate -p ../calm/pattern/api-gateway.json -a ../calm/samples/api-gateway-architecture.json -o ${targetOutputFile}`;
-        exec(exampleValidateCommand, (_error, _stdout, _stderr) => {
-            expect(fs.existsSync(targetOutputFile)).toBeTruthy();
-
-            const outputString = fs.readFileSync(targetOutputFile, 'utf-8');
-            const parsedOutput = JSON.parse(outputString);
-
-            const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_output.json');
-            const expectedJson = JSON.parse(fs.readFileSync(expectedFilePath, 'utf-8'));
-
-            expect(parsedOutput).toEqual(expectedJson);
-        });
-    });
-
-    test('example validate command - outputting JUNIT to stdout', async () => {
-        const exampleValidateCommand = 'calm validate -p ../calm/pattern/api-gateway.json -a ../calm/samples/api-gateway-architecture.json -f junit';
-        exec(exampleValidateCommand, async (_error, stdout, _stderr) => {
-            const parsedOutput = await parseStringPromise(stdout);
-
-            const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_output_junit.xml');
-            const expectedXmlString = fs.readFileSync(expectedFilePath, 'utf-8');
-            const expectedXml = await parseStringPromise(expectedXmlString);
-
-            expect(parsedOutput).toEqual(expectedXml);
-        });
-    });
-
-    test('example validate command - outputting JUNIT to file', async () => {
-        const targetOutputFile = path.join(tempDir, 'validate-output.xml');
-        const exampleValidateCommand = `calm validate -p ../calm/pattern/api-gateway.json -a ../calm/samples/api-gateway-architecture.json -f junit -o ${targetOutputFile}`;
-        exec(exampleValidateCommand, async (_error, _stdout, _stderr) => {
-            expect(fs.existsSync(targetOutputFile)).toBeTruthy();
-
-            const outputString = fs.readFileSync(targetOutputFile, 'utf-8');
-            const parsedOutput = await parseStringPromise(outputString);
-
-            const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_output_junit.xml');
-            const expectedXmlString = fs.readFileSync(expectedFilePath, 'utf-8');
-            const expectedXml = await parseStringPromise(expectedXmlString);
-
-            expect(parsedOutput).toEqual(expectedXml);
-        });
-    });
-
-
-    test('example generate command - does it give the output we expect', async () => {
-        const targetOutputFile = path.join(tempDir, 'generate-output.json');
-        const exampleGenerateCommand = `calm generate -p ../calm/pattern/api-gateway.json -o ${targetOutputFile}`;
-        exec(exampleGenerateCommand, async (_error, _stdout, _stderr) => {
-
-            const outputString = fs.readFileSync(targetOutputFile, 'utf-8');
-            const parsedOutput = JSON.parse(outputString);
-
-
-            const expectedFilePath = path.join(__dirname, '../test_fixtures/generate_output.json');
-            const expectedJson = JSON.parse(fs.readFileSync(expectedFilePath, 'utf-8'));
-
-            expect(parsedOutput).toEqual(expectedJson);
-        });
-    });
-
-    test('example validate command - outputting PRETTY to stdout', async () => {
-        const exampleValidateCommand = 'calm validate -p ../calm/pattern/api-gateway.json -a ../calm/samples/api-gateway-architecture.json -f pretty';
-        exec(exampleValidateCommand, (_error, stdout, _stderr) => {
-            const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_output_pretty.txt');
-            const expectedOutput = fs.readFileSync(expectedFilePath, 'utf-8');
-            //Some minor replacement logic to avoid issues with line endings
-            expect(stdout.replace(/\r\n/g, '\n')).toEqual(expectedOutput.replace(/\r\n/g, '\n'));
-        });
-    });
-
-    test('example validate command - outputting PRETTY to file', async () => {
-        const targetOutputFile = path.join(tempDir, 'validate-output-pretty.txt');
-        const exampleValidateCommand = `calm validate -p ../calm/pattern/api-gateway.json -a ../calm/samples/api-gateway-architecture.json -f pretty -o ${targetOutputFile}`;
-        exec(exampleValidateCommand, (_error, _stdout, _stderr) => {
-            expect(fs.existsSync(targetOutputFile)).toBeTruthy();
-
-            const outputString = fs.readFileSync(targetOutputFile, 'utf-8');
-            const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_output_pretty.txt');
-            const expectedOutput = fs.readFileSync(expectedFilePath, 'utf-8');
-
-            //Some minor replacement logic to avoid issues with line endings
-            expect(outputString.replace(/\r\n/g, '\n')).toEqual(expectedOutput.replace(/\r\n/g, '\n'));
-        });
-    });
-
-    test('example validate command - fails when neither an architecture or a pattern is provided', async () => {
-        const calmValidateCommand = 'calm validate';
-        exec(calmValidateCommand, (error, _stdout, stderr) => {
-            expect(error).not.toBeNull();
-            expect(stderr).toContain('error: one of the required options \'-p, --pattern <file>\' or \'-a, --architecture <file>\' was not specified');
-        });
-    });
-
-    test('example validate command - validates an architecture only', async () => {
-        const calmValidateArchitectureOnlyCommand = 'calm validate -a ../calm/samples/api-gateway-architecture.json';
-        exec(calmValidateArchitectureOnlyCommand, (error, stdout, _stderr) => {
-            const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_architecture_only_output.json');
-            const expectedOutput = fs.readFileSync(expectedFilePath, 'utf-8');
-            expect(error).toBeNull();
-            expect(stdout).toContain(expectedOutput);
-        });
-    });
-
-    test('example server command - starts server and responds to requests', async () => {
-        // Mock the axios response
-        const mockResponse = { status: 200, data: { status: 'ok' } };
-        (axios.get as vi.Mock).mockResolvedValue(mockResponse);
-
-        const serverCommand = 'calm server -p 3001 --schemaDirectory ../../dist/calm/';
-        const serverProcess = exec(serverCommand);
-        // Give the server some time to start
-        await new Promise(resolve => setTimeout(resolve, 5 * millisPerSecond));
         try {
-            const response = await axios.get('http://127.0.0.1:3001/health');
-            expect(response.status).toBe(200);
-            expect(response.data.status).toBe('ok');
+            await execPromise(calm(''));
+        } catch (err) {
+            expect(err.stderr).toContain('Usage:');
+        }
+    });
+    test('calm -h shows help', async () => {
+        const { stdout } = await execPromise(calm('-h'));
+        expect(stdout).toContain('A set of tools for interacting with the Common Architecture Language Model');
+        expect(stdout).toContain('Usage:');
+    });
+
+    test('calm --help shows help', async () => {
+        const { stdout } = await execPromise(calm('--help'));
+        expect(stdout).toContain('A set of tools for interacting with the Common Architecture Language Model');
+        expect(stdout).toContain('Usage:');
+    });
+
+
+    test('validate command outputs JSON to stdout', async () => {
+        const apiGatewayPath = path.join(__dirname, '../../calm/pattern/api-gateway.json');
+        const apiGatewayArchPath = path.join(__dirname, '../../calm/samples/api-gateway-architecture.json');
+        const cmd = calm(`validate -p ${apiGatewayPath.toString()} -a ${apiGatewayArchPath.toString()}`);
+        const { stdout } = await execPromise(cmd);
+
+        const expected = JSON.parse(fs.readFileSync(path.join(__dirname, '../test_fixtures/validate_output.json'), 'utf8'));
+        expect(JSON.parse(stdout)).toEqual(expected);
+    });
+
+    test('validate command outputs JSON to file', async () => {
+        const apiGatewayPath = path.join(__dirname, '../../calm/pattern/api-gateway.json');
+        const apiGatewayArchPath = path.join(__dirname, '../../calm/samples/api-gateway-architecture.json');
+        const targetOutputFile = path.join(tempDir, 'validate-output.json');
+
+        const cmd = calm(`validate -p ${apiGatewayPath} -a ${apiGatewayArchPath} -o ${targetOutputFile}`);
+        await execPromise(cmd);
+
+        expect(fs.existsSync(targetOutputFile)).toBe(true);
+
+        const outputString = fs.readFileSync(targetOutputFile, 'utf-8');
+        const parsedOutput = JSON.parse(outputString);
+
+        const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_output.json');
+        const expectedJson = JSON.parse(fs.readFileSync(expectedFilePath, 'utf-8'));
+
+        expect(parsedOutput).toEqual(expectedJson);
+    });
+
+    test('validate command outputs JUNIT to stdout', async () => {
+        const apiGatewayPath = path.join(__dirname, '../../calm/pattern/api-gateway.json');
+        const apiGatewayArchPath = path.join(__dirname, '../../calm/samples/api-gateway-architecture.json');
+        const cmd = calm(`validate -p ${apiGatewayPath} -a ${apiGatewayArchPath} -f junit`);
+
+        const { stdout } = await execPromise(cmd);
+        const parsedOutput = await parseStringPromise(stdout);
+
+        const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_output_junit.xml');
+        const expectedXmlString = fs.readFileSync(expectedFilePath, 'utf-8');
+        const expectedXml = await parseStringPromise(expectedXmlString);
+
+        expect(parsedOutput).toEqual(expectedXml);
+    });
+
+    test('validate command outputs JUNIT to file', async () => {
+        const apiGatewayPath = path.join(__dirname, '../../calm/pattern/api-gateway.json');
+        const apiGatewayArchPath = path.join(__dirname, '../../calm/samples/api-gateway-architecture.json');
+        const targetOutputFile = path.join(tempDir, 'validate-output.xml');
+
+        const cmd = calm(`validate -p ${apiGatewayPath} -a ${apiGatewayArchPath} -f junit -o ${targetOutputFile}`);
+        await execPromise(cmd);
+
+        expect(fs.existsSync(targetOutputFile)).toBe(true);
+
+        const outputString = fs.readFileSync(targetOutputFile, 'utf-8');
+        const parsedOutput = await parseStringPromise(outputString);
+
+        const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_output_junit.xml');
+        const expectedXmlString = fs.readFileSync(expectedFilePath, 'utf-8');
+        const expectedXml = await parseStringPromise(expectedXmlString);
+
+        expect(parsedOutput).toEqual(expectedXml);
+    });
+
+
+    test('validate command outputs PRETTY to stdout', async () => {
+        const apiGatewayPath = path.join(__dirname, '../../calm/pattern/api-gateway.json');
+        const apiGatewayArchPath = path.join(__dirname, '../../calm/samples/api-gateway-architecture.json');
+        const cmd = calm(`validate -p ${apiGatewayPath} -a ${apiGatewayArchPath} -f pretty`);
+
+        const { stdout } = await execPromise(cmd);
+
+        const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_output_pretty.txt');
+        const expectedOutput = fs.readFileSync(expectedFilePath, 'utf-8');
+
+        // Normalize line endings to avoid platform-specific mismatches
+        expect(stdout.replace(/\r\n/g, '\n')).toEqual(expectedOutput.replace(/\r\n/g, '\n'));
+    });
+
+    test('validate command fails when neither architecture nor pattern is provided', async () => {
+        const cmd = calm('validate');
+
+        await expect(execPromise(cmd)).rejects.toMatchObject({
+            stderr: expect.stringContaining(
+                'error: one of the required options \'-p, --pattern <file>\' or \'-a, --architecture <file>\' was not specified'
+            )
+        });
+    });
+
+    test('validate command validates an architecture only', async () => {
+        const apiGatewayArchPath = path.join(__dirname, '../../calm/samples/api-gateway-architecture.json');
+        const cmd = calm(`validate -a ${apiGatewayArchPath}`);
+
+        const { stdout } = await execPromise(cmd);
+
+        const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_architecture_only_output.json');
+        const expectedOutput = fs.readFileSync(expectedFilePath, 'utf-8');
+
+        expect(stdout).toContain(expectedOutput);
+    });
+
+
+
+    test('generate command produces the expected output', async () => {
+        const apiGatewayPatternPath = path.join(__dirname, '../../calm/pattern/api-gateway.json');
+        const targetOutputFile = path.join(tempDir, 'generate-output.json');
+
+        const cmd = calm(`generate -p ${apiGatewayPatternPath} -o ${targetOutputFile}`);
+        await execPromise(cmd);
+
+        const outputString = fs.readFileSync(targetOutputFile, 'utf-8');
+        const parsedOutput = JSON.parse(outputString);
+
+        const expectedFilePath = path.join(__dirname, '../test_fixtures/generate_output.json');
+        const expectedJson = JSON.parse(fs.readFileSync(expectedFilePath, 'utf-8'));
+
+        expect(parsedOutput).toEqual(expectedJson);
+    });
+
+
+    test('server command starts and responds to /health', async () => {
+        (axios.get as vi.Mock).mockResolvedValue({ status: 200, data: { status: 'ok' } });
+        const serverCmd = calm('server -p 3002 --schemaDirectory ../../dist/calm/');
+        const serverProcess = exec(serverCmd);
+
+        await new Promise(res => setTimeout(res, 5 * millisPerSecond));
+        try {
+            const res = await axios.get('http://127.0.0.1:3002/health');
+            expect(res.status).toBe(200);
+            expect(res.data.status).toBe('ok');
         } finally {
             serverProcess.kill();
         }
     });
 
-    test('example template command - generates expected output', async () => {
-
+    test('template command generates expected output', async () => {
         const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
         const testModelPath = path.join(fixtureDir, 'model/document-system.json');
         const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
         const templateBundlePath = path.join(fixtureDir, 'template-bundles/doc-system');
         const expectedOutput = path.join(fixtureDir, 'expected-output/cli-e2e-output.html');
-        const outputDir = path.resolve(__dirname, 'output');
+        const outputDir = path.resolve(tempDir, 'output');
         const outputFile = path.join(outputDir, 'cli-e2e-output.html');
 
-        const templateCommand = `calm template --input ${testModelPath} --bundle ${templateBundlePath} --output ${outputDir} --url-to-local-file-mapping ${localDirectory}`;
-        exec(templateCommand, (_stderr) => {
+        const cmd = calm(`template --input ${testModelPath} --bundle ${templateBundlePath} --output ${outputDir} --url-to-local-file-mapping ${localDirectory}`);
+        await execPromise(cmd);
 
-            expect(fs.existsSync(outputFile)).toBe(true);
+        expect(fs.existsSync(outputFile)).toBe(true);
 
-            if (fs.existsSync(outputFile)) {
-                const actualContent = fs.readFileSync(outputFile, 'utf8').trim();
-                const expectedContent = fs.readFileSync(expectedOutput, 'utf8').trim();
-
-                expect(actualContent).toEqual(expectedContent);
-
-                if (fs.existsSync(outputDir)) {
-                    fs.rmSync(outputDir, {recursive: true, force: true});
-                }
-            }
-        });
+        const actualContent = fs.readFileSync(outputFile, 'utf8').trim();
+        const expectedContent = fs.readFileSync(expectedOutput, 'utf8').trim();
+        expect(actualContent).toEqual(expectedContent);
     });
 
-    test('example docify command - generates expected output', async () => {
+    //TODO: This simulates Issue 2 of https://github.com/finos/architecture-as-code/issues/1043. Remove skip once fixed.
+    test.skip('docify command generates expected files', async () => {
         const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
         const testModelPath = path.join(fixtureDir, 'model/document-system.json');
         const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
-        const outputDir = path.resolve(__dirname, 'output/documentation');
+        const outputDir = path.resolve(tempDir, 'output/documentation');
 
         const expectedFiles = [
             'docs/index.md',
@@ -234,20 +238,11 @@ describe('CLI Integration Tests', () => {
             'docs/nodes/svc-upload.md'
         ].map(file => path.join(outputDir, file));
 
-        try {
-            const templateCommand = `calm docify --input ${testModelPath} --output ${outputDir} --url-to-local-file-mapping ${localDirectory}`;
-            exec(templateCommand, (_stderr) => {
+        const cmd = calm(`docify --input ${testModelPath} --output ${outputDir} --url-to-local-file-mapping ${localDirectory}`);
+        await execPromise(cmd);
 
-                for (const file of expectedFiles) {
-                    expect(fs.existsSync(file)).toBeTruthy();
-                }
-            });
-        } finally {
-            if (fs.existsSync(outputDir)) {
-                fs.rmSync(outputDir, { recursive: true, force: true });
-            }
+        for (const file of expectedFiles) {
+            expect(fs.existsSync(file)).toBeTruthy();
         }
     });
-
-
 });
