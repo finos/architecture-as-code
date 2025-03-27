@@ -5,7 +5,7 @@ export {
 } from './commands/validate/validate.js';
 export { OutputFormat } from './commands/validate/validate.js';
 export { runGenerate } from './commands/generate/generate.js';
-export { optionsFor, selectChoices as selectOption } from './commands/generate/components/options.js';
+export { extractOptions, selectChoices } from './commands/generate/components/options.js';
 export { ValidationOutput } from './commands/validate/validation.output.js';
 export { CALM_META_SCHEMA_DIRECTORY } from './consts.js';
 export { SchemaDirectory } from './schema-directory.js';

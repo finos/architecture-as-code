@@ -1,10 +1,9 @@
 import {CALM_META_SCHEMA_DIRECTORY, runGenerate} from '@finos/calm-shared';
 import { Option, Command } from 'commander';
-import inquirer from 'inquirer';
 import { version } from '../package.json';
-import logger from 'winston';
-import { loadFile } from './fileInput';
-import { CalmChoice, CalmOption, optionsFor } from '@finos/calm-shared/commands/generate/components/options';
+import { CalmChoice } from '@finos/calm-shared/commands/generate/components/options';
+import { loadFile } from './command-helpers/file-input';
+import { promptUserForOptions } from './command-helpers/generate-options';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -14,29 +13,6 @@ const PATTERN_OPTION = '-p, --pattern <file>';
 const SCHEMAS_OPTION = '-s, --schemaDirectory <path>';
 const STRICT_OPTION = '--strict';
 const VERBOSE_OPTION = '-v, --verbose';
-
-logger.configure({
-    transports: [
-        new logger.transports.Console({
-            //This seems odd, but we want to allow users to parse JSON output from the STDOUT. We can't do that if it's polluted.
-            stderrLevels: ['error', 'warn', 'info'],
-        })
-    ],
-    level: 'debug',
-    format: logger.format.combine(
-        logger.format.label({ label: 'calm' }),
-        logger.format.cli(),
-        logger.format.splat(),
-        logger.format.errors({ stack: true }),
-        logger.format.printf(({ level, message, stack, label }) => {
-            if (stack) {
-                return `${level} [${label}]: ${message} - ${stack}`;
-            }
-            return `${level} [${label}]: ${message}`;
-        }, ),
-    ),
-    
-});
 
 export function setupCLI(program: Command) {
     program
@@ -53,32 +29,9 @@ export function setupCLI(program: Command) {
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .option(GENERATE_ALL_OPTION, 'Generate all properties, ignoring the "required" field.', false)
         .action(async (options) => {
-            const pattern: object = loadFile(options.pattern);
-            const patternOptions: CalmOption[] = optionsFor(pattern);
-            logger.debug('Pattern options found: [%O]', patternOptions);
-            
-            const questions = [];
-    
-            for(const option of patternOptions) {
-                const choiceDescriptions = option.choices.map(choice => choice.description);
-                questions.push(
-                    {
-                        type: option.optionType === 'oneOf' ? 'list' : 'checkbox',
-                        name: `${patternOptions.indexOf(option)}`,
-                        message: option.prompt,
-                        choices: choiceDescriptions
-                    }
-                );
-            }
-            const answers: string[] = await inquirer.prompt(questions)
-                .then(answers => Object.values(answers).flatMap(val => val));
-            logger.debug('User choice these options: [%O]', answers);
-    
-            const chosenChoices: CalmChoice[] = patternOptions.flatMap(option =>
-                option.choices.filter(choice => answers.find(answer => answer === choice.description))
-            );
-    
-            await runGenerate(pattern, options.output, !!options.verbose, options.generateAll, chosenChoices, options.schemaDirectory);
+            const pattern: object = await loadFile(options.pattern); // Ensure loadFile is awaited
+            const choices: CalmChoice[] = await promptUserForOptions(pattern);
+            await runGenerate(pattern, options.output, !!options.verbose, options.generateAll, choices, options.schemaDirectory);
         });
 
     program

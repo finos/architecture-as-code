@@ -1,6 +1,6 @@
  
 
-import { CalmChoice, CalmOption, optionsFor, selectChoices } from './options';
+import { CalmChoice, CalmOption, extractOptions, selectChoices } from './options';
 
 jest.mock('winston', () => ({
     info: jest.fn(),
@@ -171,7 +171,7 @@ describe('Pattern Options', () => {
                 choices: [applicationAtoC, applicationBtoC]
             }];
 
-            expect(optionsFor(pattern)).toEqual(expectedOptions);
+            expect(extractOptions(pattern)).toEqual(expectedOptions);
         });
 
         it('should return an anyOf option from a spec', () => {
@@ -189,7 +189,7 @@ describe('Pattern Options', () => {
                 choices: [applicationAtoC, applicationBtoC]
             }];
 
-            expect(optionsFor(pattern)).toEqual(expectedOptions);
+            expect(extractOptions(pattern)).toEqual(expectedOptions);
         });
 
         it('should return no options from a spec that contains no options relationship', () => {
@@ -201,7 +201,7 @@ describe('Pattern Options', () => {
                 }
             };
 
-            expect(optionsFor(patternWithNoRelationships)).toEqual([]);
+            expect(extractOptions(patternWithNoRelationships)).toEqual([]);
         });
 
         it('should return multiple options from a spec', () => {
@@ -232,7 +232,7 @@ describe('Pattern Options', () => {
                 }
             ];
 
-            expect(optionsFor(pattern)).toEqual(expectedOptions);
+            expect(extractOptions(pattern)).toEqual(expectedOptions);
         });
     });
 

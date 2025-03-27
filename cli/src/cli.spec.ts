@@ -1,10 +1,13 @@
 import { Command } from 'commander';
-import { setupCLI } from './cli';
+// import { setupCLI } from './cli';
 
 let calmShared: typeof import('@finos/calm-shared');
 let validateModule: typeof import('./command-helpers/validate');
 let serverModule: typeof import('./server/cli-server');
 let templateModule: typeof import('./command-helpers/template');
+let fileReaderModule: typeof import('./command-helpers/file-input');
+let optionsModule: typeof import ('./command-helpers/generate-options');
+let setupCLI: typeof import('./cli').setupCLI;
 
 describe('CLI Commands', () => {
     let program: Command;
@@ -13,10 +16,16 @@ describe('CLI Commands', () => {
         vi.resetModules();
         vi.clearAllMocks();
 
+        fileReaderModule = await import('./command-helpers/file-input');
+        const loadFileSpy = vi.spyOn(fileReaderModule, 'loadFile');
+        loadFileSpy.mockReset();
+        loadFileSpy.mockImplementation(() => Promise.resolve({}));
+
         calmShared = await import('@finos/calm-shared');
         validateModule = await import('./command-helpers/validate');
         serverModule = await import('./server/cli-server');
         templateModule = await import('./command-helpers/template');
+        optionsModule = await import('./command-helpers/generate-options');
 
         vi.spyOn(calmShared, 'runGenerate').mockResolvedValue(undefined);
         vi.spyOn(calmShared.TemplateProcessor.prototype, 'processTemplate').mockResolvedValue(undefined);
@@ -27,6 +36,11 @@ describe('CLI Commands', () => {
 
         vi.spyOn(serverModule, 'startServer').mockImplementation(vi.fn());
         vi.spyOn(templateModule, 'getUrlToLocalFileMap').mockReturnValue(new Map());
+
+        vi.spyOn(optionsModule, 'promptUserForOptions').mockResolvedValue([]);
+
+        const cliModule = await import('./cli');
+        setupCLI = cliModule.setupCLI;
 
         program = new Command();
         setupCLI(program);
@@ -43,8 +57,11 @@ describe('CLI Commands', () => {
                 '--schemaDirectory', 'schemas',
             ]);
 
+            expect(fileReaderModule.loadFile).toHaveBeenCalledWith('pattern.json');
+            expect(optionsModule.promptUserForOptions).toHaveBeenCalled();
+
             expect(calmShared.runGenerate).toHaveBeenCalledWith(
-                'pattern.json', 'output.json', true, true, 'schemas'
+                {}, 'output.json', true, true, [], 'schemas'
             );
         });
     });

@@ -35,7 +35,7 @@ function extractOptionsFromBlock(optionsRelationship: object, blockType: 'oneOf'
         }));
 }
 
-export function optionsFor(pattern: object): CalmOption[] {
+export function extractOptions(pattern: object): CalmOption[] {
     const calmItems: object[] = pattern['properties']['relationships']['prefixItems'];
 
     const options: CalmOption[] = calmItems

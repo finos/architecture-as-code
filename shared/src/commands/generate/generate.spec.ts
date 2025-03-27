@@ -30,10 +30,8 @@ jest.mock('winston', () => ({
 
 vi.mock('../../schema-directory');
 
-jest.mock('../../consts', () => ({
-    get CALM_META_SCHEMA_DIRECTORY() { return '../calm/draft/2025-03/meta'; }
 vi.mock('../../consts', () => ({
-    get CALM_META_SCHEMA_DIRECTORY() { return '../calm/draft/2024-10/meta'; }
+    get CALM_META_SCHEMA_DIRECTORY() { return '../calm/draft/2025-03/meta'; }
 }));
 
 
