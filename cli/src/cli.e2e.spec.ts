@@ -19,7 +19,7 @@ describe('CLI Integration Tests', () => {
     const millisPerSecond = 1000;
     const integrationTestPrefix = 'calm-test';
     const projectRoot = __dirname;
-    vi.setConfig({ testTimeout: 50000 * millisPerSecond });
+    vi.setConfig({ testTimeout: 30 * millisPerSecond });
 
     beforeAll(async () => {
         tempDir = fs.mkdtempSync(path.join(os.tmpdir(), integrationTestPrefix));
