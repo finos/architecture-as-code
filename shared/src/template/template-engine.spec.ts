@@ -3,25 +3,26 @@ import { TemplateBundleFileLoader } from './template-bundle-file-loader';
 import { CalmTemplateTransformer, IndexFile } from './types';
 import fs from 'fs';
 import path from 'path';
+import { vi } from 'vitest';
 
 vi.mock('fs');
 
 describe('TemplateEngine', () => {
-    let mockFileLoader: vi.mocked<TemplateBundleFileLoader>;
-    let mockTransformer: vi.mocked<CalmTemplateTransformer>;
-    let loggerInfoSpy: vi.SpyInstance;
-    let loggerWarnSpy: vi.SpyInstance;
+    let mockFileLoader: ReturnType<typeof vi.mocked<TemplateBundleFileLoader>>;
+    let mockTransformer: ReturnType<typeof vi.mocked<CalmTemplateTransformer>>;
+    let loggerInfoSpy: ReturnType<typeof vi.spyOn>;
+    let loggerWarnSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
         mockFileLoader = {
             getConfig: vi.fn(),
             getTemplateFiles: vi.fn(),
-        } as unknown as vi.mocked<TemplateBundleFileLoader>;
+        } as unknown as ReturnType<typeof vi.mocked<TemplateBundleFileLoader>>;
 
         mockTransformer = {
             registerTemplateHelpers: vi.fn().mockReturnValue({}),
             getTransformedModel: vi.fn(),
-        } as unknown as vi.mocked<CalmTemplateTransformer>;
+        } as unknown as ReturnType<typeof vi.mocked<CalmTemplateTransformer>>;
 
         loggerInfoSpy = vi.spyOn(TemplateEngine['logger'], 'info').mockImplementation(vi.fn());
         loggerWarnSpy = vi.spyOn(TemplateEngine['logger'], 'warn').mockImplementation(vi.fn());

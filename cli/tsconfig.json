@@ -1,32 +1,13 @@
 {
-  "extends": "../tsconfig.json",
+  "extends": "../tsconfig.base.json",
+  "module": "Preserve",
+  "moduleResolution": "bundler",
   "compilerOptions": {
-    "outDir": "./dist",
-    "module": "CommonJS",
-    "target": "ES6",
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "sourceMap": true,
-    "moduleResolution": "node",
-    "types": [
-      "node",
-      "jest",
-      "../vitest/globals"
-    ],
-    "typeRoots": [
-      "node_modules/@types",
-      "../node_modules/@types"
-    ]
+    "outDir": "dist",
   },
-  "references": [
-    {
-      "path": "../shared"
-    }
-  ],
-  "include": [
-    "src/**/*",
-    "package.json"
+  "include": ["src", "../vitest-globals.d.ts"],
+  "lib": [
+    "esnext"
   ]
+
 }

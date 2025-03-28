@@ -15,4 +15,11 @@ export default defineConfig({
     shims: true,
     target: 'es2021',
     treeshake: true,
+    banner: ({ format }) => {
+        if (format === 'cjs') {
+            return {
+                js: '#! /usr/bin/env node'
+            };
+        }
+    }
 });

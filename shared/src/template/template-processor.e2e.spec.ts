@@ -75,7 +75,7 @@ describe('TemplateProcessor E2E', () => {
             OUTPUT_DIR,
             new Map<string, string>()
         );
-        await expect(processor.processTemplate()).rejects.toThrow('❌ Error generating template: ❌ Error loading transformer: TransformerClass is not a constructor');
+        await expect(processor.processTemplate()).rejects.toThrow('❌ Error generating template: ❌ Error loading transformer: ❌ TransformerClass is not a constructor. Did you forget to export default?');
     });
 
     it('should throw an error if transformer throws an exception', async () => {
