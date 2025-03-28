@@ -1,5 +1,5 @@
 import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome } from '@finos/calm-shared';
-import { initLogger } from '@finos/calm-shared/logger';
+import { initLogger } from '@finos/calm-shared';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
 import path from 'path';
@@ -12,10 +12,7 @@ vi.mock('@finos/calm-shared', async () => ({
     validate: vi.fn(),
     getFormattedOutput: vi.fn(),
     exitBasedOffOfValidationOutcome: vi.fn(),
-}));
-
-vi.mock('@finos/calm-shared/logger', () => ({
-    initLogger: vi.fn(),
+    initLogger: vi.fn()
 }));
 
 vi.mock('mkdirp', () => ({

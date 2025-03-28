@@ -3,7 +3,7 @@ import { TemplateProcessor } from '../template/template-processor';
 import { Mock } from 'vitest';
 vi.mock('../template/template-processor');
 
-const MockedTemplateProcessor = vi.mocked(TemplateProcessor);
+const MockedTemplateProcessor: Mock = vi.mocked(TemplateProcessor);
 
 describe('Docifier', () => {
     const inputPath = 'some/input/path';
@@ -23,7 +23,7 @@ describe('Docifier', () => {
     it('should instantiate TemplateProcessor for mode "WEBSITE" and call processTemplate', async () => {
         const processTemplateMock = vi.fn().mockResolvedValue(undefined);
 
-        (MockedTemplateProcessor as Mock).mockImplementationOnce(() => ({
+        MockedTemplateProcessor.mockImplementationOnce(() => ({
             processTemplate: processTemplateMock,
         }));
 

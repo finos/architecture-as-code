@@ -9,7 +9,8 @@
     ],
     "private": true,
     "scripts": {
-        "build": "tsc -p ./tsconfig.build.json",
+        "build": "tsup && tsc -p ./tsconfig.build.json && npm run copy:docify-template-bundle",
+        "copy:docify-template-bundle": "node scripts/copy-templates.mjs",
         "watch": "tsc -watch -p ./tsconfig.build.json",
         "clean": "rimraf dist tsconfig.build.tsbuildinfo",
         "test": "vitest run",
@@ -26,8 +27,8 @@
     ],
     "author": "",
     "license": "ISC",
-    "module": "commonjs",
-    "type": "commonjs",
+    "module": "esnext",
+    "type": "module",
     "dependencies": {
         "@apidevtools/json-schema-ref-parser": "^11.9.3",
         "@stoplight/spectral-cli": "^6.13.1",

@@ -222,8 +222,7 @@ describe('CLI Integration Tests', () => {
         expect(actualContent).toEqual(expectedContent);
     });
 
-    //TODO: This simulates Issue 2 of https://github.com/finos/architecture-as-code/issues/1043. Remove skip once fixed.
-    test.skip('docify command generates expected files', async () => {
+    test('docify command generates expected files', async () => {
         const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
         const testModelPath = path.join(fixtureDir, 'model/document-system.json');
         const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
