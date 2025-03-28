@@ -5,6 +5,7 @@ import { writeFileSync } from 'fs';
 import path from 'path';
 import {runValidate, writeOutputFile, checkValidateOptions} from './validate';
 import { Command } from 'commander';
+import { Mock } from 'vitest';
 
 vi.mock('@finos/calm-shared', async () => ({
     ...vi.importActual('@finos/calm-shared'),
@@ -43,8 +44,8 @@ describe('runValidate', () => {
         };
 
         const fakeOutcome = { valid: true };
-        (validate as vi.Mock).mockResolvedValue(fakeOutcome);
-        (getFormattedOutput as vi.Mock).mockReturnValue('formatted output');
+        (validate as Mock).mockResolvedValue(fakeOutcome);
+        (getFormattedOutput as Mock).mockReturnValue('formatted output');
 
         await runValidate(options);
 
@@ -69,9 +70,9 @@ describe('runValidate', () => {
         };
 
         const error = new Error('Validation failed');
-        (validate as vi.Mock).mockRejectedValue(error);
+        (validate as Mock).mockRejectedValue(error);
         const loggerMock = { error: vi.fn(), debug: vi.fn() };
-        (initLogger as vi.Mock).mockReturnValue(loggerMock);
+        (initLogger as Mock).mockReturnValue(loggerMock);
         const exitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: number) => {
             throw new Error(`process.exit called with ${code}`);
         });

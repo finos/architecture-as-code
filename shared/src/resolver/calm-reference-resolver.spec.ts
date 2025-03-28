@@ -1,5 +1,6 @@
 import fs from 'fs';
 import axios, { AxiosError } from 'axios';
+import { vi } from 'vitest';
 import {
     CompositeReferenceResolver,
     FileReferenceResolver,
@@ -8,8 +9,8 @@ import {
 } from './calm-reference-resolver';
 
 describe('FileReferenceResolver', () => {
-    let existsSyncSpy: vi.SpyInstance;
-    let readFileSyncSpy: vi.SpyInstance;
+    let existsSyncSpy: ReturnType<typeof vi.spyOn>;
+    let readFileSyncSpy: ReturnType<typeof vi.spyOn>;
     let resolver: FileReferenceResolver;
 
     beforeEach(() => {
@@ -68,7 +69,7 @@ describe('InMemoryResolver', () => {
 
 describe('HttpReferenceResolver', () => {
     let resolver: HttpReferenceResolver;
-    let axiosGetSpy: vi.SpyInstance;
+    let axiosGetSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
         resolver = new HttpReferenceResolver();
@@ -114,9 +115,9 @@ describe('HttpReferenceResolver', () => {
 
 describe('CompositeReferenceResolver', () => {
     let resolver: CompositeReferenceResolver;
-    let axiosGetSpy: vi.SpyInstance;
-    let existsSyncSpy: vi.SpyInstance;
-    let readFileSyncSpy: vi.SpyInstance;
+    let axiosGetSpy: ReturnType<typeof vi.spyOn>;
+    let existsSyncSpy: ReturnType<typeof vi.spyOn>;
+    let readFileSyncSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
         resolver = new CompositeReferenceResolver();
@@ -153,18 +154,18 @@ describe('CompositeReferenceResolver', () => {
 
         expect(existsSyncSpy).toHaveBeenCalledWith('file:///test.json');
         expect(readFileSyncSpy).toHaveBeenCalledWith('file:///test.json', 'utf-8');
-        expect(axiosGetSpy).not.toHaveBeenCalled(); // Should not call HTTP
+        expect(axiosGetSpy).not.toHaveBeenCalled();
     });
 
     it('falls back to HTTP resolver if file resolution fails', async () => {
-        existsSyncSpy.mockReturnValue(false); // File does not exist
+        existsSyncSpy.mockReturnValue(false);
         axiosGetSpy.mockResolvedValue({ data: { key: 'http-value' } });
 
         const result = await resolver.resolve('http://example.com/test.json');
         expect(result).toEqual({ key: 'http-value' });
 
         expect(existsSyncSpy).toHaveBeenCalledWith('http://example.com/test.json');
-        expect(readFileSyncSpy).not.toHaveBeenCalled(); // Should not attempt to read file
+        expect(readFileSyncSpy).not.toHaveBeenCalled();
         expect(axiosGetSpy).toHaveBeenCalledWith('http://example.com/test.json');
     });
 
@@ -192,5 +193,4 @@ describe('CompositeReferenceResolver', () => {
         expect(readFileSyncSpy).toHaveBeenCalledWith('file:///test.json', 'utf-8');
         expect(axiosGetSpy).not.toHaveBeenCalled();
     });
-
 });
