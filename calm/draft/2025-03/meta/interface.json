@@ -176,6 +176,28 @@
       "required": [
         "port"
       ]
-    }
+    },
+    "allowed-operations-interface": {
+      "$ref": "#/defs/interface-type",
+      "type": "object",
+      "properties": {
+        "operation": "array",
+        "items": {
+          "$refs": "#/defs/read-write-operation"
+        },
+        "uniqueItems": true,
+        "minItems": 0,
+        "maxItems": 2
+      },
+      "required": [
+        "operation"
+      ]
+  },
+  "read-write-operation": {
+    "enum": [
+      "read",
+      "write"
+    ]
+  }
   }
 }
