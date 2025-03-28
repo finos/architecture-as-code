@@ -4,7 +4,7 @@ import { getUrlToLocalFileMap } from './template';
 
 describe('getUrlToLocalFileMap', () => {
     afterEach(() => {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     it('should return an empty Map when no mapping file is provided', () => {
@@ -19,7 +19,7 @@ describe('getUrlToLocalFileMap', () => {
             'https://calm.finos.org/docuflow/flow/document-upload': 'flows/flow-document-upload.json'
         });
 
-        jest.spyOn(fs, 'readFileSync').mockReturnValue(fakeContent);
+        vi.spyOn(fs, 'readFileSync').mockReturnValue(fakeContent);
 
         const result = getUrlToLocalFileMap(fakePath);
 
@@ -35,12 +35,12 @@ describe('getUrlToLocalFileMap', () => {
     it('should log an error and exit process when file reading fails', () => {
         const fakePath = '/fake/mapping.json';
 
-        jest.spyOn(fs, 'readFileSync').mockImplementation(() => {
+        vi.spyOn(fs, 'readFileSync').mockImplementation(() => {
             throw new Error('read error');
         });
-        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        const processExitSpy = jest.spyOn(process, 'exit').mockImplementation((code?: number) => {
+        const processExitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: number) => {
             throw new Error(`process.exit: ${code}`);
         });
 

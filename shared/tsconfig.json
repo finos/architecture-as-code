@@ -16,11 +16,16 @@
         "typeRoots": [
             "node_modules/@types",
             "../node_modules/@types"
+        ],
+        "types": [
+            "../vitest/globals"
         ]
     },
     "include": [
-        "src/**/*",
-        "src/*/*.spec.ts"
+        "src/**/*"
     ],
+    "exclude": [
+        "src/**/*.spec.ts"
+    ]
     
 }
