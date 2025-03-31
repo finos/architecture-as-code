@@ -20,4 +20,4 @@ export * from './model/metadata.js';
 export * from './model/interface.js';
 export {C4Model} from './docify/graphing/c4.js';
 export {CalmRelationshipGraph} from './docify/graphing/relationship-graph.js';
-
+export {ValidationOutcome} from './commands/validate/validation.output';

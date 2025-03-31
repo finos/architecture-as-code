@@ -5,7 +5,7 @@ import * as os from 'os';
 import { parseStringPromise } from 'xml2js';
 import util from 'util';
 import axios from 'axios';
-
+import { Mock } from 'vitest';
 // Mock axios
 vi.mock('axios');
 
@@ -189,7 +189,7 @@ describe('CLI Integration Tests', () => {
 
 
     test('server command starts and responds to /health', async () => {
-        (axios.get as vi.Mock).mockResolvedValue({ status: 200, data: { status: 'ok' } });
+        (axios.get as Mock).mockResolvedValue({ status: 200, data: { status: 'ok' } });
         const serverCmd = calm('server -p 3002 --schemaDirectory ../../dist/calm/');
         const serverProcess = exec(serverCmd);
 
@@ -222,8 +222,7 @@ describe('CLI Integration Tests', () => {
         expect(actualContent).toEqual(expectedContent);
     });
 
-    //TODO: This simulates Issue 2 of https://github.com/finos/architecture-as-code/issues/1043. Remove skip once fixed.
-    test.skip('docify command generates expected files', async () => {
+    test('docify command generates expected files', async () => {
         const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
         const testModelPath = path.join(fixtureDir, 'model/document-system.json');
         const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
