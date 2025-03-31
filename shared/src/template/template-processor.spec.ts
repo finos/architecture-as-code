@@ -2,7 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { TemplateProcessor } from './template-processor';
 import { CalmTemplateTransformer, IndexFile } from './types';
-jest.mock('fs');
+import { Mock } from 'vitest';
+
+vi.mock('fs');
 
 const fakeConfig: IndexFile = {
     name: 'Test Bundle',
@@ -18,68 +20,57 @@ const fakeTemplateFiles = {
 };
 
 const mockTemplateLoader = {
-    getConfig: jest.fn().mockReturnValue(fakeConfig),
-    getTemplateFiles: jest.fn().mockReturnValue(fakeTemplateFiles),
+    getConfig: vi.fn().mockReturnValue(fakeConfig),
+    getTemplateFiles: vi.fn().mockReturnValue(fakeTemplateFiles),
 };
 
-jest.mock('./template-bundle-file-loader', () => {
-    return {
-        TemplateBundleFileLoader: jest.fn().mockImplementation(() => mockTemplateLoader)
-    };
-});
+vi.mock('./template-bundle-file-loader', () => ({
+    TemplateBundleFileLoader: vi.fn().mockImplementation(() => mockTemplateLoader)
+}));
 
 const mockTemplateEngine = {
-    generate: jest.fn()
+    generate: vi.fn()
 };
 
-jest.mock('./template-engine', () => {
-    return {
-        TemplateEngine: jest.fn().mockImplementation(() => mockTemplateEngine)
-    };
-});
+vi.mock('./template-engine', () => ({
+    TemplateEngine: vi.fn().mockImplementation(() => mockTemplateEngine)
+}));
 
 const mockDereferencer = {
-    dereferenceCalmDoc: jest.fn().mockResolvedValue('{"some": "dereferencedData"}')
+    dereferenceCalmDoc: vi.fn().mockResolvedValue('{"some": "dereferencedData"}')
 };
 
-jest.mock('./template-calm-file-dereferencer', () => {
-    return {
-        TemplateCalmFileDereferencer: jest.fn().mockImplementation(() => mockDereferencer),
-        FileReferenceResolver: jest.fn()
-    };
-});
+vi.mock('./template-calm-file-dereferencer', () => ({
+    TemplateCalmFileDereferencer: vi.fn().mockImplementation(() => mockDereferencer),
+    FileReferenceResolver: vi.fn()
+}));
 
 describe('TemplateProcessor', () => {
-    let mockTransformer: jest.Mocked<CalmTemplateTransformer>;
-    let loggerInfoSpy: jest.SpyInstance;
-    let loggerErrorSpy: jest.SpyInstance;
+    let mockTransformer: ReturnType<typeof vi.mocked<CalmTemplateTransformer>>;
+    let loggerInfoSpy: ReturnType<typeof vi.spyOn>;
+    let loggerErrorSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
         mockTransformer = {
-            registerTemplateHelpers: jest.fn().mockReturnValue({}),
-            getTransformedModel: jest.fn().mockReturnValue({ transformed: true }),
-        } as unknown as jest.Mocked<CalmTemplateTransformer>;
+            registerTemplateHelpers: vi.fn().mockReturnValue({}),
+            getTransformedModel: vi.fn().mockReturnValue({ transformed: true }),
+        } as unknown as ReturnType<typeof vi.mocked<CalmTemplateTransformer>>;
 
-        loggerInfoSpy = jest.spyOn(TemplateProcessor['logger'], 'info').mockImplementation(jest.fn());
-        loggerErrorSpy = jest.spyOn(TemplateProcessor['logger'], 'error').mockImplementation(jest.fn());
+        loggerInfoSpy = vi.spyOn(TemplateProcessor['logger'], 'info').mockImplementation(vi.fn());
+        loggerErrorSpy = vi.spyOn(TemplateProcessor['logger'], 'error').mockImplementation(vi.fn());
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        jest.spyOn(TemplateProcessor.prototype as any, 'loadTransformer').mockReturnValue(mockTransformer);
+        vi.spyOn(TemplateProcessor.prototype as any, 'loadTransformer').mockReturnValue(mockTransformer);
 
-        (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+        (fs.existsSync as Mock).mockImplementation((filePath: string) => {
             return !filePath.includes('missing');
         });
-        (fs.readFileSync as jest.Mock).mockImplementation((filePath: string) => {
+        (fs.readFileSync as Mock).mockImplementation((filePath: string) => {
             if (filePath.includes('simple-nodes.json')) return '{"some": "data"}';
             return '';
         });
-        (fs.rmSync as jest.Mock).mockImplementation(() => {});
-        (fs.mkdirSync as jest.Mock).mockImplementation(() => {});
-    });
-
-    afterEach(() => {
-        jest.restoreAllMocks();
-        jest.clearAllMocks();
+        (fs.rmSync as Mock).mockImplementation(() => {});
+        (fs.mkdirSync as Mock).mockImplementation(() => {});
     });
 
     it('should successfully process a template', async () => {
@@ -92,7 +83,7 @@ describe('TemplateProcessor', () => {
     });
 
     it('should throw an error if the input file is missing', async () => {
-        (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+        (fs.existsSync as Mock).mockImplementation((filePath: string) => {
             return !filePath.includes('simple-nodes.json');
         });
         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map<string, string>());
@@ -105,6 +96,7 @@ describe('TemplateProcessor', () => {
             name: 'Test Bundle',
             templates: []
         };
+
         mockTemplateLoader.getConfig.mockReturnValue(configNoTransformer);
         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map<string, string>());
         await expect(processor.processTemplate()).rejects.toThrow(
@@ -120,9 +112,8 @@ describe('TemplateProcessor', () => {
             transformer: 'NonExistentTransformer'
         };
         mockTemplateLoader.getConfig.mockReturnValue(configWithBadTransformer);
-
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        jest.spyOn(TemplateProcessor.prototype as any, 'loadTransformer').mockImplementation(() => {
+        vi.spyOn(TemplateProcessor.prototype as any, 'loadTransformer').mockImplementation(() => {
             throw new Error('TransformerClass is undefined.');
         });
         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map<string, string>());
@@ -134,12 +125,12 @@ describe('TemplateProcessor', () => {
         const mapping = new Map<string, string>([['http://example.com/file', '/local/path/file']]);
         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', mapping);
         await processor.processTemplate();
-        const { TemplateCalmFileDereferencer } = jest.requireMock('./template-calm-file-dereferencer');
+        const { TemplateCalmFileDereferencer } = await vi.importMock('./template-calm-file-dereferencer');
         expect(TemplateCalmFileDereferencer).toHaveBeenCalledWith(mapping, expect.anything());
     });
 
     it('should throw an error if dereferencing the CALM doc fails', async () => {
-        (mockDereferencer.dereferenceCalmDoc as jest.Mock).mockRejectedValue(new Error('Dereference failed'));
+        (mockDereferencer.dereferenceCalmDoc as Mock).mockRejectedValue(new Error('Dereference failed'));
         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map<string, string>());
         await expect(processor.processTemplate()).rejects.toThrow('Dereference failed');
         expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Dereference failed'));

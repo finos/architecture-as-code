@@ -1,6 +1,6 @@
 
 import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome } from '@finos/calm-shared';
-import { initLogger } from '@finos/calm-shared/logger';
+import { initLogger } from '@finos/calm-shared';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';

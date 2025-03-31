@@ -1,34 +1,32 @@
 import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome } from '@finos/calm-shared';
-import { initLogger } from '@finos/calm-shared/logger';
+import { initLogger } from '@finos/calm-shared';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
 import path from 'path';
 import {runValidate, writeOutputFile, checkValidateOptions} from './validate';
 import { Command } from 'commander';
+import { Mock } from 'vitest';
 
-jest.mock('@finos/calm-shared', () => ({
-    ...jest.requireActual('@finos/calm-shared'),
-    validate: jest.fn(),
-    getFormattedOutput: jest.fn(),
-    exitBasedOffOfValidationOutcome: jest.fn(),
+vi.mock('@finos/calm-shared', async () => ({
+    ...vi.importActual('@finos/calm-shared'),
+    validate: vi.fn(),
+    getFormattedOutput: vi.fn(),
+    exitBasedOffOfValidationOutcome: vi.fn(),
+    initLogger: vi.fn()
 }));
 
-jest.mock('@finos/calm-shared/logger', () => ({
-    initLogger: jest.fn(),
+vi.mock('mkdirp', () => ({
+    mkdirp: { sync: vi.fn() },
 }));
 
-jest.mock('mkdirp', () => ({
-    mkdirp: { sync: jest.fn() },
-}));
-
-jest.mock('fs', () => ({
-    ...jest.requireActual('fs'),
-    writeFileSync: jest.fn(),
+vi.mock('fs', () => ({
+    ...vi.importActual('fs'),
+    writeFileSync: vi.fn(),
 }));
 
 describe('runValidate', () => {
     beforeEach(() => {
-        jest.resetAllMocks();
+        vi.resetAllMocks();
     });
 
     it('should process validation successfully', async () => {
@@ -43,8 +41,8 @@ describe('runValidate', () => {
         };
 
         const fakeOutcome = { valid: true };
-        (validate as jest.Mock).mockResolvedValue(fakeOutcome);
-        (getFormattedOutput as jest.Mock).mockReturnValue('formatted output');
+        (validate as Mock).mockResolvedValue(fakeOutcome);
+        (getFormattedOutput as Mock).mockReturnValue('formatted output');
 
         await runValidate(options);
 
@@ -69,10 +67,10 @@ describe('runValidate', () => {
         };
 
         const error = new Error('Validation failed');
-        (validate as jest.Mock).mockRejectedValue(error);
-        const loggerMock = { error: jest.fn(), debug: jest.fn() };
-        (initLogger as jest.Mock).mockReturnValue(loggerMock);
-        const exitSpy = jest.spyOn(process, 'exit').mockImplementation((code?: number) => {
+        (validate as Mock).mockRejectedValue(error);
+        const loggerMock = { error: vi.fn(), debug: vi.fn() };
+        (initLogger as Mock).mockReturnValue(loggerMock);
+        const exitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: number) => {
             throw new Error(`process.exit called with ${code}`);
         });
 
@@ -85,7 +83,7 @@ describe('runValidate', () => {
 
 describe('writeOutputFile', () => {
     beforeEach(() => {
-        jest.resetAllMocks();
+        vi.resetAllMocks();
     });
 
     it('should write output to file if output is provided', () => {
@@ -98,7 +96,7 @@ describe('writeOutputFile', () => {
 
     it('should write output to stdout if no output is provided', () => {
         const content = 'stdout content';
-        const stdoutSpy = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
         writeOutputFile('', content);
         expect(stdoutSpy).toHaveBeenCalledWith(content);
         stdoutSpy.mockRestore();
@@ -109,7 +107,7 @@ describe('writeOutputFile', () => {
 describe('checkValidateOptions', () => {
     it('should call program.error if neither pattern nor architecture is provided', () => {
         const program = new Command();
-        const errorSpy = jest.spyOn(program, 'error').mockImplementation((msg: string) => { throw new Error(msg); });
+        const errorSpy = vi.spyOn(program, 'error').mockImplementation((msg: string) => { throw new Error(msg); });
         const options = {};
         expect(() => checkValidateOptions(program, options, '-p, --pattern <file>', '-a, --architecture <file>')).toThrow(/one of the required options/);
         errorSpy.mockRestore();
@@ -117,7 +115,7 @@ describe('checkValidateOptions', () => {
 
     it('should not call program.error if a pattern is provided', () => {
         const program = new Command();
-        const errorSpy = jest.spyOn(program, 'error').mockImplementation((msg: string) => { throw new Error(msg); });
+        const errorSpy = vi.spyOn(program, 'error').mockImplementation((msg: string) => { throw new Error(msg); });
         const options = { pattern: 'pattern.json' };
         expect(() => checkValidateOptions(program, options, '-p, --pattern <file>', '-a, --architecture <file>')).not.toThrow();
         errorSpy.mockRestore();
@@ -125,7 +123,7 @@ describe('checkValidateOptions', () => {
 
     it('should not call program.error if an architecture is provided', () => {
         const program = new Command();
-        const errorSpy = jest.spyOn(program, 'error').mockImplementation((msg: string) => { throw new Error(msg); });
+        const errorSpy = vi.spyOn(program, 'error').mockImplementation((msg: string) => { throw new Error(msg); });
         const options = { architecture: 'arch.json' };
         expect(() => checkValidateOptions(program, options, '-p, --pattern <file>', '-a, --architecture <file>')).not.toThrow();
         errorSpy.mockRestore();

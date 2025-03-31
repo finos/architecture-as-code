@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "target": "es2021",
+        "module": "ESNext",
+        "moduleResolution": "Node",
+        "declaration": true,
+        "sourceMap": true,
+        "outDir": "dist",
+        "strict": false,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "skipLibCheck": true,
+        "resolveJsonModule": true,
+        "types": [
+            "vitest",
+            "node",
+            "jest"
+        ]
+    }
+}
