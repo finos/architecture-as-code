@@ -167,7 +167,7 @@ function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive }: Draw
     const nodes = getNodes();
 
     return (
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex">
             <div className={`drawer drawer-end ${selectedNode ? 'drawer-open' : ''}`}>
                 <input
                     type="checkbox"
@@ -192,7 +192,42 @@ function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive }: Draw
                     )}
                 </div>
                 {selectedNode && (
-                    <Sidebar selectedData={selectedNode} closeSidebar={closeSidebar} />
+                    <Sidebar
+                        selectedData={selectedNode}
+                        closeSidebar={closeSidebar}
+                        updateElement={function (
+                            updatedData:
+                                | {
+                                      [idx: string]: string | boolean | undefined;
+                                      description: string;
+                                      type: string;
+                                      label: string;
+                                      id: string;
+                                      isShell?: boolean | undefined;
+                                  }
+                                | {
+                                      [idx: string]: string | boolean | undefined;
+                                      id: string;
+                                      label: string;
+                                      source: string;
+                                      target: string;
+                                      isShell?: boolean | undefined;
+                                  }
+                        ): void {
+                            throw new Error('Function not implemented.');
+                        }}
+                        deleteElement={function (elementId: string): void {
+                            throw new Error('Function not implemented.');
+                        }}
+                        nodes={[]}
+                        createEdge={function (
+                            sourceId: string,
+                            targetId: string,
+                            label: string
+                        ): void {
+                            throw new Error('Function not implemented.');
+                        }}
+                    />
                 )}
             </div>
         </div>
