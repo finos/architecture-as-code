@@ -85,6 +85,7 @@ const CytoscapeRenderer = ({
         const currentZoom = cy?.zoom() || 1;
         const currentPan = cy?.pan() || { x: 0, y: 0 };
 
+        // Initialize Cytoscape
         const updatedCy = cytoscape({
             container,
             elements: [...nodes, ...edges],
@@ -119,35 +120,31 @@ const CytoscapeRenderer = ({
             ],
             layout: breadthFirstLayout,
             boxSelectionEnabled: true,
-            minZoom: 0.1, // Min zoom level 10%
-            maxZoom: 5, // Max zoom level 500%
+            minZoom: 0.1,
+            maxZoom: 5,
         });
 
         // Restore zoom and pan state
         updatedCy.zoom(currentZoom);
         updatedCy.pan(currentPan);
 
-        // Set Cytoscape instance
-        setCy(updatedCy);
+        // Add event listeners
+        updatedCy.on('tap', 'node', (e) => {
+            const node = e.target as NodeSingular;
+            setSelectedEdge(null);
+            setSelectedNode(node?.data());
+        });
 
-        return () => {
-            updatedCy.destroy(); // Clean up Cytoscape instance
-        };
-    }, [nodes, edges, isConDescActive]);
+        updatedCy.on('tap', 'edge', (e) => {
+            const edge = e.target as EdgeSingular;
+            setSelectedNode(null);
+            setSelectedEdge(edge?.data());
+        });
 
-    // Synchronize zoom level with context
-    useEffect(() => {
-        if (cy?.zoom() !== zoomLevel) {
-            cy?.zoom(zoomLevel);
-        }
-    }, [cy, zoomLevel]);
-
-    // Add event listeners and update styles dynamically
-    useEffect(() => {
-        if (!cy) return;
+        updatedCy.on('zoom', () => updateZoom(updatedCy.zoom()));
 
         // Update node labels dynamically
-        (cy as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
+        (updatedCy as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
             {
                 query: '.node',
                 tpl: getNodeLabelTemplateGenerator(false),
@@ -158,28 +155,20 @@ const CytoscapeRenderer = ({
             },
         ]);
 
-        // Handle node tap events
-        cy.on('tap', 'node', (e) => {
-            const node = e.target as NodeSingular;
-            setSelectedEdge(null);
-            setSelectedNode(node?.data());
-        });
-
-        // Handle edge tap events
-        cy.on('tap', 'edge', (e) => {
-            const edge = e.target as EdgeSingular;
-            setSelectedNode(null);
-            setSelectedEdge(edge?.data());
-        });
-
-        // Update zoom level in context
-        cy.on('zoom', () => updateZoom(cy.zoom()));
+        // Set Cytoscape instance
+        setCy(updatedCy);
 
         return () => {
-            cy.removeListener('tap');
-            cy.removeListener('zoom');
+            updatedCy.destroy(); // Clean up Cytoscape instance
         };
-    }, [cy, isNodeDescActive, updateZoom]);
+    }, [nodes, edges, isConDescActive, isNodeDescActive, updateZoom]);
+
+    // Synchronize zoom level with context
+    useEffect(() => {
+        if (cy && cy.zoom() !== zoomLevel) {
+            cy.zoom(zoomLevel);
+        }
+    }, [cy, zoomLevel]);
 
     return (
         <div className="relative flex m-auto border">
