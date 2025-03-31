@@ -153,6 +153,8 @@ const CytoscapeRenderer = ({
                 ],
                 layout: breadthFirstLayout,
                 boxSelectionEnabled: true,
+                minZoom: 0.1,
+                maxZoom: 5,
             })
         );
     }, [nodes, edges, isConDescActive]); // Re-render on cy, nodes or edges change
