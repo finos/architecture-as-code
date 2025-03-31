@@ -144,6 +144,7 @@ const CytoscapeRenderer = ({
         updatedCy.on('zoom', () => updateZoom(updatedCy.zoom()));
 
         // Update node labels dynamically
+        /* eslint-disable @typescript-eslint/no-explicit-any */
         (updatedCy as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
             {
                 query: '.node',
