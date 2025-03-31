@@ -1,31 +1,14 @@
 {
-    "extends": "../tsconfig.json",
+    "extends": "../tsconfig.base.json",
+    "module": "Preserve",
+    "moduleResolution": "bundler",
     "compilerOptions": {
-        "outDir": "./dist",
-        "rootDir": "src",
-        "module": "commonjs",
-        "target": "es2021",
-        "moduleResolution": "node",
-        "esModuleInterop": true,
-        "declaration": true,
-        "declarationMap": true,
-        "sourceMap": true,
-        "composite": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true,
-        "typeRoots": [
-            "node_modules/@types",
-            "../node_modules/@types"
-        ],
-        "types": [
-            "../vitest/globals"
-        ]
+        "outDir": "dist",
     },
-    "include": [
-        "src/**/*"
-    ],
-    "exclude": [
-        "src/**/*.spec.ts"
+    "include": ["src", "../vitest-globals.d.ts"],
+    "lib": [
+        "esnext"
     ]
-    
+
+
 }

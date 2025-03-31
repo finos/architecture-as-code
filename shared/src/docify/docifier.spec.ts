@@ -1,9 +1,9 @@
 import { Docifier } from './docifier';
 import { TemplateProcessor } from '../template/template-processor';
-
+import { Mock } from 'vitest';
 vi.mock('../template/template-processor');
 
-const mockedTemplateProcessor = TemplateProcessor as vi.mockedClass<typeof TemplateProcessor>;
+const MockedTemplateProcessor: Mock = vi.mocked(TemplateProcessor);
 
 describe('Docifier', () => {
     const inputPath = 'some/input/path';
@@ -23,15 +23,14 @@ describe('Docifier', () => {
     it('should instantiate TemplateProcessor for mode "WEBSITE" and call processTemplate', async () => {
         const processTemplateMock = vi.fn().mockResolvedValue(undefined);
 
-        mockedTemplateProcessor.mockImplementationOnce(() => ({
+        MockedTemplateProcessor.mockImplementationOnce(() => ({
             processTemplate: processTemplateMock,
-        }) as never);
+        }));
 
         const docifier = new Docifier('WEBSITE', inputPath, outputPath, urlToLocalPathMapping);
         await docifier.docify();
 
-        // Verify that TemplateProcessor was instantiated with the correct parameters.
-        expect(mockedTemplateProcessor).toHaveBeenCalledWith(
+        expect(MockedTemplateProcessor).toHaveBeenCalledWith(
             inputPath,
             expect.stringContaining('template-bundles/docusaurus'),
             outputPath,
