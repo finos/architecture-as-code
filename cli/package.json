@@ -29,12 +29,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@apidevtools/json-schema-ref-parser": "^11.9.3",
+    "@inquirer/prompts": "^7.4.0",
     "commander": "^13.0.0",
     "copyfiles": "^2.4.1",
     "express-rate-limit": "^7.5.0",
-    "inquirer": "^12.4.2",
     "mkdirp": "^3.0.1",
-    "@apidevtools/json-schema-ref-parser": "^11.9.3",
     "ts-node": "10.9.2"
   },
   "devDependencies": {
@@ -60,7 +60,6 @@
     "tsup": "^8.0.0",
     "typescript": "^5.4.3",
     "xml2js": "^0.6.2"
-
   },
   "overrides": {
     "esbuild": "^0.25.0"

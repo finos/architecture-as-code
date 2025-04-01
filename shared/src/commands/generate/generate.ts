@@ -2,7 +2,6 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {mkdirp} from 'mkdirp';
 
-import logger from 'winston';
 import {CALMArchitecture} from '../../types.js';
 import {SchemaDirectory} from '../../schema-directory.js';
 import {instantiateNodes} from './components/node.js';
@@ -10,8 +9,10 @@ import {instantiateRelationships} from './components/relationship.js';
 import {CALM_META_SCHEMA_DIRECTORY} from '../../consts.js';
 import {instantiateAllMetadata} from './components/metadata.js';
 import { CalmChoice, selectChoices } from './components/options.js';
+import { initLogger } from '@finos/calm-shared/logger.js';
 
 export async function generate(pattern: object, debug: boolean, instantiateAll: boolean, schemaDirectoryPath?: string): Promise<CALMArchitecture> {
+    const logger = initLogger(debug, 'calm-generate');
     const schemaDirectory = new SchemaDirectory(debug);
 
     try {
@@ -50,6 +51,7 @@ export async function generate(pattern: object, debug: boolean, instantiateAll: 
 }
 
 export async function runGenerate(pattern: object, outputPath: string, debug: boolean, instantiateAll: boolean, chosenChoices?: CalmChoice[], schemaDirectoryPath?: string): Promise<void> {
+    const logger = initLogger(debug, 'calm-generate');
     try {
         if (chosenChoices) {
             pattern = selectChoices(pattern, chosenChoices);

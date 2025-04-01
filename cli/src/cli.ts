@@ -30,7 +30,7 @@ export function setupCLI(program: Command) {
         .option(GENERATE_ALL_OPTION, 'Generate all properties, ignoring the "required" field.', false)
         .action(async (options) => {
             const pattern: object = await loadFile(options.pattern); // Ensure loadFile is awaited
-            const choices: CalmChoice[] = await promptUserForOptions(pattern);
+            const choices: CalmChoice[] = await promptUserForOptions(pattern, options.verbose);
             await runGenerate(pattern, options.output, !!options.verbose, options.generateAll, choices, options.schemaDirectory);
         });
 
