@@ -39,12 +39,11 @@ describe('CLI Commands', () => {
                 '-p', 'pattern.json',
                 '-o', 'output.json',
                 '--verbose',
-                '--generateAll',
                 '--schemaDirectory', 'schemas',
             ]);
 
             expect(calmShared.runGenerate).toHaveBeenCalledWith(
-                'pattern.json', 'output.json', true, true, 'schemas'
+                'pattern.json', 'output.json', true, 'schemas'
             );
         });
     });
