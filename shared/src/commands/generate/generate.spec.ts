@@ -3,31 +3,6 @@ import { tmpdir } from 'node:os';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 
-jest.mock('winston', () => ({
-    info: jest.fn(),
-    debug: jest.fn(),
-    error: jest.fn().mockImplementation((err) => console.error(err)),
-    warn: jest.fn(),
-    format: {
-        colorize: jest.fn(),
-        combine: jest.fn(),
-        label: jest.fn(),
-        timestamp: jest.fn(),
-        printf: jest.fn(),
-        cli: jest.fn(),
-        errors: jest.fn()
-    },
-    createLogger: jest.fn().mockReturnValue({
-        info: jest.fn(),
-        debug: jest.fn(),
-        error: jest.fn().mockImplementation((err) => console.error(err)),
-        warn: jest.fn(),
-    }),
-    transports: {
-        Console: jest.fn()
-    }
-}));
-
 vi.mock('../../schema-directory');
 
 vi.mock('../../consts', () => ({
@@ -58,7 +33,7 @@ describe('runGenerate', () => {
 
     it('instantiates to given directory', async () => {
         const outPath = path.join(tempDirectoryPath, 'output.json');
-        await runGenerate(testPattern, outPath, false, false);
+        await runGenerate(testPattern, outPath, false, []);
 
         expect(existsSync(outPath))
             .toBeTruthy();
@@ -66,7 +41,7 @@ describe('runGenerate', () => {
 
     it('instantiates to given directory with nested folders', async () => {
         const outPath = path.join(tempDirectoryPath, 'output/test/output.json');
-        await runGenerate(testPattern, outPath, false, false);
+        await runGenerate(testPattern, outPath, false, []);
 
         expect(existsSync(outPath))
             .toBeTruthy();
@@ -74,7 +49,7 @@ describe('runGenerate', () => {
 
     it('instantiates to calm architecture file', async () => {
         const outPath = path.join(tempDirectoryPath, 'output.json');
-        await runGenerate(testPattern, outPath, false, false);
+        await runGenerate(testPattern, outPath, false, []);
 
         expect(existsSync(outPath))
             .toBeTruthy();

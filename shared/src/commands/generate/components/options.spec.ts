@@ -2,31 +2,6 @@
 
 import { CalmChoice, CalmOption, extractOptions, selectChoices } from './options';
 
-jest.mock('winston', () => ({
-    info: jest.fn(),
-    debug: jest.fn(),
-    error: jest.fn().mockImplementation((err) => console.log(err)),
-    warn: jest.fn(),
-    format: {
-        colorize: jest.fn(),
-        combine: jest.fn(),
-        label: jest.fn(),
-        timestamp: jest.fn(),
-        printf: jest.fn(),
-        cli: jest.fn(),
-        errors: jest.fn()
-    },
-    createLogger: jest.fn().mockReturnValue({
-        info: jest.fn(),
-        debug: jest.fn(),
-        error: jest.fn().mockImplementation((err) => console.log(err)),
-        warn: jest.fn(),
-    }),
-    transports: {
-        Console: jest.fn()
-    }
-}));
-
 const applicationAtoC: CalmChoice = {
     description: 'Application A connects to Application C',
     nodes: ['application-a'],
@@ -94,11 +69,14 @@ function buildNode(uniqueId: string): object {
     };
 }
 
-function buildConnectsRelationship(prompt: string, source: string, destination: string): object {
+function buildConnectsRelationship(id: string, prompt: string, source: string, destination: string): object {
     return {
         '$ref': 'https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship',
         'type': 'object',
         'properties': {
+            'unique-id': {
+                'const': id
+            },
             'description': {
                 'const': prompt
             },
@@ -114,15 +92,21 @@ function buildConnectsRelationship(prompt: string, source: string, destination: 
     };
 }
 
-function buildPatternOptionRelationship(prompt: string, ...options: object[]): object {
+function buildPatternOptionRelationship(id: string, prompt: string, ...options: object[]): object {
     return {
         'properties': {
+            'unique-id': {
+                'const': id
+            },
             'description': {
                 'const': prompt
             },
             'relationship-type': {
-                'options': {
-                    'prefixItems': options
+                'type': 'object',
+                'properties': {
+                    'options': {
+                        'prefixItems': options
+                    }
                 }
             }
         }
@@ -159,10 +143,13 @@ describe('Pattern Options', () => {
 
             const pattern = buildPattern(
                 [],
-                [buildPatternOptionRelationship(
-                    'The choice of nodes and relationships in the pattern', 
-                    buildPatternOption('oneOf', buildPatternChoice(applicationAtoC), buildPatternChoice(applicationBtoC))
-                )]
+                [
+                    buildPatternOptionRelationship(
+                        'option-id',
+                        'The choice of nodes and relationships in the pattern', 
+                        buildPatternOption('oneOf', buildPatternChoice(applicationAtoC), buildPatternChoice(applicationBtoC))
+                    )
+                ]
             );
 
             const expectedOptions: CalmOption[] = [{
@@ -178,6 +165,7 @@ describe('Pattern Options', () => {
             const pattern = buildPattern(
                 [],
                 [buildPatternOptionRelationship(
+                    'option-id',
                     'The choice of nodes and relationships in the pattern', 
                     buildPatternOption('anyOf', buildPatternChoice(applicationAtoC), buildPatternChoice(applicationBtoC))
                 )]
@@ -209,10 +197,12 @@ describe('Pattern Options', () => {
                 [],
                 [
                     buildPatternOptionRelationship(
+                        'option-id',
                         'The choice of node A or node B connecting to node C',
                         buildPatternOption('oneOf', buildPatternChoice(applicationAtoC), buildPatternChoice(applicationBtoC))
                     ),
                     buildPatternOptionRelationship(
+                        'option-id-2',
                         'The choice of node X or node Y connecting to node Z',
                         buildPatternOption('anyOf', buildPatternChoice(applicationXtoZ), buildPatternChoice(applicationYtoZ))
                     )
@@ -241,8 +231,8 @@ describe('Pattern Options', () => {
             const applicationA = buildNode('application-a');
             const applicationB = buildNode('application-b');
             const applicationC = buildNode('application-c');
-            const connectsRelationshipA = buildConnectsRelationship('app a to app c', 'application-a', 'application-c');
-            const connectsRelationshipB = buildConnectsRelationship('app b to app c', 'application-b', 'application-c');
+            const connectsRelationshipA = buildConnectsRelationship('application-a-to-c', 'app a to app c', 'application-a', 'application-c');
+            const connectsRelationshipB = buildConnectsRelationship('application-b-to-c', 'app b to app c', 'application-b', 'application-c');
 
             const pattern = buildPattern(
                 [
@@ -251,6 +241,7 @@ describe('Pattern Options', () => {
                 ],
                 [
                     buildPatternOptionRelationship(
+                        'option-id',
                         'The choice of nodes and relationships in the pattern', 
                         buildPatternOption('oneOf', buildPatternChoice(applicationAtoC), buildPatternChoice(applicationBtoC))
                     ),
@@ -261,17 +252,18 @@ describe('Pattern Options', () => {
             );
 
             // only choose app a, NOT app b
-            const choices: CalmChoice[] = [
-                {
-                    description: 'app a',
-                    nodes: ['application-a'],
-                    relationships: ['application-a-to-c']
-                }
-            ];
+            const choices: CalmChoice[] = [applicationAtoC];
 
             const expectedPattern = buildPattern(
-                [applicationA, applicationC],
-                [connectsRelationshipA]
+                [applicationC, applicationA],
+                [
+                    buildPatternOptionRelationship(
+                        'option-id',
+                        'The choice of nodes and relationships in the pattern', 
+                        buildPatternChoice(applicationAtoC)
+                    ),
+                    connectsRelationshipA
+                ]
             );
             expect(selectChoices(pattern, choices)).toEqual(expectedPattern);
         });
@@ -280,17 +272,17 @@ describe('Pattern Options', () => {
             const applicationA = buildNode('application-a');
             const applicationB = buildNode('application-b');
             const applicationC = buildNode('application-c');
-            const connectsRelationshipA = buildConnectsRelationship('app a to app c', 'application-a', 'application-c');
-            const connectsRelationshipB = buildConnectsRelationship('app b to app c', 'application-b', 'application-c');
+            const connectsRelationshipA = buildConnectsRelationship('application-a-to-c', 'app a to app c', 'application-a', 'application-c');
+            const connectsRelationshipB = buildConnectsRelationship('application-b-to-c', 'app b to app c', 'application-b', 'application-c');
 
             const pattern = buildPattern(
-                [ applicationA, applicationB, applicationC],
+                [ applicationA, applicationB, applicationC ],
                 [ connectsRelationshipA, connectsRelationshipB ]
             );
 
             const expectedPattern = buildPattern(
-                [applicationA, applicationB, applicationC],
-                [connectsRelationshipA, connectsRelationshipB]
+                [ applicationA, applicationB, applicationC ],
+                [ connectsRelationshipA, connectsRelationshipB ]
             );
             expect(selectChoices(pattern, [])).toEqual(expectedPattern);
         });

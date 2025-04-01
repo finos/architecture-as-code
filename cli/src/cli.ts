@@ -1,9 +1,9 @@
 import {CALM_META_SCHEMA_DIRECTORY, runGenerate} from '@finos/calm-shared';
 import { Option, Command } from 'commander';
 import { version } from '../package.json';
-import { CalmChoice } from '@finos/calm-shared/commands/generate/components/options';
 import { loadFile } from './command-helpers/file-input';
 import { promptUserForOptions } from './command-helpers/generate-options';
+import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components/options';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -29,7 +29,7 @@ export function setupCLI(program: Command) {
         .action(async (options) => {
             const pattern: object = await loadFile(options.pattern); // Ensure loadFile is awaited
             const choices: CalmChoice[] = await promptUserForOptions(pattern, options.verbose);
-            await runGenerate(pattern, options.output, !!options.verbose, options.generateAll, choices, options.schemaDirectory);
+            await runGenerate(pattern, options.output, !!options.verbose, choices, options.schemaDirectory);
         });
 
     program

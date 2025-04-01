@@ -1,21 +1,21 @@
-import { CalmChoice } from '@finos/calm-shared/commands/generate/components/options';
+import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components/options';
 import { promptUserForOptions } from './generate-options';
 
 const mocks = vi.hoisted(() => {
     return {
         extractOptions: vi.fn(),
-        prompt: vi.fn()
+        select: vi.fn(),
+        checkbox: vi.fn()
     };
 });
 
-vi.mock('@finos/calm-shared/commands/generate/components/options', () => ({
+vi.mock('@finos/calm-shared/dist/commands/generate/components/options', () => ({
     extractOptions: mocks.extractOptions
 }));
 
-vi.mock('inquirer', () => ({
-    default: {    
-        prompt: mocks.prompt
-    }
+vi.mock('@inquirer/prompts', () => ({ 
+    select: mocks.select,
+    checkbox: mocks.checkbox
 }));
 
 const choice1 = { description: 'Option 1', nodes: ['option1'], relationships: ['relationship1'] };
@@ -40,10 +40,8 @@ describe('promptUserForOptions', () => {
                 choices: [choiceA, choiceB]
             }
         ]);
-        mocks.prompt.mockReturnValue(Promise.resolve({
-            0: 'Option 1',
-            1: ['Option A']
-        }));
+        mocks.select.mockReturnValue(Promise.resolve('Option 1'));
+        mocks.checkbox.mockReturnValue(Promise.resolve(['Option A']));
 
         const expectedChoices: CalmChoice[] = [choice1, choiceA];
         await expect(promptUserForOptions(pattern)).resolves.toEqual(expectedChoices);
@@ -55,7 +53,7 @@ describe('promptUserForOptions', () => {
             prompt: 'Select any of these options:',
             choices: [choiceA, choiceB]
         }]);
-        mocks.prompt.mockReturnValue(Promise.resolve({})); // user selects nothing
+        mocks.checkbox.mockReturnValue(Promise.resolve([])); // user selects nothing
 
         await expect(promptUserForOptions(pattern)).resolves.toEqual([]);
     });
@@ -66,9 +64,7 @@ describe('promptUserForOptions', () => {
             prompt: 'Choose an option:',
             choices: [choice1, choice2]
         }]);
-        mocks.prompt.mockReturnValue(Promise.resolve({
-            0: 'Invalid Option'
-        }));
+        mocks.select.mockReturnValue(Promise.resolve('Invalid Option'));
 
         await expect(promptUserForOptions(pattern)).rejects.toThrow('The choice of [Invalid Option] is not a valid choice in the pattern.');
     });

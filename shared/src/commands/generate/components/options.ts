@@ -1,4 +1,4 @@
-import { initLogger } from '@finos/calm-shared/logger';
+import { initLogger } from '../../../logger';
 
 export interface CalmChoice {
     description: string,
@@ -13,11 +13,11 @@ export interface CalmOption {
 }
 
 function isOptionsRelationship(relationship: object): boolean {
-    return 'properties' in relationship && 'options' in relationship['properties']['relationship-type'];
+    return 'properties' in relationship && 'properties' in relationship['properties']['relationship-type'] && 'options' in relationship['properties']['relationship-type']['properties'];
 }
 
 function getItemsInOptionsRelationship(optionsRelationship: object): object[] {
-    return optionsRelationship['properties']['relationship-type']['options']['prefixItems'];
+    return optionsRelationship['properties']['relationship-type']['properties']['options']['prefixItems'];
 }
 
 function extractOptionsFromBlock(optionsRelationship: object, blockType: 'oneOf' | 'anyOf'): CalmOption[] {
@@ -85,17 +85,19 @@ export function selectChoices(pattern: object, choices: CalmChoice[], debug: boo
     flattenCalmItems(pattern, 'relationships', relationshipIds);
 
     pattern['properties']['relationships']['prefixItems']
-        .filter(((item: object) => 'options' in item['properties']['relationship-type']))
-        .map(item => item['properties']['relationship-type']['options'])
+        .filter(((item: object) => 'properties' in item['properties']['relationship-type'] && 'options' in item['properties']['relationship-type']['properties']))
+        .map((item: object) => item['properties']['relationship-type']['properties']['options'])
         .forEach((optionRel: object) => {
             const optionsItems = optionRel['prefixItems'];
             optionsItems
                 .filter((item: object) => 'oneOf' in item || 'anyOf' in item)
                 .flatMap((item: object) => item['oneOf'] || item['anyOf'])
                 .forEach((item: object) => {
-                    const itemUniqueId = item['properties']['description']['const'];
-                    logger.debug(`Adding [${itemUniqueId}] to options`);
-                    optionsItems.push(item);
+                    const itemDescription: string = item['properties']['description']['const'];
+                    if (choices.map(choice => choice.description).includes(itemDescription)) {
+                        logger.debug(`Adding [${itemDescription}] to options`);
+                        optionsItems.push(item);
+                    }
                 });
             logger.debug('Removing "oneOf" and "anyOf" blocks from options');
             optionsItems
@@ -104,21 +106,7 @@ export function selectChoices(pattern: object, choices: CalmChoice[], debug: boo
         });
 
     
-    logger.info(`Transformed pattern: [${JSON.stringify(pattern)}]`);
-
-
-    // const optionsItems = optionRel['prefixItems'];
-    // optionsItems
-    //     .filter((item: object) => 'oneOf' in item || 'anyOf' in item)
-    //     .flatMap((item: object) => item['oneOf'] || item['anyOf'])
-    //     .forEach((option: object) => {
-    //         const chosenOption = choices.find(choice => choice.description === option['properties']['description']['const']);
-    //         optionsItems.push(chosenOption);
-    //     });
-
-    // optionsItems
-    //     .filter((item: object) => 'oneOf' in item || 'anyOf' in item)
-    //     .forEach((item: object) => optionsItems.splice(optionsItems.indexOf(item), 1));
+    logger.debug(`Pattern with all non chosen choices removed: [${JSON.stringify(pattern)}]`);
 
     return pattern;
 }

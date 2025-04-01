@@ -149,55 +149,62 @@
                 "const": "Which databases does your application connect to?"
             },
             "relationship-type": {
-              "options": {
-                "type": "array",
-                "minItems": 0,
-                "maxItems": 2,
-                "prefixItems": [
-                  {
-                    "anyOf": [
-                      {
-                        "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/option-type",
-                        "type": "object",
-                        "properties": {
-                          "description": {
-                            "const": "Application connects to Database A"
-                          },
-                          "nodes": {
-                            "const": [
-                              "database-a"
-                            ]
-                          },
-                          "relationships": {
-                            "const": [
-                              "application-database-a"
-                            ]
+              "type": "object",
+              "properties": {
+                "options": {
+                  "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/option-type",
+                  "type": "array",
+                  "minItems": 0,
+                  "maxItems": 2,
+                  "prefixItems": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/decision",
+                          "type": "object",
+                          "properties": {
+                            "description": {
+                              "const": "Application connects to Database A"
+                            },
+                            "nodes": {
+                              "const": [
+                                "database-a"
+                              ]
+                            },
+                            "relationships": {
+                              "const": [
+                                "application-database-a"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/decision",
+                          "type": "object",
+                          "properties": {
+                            "description": {
+                              "const": "Application connects to Database B"
+                            },
+                            "nodes": {
+                              "const": [
+                                "database-b"
+                              ]
+                            },
+                            "relationships": {
+                              "const": [
+                                "application-database-b"
+                              ]
+                            }
                           }
                         }
-                      },
-                      {
-                        "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/option-type",
-                        "type": "object",
-                        "properties": {
-                          "description": {
-                            "const": "Application connects to Database B"
-                          },
-                          "nodes": {
-                            "const": [
-                              "database-b"
-                            ]
-                          },
-                          "relationships": {
-                            "const": [
-                              "application-database-b"
-                            ]
-                          }
-                        }
-                      }
-                    ]
-                  }
-                ]
-              }
+                      ]
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "options"
+              ]
             }
           }
         }

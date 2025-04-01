@@ -60,7 +60,7 @@ describe('CLI Commands', () => {
             expect(optionsModule.promptUserForOptions).toHaveBeenCalled();
 
             expect(calmShared.runGenerate).toHaveBeenCalledWith(
-                'pattern.json', 'output.json', true, 'schemas'
+                {}, 'output.json', true, [], 'schemas'
             );
         });
     });
