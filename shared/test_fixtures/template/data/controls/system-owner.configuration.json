@@ -1,0 +1,12 @@
+{
+  "$schema": "https://calm.finos.org/controls/owner-responsibility.requirement.json",
+  "$id": "https://calm.finos.org/controls/system-owner.configuration.json",
+  "control-id": "ownership-002",
+  "name": "System Owner Responsibility",
+  "description": "Captures who is responsible from system ownership",
+  "owner-type": "System Owner",
+  "owner": {
+    "name": "Jane Doe",
+    "email": "jane.doe@finos.org"
+  }
+}
