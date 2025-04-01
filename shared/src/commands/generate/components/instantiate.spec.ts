@@ -149,9 +149,9 @@ describe('instantiate', () => {
         expect(result.nodes[0]).toEqual({
             'unique-id': 'my-node',
             'description': 'a test node',
-            'node-type': '{{ NODE_TYPE }}',
+            'node-type': '[[ NODE_TYPE ]]',
             'details': {
-                arch: '{{ ARCH }}'
+                arch: '[[ ARCH ]]'
             }
         });
     });
@@ -167,7 +167,7 @@ describe('instantiate', () => {
                     requirements: [
                         {
                             requirement: 'requirement-1',
-                            'configUrl': '{{ CONFIGURL }}',
+                            'configUrl': '[[ CONFIGURL ]]',
                         }
                     ]
                 }
@@ -178,7 +178,7 @@ describe('instantiate', () => {
     it('handles missing required schema fields by generating placeholders', async () => {
         const result: TestInstantiatedPattern = await instantiate(patternPath, true, 'schemas');
 
-        expect(result.nodes[0]['node-type']).toBe('{{ NODE_TYPE }}');
-        expect(result.nodes[0]['details'].arch).toBe('{{ ARCH }}');
+        expect(result.nodes[0]['node-type']).toBe('[[ NODE_TYPE ]]');
+        expect(result.nodes[0]['details'].arch).toBe('[[ ARCH ]]');
     });
 });
