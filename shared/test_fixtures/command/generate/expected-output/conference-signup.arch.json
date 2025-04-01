@@ -8,7 +8,7 @@
       "interfaces": [
         {
           "unique-id": "conference-website-url",
-          "url": "{{ URL }}"
+          "url": "[[ URL ]]"
         }
       ]
     },
@@ -20,7 +20,7 @@
       "interfaces": [
         {
           "unique-id": "load-balancer-host-port",
-          "host": "{{ HOST }}",
+          "host": "[[ HOST ]]",
           "port": -1
         }
       ]
@@ -33,7 +33,7 @@
       "interfaces": [
         {
           "unique-id": "attendees-image",
-          "image": "{{ IMAGE }}"
+          "image": "[[ IMAGE ]]"
         },
         {
           "unique-id": "attendees-port",
@@ -49,7 +49,7 @@
       "interfaces": [
         {
           "unique-id": "database-image",
-          "image": "{{ IMAGE }}"
+          "image": "[[ IMAGE ]]"
         },
         {
           "unique-id": "database-port",

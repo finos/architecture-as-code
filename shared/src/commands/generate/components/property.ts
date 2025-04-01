@@ -11,15 +11,15 @@ export interface JsonSchema {
 }
 
 export function getStringPlaceholder(name: string): string {
-    return '{{ ' + name.toUpperCase().replaceAll('-', '_') + ' }}';
+    return '[[ ' + name.toUpperCase().replaceAll('-', '_') + ' ]]';
 }
 
 export function getRefPlaceholder(name: string): string {
-    return '{{ REF_' + name.toUpperCase().replaceAll('-', '_') + ' }}';
+    return '[[ REF_' + name.toUpperCase().replaceAll('-', '_') + ' ]]';
 }
 
 export function getBooleanPlaceholder(name: string): string {
-    return '{{ BOOLEAN_' + name.toUpperCase().replaceAll('-', '_') + ' }}';
+    return '[[ BOOLEAN_' + name.toUpperCase().replaceAll('-', '_') + ' ]]';
 }
 
 /**
@@ -68,5 +68,5 @@ export function getPropertyValue(keyName: string, detail: JsonSchema): string | 
 export function getEnumPlaceholder(ref: string): string {
     const refName = /[^/#]*$/.exec(ref)[0];
     const refPlaceholder = refName.toUpperCase().replaceAll('-', '_');
-    return `{{ ENUM_${refPlaceholder} }}`;
+    return `[[ ENUM_${refPlaceholder} ]]`;
 }

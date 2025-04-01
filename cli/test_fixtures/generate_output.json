@@ -8,11 +8,11 @@
       "interfaces": [
         {
           "unique-id": "api-gateway-ingress",
-          "host": "{{ HOST }}",
+          "host": "[[ HOST ]]",
           "port": -1
         }
       ],
-      "well-known-endpoint": "{{ WELL_KNOWN_ENDPOINT }}"
+      "well-known-endpoint": "[[ WELL_KNOWN_ENDPOINT ]]"
     },
     {
       "unique-id": "api-consumer",
@@ -28,7 +28,7 @@
       "interfaces": [
         {
           "unique-id": "producer-ingress",
-          "host": "{{ HOST }}",
+          "host": "[[ HOST ]]",
           "port": -1
         }
       ]

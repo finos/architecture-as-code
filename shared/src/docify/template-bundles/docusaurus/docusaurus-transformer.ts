@@ -75,24 +75,27 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
 
         const controlConfigurations: Record<string, { id:string, name:string, schema:string, description:string, domain: string, scope: string, appliedTo: string, content: string }[]> = {};
 
+
         // Collect control requirements and configurations from nodes, flows, and relationships
         const addControlConfigurationToTable = (controls: CalmControl[], scope: string, appliedTo: string) => {
             controls.forEach(control => {
                 control.requirements.forEach( detail => {
-                    const configuration =  detail.controlConfigUrl;
-                    if (!controlConfigurations[configuration['control-id']]) {
-                        controlConfigurations[configuration['control-id']] = [];
+                    const configuration = detail.controlConfigUrl;
+                    if (configuration['control-id']) {
+                        if (!controlConfigurations[configuration['control-id']]) {
+                            controlConfigurations[configuration['control-id']] = [];
+                        }
+                        controlConfigurations[configuration['control-id']].push({
+                            id: configuration['control-id'],
+                            name: configuration['name'],
+                            schema: configuration['$schema'],
+                            description: configuration['description'],
+                            domain: control.controlId,
+                            scope,
+                            appliedTo,
+                            content: configuration
+                        });
                     }
-                    controlConfigurations[configuration['control-id']].push({
-                        id: configuration['control-id'],
-                        name: configuration['name'],
-                        schema: configuration['$schema'],
-                        description: configuration['description'],
-                        domain: control.controlId,
-                        scope,
-                        appliedTo,
-                        content: configuration
-                    });
                 });
             });
         };
@@ -174,6 +177,7 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
         };
     }
 
+
     registerTemplateHelpers(): Record<string, (...args: unknown[]) => unknown> {
         return {
             eq: (a, b) => a === b,
@@ -190,7 +194,17 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
                 .replace(/[^a-z0-9]+/g, '-')  // Replace non-alphanumeric characters with hyphens
                 .replace(/^-+|-+$/g, ''), // Remove leading or trailing hyphens
             isObject: (value: unknown) => typeof value === 'object' && value !== null && !Array.isArray(value),
-            isArray: (value: unknown) => Array.isArray(value)
+            isArray: (value: unknown) => Array.isArray(value),
+            notEmpty: function (value: unknown) {
+                if (Array.isArray(value)) return value.length > 0;
+                if (typeof value === 'object' && value !== null)
+                    return Object.keys(value).length > 0;
+                return true;
+            },
+            or: (...args: unknown[]) => {
+                const actualArgs = args.slice(0, -1);
+                return actualArgs.some(Boolean);
+            }
         };
     }
 
