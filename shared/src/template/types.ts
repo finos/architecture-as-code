@@ -1,7 +1,7 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 export interface IndexFile {
     name: string;
-    transformer: string;
+    transformer?: string;
     templates: TemplateEntry[];
 }
 

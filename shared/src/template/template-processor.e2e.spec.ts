@@ -57,15 +57,19 @@ describe('TemplateProcessor E2E', () => {
         );
         await expect(processor.processTemplate()).rejects.toThrow('index.json not found in template bundle');
     });
+    it('should throw an error if specified transformer file is missing', async () => {
+        const bundlePath = path.join(FIXTURES_DIR, 'bundles/missing-transformer');
+        const transformerName = 'no-transformer';
+        const expectedErrorMessage = `❌ Error generating template: ❌ Transformer "${transformerName}" specified in index.json but not found as .ts or .js in ${bundlePath}`;
 
-    it('should throw an error if transformer file is missing', async () => {
         const processor = new TemplateProcessor(
             path.join(DATA_DIR, 'simple-nodes.json'),
-            path.join(FIXTURES_DIR, 'bundles/missing-transformer'),
+            bundlePath,
             OUTPUT_DIR,
             new Map<string, string>()
         );
-        await expect(processor.processTemplate()).rejects.toThrow('Transformer file not found');
+
+        await expect(processor.processTemplate()).rejects.toThrow(expectedErrorMessage);
     });
 
     it('should throw an error if transformer does not export a class', async () => {
@@ -161,6 +165,34 @@ describe('TemplateProcessor E2E', () => {
         const expectedContent = fs.readFileSync(expectedFile, 'utf8').trim();
         expect(actualContent).toEqual(expectedContent);
     });
+
+    it('should use TemplateDefaultTransformer when no transformer is specified', async () => {
+        const mapping = new Map<string, string>([
+            ['https://calm.finos.org/docuflow/flow/document-upload', path.join(DATA_DIR, 'flow-document-upload.json')],
+            ['https://calm.finos.org/controls/owner-responsibility.requirement.json', path.join(DATA_DIR, 'controls/owner-responsibility.requirement.json')],
+            ['https://calm.finos.org/controls/architect.configuration.json', path.join(DATA_DIR, 'controls/architect.configuration.json')],
+            ['https://calm.finos.org/controls/system-owner.configuration.json', path.join(DATA_DIR, 'controls/system-owner.configuration.json')],
+            ['https://calm.finos.org/controls/business-owner.configuration.json', path.join(DATA_DIR, 'controls/business-owner.configuration.json')],
+        ]);
+
+        const processor = new TemplateProcessor(
+            path.join(DATA_DIR, 'document-system-with-controls.json'),
+            path.join(FIXTURES_DIR, 'bundles/default-transformer'),
+            OUTPUT_DIR,
+            mapping
+        );
+
+        await expect(processor.processTemplate()).resolves.not.toThrow();
+
+        const actualFile = path.join(OUTPUT_DIR, 'doc-system-one-pager.md');
+        const expectedFile = path.join(EXPECTED_OUTPUT_DIR, 'doc-system-one-pager.md');
+        expect(fs.existsSync(actualFile)).toBe(true);
+        const actualContent = fs.readFileSync(actualFile, 'utf8').trim();
+        const expectedContent = fs.readFileSync(expectedFile, 'utf8').trim();
+        expect(actualContent).toEqual(expectedContent);
+
+    });
+
 
 
 });
