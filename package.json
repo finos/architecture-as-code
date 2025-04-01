@@ -29,8 +29,7 @@
     "vitest": "^3.0.9"
   },
   "dependencies": {
-    "@finos/calm-shared": "^0.2.2",
-    "@inquirer/prompts": "^7.4.0"
+    "@finos/calm-shared": "^0.2.2"
   },
   "overrides": {
     "esbuild": "^0.25.0"

@@ -3,6 +3,17 @@ import { tmpdir } from 'node:os';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 
+vi.mock('../../logger', () => {
+    return {
+        initLogger: () => {
+            return {
+                info: () => {},
+                debug: () => {}
+            };
+        }
+    };
+});
+
 vi.mock('../../schema-directory');
 
 vi.mock('../../consts', () => ({
