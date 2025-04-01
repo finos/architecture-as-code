@@ -34,6 +34,14 @@ vi.mock('../../consts', () => ({
     get CALM_META_SCHEMA_DIRECTORY() { return '../calm/draft/2025-03/meta'; }
 }));
 
+vi.mock('./components/instantiate', () => ({
+    instantiate: vi.fn(() => Promise.resolve({
+        nodes: [{ 'unique-id': 'mock-node' }],
+        relationships: [{ 'unique-id': 'mock-rel' }],
+        $schema: 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/pattern/api-gateway'
+    }))
+}));
+
 
 describe('runGenerate', () => {
     let tempDirectoryPath;

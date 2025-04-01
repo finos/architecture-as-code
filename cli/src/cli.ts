@@ -7,7 +7,6 @@ import { promptUserForOptions } from './command-helpers/generate-options';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
-const GENERATE_ALL_OPTION = '-g, --generateAll';
 const OUTPUT_OPTION = '-o, --output <file>';
 const PATTERN_OPTION = '-p, --pattern <file>';
 const SCHEMAS_OPTION = '-s, --schemaDirectory <path>';
@@ -27,7 +26,6 @@ export function setupCLI(program: Command) {
         .requiredOption(OUTPUT_OPTION, 'Path location at which to output the generated file.', 'architecture.json')
         .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.', CALM_META_SCHEMA_DIRECTORY)
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
-        .option(GENERATE_ALL_OPTION, 'Generate all properties, ignoring the "required" field.', false)
         .action(async (options) => {
             const pattern: object = await loadFile(options.pattern); // Ensure loadFile is awaited
             const choices: CalmChoice[] = await promptUserForOptions(pattern, options.verbose);

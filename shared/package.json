@@ -9,9 +9,10 @@
     ],
     "private": true,
     "scripts": {
-        "build": "tsc",
-        "watch": "tsc -watch -p ./",
-        "clean": "rimraf dist tsconfig.tsbuildinfo",
+        "build": "tsup && tsc -p ./tsconfig.build.json && npm run copy:docify-template-bundle",
+        "copy:docify-template-bundle": "node scripts/copy-templates.mjs",
+        "watch": "tsc -watch -p ./tsconfig.build.json",
+        "clean": "rimraf dist tsconfig.build.tsbuildinfo",
         "test": "vitest run",
         "lint": "eslint src",
         "lint-fix": "eslint src --fix",
@@ -26,8 +27,8 @@
     ],
     "author": "",
     "license": "ISC",
-    "module": "commonjs",
-    "type": "commonjs",
+    "module": "esnext",
+    "type": "module",
     "dependencies": {
         "@apidevtools/json-schema-ref-parser": "^11.9.3",
         "@stoplight/spectral-cli": "^6.13.1",
@@ -43,8 +44,8 @@
         "lodash": "^4.17.21",
         "mkdirp": "^3.0.1",
         "string-table": "^0.1.5",
-        "winston": "^3.14.1",
-        "ts-node": "10.9.2"
+        "ts-node": "10.9.2",
+        "winston": "^3.14.1"
     },
     "devDependencies": {
         "@stoplight/types": "^14.1.1",

@@ -22,27 +22,6 @@ Usage: calm [options] [command]
 A set of tools for interacting with the Common Architecture Language Model (CALM)
 
 Options:
-  -V, --version        output the version number
-  -h, --help           display help for command
-
-Commands:
-  generate [options]   Generate an architecture from a CALM pattern file.
-  validate [options]   Validate that an architecture conforms to a given CALM pattern.
-  help [command]       display help for command
-```
-
-### Generating an architecture from a CALM pattern file
-
-This command lets you create a shell of an architecture from a pattern file.
-You can try it out using the example patterns provided in this repo under `calm/pattern`.
-
-```shell
-calm
-Usage: calm [options] [command]
-
-A set of tools for interacting with the Common Architecture Language Model (CALM)
-
-Options:
   -V, --version       output the version number
   -h, --help          display help for command
 
@@ -53,6 +32,26 @@ Commands:
   template [options]  Generate files from a CALM model using a Handlebars template bundle.
   docify [options]    Generate a documentation website off your CALM model.
   help [command]      display help for command
+```
+
+
+### Generating an architecture from a CALM pattern file
+
+This command lets you create a shell of an architecture from a pattern file.
+You can try it out using the example patterns provided in this repo under `calm/pattern`.
+
+```shell
+calm
+Usage: calm generate [options]
+
+Generate an architecture from a CALM pattern file.
+
+Options:
+  -p, --pattern <file>          Path to the pattern file to use. May be a file path or a URL.
+  -o, --output <file>           Path location at which to output the generated file. (default: "architecture.json")
+  -s, --schemaDirectory <path>  Path to the directory containing the meta schemas to use. (default: "../calm/draft")
+  -v, --verbose                 Enable verbose logging. (default: false)
+  -h, --help                    display help for command
 ```
 
 

@@ -1,8 +1,11 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
-import {Architecture, CalmControl, CalmCore, CalmFlowTransition, CalmTemplateTransformer} from '@finos/calm-shared';
-import {CalmCoreSchema} from '@finos/calm-shared/types/core-types';
-import {CalmRelationshipGraph, C4Model} from '@finos/calm-shared';
-
+import {Architecture,CalmCore} from '../../../model/core';
+import {CalmControl} from '../../../model/control';
+import {CalmFlowTransition} from '../../../model/flow';
+import {CalmTemplateTransformer} from '../../../template/types';
+import {CalmCoreSchema} from '../../../types/core-types';
+import {CalmRelationshipGraph} from '../../graphing/relationship-graph';
+import {C4Model} from '../../graphing/c4';
 
 export default class DocusaurusTransformer implements CalmTemplateTransformer {
     getTransformedModel(calmJson: string) {
@@ -202,3 +205,4 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
         return relationshipId.split('-uses-').slice(-1)[0];
     }
 }
+module.exports = DocusaurusTransformer;

@@ -1,5 +1,4 @@
 import {defineConfig} from 'vitest/config';
-import path from 'path';
 import {CoverageV8Options} from "vitest/node";
 
 const v8CoverageSettings: CoverageV8Options = {
@@ -14,13 +13,9 @@ const v8CoverageSettings: CoverageV8Options = {
 }
 
 export default defineConfig({
-    resolve: {
-        alias: {
-            '@finos/calm-shared': path.resolve(__dirname, '../shared/src'),
-        }
-    },
     test: {
         globals: true,
+        environment: 'node',
         coverage: {
             provider: 'v8',
             ...v8CoverageSettings,

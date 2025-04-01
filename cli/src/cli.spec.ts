@@ -53,7 +53,6 @@ describe('CLI Commands', () => {
                 '-p', 'pattern.json',
                 '-o', 'output.json',
                 '--verbose',
-                '--generateAll',
                 '--schemaDirectory', 'schemas',
             ]);
 
@@ -61,7 +60,7 @@ describe('CLI Commands', () => {
             expect(optionsModule.promptUserForOptions).toHaveBeenCalled();
 
             expect(calmShared.runGenerate).toHaveBeenCalledWith(
-                {}, 'output.json', true, true, [], 'schemas'
+                'pattern.json', 'output.json', true, 'schemas'
             );
         });
     });

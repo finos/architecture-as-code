@@ -69,10 +69,18 @@ function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeD
                                 <span className="label label-text text-base-content">
                                     Zoom: {(zoomLevel * 100).toFixed(0)}%
                                 </span>
-                                <button className="btn btn-xs ms-1 ps-2 pe-2" onClick={zoomIn}>
+                                <button
+                                    className={`btn btn-xs ms-1 ps-2 pe-2 ${zoomLevel >= 5 ? 'btn-disabled' : ''}`}
+                                    onClick={zoomIn}
+                                    disabled={zoomLevel >= 5}
+                                >
                                     +
                                 </button>
-                                <button className="btn btn-xs ms-1 ps-2 pe-2" onClick={zoomOut}>
+                                <button
+                                    className={`btn btn-xs ms-1 ps-2 pe-2 ${zoomLevel <= 0.1 ? 'btn-disabled' : ''}`}
+                                    onClick={zoomOut}
+                                    disabled={zoomLevel <= 0.1}
+                                >
                                     -
                                 </button>
                             </div>

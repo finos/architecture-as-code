@@ -1,6 +1,6 @@
 {
   "name": "@finos/calm-cli",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
   "main": "dist/index.js",
   "files": [
@@ -13,7 +13,7 @@
     "build": "tsup && npm run copy-calm-schema && npm run copy-docify-templates",
     "watch": "node watch.mjs",
     "copy-calm-schema": "copyfiles \"../calm/draft/2025-03/meta/*\" dist/calm/",
-    "copy-docify-templates": "copyfiles \"../shared/src/docify/template-bundles/**/*\" dist --up 4",
+    "copy-docify-templates": "copyfiles \"../shared/dist/template-bundles/**/*\" dist --up 3",
     "test": "vitest run",
     "lint": "eslint src",
     "lint-fix": "eslint src --fix",

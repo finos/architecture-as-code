@@ -1,66 +1,60 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { runGenerate } from './generate';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { runGenerate } from './generate.js';
+import { existsSync, readFileSync, mkdirSync, rmSync } from 'fs';
+import { join } from 'path';
 
-vi.mock('../../consts', () => ({
-    get CALM_META_SCHEMA_DIRECTORY() { return 'test_fixtures/calm'; }
-}));
+const inputPattern = join(
+    __dirname,
+    '../../../../calm/workshop/conference-signup.pattern.json'
+);
+const inputSecurePattern = join(
+    __dirname,
+    '../../../../calm/workshop/conference-secure-signup.pattern.json'
+);
 
-jest.mock('winston', () => ({
-    info: jest.fn(),
-    debug: jest.fn(),
-    error: jest.fn().mockImplementation((err) => console.error(err)),
-    warn: jest.fn(),
-    format: {
-        colorize: jest.fn(),
-        combine: jest.fn(),
-        label: jest.fn(),
-        timestamp: jest.fn(),
-        printf: jest.fn(),
-        cli: jest.fn(),
-        errors: jest.fn()
-    },
-    createLogger: jest.fn().mockReturnValue({
-        info: jest.fn(),
-        debug: jest.fn(),
-        error: jest.fn().mockImplementation((err) => console.error(err)),
-        warn: jest.fn(),
-    }),
-    transports: {
-        Console: jest.fn()
-    }
-}));
+const expectedDir = join(__dirname, '../../../test_fixtures/command/generate/expected-output');
+const outputDir = join(__dirname, '../../../test_fixtures/command/generate/actual-output');
+const schemaDir = join(__dirname, '../../../../calm/draft/2025-03/meta');
 
-describe('generate spec e2e', () => {
-    let tempDirectoryPath;
+const outputPath = join(outputDir, 'conference-signup.arch.json');
+const outputSecurePath = join(outputDir, 'conference-secure-signup.arch.json');
 
+const expectedPlainPath = join(expectedDir, 'conference-signup.arch.json');
+const expectedSecurePath = join(expectedDir, 'conference-secure-signup.arch.json');
+
+describe('runGenerate E2E', () => {
     beforeEach(() => {
-        tempDirectoryPath = mkdtempSync(path.join(tmpdir(), 'calm-test-'));
+        if (existsSync(outputDir)) {
+            rmSync(outputDir, { recursive: true, force: true });
+        }
+        mkdirSync(outputDir, { recursive: true });
     });
 
     afterEach(() => {
-        rmSync(tempDirectoryPath, { recursive: true, force: true });
+        if (existsSync(outputDir)) {
+            rmSync(outputDir, { recursive: true, force: true });
+        }
     });
 
-    it('instantiate file with self-reference', async () => {
-        const patternPath = 'test_fixtures/api-gateway-self-reference.json';
-        const testPattern: object = JSON.parse(readFileSync(patternPath, { encoding: 'utf8' }));
-        const outPath = path.join(tempDirectoryPath, 'output.json');
-        await runGenerate(testPattern, outPath, true, false);
+    it('generates output from pattern and matches expected file', async () => {
+        await runGenerate(inputPattern, outputPath, true,  schemaDir);
 
-        expect(existsSync(outPath))
-            .toBeTruthy();
+        expect(existsSync(outputPath)).toBe(true);
 
-        const spec = readFileSync(outPath, { encoding: 'utf-8' });
-        const parsed = JSON.parse(spec);
-        expect(parsed)
-            .toHaveProperty('nodes');
-        expect(parsed)
-            .toHaveProperty('relationships');
+        const generated = JSON.parse(readFileSync(outputPath, 'utf-8'));
+        const expected = JSON.parse(readFileSync(expectedPlainPath, 'utf-8'));
 
+        expect(generated).toEqual(expected);
+    });
 
-        expect(parsed['nodes'][0]).toHaveProperty('extra-prop');
-        expect(parsed['nodes'][0]['interfaces'][0]).toHaveProperty('extra-prop-interface');
+    it('generates secure output from pattern and matches expected file', async () => {
+        await runGenerate(inputSecurePattern, outputSecurePath, true, schemaDir);
+
+        expect(existsSync(outputSecurePath)).toBe(true);
+
+        const generated = JSON.parse(readFileSync(outputSecurePath, 'utf-8'));
+        const expected = JSON.parse(readFileSync(expectedSecurePath, 'utf-8'));
+
+        expect(generated).toEqual(expected);
     });
 });
