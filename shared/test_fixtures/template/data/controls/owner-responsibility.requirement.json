@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/controls/owner-responsibility.requirement.json",
+  "title": "Owner Responsibility",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "description": {
+      "const": "Captures who is responsible"
+    },
+    "owner-type": {
+      "type": "string",
+      "description": "Type of responsibility held by the owner"
+    },
+    "owner": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Full name of the owner"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Email contact for the owner"
+        }
+      },
+      "required": ["name", "email"]
+    }
+  },
+  "required": ["owner-type", "owner"]
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://calm.finos.org/controls/owner-responsibility.requirement.json",
+  "$id": "https://calm.finos.org/controls/business-owner.configuration.json",
+  "control-id": "ownership-001",
+  "name": "Business Owner Responsibility",
+  "description": "Captures who is responsible from business perspective",
+  "owner-type": "Business Owner",
+  "owner": {
+    "name": "Jo Bloggs",
+    "email": "jo.bloggs@finos.org"
+  }
+}
