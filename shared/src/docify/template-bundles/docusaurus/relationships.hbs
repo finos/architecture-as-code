@@ -7,7 +7,7 @@ graph TD;
 {{../relationshipType.actor}} -- Interacts --> {{this}};
 {{/each}}
 {{else if (instanceOf relationshipType "CalmConnectsType")}}
-{{relationshipType.source.node }} -- Connects --> {{relationshipType.destination.node}};
+{{relationshipType.source.node}} -- Connects --> {{relationshipType.destination.node}};
 {{else if (instanceOf relationshipType "CalmComposedOfType")}}
 {{#if (eq relationshipType.container ../id)}}
 {{#each relationshipType.nodes}}
@@ -18,12 +18,20 @@ graph TD;
 {{#if (eq this ../../id)}}
 {{../relationshipType.container}} -- Composed Of --> {{this}};
 {{/if}}
-
+{{/each}}
+{{else if (instanceOf relationshipType "CalmDeployedInType")}}
+{{#if (eq relationshipType.container ../id)}}
+{{#each relationshipType.nodes}}
+{{../relationshipType.container}} -- Deployed In --> {{this}};
+{{/each}}
+{{/if}}
+{{#each relationshipType.nodes}}
+{{#if (eq this ../../id)}}
+{{../relationshipType.container}} -- Deployed In --> {{this}};
+{{/if}}
 {{/each}}
 {{/if}}
 {{/each}}
-
 classDef highlight fill:#f2bbae;
 
 ```
-

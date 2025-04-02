@@ -1,5 +1,3 @@
-// c4model.test.ts
-
 import { buildParentChildMappings, C4Model } from './c4';
 import { CalmCore } from '../../model/core';
 import { CalmNode, CalmNodeDetails } from '../../model/node';
@@ -8,7 +6,8 @@ import {
     CalmRelationship,
     CalmComposedOfType,
     CalmConnectsType,
-    CalmInteractsType
+    CalmInteractsType,
+    CalmDeployedInType
 } from '../../model/relationship';
 
 describe('buildParentChildMappings', () => {
@@ -22,6 +21,18 @@ describe('buildParentChildMappings', () => {
         const { parentLookup, childrenLookup } = buildParentChildMappings([composedOfRel]);
         expect(parentLookup).toEqual({ child1: 'parent1', child2: 'parent1' });
         expect(childrenLookup).toEqual({ parent1: ['child1', 'child2'] });
+    });
+
+    it('should build parent/child lookups for a deployed-in relationship', () => {
+        const deployedInRel = new CalmRelationship(
+            'rel2',
+            new CalmDeployedInType('env1', ['service1']),
+            new CalmMetadata({}),
+            []
+        );
+        const { parentLookup, childrenLookup } = buildParentChildMappings([deployedInRel]);
+        expect(parentLookup).toEqual({ service1: 'env1' });
+        expect(childrenLookup).toEqual({ env1: ['service1'] });
     });
 });
 
@@ -102,5 +113,4 @@ describe('C4Model', () => {
             new CalmMetadata({})
         );
     }
-
 });
