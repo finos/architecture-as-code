@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 
 function Navbar() {
     return (
-        <div className="navbar bg-primary border-b-2 border-base-200 text-primary-content">
+        <div className="navbar bg-base-100 border-b-2 border-base-200 text-primary-content">
             <div className="navbar-start flex items-center">
                 <div className="dropdown lg:hidden">
                     <div tabIndex={0} role="button" className="btn btn-ghost">
@@ -34,16 +34,18 @@ function Navbar() {
                         </li>
                     </ul>
                 </div>
-                <a className="btn btn-ghost text-2xl">CALM</a>
+                <a className="btn btn-ghost">
+                    <img src="/brand/Icon/2025_CALM_Icon.svg" alt="CALM Logo" className="h-10" />
+                </a>
                 <div className="hidden lg:flex">
                     <ul className="menu menu-horizontal px-1">
                         <li>
-                            <NavLink className="btn-ghost btn text-base-100" to="/">
+                            <NavLink className="btn-ghost btn text-primary" to="/">
                                 Hub
                             </NavLink>
                         </li>
                         <li>
-                            <NavLink className="btn-ghost btn text-base-100" to="/visualizer">
+                            <NavLink className="btn-ghost btn text-primary" to="/visualizer">
                                 Visualizer
                             </NavLink>
                         </li>
