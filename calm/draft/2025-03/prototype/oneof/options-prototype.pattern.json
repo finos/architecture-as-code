@@ -167,56 +167,62 @@
                 "const": "The choice of nodes and relationships in the pattern"
             },
             "relationship-type": {
-              "options": {
-                "type": "array",
-                "minItems": 1,
-                "maxItems": 1,
-                "prefixItems": [
-                  {
-                    "oneOf": [
-                      {
-                        "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/option-type",
-                        "type": "object",
-                        "properties": {
-                          "description": {
-                            "const": "Application A connects to Application C"
-                          },
-                          "nodes": {
-                            "const": [
-                              "application-a"
-                            ]
-                          },
-                          "relationships": {
-                            "const": [
-                              "application-a-to-c"
-                            ]
+              "type": "object",
+              "properties": {
+                "options": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 1,
+                  "prefixItems": [
+                    {
+                      "oneOf": [
+                        {
+                          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/option-type",
+                          "type": "object",
+                          "properties": {
+                            "description": {
+                              "const": "Application A connects to Application C"
+                            },
+                            "nodes": {
+                              "const": [
+                                "application-a"
+                              ]
+                            },
+                            "relationships": {
+                              "const": [
+                                "application-a-to-c"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/option-type",
+                          "type": "object",
+                          "properties": {
+                            "description": {
+                              "const": "Application B connects to Application C"
+                            },
+                            "nodes": {
+                              "const": [
+                                "application-b"
+                              ]
+                            },
+                            "relationships": {
+                              "const": [
+                                "application-b-to-c"
+                              ]
+                            }
                           }
                         }
-                      },
-                      {
-                        "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/option-type",
-                        "type": "object",
-                        "properties": {
-                          "description": {
-                            "const": "Application B connects to Application C"
-                          },
-                          "nodes": {
-                            "const": [
-                              "application-b"
-                            ]
-                          },
-                          "relationships": {
-                            "const": [
-                              "application-b-to-c"
-                            ]
-                          }
-                        }
-                      }
-                    ]
-                  }
-                ]
+                      ]
+                    }
+                  ]
+                }
               }
-            }
+            },
+            "required": [
+              "options"
+            ]
           }
         }
       ]

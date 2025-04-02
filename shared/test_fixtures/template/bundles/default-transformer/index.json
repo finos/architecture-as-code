@@ -1,0 +1,6 @@
+{
+  "name": "Simple Test Bundle",
+  "templates": [
+    { "template": "main.hbs", "from": "document", "output": "doc-system-one-pager.md", "output-type": "single" }
+  ]
+}

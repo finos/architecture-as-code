@@ -8,7 +8,7 @@
       "interfaces": [
         {
           "unique-id": "conference-website-url",
-          "url": "{{ URL }}"
+          "url": "[[ URL ]]"
         }
       ]
     },
@@ -20,20 +20,20 @@
       "interfaces": [
         {
           "unique-id": "load-balancer-host-port",
-          "host": "{{ HOST }}",
+          "host": "[[ HOST ]]",
           "port": -1
         }
       ]
     },
     {
-      "unique-id": "attendees-service",
+      "unique-id": "attendees",
       "name": "Attendees Service",
       "description": "Ingress for the Kubernetes cluster",
       "node-type": "service",
       "interfaces": [
         {
           "unique-id": "attendees-image",
-          "image": "{{ IMAGE }}"
+          "image": "[[ IMAGE ]]"
         },
         {
           "unique-id": "attendees-port",
@@ -49,7 +49,7 @@
       "interfaces": [
         {
           "unique-id": "database-image",
-          "image": "{{ IMAGE }}"
+          "image": "[[ IMAGE ]]"
         },
         {
           "unique-id": "database-port",
@@ -90,19 +90,19 @@
             "node": "load-balancer"
           },
           "destination": {
-            "node": "attendees-service"
+            "node": "attendees"
           }
         }
       }
     },
     {
-      "unique-id": "attendees-service-attendees-store",
+      "unique-id": "attendees-attendees-store",
       "description": "Store or request attendee details",
       "protocol": "JDBC",
       "relationship-type": {
         "connects": {
           "source": {
-            "node": "attendees-service"
+            "node": "attendees"
           },
           "destination": {
             "node": "attendees-store"
@@ -118,10 +118,17 @@
           "container": "k8s-cluster",
           "nodes": [
             "load-balancer",
-            "attendees-service",
+            "attendees",
             "attendees-store"
           ]
         }
+      }
+    }
+  ],
+  "metadata": [
+    {
+      "kubernetes": {
+        "namespace": "conference"
       }
     }
   ],

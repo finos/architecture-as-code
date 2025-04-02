@@ -17,15 +17,25 @@ This documentation is generated from the **CALM Architecture-as-Code** model.
     - [{{title}}](nodes/{{slug}})
 {{/each}}
 
+{{#if (notEmpty flows) }}
 ### Flows
 {{#each flows}}
     - [{{title}}](flows/{{slug}})
 {{/each}}
+{{/if}}
 
+{{#if (notEmpty controls) }}
 ### Controls
-
 | ID    | Name             | Description                  | Domain    | Scope        | Applied To                |
 |-------|------------------|------------------------------|-----------|--------------|---------------------------|
 {{#controls}}
 |{{id}}|{{name}}|{{description}}|{{domain}}|{{scope}}|{{appliedTo}}|
 {{/controls}}
+{{/if}}
+
+{{#if (notEmpty controls) }}
+{{#controls}}
+{{{json this }}}
+{{/controls}}
+{{/if}}
+

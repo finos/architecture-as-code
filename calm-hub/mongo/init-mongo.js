@@ -779,7 +779,7 @@ db.schemas.insertMany([               // Insert initial documents into the schem
 
 db.namespaces.insertMany([
     { namespace: "finos" },
-    { namespace: "custom" },
+    { namespace: "workshop" },
     { namespace: "traderx" }
 ]);
 
@@ -1040,8 +1040,762 @@ db.patterns.insertMany([
         ]
     },
     {
-        namespace: "custom",
+        namespace: "workshop",
         patterns: [
+            {
+                patternId: NumberInt(1),
+                versions:
+                    {
+                        "1-0-0": {
+                            "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
+                            "$id": "https://calm.finos.org/workshop/conference-signup.pattern.json",
+                            "type": "object",
+                            "title": "Conference Signup Pattern",
+                            "description": "A reusable architecture pattern for conference signup systems with Kubernetes deployment.",
+                            "properties": {
+                                "nodes": {
+                                    "type": "array",
+                                    "minItems": 5,
+                                    "maxItems": 5,
+                                    "prefixItems": [
+                                        {
+                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+                                            "type": "object",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "conference-website"
+                                                },
+                                                "name": {
+                                                    "const": "Conference Website"
+                                                },
+                                                "description": {
+                                                    "const": "Website to sign up for a conference"
+                                                },
+                                                "node-type": {
+                                                    "const": "webclient"
+                                                },
+                                                "interfaces": {
+                                                    "type": "array",
+                                                    "minItems": 1,
+                                                    "maxItems": 1,
+                                                    "prefixItems": [
+                                                        {
+                                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/interface.json#/defs/url-interface",
+                                                            "properties": {
+                                                                "unique-id": {
+                                                                    "const": "conference-website-url"
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+                                            "type": "object",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "load-balancer"
+                                                },
+                                                "name": {
+                                                    "const": "Load Balancer"
+                                                },
+                                                "description": {
+                                                    "const": "Ingress for the Kubernetes cluster"
+                                                },
+                                                "node-type": {
+                                                    "const": "network"
+                                                },
+                                                "interfaces": {
+                                                    "type": "array",
+                                                    "minItems": 1,
+                                                    "maxItems": 1,
+                                                    "prefixItems": [
+                                                        {
+                                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/interface.json#/defs/host-port-interface",
+                                                            "properties": {
+                                                                "unique-id": {
+                                                                    "const": "load-balancer-host-port"
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+                                            "type": "object",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "attendees"
+                                                },
+                                                "name": {
+                                                    "const": "Attendees Service"
+                                                },
+                                                "description": {
+                                                    "const": "Ingress for the Kubernetes cluster"
+                                                },
+                                                "node-type": {
+                                                    "const": "service"
+                                                },
+                                                "interfaces": {
+                                                    "type": "array",
+                                                    "minItems": 2,
+                                                    "maxItems": 2,
+                                                    "prefixItems": [
+                                                        {
+                                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/interface.json#/defs/container-image-interface",
+                                                            "properties": {
+                                                                "unique-id": {
+                                                                    "const": "attendees-image"
+                                                                }
+                                                            }
+                                                        },
+                                                        {
+                                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/interface.json#/defs/port-interface",
+                                                            "properties": {
+                                                                "unique-id": {
+                                                                    "const": "attendees-port"
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+                                            "type": "object",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "attendees-store"
+                                                },
+                                                "name": {
+                                                    "const": "Attendees Store"
+                                                },
+                                                "description": {
+                                                    "const": "Persistent storage for attendees"
+                                                },
+                                                "node-type": {
+                                                    "const": "database"
+                                                },
+                                                "interfaces": {
+                                                    "type": "array",
+                                                    "minItems": 2,
+                                                    "maxItems": 2,
+                                                    "prefixItems": [
+                                                        {
+                                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/interface.json#/defs/container-image-interface",
+                                                            "properties": {
+                                                                "unique-id": {
+                                                                    "const": "database-image"
+                                                                }
+                                                            }
+                                                        },
+                                                        {
+                                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/interface.json#/defs/port-interface",
+                                                            "properties": {
+                                                                "unique-id": {
+                                                                    "const": "database-port"
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+                                            "type": "object",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "k8s-cluster"
+                                                },
+                                                "name": {
+                                                    "const": "Kubernetes Cluster"
+                                                },
+                                                "description": {
+                                                    "const": "Kubernetes Cluster with network policy rules enabled"
+                                                },
+                                                "node-type": {
+                                                    "const": "system"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                "relationships": {
+                                    "type": "array",
+                                    "minItems": 4,
+                                    "maxItems": 4,
+                                    "prefixItems": [
+                                        {
+                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+                                            "type": "object",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "conference-website-load-balancer"
+                                                },
+                                                "description": {
+                                                    "const": "Request attendee details"
+                                                },
+                                                "protocol": {
+                                                    "const": "HTTPS"
+                                                },
+                                                "relationship-type": {
+                                                    "const": {
+                                                        "connects": {
+                                                            "source": {
+                                                                "node": "conference-website"
+                                                            },
+                                                            "destination": {
+                                                                "node": "load-balancer"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "description"
+                                            ]
+                                        },
+                                        {
+                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+                                            "type": "object",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "load-balancer-attendees-service"
+                                                },
+                                                "description": {
+                                                    "const": "Forward"
+                                                },
+                                                "protocol": {
+                                                    "const": "mTLS"
+                                                },
+                                                "relationship-type": {
+                                                    "const": {
+                                                        "connects": {
+                                                            "source": {
+                                                                "node": "load-balancer"
+                                                            },
+                                                            "destination": {
+                                                                "node": "attendees"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "description"
+                                            ]
+                                        },
+                                        {
+                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+                                            "type": "object",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "attendees-attendees-store"
+                                                },
+                                                "description": {
+                                                    "const": "Store or request attendee details"
+                                                },
+                                                "protocol": {
+                                                    "const": "JDBC"
+                                                },
+                                                "relationship-type": {
+                                                    "const": {
+                                                        "connects": {
+                                                            "source": {
+                                                                "node": "attendees"
+                                                            },
+                                                            "destination": {
+                                                                "node": "attendees-store"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "description"
+                                            ]
+                                        },
+                                        {
+                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "deployed-in-k8s-cluster"
+                                                },
+                                                "description": {
+                                                    "const": "Components deployed on the k8s cluster"
+                                                },
+                                                "relationship-type": {
+                                                    "const": {
+                                                        "deployed-in": {
+                                                            "container": "k8s-cluster",
+                                                            "nodes": [
+                                                                "load-balancer",
+                                                                "attendees",
+                                                                "attendees-store"
+                                                            ]
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "description"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "nodes",
+                                "relationships"
+                            ]
+                        }
+                    }
+            },
+            {
+                patternId: NumberInt(2),
+                versions:
+                    {
+                        "1-0-0": {
+                            "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
+                            "$id": "https://calm.finos.org/workshop/conference-secure-signup.pattern.json",
+                            "type": "object",
+                            "title": "Conference Secure Signup Pattern",
+                            "description": "A secure reusable architecture pattern for conference signup systems with Kubernetes deployment.",
+                            "properties": {
+                                "nodes": {
+                                    "type": "array",
+                                    "minItems": 5,
+                                    "maxItems": 5,
+                                    "prefixItems": [
+                                        {
+                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+                                            "type": "object",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "conference-website"
+                                                },
+                                                "name": {
+                                                    "const": "Conference Website"
+                                                },
+                                                "description": {
+                                                    "const": "Website to sign up for a conference"
+                                                },
+                                                "node-type": {
+                                                    "const": "webclient"
+                                                },
+                                                "interfaces": {
+                                                    "type": "array",
+                                                    "minItems": 1,
+                                                    "maxItems": 1,
+                                                    "prefixItems": [
+                                                        {
+                                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/interface.json#/defs/url-interface",
+                                                            "properties": {
+                                                                "unique-id": {
+                                                                    "const": "conference-website-url"
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+                                            "type": "object",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "load-balancer"
+                                                },
+                                                "name": {
+                                                    "const": "Load Balancer"
+                                                },
+                                                "description": {
+                                                    "const": "Ingress for the Kubernetes cluster"
+                                                },
+                                                "node-type": {
+                                                    "const": "network"
+                                                },
+                                                "interfaces": {
+                                                    "type": "array",
+                                                    "minItems": 1,
+                                                    "maxItems": 1,
+                                                    "prefixItems": [
+                                                        {
+                                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/interface.json#/defs/host-port-interface",
+                                                            "properties": {
+                                                                "unique-id": {
+                                                                    "const": "load-balancer-host-port"
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+                                            "type": "object",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "attendees"
+                                                },
+                                                "name": {
+                                                    "const": "Attendees Service"
+                                                },
+                                                "description": {
+                                                    "const": "Ingress for the Kubernetes cluster"
+                                                },
+                                                "node-type": {
+                                                    "const": "service"
+                                                },
+                                                "interfaces": {
+                                                    "type": "array",
+                                                    "minItems": 2,
+                                                    "maxItems": 2,
+                                                    "prefixItems": [
+                                                        {
+                                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/interface.json#/defs/container-image-interface",
+                                                            "properties": {
+                                                                "unique-id": {
+                                                                    "const": "attendees-image"
+                                                                }
+                                                            }
+                                                        },
+                                                        {
+                                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/interface.json#/defs/port-interface",
+                                                            "properties": {
+                                                                "unique-id": {
+                                                                    "const": "attendees-port"
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+                                            "type": "object",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "attendees-store"
+                                                },
+                                                "name": {
+                                                    "const": "Attendees Store"
+                                                },
+                                                "description": {
+                                                    "const": "Persistent storage for attendees"
+                                                },
+                                                "node-type": {
+                                                    "const": "database"
+                                                },
+                                                "interfaces": {
+                                                    "type": "array",
+                                                    "minItems": 2,
+                                                    "maxItems": 2,
+                                                    "prefixItems": [
+                                                        {
+                                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/interface.json#/defs/container-image-interface",
+                                                            "properties": {
+                                                                "unique-id": {
+                                                                    "const": "database-image"
+                                                                }
+                                                            }
+                                                        },
+                                                        {
+                                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/interface.json#/defs/port-interface",
+                                                            "properties": {
+                                                                "unique-id": {
+                                                                    "const": "database-port"
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+                                            "type": "object",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "k8s-cluster"
+                                                },
+                                                "name": {
+                                                    "const": "Kubernetes Cluster"
+                                                },
+                                                "description": {
+                                                    "const": "Kubernetes Cluster with network policy rules enabled"
+                                                },
+                                                "node-type": {
+                                                    "const": "system"
+                                                },
+                                                "controls": {
+                                                    "$ref": "https://calm.finos.org/draft/2025-03/meta/control.json#/defs/controls",
+                                                    "properties": {
+                                                        "security": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "description": {
+                                                                    "const": "Security requirements for the Kubernetes cluster"
+                                                                },
+                                                                "requirements": {
+                                                                    "type": "array",
+                                                                    "minItems": 1,
+                                                                    "maxItems": 1,
+                                                                    "prefixItems": [
+                                                                        {
+                                                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/control.json#/defs/control-detail",
+                                                                            "properties": {
+                                                                                "control-requirement-url": {
+                                                                                    "const": "https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json"
+                                                                                }
+                                                                            },
+                                                                            "required": [
+                                                                                "control-config-url"
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                "relationships": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "prefixItems": [
+                                        {
+                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+                                            "type": "object",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "conference-website-load-balancer"
+                                                },
+                                                "description": {
+                                                    "const": "Request attendee details"
+                                                },
+                                                "protocol": {
+                                                    "const": "HTTPS"
+                                                },
+                                                "relationship-type": {
+                                                    "const": {
+                                                        "connects": {
+                                                            "source": {
+                                                                "node": "conference-website"
+                                                            },
+                                                            "destination": {
+                                                                "node": "load-balancer"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "controls": {
+                                                    "$ref": "https://calm.finos.org/draft/2025-03/meta/control.json#/defs/controls",
+                                                    "properties": {
+                                                        "security": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "description": {
+                                                                    "const": "Security Controls for the connection"
+                                                                },
+                                                                "requirements": {
+                                                                    "type": "array",
+                                                                    "minItems": 1,
+                                                                    "maxItems": 1,
+                                                                    "prefixItems": [
+                                                                        {
+                                                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/control.json#/defs/control-detail",
+                                                                            "properties": {
+                                                                                "control-requirement-url": {
+                                                                                    "const": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json"
+                                                                                }
+                                                                            },
+                                                                            "required": [
+                                                                                "control-config-url"
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "description"
+                                            ]
+                                        },
+                                        {
+                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+                                            "type": "object",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "load-balancer-attendees"
+                                                },
+                                                "description": {
+                                                    "const": "Forward"
+                                                },
+                                                "protocol": {
+                                                    "const": "mTLS"
+                                                },
+                                                "relationship-type": {
+                                                    "const": {
+                                                        "connects": {
+                                                            "source": {
+                                                                "node": "load-balancer"
+                                                            },
+                                                            "destination": {
+                                                                "node": "attendees"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "controls": {
+                                                    "$ref": "https://calm.finos.org/draft/2025-03/meta/control.json#/defs/controls",
+                                                    "properties": {
+                                                        "security": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "description": {
+                                                                    "const": "Security Controls for the connection"
+                                                                },
+                                                                "requirements": {
+                                                                    "type": "array",
+                                                                    "minItems": 1,
+                                                                    "maxItems": 1,
+                                                                    "prefixItems": [
+                                                                        {
+                                                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/control.json#/defs/control-detail",
+                                                                            "properties": {
+                                                                                "control-requirement-url": {
+                                                                                    "const": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json"
+                                                                                }
+                                                                            },
+                                                                            "required": [
+                                                                                "control-config-url"
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "description"
+                                            ]
+                                        },
+                                        {
+                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+                                            "type": "object",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "attendees-attendees-store"
+                                                },
+                                                "description": {
+                                                    "const": "Store or request attendee details"
+                                                },
+                                                "protocol": {
+                                                    "const": "JDBC"
+                                                },
+                                                "relationship-type": {
+                                                    "const": {
+                                                        "connects": {
+                                                            "source": {
+                                                                "node": "attendees"
+                                                            },
+                                                            "destination": {
+                                                                "node": "attendees-store"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "controls": {
+                                                    "$ref": "https://calm.finos.org/draft/2025-03/meta/control.json#/defs/controls",
+                                                    "properties": {
+                                                        "security": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "description": {
+                                                                    "const": "Security Controls for the connection"
+                                                                },
+                                                                "requirements": {
+                                                                    "type": "array",
+                                                                    "minItems": 1,
+                                                                    "maxItems": 1,
+                                                                    "prefixItems": [
+                                                                        {
+                                                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/control.json#/defs/control-detail",
+                                                                            "properties": {
+                                                                                "control-requirement-url": {
+                                                                                    "const": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json"
+                                                                                }
+                                                                            },
+                                                                            "required": [
+                                                                                "control-config-url"
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "description",
+                                                "controls"
+                                            ]
+                                        },
+                                        {
+                                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+                                            "properties": {
+                                                "unique-id": {
+                                                    "const": "deployed-in-k8s-cluster"
+                                                },
+                                                "description": {
+                                                    "const": "Components deployed on the k8s cluster"
+                                                },
+                                                "relationship-type": {
+                                                    "const": {
+                                                        "deployed-in": {
+                                                            "container": "k8s-cluster",
+                                                            "nodes": [
+                                                                "load-balancer",
+                                                                "attendees",
+                                                                "attendees-store"
+                                                            ]
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "description"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "nodes",
+                                "relationships"
+                            ]
+                        }
+                    }
+            }
         ]
     }
 ]);
@@ -1184,8 +1938,187 @@ db.architectures.insertMany([
         }]
     },
     {
-        namespace: "custom",
-        architectures: []
+        namespace: "workshop",
+        architectures: [
+            {
+                architectureId: NumberInt(1),
+                versions:
+                    {
+                        "1-0-0": {
+                            "nodes": [
+                                {
+                                    "unique-id": "conference-website",
+                                    "name": "Conference Website",
+                                    "description": "Website to sign up for a conference",
+                                    "node-type": "webclient",
+                                    "interfaces": [
+                                        {
+                                            "unique-id": "conference-website-url",
+                                            "url": "{{ URL }}"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "unique-id": "load-balancer",
+                                    "name": "Load Balancer",
+                                    "description": "Ingress for the Kubernetes cluster",
+                                    "node-type": "network",
+                                    "interfaces": [
+                                        {
+                                            "unique-id": "load-balancer-host-port",
+                                            "host": "{{ HOST }}",
+                                            "port": -1
+                                        }
+                                    ]
+                                },
+                                {
+                                    "unique-id": "attendees-service",
+                                    "name": "Attendees Service",
+                                    "description": "Ingress for the Kubernetes cluster",
+                                    "node-type": "service",
+                                    "interfaces": [
+                                        {
+                                            "unique-id": "attendees-image",
+                                            "image": "{{ IMAGE }}"
+                                        },
+                                        {
+                                            "unique-id": "attendees-port",
+                                            "port": -1
+                                        }
+                                    ]
+                                },
+                                {
+                                    "unique-id": "attendees-store",
+                                    "name": "Attendees Store",
+                                    "description": "Persistent storage for attendees",
+                                    "node-type": "database",
+                                    "interfaces": [
+                                        {
+                                            "unique-id": "database-image",
+                                            "image": "{{ IMAGE }}"
+                                        },
+                                        {
+                                            "unique-id": "database-port",
+                                            "port": -1
+                                        }
+                                    ]
+                                },
+                                {
+                                    "unique-id": "k8s-cluster",
+                                    "name": "Kubernetes Cluster",
+                                    "description": "Kubernetes Cluster with network policy rules enabled",
+                                    "node-type": "system",
+                                    "controls": {
+                                        "security": {
+                                            "description": "Security requirements for the Kubernetes cluster",
+                                            "requirements": [
+                                                {
+                                                    "control-requirement-url": "https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json",
+                                                    "control-config-url": "{{ CONTROL_CONFIG_URL }}"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ],
+                            "relationships": [
+                                {
+                                    "unique-id": "conference-website-load-balancer",
+                                    "description": "Request attendee details",
+                                    "protocol": "HTTPS",
+                                    "relationship-type": {
+                                        "connects": {
+                                            "source": {
+                                                "node": "conference-website"
+                                            },
+                                            "destination": {
+                                                "node": "load-balancer"
+                                            }
+                                        }
+                                    },
+                                    "controls": {
+                                        "security": {
+                                            "description": "Security Controls for the connection",
+                                            "requirements": [
+                                                {
+                                                    "control-requirement-url": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json",
+                                                    "control-config-url": "{{ CONTROL_CONFIG_URL }}"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                {
+                                    "unique-id": "load-balancer-attendees-service",
+                                    "description": "Forward",
+                                    "protocol": "mTLS",
+                                    "relationship-type": {
+                                        "connects": {
+                                            "source": {
+                                                "node": "load-balancer"
+                                            },
+                                            "destination": {
+                                                "node": "attendees-service"
+                                            }
+                                        }
+                                    },
+                                    "controls": {
+                                        "security": {
+                                            "description": "Security Controls for the connection",
+                                            "requirements": [
+                                                {
+                                                    "control-requirement-url": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                {
+                                    "unique-id": "attendees-service-attendees-store",
+                                    "description": "Store or request attendee details",
+                                    "protocol": "JDBC",
+                                    "relationship-type": {
+                                        "connects": {
+                                            "source": {
+                                                "node": "attendees-service"
+                                            },
+                                            "destination": {
+                                                "node": "attendees-store"
+                                            }
+                                        }
+                                    },
+                                    "controls": {
+                                        "security": {
+                                            "description": "Security Controls for the connection",
+                                            "requirements": [
+                                                {
+                                                    "control-requirement-url": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json",
+                                                    "control-config-url": "{{ CONTROL_CONFIG_URL }}"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                {
+                                    "unique-id": "deployed-in-k8s-cluster",
+                                    "description": "Components deployed on the k8s cluster",
+                                    "relationship-type": {
+                                        "deployed-in": {
+                                            "container": "k8s-cluster",
+                                            "nodes": [
+                                                "load-balancer",
+                                                "attendees-service",
+                                                "attendees-store"
+                                            ]
+                                        }
+                                    }
+                                }
+                            ],
+                            "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json"
+                        }
+                    }
+            }
+        ]
     },
     {
         namespace: "traderx",

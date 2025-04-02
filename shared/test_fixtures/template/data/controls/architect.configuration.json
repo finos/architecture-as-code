@@ -1,0 +1,12 @@
+{
+  "$schema": "https://calm.finos.org/controls/owner-responsibility.requirement.json",
+  "$id": "https://calm.finos.org/controls/architect.configuration.json",
+  "control-id": "ownership-003",
+  "name": "Architect Responsibility",
+  "description": "Captures who is responsible for architecture",
+  "owner-type": "System Owner",
+  "owner": {
+    "name": "Mr Architect",
+    "email": "mr.architect@finos.org"
+  }
+}
