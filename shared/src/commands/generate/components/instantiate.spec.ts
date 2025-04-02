@@ -150,9 +150,9 @@ describe('instantiate', () => {
         expect(result.nodes[0]).toEqual({
             'unique-id': 'my-node',
             'description': 'a test node',
-            'node-type': '{{ NODE_TYPE }}',
+            'node-type': '[[ NODE_TYPE ]]',
             'details': {
-                arch: '{{ ARCH }}'
+                arch: '[[ ARCH ]]'
             }
         });
     });
@@ -169,7 +169,7 @@ describe('instantiate', () => {
                     requirements: [
                         {
                             requirement: 'requirement-1',
-                            'configUrl': '{{ CONFIGURL }}',
+                            'configUrl': '[[ CONFIGURL ]]',
                         }
                     ]
                 }

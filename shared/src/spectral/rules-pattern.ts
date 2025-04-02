@@ -45,14 +45,14 @@ const patternRules: RulesetDefinition = {
             },
         },
         'pattern-has-no-placeholder-properties-string': {
-            description: 'Should not contain placeholder values with pattern {{ PLACEHOLDER_NAME }}',
+            description: 'Should not contain placeholder values with pattern [[ PLACEHOLDER_NAME ]]',
             message: 'String placeholder detected in architecture.',
             severity: 'warn',
             given: '$..*',
             then: {
                 function: pattern,
                 functionOptions: {
-                    notMatch: '^{{\\s*[A-Z_]+\\s*}}$',
+                    notMatch: '^\\[\\[\\s*[A-Z_]+\\s*\\]\\]$',
                 },
             },
         },

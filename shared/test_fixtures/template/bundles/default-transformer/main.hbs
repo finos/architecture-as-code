@@ -1,0 +1,46 @@
+## Nodes
+
+| ID            | Name           | Type     | Description                          |
+|---------------|----------------|----------|--------------------------------------|
+{{#each nodes}}
+| {{uniqueId}} | {{name}}       | {{nodeType}} | {{description}} |
+{{/each}}
+
+## Relationships
+
+| ID               | Type         | Source       | Destination / Parts | Description |
+|------------------|--------------|---------------|----------------------|-------------|
+{{#each relationships}}
+  {{#if (instanceOf relationshipType "CalmConnectsType")}}
+| {{uniqueId}} | connects      | {{relationshipType.source.node}} | {{relationshipType.destination.node}} | {{description}} |
+  {{/if}}
+  {{#if (instanceOf relationshipType "CalmInteractsType")}}
+| {{uniqueId}} | interacts     | {{relationshipType.actor}} | {{join relationshipType.nodes ", "}} | {{description}} |
+  {{/if}}
+  {{#if (instanceOf relationshipType "CalmComposedOfType")}}
+| {{uniqueId}} | composed-of   | {{relationshipType.container}} | {{join relationshipType.nodes ", "}} | |
+  {{/if}}
+{{/each}}
+
+
+## Ownership Controls
+
+{{#each controls}}
+  {{#if (eq controlId "ownership")}}
+    {{#if requirements}}
+| Owner Type      | Name        | Email               | Description                        |
+|-----------------|-------------|---------------------|------------------------------------|
+      {{#each requirements}}
+| {{controlConfigUrl.owner-type}} | {{controlConfigUrl.owner.name}} | {{controlConfigUrl.owner.email}} | {{controlConfigUrl.description}} |
+      {{/each}}
+    {{else}}
+_No ownership requirements defined._
+    {{/if}}
+  {{/if}}
+{{/each}}
+
+
+## Metadata
+```
+{{{ json metadata}}}
+```

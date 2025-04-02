@@ -9,6 +9,7 @@ import { initLogger } from '../logger.js';
 import { TemplateCalmFileDereferencer } from './template-calm-file-dereferencer.js';
 import { CompositeReferenceResolver } from '../resolver/calm-reference-resolver.js';
 import {pathToFileURL} from 'node:url';
+import TemplateDefaultTransformer from './template-default-transformer';
 
 
 export class TemplateProcessor {
@@ -78,14 +79,32 @@ export class TemplateProcessor {
 
     private validateConfig(config: IndexFile): void {
         const logger = TemplateProcessor.logger;
-        if (!config.transformer) {
-            logger.error('❌ Missing "transformer" field in index.json.');
-            throw new Error('Missing "transformer" field in index.json. Define a transformer for this template bundle.');
+
+        if (config.transformer) {
+            const tsPath = path.join(this.templateBundlePath, `${config.transformer}.ts`);
+            const jsPath = path.join(this.templateBundlePath, `${config.transformer}.js`);
+
+            const tsExists = fs.existsSync(tsPath);
+            const jsExists = fs.existsSync(jsPath);
+
+            if (!tsExists && !jsExists) {
+                const errorMsg = `Transformer "${config.transformer}" specified in index.json but not found as .ts or .js in ${this.templateBundlePath}`;
+                logger.error(`❌ ${errorMsg}`);
+                throw new Error(`❌ ${errorMsg}`);
+            }
+        } else {
+            logger.info('ℹ️ No transformer specified in index.json. Will use TemplateDefaultTransformer.');
         }
     }
 
+
     private async loadTransformer(transformerName: string, bundlePath: string): Promise<CalmTemplateTransformer> {
         const logger = TemplateProcessor.logger;
+
+        if (!transformerName) {
+            logger.info('🔁 No transformer provided. Using TemplateDefaultTransformer.');
+            return new TemplateDefaultTransformer();
+        }
 
         const transformerFileTs = path.join(bundlePath, `${transformerName}.ts`);
         const transformerFileJs = path.join(bundlePath, `${transformerName}.js`);

@@ -139,7 +139,7 @@
           }
         },
         {
-          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/options",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -159,6 +159,7 @@
                     {
                       "anyOf": [
                         {
+                          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/option-type",
                           "type": "object",
                           "properties": {
                             "description": {
@@ -177,6 +178,7 @@
                           }
                         },
                         {
+                          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/option-type",
                           "type": "object",
                           "properties": {
                             "description": {

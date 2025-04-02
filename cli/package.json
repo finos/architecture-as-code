@@ -1,6 +1,6 @@
 {
   "name": "@finos/calm-cli",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
   "main": "dist/index.js",
   "files": [
