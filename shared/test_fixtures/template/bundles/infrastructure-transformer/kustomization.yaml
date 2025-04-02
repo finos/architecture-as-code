@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: {{ namespaceName }}
+
+resources:
+  - namespace.yaml
+  - application-deployment.yaml
+  - application-service.yaml
+  - database-deployment.yaml
+  - database-service.yaml
+  - permit-app-from-db.yaml
+  - permit-app-to-db.yaml
+  - permit-lb-to-app.yaml
