@@ -26,7 +26,7 @@
       ]
     },
     {
-      "unique-id": "attendees-service",
+      "unique-id": "attendees",
       "name": "Attendees Service",
       "description": "Ingress for the Kubernetes cluster",
       "node-type": "service",
@@ -68,7 +68,7 @@
           "requirements": [
             {
               "control-requirement-url": "https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json",
-              "control-config-url": "[[ CONTROL_CONFIG_URL ]]"
+              "control-config-url": "https://calm.finos.org/workshop/controls/micro-segmentation.config.json"
             }
           ]
         }
@@ -96,14 +96,14 @@
           "requirements": [
             {
               "control-requirement-url": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json",
-              "control-config-url": "[[ CONTROL_CONFIG_URL ]]"
+              "control-config-url": "https://calm.finos.org/workshop/controls/permitted-connection-http.config.json"
             }
           ]
         }
       }
     },
     {
-      "unique-id": "load-balancer-attendees-service",
+      "unique-id": "load-balancer-attendees",
       "description": "Forward",
       "protocol": "mTLS",
       "relationship-type": {
@@ -112,7 +112,7 @@
             "node": "load-balancer"
           },
           "destination": {
-            "node": "attendees-service"
+            "node": "attendees"
           }
         }
       },
@@ -121,20 +121,21 @@
           "description": "Security Controls for the connection",
           "requirements": [
             {
-              "control-requirement-url": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json"
+              "control-requirement-url": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json",
+              "control-config-url": "https://calm.finos.org/workshop/controls/permitted-connection-http.config.json"
             }
           ]
         }
       }
     },
     {
-      "unique-id": "attendees-service-attendees-store",
+      "unique-id": "attendees-attendees-store",
       "description": "Store or request attendee details",
       "protocol": "JDBC",
       "relationship-type": {
         "connects": {
           "source": {
-            "node": "attendees-service"
+            "node": "attendees"
           },
           "destination": {
             "node": "attendees-store"
@@ -147,7 +148,7 @@
           "requirements": [
             {
               "control-requirement-url": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json",
-              "control-config-url": "[[ CONTROL_CONFIG_URL ]]"
+              "control-config-url": "https://calm.finos.org/workshop/controls/permitted-connection-jdbc.config.json"
             }
           ]
         }
@@ -161,10 +162,17 @@
           "container": "k8s-cluster",
           "nodes": [
             "load-balancer",
-            "attendees-service",
+            "attendees",
             "attendees-store"
           ]
         }
+      }
+    }
+  ],
+  "metadata": [
+    {
+      "kubernetes": {
+        "namespace": "conference"
       }
     }
   ],
