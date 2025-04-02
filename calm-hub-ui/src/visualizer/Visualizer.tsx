@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import './Visualizer.css';
 import Drawer from './components/drawer/Drawer.js';
 import Navbar from '../components/navbar/Navbar.js';
@@ -14,9 +14,9 @@ function Visualizer() {
     const [isConDescActive, setConDescActive] = React.useState(false);
     const [isNodeDescActive, setNodeDescActive] = React.useState(false);
     const location = useLocation();
-    const data = location.state || {};
-    const [fileInstance, setFileInstance] = useState<any>(undefined); 
-    const [fileTitle, setFileTitle] = useState<String>("");
+    const data = useMemo(()=> location.state || {}, [location.state]);
+    const [fileInstance, setFileInstance] = useState<string | undefined>(undefined); 
+    const [fileTitle, setFileTitle] = useState<string | undefined>(undefined);
 
     async function handleFile(instanceFile: File) {
         setFileTitle(instanceFile.name);
@@ -25,9 +25,9 @@ function Visualizer() {
     }
     
     useEffect(() => {
-        setTitle(fileTitle ? fileTitle: data?.name)
-        setCALMInstance(fileInstance? fileInstance : data?.data);
-      }, [data, fileInstance, fileTitle]);
+        setTitle(fileTitle ?? data?.name)
+        setCALMInstance(fileInstance ?? data?.data);
+      }, [fileInstance, fileTitle, data]);
 
     return (
         <ZoomProvider>
