@@ -34,7 +34,6 @@ Commands:
   help [command]      display help for command
 ```
 
-
 ### Generating an architecture from a CALM pattern file
 
 This command lets you create a shell of an architecture from a pattern file.
@@ -53,7 +52,6 @@ Options:
   -v, --verbose                 Enable verbose logging. (default: false)
   -h, --help                    display help for command
 ```
-
 
 The most simple way to use this command is to call it with only the pattern option, which will generate an architecture with the default filename `architecture.json` in the current working directory.
 
@@ -188,6 +186,7 @@ curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/vali
 
 
 ```
+
 ## CALM Template
 
 The CALM Template system allows users to generate different machine or human-readable outputs from a CALM model by providing a **template bundle**.
@@ -215,20 +214,21 @@ A template bundle consists of:
 - A **CalmTemplateTransformer** implementation: Transforms the CALM model into a format that can be rendered by Handlebars.
 - Handlebar templates define the final output format.
 - The `--url-to-local-file-mapping` option allows you to provide a JSON file that maps external URLs to local files.  
-  This is useful when working with files that are not yet published but are referenced in the model.
- 
+   This is useful when working with files that are not yet published but are referenced in the model.
+
   Example content
 
-    ```json
-    {
-        "https://calm.finos.org/docuflow/flow/document-upload": "flows/flow-document-upload.json"
-    }
-    ```
-Sample usage would be as follows (assuming at root of project)
+      ```json
+      {
+          "https://calm.finos.org/docuflow/flow/document-upload": "flows/flow-document-upload.json"
+      }
+      ```
+
+  Sample usage would be as follows (assuming at root of project)
+
 ```shell
 calm template --input ./cli/test_fixtures/template/model/document-system.json   --bundle cli/test_fixtures/template/template-bundles/doc-system   --output one_pager   --url-to-local-file-mapping cli/test_fixtures/template/model/url-to-file-directory.json -v
 ```
-
 
 ## CALM Docify
 
@@ -247,78 +247,9 @@ Options:
   -v, --verbose                       Enable verbose logging. (default: false)
   -h, --help                          display help for command
 ```
+
 Sample usage for you to try is as follows (assuming at root of project)
 
 ```shell
 calm docify --input ./cli/test_fixtures/template/model/document-system.json --output ./output/documentation --url-to-local-file-mapping ./cli/test_fixtures/template/model/url-to-file-directory.json
-```
-
-## Coding for the CLI
-
-The CLI module has its logic split into two modules, `cli` and `shared`. Both are managed by [npm workspaces](https://docs.npmjs.com/cli/v8/using-npm/workspaces).
-
-- `cli` module is for anything pertaining to the calling of the core logic, the CLI wrapper
-- `shared` module is where the logic being delegated to actually sits, so that it can be re-used for other use-cases if required.
-
-### Getting Started
-
-Ensure you've cloned down the repository ( see root `README.md` for information on this. ) - then go to the root of the repository and execute;
-
-```shell
-# Step 1: Install all necessary dependencies for the workspace
-npm install
-
-# Step 2: Build the workspace (compiles source code for all workspaces)
-npm run build
-
-# Step 3: Link the workspace locally for testing
-npm run link:cli
-
-# Step 4 : Run `watch` to check for changes automatically and re-bundle. This watching is via `chokidar` and isn't instant - give it a second or two to propagate changes.
-npm run watch
-```
-
-### CLI Tests
-
-There are currently two types of tests;
-
-- `cli` tests - these are end-to-end and involve linking the package as part of the test so that we can assert on actual `calm X` invocations.
-- `shared` tests - these are where the core logic tests live, like how validation behaves etc.
-
-## Releasing the CLI
-
-Before performing this process, one must update the [package.json](package.json) to represent the new version and tag that will be created.
-
-```json
-{
-  "name": "@finos/calm-cli",
-  "version": "0.6.0",
-  "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)"
-}
-```
-
-Once this is done, publishing of the CLI to NPM is controlled via [this action](https://github.com/finos/architecture-as-code/blob/main/.github/workflows/publish-cli-to-npm.yml) - this action is triggered whenever a GitHub release is created. To create a github release you can do one of the following;
-
-
-
-### Through the Github UI
-
-- Go to your repository on GitHub.
-- Click on the Releases tab (under "Code").
-- Click the Draft a new release button.
-- Fill in:
-  - Tag version: Enter the version number (e.g., v1.0.0).
-  - Release title: Name the release to be the same as the tag version
-  - Description: Add details about what’s included in the release.
-  - Target: Leave as main (or your default branch).
-- Click Publish release to create the release and trigger the workflow.
-
-### Through the GitHub CLI (`gh`)
-
-```shell
-# Step 1: Authenticate with GitHub if you haven't already
-gh auth login
-
-# Step 2: Create the release.
-gh release create <version> --title "<release_title>" --notes "<release_description>"
 ```
