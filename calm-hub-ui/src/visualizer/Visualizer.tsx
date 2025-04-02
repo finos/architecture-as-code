@@ -13,23 +13,23 @@ function Visualizer() {
     const [instance, setCALMInstance] = useState<CALMArchitecture | undefined>(undefined);
     const [isConDescActive, setConDescActive] = React.useState(false);
     const [isNodeDescActive, setNodeDescActive] = React.useState(false);
-
+    const [isFileUpload, setIsFileUpload] = React.useState(false);
     const location = useLocation();
     const data = location.state || {};
-    
-    async function handleFile(instanceFile: File) {
-        const title = instanceFile.name;
-        const file = await instanceFile.text();
-        const instance = JSON.parse(file);
+    const [fileInstance, setFileInstance] = useState<any>(undefined); 
+    const [fileTitle, setFileTitle] = useState<String>("");
 
-        setTitle(title);
-        setCALMInstance(instance);
+    async function handleFile(instanceFile: File) {
+        setFileTitle(instanceFile.name);
+        const file = await instanceFile.text();
+        setFileInstance(JSON.parse(file));
     }
     
     useEffect(() => {
-        setTitle(data?.name)
-        setCALMInstance(data?.data);
-      }, [data]);
+        console.log(isFileUpload)
+        setTitle(fileTitle ? fileTitle: data?.name)
+        setCALMInstance(fileInstance? fileInstance : data?.data);
+      }, [data, fileInstance, fileTitle]);
 
     return (
         <ZoomProvider>
