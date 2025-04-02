@@ -17,7 +17,7 @@ describe('CLI Commands', () => {
         vi.clearAllMocks();
 
         fileReaderModule = await import('./command-helpers/file-input');
-        const loadFileSpy = vi.spyOn(fileReaderModule, 'loadFile');
+        const loadFileSpy = vi.spyOn(fileReaderModule, 'loadJsonFromFile');
         loadFileSpy.mockReset();
         loadFileSpy.mockImplementation(() => Promise.resolve({}));
 
@@ -56,7 +56,7 @@ describe('CLI Commands', () => {
                 '--schemaDirectory', 'schemas',
             ]);
 
-            expect(fileReaderModule.loadFile).toHaveBeenCalledWith('pattern.json');
+            expect(fileReaderModule.loadJsonFromFile).toHaveBeenCalledWith('pattern.json', true);
             expect(optionsModule.promptUserForOptions).toHaveBeenCalled();
 
             expect(calmShared.runGenerate).toHaveBeenCalledWith(

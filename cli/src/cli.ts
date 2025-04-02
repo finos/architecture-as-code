@@ -1,7 +1,7 @@
 import {CALM_META_SCHEMA_DIRECTORY, runGenerate} from '@finos/calm-shared';
 import { Option, Command } from 'commander';
 import { version } from '../package.json';
-import { loadFile } from './command-helpers/file-input';
+import { loadJsonFromFile } from './command-helpers/file-input';
 import { promptUserForOptions } from './command-helpers/generate-options';
 import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components/options';
 
@@ -27,7 +27,7 @@ export function setupCLI(program: Command) {
         .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.', CALM_META_SCHEMA_DIRECTORY)
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
-            const pattern: object = await loadFile(options.pattern); // Ensure loadFile is awaited
+            const pattern: object = await loadJsonFromFile(options.pattern, options.verbose);
             const choices: CalmChoice[] = await promptUserForOptions(pattern, options.verbose);
             await runGenerate(pattern, options.output, !!options.verbose, choices, options.schemaDirectory);
         });
