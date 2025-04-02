@@ -90,7 +90,7 @@ function flattenOptionsRelationship(optionRel: object, choices: CalmChoice[], lo
             }
         });
 
-    logger.debug(`Removing "oneOf" and "anyOf" blocks from option relationship [${optionRel['properties']['uniqueId']['const']}]`);
+    logger.debug('Removing "oneOf" and "anyOf" blocks from option relationship');
     optionsItems
         .filter((item: object) => 'oneOf' in item || 'anyOf' in item)
         .forEach((item: object) => optionsItems.splice(optionsItems.indexOf(item), 1));
