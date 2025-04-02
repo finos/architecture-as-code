@@ -6,17 +6,17 @@ import React from 'react';
 import { ZoomProvider } from './components/zoom-context.provider.js';
 import { CALMArchitecture } from '../../../shared/src/types.js';
 import Menu from './components/menu/Menu.js';
-import { useLocation } from "react-router-dom";
+import { useLocation } from 'react-router-dom';
 
 function Visualizer() {
     const [title, setTitle] = useState<string | undefined>(undefined);
     const [instance, setCALMInstance] = useState<CALMArchitecture | undefined>(undefined);
-    const [isConDescActive, setConDescActive] = React.useState(false);
-    const [isNodeDescActive, setNodeDescActive] = React.useState(false);
+    const [isConDescActive, setConDescActive] = React.useState(true);
+    const [isNodeDescActive, setNodeDescActive] = React.useState(true);
 
     const location = useLocation();
     const data = location.state || {};
-    
+
     async function handleFile(instanceFile: File) {
         const title = instanceFile.name;
         const file = await instanceFile.text();
@@ -25,11 +25,11 @@ function Visualizer() {
         setTitle(title);
         setCALMInstance(instance);
     }
-    
+
     useEffect(() => {
-        setTitle(data?.name)
+        setTitle(data?.name);
         setCALMInstance(data?.data);
-      }, [data]);
+    }, [data]);
 
     return (
         <ZoomProvider>

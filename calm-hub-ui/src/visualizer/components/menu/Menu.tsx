@@ -38,7 +38,7 @@ function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeD
                         <>
                             <label className="label cursor-pointer">
                                 <span className="label label-text text-base-content">
-                                    Connection Descriptions
+                                    Relationship Descriptions
                                 </span>
                                 <input
                                     type="checkbox"

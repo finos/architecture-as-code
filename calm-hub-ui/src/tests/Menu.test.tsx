@@ -25,7 +25,7 @@ describe('Menu', () => {
 
     it('should render Menu', () => {
         renderMenu();
-        expect(screen.getByText('Connection Descriptions')).toBeInTheDocument();
+        expect(screen.getByText('Relationship Descriptions')).toBeInTheDocument();
         expect(screen.getByText('Node Descriptions')).toBeInTheDocument();
         expect(screen.getByText('Zoom: 100%')).toBeInTheDocument();
         expect(screen.getByText('Upload')).toBeInTheDocument();
