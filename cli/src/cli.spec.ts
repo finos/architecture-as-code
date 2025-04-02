@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-// import { setupCLI } from './cli';
 
 let calmShared: typeof import('@finos/calm-shared');
 let validateModule: typeof import('./command-helpers/validate');
