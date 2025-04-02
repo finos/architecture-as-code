@@ -13,7 +13,6 @@ function Visualizer() {
     const [instance, setCALMInstance] = useState<CALMArchitecture | undefined>(undefined);
     const [isConDescActive, setConDescActive] = React.useState(false);
     const [isNodeDescActive, setNodeDescActive] = React.useState(false);
-    const [isFileUpload, setIsFileUpload] = React.useState(false);
     const location = useLocation();
     const data = location.state || {};
     const [fileInstance, setFileInstance] = useState<any>(undefined); 
@@ -26,7 +25,6 @@ function Visualizer() {
     }
     
     useEffect(() => {
-        console.log(isFileUpload)
         setTitle(fileTitle ? fileTitle: data?.name)
         setCALMInstance(fileInstance? fileInstance : data?.data);
       }, [data, fileInstance, fileTitle]);
