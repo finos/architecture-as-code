@@ -66,7 +66,7 @@
     },
     "resolutions": {
         "css-what": "6.1.0",
-        "express": "4.21.2",
+        "express": "5.1.0",
         "nth-check": "2.1.1",
         "postcss": "8.5.1",
         "rollup": "4.39.0"
