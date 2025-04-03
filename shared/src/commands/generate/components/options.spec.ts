@@ -255,14 +255,14 @@ describe('Pattern Options', () => {
             const choices: CalmChoice[] = [applicationAtoC];
 
             const expectedPattern = buildPattern(
-                [applicationC, applicationA],
+                [applicationA, applicationC],
                 [
                     buildPatternOptionRelationship(
                         'option-id',
                         'The choice of nodes and relationships in the pattern', 
                         buildPatternChoice(applicationAtoC)
                     ),
-                    connectsRelationshipA
+                    connectsRelationshipA,
                 ]
             );
             expect(selectChoices(pattern, choices)).toEqual(expectedPattern);

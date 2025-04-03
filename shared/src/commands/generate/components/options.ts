@@ -1,4 +1,3 @@
-import * as winston from 'winston';
 import { initLogger } from '../../../logger';
 
 export interface CalmChoice {
@@ -14,7 +13,7 @@ export interface CalmOption {
 }
 
 function isOptionsRelationship(relationship: object): boolean {
-    return 'properties' in relationship && 'properties' in relationship['properties']['relationship-type'] && 'options' in relationship['properties']['relationship-type']['properties'];
+    return relationship['properties']?.['relationship-type']?.['properties']?.['options'] !== undefined;
 }
 
 function getItemsInOptionsRelationship(optionsRelationship: object): object[] {
@@ -36,6 +35,12 @@ function extractOptionsFromBlock(optionsRelationship: object, blockType: 'oneOf'
         }));
 }
 
+/**
+ * Extracts the potential choices that a user can make from a pattern
+ * @param pattern - The pattern to extract options from
+ * @param debug - Whether to enable debug logging
+ * @returns A list of options that the user can choose from
+ */
 export function extractOptions(pattern: object, debug: boolean = false): CalmOption[] {
     const logger = initLogger(debug, 'calm-generate-options');
     const calmItems: object[] = pattern['properties']['relationships']['prefixItems'];
@@ -51,71 +56,76 @@ export function extractOptions(pattern: object, debug: boolean = false): CalmOpt
     return options;
 }
 
-// This function mutates the pattern in place to add all of the items which were selected to 
-// the correct section in the pattern, deleting the rest of the oneOf or anyOf block in the process.
-function flattenCalmItems(pattern: object, calmType: 'nodes' | 'relationships', ids: string[], debug: boolean = false): void {
-    const logger = initLogger(debug, 'calm-generate-options');
-    logger.debug('Selecting ids [%O] in [%s]', ids, calmType);
+type Item = {
+    oneOf?: object[],
+    anyOf?: object[],
+}
+
+/**
+ * This function flattens oneOf and anyOf blocks into their constituent items if they match the selection predicate.
+ * If the passed item is not a oneOf or anyOf block, it returns the item as is in a list.
+ * @param item - The item to flatten
+ * @param selectionPredicate - A function that takes an item and returns true if it should be included in the flattened result
+ * @returns A list of items that match the selection predicate, or the item itself if it is not a oneOf or anyOf block
+ */
+function flattenOneOfAndAnyOf(item: Item, selectionPredicate: (item: object) => boolean): object[] {
+    if (!(item.oneOf || item.anyOf)) {
+        // If it isn't a oneOf or anyOf block, there isn't anything to flatten so return the item
+        return [item];
+    }
+
+    const items: object[] = item.oneOf || item.anyOf;
+
+    return items
+        .flatMap((x: object) => x)
+        .filter((x: object) => selectionPredicate(x));
+}
+
+function flattenCalmItems(pattern: object, calmType: 'nodes' | 'relationships', ids: string[]): void {
     const calmItems = pattern['properties'][calmType]['prefixItems'];
 
-    calmItems
-        .filter((item: object) => 'oneOf' in item || 'anyOf' in item)
-        .flatMap((item: object) => item['oneOf'] || item['anyOf'])
-        .forEach((item: object) => {
-            ids.forEach((id: string) => {
-                const itemUniqueId = item['properties']['unique-id']['const'];
-                if (id === itemUniqueId) {
-                    logger.debug(`Adding [${itemUniqueId}] to [${calmType}]`);
-                    calmItems.push(item);
-                }
-            });
-        });
-
-    logger.debug(`Removing "oneOf" and "anyOf" blocks from ${calmType}`);
-    calmItems
-        .filter((item: object) => 'oneOf' in item || 'anyOf' in item)
-        .forEach((item: object) => calmItems.splice(calmItems.indexOf(item), 1));
+    const selectionPredicate = (x: object) => ids.includes(x['properties']['unique-id']['const']);
+    pattern['properties'][calmType]['prefixItems'] = calmItems
+        .flatMap((item: object) => flattenOneOfAndAnyOf(item, selectionPredicate));
 }
 
-function flattenOptionsRelationship(optionRel: object, choices: CalmChoice[], logger: winston.Logger): void {
-    const optionsItems = optionRel['prefixItems'];
-    optionsItems
-        .filter((item: object) => 'oneOf' in item || 'anyOf' in item)
-        .flatMap((item: object) => item['oneOf'] || item['anyOf'])
-        .forEach((item: object) => {
-            const itemDescription: string = item['properties']['description']['const'];
-            if (choices.map(choice => choice.description).includes(itemDescription)) {
-                logger.debug(`Adding [${itemDescription}] to options`);
-                optionsItems.push(item);
-            }
-        });
+function flattenOptionsRelationship(relationship: object, choices: CalmChoice[]): object {
+    if (!isOptionsRelationship(relationship)) {
+        return relationship;
+    }
 
-    logger.debug('Removing "oneOf" and "anyOf" blocks from option relationship');
-    optionsItems
-        .filter((item: object) => 'oneOf' in item || 'anyOf' in item)
-        .forEach((item: object) => optionsItems.splice(optionsItems.indexOf(item), 1));
+    const selectionPredicate = (x: object) => choices.map(choice => choice.description).includes(x['properties']['description']['const']);
+    const newItems = getItemsInOptionsRelationship(relationship)
+        .flatMap((item: object) => flattenOneOfAndAnyOf(item, selectionPredicate));
+
+    relationship['properties']['relationship-type']['properties']['options']['prefixItems'] = newItems;
+    return relationship;
 }
 
-function flattenOptionsRelationships(pattern: object, choices: CalmChoice[], logger: winston.Logger): void {
-    const relationships = pattern['properties']['relationships']['prefixItems'];
-
-    relationships
-        .filter(((item: object) => isOptionsRelationship(item)))
-        .map((item: object) => item['properties']['relationship-type']['properties']['options'])
-        .forEach((optionRel: object) => {
-            flattenOptionsRelationship(optionRel, choices, logger);
-        });
+function flattenOptionsRelationships(pattern: object, choices: CalmChoice[]): void {
+    pattern['properties']['relationships']['prefixItems'] = pattern['properties']['relationships']['prefixItems']
+        .map((rel: object) => flattenOptionsRelationship(rel, choices));
 }
 
-export function selectChoices(pattern: object, choices: CalmChoice[], debug: boolean = false): object {
+/**
+ * Selects the choices from the pattern and removes all other choices.
+ * @param inputPattern - The input pattern to select choices from
+ * @param choices - The choices to select
+ * @param debug - Whether to enable debug logging
+ * @returns A new pattern object with the selected choices and all oneOf and anyOf blocks flattened
+ */
+export function selectChoices(inputPattern: object, choices: CalmChoice[], debug: boolean = false): object {
     const logger = initLogger(debug, 'calm-generate-options');
+    logger.info(`Selecting these choices from the pattern [${JSON.stringify(choices)}]`);
+
+    const pattern = {...inputPattern}; // make a copy so we don't mutate the input pattern
     const nodeIds: string[] = choices.flatMap(choice => choice.nodes);
     const relationshipIds: string[] = choices.flatMap(choice => choice.relationships);
 
     flattenCalmItems(pattern, 'nodes', nodeIds);
     flattenCalmItems(pattern, 'relationships', relationshipIds);
 
-    flattenOptionsRelationships(pattern, choices, logger);
+    flattenOptionsRelationships(pattern, choices);
     
     logger.debug(`Pattern with all non chosen choices removed: [${JSON.stringify(pattern)}]`);
     return pattern;

@@ -2,30 +2,30 @@ import { loadJsonFromFile } from './file-input';
 
 const mocks = vi.hoisted(() => {
     return {
-        readFileSync: vi.fn()
+        readFile: vi.fn()
     };
 });
 
-vi.mock('fs', async () => {
+vi.mock('node:fs/promises', async () => {
     return {
-        readFileSync: mocks.readFileSync
+        readFile: mocks.readFile
     };
 });
 
 describe('fileInput', () => {
     it('should read a file and return its content as an object', async () => {
-        mocks.readFileSync.mockReturnValue(JSON.stringify({ key: 'value' }));
+        mocks.readFile.mockReturnValue(JSON.stringify({ key: 'value' }));
         
         await expect(loadJsonFromFile('test.json', false)).resolves.toEqual({ key: 'value' });
-        expect(mocks.readFileSync).toHaveBeenCalledWith('test.json', 'utf-8');
+        expect(mocks.readFile).toHaveBeenCalledWith('test.json', 'utf-8');
     });
 
     it('should pass along error if a random error is thrown', async () => {
-        mocks.readFileSync.mockImplementation(() => {
+        mocks.readFile.mockImplementation(() => {
             throw new Error('Random error');
         });
         
         await expect(loadJsonFromFile('error.json', false)).rejects.toThrow('Random error');
-        expect(mocks.readFileSync).toHaveBeenCalledWith('error.json', 'utf-8');
+        expect(mocks.readFile).toHaveBeenCalledWith('error.json', 'utf-8');
     });
 });
