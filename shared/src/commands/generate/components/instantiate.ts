@@ -1,4 +1,3 @@
-import fs from 'fs';
 import { initLogger } from '../../../logger';
 import { SchemaDirectory } from '../../../schema-directory';
 import { getPropertyValue, JsonSchema } from './property';
@@ -14,14 +13,6 @@ interface PatternDefinition {
 interface PatternDocument {
     $schema?: string;
     properties: Record<string, PatternDefinition>;
-}
-
-
-function loadPattern(patternPath: string): PatternDocument {
-    const logger = initLogger(true);
-    logger.info(`Loading pattern: ${patternPath}`);
-    const raw = fs.readFileSync(patternPath, 'utf-8');
-    return JSON.parse(raw);
 }
 
 function resolveSchema(def: JsonSchema, schemaDir: SchemaDirectory): JsonSchema {
@@ -144,7 +135,7 @@ function instantiateFromProperties(
  * @returns A Promise resolving to the fully instantiated architecture document.
  */
 export async function instantiate(
-    patternPath: string,
+    patternObj: object,
     debug: boolean,
     schemaDirectoryPath?: string
 ): Promise<unknown> {
@@ -156,7 +147,7 @@ export async function instantiate(
         await schemaDir.loadSchemas(schemaDirectoryPath);
     }
 
-    const pattern = loadPattern(patternPath);
+    const pattern = patternObj as PatternDocument;
     schemaDir.loadCurrentPatternAsSchema(pattern);
 
     const output = instantiateFromProperties(pattern, schemaDir);

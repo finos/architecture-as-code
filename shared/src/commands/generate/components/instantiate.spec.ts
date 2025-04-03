@@ -144,7 +144,8 @@ describe('instantiate', () => {
     });
 
     it('instantiates nodes with schema-required and const fields', async () => {
-        const result: TestInstantiatedPattern = await instantiate(patternPath, true,  'schemas');
+        const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
+        const result: TestInstantiatedPattern = await instantiate(pattern, true,  'schemas');
 
         expect(result.nodes[0]).toEqual({
             'unique-id': 'my-node',
@@ -157,7 +158,8 @@ describe('instantiate', () => {
     });
 
     it('instantiates nested controls with patternProperties and consts', async () => {
-        const result: TestInstantiatedPattern = await instantiate(patternPath, true,  'schemas');
+        const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
+        const result: TestInstantiatedPattern = await instantiate(pattern, true,  'schemas');
 
         expect(result.relationships[0]).toEqual({
             'unique-id': 'rel-1',
@@ -176,9 +178,10 @@ describe('instantiate', () => {
     });
 
     it('handles missing required schema fields by generating placeholders', async () => {
-        const result: TestInstantiatedPattern = await instantiate(patternPath, true, 'schemas');
+        const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
+        const result: TestInstantiatedPattern = await instantiate(pattern, true, 'schemas');
 
         expect(result.nodes[0]['node-type']).toBe('[[ NODE_TYPE ]]');
-        expect(result.nodes[0]['details'].arch).toBe('[[ ARCH ]]');
+        expect(result.nodes[0]['details']['arch']).toBe('[[ ARCH ]]');
     });
 });
