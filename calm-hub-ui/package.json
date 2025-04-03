@@ -4,13 +4,14 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "start": "vite",
-        "build": "vite build",
+        "start": "npm run copy-public && vite",
+        "build": "npm run copy-public && vite build",
         "serve": "vite preview",
         "prod": "vite build && mkdir -p ../calm-hub/src/main/resources/META-INF/resources && rsync -a build/* ../calm-hub/src/main/resources/META-INF/resources",
         "test": "vitest run",
         "lint": "eslint .",
-        "format": "prettier --write ."
+        "format": "prettier --write .",
+        "copy-public": "copyfiles -u 1 ../brand/**/* public/"
     },
     "dependencies": {
         "@patternfly/patternfly": "^4.215.1",
