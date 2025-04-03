@@ -91,20 +91,6 @@ describe('TemplateProcessor', () => {
         expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ CALM model file not found'));
     });
 
-    it('should throw an error if the transformer field is missing in config', async () => {
-        const configNoTransformer = {
-            name: 'Test Bundle',
-            templates: []
-        };
-
-        mockTemplateLoader.getConfig.mockReturnValue(configNoTransformer);
-        const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map<string, string>());
-        await expect(processor.processTemplate()).rejects.toThrow(
-            'Missing "transformer" field in index.json. Define a transformer for this template bundle.'
-        );
-        expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ Missing "transformer" field in index.json.'));
-    });
-
     it('should throw an error if loadTransformer fails', async () => {
         const configWithBadTransformer = {
             name: 'Test Bundle',

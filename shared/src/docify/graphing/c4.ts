@@ -1,8 +1,8 @@
 import {
     CalmComposedOfType,
-    CalmConnectsType,
+    CalmConnectsType, CalmDeployedInType,
     CalmInteractsType,
-    CalmRelationship
+    CalmRelationship,
 } from '../../model/relationship';
 import {CalmCore} from '../../model/core.js';
 import {CalmRelationshipGraph} from './relationship-graph.js';
@@ -36,9 +36,16 @@ export function buildParentChildMappings(relationships: CalmRelationship[]): {
     const childrenLookup: Record<string, string[]> = {};
 
     relationships.forEach(rel => {
-        if (rel.relationshipType instanceof CalmComposedOfType) {
-            const composedRel = rel.relationshipType as CalmComposedOfType;
-            const { container, nodes } = composedRel;
+        if (
+            rel.relationshipType instanceof CalmComposedOfType ||
+            rel.relationshipType instanceof CalmDeployedInType
+        ) {
+            const relationship = rel.relationshipType as {
+                    container: string;
+                    nodes: string[];
+                }
+            ;
+            const { container, nodes } = relationship;
 
             if (!childrenLookup[container]) {
                 childrenLookup[container] = [];
@@ -49,6 +56,7 @@ export function buildParentChildMappings(relationships: CalmRelationship[]): {
                 parentLookup[nodeId] = container;
             });
         }
+        // Handle other relationship types as needed
     });
 
     return { parentLookup, childrenLookup };
@@ -69,7 +77,8 @@ export class C4Model {
         const nodeTypeMapping: Record<string, C4ElementType> = {
             'system': 'System',
             'service': 'Container',
-            'actor': 'Person'
+            'actor': 'Person',
+            'network': 'Container'
         };
         const { parentLookup, childrenLookup } = buildParentChildMappings(calmCore.relationships);
         calmCore.nodes.forEach(node => {
