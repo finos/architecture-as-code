@@ -17,7 +17,7 @@ vi.mock('../../logger', () => {
 vi.mock('../../schema-directory');
 
 vi.mock('../../consts', () => ({
-    get CALM_META_SCHEMA_DIRECTORY() { return '../calm/draft/2024-10/meta'; }
+    get CALM_META_SCHEMA_DIRECTORY() { return '../calm/draft/2025-03/meta'; }
 }));
 
 vi.mock('./components/instantiate', () => ({
@@ -32,6 +32,7 @@ vi.mock('./components/instantiate', () => ({
 describe('runGenerate', () => {
     let tempDirectoryPath;
     const testPath: string = 'test_fixtures/api-gateway.json';
+    const testPattern: object = JSON.parse(readFileSync(testPath, { encoding: 'utf8' }));
 
     beforeEach(() => {
         tempDirectoryPath = mkdtempSync(path.join(tmpdir(), 'calm-test-'));
@@ -43,7 +44,7 @@ describe('runGenerate', () => {
 
     it('instantiates to given directory', async () => {
         const outPath = path.join(tempDirectoryPath, 'output.json');
-        await runGenerate(testPath, outPath, false, false);
+        await runGenerate(testPattern, outPath, false, []);
 
         expect(existsSync(outPath))
             .toBeTruthy();
@@ -51,7 +52,7 @@ describe('runGenerate', () => {
 
     it('instantiates to given directory with nested folders', async () => {
         const outPath = path.join(tempDirectoryPath, 'output/test/output.json');
-        await runGenerate(testPath, outPath, false, false);
+        await runGenerate(testPattern, outPath, false, []);
 
         expect(existsSync(outPath))
             .toBeTruthy();
@@ -59,7 +60,7 @@ describe('runGenerate', () => {
 
     it('instantiates to calm architecture file', async () => {
         const outPath = path.join(tempDirectoryPath, 'output.json');
-        await runGenerate(testPath, outPath, false, false);
+        await runGenerate(testPattern, outPath, false, []);
 
         expect(existsSync(outPath))
             .toBeTruthy();
