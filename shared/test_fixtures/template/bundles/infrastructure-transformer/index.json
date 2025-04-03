@@ -2,14 +2,14 @@
   "name": "Infra as Code Example Bundle",
   "transformer": "infrastructure-transformer",
   "templates": [
-      { "template": "application.yaml", "from": "document", "output": "kubernetes/application.yaml", "output-type": "single" },
+      { "template": "application-deployment.yaml", "from": "document", "output": "kubernetes/application-deployment.yaml", "output-type": "single" },
       { "template": "application-service.yaml", "from": "document", "output": "kubernetes/application-service.yaml", "output-type": "single" },
       { "template": "database-deployment.yaml", "from": "document", "output": "kubernetes/database-deployment.yaml", "output-type": "single" },
       { "template": "database-service.yaml", "from": "document", "output": "kubernetes/database-service.yaml", "output-type": "single" },
       { "template": "kustomization.yaml", "from": "document", "output": "kubernetes/kustomization.yaml", "output-type": "single" },
       { "template": "namespace.yaml", "from": "document", "output": "kubernetes/namespace.yaml", "output-type": "single" },
       { "template": "cluster_start.hbs", "from": "document", "output": "cluster/cluster_start.sh", "output-type": "single" },
-      { "template": "caico-global-deny.yaml", "from": "document", "output": "cluster/caico-global-deny.yaml", "output-type": "single" },
+      { "template": "calico-global-deny.yaml", "from": "document", "output": "cluster/calico-global-deny.yaml", "output-type": "single" },
       { "template": "permit-app-from-db.yaml", "from": "document", "output": "kubernetes/permit-app-from-db.yaml", "output-type": "single" },
       { "template": "permit-app-to-db.yaml", "from": "document", "output": "kubernetes/permit-app-to-db.yaml", "output-type": "single" },
       { "template": "permit-lb-to-app.yaml", "from": "document", "output": "kubernetes/permit-lb-to-app.yaml", "output-type": "single" }
