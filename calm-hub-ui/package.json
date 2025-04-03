@@ -54,7 +54,7 @@
         "eslint-plugin-react-hooks": "^5.0.0",
         "eslint-plugin-react-refresh": "^0.4.12",
         "globals": "^16.0.0",
-        "jsdom": "^25.0.1",
+        "jsdom": "^26.0.0",
         "npm-force-resolutions": "^0.0.10",
         "postcss": "^8.4.49",
         "prettier": "^3.3.3",
