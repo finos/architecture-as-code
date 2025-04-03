@@ -13,7 +13,7 @@
         "format": "prettier --write ."
     },
     "dependencies": {
-        "@patternfly/patternfly": "^4.215.1",
+        "@patternfly/patternfly": "^6.0.0",
         "@testing-library/jest-dom": "^5.16.5",
         "@types/jest": "^29.5.14",
         "@types/node": "^22.9.0",
