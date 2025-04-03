@@ -1,0 +1,23 @@
+apiVersion: crd.projectcalico.org/v1
+kind: GlobalNetworkPolicy
+metadata:
+  name: deny-app-policy
+spec:
+  namespaceSelector: has(projectcalico.org/name) && projectcalico.org/name not in {"kube-system"}
+  types:
+    - Ingress
+    - Egress
+  egress:
+    # allow all namespaces to communicate to DNS pods
+    - action: Allow
+      protocol: UDP
+      destination:
+        selector: 'k8s-app == "kube-dns"'
+        ports:
+          - 53
+    - action: Allow
+      protocol: TCP
+      destination:
+        selector: 'k8s-app == "kube-dns"'
+        ports:
+          - 53
