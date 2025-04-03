@@ -207,11 +207,11 @@ describe('TemplateProcessor E2E', () => {
                 'load-balancer-host-port': { port: 80, host: 'localhost' }
             },
             'attendees': {
-                'attendees-image': { image: 'https://example.com/images/attendees-service:latest' },
-                'attendees-port': { port: 9000 }
+                'attendees-image': { image: 'masteringapi/attendees-quarkus:ws-native-db' },
+                'attendees-port': { port: 8080 }
             },
             'attendees-store': {
-                'database-image': { image: 'https://example.com/images/postgres-db:13' },
+                'database-image': { image: 'postgres-db:13' },
                 'database-port': { port: 5432 }
             }
         };

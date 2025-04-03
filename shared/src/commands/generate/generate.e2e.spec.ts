@@ -3,11 +3,11 @@ import { runGenerate } from './generate.js';
 import { existsSync, readFileSync, mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
 
-const inputPattern = join(
+const inputPatternPath = join(
     __dirname,
     '../../../../calm/workshop/conference-signup.pattern.json'
 );
-const inputSecurePattern = join(
+const inputSecurePatternPath = join(
     __dirname,
     '../../../../calm/workshop/conference-secure-signup.pattern.json'
 );
@@ -37,7 +37,8 @@ describe('runGenerate E2E', () => {
     });
 
     it('generates output from pattern and matches expected file', async () => {
-        await runGenerate(inputPattern, outputPath, true,  schemaDir);
+        const inputPattern = JSON.parse(readFileSync(inputPatternPath, 'utf-8'));
+        await runGenerate(inputPattern, outputPath, true, [],  schemaDir);
 
         expect(existsSync(outputPath)).toBe(true);
 
@@ -48,7 +49,8 @@ describe('runGenerate E2E', () => {
     });
 
     it('generates secure output from pattern and matches expected file', async () => {
-        await runGenerate(inputSecurePattern, outputSecurePath, true, schemaDir);
+        const inputSecurePattern = JSON.parse(readFileSync(inputSecurePatternPath, 'utf-8'));
+        await runGenerate(inputSecurePattern, outputSecurePath, true, [], schemaDir);
 
         expect(existsSync(outputSecurePath)).toBe(true);
 

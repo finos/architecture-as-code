@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
         - name: app
-          image: https://example.com/images/attendees-service:latest
+          image: masteringapi/attendees-quarkus:ws-native-db
           ports:
-            - containerPort: 9000
+            - containerPort: 8080
