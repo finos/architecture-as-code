@@ -22,7 +22,7 @@ describe('TemplateProcessor E2E', () => {
 
     afterAll(() => {
         if (fs.existsSync(OUTPUT_DIR)) {
-            //fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
+            fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
         }
     });
 
