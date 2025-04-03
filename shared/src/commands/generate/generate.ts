@@ -2,15 +2,18 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {mkdirp} from 'mkdirp';
 
-import * as winston from 'winston';
-import {initLogger} from '../../logger.js';
-let logger: winston.Logger; // defined later at startup
+import { CalmChoice, selectChoices } from './components/options.js';
 import { instantiate } from './components/instantiate';
+import { initLogger } from '../../logger.js';
 
-export async function runGenerate(patternPath: string, outputPath: string, debug: boolean, schemaDirectoryPath?: string): Promise<void> {
-    logger = initLogger(debug);
+export async function runGenerate(pattern: object, outputPath: string, debug: boolean, chosenChoices?: CalmChoice[], schemaDirectoryPath?: string): Promise<void> {
+    const logger = initLogger(debug, 'calm-generate');
     try {
-        const final = await instantiate(patternPath, debug, schemaDirectoryPath);
+        if (chosenChoices) {
+            pattern = selectChoices(pattern, chosenChoices, debug);
+        }
+
+        const final = await instantiate(pattern, debug, schemaDirectoryPath);
         const output = JSON.stringify(final, null, 2);
         const dirname = path.dirname(outputPath);
 

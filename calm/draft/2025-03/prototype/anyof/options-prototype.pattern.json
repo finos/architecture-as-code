@@ -159,7 +159,7 @@
                     {
                       "anyOf": [
                         {
-                          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/option-type",
+                          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/decision",
                           "type": "object",
                           "properties": {
                             "description": {
@@ -178,7 +178,7 @@
                           }
                         },
                         {
-                          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/option-type",
+                          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/decision",
                           "type": "object",
                           "properties": {
                             "description": {
