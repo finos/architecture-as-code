@@ -191,5 +191,5 @@ read
 cd ..
 rm -rf infrastructure
 rm architecture.json
-minikube stop --profile secure
 kubectl delete -k infrastructure/kubernetes
+minikube stop --profile secure
