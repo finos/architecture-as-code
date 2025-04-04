@@ -37,7 +37,8 @@ command() {
 
 heading "Preparing the environment for the demo..."
 info "Destroy Previous Deployments"...
-minikube delete
+minikube stop --profile insecure
+minikube stop --profile secure
 
 cd insecure-example/cluster
 command "Starting Minikube..."
@@ -62,10 +63,11 @@ command "kubectl -n conference run -it --rm --image=nicolaka/netshoot test-pod -
 kubectl -n conference run -it --rm --image=nicolaka/netshoot test-pod -- bash
 
 read
-info "It's very broken, lets go back to the slides - and delete this in the background"
-minikube delete
+info "It's very broken, lets go back to the slides - and look at a possible approach"
+minikube stop --profile insecure
 read
 
+kubectl delete -k .
 cd ../../
 
 #Show the CALM CLI commands
@@ -95,7 +97,7 @@ read
 bat controls/permitted-connection-http.config.json --line-range 0:8 --highlight-line 6:7
 read
 
-#TODO Generate an architecture
+#Generate an Architecture
 heading "Generating an architecture"
 command "calm generate -p conference-secure-signup.pattern.json -o architecture.json"
 calm generate -p conference-secure-signup.pattern.json -o architecture.json
@@ -108,13 +110,19 @@ read
 heading "Validating an Architecture"
 read
 command "calm validate -p conference-secure-signup.pattern.json -a architecture.json"
-calm validate -p conference-secure-signup.pattern.json -a architecture.json 2>&1 | less
+calm validate -p conference-secure-signup.pattern.json -a architecture.json
 read
 
 #Show Placeholders, fill placeholders
 heading "Populating Architectures"
 info "Here's one I made earlier..."
 bat architecture/conference-secure-signup-amended.arch.json --line-range 29:41 --highlight-line 34:37
+
+read
+info "Template Bundle Directory"
+tree secure-infra-template-bundle
+read
+
 
 #Generate an architecture
 bat secure-infra-template-bundle/application-deployment.yaml --highlight-line 16:19
@@ -183,3 +191,5 @@ read
 cd ..
 rm -rf infrastructure
 rm architecture.json
+minikube stop --profile secure
+kubectl delete -k infrastructure/kubernetes
