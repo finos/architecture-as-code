@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import Menu from '../visualizer/components/menu/Menu.js';
+import { Menu } from '../visualizer/components/menu/Menu.js';
 import { ZoomContext } from '../visualizer/components/zoom-context.provider.js';
 
 describe('Menu', () => {
