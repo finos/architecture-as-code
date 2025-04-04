@@ -8,7 +8,7 @@
       "interfaces": [
         {
           "unique-id": "conference-website-url",
-          "url": "[[ URL ]]"
+          "url": "https://calm.finos.org/amazing-website"
         }
       ]
     },
@@ -177,4 +177,4 @@
     }
   ],
   "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json"
-}1
+}
