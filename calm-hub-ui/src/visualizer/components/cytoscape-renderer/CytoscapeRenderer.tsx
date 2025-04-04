@@ -174,9 +174,9 @@ const CytoscapeRenderer = ({
     return (
         <div className="relative flex m-auto border">
             {title && (
-                <div className="graph-title absolute m-5 bg-primary-content shadow-md">
-                    <span className="text-m font-thin">Architecture: </span>
-                    <span className="text-m font-semibold">{title}</span>
+                <div className="graph-title absolute m-5 bg-accent shadow-md">
+                    <span className="text-m font-thin text-primary-content">Architecture: </span>
+                    <span className="text-m font-semibold text-primary-content">{title}</span>
                 </div>
             )}
             <div ref={cyRef} className="flex-1 bg-white visualizer" style={{ height: '100vh' }} />
