@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import Menu from '../visualizer/components/menu/Menu.js';
+import { Menu } from '../visualizer/components/menu/Menu.js';
 import { ZoomContext } from '../visualizer/components/zoom-context.provider.js';
 
 describe('Menu', () => {
@@ -25,7 +25,7 @@ describe('Menu', () => {
 
     it('should render Menu', () => {
         renderMenu();
-        expect(screen.getByText('Connection Descriptions')).toBeInTheDocument();
+        expect(screen.getByText('Relationship Descriptions')).toBeInTheDocument();
         expect(screen.getByText('Node Descriptions')).toBeInTheDocument();
         expect(screen.getByText('Zoom: 100%')).toBeInTheDocument();
         expect(screen.getByText('Upload')).toBeInTheDocument();

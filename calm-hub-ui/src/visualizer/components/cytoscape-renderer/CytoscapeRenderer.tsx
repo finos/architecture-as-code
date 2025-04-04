@@ -3,7 +3,7 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import cytoscape, { Core, EdgeSingular, NodeSingular } from 'cytoscape';
 import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
 import expandCollapse from 'cytoscape-expand-collapse';
-import Sidebar from '../sidebar/Sidebar.js';
+import { Sidebar } from '../sidebar/Sidebar.js';
 import { ZoomContext } from '../zoom-context.provider.js';
 
 //Make some information available on tooltip hover
@@ -51,7 +51,7 @@ interface Props {
     edges: Edge[];
 }
 
-const CytoscapeRenderer = ({
+export const CytoscapeRenderer = ({
     title,
     nodes = [],
     edges = [],
@@ -167,9 +167,9 @@ const CytoscapeRenderer = ({
     return (
         <div className="relative flex m-auto border">
             {title && (
-                <div className="graph-title absolute m-5 bg-primary-content shadow-md">
-                    <span className="text-m font-thin">Architecture: </span>
-                    <span className="text-m font-semibold">{title}</span>
+                <div className="graph-title absolute m-5 bg-accent shadow-md">
+                    <span className="text-m font-thin text-primary-content">Architecture: </span>
+                    <span className="text-m font-semibold text-primary-content">{title}</span>
                 </div>
             )}
             <div
@@ -199,5 +199,3 @@ const CytoscapeRenderer = ({
         </div>
     );
 };
-
-export default CytoscapeRenderer;
