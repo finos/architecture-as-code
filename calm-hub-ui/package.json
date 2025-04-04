@@ -7,7 +7,7 @@
         "start": "npm run copy-public && vite",
         "build": "npm run copy-public && vite build",
         "serve": "vite preview",
-        "prod": "vite build && mkdir -p ../calm-hub/src/main/resources/META-INF/resources && rsync -a build/* ../calm-hub/src/main/resources/META-INF/resources",
+        "prod": "npm run build && mkdir -p ../calm-hub/src/main/resources/META-INF/resources && rsync -a build/* ../calm-hub/src/main/resources/META-INF/resources",
         "test": "vitest run",
         "lint": "eslint .",
         "format": "prettier --write .",
