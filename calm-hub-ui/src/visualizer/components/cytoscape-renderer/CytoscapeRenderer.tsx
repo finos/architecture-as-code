@@ -69,7 +69,7 @@ export const CytoscapeRenderer = ({
     const getNodeLabelTemplateGenerator =
         (selected = false) =>
         (data: Node['data']) => `
-        <div class="node element ${selected ? 'selected-node' : ''}">
+        <div class="node ${isNodeDescActive ? 'expanded' : ''} element ${selected ? 'selected-node' : ''}">
             <p class="title">${data.label}</p>
             <p class="type">${data.type}</p>
             <p class="description">${isNodeDescActive ? data.description : ''}</p>
@@ -107,7 +107,7 @@ export const CytoscapeRenderer = ({
                     selector: 'node',
                     style: {
                         width: '200px',
-                        height: '100px',
+                        height: isNodeDescActive ? '250px': '100px',
                         shape: 'rectangle',
                     },
                 },
