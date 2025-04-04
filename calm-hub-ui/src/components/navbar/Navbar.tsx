@@ -1,7 +1,7 @@
 import './Navbar.css';
 import { NavLink } from 'react-router-dom';
 
-function Navbar() {
+export function Navbar() {
     return (
         <div className="navbar bg-base-100 border-b-2 border-base-200 text-primary-content">
             <div className="navbar-start flex items-center">
@@ -55,4 +55,3 @@ function Navbar() {
         </div>
     );
 }
-export default Navbar;

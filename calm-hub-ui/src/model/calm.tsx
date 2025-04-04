@@ -7,6 +7,6 @@ export type FlowID = string;
 export type Flow = string;
 export type Version = string;
 export type Data = {
-    name: Namespace,
-    data: Pattern | Architecture | Flow | undefined
+    name: Namespace;
+    data: Pattern | Architecture | Flow | undefined;
 };
