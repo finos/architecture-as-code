@@ -8,6 +8,11 @@
     background-color: white;
 }
 
+.expanded {
+    min-height: 200px;
+    top: -3rem;
+}
+
 .selected-node {
     background-color: #cce1f9;
 }
