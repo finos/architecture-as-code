@@ -8,7 +8,12 @@ interface MenuProps {
     toggleNodeDesc: () => void;
 }
 
-function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeDesc }: MenuProps) {
+export function Menu({
+    handleUpload,
+    isGraphRendered,
+    toggleConnectionDesc,
+    toggleNodeDesc,
+}: MenuProps) {
     const upload = (file: File) => {
         handleUpload(file);
     };
@@ -116,4 +121,3 @@ function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeD
         </header>
     );
 }
-export default Menu;
