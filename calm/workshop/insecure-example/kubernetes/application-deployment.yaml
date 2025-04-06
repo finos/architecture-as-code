@@ -15,5 +15,6 @@ spec:
       containers:
         - name: app
           image: masteringapi/attendees-quarkus:ws-native-db
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080

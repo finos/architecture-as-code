@@ -60,7 +60,7 @@ command "kubectl get services -n conference"
 kubectl get services -n conference
 read
 command "kubectl -n conference run -it --rm --image=nicolaka/netshoot test-pod -- bash"
-kubectl -n conference run -it --rm --image=nicolaka/netshoot test-pod -- bash
+kubectl -n conference run -it --rm --image=nicolaka/netshoot --image-pull-policy=IfNotPresent test-pod -- bash
 
 read
 info "It's very broken, lets go back to the slides - and look at a possible approach"
@@ -163,7 +163,7 @@ read
 
 heading "Lets re-assess the previous vulnerability"
 command "kubectl -n conference run -it --rm --image=nicolaka/netshoot test-pod -- bash"
-kubectl -n conference run -it --rm --image=nicolaka/netshoot test-pod -- bash
+kubectl -n conference run -it --rm --image=nicolaka/netshoot --image-pull-policy=IfNotPresent test-pod -- bash
 read
 info "Let's verify the website is still working"
 error "Reset Minikube Tunnel"
@@ -189,7 +189,7 @@ read
 command "Clean Up, Time for a drink"
 read
 cd ..
+kubectl delete -k infrastructure/kubernetes
 rm -rf infrastructure
 rm architecture.json
-kubectl delete -k infrastructure/kubernetes
 minikube stop --profile secure
