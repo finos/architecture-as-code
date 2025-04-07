@@ -18,6 +18,8 @@ describe('Menu', () => {
                     isGraphRendered={isGraphRendered}
                     toggleConnectionDesc={toggleConnectionDescMock}
                     toggleNodeDesc={toggleNodeDescMock}
+                    isConDescActive={true}
+                    isNodeDescActive={true}
                 />
             </ZoomContext.Provider>
         );
