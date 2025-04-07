@@ -8,7 +8,12 @@ interface MenuProps {
     toggleNodeDesc: () => void;
 }
 
-function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeDesc }: MenuProps) {
+export function Menu({
+    handleUpload,
+    isGraphRendered,
+    toggleConnectionDesc,
+    toggleNodeDesc,
+}: MenuProps) {
     const upload = (file: File) => {
         handleUpload(file);
     };
@@ -38,7 +43,7 @@ function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeD
                         <>
                             <label className="label cursor-pointer">
                                 <span className="label label-text text-base-content">
-                                    Connection Descriptions
+                                    Relationship Descriptions
                                 </span>
                                 <input
                                     type="checkbox"
@@ -116,4 +121,3 @@ function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeD
         </header>
     );
 }
-export default Menu;
