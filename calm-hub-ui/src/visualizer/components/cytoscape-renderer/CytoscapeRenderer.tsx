@@ -162,7 +162,7 @@ export const CytoscapeRenderer = ({
         return () => {
             updatedCy.destroy(); // Clean up Cytoscape instance
         };
-    }, [nodes, edges, isConDescActive, isNodeDescActive, updateZoom]);
+    }, [nodes, edges, isConDescActive, isNodeDescActive]);
 
     // Synchronize zoom level with context
     useEffect(() => {
