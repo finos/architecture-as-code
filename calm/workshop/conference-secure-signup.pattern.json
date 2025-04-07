@@ -87,7 +87,7 @@
               "const": "Attendees Service"
             },
             "description": {
-              "const": "Ingress for the Kubernetes cluster"
+              "const": "The attendees service, or a placeholder for another application"
             },
             "node-type": {
               "const": "service"
