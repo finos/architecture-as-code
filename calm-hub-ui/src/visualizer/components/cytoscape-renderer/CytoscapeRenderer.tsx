@@ -48,6 +48,7 @@ interface Props {
     title?: string;
     isNodeDescActive: boolean;
     isConDescActive: boolean;
+    externalNodeIds: string[];
     nodes: Node[];
     edges: Edge[];
 }
@@ -56,6 +57,7 @@ export const CytoscapeRenderer = ({
     title,
     nodes = [],
     edges = [],
+    externalNodeIds,
     isConDescActive,
     isNodeDescActive,
 }: Props) => {
@@ -124,6 +126,14 @@ export const CytoscapeRenderer = ({
             maxZoom: 5,
         });
 
+        //Display external nodes outside the system
+        let yPosition = 0;
+        externalNodeIds.forEach((id: string) => {
+            const element = updatedCy.getElementById(id);
+            element.position({x: -1000, y: yPosition});
+            yPosition += 2*element.height();
+        })
+
         // Restore zoom and pan state
         updatedCy.zoom(currentZoom);
         updatedCy.pan(currentPan);
@@ -162,7 +172,7 @@ export const CytoscapeRenderer = ({
         return () => {
             updatedCy.destroy(); // Clean up Cytoscape instance
         };
-    }, [nodes, edges, isConDescActive, isNodeDescActive, updateZoom]);
+    }, [nodes, edges, isConDescActive, isNodeDescActive, externalNodeIds, updateZoom]);
 
     // Synchronize zoom level with context
     useEffect(() => {
