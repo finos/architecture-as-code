@@ -3,11 +3,7 @@ import { JSONPath } from 'jsonpath-plus';
  * Checks that the input value exists as a node with a matching unique ID.
  */
 export default (input, _, context) => {
-    if (!input) {
-        return [];
-    }
-
-    if (typeof input !== 'string') {
+    if (!input || typeof input !== 'string') {
         return [];
     }
 
