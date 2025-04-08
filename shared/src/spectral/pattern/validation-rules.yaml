@@ -1,9 +1,9 @@
-functions: 
-  - node-id-exists
-  - interface-id-exists
-  - node-has-relationship
-  - numerical-placeholder
-  - ids-are-unique
+functions:
+- node-id-exists
+- interface-id-exists
+- node-has-relationship
+- numerical-placeholder
+- ids-are-unique
 
 rules:
   pattern-has-nodes-relationships:
@@ -25,7 +25,6 @@ rules:
     then:
       function: truthy
 
-  
   pattern-has-no-placeholder-properties-numerical:
     description: Should not contain numerical placeholder properties set to -1
     message: Numerical placeholder (-1) detected in architecture.
@@ -54,12 +53,20 @@ rules:
       # only container and actor are in scope, since source/destination use interfaces now
       function: node-id-exists
 
-
   group-relationship-references-existing-nodes-in-pattern:
     description: All nodes referenced by a grouping relationship must reference existing nodes
     severity: error 
     message: "{{error}}"
     given: "$..relationship-type..nodes[*]"
+    then:
+      # only container and actor are in scope, since source/destination use interfaces now
+      function: node-id-exists
+
+  group-relationship-with-const-nodes-references-existing-nodes-in-pattern:
+    description: All nodes referenced by a grouping relationship must reference existing nodes
+    severity: error
+    message: "{{error}}"
+    given: "$..relationship-type..nodes.const[*]"
     then:
       # only container and actor are in scope, since source/destination use interfaces now
       function: node-id-exists
@@ -85,7 +92,6 @@ rules:
         field: actor 
       - function: node-id-exists
         field: container
-
 
   referenced-interfaces-defined-in-pattern:
     description: Referenced interfaces must be defined 

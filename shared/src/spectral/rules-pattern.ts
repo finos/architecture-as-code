@@ -74,6 +74,15 @@ const patternRules: RulesetDefinition = {
                 function: nodeIdExists,
             },
         },
+        'group-relationship-with-const-nodes-references-existing-nodes-in-pattern': {
+            description: 'All nodes referenced by a grouping relationship must reference existing nodes',
+            severity: 'error',
+            message: '{{error}}',
+            given: '$..relationship-type..nodes.const[*]',
+            then: {
+                function: nodeIdExists,
+            },
+        },
         'avoid-boolean-properties': {
             description: 'Boolean property detected. Booleans should ideally be avoided as they are closed for extension; have you considered using an enum instead?',
             severity: 'warn',
