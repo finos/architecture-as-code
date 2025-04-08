@@ -1,14 +1,5 @@
-import {
-    Namespace,
-    Pattern,
-    PatternID,
-    Version,
-    Flow,
-    FlowID,
-    Architecture,
-    ArchitectureID,
-} from '../model/calm.js';
-import { getToken } from "../authService";
+import { Namespace, PatternID, Version, FlowID, ArchitectureID, Data } from '../model/calm.js';
+import { getToken } from '../authService.js';
 
 /**
  * Fetch namespaces and set them using the provided setter function.
@@ -16,10 +7,10 @@ import { getToken } from "../authService";
 export async function fetchNamespaces(setNamespaces: (namespaces: Namespace[]) => void) {
     try {
         const accessToken = await getToken();
-        const res = await fetch('/calm/namespaces',{
-                        method: 'GET',
-                        headers: {'Authorization': `Bearer ${accessToken}`,},
-                        });
+        const res = await fetch('/calm/namespaces', {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
         const data = await res.json();
         setNamespaces(data.values);
     } catch (error) {
@@ -36,10 +27,10 @@ export async function fetchPatternIDs(
 ) {
     try {
         const accessToken = await getToken();
-        const res = await fetch(`/calm/namespaces/${namespace}/patterns`,{
-                            method: 'GET',
-                            headers: {'Authorization': `Bearer ${accessToken}`,},
-                            });
+        const res = await fetch(`/calm/namespaces/${namespace}/patterns`, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
         const data = await res.json();
         setPatternIDs(data.values.map((num: number) => num.toString()));
     } catch (error) {
@@ -53,10 +44,10 @@ export async function fetchPatternIDs(
 export async function fetchFlowIDs(namespace: string, setFlowIDs: (flowIDs: FlowID[]) => void) {
     try {
         const accessToken = await getToken();
-        const res = await fetch(`/calm/namespaces/${namespace}/flows`,{
-                            method: 'GET',
-                            headers: {'Authorization': `Bearer ${accessToken}`,},
-                            });
+        const res = await fetch(`/calm/namespaces/${namespace}/flows`, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
         const data = await res.json();
         setFlowIDs(data.values.map((id: number) => id.toString()));
     } catch (error) {
@@ -74,10 +65,10 @@ export async function fetchPatternVersions(
 ) {
     try {
         const accessToken = await getToken();
-        const res = await fetch(`/calm/namespaces/${namespace}/patterns/${patternID}/versions`,{
-                            method: 'GET',
-                            headers: {'Authorization': `Bearer ${accessToken}`,},
-                            });
+        const res = await fetch(`/calm/namespaces/${namespace}/patterns/${patternID}/versions`, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
         const data = await res.json();
         setVersions(data.values);
     } catch (error) {
@@ -95,10 +86,10 @@ export async function fetchFlowVersions(
 ) {
     try {
         const accessToken = await getToken();
-        const res = await fetch(`/calm/namespaces/${namespace}/flows/${flowID}/versions`,{
-                            method: 'GET',
-                            headers: {'Authorization': `Bearer ${accessToken}`,},
-                            });
+        const res = await fetch(`/calm/namespaces/${namespace}/flows/${flowID}/versions`, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
         const data = await res.json();
         setFlowVersions(data.values);
     } catch (error) {
@@ -113,16 +104,19 @@ export async function fetchPattern(
     namespace: string,
     patternID: string,
     version: string,
-    setPattern: (pattern: Pattern) => void
+    setPattern: (pattern: Data) => void
 ) {
     try {
         const accessToken = await getToken();
         const res = await fetch(
-            `/calm/namespaces/${namespace}/patterns/${patternID}/versions/${version}`,{
+            `/calm/namespaces/${namespace}/patterns/${patternID}/versions/${version}`,
+            {
                 method: 'GET',
-                headers: {'Authorization': `Bearer ${accessToken}`,},
-            });
-        const data = await res.json();
+                headers: { Authorization: `Bearer ${accessToken}` },
+            }
+        );
+        const response = await res.json();
+        const data: Data = { name: namespace, data: response };
         setPattern(data);
     } catch (error) {
         console.error(
@@ -139,16 +133,19 @@ export async function fetchFlow(
     namespace: string,
     flowID: string,
     version: string,
-    setFlow: (flow: Flow) => void
+    setFlow: (flow: Data) => void
 ) {
     try {
         const accessToken = await getToken();
         const res = await fetch(
-            `/calm/namespaces/${namespace}/flows/${flowID}/versions/${version}`,{
-                 method: 'GET',
-                 headers: {'Authorization': `Bearer ${accessToken}`,},
-             });
-        const data = await res.json();
+            `/calm/namespaces/${namespace}/flows/${flowID}/versions/${version}`,
+            {
+                method: 'GET',
+                headers: { Authorization: `Bearer ${accessToken}` },
+            }
+        );
+        const response = await res.json();
+        const data: Data = { name: namespace, data: response };
         setFlow(data);
     } catch (error) {
         console.error(
@@ -167,10 +164,10 @@ export async function fetchArchitectureIDs(
 ) {
     try {
         const accessToken = await getToken();
-        const res = await fetch(`/calm/namespaces/${namespace}/architectures`,{
-                            method: 'GET',
-                            headers: {'Authorization': `Bearer ${accessToken}`,},
-                          });
+        const res = await fetch(`/calm/namespaces/${namespace}/architectures`, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
         const data = await res.json();
         setArchitectureIDs(data.values.map((id: number) => id.toString()));
     } catch (error) {
@@ -187,12 +184,14 @@ export async function fetchArchitectureVersions(
     setVersions: (versions: Version[]) => void
 ) {
     try {
-
         const accessToken = await getToken();
-        const res = await fetch(`/calm/namespaces/${namespace}/architectures/${architectureID}/versions`,{
-                            method: 'GET',
-                            headers: {'Authorization': `Bearer ${accessToken}`,},
-                          });
+        const res = await fetch(
+            `/calm/namespaces/${namespace}/architectures/${architectureID}/versions`,
+            {
+                method: 'GET',
+                headers: { Authorization: `Bearer ${accessToken}` },
+            }
+        );
         const data = await res.json();
         setVersions(data.values);
     } catch (error) {
@@ -207,16 +206,19 @@ export async function fetchArchitecture(
     namespace: string,
     architectureID: string,
     version: string,
-    setArchitecture: (architecture: Architecture) => void
+    setArchitecture: (architecture: Data) => void
 ) {
     try {
         const accessToken = await getToken();
         const res = await fetch(
-            `/calm/namespaces/${namespace}/architectures/${architectureID}/versions/${version}`,{
+            `/calm/namespaces/${namespace}/architectures/${architectureID}/versions/${version}`,
+            {
                 method: 'GET',
-                headers: {'Authorization': `Bearer ${accessToken}`,},
-            });
-        const data = await res.json();
+                headers: { Authorization: `Bearer ${accessToken}` },
+            }
+        );
+        const response = await res.json();
+        const data: Data = { name: namespace, data: response };
         setArchitecture(data);
     } catch (error) {
         console.error(

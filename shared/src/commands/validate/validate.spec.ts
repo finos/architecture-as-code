@@ -6,13 +6,13 @@ import { ISpectralDiagnostic } from '@stoplight/spectral-core';
 import { ValidationOutcome, ValidationOutput } from './validation.output';
 import { ErrorObject } from 'ajv';
 
-const mockRunFunction = jest.fn();
+const mockRunFunction = vi.fn();
 
-jest.mock('@stoplight/spectral-core', () => {
-    const spectralCore = jest.requireActual('@stoplight/spectral-core');
+vi.mock('@stoplight/spectral-core', async () => {
+    const spectralCore = await vi.importActual('@stoplight/spectral-core');
     return {
         ...spectralCore,
-        Spectral: jest.fn().mockImplementation(() => {
+        Spectral: vi.fn().mockImplementation(() => {
             return {
                 run: mockRunFunction,
                 setRuleset: () => { },
@@ -21,14 +21,14 @@ jest.mock('@stoplight/spectral-core', () => {
     };
 });
 
-jest.mock('../../logger.js', () => {
+vi.mock('../../logger.js', () => {
     return {
         initLogger: () => {
             return {
-                info: jest.fn(),
-                debug: jest.fn(),
-                warn: jest.fn(),
-                error: jest.fn()
+                info: vi.fn(),
+                debug: vi.fn(),
+                warn: vi.fn(),
+                error: vi.fn()
             };
         }
     };
@@ -42,7 +42,7 @@ describe('validation support functions', () => {
         let mockExit;
 
         beforeEach(() => {
-            mockExit = jest.spyOn(process, 'exit')
+            mockExit = vi.spyOn(process, 'exit')
                 .mockImplementation((code?) => {
                     if (code != 0) {
                         throw new Error();
@@ -56,7 +56,7 @@ describe('validation support functions', () => {
         });
         it('exit based off of validation outcomes - non-zero outcome if error', () => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            mockExit = jest.spyOn(process, 'exit').mockImplementation((code?) => undefined as never);
+            mockExit = vi.spyOn(process, 'exit').mockImplementation((code?) => undefined as never);
             const expectedValidationOutcome: ValidationOutcome = new ValidationOutcome([], [], true, false);
             exitBasedOffOfValidationOutcome(expectedValidationOutcome, false);
             expect(mockExit).toHaveBeenCalledWith(1);
@@ -70,7 +70,7 @@ describe('validation support functions', () => {
 
         it('exit based off of validation outcomes - non-zero outcome if warning but failOnWarnings set to true', () => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            mockExit = jest.spyOn(process, 'exit').mockImplementation((code?) => undefined as never);
+            mockExit = vi.spyOn(process, 'exit').mockImplementation((code?) => undefined as never);
             const expectedValidationOutcome: ValidationOutcome = new ValidationOutcome([], [], false, true);
             exitBasedOffOfValidationOutcome(expectedValidationOutcome, true);
             expect(mockExit).toHaveBeenCalledWith(1);
@@ -245,7 +245,7 @@ describe('validation support functions', () => {
 describe('validate pattern and architecture', () => {
     beforeEach(() => {
         mockRunFunction.mockReturnValue([]);
-        jest.useFakeTimers();
+        vi.useFakeTimers();
     });
 
     afterEach(() => {

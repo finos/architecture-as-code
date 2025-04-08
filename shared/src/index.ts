@@ -5,6 +5,7 @@ export {
 } from './commands/validate/validate.js';
 export { OutputFormat } from './commands/validate/validate.js';
 export { runGenerate } from './commands/generate/generate.js';
+export { extractOptions, selectChoices } from './commands/generate/components/options.js';
 export { ValidationOutput } from './commands/validate/validation.output.js';
 export { CALM_META_SCHEMA_DIRECTORY } from './consts.js';
 export { SchemaDirectory } from './schema-directory.js';
@@ -20,4 +21,4 @@ export * from './model/metadata.js';
 export * from './model/interface.js';
 export {C4Model} from './docify/graphing/c4.js';
 export {CalmRelationshipGraph} from './docify/graphing/relationship-graph.js';
-
+export {ValidationOutcome} from './commands/validate/validation.output';

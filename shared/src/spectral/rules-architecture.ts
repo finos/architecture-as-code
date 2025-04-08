@@ -48,27 +48,27 @@ const architectureRules: RulesetDefinition = {
         },
 
         'architecture-has-no-placeholder-properties-string': {
-            description: 'Should not contain placeholder values with pattern {{ PLACEHOLDER_NAME }}',
+            description: 'Should not contain placeholder values with pattern [[ PLACEHOLDER_NAME ]]',
             message: 'String placeholder detected in architecture.',
             severity: 'warn',
             given: '$..*',
             then: {
                 function: pattern,
                 functionOptions: {
-                    notMatch: '^{{\\s*[A-Z_]+\\s*}}$',
+                    notMatch: '^\\[\\[\\s*[A-Z_]+\\s*\\]\\]$',
                 },
             },
         },
 
         'architecture-has-no-placeholder-properties-boolean': {
-            description: 'Should not contain placeholder values with pattern {{ BOOLEAN_[property name] }}',
+            description: 'Should not contain placeholder values with pattern [[ BOOLEAN_[property name] ]]',
             message: 'Boolean placeholder detected in architecture.',
             severity: 'warn',
             given: '$..*',
             then: {
                 function: pattern,
                 functionOptions: {
-                    notMatch: '^{{\\s*BOOLEAN_[A-Z_]+\\s*}}$',
+                    notMatch: '^\\[\\[\\s*BOOLEAN_[A-Z_]+\\s*\\]\\]$',
                 },
             },
         },

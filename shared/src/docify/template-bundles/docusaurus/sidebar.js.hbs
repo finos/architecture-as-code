@@ -5,6 +5,7 @@ module.exports = {
             id: 'index',
             label: 'Home',
         },
+        {{#if (notEmpty nodes)}}
         {
             type: 'category',
             label: 'Nodes',
@@ -14,6 +15,8 @@ module.exports = {
                 {{/each}}
             ],
         },
+        {{/if}}
+        {{#if (notEmpty flows)}}
         {
             type: 'category',
             label: 'Flows',
@@ -23,5 +26,6 @@ module.exports = {
                 {{/each}}
             ],
         }
+        {{/if}}
     ]
 };

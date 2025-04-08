@@ -5,7 +5,7 @@ import path from 'path';
 import os from 'os';
 import { v4 as uuidv4 } from 'uuid';
 import winston from 'winston';
-import { ValidationOutcome } from '@finos/calm-shared/commands/validate/validation.output';
+import { ValidationOutcome } from '@finos/calm-shared';
 import rateLimit from 'express-rate-limit';
 
 export class ValidationRouter {

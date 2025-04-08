@@ -29,7 +29,7 @@ export class TemplateBundleFileLoader {
             logger.info(`📥 Loading index.json from ${indexFilePath}`);
             const rawConfig = JSON.parse(fs.readFileSync(indexFilePath, 'utf8'));
 
-            if (!rawConfig.name || !rawConfig.transformer || !Array.isArray(rawConfig.templates)) {
+            if (!rawConfig.name || !Array.isArray(rawConfig.templates)) {
                 logger.error('❌ Invalid index.json format: Missing required fields');
                 throw new Error('Invalid index.json format: Missing required fields');
             }

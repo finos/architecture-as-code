@@ -1,16 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ValueTable } from './components/value-table.js';
 import { JsonRenderer } from './components/json-view.js';
-import {
-    Namespace,
-    PatternID,
-    FlowID,
-    ArchitectureID,
-    Version,
-    Pattern,
-    Flow,
-    Architecture,
-} from '../model/calm.js';
+import { Namespace, PatternID, FlowID, ArchitectureID, Version, Data } from '../model/calm.js';
 import {
     fetchNamespaces,
     fetchPatternIDs,
@@ -23,7 +14,7 @@ import {
     fetchFlow,
     fetchArchitecture,
 } from '../service/calm-service.js';
-import Navbar from '../components/navbar/Navbar.js';
+import { Navbar } from '../components/navbar/Navbar.js';
 
 function Hub() {
     const [namespaces, setNamespaces] = useState<Namespace[]>([]);
@@ -35,7 +26,7 @@ function Hub() {
     const [currentVersion, setCurrentVersion] = useState<Version | undefined>();
     const [currentCalmType, setCurrentCalmType] = useState<string | undefined>();
 
-    const [data, setData] = useState<Pattern | Flow | Architecture | undefined>();
+    const [data, setData] = useState<Data | undefined>();
     const [versions, setVersions] = useState<Version[]>([]);
 
     useEffect(() => {

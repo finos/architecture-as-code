@@ -1,5 +1,6 @@
 import fs from 'fs';
 import axios, { AxiosError } from 'axios';
+import { vi } from 'vitest';
 import {
     CompositeReferenceResolver,
     FileReferenceResolver,
@@ -8,18 +9,18 @@ import {
 } from './calm-reference-resolver';
 
 describe('FileReferenceResolver', () => {
-    let existsSyncSpy: jest.SpyInstance;
-    let readFileSyncSpy: jest.SpyInstance;
+    let existsSyncSpy: ReturnType<typeof vi.spyOn>;
+    let readFileSyncSpy: ReturnType<typeof vi.spyOn>;
     let resolver: FileReferenceResolver;
 
     beforeEach(() => {
         resolver = new FileReferenceResolver();
-        existsSyncSpy = jest.spyOn(fs, 'existsSync');
-        readFileSyncSpy = jest.spyOn(fs, 'readFileSync');
+        existsSyncSpy = vi.spyOn(fs, 'existsSync');
+        readFileSyncSpy = vi.spyOn(fs, 'readFileSync');
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     it('returns true if file exists', () => {
@@ -68,15 +69,15 @@ describe('InMemoryResolver', () => {
 
 describe('HttpReferenceResolver', () => {
     let resolver: HttpReferenceResolver;
-    let axiosGetSpy: jest.SpyInstance;
+    let axiosGetSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
         resolver = new HttpReferenceResolver();
-        axiosGetSpy = jest.spyOn(axios, 'get');
+        axiosGetSpy = vi.spyOn(axios, 'get');
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     it('returns true for http URL', () => {
@@ -114,20 +115,20 @@ describe('HttpReferenceResolver', () => {
 
 describe('CompositeReferenceResolver', () => {
     let resolver: CompositeReferenceResolver;
-    let axiosGetSpy: jest.SpyInstance;
-    let existsSyncSpy: jest.SpyInstance;
-    let readFileSyncSpy: jest.SpyInstance;
+    let axiosGetSpy: ReturnType<typeof vi.spyOn>;
+    let existsSyncSpy: ReturnType<typeof vi.spyOn>;
+    let readFileSyncSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
         resolver = new CompositeReferenceResolver();
-        axiosGetSpy = jest.spyOn(axios, 'get');
-        existsSyncSpy = jest.spyOn(fs, 'existsSync');
-        readFileSyncSpy = jest.spyOn(fs, 'readFileSync');
+        axiosGetSpy = vi.spyOn(axios, 'get');
+        existsSyncSpy = vi.spyOn(fs, 'existsSync');
+        readFileSyncSpy = vi.spyOn(fs, 'readFileSync');
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
-        jest.clearAllMocks();
+        vi.restoreAllMocks();
+        vi.clearAllMocks();
     });
 
     it('returns true if the HTTP resolver can resolve', () => {
@@ -153,18 +154,18 @@ describe('CompositeReferenceResolver', () => {
 
         expect(existsSyncSpy).toHaveBeenCalledWith('file:///test.json');
         expect(readFileSyncSpy).toHaveBeenCalledWith('file:///test.json', 'utf-8');
-        expect(axiosGetSpy).not.toHaveBeenCalled(); // Should not call HTTP
+        expect(axiosGetSpy).not.toHaveBeenCalled();
     });
 
     it('falls back to HTTP resolver if file resolution fails', async () => {
-        existsSyncSpy.mockReturnValue(false); // File does not exist
+        existsSyncSpy.mockReturnValue(false);
         axiosGetSpy.mockResolvedValue({ data: { key: 'http-value' } });
 
         const result = await resolver.resolve('http://example.com/test.json');
         expect(result).toEqual({ key: 'http-value' });
 
         expect(existsSyncSpy).toHaveBeenCalledWith('http://example.com/test.json');
-        expect(readFileSyncSpy).not.toHaveBeenCalled(); // Should not attempt to read file
+        expect(readFileSyncSpy).not.toHaveBeenCalled();
         expect(axiosGetSpy).toHaveBeenCalledWith('http://example.com/test.json');
     });
 
@@ -192,5 +193,4 @@ describe('CompositeReferenceResolver', () => {
         expect(readFileSyncSpy).toHaveBeenCalledWith('file:///test.json', 'utf-8');
         expect(axiosGetSpy).not.toHaveBeenCalled();
     });
-
 });

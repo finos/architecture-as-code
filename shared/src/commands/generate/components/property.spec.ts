@@ -2,7 +2,7 @@
 
 import { getConstValue, getEnumPlaceholder, getPropertyValue } from './property';
 
-jest.mock('../../../logger', () => {
+vi.mock('../../../logger', () => {
     return {
         initLogger: () => {
             return {
@@ -44,7 +44,7 @@ describe('getPropertyValue', () => {
         expect(getPropertyValue('key-name', {
             'type': 'string'
         }))
-            .toBe('{{ KEY_NAME }}');
+            .toBe('[[ KEY_NAME ]]');
     });
 
     it('generates integer placeholder from variable', () => {
@@ -60,7 +60,7 @@ describe('getPropertyValue', () => {
             'type': 'array'
         }))
             .toEqual([
-                '{{ KEY_NAME }}'
+                '[[ KEY_NAME ]]'
             ]);
     });
 
@@ -68,20 +68,20 @@ describe('getPropertyValue', () => {
         expect(getPropertyValue('key-name', {
             '$ref': '#/ref'
         }))
-            .toBe('{{ REF_KEY_NAME }}');
+            .toBe('[[ REF_KEY_NAME ]]');
     });
     
     it('generates boolean placeholder from variable', () => {
         expect(getPropertyValue('key-name', {
             'type': 'boolean'
         }))
-            .toBe('{{ BOOLEAN_KEY_NAME }}');
+            .toBe('[[ BOOLEAN_KEY_NAME ]]');
     });
 });
 
 describe('getEnumPlaceholder', () => {
     it('extracts ref name', () => {
         expect(getEnumPlaceholder('https://calm.com/core.json#def-name'))
-            .toBe('{{ ENUM_DEF_NAME }}');
+            .toBe('[[ ENUM_DEF_NAME ]]');
     });
 });

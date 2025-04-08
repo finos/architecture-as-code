@@ -1,4 +1,4 @@
-import { CalmRelationship, CalmInteractsType, CalmConnectsType, CalmDeployedInType, CalmComposedOfType } from './relationship.js';
+import { CalmRelationship, CalmInteractsType, CalmConnectsType, CalmDeployedInType, CalmComposedOfType, CalmOptionsRelationshipType } from './relationship.js';
 import { CalmRelationshipSchema } from '../types/core-types.js';
 import { CalmNodeInterface } from './interface.js';
 
@@ -113,5 +113,49 @@ describe('CalmRelationship', () => {
         const composedOfRelationship = relationship.relationshipType as CalmDeployedInType;
         expect(composedOfRelationship.container).toBe('container-002');
         expect(composedOfRelationship.nodes).toEqual(['node-003', 'node-004']);
+    });
+
+    it('should handle a CalmOptionsType relationship type correctly', () => {
+        const composedOfRelationshipData: CalmRelationshipSchema = {
+            'unique-id': 'relationship-004',
+            description: 'A choice between which nodes will be in the architecture',
+            'relationship-type': {
+                'options': [
+                    {
+                        description: 'This is option 1',
+                        nodes: ['node-1'],
+                        relationships: ['relationship-1-x']
+                    },
+                    {
+                        description: 'This is option 2',
+                        nodes: ['node-2'],
+                        relationships: ['relationship-2-x']
+                    }
+                ]
+            },
+            protocol: 'TCP',
+            authentication: 'OAuth2',
+            metadata: [{ key: 'value4' }],
+            controls: { 'control-004': { description: 'Test control 4', requirements: [{ 'control-requirement-url': 'https://example.com/requirement4', 'control-config-url': 'https://example.com/config4' }] } }
+        };
+
+        const relationship = CalmRelationship.fromJson(composedOfRelationshipData);
+
+        expect(relationship).toBeInstanceOf(CalmRelationship);
+        expect(relationship.relationshipType).toBeInstanceOf(CalmOptionsRelationshipType);
+
+        const optionsRelationship = relationship.relationshipType as CalmOptionsRelationshipType;
+        expect(optionsRelationship.options).toEqual([
+            {
+                description: 'This is option 1',
+                nodes: ['node-1'],
+                relationships: ['relationship-1-x']
+            },
+            {
+                description: 'This is option 2',
+                nodes: ['node-2'],
+                relationships: ['relationship-2-x']
+            }
+        ]);
     });
 });

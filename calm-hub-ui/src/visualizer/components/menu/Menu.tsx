@@ -8,7 +8,12 @@ interface MenuProps {
     toggleNodeDesc: () => void;
 }
 
-function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeDesc }: MenuProps) {
+export function Menu({
+    handleUpload,
+    isGraphRendered,
+    toggleConnectionDesc,
+    toggleNodeDesc,
+}: MenuProps) {
     const upload = (file: File) => {
         handleUpload(file);
     };
@@ -38,7 +43,7 @@ function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeD
                         <>
                             <label className="label cursor-pointer">
                                 <span className="label label-text text-base-content">
-                                    Connection Descriptions
+                                    Relationship Descriptions
                                 </span>
                                 <input
                                     type="checkbox"
@@ -69,10 +74,18 @@ function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeD
                                 <span className="label label-text text-base-content">
                                     Zoom: {(zoomLevel * 100).toFixed(0)}%
                                 </span>
-                                <button className="btn btn-xs ms-1 ps-2 pe-2" onClick={zoomIn}>
+                                <button
+                                    className={`btn btn-xs ms-1 ps-2 pe-2 ${zoomLevel >= 5 ? 'btn-disabled' : ''}`}
+                                    onClick={zoomIn}
+                                    disabled={zoomLevel >= 5}
+                                >
                                     +
                                 </button>
-                                <button className="btn btn-xs ms-1 ps-2 pe-2" onClick={zoomOut}>
+                                <button
+                                    className={`btn btn-xs ms-1 ps-2 pe-2 ${zoomLevel <= 0.1 ? 'btn-disabled' : ''}`}
+                                    onClick={zoomOut}
+                                    disabled={zoomLevel <= 0.1}
+                                >
                                     -
                                 </button>
                             </div>
@@ -108,4 +121,3 @@ function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeD
         </header>
     );
 }
-export default Menu;
