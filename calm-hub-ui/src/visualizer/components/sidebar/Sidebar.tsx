@@ -14,7 +14,7 @@ function isCALMEdgeData(data: Node['data'] | Edge['data']): data is Edge['data']
     return data.id != null && data.source != null && data.target != null;
 }
 
-function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
+export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
     // Determine if we have selected a node or edge or something else
     const isCALMNode = isCALMNodeData(selectedData);
     const isCALMEdge = isCALMEdgeData(selectedData);
@@ -93,5 +93,3 @@ function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
         </div>
     );
 }
-
-export default Sidebar;
