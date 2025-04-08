@@ -30,6 +30,8 @@ export type Node = {
         type: string;
         label: string;
         id: string;
+        _displayPlaceholderWithDesc: string;
+        _displayPlaceholderWithoutDesc: string;
         [idx: string]: string;
     };
 };
@@ -106,8 +108,14 @@ export const CytoscapeRenderer = ({
                 {
                     selector: 'node',
                     style: {
+                        label: isNodeDescActive ? 'data(_displayPlaceholderWithDesc)' : 'data(_displayPlaceholderWithoutDesc)',
+                        'text-valign': 'center',
+                        'text-halign': 'center',
+                        'text-wrap': 'wrap',
+                        'text-max-width': '180px',
+                        "font-family": 'Arial',
                         width: '200px',
-                        height: '100px',
+                        height: 'label',
                         shape: 'rectangle',
                     },
                 },
@@ -148,10 +156,14 @@ export const CytoscapeRenderer = ({
         (updatedCy as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
             {
                 query: '.node',
+                valign: 'top',
+                valignBox: 'top',
                 tpl: getNodeLabelTemplateGenerator(false),
             },
             {
                 query: '.node:selected',
+                valign: 'top',
+                valignBox: 'top',
                 tpl: getNodeLabelTemplateGenerator(true),
             },
         ]);
