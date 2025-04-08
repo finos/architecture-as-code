@@ -4,11 +4,11 @@
 
 /calm-hub/ @jpgough-ms @rocketstack-matt @grahampacker-ms @Thels
 
-/cli/ @aidanm3341 @lbulanti-ms @willosborne @grahampacker-ms @jpgough-ms @rocketstack-matt @Thels
+/cli/ @aidanm3341 @lbulanti-ms @willosborne @grahampacker-ms @jpgough-ms @rocketstack-matt @Thels @LeighFinegold
 
 /calm-visualizer/ @oliviajanejohns @aidanm3341 @jpgough-ms @rocketstack-matt
 
-/shared/ @aidanm3341 @lbulanti-ms @willosborne @grahampacker-ms @jpgough-ms @rocketstack-matt @Thels
+/shared/ @aidanm3341 @lbulanti-ms @willosborne @grahampacker-ms @jpgough-ms @rocketstack-matt @Thels @LeighFinegold
 
 # Ownership for dependency-related files at the root level
 /package.json @finos/architecture-as-code-maintainers

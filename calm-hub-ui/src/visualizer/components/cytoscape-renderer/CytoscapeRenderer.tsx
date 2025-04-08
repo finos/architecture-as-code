@@ -3,7 +3,7 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import cytoscape, { Core, EdgeSingular, NodeSingular } from 'cytoscape';
 import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
 import expandCollapse from 'cytoscape-expand-collapse';
-import Sidebar from '../sidebar/Sidebar.js';
+import { Sidebar } from '../sidebar/Sidebar.js';
 import { ZoomContext } from '../zoom-context.provider.js';
 
 // Initialize Cytoscape plugins
@@ -52,7 +52,7 @@ interface Props {
     edges: Edge[];
 }
 
-const CytoscapeRenderer = ({
+export const CytoscapeRenderer = ({
     title,
     nodes = [],
     edges = [],
@@ -189,5 +189,3 @@ const CytoscapeRenderer = ({
         </div>
     );
 };
-
-export default CytoscapeRenderer;
