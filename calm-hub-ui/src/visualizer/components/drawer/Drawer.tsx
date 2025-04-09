@@ -195,37 +195,17 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
                     <Sidebar
                         selectedData={selectedNode}
                         closeSidebar={closeSidebar}
-                        updateElement={function (
-                            updatedData:
-                                | {
-                                      [idx: string]: string | boolean | undefined;
-                                      description: string;
-                                      type: string;
-                                      label: string;
-                                      id: string;
-                                      isShell?: boolean | undefined;
-                                  }
-                                | {
-                                      [idx: string]: string | boolean | undefined;
-                                      id: string;
-                                      label: string;
-                                      source: string;
-                                      target: string;
-                                      isShell?: boolean | undefined;
-                                  }
-                        ): void {
-                            throw new Error('Function not implemented.');
+                        deleteElement={(elementId) => {
+                            console.log(`Would delete element ${elementId} if implemented`);
                         }}
-                        deleteElement={function (elementId: string): void {
-                            throw new Error('Function not implemented.');
+                        nodes={nodes}
+                        updateElement={(updatedData) => {
+                            console.log('Would update element if implemented', updatedData);
                         }}
-                        nodes={[]}
-                        createEdge={function (
-                            sourceId: string,
-                            targetId: string,
-                            label: string
-                        ): void {
-                            throw new Error('Function not implemented.');
+                        createEdge={(sourceId, targetId, label) => {
+                            console.log(
+                                `Would create edge from ${sourceId} to ${targetId} with label "${label}"`
+                            );
                         }}
                     />
                 )}

@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import './cytoscape.css';
 import { useContext, useEffect, useRef, useState } from 'react';
-import cytoscape, { Core, EdgeSingular, NodeSingular, EventObject } from 'cytoscape';
+import cytoscape, { Core, EventObject } from 'cytoscape';
 import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
 import expandCollapse from 'cytoscape-expand-collapse';
 import { Sidebar } from '../sidebar/Sidebar.js';
@@ -33,7 +32,7 @@ export type Node = {
         label: string;
         id: string;
         isShell?: boolean;
-          [idx: string]: string | boolean | undefined;
+        [idx: string]: string | boolean | undefined;
     };
 };
 
@@ -43,8 +42,8 @@ export type Edge = {
         label: string;
         source: string;
         target: string;
-          isShell?: boolean;
-          [idx: string]: string | boolean | undefined;
+        isShell?: boolean;
+        [idx: string]: string | boolean | undefined;
     };
 };
 
@@ -68,15 +67,16 @@ export const CytoscapeRenderer = ({
     const cyRef = useRef<HTMLDivElement>(null);
     const [cy, setCy] = useState<Core | null>(null);
     const { zoomLevel, updateZoom } = useContext(ZoomContext);
-    const [selectedElement, setSelectedElement] = useState<NodeData | EdgeData | null>(null);
+    const [selectedNode, setSelectedNode] = useState<Node['data'] | null>(null);
+    const [selectedEdge, setSelectedEdge] = useState<Edge['data'] | null>(null);
     const [edgeCreationSource, setEdgeCreationSource] = useState<string | null>(null);
+    const [isInEdgeCreationMode, setIsInEdgeCreationMode] = useState(false);
 
     // local state for nodes and edges to track changes
     const [nodes, setNodes] = useState<Node[]>(initialNodes);
     const [edges, setEdges] = useState<Edge[]>(initialEdges);
 
-    const [isInEdgeCreationMode, setIsInEdgeCreationMode] = useState(false);
-
+    // custom styles for shell nodes and other elements
     useEffect(() => {
         const styleTag = document.createElement('style');
         styleTag.textContent = `
@@ -127,7 +127,12 @@ export const CytoscapeRenderer = ({
         }
         .edge-source {
             border: 2px solid #0074D9 !important;
-            box-shadow: 0 0 10px rgba(0
+            box-shadow: 0 0 10px rgba(0, 116, 217, 0.5) !important;
+        }
+        .selected-node {
+            border: 2px solid #FF4136 !important;
+            box-shadow: 0 0 5px rgba(255, 65, 54, 0.5) !important;
+        }
         `;
         document.head.appendChild(styleTag);
 
@@ -135,43 +140,50 @@ export const CytoscapeRenderer = ({
             document.head.removeChild(styleTag);
         };
     }, []);
-  // Generate node label templates
-    function getNodeLabelTemplateGenerator(): (data: NodeData) => string {
-        return (data: NodeData) => {
+    // Generate node label templates
+    const getNodeLabelTemplateGenerator =
+        (selected = false) =>
+        (data: Node['data']) => {
             if (data.isShell) {
                 // Shell node[new node]
                 return `<div class="shell-node-container" data-id="${data.id}">
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                    <p class="title" style="margin: 0; font-weight: bold;">${data.label || 'New Node'}</p>
-                    <button class="add-details-btn" data-nodeid="${data.id}">Add Details</button>
-                </div>
-            </div>`;
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <p class="title" style="margin: 0; font-weight: bold;">${data.label || 'New Node'}</p>
+                        <button class="add-details-btn" data-nodeid="${data.id}">Add Details</button>
+                    </div>
+                </div>`;
             } else {
                 // Regular node
-                return `<div class="node element data-id="${data.id}"">
-                <p class="title" style="margin: 0; font-weight: bold;">${data.label}</p>
-                      <p class="type" style="margin: 2px 0;">${data.type}</p>
-                      <p class="description" style="margin: 2px 0;">${isNodeDescActive ? data.description : ''}</p>
-                    </div>`;
+                const isSelectedNode = selectedNode && selectedNode.id === data.id;
+                return `<div class="node element ${selected || isSelectedNode ? 'selected-node' : ''}" data-id="${data.id}">
+                    <p class="title" style="margin: 0; font-weight: bold;">${data.label}</p>
+                    <p class="type" style="margin: 2px 0;">${data.type}</p>
+                    <p class="description" style="margin: 2px 0;">${isNodeDescActive ? data.description : ''}</p>
+                </div>`;
             }
         };
-    }
+    // Function to refresh node labels
     const refreshNodeLabels = () => {
         if (cy) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (cy as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
                 {
                     query: 'node',
-                    tpl: getNodeLabelTemplateGenerator(),
+                    tpl: getNodeLabelTemplateGenerator(false),
                     halign: 'center',
                     valign: 'center',
-                    halignBox: 'center',
-                    valignBox: 'center',
+                },
+                {
+                    query: 'node:selected',
+                    tpl: getNodeLabelTemplateGenerator(true),
+                    halign: 'center',
+                    valign: 'center',
                 },
             ]);
         }
     };
 
+    // Handle clicks on node buttons
     useEffect(() => {
         const handleDocumentClick = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
@@ -183,7 +195,7 @@ export const CytoscapeRenderer = ({
                 if (nodeId && cy) {
                     const node = cy.getElementById(nodeId);
                     if (node.length > 0) {
-                        setSelectedElement(node.data());
+                        setSelectedNode(node.data());
                     }
                 }
             }
@@ -193,6 +205,7 @@ export const CytoscapeRenderer = ({
         return () => document.removeEventListener('click', handleDocumentClick);
     }, [cy]);
 
+    // Add a new node to the graph
     const addNode = () => {
         if (cy) {
             const newNodeId = `node-${Date.now()}`;
@@ -204,10 +217,11 @@ export const CytoscapeRenderer = ({
                 isShell: true,
             };
 
-            setNodes((prev) => [...prev, { data: shellNodeData }]);
+            setNodes((prev) => [...prev, { classes: 'node', data: shellNodeData }]);
 
             cy.add({
                 group: 'nodes',
+                classes: 'node',
                 data: shellNodeData,
                 position: { x: 300, y: 300 },
             });
@@ -215,21 +229,21 @@ export const CytoscapeRenderer = ({
             cy.layout(breadthFirstLayout).run();
 
 
-                refreshNodeLabels();
-                setSelectedElement(shellNodeData);
-
+            refreshNodeLabels();
+            setSelectedNode(shellNodeData);
         }
     };
 
+    // Export graph data as JSON
     const saveJSON = () => {
         if (cy) {
             // Get only the nodes and edges that still exist in the Cytoscape instance
-            const currentNodeIds = new Set(cy.nodes().map(node => node.id()));
-            const currentEdgeIds = new Set(cy.edges().map(edge => edge.id()));
+            const currentNodeIds = new Set(cy.nodes().map((node) => node.id()));
+            const currentEdgeIds = new Set(cy.edges().map((edge) => edge.id()));
 
             // Filter nodes that still exist and aren't shell nodes
             const formattedNodes = nodes
-                .filter(node => currentNodeIds.has(node.data.id) && !node.data.isShell)
+                .filter((node) => currentNodeIds.has(node.data.id) && !node.data.isShell)
                 .map((node: Node) => ({
                     'unique-id': node.data.id,
                     'node-type': node.data.type || '',
@@ -240,7 +254,7 @@ export const CytoscapeRenderer = ({
 
             // Filter edges that still exist and aren't shell edges
             const formattedRelationships = edges
-                .filter(edge => currentEdgeIds.has(edge.data.id) && !edge.data.isShell)
+                .filter((edge) => currentEdgeIds.has(edge.data.id) && !edge.data.isShell)
                 .map((edge: Edge) => ({
                     'unique-id': edge.data.id,
                     description: edge.data.label || '',
@@ -264,6 +278,14 @@ export const CytoscapeRenderer = ({
                 relationships: formattedRelationships,
             };
 
+            // Callback for saving data if provided
+            if (onSaveData) {
+                onSaveData(
+                    nodes.filter((node) => currentNodeIds.has(node.data.id) && !node.data.isShell),
+                    edges.filter((edge) => currentEdgeIds.has(edge.data.id) && !edge.data.isShell)
+                );
+            }
+
             // Create download link
             const dataStr = JSON.stringify(exportData, null, 2);
             const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
@@ -275,11 +297,13 @@ export const CytoscapeRenderer = ({
         }
     };
 
-    const updateElement = (updatedData: NodeData | EdgeData) => {
+    // Update node or edge data
+    const updateElement = (updatedData: Node['data'] | Edge['data']) => {
         if (!cy) return;
 
         // Check if this is an existing element
-        const originalElement = cy.getElementById(selectedElement?.id || '');
+        const elementId = selectedNode?.id || selectedEdge?.id || '';
+        const originalElement = cy.getElementById(elementId);
         if (originalElement.length === 0) return;
 
         const finalData = { ...updatedData };
@@ -289,28 +313,34 @@ export const CytoscapeRenderer = ({
             finalData.isShell = false;
         }
 
-        // Check if ID changed when new node was being edited
-        const idChanged = selectedElement?.id !== finalData.id;
+        // Check if id changed when new node was being edited
+        const selectedElementId = selectedNode
+            ? selectedNode.id
+            : selectedEdge
+              ? selectedEdge.id
+              : '';
+        const idChanged = selectedElementId !== finalData.id;
 
         if (idChanged && 'type' in finalData) {
-            // Create new node with new ID
+            // Create new node with new id
             cy.add({
                 group: 'nodes',
+                classes: 'node',
                 data: finalData,
-                position: originalElement.position()
+                position: originalElement.position(),
             });
 
             // Update edges that reference this node
-            cy.edges().forEach(edge => {
+            cy.edges().forEach((edge) => {
                 const edgeData = edge.data();
                 let changed = false;
 
-                if (edgeData.source === selectedElement!.id) {
+                if (edgeData.source === selectedElementId) {
                     edgeData.source = finalData.id;
                     changed = true;
                 }
 
-                if (edgeData.target === selectedElement!.id) {
+                if (edgeData.target === selectedElementId) {
                     edgeData.target = finalData.id;
                     changed = true;
                 }
@@ -319,11 +349,9 @@ export const CytoscapeRenderer = ({
                     edge.data(edgeData);
 
                     // Update state for edges
-                    setEdges(prev =>
-                        prev.map(e =>
-                            e.data.id === edgeData.id
-                                ? { ...e, data: { ...edgeData } }
-                                : e
+                    setEdges((prev) =>
+                        prev.map((e) =>
+                            e.data.id === edgeData.id ? { ...e, data: { ...edgeData } } : e
                         )
                     );
                 }
@@ -333,39 +361,39 @@ export const CytoscapeRenderer = ({
             originalElement.remove();
 
             // Update state for nodes
-            setNodes(prev =>
-                prev.map(node =>
-                    node.data.id === selectedElement!.id
-                        ? { ...node, data: finalData as NodeData }
+            setNodes((prev) =>
+                prev.map((node) =>
+                    node.data.id === selectedElementId
+                        ? { ...node, classes: 'node', data: finalData as Node['data'] }
                         : node
                 )
             );
 
             // Update selected element for sidebar
-            setSelectedElement(finalData);
+            setSelectedNode(finalData);
+            setSelectedEdge(null);
         } else {
-            // Normal update (the new node ID wasn't changed)
+            // Normal update (the new node id wasn't changed)
             originalElement.data(finalData);
+            originalElement.style('visibility', 'visible');
 
             if ('type' in finalData) {
-                setNodes(prev =>
-                    prev.map(node =>
+                setNodes((prev) =>
+                    prev.map((node) =>
                         node.data.id === finalData.id
-                            ? { ...node, data: finalData as NodeData }
+                            ? { ...node, classes: 'node', data: finalData }
                             : node
                     )
                 );
+                setSelectedNode(finalData);
             } else if ('source' in finalData && 'target' in finalData) {
-                setEdges(prev =>
-                    prev.map(edge =>
-                        edge.data.id === finalData.id
-                            ? { ...edge, data: finalData as EdgeData }
-                            : edge
+                setEdges((prev) =>
+                    prev.map((edge) =>
+                        edge.data.id === finalData.id ? { ...edge, data: finalData } : edge
                     )
                 );
+                setSelectedEdge(finalData);
             }
-
-            setSelectedElement(finalData);
         }
 
         // Always refresh node labels after an update
@@ -374,7 +402,7 @@ export const CytoscapeRenderer = ({
         }, 100);
     };
 
-
+    // Delete a node or edge
     const deleteElement = (elementId: string) => {
         if (!cy) return;
 
@@ -389,9 +417,9 @@ export const CytoscapeRenderer = ({
                 const connectedEdges = element.connectedEdges();
 
                 // Remove them from the cytoscape instance
-                connectedEdges.forEach(edge => {
+                connectedEdges.forEach((edge: { id: () => string }) => {
                     // Also remove from the state
-                    setEdges(prev => prev.filter(e => e.data.id !== edge.id()));
+                    setEdges((prev) => prev.filter((e) => e.data.id !== edge.id()));
                 });
                 connectedEdges.remove();
             }
@@ -405,10 +433,12 @@ export const CytoscapeRenderer = ({
             }
 
             // Clear the selection
-            setSelectedElement(null);
+            setSelectedNode(null);
+            setSelectedEdge(null);
         }
     };
 
+    // Render the toolbar
     const renderToolbar = () => (
         <div className="p-4 bg-gray-100 flex flex-wrap items-center gap-4 border-b">
             {title && (
@@ -448,78 +478,25 @@ export const CytoscapeRenderer = ({
         </div>
     );
 
-    useEffect(() => {
-        if (cy) {
-            //Ensure cytoscape zoom and context state are synchronised
-            if (cy.zoom() !== zoomLevel) {
-                updateZoom(cy.zoom());
-            }
-            /* eslint-disable @typescript-eslint/no-explicit-any */
-            (cy as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
-                {
-                    query: '.node',
-                    tpl: getNodeLabelTemplateGenerator(),
-                },
-                {
-                    query: '.node:selected',
-                    tpl: getNodeLabelTemplateGenerator(),
-                },
-            ]);
-
-            cy.on('tap', 'node', (e: EventObject) => {
-                e.preventDefault();
-                const node = e.target;
-                const nodeData = node.data();
-                if (edgeCreationSource && edgeCreationSource !== nodeData.id) {
-                    // Create edge from edgeCreationSource to this node
-                    const newEdgeId = `edge-${Date.now()}`;
-                    const newEdge = {
-                        id: newEdgeId,
-                        source: edgeCreationSource,
-                        target: nodeData.id,
-                        label: 'New Connection',
-                        isShell: true,
-                    };
-
-                    // Add to the cytoscape instance
-                    cy.add({
-                        group: 'edges',
-                        data: newEdge,
-                    });
-
-                    // Add to the state
-                    setEdges(prev => [...prev, { data: newEdge }]);
-
-                    // Reset the edge creation mode
-                    setEdgeCreationSource(null);
-                    setIsInEdgeCreationMode(false);
-
-                    // Select the new edge for editing
-                    setSelectedElement(newEdge);
-                    return;
-                }
-                setSelectedElement(nodeData);
-            });
-
-            cy.on('tap', 'edge', (e: EventObject) => {
-                e.preventDefault();
-                setEdgeCreationSource(null);
-                setSelectedElement(e.target.data()); // Update state with the clicked node's data
-            });
-
     // Initialize Cytoscape instance
     useEffect(() => {
         const container = cyRef.current;
         if (!container) return;
 
-        // Preserve zoom and pan state if Cytoscape instance already exists
-        const currentZoom = cy?.zoom() || 1;
-        const currentPan = cy?.pan() || { x: 0, y: 0 };
+        if (cy) {
+            cy.destroy();
+        }
 
-        // Initialize Cytoscape
-        const updatedCy = cytoscape({
-            container,
-            elements: [...nodes, ...edges],
+        console.log('Initializing with nodes:', initialNodes);
+
+        const nodesWithClass = initialNodes.map((node) => ({
+            ...node,
+            classes: node.classes ? `${node.classes} node` : 'node',
+        }));
+
+        const cytoscapeInstance = cytoscape({
+            container: container,
+            elements: [...nodesWithClass, ...initialEdges],
             style: [
                 {
                     selector: 'edge',
@@ -540,9 +517,10 @@ export const CytoscapeRenderer = ({
                         width: '200px',
                         height: '100px',
                         shape: 'rectangle',
-                        'background-opacity': 0,
-                                                'border-width': 0,
-                                                'background-color': 'transparent',
+                        'background-color': '#f5f5f5',
+                        'text-background-opacity': 0,
+                        'border-width': 1,
+                        'border-color': '#cccccc',
                     },
                 },
                 {
@@ -551,15 +529,15 @@ export const CytoscapeRenderer = ({
                         label: 'data(label)',
                     },
                 },
-             {
-                                selector: 'node.shell-node',
-                                style: {
-                                    width: '200px',
-                                    height: '100px',
-                                    'background-opacity': 0,
-                                    'border-width': 0,
-                                },
-                            },
+                {
+                    selector: 'node.shell-node',
+                    style: {
+                        width: '200px',
+                        height: '100px',
+                        'background-opacity': 0,
+                        'border-width': 0,
+                    },
+                },
             ],
             layout: breadthFirstLayout,
             boxSelectionEnabled: true,
@@ -567,45 +545,96 @@ export const CytoscapeRenderer = ({
             maxZoom: 5,
         });
 
-        // Restore zoom and pan state
-        updatedCy.zoom(currentZoom);
-        updatedCy.pan(currentPan);
+        setCy(cytoscapeInstance);
+        setNodes(nodesWithClass);
+        setEdges(initialEdges);
 
-        // Add event listeners
-        updatedCy.on('tap', 'node', (e) => {
-            const node = e.target as NodeSingular;
+        cytoscapeInstance.batch(() => {
+            cytoscapeInstance.nodes().forEach((node) => {
+                node.addClass('node');
+            });
+        });
+
+        // Set up event handlers
+        cytoscapeInstance.on('tap', 'node', (e: EventObject) => {
+            const node = e.target;
+            const nodeData = node.data();
+
+            // Handle edge creation mode
+            if (isInEdgeCreationMode && edgeCreationSource && edgeCreationSource !== nodeData.id) {
+                const newEdgeId = `edge-${Date.now()}`;
+                const newEdge = {
+                    data: {
+                        id: newEdgeId,
+                        source: edgeCreationSource,
+                        target: nodeData.id,
+                        label: 'New Connection',
+                        isShell: true, // Mark as shell to enter edit mode
+                    },
+                };
+
+                // Add to cytoscape
+                cytoscapeInstance.add({
+                    group: 'edges',
+                    data: newEdge.data,
+                });
+
+                // Add to state
+                setEdges((prev) => [...prev, newEdge]);
+
+                // Reset edge creation mode
+                setEdgeCreationSource(null);
+                setIsInEdgeCreationMode(false);
+
+                // Select the new edge for editing
+                setSelectedNode(null);
+                setSelectedEdge(newEdge.data);
+                return;
+            }
+
+            // Normal node selection
+            setSelectedNode(nodeData);
             setSelectedEdge(null);
-            setSelectedNode(node?.data());
         });
 
-        updatedCy.on('tap', 'edge', (e) => {
-            const edge = e.target as EdgeSingular;
+        cytoscapeInstance.on('tap', 'edge', (e: EventObject) => {
+            const edge = e.target;
+            setSelectedEdge(edge.data());
             setSelectedNode(null);
-            setSelectedEdge(edge?.data());
+            setEdgeCreationSource(null);
+            setIsInEdgeCreationMode(false);
         });
 
-        updatedCy.on('zoom', () => updateZoom(updatedCy.zoom()));
+        cytoscapeInstance.on('tap', (e: EventObject) => {
+            if (e.target === cytoscapeInstance) {
+                // Clicked on background
+                setSelectedNode(null);
+                setSelectedEdge(null);
 
-        // Update node labels dynamically
-        /* eslint-disable @typescript-eslint/no-explicit-any */
-        (updatedCy as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
-            {
-                query: '.node',
-                tpl: getNodeLabelTemplateGenerator(false),
-            },
-            {
-                query: '.node:selected',
-                tpl: getNodeLabelTemplateGenerator(true),
-            },
-        ]);
+                // Only cancel edge creation when click on background is detected
+                if (isInEdgeCreationMode) {
+                    setEdgeCreationSource(null);
+                    setIsInEdgeCreationMode(false);
+                }
+            }
+        });
 
-        // Set Cytoscape instance
-        setCy(updatedCy);
+        cytoscapeInstance.on('zoom', () => {
+            updateZoom(cytoscapeInstance.zoom());
+        });
+
+        // Apply HTML labels after a short delay to ensure nodes are ready
+        setTimeout(() => {
+            console.log('Running initial refresh of node labels');
+            refreshNodeLabels();
+        }, 100);
 
         return () => {
-            updatedCy.destroy(); // Clean up Cytoscape instance
+            if (cytoscapeInstance) {
+                cytoscapeInstance.destroy();
+            }
         };
-    }, [nodes, edges, isConDescActive, isNodeDescActive, updateZoom]);
+    }, [initialNodes, initialEdges, isInEdgeCreationMode, edgeCreationSource, updateZoom]);
 
     // Synchronize zoom level with context
     useEffect(() => {
@@ -613,6 +642,14 @@ export const CytoscapeRenderer = ({
             cy.zoom(zoomLevel);
         }
     }, [cy, zoomLevel]);
+
+    // Refresh labels when visibility changes or selection changes
+    useEffect(() => {
+        if (cy) {
+            console.log('Selection or visibility changed, refreshing labels');
+            refreshNodeLabels();
+        }
+    }, [isNodeDescActive, isConDescActive, selectedNode, selectedEdge, cy]);
 
     return (
         <div className="relative flex flex-col">
@@ -625,11 +662,16 @@ export const CytoscapeRenderer = ({
                         height: 'calc(100vh - 200px)',
                     }}
                 />
-                {selectedElement && (
+                {(selectedNode || selectedEdge) && (
                     <div className="absolute right-0">
-                       <Sidebar
-                            selectedData={selectedElement}
-                            closeSidebar={() => setSelectedElement(null)}
+                        <Sidebar
+                            selectedData={
+                                selectedNode || (selectedEdge as Node['data'] | Edge['data'])
+                            }
+                            closeSidebar={() => {
+                                setSelectedNode(null);
+                                setSelectedEdge(null);
+                            }}
                             updateElement={updateElement}
                             deleteElement={deleteElement}
                             nodes={nodes}
@@ -651,10 +693,11 @@ export const CytoscapeRenderer = ({
                                     });
 
                                     // Add to the state
-                                    setEdges(prev => [...prev, { data: newEdge }]);
+                                    setEdges((prev) => [...prev, { data: newEdge }]);
 
                                     // Select the new edge for editing
-                                    setSelectedElement(newEdge);
+                                    setSelectedNode(null);
+                                    setSelectedEdge(newEdge);
                                 }
                             }}
                         />
@@ -664,5 +707,3 @@ export const CytoscapeRenderer = ({
         </div>
     );
 };
-
-export default CytoscapeRenderer;

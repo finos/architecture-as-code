@@ -20,7 +20,7 @@ function isCALMEdgeData(data: Node['data'] | Edge['data']): data is Edge['data']
     return data.id != null && data.source != null && data.target != null;
 }
 
-function Sidebar({
+export function Sidebar({
     selectedData,
     closeSidebar,
     updateElement,
