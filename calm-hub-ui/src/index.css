@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+[data-theme='light'] {
+    --color-primary: #000063;
+    --color-accent: #007dff;
+}
+
 #root {
     height: 100vh;
 }
