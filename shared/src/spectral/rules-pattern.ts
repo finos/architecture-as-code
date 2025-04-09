@@ -1,11 +1,12 @@
 import { RulesetDefinition } from '@stoplight/spectral-core';
-import { pattern, truthy } from '@stoplight/spectral-functions';
+import { pattern, truthy, length, xor } from '@stoplight/spectral-functions';
 import { numericalPlaceHolder } from './functions/helper-functions';
 import nodeIdExists from './functions/pattern/node-id-exists';
 import idsAreUnique from './functions/pattern/ids-are-unique';
 import nodeHasRelationship from './functions/pattern/node-has-relationship';
 import { interfaceIdExists } from './functions/pattern/interface-id-exists';
 import { interfaceIdExistsOnNode } from './functions/pattern/interface-id-exists-on-node';
+import { isDefinedInOneOfOrAnyOf } from './functions/pattern/is-defined-in-oneof-or-anyof';
 
 
 const patternRules: RulesetDefinition = {
@@ -74,6 +75,15 @@ const patternRules: RulesetDefinition = {
                 function: nodeIdExists,
             },
         },
+        'group-relationship-with-const-nodes-references-existing-nodes-in-pattern': {
+            description: 'All nodes referenced by a grouping relationship must reference existing nodes',
+            severity: 'error',
+            message: '{{error}}',
+            given: '$..relationship-type..nodes.const[*]',
+            then: {
+                function: nodeIdExists,
+            },
+        },
         'avoid-boolean-properties': {
             description: 'Boolean property detected. Booleans should ideally be avoided as they are closed for extension; have you considered using an enum instead?',
             severity: 'warn',
@@ -138,7 +148,57 @@ const patternRules: RulesetDefinition = {
                 function: idsAreUnique,
             },
         },
-
+        'nodes-referenced-in-pattern-decision-must-be-in-oneof-or-anyof-block': {
+            description: 'Nodes referenced in pattern decision must be in oneOf or anyOf block',
+            severity: 'error',
+            message: '{{error}}',
+            given: '$..relationship-type.properties.options.prefixItems[*]..nodes.const[*]',
+            then: {
+                function: isDefinedInOneOfOrAnyOf,
+                functionOptions: {
+                    calmType: 'nodes'
+                }
+            },
+        },
+        'relationships-referenced-in-pattern-decision-must-be-in-oneof-or-anyof-block': {
+            description: 'Relationships referenced in pattern decision must be in oneOf or anyOf block',
+            severity: 'error',
+            message: '{{error}}',
+            given: '$..relationship-type.properties.options.prefixItems[*]..relationships.const[*]',
+            then: {
+                function: isDefinedInOneOfOrAnyOf,
+                functionOptions: {
+                    calmType: 'relationships'
+                }
+            },
+        },
+        'pattern-option-relationship-must-only-have-oneof-or-anyof-items': {
+            description: 'Options relationships must only contain oneOf or anyOf items',
+            severity: 'error',
+            message: '{{error}}',
+            given: '$..relationship-type.properties.options.prefixItems[*]',
+            then: {
+                function: xor,
+                functionOptions: {
+                    properties: [
+                        'oneOf',
+                        'anyOf',
+                    ]
+                },
+            },
+        },
+        'pattern-option-relationship-must-have-max-one-item': {
+            description: 'Options relationships must have max one item',
+            severity: 'error',
+            message: '{{error}}',
+            given: '$..relationship-type.properties.options.prefixItems',
+            then: {
+                function: length,
+                functionOptions: {
+                    max: 1
+                },
+            },
+        }
     }
 };
 
