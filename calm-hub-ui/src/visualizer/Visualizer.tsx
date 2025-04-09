@@ -17,6 +17,8 @@ function Visualizer() {
     const data = useMemo(() => location.state || {}, [location.state]);
     const [fileInstance, setFileInstance] = useState<string | undefined>(undefined);
     const [fileTitle, setFileTitle] = useState<string | undefined>(undefined);
+    const toggleState = (setter: React.Dispatch<React.SetStateAction<boolean>>) => () =>
+        setter((prev) => !prev);
 
     async function handleFile(instanceFile: File) {
         setFileTitle(instanceFile.name);
@@ -35,13 +37,11 @@ function Visualizer() {
                 <Navbar />
                 <Menu
                     handleUpload={handleFile}
-                    isGraphRendered={instance ? true : false}
-                    toggleNodeDesc={() =>
-                        setNodeDescActive((isNodeDescActive) => !isNodeDescActive)
-                    }
-                    toggleConnectionDesc={() =>
-                        setConDescActive((isConDescActive) => !isConDescActive)
-                    }
+                    isGraphRendered={!!instance}
+                    toggleNodeDesc={toggleState(setNodeDescActive)}
+                    toggleConnectionDesc={toggleState(setConDescActive)}
+                    isNodeDescActive={isNodeDescActive}
+                    isConDescActive={isConDescActive}
                 />
                 <Drawer
                     isNodeDescActive={isNodeDescActive}

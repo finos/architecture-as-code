@@ -6,6 +6,8 @@ interface MenuProps {
     isGraphRendered: boolean;
     toggleConnectionDesc: () => void;
     toggleNodeDesc: () => void;
+    isConDescActive?: boolean;
+    isNodeDescActive?: boolean;
 }
 
 export function Menu({
@@ -13,6 +15,8 @@ export function Menu({
     isGraphRendered,
     toggleConnectionDesc,
     toggleNodeDesc,
+    isConDescActive,
+    isNodeDescActive,
 }: MenuProps) {
     const upload = (file: File) => {
         handleUpload(file);
@@ -50,6 +54,7 @@ export function Menu({
                                     className="toggle"
                                     name="connection-description"
                                     aria-label="connection-description"
+                                    checked={isConDescActive}
                                     onClick={toggleConnectionDesc}
                                 />
                             </label>
@@ -61,6 +66,7 @@ export function Menu({
                                     type="checkbox"
                                     className="toggle"
                                     aria-label="node-description"
+                                    checked={isNodeDescActive}
                                     onClick={toggleNodeDesc}
                                 />
                             </label>
