@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: attendees
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: attendees
+  template:
+    metadata:
+      labels:
+        app: attendees
+    spec:
+      containers:
+        - name: app
+          image: masteringapi/attendees-quarkus:ws-native-db
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080

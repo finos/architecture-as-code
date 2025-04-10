@@ -15,7 +15,7 @@ export async function runValidate(options) {
         exitBasedOffOfValidationOutcome(outcome, options.strict);
     }
     catch (err) {
-        const logger = initLogger(options.verbose);
+        const logger = initLogger(options.verbose, 'calm-validate');
         logger.error('An error occurred while validating: ' + err.message);
         logger.debug(err.stack);
         process.exit(1);

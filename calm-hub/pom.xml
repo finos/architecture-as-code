@@ -16,7 +16,7 @@
     <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <surefire-plugin.version>3.5.2</surefire-plugin.version>
+    <surefire-plugin.version>3.5.3</surefire-plugin.version>
   </properties>
 
   <dependencies>
@@ -159,7 +159,7 @@
               <goal>install-node-and-npm</goal>
             </goals>
             <configuration>
-              <nodeVersion>v18.17.1</nodeVersion>
+              <nodeVersion>v18.18.0</nodeVersion>
               <npmVersion>9.8.1</npmVersion>
             </configuration>
           </execution>
@@ -186,7 +186,7 @@
       <plugin>
       <groupId>org.jacoco</groupId>
       <artifactId>jacoco-maven-plugin</artifactId>
-      <version>0.8.12</version>
+      <version>0.8.13</version>
         <configuration>
         <excludes>
           <exclude>**/*Builder.*</exclude>

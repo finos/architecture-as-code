@@ -3,7 +3,7 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import cytoscape, { Core, EdgeSingular, NodeSingular } from 'cytoscape';
 import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
 import expandCollapse from 'cytoscape-expand-collapse';
-import Sidebar from '../sidebar/Sidebar.js';
+import { Sidebar } from '../sidebar/Sidebar.js';
 import { ZoomContext } from '../zoom-context.provider.js';
 
 // Initialize Cytoscape plugins
@@ -30,6 +30,8 @@ export type Node = {
         type: string;
         label: string;
         id: string;
+        _displayPlaceholderWithDesc: string;
+        _displayPlaceholderWithoutDesc: string;
         [idx: string]: string;
     };
 };
@@ -52,7 +54,7 @@ interface Props {
     edges: Edge[];
 }
 
-const CytoscapeRenderer = ({
+export const CytoscapeRenderer = ({
     title,
     nodes = [],
     edges = [],
@@ -106,8 +108,14 @@ const CytoscapeRenderer = ({
                 {
                     selector: 'node',
                     style: {
+                        label: isNodeDescActive ? 'data(_displayPlaceholderWithDesc)' : 'data(_displayPlaceholderWithoutDesc)',
+                        'text-valign': 'center',
+                        'text-halign': 'center',
+                        'text-wrap': 'wrap',
+                        'text-max-width': '180px',
+                        "font-family": 'Arial',
                         width: '200px',
-                        height: '100px',
+                        height: 'label',
                         shape: 'rectangle',
                     },
                 },
@@ -148,10 +156,14 @@ const CytoscapeRenderer = ({
         (updatedCy as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
             {
                 query: '.node',
+                valign: 'top',
+                valignBox: 'top',
                 tpl: getNodeLabelTemplateGenerator(false),
             },
             {
                 query: '.node:selected',
+                valign: 'top',
+                valignBox: 'top',
                 tpl: getNodeLabelTemplateGenerator(true),
             },
         ]);
@@ -174,9 +186,9 @@ const CytoscapeRenderer = ({
     return (
         <div className="relative flex m-auto border">
             {title && (
-                <div className="graph-title absolute m-5 bg-primary-content shadow-md">
-                    <span className="text-m font-thin">Architecture: </span>
-                    <span className="text-m font-semibold">{title}</span>
+                <div className="graph-title absolute m-5 bg-accent shadow-md">
+                    <span className="text-m font-thin text-primary-content">Architecture: </span>
+                    <span className="text-m font-semibold text-primary-content">{title}</span>
                 </div>
             )}
             <div ref={cyRef} className="flex-1 bg-white visualizer" style={{ height: '100vh' }} />
@@ -189,5 +201,3 @@ const CytoscapeRenderer = ({
         </div>
     );
 };
-
-export default CytoscapeRenderer;

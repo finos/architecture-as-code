@@ -6,9 +6,18 @@ interface MenuProps {
     isGraphRendered: boolean;
     toggleConnectionDesc: () => void;
     toggleNodeDesc: () => void;
+    isConDescActive?: boolean;
+    isNodeDescActive?: boolean;
 }
 
-function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeDesc }: MenuProps) {
+export function Menu({
+    handleUpload,
+    isGraphRendered,
+    toggleConnectionDesc,
+    toggleNodeDesc,
+    isConDescActive,
+    isNodeDescActive,
+}: MenuProps) {
     const upload = (file: File) => {
         handleUpload(file);
     };
@@ -38,13 +47,14 @@ function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeD
                         <>
                             <label className="label cursor-pointer">
                                 <span className="label label-text text-base-content">
-                                    Connection Descriptions
+                                    Relationship Descriptions
                                 </span>
                                 <input
                                     type="checkbox"
                                     className="toggle"
                                     name="connection-description"
                                     aria-label="connection-description"
+                                    checked={isConDescActive}
                                     onClick={toggleConnectionDesc}
                                 />
                             </label>
@@ -56,6 +66,7 @@ function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeD
                                     type="checkbox"
                                     className="toggle"
                                     aria-label="node-description"
+                                    checked={isNodeDescActive}
                                     onClick={toggleNodeDesc}
                                 />
                             </label>
@@ -116,4 +127,3 @@ function Menu({ handleUpload, isGraphRendered, toggleConnectionDesc, toggleNodeD
         </header>
     );
 }
-export default Menu;

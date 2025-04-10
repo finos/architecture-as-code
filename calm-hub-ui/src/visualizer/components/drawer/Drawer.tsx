@@ -1,6 +1,6 @@
-import Sidebar from '../sidebar/Sidebar.js';
+import { Sidebar } from '../sidebar/Sidebar.js';
 import { useState } from 'react';
-import CytoscapeRenderer, { Node, Edge } from '../cytoscape-renderer/CytoscapeRenderer.js';
+import { CytoscapeRenderer, Node, Edge } from '../cytoscape-renderer/CytoscapeRenderer.js';
 import {
     CALMComposedOfRelationship,
     CALMConnectsRelationship,
@@ -33,7 +33,7 @@ function isConnects(relationship: CALMRelationship): relationship is CALMConnect
     return 'connects' in relationship['relationship-type'];
 }
 
-const getComposedOfRelationships = (calmInstance: CALMArchitecture) => {
+function getComposedOfRelationships(calmInstance: CALMArchitecture) {
     const composedOfRelationships: {
         [idx: string]: {
             type: 'parent' | 'child';
@@ -55,8 +55,8 @@ const getComposedOfRelationships = (calmInstance: CALMArchitecture) => {
     });
 
     return composedOfRelationships;
-};
-const getDeployedInRelationships = (calmInstance: CALMArchitecture) => {
+}
+function getDeployedInRelationships(calmInstance: CALMArchitecture) {
     const deployedInRelationships: {
         [idx: string]: {
             type: 'parent' | 'child';
@@ -77,9 +77,9 @@ const getDeployedInRelationships = (calmInstance: CALMArchitecture) => {
     });
 
     return deployedInRelationships;
-};
+}
 
-function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive }: DrawerProps) {
+export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive }: DrawerProps) {
     const [selectedNode, setSelectedNode] = useState(null);
 
     function closeSidebar() {
@@ -99,6 +99,9 @@ function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive }: Draw
                     description: node.description,
                     type: node['node-type'],
                     id: node['unique-id'],
+                    //Used to make the size of the node scale dynamically
+                    _displayPlaceholderWithDesc: `${node.name}\n\n\n${node['node-type']}\n\n\n${node.description}\n`,
+                    _displayPlaceholderWithoutDesc: `${node.name}\n\n\n${node['node-type']}`,
                 },
             };
 
@@ -198,5 +201,3 @@ function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive }: Draw
         </div>
     );
 }
-
-export default Drawer;
