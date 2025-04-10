@@ -15,7 +15,7 @@
     {
       "unique-id": "load-balancer",
       "name": "Load Balancer",
-      "description": "Ingress for the Kubernetes cluster",
+      "description": "The attendees service, or a placeholder for another application",
       "node-type": "network",
       "interfaces": [
         {
