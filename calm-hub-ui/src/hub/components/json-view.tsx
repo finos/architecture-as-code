@@ -13,7 +13,7 @@ export function JsonRenderer({ jsonString }: JsonRendererProps) {
     const jsonView = (
         <div>
             <button
-                className="bg-primary hover:bg-blue-500 text-white font-bold py-2 px-4 rounded float-right"
+                className="bg-primary hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-sm float-right"
                 onClick={handleClick}
             >
                 Visualize
