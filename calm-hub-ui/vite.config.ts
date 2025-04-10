@@ -13,6 +13,9 @@ export default defineConfig({
     },
     build: {
         outDir: 'build',
+        rollupOptions: {
+            external: ['@patternfly/patternfly/patternfly.css'],
+        },
     },
     server: {
         proxy: {
