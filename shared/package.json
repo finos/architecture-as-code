@@ -43,6 +43,7 @@
         "junit-report-builder": "^5.1.1",
         "lodash": "^4.17.21",
         "mkdirp": "^3.0.1",
+        "regexparam": "^3.0.0",
         "string-table": "^0.1.5",
         "ts-node": "10.9.2",
         "winston": "^3.17.0"
