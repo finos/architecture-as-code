@@ -38,8 +38,6 @@
     "ts-node": "10.9.2"
   },
   "devDependencies": {
-    "@jest/globals": "^29.7.0",
-    "@types/jest": "^29.5.14",
     "@types/json-pointer": "^1.0.34",
     "@types/junit-report-builder": "^3.0.2",
     "@types/lodash": "^4.17.16",
@@ -52,10 +50,8 @@
     "chokidar": "^4.0.3",
     "eslint": "^9.24.0",
     "globals": "^16.0.0",
-    "jest": "^29.7.0",
     "link": "^2.1.1",
     "supertest": "^7.1.0",
-    "ts-jest": "^29.3.1",
     "tsup": "^8.4.0",
     "typescript": "^5.8.3",
     "xml2js": "^0.6.2"
