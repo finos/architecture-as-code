@@ -25,10 +25,10 @@
     "calm-hub-ui:run": "npm run start --workspace calm-hub-ui"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^3.0.9",
+    "@vitest/coverage-v8": "^3.1.1",
     "link": "^2.1.1",
-    "npm-run-all2": "^7.0.0",
-    "vitest": "^3.0.9"
+    "npm-run-all2": "^7.0.2",
+    "vitest": "^3.1.1"
   },
   "dependencies": {
     "@finos/calm-shared": "^0.2.2"

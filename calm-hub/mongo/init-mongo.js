@@ -1102,7 +1102,7 @@ db.patterns.insertMany([
                                                     "const": "Load Balancer"
                                                 },
                                                 "description": {
-                                                    "const": "Ingress for the Kubernetes cluster"
+                                                    "const": "The attendees service, or a placeholder for another application"
                                                 },
                                                 "node-type": {
                                                     "const": "network"
@@ -1135,7 +1135,7 @@ db.patterns.insertMany([
                                                     "const": "Attendees Service"
                                                 },
                                                 "description": {
-                                                    "const": "Ingress for the Kubernetes cluster"
+                                                    "const": "The attendees service, or a placeholder for another application"
                                                 },
                                                 "node-type": {
                                                     "const": "service"
@@ -1417,7 +1417,7 @@ db.patterns.insertMany([
                                                     "const": "Load Balancer"
                                                 },
                                                 "description": {
-                                                    "const": "Ingress for the Kubernetes cluster"
+                                                    "const": "The attendees service, or a placeholder for another application"
                                                 },
                                                 "node-type": {
                                                     "const": "network"
@@ -1450,7 +1450,7 @@ db.patterns.insertMany([
                                                     "const": "Attendees Service"
                                                 },
                                                 "description": {
-                                                    "const": "Ingress for the Kubernetes cluster"
+                                                    "const": "The attendees service, or a placeholder for another application"
                                                 },
                                                 "node-type": {
                                                     "const": "service"
@@ -1961,7 +1961,7 @@ db.architectures.insertMany([
                                 {
                                     "unique-id": "load-balancer",
                                     "name": "Load Balancer",
-                                    "description": "Ingress for the Kubernetes cluster",
+                                    "description": "The attendees service, or a placeholder for another application",
                                     "node-type": "network",
                                     "interfaces": [
                                         {
@@ -1974,7 +1974,7 @@ db.architectures.insertMany([
                                 {
                                     "unique-id": "attendees-service",
                                     "name": "Attendees Service",
-                                    "description": "Ingress for the Kubernetes cluster",
+                                    "description": "The attendees service, or a placeholder for another application",
                                     "node-type": "service",
                                     "interfaces": [
                                         {
