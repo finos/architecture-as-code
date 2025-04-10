@@ -116,7 +116,7 @@ function flattenOptionsRelationships(pattern: object, choices: CalmChoice[]): vo
  */
 export function selectChoices(inputPattern: object, choices: CalmChoice[], debug: boolean = false): object {
     const logger = initLogger(debug, 'calm-generate-options');
-    logger.info(`Selecting these choices from the pattern [${JSON.stringify(choices)}]`);
+    logger.debug(`Selecting these choices from the pattern [${JSON.stringify(choices)}]`);
 
     const pattern = {...inputPattern}; // make a copy so we don't mutate the input pattern
     const nodeIds: string[] = choices.flatMap(choice => choice.nodes);

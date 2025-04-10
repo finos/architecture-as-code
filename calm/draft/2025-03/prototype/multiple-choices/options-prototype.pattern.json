@@ -50,6 +50,46 @@
           ]
         },
         {
+          "anyOf": [
+            {
+              "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+              "type": "object",
+              "properties": {
+                "unique-id": {
+                  "const": "node-1"
+                },
+                "name": {
+                  "const": "Node 1"
+                },
+                "description": {
+                  "const": "Node 1 description"
+                },
+                "node-type": {
+                  "const": "service"
+                }
+              }
+            },
+            {
+              "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+              "type": "object",
+              "properties": {
+                "unique-id": {
+                  "const": "node-2"
+                },
+                "name": {
+                  "const": "Node 2"
+                },
+                "description": {
+                  "const": "Node 2 description"
+                },
+                "node-type": {
+                  "const": "service"
+                }
+              }
+            }
+          ]
+        },
+        {
           "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
           "type": "object",
           "properties": {
@@ -170,55 +210,124 @@
               "type": "object",
               "properties": {
                 "options": {
-                    "type": "array",
-                    "minItems": 1,
-                    "maxItems": 1,
-                    "prefixItems": [
-                      {
-                        "oneOf": [
-                          {
-                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/decision",
-                            "type": "object",
-                            "properties": {
-                              "description": {
-                                "const": "Application A connects to Application C"
-                              },
-                              "nodes": {
-                                "const": [
-                                  "application-a"
-                                ]
-                              },
-                              "relationships": {
-                                "const": [
-                                  "application-a-to-c"
-                                ]
-                              }
-                            }
-                          },
-                          {
-                            "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/decision",
-                            "type": "object",
-                            "properties": {
-                              "description": {
-                                "const": "Application B connects to Application C"
-                              },
-                              "nodes": {
-                                "const": [
-                                  "application-b"
-                                ]
-                              },
-                              "relationships": {
-                                "const": [
-                                  "application-b-to-c"
-                                ]
-                              }
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 1,
+                  "prefixItems": [
+                    {
+                      "oneOf": [
+                        {
+                          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/decision",
+                          "type": "object",
+                          "properties": {
+                            "description": {
+                              "const": "Application A connects to Application C"
+                            },
+                            "nodes": {
+                              "const": [
+                                "application-a"
+                              ]
+                            },
+                            "relationships": {
+                              "const": [
+                                "application-a-to-c"
+                              ]
                             }
                           }
-                        ]
-                      }
-                    ]
-                  }
+                        },
+                        {
+                          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/decision",
+                          "type": "object",
+                          "properties": {
+                            "description": {
+                              "const": "Application B connects to Application C"
+                            },
+                            "nodes": {
+                              "const": [
+                                "application-b"
+                              ]
+                            },
+                            "relationships": {
+                              "const": [
+                                "application-b-to-c"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
               }
+              
+            },
+            "required": [
+              "options"
+            ]
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+          "type": "object",
+          "properties": {
+            "unique-id": {
+                "const": "connection-options-2"
+            },
+            "description": {
+                "const": "Which nodes do you want to use?"
+            },
+            "relationship-type": {
+              "type": "object",
+              "properties": {
+                "options": {
+                  "type": "array",
+                  "minItems": 0,
+                  "maxItems": 2,
+                  "prefixItems": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/decision",
+                          "type": "object",
+                          "properties": {
+                            "description": {
+                              "const": "Use Node 1"
+                            },
+                            "nodes": {
+                              "const": [
+                                "node-1"
+                              ]
+                            },
+                            "relationships": {
+                              "const": []
+                            }
+                          }
+                        },
+                        {
+                          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/decision",
+                          "type": "object",
+                          "properties": {
+                            "description": {
+                              "const": "Use Node 2"
+                            },
+                            "nodes": {
+                              "const": [
+                                "node-2"
+                              ]
+                            },
+                            "relationships": {
+                              "const": []
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "options"
+              ]
             }
           }
         }
