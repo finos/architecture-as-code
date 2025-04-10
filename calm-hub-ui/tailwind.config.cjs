@@ -9,3 +9,4 @@ module.exports = {
         themes: ['light', 'dark', 'emerald'],
     },
 };
+ bas
