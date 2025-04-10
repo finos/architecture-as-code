@@ -4,13 +4,9 @@ on:
   pull_request:
     branches:
       - "main"
-    paths:
-      - "calm-hub/**"
   push:
     branches:
       - "main"
-    paths:
-      - "calm-hub/**"
 
 jobs:
   build:
