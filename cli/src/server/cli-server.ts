@@ -13,7 +13,7 @@ export function startServer(options: { port: string, schemaDirectory: string, ve
     const port = options.port;
 
     app.listen(port, () => {
-        const logger = initLogger(options.verbose);
+        const logger = initLogger(options.verbose, 'calm-server');
         logger.info(`CALM Server is running on http://localhost:${port}`);
     });
 }
