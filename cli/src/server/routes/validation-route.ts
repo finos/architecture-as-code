@@ -21,7 +21,7 @@ export class ValidationRouter {
         });
         this.schemaDirectory = new SchemaDirectory(true);
         this.schemaDirectoryPath = schemaDirectoryPath;
-        this.logger = initLogger(debug);
+        this.logger = initLogger(debug, 'calm-server');
         router.use(limiter);
         this.initializeRoutes(router);
     }

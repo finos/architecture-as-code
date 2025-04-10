@@ -19,7 +19,7 @@ export class SchemaDirectory {
      * @param debug Whether to log at debug level.
      */
     constructor(debug: boolean = false) {
-        this.logger = initLogger(debug);
+        this.logger = initLogger(debug, 'schema-directory');
     }
 
     public loadCurrentPatternAsSchema(pattern: object) {
@@ -157,7 +157,10 @@ export class SchemaDirectory {
     public getSchema(schemaId: string) {
         if (!this.schemas.has(schemaId)) {
             const registered = this.getLoadedSchemas();
-            this.logger.warn(`Schema with $id ${schemaId} not found. Returning empty object. Registered schemas: ${registered}`);
+            this.logger.warn(`Schema with $id "${schemaId}" was not found.`);
+            this.logger.warn('It\'s likely that the pattern is outdated or this version of the tooling isn\'t compatible');
+            this.logger.warn('Please enable debug logging to see the registered schemas.');
+            this.logger.debug(`Registered schemas: ${registered}`);
             return undefined;
         }
         return this.schemas.get(schemaId);

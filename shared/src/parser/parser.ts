@@ -5,7 +5,7 @@ import {CalmCoreSchema} from '../types/core-types.js';
 
 export class CalmParser {
 
-    private static logger = initLogger(process.env.DEBUG === 'true');
+    private static logger = initLogger(process.env.DEBUG === 'true', 'calm-parser');
 
     parse(coreCalmFilePath: string): CalmCore {
         const logger = CalmParser.logger;
