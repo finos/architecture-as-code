@@ -4,13 +4,9 @@ on:
   pull_request:
     branches:
       - "main"
-    paths:
-      - "docs/**"
   push:
     branches:
       - "main"
-    paths:
-      - "docs/**"
 
 jobs:
   docs:

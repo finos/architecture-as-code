@@ -4,13 +4,9 @@ on:
   pull_request:
     branches:
       - "main"
-    paths:
-      - "shared/**"
   push:
     branches:
       - "main"
-    paths:
-      - "shared/**"
 
 jobs:
   shared:
