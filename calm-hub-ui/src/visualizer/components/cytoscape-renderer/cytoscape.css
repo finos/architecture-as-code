@@ -2,9 +2,8 @@
     border: 1px solid;
     text-align: center;
     width: 200px;
-    min-height: 100px;
     font-family: Arial;
-    padding: 10px 30px 10px 30px;
+    padding: 5px 10px 5px 10px;
     background-color: white;
 }
 
@@ -26,7 +25,6 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-top: -50px;
     margin-left: -100px;
 }
 

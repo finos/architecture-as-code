@@ -99,6 +99,9 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
                     description: node.description,
                     type: node['node-type'],
                     id: node['unique-id'],
+                    //Used to make the size of the node scale dynamically
+                    _displayPlaceholderWithDesc: `${node.name}\n\n\n${node['node-type']}\n\n\n${node.description}\n`,
+                    _displayPlaceholderWithoutDesc: `${node.name}\n\n\n${node['node-type']}`,
                 },
             };
 
