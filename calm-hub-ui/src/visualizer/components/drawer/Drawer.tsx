@@ -86,11 +86,13 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
         setSelectedNode(null);
     }
 
-    function getNodes(): Node[] {
-        if (!calmInstance || !calmInstance.relationships) return [];
+    function getNodes(): {nodes: Node[], externalNodeIds: string[] } {
+        if (!calmInstance || !calmInstance.relationships) return { nodes: [], externalNodeIds: [] };
 
         const composedOfRelationships = getComposedOfRelationships(calmInstance);
         const deployedInRelationships = getDeployedInRelationships(calmInstance);
+        const groupsExist = (Object.keys(composedOfRelationships).length > 0) || (Object.keys(deployedInRelationships).length > 0);
+        const externalNodeIds: string[] = [];
         const nodes = calmInstance.nodes.map((node) => {
             const newData: Node = {
                 classes: 'node',
@@ -113,7 +115,7 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
                 composedOfRelationships[node['unique-id']]?.type === 'child' &&
                 composedOfRelationships[node['unique-id']]['parent']
             ) {
-                newData.data.parent = composedOfRelationships[node['unique-id']].parent!;
+                    newData.data.parent = composedOfRelationships[node['unique-id']].parent!;
             }
 
             if (deployedInRelationships[node['unique-id']]?.type === 'parent') {
@@ -127,10 +129,15 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
             ) {
                 newData.data.parent = deployedInRelationships[node['unique-id']].parent!;
             }
+
+            if(newData.data.parent == null && newData.classes !== 'group' && groupsExist) {
+                externalNodeIds.push(newData.data.id);
+            }
+
             return newData;
         });
 
-        return nodes;
+        return { nodes, externalNodeIds };
     }
 
     function getEdges(): Edge[] {
@@ -167,7 +174,7 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
     }
 
     const edges = getEdges();
-    const nodes = getNodes();
+    const { nodes, externalNodeIds } = getNodes();
 
     return (
         <div className="flex-1 flex overflow-hidden">
@@ -185,6 +192,7 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
                             isConDescActive={isConDescActive}
                             isNodeDescActive={isNodeDescActive}
                             title={title}
+                            externalNodeIds={externalNodeIds}
                             nodes={nodes}
                             edges={edges}
                         />
