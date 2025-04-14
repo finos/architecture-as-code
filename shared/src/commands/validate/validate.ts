@@ -12,6 +12,7 @@ import { SpectralResult } from './spectral.result.js';
 import createJUnitReport from './output-formats/junit-output.js';
 import prettyFormat from './output-formats/pretty-output.js';
 import { SchemaDirectory } from '../../schema-directory.js';
+import { FileSystemDocumentLoader } from '../../document-loader/file-system-document-loader';
 
 let logger: winston.Logger; // defined later at startup
 
@@ -77,11 +78,12 @@ function buildAjv2020(schemaDirectory: SchemaDirectory, debug: boolean): Ajv2020
  * @param metaSchemaLocation File location from which to load schemas.
  * @returns an initialised SchemaDirectory.
  */
-async function loadMetaSchemas(metaSchemaLocation: string): Promise<SchemaDirectory> {
+async function loadMetaSchemas(metaSchemaLocation: string, debug: boolean): Promise<SchemaDirectory> {
     logger.info(`Loading meta schema(s) from ${metaSchemaLocation}`);
 
-    const schemaDirectory = new SchemaDirectory();
-    await schemaDirectory.loadSchemas(metaSchemaLocation);
+    const docLoader = new FileSystemDocumentLoader([metaSchemaLocation], debug)
+    const schemaDirectory = new SchemaDirectory(docLoader, debug);
+    await schemaDirectory.loadSchemas();
 
     return schemaDirectory;
 }
@@ -158,7 +160,7 @@ export async function validate(
  * @returns the validation outcome with the results of the spectral and json schema validations.
  */
 async function validateArchitectureAgainstPattern(jsonSchemaArchitectureLocation:string, jsonSchemaLocation:string, metaSchemaPath:string, debug: boolean): Promise<ValidationOutcome>{
-    const schemaDirectory = await loadMetaSchemas(metaSchemaPath);
+    const schemaDirectory = await loadMetaSchemas(metaSchemaPath, debug);
     const ajv = buildAjv2020(schemaDirectory, debug);
 
     logger.info(`Loading pattern from : ${jsonSchemaLocation}`);
@@ -198,7 +200,7 @@ async function validateArchitectureAgainstPattern(jsonSchemaArchitectureLocation
  */
 async function validatePatternOnly(jsonSchemaLocation: string, metaSchemaPath: string, debug: boolean): Promise<ValidationOutcome> {
     logger.debug('Architecture was not provided, only the Pattern Schema will be validated');
-    const schemaDirectory = await loadMetaSchemas(metaSchemaPath);
+    const schemaDirectory = await loadMetaSchemas(metaSchemaPath, debug);
     const ajv = buildAjv2020(schemaDirectory, debug);
 
     const patternSchema = await getFileFromUrlOrPath(jsonSchemaLocation);

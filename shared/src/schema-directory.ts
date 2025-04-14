@@ -21,7 +21,7 @@ export class SchemaDirectory {
      * @param debug Whether to log at debug level.
      */
     constructor(documentLoader: DocumentLoader, debug: boolean = false) {
-        this.logger = initLogger(debug);
+        this.logger = initLogger(debug, 'schema-directory');
         this.documentLoader = documentLoader;
     }
 

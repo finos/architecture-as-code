@@ -5,8 +5,9 @@ import {mkdirp} from 'mkdirp';
 import { CalmChoice, selectChoices } from './components/options.js';
 import { instantiate } from './components/instantiate';
 import { initLogger } from '../../logger.js';
+import { SchemaDirectory } from '../../schema-directory.js';
 
-export async function runGenerate(pattern: object, outputPath: string, debug: boolean, chosenChoices?: CalmChoice[], schemaDirectoryPath?: string): Promise<void> {
+export async function runGenerate(pattern: object, outputPath: string, debug: boolean, schemaDirectory: SchemaDirectory, chosenChoices?: CalmChoice[]): Promise<void> {
     const logger = initLogger(debug, 'calm-generate');
     logger.info('Generating a CALM architecture...');
     try {
@@ -14,7 +15,7 @@ export async function runGenerate(pattern: object, outputPath: string, debug: bo
             pattern = selectChoices(pattern, chosenChoices, debug);
         }
 
-        const final = await instantiate(pattern, debug, schemaDirectoryPath);
+        const final = await instantiate(pattern, debug, schemaDirectory);
         const output = JSON.stringify(final, null, 2);
         const dirname = path.dirname(outputPath); 
 
