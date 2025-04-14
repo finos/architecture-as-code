@@ -1,6 +1,6 @@
 import { SchemaDirectory } from '.';
 import { DocumentLoader } from './document-loader/document-loader';
-import { readFile } from 'node:fs/promises';
+import { readFile, readFileSync } from 'node:fs';
 
 vi.mock('./logger', () => {
     return {
@@ -25,6 +25,12 @@ function getMockDocumentLoader(): DocumentLoader {
 describe('SchemaDirectory', () => {
     let mockDocLoader;
     let mockLoadMissingDocument;
+
+    beforeEach(() => {
+        mockDocLoader = getMockDocumentLoader();
+        // mockLoadMissingDocument = vi.fn();
+    })
+
     it('calls documentloader initialise', async () => {
         const schemaDir = new SchemaDirectory(mockDocLoader);
         
@@ -32,61 +38,69 @@ describe('SchemaDirectory', () => {
         expect(mockDocLoader.initialise).toHaveBeenCalled();
     });
 
+
     it('calls loadMissingDocument method when trying to resolve a spec not loaded at startup', async () => {
         const schemaDir = new SchemaDirectory(mockDocLoader);
         
         await schemaDir.loadSchemas();
 
         const expectedValue = {'$id': 'abcd'};
-        mockLoadMissingDocument.mockReturnValueOnce(new Promise(resolve => resolve(expectedValue)));
+        mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => resolve(expectedValue)));
 
         const returnedSchema = await schemaDir.getSchema('mock id');
         expect(returnedSchema).toEqual(expectedValue)
     })
 
 
-    it.only('resolves a reference from a stored schema', async () => {
-        const schemaDir = new SchemaDirectory(getMockDocumentLoader());
+    it('resolves a reference from a stored schema', async () => {
+        const schemaDir = new SchemaDirectory(mockDocLoader);
         
-        // await schemaDir.loadSchemas();
-        // await schemaDir.loadSchemas(__dirname + '/../../calm/draft/2024-03');
-
-        const def = await readFile('test_fixtures/calm/core.json', 'utf-8')
-        const json = JSON.parse(def);
-        console.error(json)
-        const nodeRef = 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/core.json#/defs/node';
-        // const id = 'https://calm.finos.org/draft/2024-03/meta/core.json';
+        const nodeJson = loadSchema('test_fixtures/calm/core.json')
+        const nodeRef = 'https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node';
         
-        mockLoadMissingDocument.mockReturnValueOnce(new Promise(resolve => resolve(json)));
+        mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => resolve(nodeJson)));
 
-        const nodeDef = schemaDir.getDefinition(nodeRef);
+        const nodeDef = await schemaDir.getDefinition(nodeRef);
 
-        // // node should have a required property of node-type
-        // expect(nodeDef['required']).toContain('node-type');
+        // node should have a required property of node-type
+        expect(nodeDef['required']).toContain('node-type');
     });
 
-    // it('recursively resolve references from a loaded schema', async () => {
-    //     const schemaDir = new SchemaDirectory();
+    it('recursively resolve references from a loaded schema', async () => {
+        const schemaDir = new SchemaDirectory(mockDocLoader);
         
-    //     await schemaDir.loadSchemas(__dirname + '/../../calm/draft/2024-04');
-    //     const interfaceRef = 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/host-port-interface';
-    //     const interfaceDef = schemaDir.getDefinition(interfaceRef);
+        await schemaDir.loadSchemas();
+        const interfaceRef = 'https://calm.finos.org/draft/2025-03/meta/interface.json#/defs/host-port-interface';
+        mockDocLoader.loadMissingDocument.mockReturnValue(new Promise(resolve => 
+            resolve(loadSchema('../../calm/draft/2025-03/meta/interface.json'))));
+        mockDocLoader.loadMissingDocument.mockReturnValue(new Promise(resolve => 
+            resolve(loadSchema('../../calm/draft/2025-03/meta/core.json'))));
 
-    //     // this should include host and port, but also recursively include unique-id
-    //     expect(interfaceDef.properties).toHaveProperty('host');
-    //     expect(interfaceDef.properties).toHaveProperty('port');
-    //     expect(interfaceDef.properties).toHaveProperty('unique-id');
-    // });
+
+        const resolvedDefinition = await schemaDir.getDefinition(interfaceRef);
+
+        // this should include host and port, but also recursively include unique-id
+        expect(resolvedDefinition['properties']).toHaveProperty('host');
+        expect(resolvedDefinition['properties']).toHaveProperty('port');
+        expect(resolvedDefinition['properties']).toHaveProperty('unique-id');
+    });
     
-    // it('qualify relative references within same file to absolute IDs', async () => {
-    //     const schemaDir = new SchemaDirectory();
+    it('qualify relative references within same file to absolute IDs', async () => {
+        const schemaDir = new SchemaDirectory(mockDocLoader);
         
-    //     await schemaDir.loadSchemas(__dirname + '/../../calm/draft/2024-04');
-    //     const interfaceRef = 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/rate-limit-interface';
-    //     const interfaceDef = schemaDir.getDefinition(interfaceRef);
+        // mockDocLoader.
+        await schemaDir.loadSchemas();
+        
+        mockDocLoader.loadMissingDocument.mockReturnValue(new Promise(resolve => 
+            resolve(loadSchema('../../calm/draft/2025-03/meta/core.json'))));
+        mockDocLoader.loadMissingDocument.mockReturnValue(new Promise(resolve => 
+            resolve(loadSchema('../../calm/draft/2025-03/meta/interface.json'))));
+        
+        const interfaceRef = 'https://calm.finos.org/draft/2025-03/meta/interface.json#/defs/rate-limit-interface';
+        const interfaceDef = await schemaDir.getDefinition(interfaceRef);
 
-    //     expect(interfaceDef['properties']['key']['$ref']).toEqual('https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/rate-limit-key');
-    // });
+        expect(interfaceDef['properties']['key']['$ref']).toEqual('https://calm.finos.org/draft/2025-03/meta/interface.json#/defs/rate-limit-interface');
+    });
 
     // it('resolve to warning message if schema is missing', async () => {
     //     const schemaDir = new SchemaDirectory();
@@ -128,3 +142,8 @@ describe('SchemaDirectory', () => {
     //     expect(nodeDef.properties).toHaveProperty('extra-prop');
     // });
 });
+
+function loadSchema(path: string): object {
+    const def = readFileSync('test_fixtures/calm/core.json', 'utf-8');
+    return JSON.parse(def);
+}

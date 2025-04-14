@@ -1,9 +1,11 @@
-import {CALM_META_SCHEMA_DIRECTORY, runGenerate} from '@finos/calm-shared';
+import { CALM_META_SCHEMA_DIRECTORY, runGenerate, SchemaDirectory } from '@finos/calm-shared';
 import { Option, Command } from 'commander';
 import { version } from '../package.json';
 import { loadJsonFromFile } from './command-helpers/file-input';
 import { promptUserForOptions } from './command-helpers/generate-options';
 import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components/options';
+import { DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
+import { FileSystemDocumentLoader } from '@finos/calm-shared/dist/document-loader/file-system-document-loader';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -27,9 +29,11 @@ export function setupCLI(program: Command) {
         .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.', CALM_META_SCHEMA_DIRECTORY)
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
+            const docLoaderOpts = await parseDocumentLoaderConfig(program, options);
+            const schemaDirectory = await buildSchemaDirectory(docLoaderOpts);
             const pattern: object = await loadJsonFromFile(options.pattern, options.verbose);
             const choices: CalmChoice[] = await promptUserForOptions(pattern, options.verbose);
-            await runGenerate(pattern, options.output, !!options.verbose, choices, options.schemaDirectory);
+            await runGenerate(pattern, options.output, !!options.verbose, schemaDirectory, choices);
         });
 
     program
@@ -99,4 +103,29 @@ export function setupCLI(program: Command) {
             const docifier = new Docifier('WEBSITE', options.input, options.output, localDirectory);
             await docifier.docify();
         });
+}
+
+async function parseDocumentLoaderConfig(program, options): Promise<DocumentLoaderOptions> {
+    if (options.schemaDirectory) {
+        return {
+            loadMode: 'filesystem',
+            schemaDirectoryPath: options.schemaDirectory
+        };
+    }
+
+    return {
+        loadMode: 'filesystem',
+        schemaDirectoryPath: undefined
+    };
+}
+
+async function buildSchemaDirectory(options: DocumentLoaderOptions): Promise<SchemaDirectory> {
+    const docLoader = buildDocumentLoader(options)
+    return new SchemaDirectory(docLoader, true);
+}
+
+function buildDocumentLoader(options: DocumentLoaderOptions) : DocumentLoader {
+    if (options.loadMode == 'filesystem') {
+        return new FileSystemDocumentLoader([options.schemaDirectoryPath], true)
+    }
 }

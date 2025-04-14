@@ -138,20 +138,18 @@ function instantiateFromProperties(
 export async function instantiate(
     patternObj: object,
     debug: boolean,
-    schemaDirectoryPath?: string
+    schemaDirectory: SchemaDirectory
+    // schemaDirectoryPath?: string
 ): Promise<unknown> {
     // I could cast this to CALMCoreSchema here but then need to change test to not show its completely generic
     initLogger(debug, 'calm-generate');
-    const schemaDir = new SchemaDirectory(debug);
 
-    if (schemaDirectoryPath) {
-        await schemaDir.loadSchemas(schemaDirectoryPath);
-    }
+    await schemaDirectory.loadSchemas();
 
     const pattern = patternObj as PatternDocument;
-    schemaDir.loadCurrentPatternAsSchema(pattern);
+    schemaDirectory.loadCurrentPatternAsSchema(pattern);
 
-    const output = instantiateFromProperties(pattern, schemaDir);
+    const output = instantiateFromProperties(pattern, schemaDirectory);
 
     if (pattern.$id) {
         // $schema on an architecture identifies the pattern ID in use.
