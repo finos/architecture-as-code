@@ -1,19 +1,21 @@
 .node {
-    border: 1px solid;
+    border: 1px solid #cccccc;
     text-align: center;
     width: 200px;
     font-family: Arial;
-    padding: 5px 10px 5px 10px;
+    padding: 8px 10px;
     background-color: white;
+    box-sizing: border-box;
+    z-index: 10;
 }
 
 .selected-node {
     background-color: #cce1f9;
+    border: 2px solid #0074d9;
 }
 
 :focus {
-    border: 1px solid;
-    border-color: blue;
+    border: 1px solid blue;
 }
 
 .graph-title {
@@ -25,106 +27,66 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-left: -100px;
+    width: 200px;
+    box-sizing: border-box;
 }
 
 .title {
     font-weight: bold;
     color: black;
+    margin: 5px 0;
 }
 
 .type {
-    margin-top: 10px;
+    margin-top: 5px;
     color: grey;
 }
 
 .description {
-    margin-top: 10px;
+    margin-top: 5px;
     color: black;
+    word-wrap: break-word;
+    max-width: 180px;
 }
 
-.shell-node-container {
-    position: relative !important;
-    background-color: #ffffff !important;
-    border: 2px dashed #0074d9 !important;
-    border-radius: 5px !important;
-    padding: 10px !important;
-    box-sizing: border-box !important;
-}
-
-.shell-node-container .title {
-    color: #666 !important;
-    font-style: italic !important;
-    margin: 0 !important;
-    font-weight: bold !important;
-}
-
-.add-details-btn {
-    margin-top: 5px !important;
-    padding: 5px 10px !important;
-    background-color: #4caf50 !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 4px !important;
-    cursor: pointer !important;
-    font-size: 12px !important;
-}
-
-.add-details-btn:hover {
-    background-color: #45a049 !important;
-}
-
-.node-btn-plus {
-    position: absolute !important;
-    right: 2px !important;
-    color: #0074d9 !important;
-    font-size: 18px !important;
-    font-weight: bold !important;
-    cursor: pointer !important;
-    width: 20px !important;
-    height: 20px !important;
-    text-align: center !important;
-    line-height: 18px !important;
-    border-radius: 50% !important;
-    background-color: #f0f0f0 !important;
-}
-
-.node-btn-plus:hover {
-    background-color: #0074d9 !important;
-    color: white !important;
-}
-
-.node-top-plus {
-    top: 2px !important;
-}
-
-.node-bottom-plus {
-    bottom: 2px !important;
-}
-
-.edge-source {
-    border: 2px solid #0074d9 !important;
-    box-shadow: 0 0 10px rgba(0, 116, 217, 0.5) !important;
-}
-
-.edge-creation-target {
-    border: 2px solid #0074d9 !important;
-    box-shadow: 0 0 10px rgba(0, 116, 217, 0.5) !important;
-}
-
-.node.element {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    background-color: white !important;
-    border: 1px solid #ccc !important;
-    padding: 10px !important;
-}
-
-.element {
+.shell-node {
+    position: relative;
+    background-color: #ffffff;
+    border: 2px dashed #0074d9;
+    border-radius: 5px;
+    padding: 10px;
+    box-sizing: border-box;
+    width: 200px;
+    height: 100px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-top: -50px;
-    margin-left: -100px;
+    justify-content: center;
+}
+
+.shell-node .title {
+    color: #666;
+    font-style: italic;
+    margin: 0;
+    font-weight: bold;
+}
+
+.add-details-btn {
+    margin-top: 5px;
+    padding: 5px 10px;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.add-details-btn:hover {
+    background-color: #45a049;
+}
+
+.edge-source .edge-creation-target {
+    border: 2px solid #0074d9;
+    box-shadow: 0 0 10px rgba(0, 116, 217, 0.5);
 }

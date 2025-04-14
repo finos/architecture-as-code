@@ -35,7 +35,6 @@ export type Node = {
         _displayPlaceholderWithDesc: string;
         _displayPlaceholderWithoutDesc: string;
         [idx: string]: string | boolean | undefined;
-
     };
 };
 
@@ -79,114 +78,92 @@ export const CytoscapeRenderer = ({
     const [nodes, setNodes] = useState<Node[]>(initialNodes);
     const [edges, setEdges] = useState<Edge[]>(initialEdges);
 
-    // custom styles for shell nodes and other elements
-    useEffect(() => {
-        const styleTag = document.createElement('style');
-        styleTag.textContent = `
-        .shell-node-container {
-            position: relative !important;
-            background-color: #ffffff !important;
-            border: 2px dashed #0074D9 !important;
-            border-radius: 5px !important;
-            padding: 10px !important;
-            box-sizing: border-box !important;
-            width: 200px !important;
-            height: 100px !important;
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            justify-content: center !important;
-        }
-        .shell-node-container .title {
-            color: #666 !important;
-            font-style: italic !important;
-            margin: 0 !important;
-            font-weight: bold !important;
-        }
-        .add-details-btn {
-            margin-top: 5px !important;
-            padding: 5px 10px !important;
-            background-color: #4CAF50 !important;
-            color: white !important;
-            border: none !important;
-            border-radius: 4px !important;
-            cursor: pointer !important;
-            font-size: 12px !important;
-        }
-        .node.element {
-            background-color: #ffffff !important;
-            border: 1px solid #cccccc !important;
-            border-radius: 5px !important;
-            padding: 10px !important;
-            width: 200px !important;
-            box-sizing: border-box !important;
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-        }
-        .edge-creation-target {
-            border: 2px solid #0074D9 !important;
-            box-shadow: 0 0 10px rgba(0, 116, 217, 0.5) !important;
-        }
-        .edge-source {
-            border: 2px solid #0074D9 !important;
-            box-shadow: 0 0 10px rgba(0, 116, 217, 0.5) !important;
-        }
-        .selected-node {
-            border: 2px solid #FF4136 !important;
-            box-shadow: 0 0 5px rgba(255, 65, 54, 0.5) !important;
-        }
-        `;
-        document.head.appendChild(styleTag);
 
-        return () => {
-            document.head.removeChild(styleTag);
-        };
-    }, []);
-    // Generate node label templates
+    /**
+     * Node Label Template Generator
+     * Approach:
+     * - Template literals generate dynamic HTML
+     * - Shell nodes and full nodes have separate templates
+     * - Description rendering based on user toggles
+     *
+     * Why this Approach:
+     * - Template literals keep templates readable and maintainable
+     * - Shell node separation improves UX during creation flow
+     * - Conditional rendering avoids unnecessary DOM updates
+     */
     const getNodeLabelTemplateGenerator =
         (selected = false) =>
         (data: Node['data']) => {
             if (data.isShell) {
                 // Shell node[new node]
-                return `<div class="shell-node-container" data-id="${data.id}">
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <p class="title" style="margin: 0; font-weight: bold;">${data.label || 'New Node'}</p>
-                        <button class="add-details-btn" data-nodeid="${data.id}">Add Details</button>
-                    </div>
-                </div>`;
+                return `<div class="shell-node" data-id="${data.id}">
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <p class="title" style="margin: 0; font-weight: bold;">${data.label || 'New Node'}</p>
+                    <button class="add-details-btn" data-nodeid="${data.id}">Add Details</button>
+                </div>
+            </div>`;
             } else {
                 // Regular node
-                const isSelectedNode = selectedNode && selectedNode.id === data.id;
-                return `<div class="node element ${selected || isSelectedNode ? 'selected-node' : ''}" data-id="${data.id}">
-                    <p class="title" style="margin: 0; font-weight: bold;">${data.label}</p>
-                    <p class="type" style="margin: 2px 0;">${data.type}</p>
-                    <p class="description" style="margin: 2px 0;">${isNodeDescActive ? data.description : ''}</p>
-                </div>`;
+                return `
+            <div class="node element ${selected ? 'selected-node' : ''}" data-id="${data.id}">
+                <p class="title">${data.label || ''}</p>
+                ${data.type ? `<p class="type">${data.type || ''}</p>` : ''}
+                ${isNodeDescActive && data.description ? `<p class="description">${data.description || ''}</p>` : ''}
+            </div>
+            `;
             }
         };
-    // Function to refresh node labels
+    /**
+     * Node Label Refresh Handler
+     *
+     * Approach:
+     * - Fully refreshes all node overlays
+     * - Handles selected and non-selected nodes separately
+     *
+     * Why:
+     * - Ensures overlays stay accurate with state changes
+     * - Prevents visual desyncs during updates
+     */
     const refreshNodeLabels = () => {
-        if (cy) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (cy as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
+        if (!cy || !cy.nodes) return;
+
+        try {
+            (cy as any).nodeHtmlLabel([
                 {
                     query: 'node',
                     tpl: getNodeLabelTemplateGenerator(false),
-                    halign: 'center',
-                    valign: 'center',
+                    halign: 'top',
+                    valign: 'top',
+                    halignBox: 'top',
+                    valignBox: 'top',
                 },
                 {
                     query: 'node:selected',
                     tpl: getNodeLabelTemplateGenerator(true),
-                    halign: 'center',
-                    valign: 'center',
+                    halign: 'top',
+                    valign: 'top',
+                    halignBox: 'top',
+                    valignBox: 'top',
                 },
             ]);
+        } catch (error) {
+            console.error('Error updating labels:', error);
         }
     };
 
-    // Handle clicks on node buttons
+    /**
+     * Document Click Handler
+     *
+     * Approach:
+     * - Uses event delegation at document level
+     * - Single listener for all node button actions
+     * - Coordinates between DOM actions and Cytoscape state
+     *
+     * Why:
+     * - Avoids multiple listeners for dynamic elements
+     * - Improves performance and memory usage
+     * - Keeps Cytoscape state consistent with UI interactions
+     */
     useEffect(() => {
         const handleDocumentClick = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
@@ -208,7 +185,18 @@ export const CytoscapeRenderer = ({
         return () => document.removeEventListener('click', handleDocumentClick);
     }, [cy]);
 
-    // Add a new node to the graph
+    /**
+     * Node Addition Handler
+     *
+     * Approach:
+     * - Two-phase node creation: shell node first, full node after editing
+     * - Timestamp-based IDs for new nodes
+     *
+     * Why:
+     * - Shell nodes give immediate UI feedback
+     * - Two-phase avoids incomplete data in final nodes
+     * - Timestamp IDs ensure uniqueness without external dependency
+     */
     const addNode = () => {
         if (cy) {
             const newNodeId = `node-${Date.now()}`;
@@ -218,26 +206,45 @@ export const CytoscapeRenderer = ({
                 type: '',
                 description: '',
                 isShell: true,
+                _displayPlaceholderWithDesc: 'New Node',
+                _displayPlaceholderWithoutDesc: 'New Node',
             };
 
-            setNodes((prev) => [...prev, { classes: 'node', data: shellNodeData }]);
+            setNodes((prev) => [...prev, { classes: 'node shell-node', data: shellNodeData }]);
 
-            cy.add({
+            const newNode = cy.add({
                 group: 'nodes',
-                classes: 'node',
+                classes: 'node shell-node',
                 data: shellNodeData,
                 position: { x: 300, y: 300 },
             });
 
-            cy.layout(breadthFirstLayout).run();
+            newNode.style('visibility', 'visible');
 
+            cy.style().update();
 
-            refreshNodeLabels();
-            setSelectedNode(shellNodeData);
+            // cy.layout(breadthFirstLayout).run();
+
+            setTimeout(() => {
+                refreshNodeLabels();
+                setSelectedNode(shellNodeData);
+            }, 50);
         }
     };
 
-    // Export graph data as JSON
+    /**
+     * JSON Export Handler
+     *
+     * Approach:
+     * - Filters out incomplete (shell) nodes and edges
+     * - Maps internal data to export schema
+     * - Supports both local file download and callback saving
+     *
+     * Why:
+     * - Keeps exported data clean and valid
+     * - Maintains separation between internal structure and external contract
+     * - Flexible for future integrations (APIs, storage)
+     */
     const saveJSON = () => {
         if (cy) {
             // Get only the nodes and edges that still exist in the Cytoscape instance
@@ -300,7 +307,18 @@ export const CytoscapeRenderer = ({
         }
     };
 
-    // Update node or edge data
+    /**
+     * Element Update Handler
+     *
+     * Approach:
+     * - Updates nodes/edges and maintains connections on ID change
+     * - Syncs Cytoscape and React state
+     *
+     * Why:
+     * - Preserves graph integrity during updates
+     * - Single function for all updates reduces duplication
+     * - Handles edge-case of node ID changes cleanly
+     */
     const updateElement = (updatedData: Node['data'] | Edge['data']) => {
         if (!cy) return;
 
@@ -312,8 +330,13 @@ export const CytoscapeRenderer = ({
         const finalData = { ...updatedData };
 
         // Handle shell status
-        if (finalData.isShell) {
+        if ('isShell' in finalData && finalData.isShell) {
             finalData.isShell = false;
+        }
+
+        if ('label' in finalData && 'description' in finalData) {
+            finalData._displayPlaceholderWithDesc = `${finalData.label}\n\n${finalData.description || ''}`;
+            finalData._displayPlaceholderWithoutDesc = finalData.label;
         }
 
         // Check if id changed when new node was being edited
@@ -381,6 +404,7 @@ export const CytoscapeRenderer = ({
             originalElement.style('visibility', 'visible');
 
             if ('type' in finalData) {
+                originalElement.removeClass('shell-node');
                 setNodes((prev) =>
                     prev.map((node) =>
                         node.data.id === finalData.id
@@ -399,13 +423,26 @@ export const CytoscapeRenderer = ({
             }
         }
 
+        cy.style().update();
+
         // Always refresh node labels after an update
         setTimeout(() => {
             refreshNodeLabels();
         }, 100);
     };
 
-    // Delete a node or edge
+    /**
+     * Element Deletion Handler
+     *
+     * Approach:
+     * - Cascading delete for nodes and their edges
+     * - Updates state and Cytoscape instance
+     *
+     * Why:
+     * - Deletes associated edges when removing a node
+     * - Ensures UI and graph stay in sync
+     * - Clean handling of selected states post-deletion
+     */
     const deleteElement = (elementId: string) => {
         if (!cy) return;
 
@@ -441,7 +478,17 @@ export const CytoscapeRenderer = ({
         }
     };
 
-    // Render the toolbar
+    /**
+     * Render Toolbar
+     *
+     * Approach:
+     * - Stateless component rendering buttons and indicators
+     * - Conditionally shows edge creation mode
+     *
+     * Why:
+     * - Keeps toolbar logic modular and isolated
+     * - Simplifies future toolbar extensions
+     */
     const renderToolbar = () => (
         <div className="p-4 bg-gray-100 flex flex-wrap items-center gap-4 border-b">
             {title && (
@@ -481,7 +528,18 @@ export const CytoscapeRenderer = ({
         </div>
     );
 
-    // Initialize Cytoscape instance
+    /**
+     * Cytoscape Initialization
+     *
+     * Approach:
+     * - Clean instance creation and teardown
+     * - Applies full style config and sets event handlers
+     *
+     * Why:
+     * - Ensures fresh state on reinitialization
+     * - Centralizes event handling for better maintainability
+     * - Prevents memory leaks from stale instances
+     */
     useEffect(() => {
         const container = cyRef.current;
         if (!container) return;
@@ -490,16 +548,16 @@ export const CytoscapeRenderer = ({
             cy.destroy();
         }
 
-        console.log('Initializing with nodes:', initialNodes);
+      
 
-        const nodesWithClass = initialNodes.map((node) => ({
+        const nodesWithClass = nodes.map((node) => ({
             ...node,
-            classes: node.classes ? `${node.classes} node` : 'node',
+            classes: node.classes,
         }));
 
         const cytoscapeInstance = cytoscape({
             container: container,
-            elements: [...nodesWithClass, ...initialEdges],
+            elements: [...nodesWithClass, ...edges],
             style: [
                 {
                     selector: 'edge',
@@ -517,19 +575,13 @@ export const CytoscapeRenderer = ({
                 {
                     selector: 'node',
                     style: {
-                        label: isNodeDescActive ? 'data(_displayPlaceholderWithDesc)' : 'data(_displayPlaceholderWithoutDesc)',
-                        'text-valign': 'center',
-                        'text-halign': 'center',
-                        'text-wrap': 'wrap',
-                        'text-max-width': '180px',
-                        "font-family": 'Arial',
+                        label: '', // No native label
                         width: '200px',
-                        height: 'label',
+                        height: isNodeDescActive ? '130px' : '70px',
                         shape: 'rectangle',
-                        'background-color': '#f5f5f5',
-                        'text-background-opacity': 0,
-                        'border-width': 1,
-                        'border-color': '#cccccc',
+                        'background-color': '#fff',
+                        'background-opacity': 0,
+                        'text-opacity': 0,
                     },
                 },
                 {
@@ -539,12 +591,20 @@ export const CytoscapeRenderer = ({
                     },
                 },
                 {
-                    selector: 'node.shell-node',
+                    selector: 'node[isShell]',
                     style: {
-                        width: '200px',
-                        height: '100px',
+                        // 'background-color': 'transparent',
                         'background-opacity': 0,
                         'border-width': 0,
+                    },
+                },
+                {
+                    selector: 'node:selected',
+                    style: {
+                        //'border-width': 2,
+                        'border-color': '#0074d9',
+                        'background-color': '#fff',
+                        'background-opacity': 0,
                     },
                 },
             ],
@@ -556,7 +616,7 @@ export const CytoscapeRenderer = ({
 
         setCy(cytoscapeInstance);
         setNodes(nodesWithClass);
-        setEdges(initialEdges);
+        setEdges(edges);
 
         cytoscapeInstance.batch(() => {
             cytoscapeInstance.nodes().forEach((node) => {
@@ -620,7 +680,6 @@ export const CytoscapeRenderer = ({
                 setSelectedNode(null);
                 setSelectedEdge(null);
 
-
                 // Only cancel edge creation when click on background is detected
                 if (isInEdgeCreationMode) {
                     setEdgeCreationSource(null);
@@ -629,31 +688,34 @@ export const CytoscapeRenderer = ({
             }
         });
 
-        // Update node labels dynamically
+        // Update node labels dynamically => moved to refreshNodeLabels()
         /* eslint-disable @typescript-eslint/no-explicit-any */
-        (cytoscapeInstance as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
-            {
-                query: '.node',
-                valign: 'top',
-                valignBox: 'top',
-                tpl: getNodeLabelTemplateGenerator(false),
-            },
-            {
-                query: '.node:selected',
-                valign: 'top',
-                valignBox: 'top',
-                tpl: getNodeLabelTemplateGenerator(true),
-            },
-        ]);
-
+        // (cytoscapeInstance as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
+        //     {
+        //         query: 'node',
+        //         valign: 'center',
+        //         valignBox: 'center',
+        //         halign: 'center',
+        //         halignBox: 'center',
+        //         tpl: getNodeLabelTemplateGenerator(false),
+        //     },
+        //     {
+        //         query: 'node:selected',
+        //         valign: 'center',
+        //         valignBox: 'center',
+        //         halign: 'center',
+        //         halignBox: 'center',
+        //         tpl: getNodeLabelTemplateGenerator(true),
+        //     },
+        // ]);
         cytoscapeInstance.on('zoom', () => {
             updateZoom(cytoscapeInstance.zoom());
         });
-
         // Apply HTML labels after a short delay to ensure nodes are ready
         setTimeout(() => {
-            console.log('Running initial refresh of node labels');
-            refreshNodeLabels();
+            if (cytoscapeInstance && document.body.contains(cytoscapeInstance.container())) {
+                refreshNodeLabels();
+            }
         }, 100);
 
         return () => {
@@ -661,7 +723,7 @@ export const CytoscapeRenderer = ({
                 cytoscapeInstance.destroy();
             }
         };
-    }, [initialNodes, initialEdges, isInEdgeCreationMode, edgeCreationSource, updateZoom]);
+    }, [initialNodes, initialEdges, isInEdgeCreationMode, edgeCreationSource,]); //removed the updateZoom from the dependency tray as it makes the diagram flicker on zoom
 
     // Synchronize zoom level with context
     useEffect(() => {
@@ -673,10 +735,11 @@ export const CytoscapeRenderer = ({
     // Refresh labels when visibility changes or selection changes
     useEffect(() => {
         if (cy) {
-            console.log('Selection or visibility changed, refreshing labels');
+            cy.style().update();
             refreshNodeLabels();
         }
-    }, [isNodeDescActive, isConDescActive, selectedNode, selectedEdge, cy]);
+    }, [selectedNode, selectedEdge, cy]);
+
 
     return (
         <div className="relative flex flex-col">
