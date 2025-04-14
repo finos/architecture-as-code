@@ -78,7 +78,6 @@ export const CytoscapeRenderer = ({
     const [nodes, setNodes] = useState<Node[]>(initialNodes);
     const [edges, setEdges] = useState<Edge[]>(initialEdges);
 
-
     /**
      * Node Label Template Generator
      * Approach:
@@ -128,7 +127,7 @@ export const CytoscapeRenderer = ({
         if (!cy || !cy.nodes) return;
 
         try {
-            (cy as any).nodeHtmlLabel([
+            cy.nodeHtmlLabel([
                 {
                     query: 'node',
                     tpl: getNodeLabelTemplateGenerator(false),
@@ -144,6 +143,14 @@ export const CytoscapeRenderer = ({
                     valign: 'top',
                     halignBox: 'top',
                     valignBox: 'top',
+                },
+                {
+                    query: 'node[isShell]',
+                    tpl: getNodeLabelTemplateGenerator(false),
+                    halign: 'center',
+                    valign: 'center',
+                    halignBox: 'center',
+                    valignBox: 'center',
                 },
             ]);
         } catch (error) {
@@ -548,8 +555,6 @@ export const CytoscapeRenderer = ({
             cy.destroy();
         }
 
-      
-
         const nodesWithClass = nodes.map((node) => ({
             ...node,
             classes: node.classes,
@@ -723,7 +728,7 @@ export const CytoscapeRenderer = ({
                 cytoscapeInstance.destroy();
             }
         };
-    }, [initialNodes, initialEdges, isInEdgeCreationMode, edgeCreationSource,]); //removed the updateZoom from the dependency tray as it makes the diagram flicker on zoom
+    }, [initialNodes, initialEdges, isInEdgeCreationMode, edgeCreationSource]); //removed the updateZoom from the dependency tray as it makes the diagram flicker on zoom
 
     // Synchronize zoom level with context
     useEffect(() => {
@@ -739,7 +744,6 @@ export const CytoscapeRenderer = ({
             refreshNodeLabels();
         }
     }, [selectedNode, selectedEdge, cy]);
-
 
     return (
         <div className="relative flex flex-col">
