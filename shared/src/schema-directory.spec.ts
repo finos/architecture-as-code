@@ -1,5 +1,5 @@
 import { SchemaDirectory } from '.';
-import { DocumentLoader } from './document-loader/document-loader';
+import { DocumentLoader, DocumentLoadError } from './document-loader/document-loader';
 import { readFile, readFileSync } from 'node:fs';
 
 vi.mock('./logger', () => {
@@ -24,11 +24,9 @@ function getMockDocumentLoader(): DocumentLoader {
 
 describe('SchemaDirectory', () => {
     let mockDocLoader;
-    let mockLoadMissingDocument;
 
     beforeEach(() => {
         mockDocLoader = getMockDocumentLoader();
-        // mockLoadMissingDocument = vi.fn();
     })
 
     it('calls documentloader initialise', async () => {
@@ -56,7 +54,7 @@ describe('SchemaDirectory', () => {
         const schemaDir = new SchemaDirectory(mockDocLoader);
         
         const nodeJson = loadSchema('test_fixtures/calm/core.json')
-        const nodeRef = 'https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node';
+        const nodeRef = 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/core.json#/defs/node';
         
         mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => resolve(nodeJson)));
 
@@ -69,81 +67,85 @@ describe('SchemaDirectory', () => {
     it('recursively resolve references from a loaded schema', async () => {
         const schemaDir = new SchemaDirectory(mockDocLoader);
         
-        await schemaDir.loadSchemas();
-        const interfaceRef = 'https://calm.finos.org/draft/2025-03/meta/interface.json#/defs/host-port-interface';
-        mockDocLoader.loadMissingDocument.mockReturnValue(new Promise(resolve => 
-            resolve(loadSchema('../../calm/draft/2025-03/meta/interface.json'))));
-        mockDocLoader.loadMissingDocument.mockReturnValue(new Promise(resolve => 
-            resolve(loadSchema('../../calm/draft/2025-03/meta/core.json'))));
+        mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => 
+            resolve(loadSchema('test_fixtures/schema-directory/references.json'))));
+        
+        const ref = 'https://calm.com/references.json#/defs/top-level';
+        const definition = await schemaDir.getDefinition(ref);
 
-
-        const resolvedDefinition = await schemaDir.getDefinition(interfaceRef);
-
-        // this should include host and port, but also recursively include unique-id
-        expect(resolvedDefinition['properties']).toHaveProperty('host');
-        expect(resolvedDefinition['properties']).toHaveProperty('port');
-        expect(resolvedDefinition['properties']).toHaveProperty('unique-id');
+        // this should include top-level, but also recursively pull in inner-prop
+        expect(definition['properties']).toHaveProperty('top-level');
+        expect(definition['properties']).toHaveProperty('inner-prop');
     });
     
     it('qualify relative references within same file to absolute IDs', async () => {
         const schemaDir = new SchemaDirectory(mockDocLoader);
         
-        // mockDocLoader.
-        await schemaDir.loadSchemas();
+        mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => 
+            resolve(loadSchema('test_fixtures/schema-directory/relative-ref.json'))));
         
-        mockDocLoader.loadMissingDocument.mockReturnValue(new Promise(resolve => 
-            resolve(loadSchema('../../calm/draft/2025-03/meta/core.json'))));
-        mockDocLoader.loadMissingDocument.mockReturnValue(new Promise(resolve => 
-            resolve(loadSchema('../../calm/draft/2025-03/meta/interface.json'))));
-        
-        const interfaceRef = 'https://calm.finos.org/draft/2025-03/meta/interface.json#/defs/rate-limit-interface';
-        const interfaceDef = await schemaDir.getDefinition(interfaceRef);
+        const ref = 'https://calm.com/relative.json#/defs/top-level';
+        const definition = await schemaDir.getDefinition(ref);
 
-        expect(interfaceDef['properties']['key']['$ref']).toEqual('https://calm.finos.org/draft/2025-03/meta/interface.json#/defs/rate-limit-interface');
+        expect(definition['$ref']).toEqual('https://calm.com/relative.json#/defs/inner');
     });
 
-    // it('resolve to warning message if schema is missing', async () => {
-    //     const schemaDir = new SchemaDirectory();
+    it('throw error if doc loader fails to return a requested schema', async () => {
+        const schemaDir = new SchemaDirectory(mockDocLoader);
         
-    //     const interfaceRef = 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/host-port-interface';
-    //     const interfaceDef = schemaDir.getDefinition(interfaceRef);
+        mockDocLoader.loadMissingDocument.mockRejectedValue(new Error('test error'));
 
-    //     // this should include host and port, but also recursively include unique-id
-    //     expect(interfaceDef.properties).toHaveProperty('missing-value');
-    //     expect(interfaceDef.properties['missing-value']).toEqual('MISSING OBJECT, ref: ' + interfaceRef + ' could not be resolved');
-    // });
+        const ref = 'https://calm.com/missing-inner-ref.json#/defs/top-level';
+        await expect(schemaDir.getDefinition(ref)).rejects.toThrow('test error');
 
+    });
 
-
-    // it('terminate early in the case of a circular reference', async () => {
-    //     const schemaDir = new SchemaDirectory();
+    it('throw error if returned schema does not contain given def', async () => {
+        const schemaDir = new SchemaDirectory(mockDocLoader);
         
-    //     await schemaDir.loadSchemas('test_fixtures/recursive_refs');
-    //     const interfaceRef = 'https://calm.com/recursive.json#/$defs/top-level';
-    //     const interfaceDef = schemaDir.getDefinition(interfaceRef);
+        mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => 
+            resolve(loadSchema('test_fixtures/schema-directory/missing-inner-ref.json'))));
+        
+        const ref = 'https://calm.com/missing-inner-ref.json#/defs/top-level';
+        const missingRef = '/defs/not-found'; // see missing-inner-ref.json
+        const definition = await schemaDir.getDefinition(ref);
 
-    //     // this should include top-level and port. If circular refs are not handled properly this will crash the whole test by stack overflow
-    //     expect(interfaceDef.properties).toHaveProperty('top-level');
-    //     expect(interfaceDef.properties).toHaveProperty('prop');
-    // });
-
-    // it('look up self-definitions without schema ID at top level from the pattern itself', async () => {
-    //     const schemaDir = new SchemaDirectory();
-
-    //     await schemaDir.loadSchemas(__dirname + '/../../calm/draft/2024-04');
-
-    //     const selfRefPatternStr = await readFile('test_fixtures/api-gateway-self-reference.json', 'utf-8');
-    //     const selfRefPattern = JSON.parse(selfRefPatternStr);
-
-    //     schemaDir.loadCurrentPatternAsSchema(selfRefPattern);
+        expect(definition['properties']).toHaveProperty('missing-value');
+        expect(definition['properties']['missing-value']).toEqual('MISSING OBJECT, ref: ' + missingRef + ' could not be resolved');
+    });
 
 
-    //     const nodeDef = schemaDir.getDefinition('#/defs/sample-node');
-    //     expect(nodeDef.properties).toHaveProperty('extra-prop');
-    // });
+
+    it('terminate early in the case of a circular reference', async () => {
+        const schemaDir = new SchemaDirectory(mockDocLoader);
+        
+        mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => 
+            resolve(loadSchema('test_fixtures/schema-directory/recursive.json'))));
+        
+        const ref = 'https://calm.com/recursive.json#/defs/top-level';
+        const definition = await schemaDir.getDefinition(ref);
+
+        // this should include top-level and port. If circular refs are not handled properly this will crash the whole test by stack overflow
+        expect(definition['properties']).toHaveProperty('top-level');
+        expect(definition['properties']).toHaveProperty('prop');
+    });
+
+    it('look up self-definitions without schema ID at top level from the pattern itself', async () => {
+        const schemaDir = new SchemaDirectory(mockDocLoader);
+        
+        mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => 
+            resolve(loadSchema('test_fixtures/schema-directory/relative-ref.json'))));
+        
+        const ref = 'https://calm.com/relative.json#/defs/top-level';
+        const definition = await schemaDir.getDefinition(ref);
+
+        // this should include top-level, but also recursively pull in inner-prop
+        expect(definition['properties']).toHaveProperty('top-level');
+        expect(definition['properties']).toHaveProperty('inner-prop');
+    });
 });
 
 function loadSchema(path: string): object {
-    const def = readFileSync('test_fixtures/calm/core.json', 'utf-8');
+    const def = readFileSync(path, 'utf-8');
     return JSON.parse(def);
 }

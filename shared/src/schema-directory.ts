@@ -40,8 +40,10 @@ export class SchemaDirectory {
 
     private async lookupDefinition(schemaId: string, ref: string): Promise<object> {
         const schema = await this.getSchema(schemaId);
-        // throw new Error(JSON.stringify(schema))
-        // console.log('loaded schema: ' + schema)
+        if (!schema) {
+            this.logger.warn(`Schema with $id ${schemaId} not found. Returning empty object.`);
+            return this.getMissingSchemaPlaceholder(ref);
+        }
         return pointer.get(schema, ref);
     }
 

@@ -31,7 +31,7 @@ export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions, debug:
     }
 }
 
-type ErrorName = 'OPERATION_NOT_IMPLEMENTED';
+type ErrorName = 'OPERATION_NOT_IMPLEMENTED' | 'UNKNOWN';
 
 export class DocumentLoadError extends Error {
     name: ErrorName;
