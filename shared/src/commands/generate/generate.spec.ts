@@ -2,6 +2,7 @@ import { runGenerate } from './generate';
 import { tmpdir } from 'node:os';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
+import { SchemaDirectory } from '../../../dist';
 
 vi.mock('../../logger', () => {
     return {
@@ -13,8 +14,6 @@ vi.mock('../../logger', () => {
         }
     };
 });
-
-vi.mock('../../schema-directory');
 
 vi.mock('../../consts', () => ({
     get CALM_META_SCHEMA_DIRECTORY() { return '../calm/draft/2025-03/meta'; }
@@ -33,9 +32,11 @@ describe('runGenerate', () => {
     let tempDirectoryPath;
     const testPath: string = 'test_fixtures/api-gateway.json';
     const testPattern: object = JSON.parse(readFileSync(testPath, { encoding: 'utf8' }));
+    let schemaDirectory;
 
     beforeEach(() => {
         tempDirectoryPath = mkdtempSync(path.join(tmpdir(), 'calm-test-'));
+        schemaDirectory = vi.mocked(SchemaDirectory);
     });
 
     afterEach(() => {
@@ -44,7 +45,7 @@ describe('runGenerate', () => {
 
     it('instantiates to given directory', async () => {
         const outPath = path.join(tempDirectoryPath, 'output.json');
-        await runGenerate(testPattern, outPath, false, []);
+        await runGenerate(testPattern, outPath, false, schemaDirectory, []);
 
         expect(existsSync(outPath))
             .toBeTruthy();
@@ -52,7 +53,7 @@ describe('runGenerate', () => {
 
     it('instantiates to given directory with nested folders', async () => {
         const outPath = path.join(tempDirectoryPath, 'output/test/output.json');
-        await runGenerate(testPattern, outPath, false, []);
+        await runGenerate(testPattern, outPath, false, schemaDirectory, []);
 
         expect(existsSync(outPath))
             .toBeTruthy();
@@ -60,7 +61,7 @@ describe('runGenerate', () => {
 
     it('instantiates to calm architecture file', async () => {
         const outPath = path.join(tempDirectoryPath, 'output.json');
-        await runGenerate(testPattern, outPath, false, []);
+        await runGenerate(testPattern, outPath, false, schemaDirectory, []);
 
         expect(existsSync(outPath))
             .toBeTruthy();

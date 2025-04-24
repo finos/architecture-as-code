@@ -1,6 +1,7 @@
 import {describe, it, expect, vi, beforeEach, Mock} from 'vitest';
 import * as fs from 'fs';
 import { instantiate } from './instantiate'; // replace with actual relative path
+import { SchemaDirectory } from '../../../schema-directory';
 
 interface TestInstantiatedPattern {
     $schema?: string;
@@ -19,61 +20,74 @@ vi.mock('../../../logger', () => ({
     }))
 }));
 
-vi.mock('../../../schema-directory', async () => {
-    return {
-        SchemaDirectory: vi.fn().mockImplementation(() => ({
-            loadSchemas: vi.fn(),
-            loadCurrentPatternAsSchema: vi.fn(),
-            getDefinition: vi.fn((ref) => {
-                if (ref === 'schema#/defs/node') { //intentionally not using main schema as this instantiate should be generic
-                    return {
-                        required: ['node-type', 'details'],
-                        properties: {
-                            'node-type': { type: 'string' },
-                            'description': { type: 'string' },
-                            'details': {
-                                type: 'object',
-                                properties: {
-                                    arch: { type: 'string' }
-                                },
-                                required: ['arch']
-                            }
+const schemaDirMocks = vi.hoisted(() => ({
+    loadSchemas: vi.fn(),
+    loadCurrentPatternAsSchema: vi.fn(),
+    getDefinition: vi.fn()
+}));
+
+vi.mock('../../../schema-directory', () => ({
+    SchemaDirectory: vi.fn(() => ({
+        loadSchemas: schemaDirMocks.loadSchemas,
+        loadCurrentPatternAsSchema: schemaDirMocks.loadCurrentPatternAsSchema,
+        getDefinition: schemaDirMocks.getDefinition
+    })),
+}));
+
+async function getDefinitionMock(ref: string): Promise<object> {
+    if (ref === 'schema#/defs/node') { //intentionally not using main schema as this instantiate should be generic
+        return {
+            required: ['node-type', 'details'],
+            properties: {
+                'node-type': { type: 'string' },
+                'description': { type: 'string' },
+                'details': {
+                    type: 'object',
+                    properties: {
+                        arch: { type: 'string' }
+                    },
+                    required: ['arch']
+                }
+            }
+        };
+    }
+    if (ref === 'schema#/defs/controls') {
+        return {
+            type: 'object',
+            patternProperties: {
+                '^[a-zA-Z0-9-]+$': {
+                    type: 'object',
+                    properties: {
+                        description: { type: 'string' },
+                        requirements: {
+                            type: 'array',
+                            items: { $ref: 'schema#/defs/details' }
                         }
-                    };
+                    },
+                    required: ['description', 'requirements']
                 }
-                if (ref === 'schema#/defs/controls') {
-                    return {
-                        type: 'object',
-                        patternProperties: {
-                            '^[a-zA-Z0-9-]+$': {
-                                type: 'object',
-                                properties: {
-                                    description: { type: 'string' },
-                                    requirements: {
-                                        type: 'array',
-                                        items: { $ref: 'schema#/defs/details' }
-                                    }
-                                },
-                                required: ['description', 'requirements']
-                            }
-                        }
-                    };
-                }
-                if (ref === 'schema#/defs/details') {
-                    return {
-                        type: 'object',
-                        properties: {
-                            requirement: { type: 'string' },
-                            configUrl: { type: 'string' }
-                        },
-                        required: ['requirement', 'configUrl']
-                    };
-                }
-                return {};
-            })
-        }))
-    };
-});
+            }
+        };
+    }
+    if (ref === 'schema#/defs/details') {
+        return{
+            type: 'object',
+            properties: {
+                requirement: { type: 'string' },
+                configUrl: { type: 'string' }
+            },
+            required: ['requirement', 'configUrl']
+        };
+    }
+    return {};
+
+}
+
+schemaDirMocks.loadSchemas.mockImplementation(async () => {});
+
+schemaDirMocks.loadCurrentPatternAsSchema.mockImplementation(async () => {});
+
+schemaDirMocks.getDefinition.mockImplementation(getDefinitionMock);
 
 describe('instantiate', () => {
     const patternPath = 'test-pattern.json';
@@ -153,7 +167,7 @@ describe('instantiate', () => {
 
     it('instantiates nodes with schema-required and const fields', async () => {
         const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
-        const result: TestInstantiatedPattern = await instantiate(pattern, true,  'schemas');
+        const result: TestInstantiatedPattern = await instantiate(pattern, true,  new SchemaDirectory({} as any));
 
         expect(result.nodes[0]).toEqual({
             'unique-id': 'my-node',
@@ -167,7 +181,7 @@ describe('instantiate', () => {
 
     it('instantiates nested controls with patternProperties and consts', async () => {
         const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
-        const result: TestInstantiatedPattern = await instantiate(pattern, true,  'schemas');
+        const result: TestInstantiatedPattern = await instantiate(pattern, true,  new SchemaDirectory({} as any));
 
         expect(result.relationships[0]).toEqual({
             'unique-id': 'rel-1',
@@ -187,7 +201,7 @@ describe('instantiate', () => {
 
     it('handles missing required schema fields by generating placeholders', async () => {
         const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
-        const result: TestInstantiatedPattern = await instantiate(pattern, true, 'schemas');
+        const result: TestInstantiatedPattern = await instantiate(pattern, true, new SchemaDirectory({} as any));
 
         expect(result.nodes[0]['node-type']).toBe('[[ NODE_TYPE ]]');
         expect(result.nodes[0]['details']['arch']).toBe('[[ ARCH ]]');
