@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import winston from 'winston';
 import { ValidationOutcome } from '@finos/calm-shared';
 import rateLimit from 'express-rate-limit';
+import { DocumentLoadError } from '@finos/calm-shared/src/document-loader/document-loader';
 
 export class ValidationRouter {
 
@@ -14,12 +15,12 @@ export class ValidationRouter {
     private schemaDirectory: SchemaDirectory;
     private logger: winston.Logger;
 
-    constructor(router: Router, schemaDirectoryPath: string, debug: boolean = false) {
+    constructor(router: Router, schemaDirectoryPath: string, schemaDirectory: SchemaDirectory, debug: boolean = false) {
         const limiter = rateLimit({
             windowMs: 15 * 60 * 1000, // 15 minutes
             max: 100, // limit each IP to 100 requests per windowMs
         });
-        this.schemaDirectory = new SchemaDirectory(true);
+        this.schemaDirectory = schemaDirectory;
         this.schemaDirectoryPath = schemaDirectoryPath;
         this.logger = initLogger(debug, 'calm-server');
         router.use(limiter);
@@ -43,12 +44,21 @@ export class ValidationRouter {
         if (!schema) {
             return res.status(400).type('json').send(new ErrorResponse('The "$schema" field is missing from the request body'));
         }
-        this.logger.info('Path loading schemas is ' + this.schemaDirectoryPath);
 
-        await this.schemaDirectory.loadSchemas(this.schemaDirectoryPath);
-        const foundSchema = this.schemaDirectory.getSchema(schema);
-        if (!foundSchema) {
-            return res.status(400).type('json').send(new ErrorResponse('The "$schema" field referenced is not available to the server'));
+        console.log("loading schemas")
+        await this.schemaDirectory.loadSchemas();
+        console.log("loaded schemas")
+        try {
+            var foundSchema = await this.schemaDirectory.getSchema(schema);
+        } catch(err) {
+            if (err instanceof DocumentLoadError) {
+                // TODO, right now we only have the filesystem loader which simply doesn't have the ability to resolve missing schemas
+                // this will be smarter once we have different implementations
+                if (err.name === 'OPERATION_NOT_IMPLEMENTED') {
+                    return res.status(400).type('json').send(new ErrorResponse('The "$schema" field referenced is not available to the server'));
+                } 
+            }
+            throw err;
         }
         const tempInstantiation = await createTemporaryFile();
         const tempPattern = await createTemporaryFile();

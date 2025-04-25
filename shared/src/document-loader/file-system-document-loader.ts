@@ -30,6 +30,10 @@ export class FileSystemDocumentLoader implements DocumentLoader {
 
             for (const schemaPath of schemaPaths) {
                 const schemaDef = await this.loadDocument(schemaPath);
+                if (!schemaDef) {
+                    // loaded schema can't be used due to having no identifier
+                    continue;
+                }
                 const schemaId = schemaDef['$id'];
                 schemaDirectory.storeDocument(schemaId, 'schema', schemaDef);
                 this.logger.debug(`Loaded schema with ID ${schemaId} from ${schemaPath}.`);
@@ -58,13 +62,14 @@ export class FileSystemDocumentLoader implements DocumentLoader {
         this.logger.debug('Loading ' + schemaPath);
         const str = await readFile(schemaPath, 'utf-8');
         const parsed = JSON.parse(str);
-        const schemaId = parsed['$id'];
 
         // TODO this currently assumes it's a schema.
-        if (!schemaId) {
+        if (!parsed || !parsed['$id']) {
             this.logger.warn('Warning: bad schema found, no $id property was defined. Path: ', schemaPath);
             return;
         }
+        
+        const schemaId = parsed['$id'];
 
         if (!parsed['$schema']) {
             this.logger.warn('Warning, loaded schema does not have $schema set and therefore may be invalid. Path: ', schemaPath);

@@ -6,6 +6,7 @@ import { promptUserForOptions } from './command-helpers/generate-options';
 import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components/options';
 import { DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { FileSystemDocumentLoader } from '@finos/calm-shared/dist/document-loader/file-system-document-loader';
+import { prototype } from 'events';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -29,11 +30,12 @@ export function setupCLI(program: Command) {
         .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.', CALM_META_SCHEMA_DIRECTORY)
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
+            const debug = !!options.verbose
             const docLoaderOpts = await parseDocumentLoaderConfig(program, options);
-            const schemaDirectory = await buildSchemaDirectory(docLoaderOpts);
+            const schemaDirectory = await buildSchemaDirectory(docLoaderOpts, debug);
             const pattern: object = await loadJsonFromFile(options.pattern, options.verbose);
             const choices: CalmChoice[] = await promptUserForOptions(pattern, options.verbose);
-            await runGenerate(pattern, options.output, !!options.verbose, schemaDirectory, choices);
+            await runGenerate(pattern, options.output, debug, schemaDirectory, choices);
         });
 
     program
@@ -64,7 +66,10 @@ export function setupCLI(program: Command) {
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
             const { startServer } = await import('./server/cli-server');
-            startServer(options);
+            const debug = !!options.verbose
+            const docLoaderOpts = await parseDocumentLoaderConfig(program, options);
+            const schemaDirectory = await buildSchemaDirectory(docLoaderOpts, debug);
+            startServer(options.port, schemaDirectory, debug);
         });
 
     program
@@ -119,13 +124,13 @@ async function parseDocumentLoaderConfig(program, options): Promise<DocumentLoad
     };
 }
 
-async function buildSchemaDirectory(options: DocumentLoaderOptions): Promise<SchemaDirectory> {
-    const docLoader = buildDocumentLoader(options)
-    return new SchemaDirectory(docLoader, true);
+async function buildSchemaDirectory(options: DocumentLoaderOptions, debug: boolean): Promise<SchemaDirectory> {
+    const docLoader = buildDocumentLoader(options, debug)
+    return new SchemaDirectory(docLoader, debug);
 }
 
-function buildDocumentLoader(options: DocumentLoaderOptions) : DocumentLoader {
+function buildDocumentLoader(options: DocumentLoaderOptions, debug: boolean) : DocumentLoader {
     if (options.loadMode == 'filesystem') {
-        return new FileSystemDocumentLoader([options.schemaDirectoryPath], true)
+        return new FileSystemDocumentLoader([options.schemaDirectoryPath], debug)
     }
 }
