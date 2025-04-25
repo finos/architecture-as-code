@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-import { V } from 'vitest/dist/chunks/reporters.d.CfRkRKN2';
 
 let calmShared: typeof import('@finos/calm-shared');
 let validateModule: typeof import('./command-helpers/validate');

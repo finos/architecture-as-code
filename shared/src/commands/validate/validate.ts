@@ -81,7 +81,7 @@ function buildAjv2020(schemaDirectory: SchemaDirectory, debug: boolean): Ajv2020
 async function loadMetaSchemas(metaSchemaLocation: string, debug: boolean): Promise<SchemaDirectory> {
     logger.info(`Loading meta schema(s) from ${metaSchemaLocation}`);
 
-    const docLoader = new FileSystemDocumentLoader([metaSchemaLocation], debug)
+    const docLoader = new FileSystemDocumentLoader([metaSchemaLocation], debug);
     const schemaDirectory = new SchemaDirectory(docLoader, debug);
     await schemaDirectory.loadSchemas();
 

@@ -45,11 +45,12 @@ export class ValidationRouter {
             return res.status(400).type('json').send(new ErrorResponse('The "$schema" field is missing from the request body'));
         }
 
-        console.log("loading schemas")
+        console.log('loading schemas');
         await this.schemaDirectory.loadSchemas();
-        console.log("loaded schemas")
+        console.log('loaded schemas');
+        let foundSchema;
         try {
-            var foundSchema = await this.schemaDirectory.getSchema(schema);
+            foundSchema = await this.schemaDirectory.getSchema(schema);
         } catch(err) {
             if (err instanceof DocumentLoadError) {
                 // TODO, right now we only have the filesystem loader which simply doesn't have the ability to resolve missing schemas

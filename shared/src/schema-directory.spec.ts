@@ -1,6 +1,6 @@
 import { SchemaDirectory } from '.';
-import { DocumentLoader, DocumentLoadError } from './document-loader/document-loader';
-import { readFile, readFileSync } from 'node:fs';
+import { DocumentLoader } from './document-loader/document-loader';
+import { readFileSync } from 'node:fs';
 
 vi.mock('./logger', () => {
     return {
@@ -19,7 +19,7 @@ function getMockDocumentLoader(): DocumentLoader {
     return {
         initialise: vi.fn(),
         loadMissingDocument: vi.fn()
-    }
+    };
 }
 
 describe('SchemaDirectory', () => {
@@ -27,7 +27,7 @@ describe('SchemaDirectory', () => {
 
     beforeEach(() => {
         mockDocLoader = getMockDocumentLoader();
-    })
+    });
 
     it('calls documentloader initialise', async () => {
         const schemaDir = new SchemaDirectory(mockDocLoader);
@@ -46,14 +46,14 @@ describe('SchemaDirectory', () => {
         mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => resolve(expectedValue)));
 
         const returnedSchema = await schemaDir.getSchema('mock id');
-        expect(returnedSchema).toEqual(expectedValue)
-    })
+        expect(returnedSchema).toEqual(expectedValue);
+    });
 
 
     it('resolves a reference from a stored schema', async () => {
         const schemaDir = new SchemaDirectory(mockDocLoader);
         
-        const nodeJson = loadSchema('test_fixtures/calm/core.json')
+        const nodeJson = loadSchema('test_fixtures/calm/core.json');
         const nodeRef = 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/core.json#/defs/node';
         
         mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => resolve(nodeJson)));

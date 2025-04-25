@@ -167,6 +167,7 @@ describe('instantiate', () => {
 
     it('instantiates nodes with schema-required and const fields', async () => {
         const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result: TestInstantiatedPattern = await instantiate(pattern, true,  new SchemaDirectory({} as any));
 
         expect(result.nodes[0]).toEqual({
@@ -181,6 +182,7 @@ describe('instantiate', () => {
 
     it('instantiates nested controls with patternProperties and consts', async () => {
         const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result: TestInstantiatedPattern = await instantiate(pattern, true,  new SchemaDirectory({} as any));
 
         expect(result.relationships[0]).toEqual({
@@ -201,6 +203,7 @@ describe('instantiate', () => {
 
     it('handles missing required schema fields by generating placeholders', async () => {
         const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result: TestInstantiatedPattern = await instantiate(pattern, true, new SchemaDirectory({} as any));
 
         expect(result.nodes[0]['node-type']).toBe('[[ NODE_TYPE ]]');
