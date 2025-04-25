@@ -6,7 +6,6 @@ let serverModule: typeof import('./server/cli-server');
 let templateModule: typeof import('./command-helpers/template');
 let fileReaderModule: typeof import('./command-helpers/file-input');
 let optionsModule: typeof import ('./command-helpers/generate-options');
-// let documentLoaderModule: typeof import('@finos/calm-shared/dist/document-loader/document-loader');
 let fileSystemDocLoaderModule: typeof import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
 let setupCLI: typeof import('./cli').setupCLI;
 
@@ -27,7 +26,6 @@ describe('CLI Commands', () => {
         serverModule = await import('./server/cli-server');
         templateModule = await import('./command-helpers/template');
         optionsModule = await import('./command-helpers/generate-options');
-        // documentLoaderModule = await import('@finos/calm-shared/dist/document-loader/document-loader');
         fileSystemDocLoaderModule = await import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
 
         vi.spyOn(calmShared, 'runGenerate').mockResolvedValue(undefined);
@@ -43,7 +41,6 @@ describe('CLI Commands', () => {
         vi.spyOn(optionsModule, 'promptUserForOptions').mockResolvedValue([]);
 
         vi.spyOn(fileSystemDocLoaderModule, 'FileSystemDocumentLoader').mockImplementation(vi.fn());
-        // vi.spyOn(calmShared, 'SchemaDirectory').mockResolvedValue(undefined)
 
         const cliModule = await import('./cli');
         setupCLI = cliModule.setupCLI;
