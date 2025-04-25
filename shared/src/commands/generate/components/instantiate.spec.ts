@@ -160,7 +160,8 @@ describe('instantiate', () => {
 
     it('instantiates architecture with correct schema', async () => {
         const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
-        const result: TestInstantiatedPattern = await instantiate(pattern, true,  'schemas');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result: TestInstantiatedPattern = await instantiate(pattern, true,  new SchemaDirectory({} as any));
 
         expect(result.$schema).toEqual('test-pattern');
     });
