@@ -5,6 +5,8 @@ import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
 import expandCollapse from 'cytoscape-expand-collapse';
 import { Sidebar } from '../sidebar/Sidebar.js';
 import { ZoomContext } from '../zoom-context.provider.js';
+import { Edge, Node } from '../../contracts/contracts.js';
+import { LayoutCorrectionService } from '../../services/layout-correction-service.js';
 
 // Initialize Cytoscape plugins
 nodeEdgeHtmlLabel(cytoscape);
@@ -23,28 +25,6 @@ const breadthFirstLayout = {
 };
 
 // Types for nodes and edges
-export type Node = {
-    classes?: string;
-    data: {
-        description: string;
-        type: string;
-        label: string;
-        id: string;
-        _displayPlaceholderWithDesc: string;
-        _displayPlaceholderWithoutDesc: string;
-        [idx: string]: string;
-    };
-};
-
-export type Edge = {
-    data: {
-        id: string;
-        label: string;
-        source: string;
-        target: string;
-        [idx: string]: string;
-    };
-};
 
 interface Props {
     title?: string;
@@ -66,6 +46,8 @@ export const CytoscapeRenderer = ({
     const { zoomLevel, updateZoom } = useContext(ZoomContext);
     const [selectedNode, setSelectedNode] = useState<Node['data'] | null>(null);
     const [selectedEdge, setSelectedEdge] = useState<Edge['data'] | null>(null);
+
+    const layoutCorrectionService = new LayoutCorrectionService();
 
     // Generate node label templates
     const getNodeLabelTemplateGenerator =
@@ -167,7 +149,7 @@ export const CytoscapeRenderer = ({
                 tpl: getNodeLabelTemplateGenerator(true),
             },
         ]);
-
+        layoutCorrectionService.calculateAndUpdateNodePositions(updatedCy, nodes);
         // Set Cytoscape instance
         setCy(updatedCy);
 
