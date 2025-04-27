@@ -1,5 +1,6 @@
 import cytoscape from "cytoscape";
 import { BoundingBox, IdAndBoundingBox, Node, NodeLayoutViolations } from '../contracts/contracts.js';
+import { difference, intersection, union } from "../helpers/set-functions.js";
 
 export class LayoutCorrectionService {
     
@@ -8,9 +9,9 @@ export class LayoutCorrectionService {
     public calculateAndUpdateNodePositions(cyRef: cytoscape.Core, nodes: Node[]): void {
         this.identifyNodesToBeMoved(cyRef, nodes);
         //Make sure all parentless containers are correctly placed first, followed by child cotaimers of these parents
-        const containers = new Set<string>(this._nodeEnclosureMap.keys().toArray());
-        const containersWithoutParents = this._parentlessNodes.intersection(containers);
-        const containersWithParents = containers.difference(containersWithoutParents);
+        const containers = new Set<string>([...this._nodeEnclosureMap.keys()]);
+        const containersWithoutParents = intersection(this._parentlessNodes, containers);
+        const containersWithParents = difference(containers, containersWithoutParents);
         containersWithoutParents.forEach((nodeId: string) => {
             this.correctNodePosition(cyRef, nodeId);
         });
@@ -18,7 +19,7 @@ export class LayoutCorrectionService {
             this.correctNodePosition(cyRef, nodeId);
         });
         //Then correct the remaining nodes
-        this._allNodes.difference(containers).forEach((nodeId: string) => {
+        difference(this._allNodes, containers).forEach((nodeId: string) => {
             this.correctNodePosition(cyRef, nodeId);
         });
     }
@@ -118,11 +119,11 @@ export class LayoutCorrectionService {
             //Recursion only if children defined
             if (children != null) {
                 //The initial set of values we set is the children
-                const fullSet = new Set<string>(children);
+                let fullSet = new Set<string>(children);
                 //We go through children and update them
                 children.forEach((childId: string) => {
                     this.updateEnclosedNodesMap(childId, enclosureMap, visited);
-                    enclosureMap.get(childId)?.forEach(fullSet.add, fullSet);
+                    fullSet = union(fullSet, enclosureMap.get(childId) ?? new Set<string>());
                 });
                 //Update enclosure map based on updated children
                 enclosureMap.set(currentValue, fullSet);
@@ -172,7 +173,7 @@ export class LayoutCorrectionService {
 
         //Iterate over keys in map to check if any non-enclosed nodes are intersecting
         this._nodeEnclosureMap.forEach((enclosed: Set<string>, parentId: string, nodeEnclosureMap: Map<string, Set<string>>) => {
-            const nonEnclosedNodes = this._allNodes.difference(enclosed.add(parentId));
+            const nonEnclosedNodes = difference(this._allNodes, enclosed.add(parentId));
             nonEnclosedNodes.forEach((nonEnclosedNodeId: string) => {
                 //If the current parent is supposed to be enclosed by the non enclosed node id
                 if(!(nodeEnclosureMap.get(nonEnclosedNodeId)?.has(parentId) ?? false)) {
@@ -327,7 +328,7 @@ export class LayoutCorrectionService {
             yRanges[0][1] = Math.min(yRanges[0][1], container.boundingBox.y2);
         });
         //Update ranges so that the new node position cannot intersect with other non-ancestor nodes
-        this._allNodes.difference(this.getLineage(nodeId)).forEach((nonCollisionNodeId: string) => {
+        difference(this._allNodes, this.getLineage(nodeId)).forEach((nonCollisionNodeId: string) => {
             const boundingBox = this.getNodeBoundingBox(cyref, nonCollisionNodeId);
             this.updateRanges(xRanges, [boundingBox.x1, boundingBox.x2]);
             this.updateRanges(yRanges, [boundingBox.y1, boundingBox.y2]);
