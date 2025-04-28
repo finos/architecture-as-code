@@ -27,7 +27,7 @@
     "validation"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^12.0.0",
     "@inquirer/prompts": "^7.4.1",
