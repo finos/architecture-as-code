@@ -34,11 +34,10 @@ your project.
 
 ## Getting Involved
 
-Architecture as Code is part of
-the [DevOps Automation Special Interest Group](https://devops.finos.org/docs/working-groups/aasc/). Our Zoom meetups
+Architecture as Code was developed as part of the [DevOps Automation Special Interest Group](https://devops.finos.org/) before graduating as a top level project in it's own right. Our community Zoom meetups
 take place on the fourth Tuesday of every month,
-see [here](https://github.com/finos/devops-automation/issues?q=label%3Ameeting+label%3Aarchitecture-as-code+) for
-upcoming and previous meetings.
+see [here](https://github.com/finos/architecture-as-code/issues?q=label%3Ameeting) for
+upcoming and previous meetings. For active contributors we have Office Hours every Thursday, see the [FINOS Event Calendar](http://calendar.finos.org) for meeting details.
 
 Have an idea or feedback? [Raise an issue](https://github.com/finos/architecture-as-code/issues/new/choose) in this
 repository.

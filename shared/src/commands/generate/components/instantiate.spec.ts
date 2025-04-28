@@ -80,6 +80,7 @@ describe('instantiate', () => {
 
     const patternDocument = {
         $schema: 'schema#',
+        $id: 'test-pattern',
         properties: {
             nodes: {
                 type: 'array',
@@ -141,6 +142,13 @@ describe('instantiate', () => {
     beforeEach(() => {
         vi.resetModules();
         (fs.readFileSync as Mock).mockImplementation(() => JSON.stringify(patternDocument));
+    });
+
+    it('instantiates architecture with correct schema', async () => {
+        const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
+        const result: TestInstantiatedPattern = await instantiate(pattern, true,  'schemas');
+
+        expect(result.$schema).toEqual('test-pattern');
     });
 
     it('instantiates nodes with schema-required and const fields', async () => {
