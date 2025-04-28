@@ -11,6 +11,7 @@ interface PatternDefinition {
 }
 
 interface PatternDocument {
+    $id?: string;
     $schema?: string;
     properties: Record<string, PatternDefinition>;
 }
@@ -152,8 +153,9 @@ export async function instantiate(
 
     const output = instantiateFromProperties(pattern, schemaDir);
 
-    if (pattern.$schema) {
-        output.$schema = pattern.$schema;
+    if (pattern.$id) {
+        // $schema on an architecture identifies the pattern ID in use.
+        output.$schema = pattern.$id;
     }
 
     return output;

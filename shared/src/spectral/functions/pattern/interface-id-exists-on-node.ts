@@ -17,8 +17,14 @@ export function interfaceIdExistsOnNode(input, _, context) {
     }
 
     const nodeId = input.node;
-    const nodeMatch: object[] = JSONPath({ path: `$.properties.nodes.prefixItems[?(@.properties['unique-id'].const == '${nodeId}')]`, json: context.document.data });
-    if (!nodeMatch || nodeMatch.length === 0) {
+    const nodes: object[] = JSONPath({ path: '$.properties.nodes.prefixItems[*]', json: context.document.data });
+    const node = nodes.find((node) => {
+        const uniqueId: string[] = JSONPath({ path: '$.properties.unique-id.const', json: node });
+        uniqueId.push(...JSONPath({ path: '$.oneOf[*].properties.unique-id.const', json: node }));
+        uniqueId.push(...JSONPath({ path: '$.anyOf[*].properties.unique-id.const', json: node }));
+        return uniqueId && uniqueId[0] === nodeId;
+    });
+    if (!node) {
         // other rule will report undefined node
         return [];
     }
@@ -26,9 +32,9 @@ export function interfaceIdExistsOnNode(input, _, context) {
     // all of these must be present on the referenced node
     const desiredInterfaces = input.interfaces;
 
-    const node = nodeMatch[0];
-
     const nodeInterfaces = JSONPath({ path: '$.properties.interfaces.prefixItems[*].properties.unique-id.const', json: node });
+    nodeInterfaces.push(...JSONPath({ path: '$.oneOf[*].properties.interfaces.prefixItems[*].properties.unique-id.const', json: node }));
+    nodeInterfaces.push(...JSONPath({ path: '$.anyOf[*].properties.interfaces.prefixItems[*].properties.unique-id.const', json: node }));
     if (!nodeInterfaces || nodeInterfaces.length === 0) {
         return [
             { message: `Node with unique-id ${nodeId} has no interfaces defined, expected interfaces [${desiredInterfaces}]` }
@@ -37,7 +43,7 @@ export function interfaceIdExistsOnNode(input, _, context) {
 
     const missingInterfaces = difference(desiredInterfaces, nodeInterfaces);
 
-    // difference always returns an array
+    //difference always returns an array
     if (missingInterfaces.length === 0) {
         return [];
     }
