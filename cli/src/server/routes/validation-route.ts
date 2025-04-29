@@ -7,7 +7,6 @@ import { v4 as uuidv4 } from 'uuid';
 import winston from 'winston';
 import { ValidationOutcome } from '@finos/calm-shared';
 import rateLimit from 'express-rate-limit';
-import { DocumentLoadError } from '@finos/calm-shared/src/document-loader/document-loader';
 
 export class ValidationRouter {
 
