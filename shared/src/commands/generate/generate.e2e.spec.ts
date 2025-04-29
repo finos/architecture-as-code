@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { runGenerate } from './generate.js';
 import { existsSync, readFileSync, mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
+import { FileSystemDocumentLoader } from '../../document-loader/file-system-document-loader.js';
+import { SchemaDirectory } from '../../schema-directory.js';
 
 const inputPatternPath = join(
     __dirname,
@@ -23,11 +25,13 @@ const expectedPlainPath = join(expectedDir, 'conference-signup.arch.json');
 const expectedSecurePath = join(expectedDir, 'conference-secure-signup.arch.json');
 
 describe('runGenerate E2E', () => {
+    let schemaDirectory;
     beforeEach(() => {
         if (existsSync(outputDir)) {
             rmSync(outputDir, { recursive: true, force: true });
         }
         mkdirSync(outputDir, { recursive: true });
+        schemaDirectory = new SchemaDirectory(new FileSystemDocumentLoader([schemaDir], true));
     });
 
     afterEach(() => {
@@ -38,7 +42,7 @@ describe('runGenerate E2E', () => {
 
     it('generates output from pattern and matches expected file', async () => {
         const inputPattern = JSON.parse(readFileSync(inputPatternPath, 'utf-8'));
-        await runGenerate(inputPattern, outputPath, true, [],  schemaDir);
+        await runGenerate(inputPattern, outputPath, true, schemaDirectory);
 
         expect(existsSync(outputPath)).toBe(true);
 
@@ -50,7 +54,7 @@ describe('runGenerate E2E', () => {
 
     it('generates secure output from pattern and matches expected file', async () => {
         const inputSecurePattern = JSON.parse(readFileSync(inputSecurePatternPath, 'utf-8'));
-        await runGenerate(inputSecurePattern, outputSecurePath, true, [], schemaDir);
+        await runGenerate(inputSecurePattern, outputSecurePath, true, schemaDirectory);
 
         expect(existsSync(outputSecurePath)).toBe(true);
 

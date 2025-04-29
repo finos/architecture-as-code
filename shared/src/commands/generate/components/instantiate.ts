@@ -16,10 +16,10 @@ interface PatternDocument {
     properties: Record<string, PatternDefinition>;
 }
 
-function resolveSchema(def: JsonSchema, schemaDir: SchemaDirectory): JsonSchema {
+async function resolveSchema(def: JsonSchema, schemaDir: SchemaDirectory): Promise<JsonSchema> {
     if (!def?.$ref) return def;
 
-    const resolved = schemaDir.getDefinition(def.$ref) as JsonSchema;
+    const resolved = await schemaDir.getDefinition(def.$ref) as JsonSchema;
     const requiredFromSchema = resolved.required ?? [];
     const patternProps = def.properties ?? {};
     const patternRequired = def.required ?? [];
@@ -47,26 +47,26 @@ function resolveSchema(def: JsonSchema, schemaDir: SchemaDirectory): JsonSchema 
     };
 }
 
-function instantiateObject(
+async function instantiateObject(
     def: JsonSchema,
     schemaDir: SchemaDirectory,
     path: string[]
-): Record<string, unknown> {
-    const resolved = resolveSchema(def, schemaDir);
+): Promise<Record<string, unknown>> {
+    const resolved = await resolveSchema(def, schemaDir);
     const out: Record<string, unknown> = {};
 
     for (const [key, valueDefRaw] of Object.entries(resolved.properties ?? {})) {
-        const valueDef = resolveSchema(valueDefRaw, schemaDir);
+        const valueDef = await resolveSchema(valueDefRaw, schemaDir);
 
         if (valueDef.const !== undefined) {
             out[key] = valueDef.const;
         } else if (valueDef.type === 'object') {
-            out[key] = instantiateObject(valueDef, schemaDir, [...path, key]);
+            out[key] = await instantiateObject(valueDef, schemaDir, [...path, key]);
         } else if (valueDef.type === 'array' && valueDef.prefixItems) {
-            out[key] = valueDef.prefixItems.map((itemDef, idx) => {
-                const resolvedItem = resolveSchema(itemDef, schemaDir);
-                return instantiateObject(resolvedItem, schemaDir, [...path, key, `${idx}`]);
-            });
+            out[key] = await Promise.all(valueDef.prefixItems.map(async (itemDef, idx) => {
+                const resolvedItem = await resolveSchema(itemDef, schemaDir);
+                return await instantiateObject(resolvedItem, schemaDir, [...path, key, `${idx}`]);
+            }));
         } else {
             out[key] = getPropertyValue(key, valueDef);
         }
@@ -79,8 +79,8 @@ function instantiateObject(
             for (const key of Object.keys(def.properties)) {
                 if (regex.test(key)) {
                     const patternValue = def.properties[key] ?? {};
-                    const merged = resolveSchema({ ...schema, ...patternValue }, schemaDir);
-                    const val = instantiateObject(merged, schemaDir, [...path, key]);
+                    const merged = await resolveSchema({ ...schema, ...patternValue }, schemaDir);
+                    const val = await instantiateObject(merged, schemaDir, [...path, key]);
                     out[key] = val;
                 }
             }
@@ -90,21 +90,21 @@ function instantiateObject(
     return out;
 }
 
-function instantiateFromProperties(
+async function instantiateFromProperties(
     pattern: PatternDocument,
     schemaDir: SchemaDirectory
-): Record<string, unknown> {
+): Promise<Record<string, unknown>> {
     const output: Record<string, unknown> = {};
     const properties = pattern.properties ?? {};
 
     for (const [key, def] of Object.entries(properties)) {
-        const resolvedDef = resolveSchema(def as JsonSchema, schemaDir);
+        const resolvedDef = await resolveSchema(def as JsonSchema, schemaDir);
 
         if (resolvedDef.type === 'array' && resolvedDef.prefixItems) {
-            output[key] = resolvedDef.prefixItems.map((itemDef, idx) => {
-                const resolvedItem = resolveSchema(itemDef, schemaDir);
+            output[key] = await Promise.all(resolvedDef.prefixItems.map(async (itemDef, idx) => {
+                const resolvedItem = await resolveSchema(itemDef, schemaDir);
                 return instantiateObject(resolvedItem, schemaDir, [key, `${idx}`]);
-            });
+            }));
         } else {
             output[key] = instantiateObject(resolvedDef, schemaDir, [key]);
         }
@@ -138,20 +138,17 @@ function instantiateFromProperties(
 export async function instantiate(
     patternObj: object,
     debug: boolean,
-    schemaDirectoryPath?: string
+    schemaDirectory: SchemaDirectory
 ): Promise<unknown> {
     // I could cast this to CALMCoreSchema here but then need to change test to not show its completely generic
     initLogger(debug, 'calm-generate');
-    const schemaDir = new SchemaDirectory(debug);
 
-    if (schemaDirectoryPath) {
-        await schemaDir.loadSchemas(schemaDirectoryPath);
-    }
+    await schemaDirectory.loadSchemas();
 
     const pattern = patternObj as PatternDocument;
-    schemaDir.loadCurrentPatternAsSchema(pattern);
+    schemaDirectory.loadCurrentPatternAsSchema(pattern);
 
-    const output = instantiateFromProperties(pattern, schemaDir);
+    const output = await instantiateFromProperties(pattern, schemaDirectory);
 
     if (pattern.$id) {
         // $schema on an architecture identifies the pattern ID in use.

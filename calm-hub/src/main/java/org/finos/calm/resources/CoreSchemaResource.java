@@ -9,12 +9,16 @@ import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.CoreSchemaStore;
-import org.apache.commons.text.StringEscapeUtils;
+import org.owasp.html.HtmlPolicyBuilder;
+import org.owasp.html.PolicyFactory;
+
 import java.util.ArrayList;
 import java.util.Map;
 
 @Path("/calm/schemas")
 public class CoreSchemaResource {
+
+    private static final PolicyFactory STRICT_SANITIZATION_POLICY = new HtmlPolicyBuilder().toFactory();
 
     private final CoreSchemaStore coreSchemaStore;
 
@@ -43,7 +47,7 @@ public class CoreSchemaResource {
         Map<String, Object> schemas = coreSchemaStore.getSchemasForVersion(version);
         if (schemas == null) {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("Version not found: " + StringEscapeUtils.escapeHtml4(version))
+                    .entity("Version not found: " + STRICT_SANITIZATION_POLICY.sanitize(version))
                     .build();
         }
         return Response.ok(new ValueWrapper<>(new ArrayList<>(schemas.keySet()))).build();
@@ -61,12 +65,12 @@ public class CoreSchemaResource {
         Map<String, Object> schemas = coreSchemaStore.getSchemasForVersion(version);
         if (schemas == null) {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("Version not found: " + StringEscapeUtils.escapeHtml4(version))
+                    .entity("Version not found: " + STRICT_SANITIZATION_POLICY.sanitize(version))
                     .build();
         }
         if(!schemas.containsKey(schemaName)) {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("Schema: [" + StringEscapeUtils.escapeHtml4(schemaName) + "] not found for version: [" + StringEscapeUtils.escapeHtml4(version) + "]").build();
+                    .entity("Schema: [" + STRICT_SANITIZATION_POLICY.sanitize(schemaName) + "] not found for version: [" + STRICT_SANITIZATION_POLICY.sanitize(version) + "]").build();
         }
 
         return Response.ok(schemas.get(schemaName)).build();
