@@ -170,7 +170,7 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
     const nodes = getNodes();
 
     return (
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex">
             <div className={`drawer drawer-end ${selectedNode ? 'drawer-open' : ''}`}>
                 <input
                     type="checkbox"
@@ -195,7 +195,22 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
                     )}
                 </div>
                 {selectedNode && (
-                    <Sidebar selectedData={selectedNode} closeSidebar={closeSidebar} />
+                    <Sidebar
+                        selectedData={selectedNode}
+                        closeSidebar={closeSidebar}
+                        deleteElement={(elementId) => {
+                            console.log(`Would delete element ${elementId} if implemented`);
+                        }}
+                        nodes={nodes}
+                        updateElement={(updatedData) => {
+                            console.log('Would update element if implemented', updatedData);
+                        }}
+                        createEdge={(sourceId, targetId, label) => {
+                            console.log(
+                                `Would create edge from ${sourceId} to ${targetId} with label "${label}"`
+                            );
+                        }}
+                    />
                 )}
             </div>
         </div>
