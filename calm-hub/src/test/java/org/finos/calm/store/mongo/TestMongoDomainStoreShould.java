@@ -27,7 +27,6 @@ public class TestMongoDomainStoreShould {
 
     private MongoDatabase mongoDatabase;
     private MongoCollection<Document> domainsCollection;
-
     private MongoDomainStore mongoDomainStore;
 
     @BeforeEach
@@ -42,6 +41,7 @@ public class TestMongoDomainStoreShould {
 
     @Test
     void get_domains_returns_an_empty_array_when_collection_is_empty() {
+        //TODO Refactor across these iterables once other PRs in mongo work are in
         FindIterable<Document> findIterable = emptyFindIterableSetup();
         when(domainsCollection.find()).thenReturn(findIterable);
 

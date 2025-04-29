@@ -53,8 +53,7 @@ public class TestDomainSchemaResourceShould {
 
     @Test
     void create_a_domain_with_a_valid_name() throws DomainAlreadyExistsException {
-        Domain expectedDomain = new Domain();
-        expectedDomain.setName(TEST_DOMAIN);
+        Domain expectedDomain = new Domain(TEST_DOMAIN);
         when(mockControlStore.createDomain("test-domain")).thenReturn(expectedDomain);
 
         given()
@@ -70,8 +69,7 @@ public class TestDomainSchemaResourceShould {
 
     @Test
     void create_a_domain_with_an_invalid_name_returns_a_400() throws DomainAlreadyExistsException {
-        Domain invalidDomain = new Domain();
-        invalidDomain.setName("invalid domain");
+        Domain invalidDomain = new Domain("invalid domain");
 
         given()
             .header("Content-Type", "application/json")
@@ -86,8 +84,7 @@ public class TestDomainSchemaResourceShould {
 
     @Test
     void create_a_domain_that_already_exists_returns_a_409() throws DomainAlreadyExistsException {
-        Domain expectedDomain = new Domain();
-        expectedDomain.setName(TEST_DOMAIN);
+        Domain expectedDomain = new Domain(TEST_DOMAIN);
         when(mockControlStore.createDomain("test-domain")).thenThrow(new DomainAlreadyExistsException("Domain already exists"));
 
         given()

@@ -19,6 +19,17 @@ public class MongoSetup {
         }
     }
 
+    public static void domainSetup(MongoDatabase database) {
+        // Ensure the 'namespaces' collection exists
+        if (!database.listCollectionNames().into(new ArrayList<>()).contains("domains")) {
+            database.createCollection("domains");
+            // Insert multiple documents into 'namespaces'
+            database.getCollection("domains").insertMany(Arrays.asList(
+                    new Document("name", "security")
+            ));
+        }
+    }
+
     public static void counterSetup(MongoDatabase database) {
         //Setup Counter
         if (!database.listCollectionNames().into(new ArrayList<>()).contains("counters")) {

@@ -40,10 +40,7 @@ public class MongoDomainStore implements DomainStore {
         Document domainDocument = new Document("name", name);
         domainsCollection.insertOne(domainDocument);
 
-        Domain domain = new Domain();
-        domain.setName(name);
-
-        return domain;
+        return new Domain(name);
     }
 
     private boolean domainExists(String name) {
