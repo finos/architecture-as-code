@@ -24,7 +24,7 @@ export function Navbar() {
                     </div>
                     <ul
                         tabIndex={0}
-                        className="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow"
+                        className="menu menu-xs dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow"
                     >
                         <li>
                             <NavLink to="/">Hub</NavLink>
@@ -35,7 +35,11 @@ export function Navbar() {
                     </ul>
                 </div>
                 <a className="btn btn-ghost">
-                    <img src="/brand/Icon/2025_CALM_Icon.svg" alt="CALM Logo" className="h-10" />
+                    <img
+                        src="/brand/Icon/2025_CALM_Icon.svg"
+                        alt="CALM Logo"
+                        className="h-10 logo"
+                    />
                 </a>
                 <div className="hidden lg:flex">
                     <ul className="menu menu-horizontal px-1">
