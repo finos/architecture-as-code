@@ -1,6 +1,6 @@
 {
   "name": "@finos/calm-cli",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
   "main": "dist/index.js",
   "files": [
@@ -27,7 +27,7 @@
     "validation"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^12.0.0",
     "@inquirer/prompts": "^7.4.1",
