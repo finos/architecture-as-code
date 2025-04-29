@@ -45,20 +45,22 @@ export class ValidationRouter {
             return res.status(400).type('json').send(new ErrorResponse('The "$schema" field is missing from the request body'));
         }
         
-        await this.schemaDirectory.loadSchemas();
-        console.log('loaded schemas');
+        try {
+            await this.schemaDirectory.loadSchemas();
+        } catch (error) {
+            this.logger.error('Failed to load schemas: ' + error);
+            return res.status(500).type('json').send(new ErrorResponse('Failed to load schemas'));
+        }
         let foundSchema;
         try {
             foundSchema = await this.schemaDirectory.getSchema(schema);
-        } catch(err) {
-            if (err instanceof DocumentLoadError) {
-                // TODO, right now we only have the filesystem loader which simply doesn't have the ability to resolve missing schemas
-                // this will be smarter once we have different implementations
-                if (err.name === 'OPERATION_NOT_IMPLEMENTED') {
-                    return res.status(400).type('json').send(new ErrorResponse('The "$schema" field referenced is not available to the server'));
-                } 
+            if (!foundSchema) {
+                this.logger.error('Schema with $id ' + schema + ' not found');
+                return res.status(400).type('json').send(new ErrorResponse('The "$schema" field referenced is not available to the server'));
             }
-            throw err;
+        } catch(err) {
+            this.logger.error('Failed to load schema: ' + err);
+            return res.status(500).type('json').send(new ErrorResponse('Failed to load schema: ' + err));
         }
         const tempInstantiation = await createTemporaryFile();
         const tempPattern = await createTemporaryFile();
@@ -72,8 +74,8 @@ export class ValidationRouter {
             return res.status(500).type('json').send(new ErrorResponse(error.message));
         } finally {
             [tempInstantiation, tempPattern].forEach(element => {
-                fs.unlink(element).catch(() => {
-                    this.logger.warn('Failed to delete temporary file ' + element);
+                fs.unlink(element).catch((reason) => {
+                    this.logger.warn('Failed to delete temporary file ' + element + ' with error: ' + reason);
                 });
             });
         }

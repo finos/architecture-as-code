@@ -1,3 +1,4 @@
+import { CALM_META_SCHEMA_DIRECTORY } from '@finos/calm-shared';
 import { Command } from 'commander';
 
 let calmShared: typeof import('@finos/calm-shared');
@@ -62,7 +63,7 @@ describe('CLI Commands', () => {
             expect(fileReaderModule.loadJsonFromFile).toHaveBeenCalledWith('pattern.json', true);
             expect(optionsModule.promptUserForOptions).toHaveBeenCalled();
 
-            expect(fileSystemDocLoaderModule.FileSystemDocumentLoader).toHaveBeenCalledWith(['schemas'], true);
+            expect(fileSystemDocLoaderModule.FileSystemDocumentLoader).toHaveBeenCalledWith([CALM_META_SCHEMA_DIRECTORY, 'schemas'], true);
 
             expect(calmShared.runGenerate).toHaveBeenCalledWith(
                 {}, 'output.json', true, expect.any(calmShared.SchemaDirectory), []

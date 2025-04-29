@@ -25,7 +25,9 @@ export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions, debug:
     switch(docLoaderOpts.loadMode) {
     case 'filesystem': {
         const directoryPaths = [CALM_META_SCHEMA_DIRECTORY];
-        directoryPaths.push(docLoaderOpts.schemaDirectoryPath);
+        if (docLoaderOpts.schemaDirectoryPath) {
+            directoryPaths.push(docLoaderOpts.schemaDirectoryPath);
+        }
         return new FileSystemDocumentLoader(directoryPaths, debug);
     } 
     case 'calmhub': {

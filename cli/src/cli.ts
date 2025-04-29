@@ -29,7 +29,7 @@ export function setupCLI(program: Command) {
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
             const debug = !!options.verbose;
-            const docLoaderOpts = await parseDocumentLoaderConfig(program, options);
+            const docLoaderOpts = await parseDocumentLoaderConfig(options);
             const schemaDirectory = await buildSchemaDirectory(docLoaderOpts, debug);
             const pattern: object = await loadJsonFromFile(options.pattern, options.verbose);
             const choices: CalmChoice[] = await promptUserForOptions(pattern, options.verbose);
@@ -65,7 +65,7 @@ export function setupCLI(program: Command) {
         .action(async (options) => {
             const { startServer } = await import('./server/cli-server');
             const debug = !!options.verbose;
-            const docLoaderOpts = await parseDocumentLoaderConfig(program, options);
+            const docLoaderOpts = await parseDocumentLoaderConfig(options);
             const schemaDirectory = await buildSchemaDirectory(docLoaderOpts, debug);
             startServer(options.port, schemaDirectory, debug);
         });
