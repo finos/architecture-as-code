@@ -13,7 +13,7 @@ import java.net.URISyntaxException;
 /**
  * REST resource for managing domains.
  */
-@Path("/calm/domains")
+@Path("/calm/controls/domains")
 public class DomainSchemaResource {
 
     private final DomainStore store;

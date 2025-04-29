@@ -30,7 +30,7 @@ public class TestDomainSchemaResourceShould {
         when(mockControlStore.getDomains()).thenReturn(new ArrayList<>());
 
         given()
-            .when().get("calm/domains")
+            .when().get("calm/controls/domains")
             .then()
             .statusCode(200)
             .body(is("{\"values\":[]}"));
@@ -43,7 +43,7 @@ public class TestDomainSchemaResourceShould {
         when(mockControlStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
 
         given()
-            .when().get("calm/domains")
+            .when().get("calm/controls/domains")
             .then()
             .statusCode(200)
             .body(is("{\"values\":[\"test-domain\"]}"));
@@ -59,7 +59,7 @@ public class TestDomainSchemaResourceShould {
         given()
             .header("Content-Type", "application/json")
             .body(expectedDomain)
-            .when().post("calm/domains")
+            .when().post("calm/controls/domains")
             .then()
             .statusCode(201)
             .header("Location", "http://localhost:8081/calm/domains/" + expectedDomain.getName());
@@ -74,7 +74,7 @@ public class TestDomainSchemaResourceShould {
         given()
             .header("Content-Type", "application/json")
             .body(invalidDomain)
-            .when().post("calm/domains")
+            .when().post("calm/controls/domains")
             .then()
             .statusCode(400)
             .body(is("{\"error\":\"Invalid domain name\"}"));
@@ -90,7 +90,7 @@ public class TestDomainSchemaResourceShould {
         given()
                 .header("Content-Type", "application/json")
                 .body(expectedDomain)
-                .when().post("calm/domains")
+                .when().post("calm/controls/domains")
                 .then()
                 .statusCode(409);
 
