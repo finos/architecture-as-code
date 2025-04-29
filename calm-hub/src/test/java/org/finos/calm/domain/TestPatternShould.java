@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-public class TestPattern {
+public class TestPatternShould {
 
     private static final String VERSION = "1.0.0";
 

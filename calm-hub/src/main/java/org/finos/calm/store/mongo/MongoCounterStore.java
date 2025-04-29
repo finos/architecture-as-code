@@ -35,6 +35,10 @@ public class MongoCounterStore {
         return nextValueForCounter("flowStoreCounter");
     }
 
+    public int getNextInterfaceSequenceValue() {
+        return nextValueForCounter("interfaceStoreCounter");
+    }
+
     private int nextValueForCounter(String counterId) {
         Document filter = new Document("_id", counterId);
         Document update = new Document("$inc", new Document("sequence_value", 1));

@@ -42,6 +42,16 @@ if (db.counters.countDocuments({ _id: "flowStoreCounter" }) === 1) {
     print("flowStoreCounter already exists, no initialization needed");
 }
 
+if (db.counters.countDocuments({ _id: "interfaceStoreCounter" }) === 1) {
+    db.counters.insertOne({
+        _id: "interfaceStoreCounter",
+        sequence_value: 1
+    });
+    print("Initialized interfaceStoreCounter with sequence_value 1");
+} else {
+    print("interfaceStoreCounter already exists, no initialization needed");
+}
+
 db.schemas.insertMany([               // Insert initial documents into the schemas collection
     {
         version: "2024-10",
@@ -2587,3 +2597,29 @@ db.architectures.insertMany([
         }]
     }
 ]);
+
+db.interfaces.insertMany([
+        {
+            namespace: "finos",
+            interfaces: [
+                {
+                    interfaceId: NumberInt(1),
+                    name: "Kafka topic",
+                    description: "This is a description for the kafka topic interface",
+                    versions:
+                        {
+                            "1-0-0" : {
+                                "unique-id": "int-kafka-001",
+                                "interface-definition-url": "https://calm.finos.org/draft/1083/interfaces/kafka-topic",
+                                "configuration": {
+                                    "topic": "trade-events",
+                                    "host": "kafka.internal.local",
+                                    "port": 9092
+                                }
+                            }
+                        }
+                },
+            ]
+        }
+    ]
+);

@@ -81,4 +81,20 @@ public class TestMongoCounterStoreShould {
 
         assertThat(counterStore.getNextFlowSequenceValue(), equalTo(25));
     }
+
+    @Test
+    void return_the_next_value_in_sequence_for_interfaces() {
+        Document document = new Document("sequence_value", 17);
+
+        when(counterCollection.findOneAndUpdate(
+                argThat(arg -> arg instanceof Document &&
+                        ((Document) arg).containsKey("_id") &&
+                        "interfaceStoreCounter".equals(((Document) arg).get("_id"))),
+                any(Document.class),
+                any(FindOneAndUpdateOptions.class)
+        )).thenReturn(document);
+
+
+        assertThat(counterStore.getNextInterfaceSequenceValue(), equalTo(17));
+    }
 }
