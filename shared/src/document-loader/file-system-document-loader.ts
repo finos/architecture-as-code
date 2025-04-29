@@ -1,9 +1,9 @@
 import { Logger } from 'winston';
-import { CalmDocumentType, DocumentLoader, DocumentLoadError } from '@finos/calm-shared/src/document-loader/document-loader';
-import { initLogger } from '@finos/calm-shared/src/logger';
+import { CalmDocumentType, DocumentLoader, DocumentLoadError } from './document-loader';
+import { initLogger } from '../logger';
 import { readdir, readFile } from 'fs/promises';
 import { join } from 'path';
-import { SchemaDirectory } from '@finos/calm-shared/src/schema-directory';
+import { SchemaDirectory } from '../schema-directory';
 
 export class FileSystemDocumentLoader implements DocumentLoader {
     private readonly logger: Logger;
