@@ -8,14 +8,18 @@ export class CalmHubDocumentLoader implements DocumentLoader {
     private readonly ax: Axios;
     private readonly logger: Logger;
 
-    constructor(private calmHubUrl: string, debug: boolean) {
-        this.ax = axios.create({
-            baseURL: calmHubUrl,
-            timeout: 10000,
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
+    constructor(private calmHubUrl: string, debug: boolean, axiosInstance?: Axios) {
+        if (axiosInstance) {
+            this.ax = axiosInstance;
+        } else {
+            this.ax = axios.create({
+                baseURL: calmHubUrl,
+                timeout: 10000,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+        }
 
         // TODO this is far, far too verbose for -v - we really need a -vvv option like cURL
         // if (debug) {
@@ -30,12 +34,12 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         this.ax.interceptors.request.use(request => {
             console.log('Starting Request', JSON.stringify(request, null, 2))
             return request
-          })
-              
+        })
+
         this.ax.interceptors.response.use(response => {
             console.log('Response:', response)
             return response
-          })
+        })
     }
 
     async initialise(schemaDirectory: SchemaDirectory): Promise<void> {
@@ -48,6 +52,7 @@ export class CalmHubDocumentLoader implements DocumentLoader {
 
         this.logger.debug(`Loading CALM schema from ${this.calmHubUrl}${path}`);
 
+        // TODO gracefully handle 404s and other errors
         const response = await this.ax.get(path)
         const document = response.data
         this.logger.debug("Successfully loaded document from CALMHub with id " + documentId);
