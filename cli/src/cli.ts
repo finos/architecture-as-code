@@ -126,7 +126,7 @@ async function parseDocumentLoaderConfig(options): Promise<DocumentLoaderOptions
         return {
             loadMode: 'calmhub',
             calmHubUrl: options.calmHubUrl
-        }
+        };
     }
 
     const userConfig = await loadCliConfig();
@@ -135,11 +135,11 @@ async function parseDocumentLoaderConfig(options): Promise<DocumentLoaderOptions
         return {
             loadMode: 'calmhub',
             calmHubUrl: userConfig.calmHubUrl
-        }
+        };
     }
 
-    logger.warn('Warning, no schema loading mechanism was defined. Only the bundled core schemas will be available; you may see empty definitions or errors.')
-    
+    logger.warn('Warning, no schema loading mechanism was defined. Only the bundled core schemas will be available; you may see empty definitions or errors.');
+
     return {
         loadMode: 'filesystem',
         schemaDirectoryPath: undefined
@@ -154,7 +154,7 @@ async function loadPatternJson(patternAccessor: string, docLoader: DocumentLoade
     try {
         const url = new URL(patternAccessor);
         return await loadPatternFromCalmHub(url.href, docLoader, debug);
-    } catch (err) {
+    } catch (_) {
         // If the pattern is not a URL, it must be a file path
         return await loadJsonFromFile(patternAccessor, debug);
     }

@@ -1,7 +1,7 @@
-import { initLogger } from "@finos/calm-shared";
-import { readFile } from "fs/promises";
-import { homedir } from "os";
-import { join } from "path";
+import { initLogger } from '@finos/calm-shared';
+import { readFile } from 'fs/promises';
+import { homedir } from 'os';
+import { join } from 'path';
 
 export interface CLIConfig {
     calmHubUrl?: string
@@ -27,6 +27,6 @@ export async function loadCliConfig(): Promise<CLIConfig | null> {
             logger.debug('No config file found at ' + configFilePath);
             return null;
         }
-        logger.error("Unexpected error loading user config: ", err);
+        logger.error('Unexpected error loading user config: ', err);
     }
 }

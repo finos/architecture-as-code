@@ -1,5 +1,5 @@
-import { initLogger } from "@finos/calm-shared";
-import { DocumentLoader } from "@finos/calm-shared/dist/document-loader/document-loader";
+import { initLogger } from '@finos/calm-shared';
+import { DocumentLoader } from '@finos/calm-shared/dist/document-loader/document-loader';
 
 export async function loadPatternFromCalmHub(patternId: string, docLoader: DocumentLoader, debug: boolean): Promise<object> {
     const logger = initLogger(debug, 'calmhub-input');
@@ -11,8 +11,8 @@ export async function loadPatternFromCalmHub(patternId: string, docLoader: Docum
         logger.debug('Loaded pattern JSON.');
         return pattern;
     } catch (err) {
-        logger.error("Error loading input from CalmHub. Status code: ", err.response.status);
-        logger.debug("Error loading input from CalmHub: ", err);
+        logger.error('Error loading input from CalmHub. Status code: ', err.response.status);
+        logger.debug('Error loading input from CalmHub: ', err);
         throw new Error(err);
     }
 }

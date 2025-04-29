@@ -4,19 +4,19 @@ import { DocumentLoadError } from './document-loader';
 
 vi.mock('fs/promises', async () => {
     // const memfs = await vi.importActual("memfs");
-    const memfs: { fs: typeof fs } = await vi.importActual('memfs')
+    const memfs: { fs: typeof fs } = await vi.importActual('memfs');
 
     // Support both `import fs from "fs"` and "import { readFileSync } from "fs"`
     // return { default: memfs.fs, ...(typeof memfs.fs === 'object' ? memfs.fs : {}) };
     return memfs.fs.promises;
-})
+});
 
 const mocks = vi.hoisted(() => {
     return {
         schemaDirectory: {
             storeDocument: vi.fn()
         },
-    }
+    };
 });
 
 const exampleSchema = {
@@ -30,10 +30,10 @@ const exampleSchema = {
 describe('my-suite', () => {
     let fileSystemDocumentLoader;
     beforeEach(() => {
-        process.chdir('/')
+        process.chdir('/');
         vol.fromJSON({
             'test_fixtures/test_schema.json': JSON.stringify(exampleSchema)
-        })
+        });
         fileSystemDocumentLoader = new FileSystemDocumentLoader(['test_fixtures'], false);
     });
 
@@ -52,4 +52,4 @@ describe('my-suite', () => {
             .rejects
             .toThrow(DocumentLoadError);
     });
-})
+});

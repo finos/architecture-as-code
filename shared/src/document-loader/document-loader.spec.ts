@@ -1,5 +1,5 @@
-import { CALM_META_SCHEMA_DIRECTORY } from "../consts";
-import { buildDocumentLoader, DocumentLoaderOptions } from "./document-loader";
+import { CALM_META_SCHEMA_DIRECTORY } from '../consts';
+import { buildDocumentLoader, DocumentLoaderOptions } from './document-loader';
 
 const mocks = vi.hoisted(() => {
     return {

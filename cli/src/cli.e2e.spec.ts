@@ -1,5 +1,5 @@
 import { exec, execSync } from 'child_process';
-import path, { dirname } from 'path';
+import path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { parseStringPromise } from 'xml2js';
