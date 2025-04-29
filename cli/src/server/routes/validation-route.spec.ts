@@ -4,8 +4,11 @@ import * as fs from 'fs';
 import express, { Application } from 'express';
 import { ValidationRouter } from './validation-route';
 import path from 'path';
+import { SchemaDirectory } from '@finos/calm-shared';
+import { FileSystemDocumentLoader } from '@finos/calm-shared/dist/document-loader/file-system-document-loader';
 
-const schemaDirectory : string = __dirname + '/../../../../calm';
+const schemaDirectoryPath : string = __dirname + '/../../../../calm/draft';
+const apiGatewayPatternPath: string = __dirname + '/../../../../calm/pattern';
 
 describe('ValidationRouter', () => {
     let app: Application;
@@ -15,7 +18,7 @@ describe('ValidationRouter', () => {
         app.use(express.json());
 
         const router: express.Router = express.Router();
-        new ValidationRouter(router, schemaDirectory);
+        new ValidationRouter(router, schemaDirectoryPath, new SchemaDirectory(new FileSystemDocumentLoader([schemaDirectoryPath, apiGatewayPatternPath], false)));
         app.use('/calm/validate', router);
     });
 
@@ -62,5 +65,3 @@ describe('ValidationRouter', () => {
     });
 
 });
-
-// });

@@ -1,3 +1,4 @@
+import { CALM_META_SCHEMA_DIRECTORY } from '@finos/calm-shared';
 import { Command } from 'commander';
 
 let calmShared: typeof import('@finos/calm-shared');
@@ -6,6 +7,7 @@ let serverModule: typeof import('./server/cli-server');
 let templateModule: typeof import('./command-helpers/template');
 let fileReaderModule: typeof import('./command-helpers/file-input');
 let optionsModule: typeof import ('./command-helpers/generate-options');
+let fileSystemDocLoaderModule: typeof import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
 let setupCLI: typeof import('./cli').setupCLI;
 
 describe('CLI Commands', () => {
@@ -25,6 +27,7 @@ describe('CLI Commands', () => {
         serverModule = await import('./server/cli-server');
         templateModule = await import('./command-helpers/template');
         optionsModule = await import('./command-helpers/generate-options');
+        fileSystemDocLoaderModule = await import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
 
         vi.spyOn(calmShared, 'runGenerate').mockResolvedValue(undefined);
         vi.spyOn(calmShared.TemplateProcessor.prototype, 'processTemplate').mockResolvedValue(undefined);
@@ -37,6 +40,8 @@ describe('CLI Commands', () => {
         vi.spyOn(templateModule, 'getUrlToLocalFileMap').mockReturnValue(new Map());
 
         vi.spyOn(optionsModule, 'promptUserForOptions').mockResolvedValue([]);
+
+        vi.spyOn(fileSystemDocLoaderModule, 'FileSystemDocumentLoader').mockImplementation(vi.fn());
 
         const cliModule = await import('./cli');
         setupCLI = cliModule.setupCLI;
@@ -58,8 +63,10 @@ describe('CLI Commands', () => {
             expect(fileReaderModule.loadJsonFromFile).toHaveBeenCalledWith('pattern.json', true);
             expect(optionsModule.promptUserForOptions).toHaveBeenCalled();
 
+            expect(fileSystemDocLoaderModule.FileSystemDocumentLoader).toHaveBeenCalledWith([CALM_META_SCHEMA_DIRECTORY, 'schemas'], true);
+
             expect(calmShared.runGenerate).toHaveBeenCalledWith(
-                {}, 'output.json', true, [], 'schemas'
+                {}, 'output.json', true, expect.any(calmShared.SchemaDirectory), []
             );
         });
     });
@@ -89,11 +96,11 @@ describe('CLI Commands', () => {
                 '--verbose',
             ]);
 
-            expect(serverModule.startServer).toHaveBeenCalledWith({
-                port: '4000',
-                schemaDirectory: 'mySchemas',
-                verbose: true,
-            });
+            expect(serverModule.startServer).toHaveBeenCalledWith(
+                '4000',
+                expect.any(calmShared.SchemaDirectory),
+                true,
+            );
         });
     }); 
 
