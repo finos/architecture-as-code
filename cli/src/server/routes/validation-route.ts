@@ -44,8 +44,7 @@ export class ValidationRouter {
         if (!schema) {
             return res.status(400).type('json').send(new ErrorResponse('The "$schema" field is missing from the request body'));
         }
-
-        console.log('loading schemas');
+        
         await this.schemaDirectory.loadSchemas();
         console.log('loaded schemas');
         let foundSchema;

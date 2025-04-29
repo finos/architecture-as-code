@@ -43,7 +43,7 @@ describe('SchemaDirectory', () => {
         await schemaDir.loadSchemas();
 
         const expectedValue = {'$id': 'abcd'};
-        mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => resolve(expectedValue)));
+        mockDocLoader.loadMissingDocument.mockResolvedValueOnce(expectedValue);
 
         const returnedSchema = await schemaDir.getSchema('mock id');
         expect(returnedSchema).toEqual(expectedValue);
@@ -67,8 +67,9 @@ describe('SchemaDirectory', () => {
     it('recursively resolve references from a loaded schema', async () => {
         const schemaDir = new SchemaDirectory(mockDocLoader);
         
-        mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => 
-            resolve(loadSchema('test_fixtures/schema-directory/references.json'))));
+        mockDocLoader.loadMissingDocument.mockResolvedValueOnce(
+            loadSchema('test_fixtures/schema-directory/references.json')
+        );
         
         const ref = 'https://calm.com/references.json#/defs/top-level';
         const definition = await schemaDir.getDefinition(ref);
@@ -81,8 +82,7 @@ describe('SchemaDirectory', () => {
     it('qualify relative references within same file to absolute IDs', async () => {
         const schemaDir = new SchemaDirectory(mockDocLoader);
         
-        mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => 
-            resolve(loadSchema('test_fixtures/schema-directory/relative-ref.json'))));
+        mockDocLoader.loadMissingDocument.mockResolvedValueOnce(loadSchema('test_fixtures/schema-directory/relative-ref.json'));
         
         const ref = 'https://calm.com/relative.json#/defs/top-level';
         const definition = await schemaDir.getDefinition(ref);
@@ -103,8 +103,9 @@ describe('SchemaDirectory', () => {
     it('throw error if returned schema does not contain given def', async () => {
         const schemaDir = new SchemaDirectory(mockDocLoader);
         
-        mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => 
-            resolve(loadSchema('test_fixtures/schema-directory/missing-inner-ref.json'))));
+        mockDocLoader.loadMissingDocument.mockResolvedValueOnce(
+            loadSchema('test_fixtures/schema-directory/missing-inner-ref.json')
+        );
         
         const ref = 'https://calm.com/missing-inner-ref.json#/defs/top-level';
         const missingRef = '/defs/not-found'; // see missing-inner-ref.json
@@ -114,13 +115,12 @@ describe('SchemaDirectory', () => {
         expect(definition['properties']['missing-value']).toEqual('MISSING OBJECT, ref: ' + missingRef + ' could not be resolved');
     });
 
-
-
     it('terminate early in the case of a circular reference', async () => {
         const schemaDir = new SchemaDirectory(mockDocLoader);
         
-        mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => 
-            resolve(loadSchema('test_fixtures/schema-directory/recursive.json'))));
+        mockDocLoader.loadMissingDocument.mockResolvedValueOnce(
+            loadSchema('test_fixtures/schema-directory/recursive.json')
+        );
         
         const ref = 'https://calm.com/recursive.json#/defs/top-level';
         const definition = await schemaDir.getDefinition(ref);
@@ -133,8 +133,9 @@ describe('SchemaDirectory', () => {
     it('look up self-definitions without schema ID at top level from the pattern itself', async () => {
         const schemaDir = new SchemaDirectory(mockDocLoader);
         
-        mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => 
-            resolve(loadSchema('test_fixtures/schema-directory/relative-ref.json'))));
+        mockDocLoader.loadMissingDocument.mockResolvedValueOnce(
+            loadSchema('test_fixtures/schema-directory/relative-ref.json')
+        );
         
         const ref = 'https://calm.com/relative.json#/defs/top-level';
         const definition = await schemaDir.getDefinition(ref);

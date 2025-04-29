@@ -11,21 +11,26 @@ export interface DocumentLoader {
 
 export type DocumentLoadMode = 'filesystem' | 'calmhub';
 
-export interface DocumentLoaderOptions {
-    schemaDirectoryPath?: string;
-    calmHubUrl?: string;    
-    loadMode: DocumentLoadMode;
+type FileSystemLoaderOptions = {
+    loadMode: 'filesystem';
+    schemaDirectoryPath: string;
 }
+type CalmHubLoaderOptions = {
+    loadMode: 'calmhub';
+    calmHubUrl: string;
+}
+export type DocumentLoaderOptions = FileSystemLoaderOptions | CalmHubLoaderOptions;
 
 export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions, debug: boolean): DocumentLoader {
     switch(docLoaderOpts.loadMode) {
     case 'filesystem': {
         const directoryPaths = [CALM_META_SCHEMA_DIRECTORY];
-        if (docLoaderOpts.schemaDirectoryPath) {
-            directoryPaths.push(docLoaderOpts.schemaDirectoryPath);
-        }
+        directoryPaths.push(docLoaderOpts.schemaDirectoryPath);
         return new FileSystemDocumentLoader(directoryPaths, debug);
     } 
+    case 'calmhub': {
+        throw new Error('CALMHub document loader not implemented yet.');
+    }
     default:
         throw new Error('Invalid document load mode when constructing DocumentLoader!');
     }

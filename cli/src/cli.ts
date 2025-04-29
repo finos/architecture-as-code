@@ -4,8 +4,7 @@ import { version } from '../package.json';
 import { loadJsonFromFile } from './command-helpers/file-input';
 import { promptUserForOptions } from './command-helpers/generate-options';
 import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components/options';
-import { DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
-import { FileSystemDocumentLoader } from '@finos/calm-shared/dist/document-loader/file-system-document-loader';
+import { buildDocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -109,7 +108,7 @@ export function setupCLI(program: Command) {
         });
 }
 
-async function parseDocumentLoaderConfig(program, options): Promise<DocumentLoaderOptions> {
+async function parseDocumentLoaderConfig(options): Promise<DocumentLoaderOptions> {
     if (options.schemaDirectory) {
         return {
             loadMode: 'filesystem',
@@ -126,10 +125,4 @@ async function parseDocumentLoaderConfig(program, options): Promise<DocumentLoad
 async function buildSchemaDirectory(options: DocumentLoaderOptions, debug: boolean): Promise<SchemaDirectory> {
     const docLoader = buildDocumentLoader(options, debug);
     return new SchemaDirectory(docLoader, debug);
-}
-
-function buildDocumentLoader(options: DocumentLoaderOptions, debug: boolean) : DocumentLoader {
-    if (options.loadMode == 'filesystem') {
-        return new FileSystemDocumentLoader([options.schemaDirectoryPath], debug);
-    }
 }
