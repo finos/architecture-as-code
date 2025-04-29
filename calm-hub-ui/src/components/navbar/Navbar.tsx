@@ -32,6 +32,9 @@ export function Navbar() {
                         <li>
                             <NavLink to="/visualizer">Visualizer</NavLink>
                         </li>
+                        <li>
+                            <NavLink to="/control-editor">Control Creator</NavLink>
+                        </li>
                     </ul>
                 </div>
                 <a className="btn btn-ghost">
@@ -47,6 +50,11 @@ export function Navbar() {
                         <li>
                             <NavLink className="btn-ghost btn text-primary" to="/visualizer">
                                 Visualizer
+                            </NavLink>
+                        </li>
+                        <li>
+                            <NavLink className="btn-ghost btn text-primary" to="/control-editor">
+                                Control Creator
                             </NavLink>
                         </li>
                     </ul>
