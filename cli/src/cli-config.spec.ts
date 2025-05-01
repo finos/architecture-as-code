@@ -13,7 +13,7 @@ vi.mock('os', () => ({
 
 const exampleConfig = {
     calmHubUrl: 'https://example.com/calmhub'
-}
+};
 
 
 describe('cli-config', () => {

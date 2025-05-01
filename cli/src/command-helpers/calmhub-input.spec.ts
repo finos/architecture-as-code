@@ -1,5 +1,4 @@
-import { loadPatternFromCalmHub } from "./calmhub-input";
-import { CalmHubDocumentLoader } from "@finos/calm-shared/dist/document-loader/calmhub-document-loader";
+import { loadPatternFromCalmHub } from './calmhub-input';
 
 const mocks = vi.hoisted(() => ({
     calmHubDocLoader: {
@@ -31,5 +30,5 @@ describe('calmhub-input', () => {
         });
 
         await expect(loadPatternFromCalmHub(patternId, mocks.calmHubDocLoader, debug)).rejects.toThrow();
-    })
-})
+    });
+});
