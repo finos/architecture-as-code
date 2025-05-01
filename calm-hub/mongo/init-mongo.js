@@ -900,8 +900,8 @@ db.patterns.insertMany([
                 versions:
                 {
                     "1-0-0": {
-                        "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
-                        "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/pattern/api-gateway",
+                        "$schema": "https://calm.finos.org/calm/schemas/2025-03/meta/calm.json",
+                        "$id": "https://calm.finos.org/calm/namespaces/finos/patterns/1/versions/1.0.0",
                         "title": "API Gateway Pattern",
                         "type": "object",
                         "properties": {
@@ -910,7 +910,7 @@ db.patterns.insertMany([
                                 "minItems": 4,
                                 "prefixItems": [
                                     {
-                                        "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/node",
+                                        "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
                                         "properties": {
                                             "well-known-endpoint": {
                                                 "type": "string"
@@ -932,7 +932,7 @@ db.patterns.insertMany([
                                                 "minItems": 1,
                                                 "prefixItems": [
                                                     {
-                                                        "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/host-port-interface",
+                                                        "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/interface.json#/defs/host-port-interface",
                                                         "properties": {
                                                             "unique-id": {
                                                                 "const": "api-gateway-ingress"
@@ -948,7 +948,7 @@ db.patterns.insertMany([
                                         ]
                                     },
                                     {
-                                        "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/node",
+                                        "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
                                         "properties": {
                                             "description": {
                                                 "const": "The API Consumer making an authenticated and authorized request"
@@ -965,7 +965,7 @@ db.patterns.insertMany([
                                         }
                                     },
                                     {
-                                        "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/node",
+                                        "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
                                         "properties": {
                                             "description": {
                                                 "const": "The API Producer serving content"
@@ -984,7 +984,7 @@ db.patterns.insertMany([
                                                 "minItems": 1,
                                                 "prefixItems": [
                                                     {
-                                                        "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/interface.json#/defs/host-port-interface",
+                                                        "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/interface.json#/defs/host-port-interface",
                                                         "properties": {
                                                             "unique-id": {
                                                                 "const": "producer-ingress"
@@ -999,7 +999,7 @@ db.patterns.insertMany([
                                         ]
                                     },
                                     {
-                                        "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/node",
+                                        "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
                                         "properties": {
                                             "description": {
                                                 "const": "The Identity Provider used to verify the bearer token"
@@ -1022,7 +1022,7 @@ db.patterns.insertMany([
                                 "minItems": 4,
                                 "prefixItems": [
                                     {
-                                        "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/relationship",
+                                        "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
                                         "properties": {
                                             "unique-id": {
                                                 "const": "api-consumer-api-gateway"
@@ -1055,7 +1055,7 @@ db.patterns.insertMany([
                                         }
                                     },
                                     {
-                                        "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/relationship",
+                                        "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
                                         "properties": {
                                             "unique-id": {
                                                 "const": "api-gateway-idp"
@@ -1081,7 +1081,7 @@ db.patterns.insertMany([
                                         }
                                     },
                                     {
-                                        "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/relationship",
+                                        "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
                                         "properties": {
                                             "unique-id": {
                                                 "const": "api-gateway-api-producer"
@@ -1110,7 +1110,7 @@ db.patterns.insertMany([
                                         }
                                     },
                                     {
-                                        "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/core.json#/defs/relationship",
+                                        "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
                                         "properties": {
                                             "unique-id": {
                                                 "const": "api-consumer-idp"
@@ -1471,7 +1471,7 @@ db.patterns.insertMany([
                 {
                     "1-0-0": {
                         "$schema": "https://calm.finos.org/calm/schemas/2025-03/meta/calm.json",
-                        "$id": "https://calm.finos.org/workshop/conference-secure-signup.pattern.json",
+                        "$id": "https://calm.finos.org/calm/namespaces/workshop/patterns/2/versions/1.0.0",
                         "type": "object",
                         "title": "Conference Secure Signup Pattern",
                         "description": "A secure reusable architecture pattern for conference signup systems with Kubernetes deployment.",
