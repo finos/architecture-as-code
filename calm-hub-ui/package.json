@@ -14,7 +14,6 @@
         "copy-public": "copyfiles -u 1 ../brand/**/* public/"
     },
     "dependencies": {
-        "@patternfly/patternfly": "^6.0.0",
         "@tailwindcss/vite": "^4.1.4",
         "@types/node": "^22.9.0",
         "@types/react": "^18.3.12",
