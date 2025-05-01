@@ -3,11 +3,8 @@ import { FileSystemDocumentLoader } from './file-system-document-loader';
 import { DocumentLoadError } from './document-loader';
 
 vi.mock('fs/promises', async () => {
-    // const memfs = await vi.importActual("memfs");
     const memfs: { fs: typeof fs } = await vi.importActual('memfs');
 
-    // Support both `import fs from "fs"` and "import { readFileSync } from "fs"`
-    // return { default: memfs.fs, ...(typeof memfs.fs === 'object' ? memfs.fs : {}) };
     return memfs.fs.promises;
 });
 
@@ -27,7 +24,7 @@ const exampleSchema = {
     }
 };
 
-describe('my-suite', () => {
+describe('file-system-document-loader', () => {
     let fileSystemDocumentLoader;
     beforeEach(() => {
         process.chdir('/');
