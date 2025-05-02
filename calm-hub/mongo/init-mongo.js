@@ -2199,7 +2199,7 @@ db.architectures.insertMany([
             versions:
             {
                 "1-0-0": {
-                    "$schema": "https://calm.finos.org/draft/2024-10/meta/calm.json",
+                    "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
                     "nodes": [
                         {
                             "unique-id": "traderx-system",
