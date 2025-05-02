@@ -203,7 +203,7 @@
             "database",
             "network",
             "storage",
-            "webclient",
+            "client",
             "data-asset"
           ]
         },
