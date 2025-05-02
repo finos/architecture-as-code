@@ -48,7 +48,7 @@ public class FlowResource {
             return Response.ok(new ValueWrapper<>(store.getFlowsForNamespace(namespace))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving flows", namespace, e);
-            return invalidNamespaceResponse(namespace);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         }
     }
 
@@ -73,7 +73,7 @@ public class FlowResource {
             return flowWithLocationResponse(flowForNamespace);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating flow", namespace, e);
-            return invalidNamespaceResponse(namespace);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (JsonParseException e) {
             logger.error("Cannot parse Architecture JSON for namespace [{}]. Architecture JSON : [{}]", namespace, flowJson, e);
             return invalidFlowJsonResponse(namespace);
@@ -94,14 +94,13 @@ public class FlowResource {
                 .setId(flowId)
                 .build();
 
-
         try {
             List<String> versions =  store.getFlowVersions(flow);
             String lastVersion = versions.getLast();
            return getFlowInternal(namespace,flowId, lastVersion);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting the latest flow version", namespace, e);
-            return invalidNamespaceResponse(namespace);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (FlowNotFoundException e) {
             logger.error("Invalid flow [{}] when getting the latest flow version", flowId, e);
             return invalidFlowResponse(flowId);
@@ -127,7 +126,7 @@ public class FlowResource {
             return Response.ok(new ValueWrapper<>(store.getFlowVersions(flow))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting versions of flow", flow, e);
-            return invalidNamespaceResponse(namespace);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (FlowNotFoundException e) {
             logger.error("Invalid flow [{}] when getting versions of flow", flow, e);
             return invalidFlowResponse(flowId);
@@ -157,7 +156,7 @@ public class FlowResource {
             return Response.ok(store.getFlowForVersion(flow)).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting a flow", flow, e);
-            return invalidNamespaceResponse(namespace);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (FlowNotFoundException e) {
             logger.error("Invalid flow [{}] when getting a flow", flow, e);
             return invalidFlowResponse(flowId);
@@ -192,7 +191,7 @@ public class FlowResource {
             return invalidFlowResponse(flowId);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting a flow", flow, e);
-            return invalidNamespaceResponse(namespace);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         }
     }
 
@@ -223,7 +222,7 @@ public class FlowResource {
             return flowWithLocationResponse(flow);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when trying to put flow", flow, e);
-            return invalidNamespaceResponse(namespace);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (FlowNotFoundException e) {
             logger.error("Invalid flow [{}] when trying to put flow", flow, e);
             return invalidFlowResponse(flowId);
@@ -232,10 +231,6 @@ public class FlowResource {
 
     private Response flowWithLocationResponse(Flow flow) throws URISyntaxException {
         return Response.created(new URI("/calm/namespaces/" + flow.getNamespace() + "/flows/" + flow.getId() + "/versions/" + flow.getDotVersion())).build();
-    }
-
-    private Response invalidNamespaceResponse(String namespace) {
-        return Response.status(Response.Status.NOT_FOUND).entity("Invalid namespace provided: " + namespace).build();
     }
 
     private Response invalidFlowJsonResponse(String flowJson) {

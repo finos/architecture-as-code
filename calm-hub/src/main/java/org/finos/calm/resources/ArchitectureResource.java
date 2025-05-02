@@ -55,7 +55,7 @@ public class ArchitectureResource {
             return Response.ok(new ValueWrapper<>(store.getArchitecturesForNamespace(namespace))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving architectures", namespace, e);
-            return invalidNamespaceResponse(namespace);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         }
     }
 
@@ -78,7 +78,7 @@ public class ArchitectureResource {
             return architectureWithLocationResponse(store.createArchitectureForNamespace(architecture));
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating architecture", namespace, e);
-            return invalidNamespaceResponse(namespace);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (JsonParseException e) {
             logger.error("Cannot parse Architecture JSON for namespace [{}]. Architecture JSON : [{}]", namespace, architectureJson, e);
             return invalidArchitectureJsonResponse(namespace);
@@ -103,7 +103,7 @@ public class ArchitectureResource {
             return Response.ok(new ValueWrapper<>(store.getArchitectureVersions(architecture))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting versions of architecture", architecture, e);
-            return invalidNamespaceResponse(namespace);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (ArchitectureNotFoundException e) {
             logger.error("Invalid architecture [{}] when getting versions of architecture", architecture, e);
             return invalidArchitectureResponse(architectureId);
@@ -129,7 +129,7 @@ public class ArchitectureResource {
             return Response.ok(store.getArchitectureForVersion(architecture)).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting an architecture", architecture, e);
-            return invalidNamespaceResponse(namespace);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (ArchitectureNotFoundException e) {
             logger.error("Invalid architecture [{}] when getting an architecture", architecture, e);
             return invalidArchitectureResponse(architectureId);
@@ -163,7 +163,7 @@ public class ArchitectureResource {
             return invalidArchitectureResponse(architectureId);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting an architecture", architecture, e);
-            return invalidNamespaceResponse(namespace);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         }
     }
 
@@ -193,7 +193,7 @@ public class ArchitectureResource {
             return architectureWithLocationResponse(architecture);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when trying to put architecture", architecture, e);
-            return invalidNamespaceResponse(namespace);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (ArchitectureNotFoundException e) {
             logger.error("Invalid architecture [{}] when trying to put architecture", architecture, e);
             return invalidArchitectureResponse(architectureId);
@@ -204,10 +204,6 @@ public class ArchitectureResource {
 
     private Response architectureWithLocationResponse(Architecture architecture) throws URISyntaxException {
         return Response.created(new URI("/calm/namespaces/" + architecture.getNamespace() + "/architectures/" + architecture.getId() + "/versions/" + architecture.getDotVersion())).build();
-    }
-
-    private Response invalidNamespaceResponse(String namespace) {
-        return Response.status(Response.Status.NOT_FOUND).entity("Invalid namespace provided: " + namespace).build();
     }
 
     private Response invalidArchitectureJsonResponse(String architectureJson) {

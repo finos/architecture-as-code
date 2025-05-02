@@ -107,7 +107,7 @@ public class TestArchitectureResourceShould {
     }
 
     @Test
-    void return_a_created_with_location_of_architecture_when_creating_architecture() throws NamespaceNotFoundException {
+    void return_a_created_status_code_with_location_of_architecture_when_creating_architecture() throws NamespaceNotFoundException {
         String architectureJson = "{ \"test\": \"json\" }";
         String namespace = "finos";
 
