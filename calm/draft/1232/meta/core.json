@@ -202,6 +202,7 @@
             "service",
             "database",
             "network",
+            "storage",
             "webclient",
             "data-asset"
           ]
