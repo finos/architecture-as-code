@@ -30,7 +30,7 @@ export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
                             e.stopPropagation();
                             closeSidebar();
                         }}
-                        className="btn btn-square btn-sm bg-red-500 hover:bg-red-600 text-white"
+                        className="btn btn-square btn-xs bg-red-500 hover:bg-red-600 text-white"
                     >
                         <IoCloseOutline size={24} />
                     </button>
