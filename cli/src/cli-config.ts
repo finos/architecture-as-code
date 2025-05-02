@@ -28,5 +28,6 @@ export async function loadCliConfig(): Promise<CLIConfig | null> {
             return null;
         }
         logger.error('Unexpected error loading user config: ', err);
+        return null;
     }
 }

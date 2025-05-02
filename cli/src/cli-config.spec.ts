@@ -42,6 +42,6 @@ describe('cli-config', () => {
         vol.fromJSON({
             '/home/user/.calm.json': 'invalid json'
         });
-        await expect(loadCliConfig()).resolves.toBeUndefined();
+        await expect(loadCliConfig()).resolves.toBeNull();
     });
 });
