@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://calm.finos.org/draft/2025-03/meta/core.json",
+  "$id": "https://calm.finos.org/draft/1232/meta/core.json",
   "title": "Common Architecture Language Model (CALM) Vocab",
   "properties": {
     "nodes": {
@@ -193,16 +193,23 @@
       ]
     },
     "node-type-definition": {
-      "enum": [
-        "actor",
-        "ecosystem",
-        "system",
-        "service",
-        "database",
-        "network",
-        "ldap",
-        "webclient",
-        "data-asset"
+      "oneOf": [
+        {
+          "enum": [
+            "actor",
+            "ecosystem",
+            "system",
+            "service",
+            "database",
+            "network",
+            "ldap",
+            "webclient",
+            "data-asset"
+          ]
+        },
+        {
+          "type": "string"
+        }
       ]
     },
     "interacts-type": {
