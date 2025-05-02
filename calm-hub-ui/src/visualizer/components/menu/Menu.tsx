@@ -40,7 +40,7 @@ export function Menu({
     }
 
     return (
-        <header className="bg-white shadow-sm">
+        <header className="bg-white shadow-xs">
             <div className="mx-auto max-w-7xl flex justify-between items-center">
                 <div className="flex items-center space-x-4">
                     {isGraphRendered && (
