@@ -202,7 +202,6 @@
             "service",
             "database",
             "network",
-            "ldap",
             "webclient",
             "data-asset"
           ]
