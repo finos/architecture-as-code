@@ -1,5 +1,6 @@
 import { IoCloseOutline } from 'react-icons/io5';
 import { Edge, Node } from '../cytoscape-renderer/CytoscapeRenderer.js';
+import { Key } from 'react';
 
 interface SidebarProps {
     selectedData: Node['data'] | Edge['data'];
@@ -55,6 +56,28 @@ export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
                                 <span className="font-light">description: </span>
                                 <span className="font-semibold">{selectedData.description}</span>
                             </p>
+
+                            <p>
+                                <span className="font-light">interfaces: </span>
+                            </p>
+                            <div className="space-y-4">
+                                {selectedData.interfaces?.map((interfaceItem: any, index: Key) => (
+                                    <div key={index} className="ml-4 border-b border-gray-300 pb-4">
+                                        <div className="space-y-1">
+                                            {Object.entries(interfaceItem).map(([key, value]) => (
+                                                <div key={key} className="flex cursor-default">
+                                                    <span className="font-light">
+                                                        {key}:{''}
+                                                    </span>
+                                                    <span className="font-semibold">
+                                                        {String(value)}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 )}

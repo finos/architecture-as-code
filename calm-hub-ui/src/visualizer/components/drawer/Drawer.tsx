@@ -80,7 +80,7 @@ function getDeployedInRelationships(calmInstance: CALMArchitecture) {
 }
 
 export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive }: DrawerProps) {
-    const [selectedNode, setSelectedNode] = useState(null);
+    const [selectedNode, setSelectedNode] = useState<Node | null>(null);
 
     function closeSidebar() {
         setSelectedNode(null);
@@ -91,7 +91,8 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
 
         const composedOfRelationships = getComposedOfRelationships(calmInstance);
         const deployedInRelationships = getDeployedInRelationships(calmInstance);
-        const nodes = calmInstance.nodes.map((node) => {
+
+        return calmInstance.nodes.map((node) => {
             const newData: Node = {
                 classes: 'node',
                 data: {
@@ -99,12 +100,14 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
                     description: node.description,
                     type: node['node-type'],
                     id: node['unique-id'],
-                    //Used to make the size of the node scale dynamically
                     _displayPlaceholderWithDesc: `${node.name}\n\n\n${node['node-type']}\n\n\n${node.description}\n`,
                     _displayPlaceholderWithoutDesc: `${node.name}\n\n\n${node['node-type']}`,
                 },
             };
 
+            if (node.interfaces) {
+                newData.data.interfaces = node.interfaces;
+            }
             if (composedOfRelationships[node['unique-id']]?.type === 'parent') {
                 newData.classes = 'group';
             }
@@ -129,14 +132,12 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
             }
             return newData;
         });
-
-        return nodes;
     }
 
     function getEdges(): Edge[] {
         if (!calmInstance || !calmInstance.relationships) return [];
 
-        const edges = calmInstance.relationships
+        return calmInstance.relationships
             .filter((relationship) => !isComposedOf(relationship) && !isDeployedIn(relationship))
             .map((relationship) => {
                 if (isInteracts(relationship)) {
@@ -162,8 +163,7 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
                     };
                 }
             })
-            .filter((edge) => edge !== undefined);
-        return edges;
+            .filter((edge): edge is Edge => edge !== undefined);
     }
 
     const edges = getEdges();
@@ -195,7 +195,7 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
                     )}
                 </div>
                 {selectedNode && (
-                    <Sidebar selectedData={selectedNode} closeSidebar={closeSidebar} />
+                    <Sidebar selectedData={selectedNode['data']} closeSidebar={closeSidebar} />
                 )}
             </div>
         </div>
