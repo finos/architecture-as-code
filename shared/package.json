@@ -54,7 +54,7 @@
         "@types/json-pointer": "^1.0.34",
         "@types/junit-report-builder": "^3.0.2",
         "@types/lodash": "^4.17.16",
-        "@types/node": "^22.14.0",
+        "@types/node": "^22.15.0",
         "@typescript-eslint/eslint-plugin": "^8.29.1",
         "@typescript-eslint/parser": "^8.29.1",
         "eslint": "^9.24.0",
