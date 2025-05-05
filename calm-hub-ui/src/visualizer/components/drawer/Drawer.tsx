@@ -1,39 +1,49 @@
 import { Sidebar } from '../sidebar/Sidebar.js';
 import { useState } from 'react';
-import { CytoscapeRenderer, Node, Edge } from '../cytoscape-renderer/CytoscapeRenderer.js';
+import { CytoscapeRenderer, CalmNode, Edge } from '../cytoscape-renderer/CytoscapeRenderer.js';
 import {
+    CalmArchitectureSchema,
+    CalmRelationshipSchema,
+} from '../../../../../shared/src/types/core-types.js';
+import {
+    CALMDeployedInRelationship,
     CALMComposedOfRelationship,
     CALMConnectsRelationship,
-    CALMDeployedInRelationship,
     CALMInteractsRelationship,
-    CALMRelationship,
-    CALMArchitecture,
 } from '../../../../../shared/src/types.js';
 
 interface DrawerProps {
-    calmInstance?: CALMArchitecture;
+    calmInstance?: CalmArchitectureSchema;
     title?: string;
     isNodeDescActive: boolean;
     isConDescActive: boolean;
 }
 
-function isComposedOf(relationship: CALMRelationship): relationship is CALMComposedOfRelationship {
+function isComposedOf(
+    relationship: CalmRelationshipSchema
+): relationship is CALMComposedOfRelationship {
     return 'composed-of' in relationship['relationship-type'];
 }
 
-function isDeployedIn(relationship: CALMRelationship): relationship is CALMDeployedInRelationship {
+function isDeployedIn(
+    relationship: CalmRelationshipSchema
+): relationship is CALMDeployedInRelationship {
     return 'deployed-in' in relationship['relationship-type'];
 }
 
-function isInteracts(relationship: CALMRelationship): relationship is CALMInteractsRelationship {
+function isInteracts(
+    relationship: CalmRelationshipSchema
+): relationship is CALMInteractsRelationship {
     return 'interacts' in relationship['relationship-type'];
 }
 
-function isConnects(relationship: CALMRelationship): relationship is CALMConnectsRelationship {
+function isConnects(
+    relationship: CalmRelationshipSchema
+): relationship is CALMConnectsRelationship {
     return 'connects' in relationship['relationship-type'];
 }
 
-function getComposedOfRelationships(calmInstance: CALMArchitecture) {
+function getComposedOfRelationships(calmInstance: CalmArchitectureSchema) {
     const composedOfRelationships: {
         [idx: string]: {
             type: 'parent' | 'child';
@@ -41,14 +51,14 @@ function getComposedOfRelationships(calmInstance: CALMArchitecture) {
         };
     } = {};
 
-    calmInstance.relationships.forEach((relationship) => {
+    calmInstance.relationships?.forEach((relationship) => {
         if (isComposedOf(relationship)) {
             const rel = relationship['relationship-type']['composed-of'];
-            composedOfRelationships[rel['container']] = { type: 'parent' };
-            rel['nodes'].forEach((node) => {
+            composedOfRelationships[rel!['container']] = { type: 'parent' };
+            rel!['nodes'].forEach((node) => {
                 composedOfRelationships[node] = {
                     type: 'child',
-                    parent: rel['container'],
+                    parent: rel!['container'],
                 };
             });
         }
@@ -56,14 +66,15 @@ function getComposedOfRelationships(calmInstance: CALMArchitecture) {
 
     return composedOfRelationships;
 }
-function getDeployedInRelationships(calmInstance: CALMArchitecture) {
+
+function getDeployedInRelationships(calmInstance: CalmArchitectureSchema) {
     const deployedInRelationships: {
         [idx: string]: {
             type: 'parent' | 'child';
             parent?: string;
         };
     } = {};
-    calmInstance.relationships.forEach((relationship) => {
+    calmInstance.relationships?.forEach((relationship) => {
         if (isDeployedIn(relationship)) {
             const rel = relationship['relationship-type']['deployed-in'];
             deployedInRelationships[rel['container']] = { type: 'parent' };
@@ -80,20 +91,20 @@ function getDeployedInRelationships(calmInstance: CALMArchitecture) {
 }
 
 export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive }: DrawerProps) {
-    const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+    const [selectedNode, setSelectedNode] = useState<CalmNode | null>(null);
 
     function closeSidebar() {
         setSelectedNode(null);
     }
 
-    function getNodes(): Node[] {
+    function getNodes(): CalmNode[] {
         if (!calmInstance || !calmInstance.relationships) return [];
 
         const composedOfRelationships = getComposedOfRelationships(calmInstance);
         const deployedInRelationships = getDeployedInRelationships(calmInstance);
 
-        return calmInstance.nodes.map((node) => {
-            const newData: Node = {
+        return (calmInstance.nodes ?? []).map((node) => {
+            const newData: CalmNode = {
                 classes: 'node',
                 data: {
                     label: node.name,
@@ -108,27 +119,23 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
             if (node.interfaces) {
                 newData.data.interfaces = node.interfaces;
             }
-            if (composedOfRelationships[node['unique-id']]?.type === 'parent') {
+
+            const composedOfRel = composedOfRelationships[node['unique-id']];
+            const deployedInRel = deployedInRelationships[node['unique-id']];
+
+            if (composedOfRel?.type === 'parent' || deployedInRel?.type === 'parent') {
                 newData.classes = 'group';
             }
 
-            if (
-                composedOfRelationships[node['unique-id']]?.type === 'child' &&
-                composedOfRelationships[node['unique-id']]['parent']
-            ) {
-                newData.data.parent = composedOfRelationships[node['unique-id']].parent!;
-            }
+            const parentId =
+                composedOfRel?.type === 'child' && composedOfRel.parent
+                    ? composedOfRel.parent
+                    : deployedInRel?.type === 'child' && deployedInRel.parent
+                    ? deployedInRel.parent
+                    : undefined;
 
-            if (deployedInRelationships[node['unique-id']]?.type === 'parent') {
-                newData.classes = 'group';
-            }
-
-            if (
-                deployedInRelationships[node['unique-id']]?.type === 'child' &&
-                deployedInRelationships[node['unique-id']]['parent'] &&
-                !newData.data.parent
-            ) {
-                newData.data.parent = deployedInRelationships[node['unique-id']].parent!;
+            if (parentId) {
+                newData.data.parent = parentId;
             }
             return newData;
         });

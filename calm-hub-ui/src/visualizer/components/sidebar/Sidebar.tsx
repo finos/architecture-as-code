@@ -1,21 +1,33 @@
-import { IoCloseOutline } from 'react-icons/io5';
-import { Edge, Node } from '../cytoscape-renderer/CytoscapeRenderer.js';
-import { Key } from 'react';
+import { IoAddOutline, IoCloseOutline, IoRemoveOutline } from 'react-icons/io5';
+import { Edge, CalmNode } from '../cytoscape-renderer/CytoscapeRenderer.js';
+import { Key, useState } from 'react';
 
 interface SidebarProps {
-    selectedData: Node['data'] | Edge['data'];
+    selectedData: CalmNode['data'] | Edge['data'];
     closeSidebar: () => void;
 }
 
-function isCALMNodeData(data: Node['data'] | Edge['data']): data is Node['data'] {
+function isCALMNodeData(data: CalmNode['data'] | Edge['data']): data is CalmNode['data'] {
     return data.id != null && data.type != null;
 }
 
-function isCALMEdgeData(data: Node['data'] | Edge['data']): data is Edge['data'] {
-    return data.id != null && data.source != null && data.target != null;
+function isCALMEdgeData(data: CalmNode['data'] | Edge['data']): data is Edge['data'] {
+    return (
+        'source' in data &&
+        'target' in data &&
+        data.id != null &&
+        data.source != null &&
+        data.target != null
+    );
 }
 
 export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
+    const [isInterfacesVisible, setIsInterfacesVisible] = useState(true);
+
+    const toggleInterfacesVisibility = () => {
+        setIsInterfacesVisible((prev) => !prev);
+    };
+
     // Determine if we have selected a node or edge or something else
     const isCALMNode = isCALMNodeData(selectedData);
     const isCALMEdge = isCALMEdgeData(selectedData);
@@ -58,7 +70,20 @@ export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
                             </p>
 
                             <p>
-                                <span className="font-light">interfaces: </span>
+                                <div className="flex items-center justify-between">
+                                    <span className="font-light">interfaces: </span>
+                                    <button
+                                        aria-label="toggle-interfaces"
+                                        onClick={toggleInterfacesVisibility}
+                                        className="ml-auto btn btn-xs btn-outline"
+                                    >
+                                        {isInterfacesVisible ? (
+                                            <IoRemoveOutline size={16} />
+                                        ) : (
+                                            <IoAddOutline size={16} />
+                                        )}
+                                    </button>
+                                </div>{' '}
                             </p>
                             <div className="space-y-4">
                                 {selectedData.interfaces?.map((interfaceItem: any, index: Key) => (
