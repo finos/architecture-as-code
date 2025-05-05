@@ -1,4 +1,4 @@
-name: Build Calm Hub with Integration Tests and Coverage
+name: Build Calm Hub For Unit Test Coverage
 
 on:
   pull_request:
@@ -34,11 +34,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-m2-
 
-      # Step 4: Set up Docker (Required for Testcontainers)
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v3
-
-      # Step 5: Build and Test
+      # Step 4: Build and Test
       - name: Build and Test
         working-directory: calm-hub
-        run: mvn -P integration clean verify
+        run: mvn clean verify
