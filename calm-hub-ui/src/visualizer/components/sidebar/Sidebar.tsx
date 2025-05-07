@@ -52,57 +52,69 @@ export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
                     <div>
                         <div className="text-xl font-bold mb-2">Node Details</div>
                         <div className="space-y-2">
-                            <p>
-                                <span className="font-light">unique-id: </span>
-                                <span className="font-semibold">{selectedData.id}</span>
-                            </p>
-                            <p>
-                                <span className="font-light">name: </span>
-                                <span className="font-semibold">{selectedData.label}</span>
-                            </p>
-                            <p>
-                                <span className="font-light">node-type: </span>
-                                <span className="font-semibold">{selectedData.type}</span>
-                            </p>
-                            <p>
-                                <span className="font-light">description: </span>
-                                <span className="font-semibold">{selectedData.description}</span>
-                            </p>
-
-                            <p>
-                                <div className="flex items-center justify-between">
-                                    <span className="font-light">interfaces: </span>
-                                    <button
-                                        aria-label="toggle-interfaces"
-                                        onClick={toggleInterfacesVisibility}
-                                        className="ml-auto btn btn-xs btn-outline"
-                                    >
-                                        {isInterfacesVisible ? (
-                                            <IoRemoveOutline size={16} />
-                                        ) : (
-                                            <IoAddOutline size={16} />
-                                        )}
-                                    </button>
-                                </div>{' '}
-                            </p>
-                            <div className="space-y-4">
-                                {selectedData.interfaces?.map((interfaceItem: any, index: Key) => (
-                                    <div key={index} className="ml-4 border-b border-gray-300 pb-4">
-                                        <div className="space-y-1">
-                                            {Object.entries(interfaceItem).map(([key, value]) => (
-                                                <div key={key} className="flex cursor-default">
-                                                    <span className="font-light">
-                                                        {key}:{''}
-                                                    </span>
-                                                    <span className="font-semibold">
-                                                        {String(value)}
-                                                    </span>
+                            <div className="node-details">
+                                <p>
+                                    <span className="font-light">unique-id: </span>
+                                    <span className="font-semibold">{selectedData.id}</span>
+                                </p>
+                                <p>
+                                    <span className="font-light">name: </span>
+                                    <span className="font-semibold">{selectedData.label}</span>
+                                </p>
+                                <p>
+                                    <span className="font-light">node-type: </span>
+                                    <span className="font-semibold">{selectedData.type}</span>
+                                </p>
+                                <p>
+                                    <span className="font-light">description: </span>
+                                    <span className="font-semibold">
+                                        {selectedData.description}
+                                    </span>
+                                </p>
+                            </div>
+                            {selectedData.interfaces && (
+                                <div className="interfaces">
+                                    <div className="flex items-center justify-between">
+                                        <span className="font-light">interfaces: </span>
+                                        <button
+                                            aria-label="toggle-interfaces"
+                                            onClick={toggleInterfacesVisibility}
+                                            className="ml-auto btn btn-xs btn-outline"
+                                        >
+                                            {isInterfacesVisible ? (
+                                                <IoRemoveOutline size={16} />
+                                            ) : (
+                                                <IoAddOutline size={16} />
+                                            )}
+                                        </button>
+                                    </div>
+                                    {isInterfacesVisible && (
+                                        <div className="space-y-4">
+                                            {selectedData.interfaces.map((interfaceItem) => (
+                                                <div className="ml-4 border-b border-gray-300 pb-4">
+                                                    <div className="space-y-1">
+                                                        {Object.entries(interfaceItem).map(
+                                                            ([key, value]) => (
+                                                                <div
+                                                                    key={key}
+                                                                    className="flex cursor-default"
+                                                                >
+                                                                    <span className="font-light">
+                                                                        {key}:{' '}
+                                                                    </span>
+                                                                    <span className="font-semibold">
+                                                                        {String(value)}
+                                                                    </span>
+                                                                </div>
+                                                            )
+                                                        )}
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
