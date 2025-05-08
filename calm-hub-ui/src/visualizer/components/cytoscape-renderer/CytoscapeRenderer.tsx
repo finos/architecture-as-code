@@ -88,8 +88,7 @@ export const CytoscapeRenderer = ({
     const cyRef = useRef<HTMLDivElement>(null);
     const [cy, setCy] = useState<Core | null>(null);
     const { zoomLevel, updateZoom } = useContext(ZoomContext);
-    const [selectedNode, setSelectedNode] = useState<CalmNode['data'] | null>(null);
-    const [selectedEdge, setSelectedEdge] = useState<Edge['data'] | null>(null);
+    const [selectedItem, setSelectedItem] = useState<CalmNode['data'] | Edge['data'] | null>(null);
 
     // Generate node label templates
     const getNodeLabelTemplateGenerator =
@@ -165,14 +164,12 @@ export const CytoscapeRenderer = ({
         // Add event listeners
         updatedCy.on('tap', 'node', (e) => {
             const node = e.target as NodeSingular;
-            setSelectedEdge(null);
-            setSelectedNode(node?.data());
+            setSelectedItem(node?.data());
         });
 
         updatedCy.on('tap', 'edge', (e) => {
             const edge = e.target as EdgeSingular;
-            setSelectedNode(null);
-            setSelectedEdge(edge?.data());
+            setSelectedItem(edge?.data());
         });
 
         updatedCy.on('zoom', () => updateZoom(updatedCy.zoom()));
@@ -218,11 +215,8 @@ export const CytoscapeRenderer = ({
                 </div>
             )}
             <div ref={cyRef} className="flex-1 bg-white visualizer" style={{ height: '100vh' }} />
-            {selectedNode && (
-                <Sidebar selectedData={selectedNode} closeSidebar={() => setSelectedNode(null)} />
-            )}
-            {selectedEdge && (
-                <Sidebar selectedData={selectedEdge} closeSidebar={() => setSelectedEdge(null)} />
+            {selectedItem && (
+                <Sidebar selectedData={selectedItem} closeSidebar={() => setSelectedItem(null)} />
             )}
         </div>
     );
