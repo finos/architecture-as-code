@@ -4,6 +4,8 @@ import java.util.Objects;
 
 public class Standard extends StandardDetails {
     private String standard;
+    private String namespace;
+    private String version;
 
     public Standard(String name, String description, String standard, Integer id) {
         super(name, description, id);
@@ -24,6 +26,22 @@ public class Standard extends StandardDetails {
 
     public void setStandard(String standard) {
         this.standard = standard;
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
     }
 
     @Override
