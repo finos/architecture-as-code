@@ -42,6 +42,16 @@ if (db.counters.countDocuments({ _id: "flowStoreCounter" }) === 1) {
     print("flowStoreCounter already exists, no initialization needed");
 }
 
+if (db.counters.countDocuments({ _id: "userAccessStoreCounter" }) === 1) {
+    db.counters.insertOne({
+        _id: "userAccessStoreCounter",
+        sequence_value: 1
+    });
+    print("Initialized userAccessStoreCounter with sequence_value 1");
+} else {
+    print("userAccessStoreCounter already exists, no initialization needed");
+}
+
 db.schemas.insertMany([               // Insert initial documents into the schemas collection
     {
         version: "2025-03",
