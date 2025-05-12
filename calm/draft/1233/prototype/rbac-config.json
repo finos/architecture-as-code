@@ -1,0 +1,11 @@
+{
+  "access-model": "RBAC",
+  "multi-factor-authentication": true,
+  "session-timeout": 30,
+  "password-policy": {
+    "minimum-length": 12,
+    "require-special-chars": true,
+    "require-numbers": true,
+    "require-mixed-case": true
+  }
+}

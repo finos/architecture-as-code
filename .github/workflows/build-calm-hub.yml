@@ -1,4 +1,4 @@
-name: Build Calm Hub
+name: Build Calm Hub with Integration Tests and Coverage
 
 on:
   pull_request:

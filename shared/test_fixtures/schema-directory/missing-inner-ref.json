@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft-2020-12/schema",
+  "$id": "https://calm.com/missing-inner-ref.json",
+  "title": "Relative references schema",
+  "type": "object",
+  "defs": {
+    "top-level": {
+      "$ref": "https://missing-schema#/defs/not-found",
+      "properties": {
+        "top-level": {
+          "const": "test"
+        }
+      }
+    }
+  }
+}

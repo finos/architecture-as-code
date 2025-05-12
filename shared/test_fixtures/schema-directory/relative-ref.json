@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft-2020-12/schema",
+  "$id": "https://calm.com/relative.json",
+  "title": "Relative references schema",
+  "type": "object",
+  "defs": {
+    "inner": {
+      "type": "object",
+      "properties": {
+        "inner-prop": {
+          "const": "test"
+        }
+      }
+    },
+    "top-level": {
+      "$ref": "#/defs/inner",
+      "properties": {
+        "top-level": {
+          "const": "test"
+        }
+      }
+    }
+  }
+}
