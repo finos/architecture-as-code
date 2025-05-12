@@ -116,7 +116,7 @@ export class TemplateProcessor {
                 transpileOnly: true,
                 compilerOptions: {
                     target: 'es2021',
-                    module: 'commonjs',
+                    module: 'esnext',
                     moduleResolution: 'node',
                     esModuleInterop: true,
                     sourceMap: true,
@@ -135,7 +135,7 @@ export class TemplateProcessor {
 
         try {
             const url = pathToFileURL(transformerFilePath).href;
-            const mod = await import(url);
+            const mod = await import(/* @vite-ignore */ url);
             const TransformerClass = mod.default;
             if (typeof TransformerClass !== 'function') {
                 throw new Error('❌ TransformerClass is not a constructor. Did you forget to export default?');
