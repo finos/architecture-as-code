@@ -1,6 +1,7 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@plugin "daisyui" {
+    themes: light --default;
+}
 
 [data-theme='light'] {
     --color-primary: #000063;
