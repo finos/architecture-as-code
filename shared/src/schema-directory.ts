@@ -1,7 +1,6 @@
 import pointer from 'json-pointer';
 import { mergeSchemas, updateStringValuesRecursively } from './util.js';
-import { Logger } from 'winston';
-import { initLogger } from './logger.js';
+import { initLogger, Logger } from './logger.js';
 import { CalmDocumentType, DocumentLoader, DocumentLoadError } from './document-loader/document-loader.js';
 
 /**
