@@ -219,4 +219,3 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
         return relationshipId.split('-uses-').slice(-1)[0];
     }
 }
-module.exports = DocusaurusTransformer;
