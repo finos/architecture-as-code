@@ -1,6 +1,6 @@
 import { IoAddOutline, IoCloseOutline, IoRemoveOutline } from 'react-icons/io5';
 import { Edge, CalmNode } from '../cytoscape-renderer/CytoscapeRenderer.js';
-import { Key, useState } from 'react';
+import { useState } from 'react';
 
 interface SidebarProps {
     selectedData: CalmNode['data'] | Edge['data'];

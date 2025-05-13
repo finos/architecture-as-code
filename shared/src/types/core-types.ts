@@ -133,7 +133,5 @@ export type CalmCoreSchema = {
     flows?: CalmFlowSchema[];
 };
 
-export interface CalmSchema {}
-
 export type CalmArchitectureSchema = CalmCoreSchema;
 export type CalmPatternSchema = CalmCoreSchema;
