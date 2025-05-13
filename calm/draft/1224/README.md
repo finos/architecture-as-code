@@ -56,15 +56,9 @@ The following example shows how an architecture file could declare references to
 
 ### For Existing CALM Models
 
-Fully backwards compatible, no work to do. 
-
+Fully backwards compatible, no work to do.
 
 ## Tooling Considerations
 
 May require the generator to be updated to support the new adrs property.
 
-## Future Considerations
-
-- A registry of commonly used interface schemas could be established
-- Tooling to generate interface schemas from other formats (e.g., OpenAPI, Protocol Buffers)
-- Future CALM versions may deprecate the legacy `interface-type` in favor of `interface-definition`
