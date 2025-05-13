@@ -42,6 +42,7 @@
         "jsonpath-plus": "^10.3.0",
         "junit-report-builder": "^5.1.1",
         "lodash": "^4.17.21",
+        "loglevel": "^1.9.2",
         "mkdirp": "^3.0.1",
         "regexparam": "^3.0.0",
         "string-table": "^0.1.5",
