@@ -3,6 +3,9 @@ package org.finos.calm.security;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ResourceInfo;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.UriInfo;
 import org.apache.http.HttpStatus;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,9 +18,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.*;
 
 @QuarkusTest
 public class TestAccessControlFilterShould {
@@ -28,13 +29,15 @@ public class TestAccessControlFilterShould {
     ContainerRequestContext requestContext;
     @Mock
     ResourceInfo resourceInfo;
+    @Mock
+    UserAccessValidator userAccessValidator;
 
     private AccessControlFilter accessControlFilter;
 
     @BeforeEach
     void setup() {
         MockitoAnnotations.openMocks(this);
-        accessControlFilter = new AccessControlFilter(jwt, resourceInfo);
+        accessControlFilter = new AccessControlFilter(jwt, resourceInfo, userAccessValidator);
     }
 
     @Test
@@ -49,8 +52,18 @@ public class TestAccessControlFilterShould {
     @Test
     void allow_the_request_when_token_scopes_matching() throws NoSuchMethodException {
         Method method = TestNamespaceResource.class.getMethod("createNamespace");
+
         when(resourceInfo.getResourceMethod()).thenReturn(method);
         when(jwt.getClaim("scope")).thenReturn("openid architectures:all");
+        when(jwt.getClaim("preferred_username")).thenReturn("test");
+
+        UriInfo mockUriInfo = mock(UriInfo.class);
+        when(mockUriInfo.getPath()).thenReturn("/calm/namespaces");
+        MultivaluedMap<String, String> multivaluedMap = new MultivaluedHashMap<>();
+        multivaluedMap.add("namespace", "test");
+        when(mockUriInfo.getPathParameters()).thenReturn(multivaluedMap);
+        when(requestContext.getUriInfo()).thenReturn(mockUriInfo);
+        doNothing().when(userAccessValidator).validate(any(UserRequestAttributes.class));
 
         accessControlFilter.filter(requestContext);
         verify(requestContext, never()).abortWith(any());
@@ -61,6 +74,13 @@ public class TestAccessControlFilterShould {
         Method method = TestNamespaceResource.class.getMethod("createNamespace");
         when(resourceInfo.getResourceMethod()).thenReturn(method);
         when(jwt.getClaim("scope")).thenReturn("openid architectures:read");
+
+        UriInfo mockUriInfo = mock(UriInfo.class);
+        when(mockUriInfo.getPath()).thenReturn("/calm/namespaces");
+        MultivaluedMap<String, String> multivaluedMap = new MultivaluedHashMap<>();
+        multivaluedMap.add("namespace", "test");
+        when(mockUriInfo.getPathParameters()).thenReturn(multivaluedMap);
+        when(requestContext.getUriInfo()).thenReturn(mockUriInfo);
 
         accessControlFilter.filter(requestContext);
         verify(requestContext)

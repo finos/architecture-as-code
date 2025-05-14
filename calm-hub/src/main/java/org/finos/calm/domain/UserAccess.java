@@ -31,7 +31,7 @@ public class UserAccess {
     private Permission permission;
     private String namespace;
     private ResourceType resourceType;
-    private int id;
+    private int userAccessId;
 
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonSerialize(using = LocalDateTimeSerializer.class)
@@ -41,12 +41,12 @@ public class UserAccess {
     @JsonSerialize(using = LocalDateTimeSerializer.class)
     private LocalDateTime updateDateTime;
 
-    public UserAccess(String username, Permission permission, String namespace, ResourceType resourceType, int id) {
+    public UserAccess(String username, Permission permission, String namespace, ResourceType resourceType, int userAccessId) {
         this.username = username;
         this.permission = permission;
         this.namespace = namespace;
         this.resourceType = resourceType;
-        this.id = id;
+        this.userAccessId = userAccessId;
     }
 
     public UserAccess(String username, Permission permission, String namespace, ResourceType resourceType) {
@@ -66,7 +66,7 @@ public class UserAccess {
         private Permission permission;
         private String namespace;
         private ResourceType resourceType;
-        private int id;
+        private int userAccessId;
 
         public UserAccessBuilder setUsername(String username) {
             this.username = username;
@@ -88,13 +88,13 @@ public class UserAccess {
             return this;
         }
 
-        public UserAccessBuilder setId(int id) {
-            this.id = id;
+        public UserAccessBuilder setUserAccessId(int userAccessId) {
+            this.userAccessId = userAccessId;
             return this;
         }
 
         public UserAccess build(){
-            return new UserAccess(username, permission, namespace, resourceType, id);
+            return new UserAccess(username, permission, namespace, resourceType, userAccessId);
         }
     }
 
@@ -114,8 +114,8 @@ public class UserAccess {
         return resourceType;
     }
 
-    public int getId() {
-        return id;
+    public int getUserAccessId() {
+        return userAccessId;
     }
 
     public LocalDateTime getCreationDateTime() {
@@ -141,7 +141,7 @@ public class UserAccess {
 
         UserAccess that = (UserAccess) o;
 
-        if (id != that.id) return false;
+        if (userAccessId != that.userAccessId) return false;
         if (!Objects.equals(username, that.username)) return false;
         if (!Objects.equals(permission, that.permission)) return false;
         if (!Objects.equals(namespace, that.namespace)) return false;
@@ -150,7 +150,7 @@ public class UserAccess {
 
     @Override
     public int hashCode() {
-        return Objects.hash(username, permission, namespace, resourceType, id);
+        return Objects.hash(username, permission, namespace, resourceType, userAccessId);
     }
 
     @Override
@@ -160,7 +160,7 @@ public class UserAccess {
                 ", permission='" + permission + '\'' +
                 ", namespace='" + namespace + '\'' +
                 ", resourceType='" + resourceType + '\'' +
-                ", id=" + id +
+                ", userAccessId=" + userAccessId +
                 '}';
     }
 
@@ -180,7 +180,7 @@ public class UserAccess {
         this.resourceType = resourceType;
     }
 
-    public void setId(int id) {
-        this.id = id;
+    public void setUserAccessId(int userAccessId) {
+        this.userAccessId = userAccessId;
     }
 }

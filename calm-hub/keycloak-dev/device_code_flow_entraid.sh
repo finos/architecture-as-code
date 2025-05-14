@@ -10,9 +10,6 @@ DEVICE_AUTH_RESPONSE=$(curl -X POST \
   -d "client_id=$CLIENT_ID" -d "scope=$SCOPE" \
   $DEVICE_AUTH_ENDPOINT)
 
-
-#M467095uma
-
 # Extract values from the device auth response.
 DEVICE_CODE=$(echo "$DEVICE_AUTH_RESPONSE" | jq -r '.device_code')
 USER_CODE=$(echo "$DEVICE_AUTH_RESPONSE" | jq -r '.user_code')

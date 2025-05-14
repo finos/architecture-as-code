@@ -1,7 +1,7 @@
 #!/bin/bash
 
-CLIENT_ID="calm-hub-device-flow"
-SCOPE="architectures:all architectures:read"
+CLIENT_ID="calm-hub-admin-app"
+SCOPE="namespace:admin"
 DEVICE_AUTH_ENDPOINT="https://localhost:9443/realms/calm-hub-realm/protocol/openid-connect/auth/device"
 DEVICE_AUTH_RESPONSE=$(curl --insecure -X POST \
   -H "Content-Type: application/x-www-form-urlencoded" \
@@ -54,11 +54,17 @@ poll_token() {
 #Start token polling
 poll_token
 
-echo -e "\nPress enter to get patterns"
+echo -e "\nPress enter to create a sample user-access details associated to finos"
 read
 if [[ -n $ACCESS_TOKEN ]]; then
-  curl --insecure -v "https://localhost:8443/calm/namespaces/finos/patterns" \
+  curl -X POST --insecure -v "https://localhost:8443/calm/namespaces/finos/user-access" \
     -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $ACCESS_TOKEN"
+    -H "Authorization: Bearer $ACCESS_TOKEN" \
+    -d '{ "namespace": "finos", "resourceType": "namespaces", "permission": "read", "username": "demo" }'
+
+  echo -e "\nPress enter to get list of user-access details"
+  read
+  curl --insecure -v "https://localhost:8443/calm/namespaces/finos/user-access" \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $ACCESS_TOKEN"
 fi
-#Reference: https://github.com/keycloak/keycloak-community/blob/main/design/oauth2-device-authorization-grant.md

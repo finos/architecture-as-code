@@ -5,7 +5,6 @@ import io.quarkus.arc.profile.IfBuildProfile;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.ForbiddenException;
 import org.finos.calm.domain.UserAccess;
-import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.store.UserAccessStore;
 import org.slf4j.Logger;
@@ -28,30 +27,37 @@ public class UserAccessValidator {
 
         String action = mapHttpMethodToPermission(userRequestAttributes.requestMethod());
         String requestPath = userRequestAttributes.path();
+
+        if (isDefaultAccessibleResource(userRequestAttributes)) {
+            log.info("The GET /calm/namespaces endpoint is accessible by default to all authenticated users");
+            return;
+        }
+
         try {
             List<UserAccess> userAccesses = userAccessStore.getUserAccessForUsername(userRequestAttributes.username());
-
             boolean authorized = userAccesses.stream().anyMatch(userAccess -> {
                 boolean resourceMatches = (UserAccess.ResourceType.all == userAccess.getResourceType())
                         || requestPath.contains(userAccess.getResourceType().name());
                 boolean permissionSufficient = permissionAllows(userAccess.getPermission(), action);
-                boolean namespaceMatches = !StringUtil.isNullOrEmpty(userRequestAttributes.namespace()) && userRequestAttributes.namespace().equals(userAccess.getNamespace());
+                boolean namespaceMatches = !StringUtil.isNullOrEmpty(userRequestAttributes.namespace())
+                        && userRequestAttributes.namespace().equals(userAccess.getNamespace());
                 return resourceMatches && permissionSufficient && namespaceMatches;
             });
 
-            if (!authorized && !isDefaultAccessibleResource(userRequestAttributes)) {
+            if (!authorized) {
                 log.warn("Access denied for user [{}] to path [{}] with action [{}]", userRequestAttributes.username(),
                         userRequestAttributes.path(),
                         action);
                 throw new ForbiddenException("Access denied.");
             }
 
-        } catch (NamespaceNotFoundException | UserAccessNotFoundException e) {
-            log.error("Access check failed for user [{}]", userRequestAttributes.username(), e.getMessage());
+        } catch (UserAccessNotFoundException ex) {
+            log.error("No access permissions assigned to the user: [{}]", userRequestAttributes.username(), ex.getMessage());
             throw new ForbiddenException("Access denied.");
         }
     }
 
+    //TODO: How to protect GET - /calm/namespaces endpoint by maintaining namespace specific user grants.
     private boolean isDefaultAccessibleResource(UserRequestAttributes userRequestAttributes) {
         return "/calm/namespaces".equals(userRequestAttributes.path()) &&
                 "get".equalsIgnoreCase(userRequestAttributes.requestMethod().toLowerCase());
