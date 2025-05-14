@@ -1,10 +1,12 @@
-import { CALM_META_SCHEMA_DIRECTORY, runGenerate, SchemaDirectory } from '@finos/calm-shared';
+import { CALM_META_SCHEMA_DIRECTORY, initLogger, runGenerate, SchemaDirectory } from '@finos/calm-shared';
 import { Option, Command } from 'commander';
 import { version } from '../package.json';
 import { loadJsonFromFile } from './command-helpers/file-input';
 import { promptUserForOptions } from './command-helpers/generate-options';
 import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components/options';
-import { buildDocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
+import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
+import { loadCliConfig } from './cli-config';
+import { loadPatternFromCalmHub } from './command-helpers/calmhub-input';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -13,6 +15,7 @@ const PATTERN_OPTION = '-p, --pattern <file>';
 const SCHEMAS_OPTION = '-s, --schemaDirectory <path>';
 const STRICT_OPTION = '--strict';
 const VERBOSE_OPTION = '-v, --verbose';
+const CALMHUB_URL_OPTION = '-c, --calmHubUrl <url>';
 
 export function setupCLI(program: Command) {
     program
@@ -23,15 +26,17 @@ export function setupCLI(program: Command) {
     program
         .command('generate')
         .description('Generate an architecture from a CALM pattern file.')
-        .requiredOption(PATTERN_OPTION, 'Path to the pattern file to use. May be a file path or a URL.')
+        .requiredOption(PATTERN_OPTION, 'Path to the pattern file to use. May be a file path or a CalmHub URL.')
         .requiredOption(OUTPUT_OPTION, 'Path location at which to output the generated file.', 'architecture.json')
-        .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.', CALM_META_SCHEMA_DIRECTORY)
+        .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
             const debug = !!options.verbose;
             const docLoaderOpts = await parseDocumentLoaderConfig(options);
-            const schemaDirectory = await buildSchemaDirectory(docLoaderOpts, debug);
-            const pattern: object = await loadJsonFromFile(options.pattern, options.verbose);
+            const docLoader = buildDocumentLoader(docLoaderOpts, debug);
+            const schemaDirectory = await buildSchemaDirectory(docLoader, debug);
+            const pattern: object = await loadPatternJson(options.pattern, docLoader, debug);
             const choices: CalmChoice[] = await promptUserForOptions(pattern, options.verbose);
             await runGenerate(pattern, options.output, debug, schemaDirectory, choices);
         });
@@ -66,7 +71,8 @@ export function setupCLI(program: Command) {
             const { startServer } = await import('./server/cli-server');
             const debug = !!options.verbose;
             const docLoaderOpts = await parseDocumentLoaderConfig(options);
-            const schemaDirectory = await buildSchemaDirectory(docLoaderOpts, debug);
+            const docLoader = buildDocumentLoader(docLoaderOpts, debug);
+            const schemaDirectory = await buildSchemaDirectory(docLoader, debug);
             startServer(options.port, schemaDirectory, debug);
         });
 
@@ -109,12 +115,30 @@ export function setupCLI(program: Command) {
 }
 
 async function parseDocumentLoaderConfig(options): Promise<DocumentLoaderOptions> {
+    const logger = initLogger(options.verbose, 'calm-cli');
     if (options.schemaDirectory) {
         return {
             loadMode: 'filesystem',
             schemaDirectoryPath: options.schemaDirectory
         };
     }
+    if (options.calmHubUrl) {
+        return {
+            loadMode: 'calmhub',
+            calmHubUrl: options.calmHubUrl
+        };
+    }
+
+    const userConfig = await loadCliConfig();
+    if (userConfig && userConfig.calmHubUrl) {
+        logger.info('Using CALMHub URL from config file: ' + userConfig.calmHubUrl);
+        return {
+            loadMode: 'calmhub',
+            calmHubUrl: userConfig.calmHubUrl
+        };
+    }
+
+    logger.warn('Warning, no schema loading mechanism was defined. Only the bundled core schemas will be available; you may see empty definitions or errors.');
 
     return {
         loadMode: 'filesystem',
@@ -122,7 +146,16 @@ async function parseDocumentLoaderConfig(options): Promise<DocumentLoaderOptions
     };
 }
 
-async function buildSchemaDirectory(options: DocumentLoaderOptions, debug: boolean): Promise<SchemaDirectory> {
-    const docLoader = buildDocumentLoader(options, debug);
+async function buildSchemaDirectory(docLoader: DocumentLoader, debug: boolean): Promise<SchemaDirectory> {
     return new SchemaDirectory(docLoader, debug);
+}
+
+async function loadPatternJson(patternAccessor: string, docLoader: DocumentLoader, debug: boolean): Promise<object> {
+    try {
+        const url = new URL(patternAccessor);
+        return await loadPatternFromCalmHub(url.href, docLoader, debug);
+    } catch (_) {
+        // If the pattern is not a URL, it must be a file path
+        return await loadJsonFromFile(patternAccessor, debug);
+    }
 }
