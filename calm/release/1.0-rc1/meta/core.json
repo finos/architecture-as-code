@@ -152,9 +152,6 @@
         "protocol": {
           "$ref": "#/defs/protocol"
         },
-        "authentication": {
-          "$ref": "#/defs/authentication"
-        },
         "metadata": {
           "$ref": "#/defs/metadata"
         },
@@ -191,15 +188,6 @@
         "TLS",
         "mTLS",
         "TCP"
-      ]
-    },
-    "authentication": {
-      "enum": [
-        "Basic",
-        "OAuth2",
-        "Kerberos",
-        "SPNEGO",
-        "Certificate"
       ]
     },
     "node-type-definition": {
