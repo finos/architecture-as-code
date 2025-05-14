@@ -14,10 +14,22 @@
         "control-config-url": {
           "type": "string",
           "description": "The configuration of how the control requirement schema is met"
+        },
+        "control-config": {
+          "type": "object",
+          "description": "Inline configuration of how the control requirement schema is met"
         }
       },
       "required": [
         "control-requirement-url"
+      ],
+      "oneOf": [
+        {
+          "required": ["control-config-url"]
+        },
+        {
+          "required": ["control-config"]
+        }
       ]
     },
     "controls": {
