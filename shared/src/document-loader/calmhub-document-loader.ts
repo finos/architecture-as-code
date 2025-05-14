@@ -1,8 +1,7 @@
 import axios, { Axios } from 'axios';
 import { SchemaDirectory } from '../schema-directory';
 import { CalmDocumentType, DocumentLoader } from './document-loader';
-import { Logger } from 'winston';
-import { initLogger } from '../logger';
+import { initLogger, Logger } from '../logger';
 
 export class CalmHubDocumentLoader implements DocumentLoader {
     private readonly ax: Axios;
