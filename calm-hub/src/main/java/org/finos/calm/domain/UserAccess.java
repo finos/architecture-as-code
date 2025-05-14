@@ -9,14 +9,28 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
- * Represents a CalmHub user role on resources associated to a namespace.
+ * Represents a CalmHub user access on resources associated to a namespace.
  */
 public class UserAccess {
 
+    public enum Permission {
+        read,
+        write
+    }
+
+    public enum ResourceType {
+        patterns,
+        flows,
+        adrs,
+        architectures,
+        namespaces,
+        all
+    }
+
     private String username;
-    private String role;
+    private Permission permission;
     private String namespace;
-    private String resource;
+    private ResourceType resourceType;
     private int id;
 
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
@@ -27,19 +41,19 @@ public class UserAccess {
     @JsonSerialize(using = LocalDateTimeSerializer.class)
     private LocalDateTime updateDateTime;
 
-    public UserAccess(String username, String role, String namespace, String resource, int id) {
+    public UserAccess(String username, Permission permission, String namespace, ResourceType resourceType, int id) {
         this.username = username;
-        this.role = role;
+        this.permission = permission;
         this.namespace = namespace;
-        this.resource = resource;
+        this.resourceType = resourceType;
         this.id = id;
     }
 
-    public UserAccess(String username, String role, String namespace, String resource) {
+    public UserAccess(String username, Permission permission, String namespace, ResourceType resourceType) {
         this.username = username;
-        this.role = role;
+        this.permission = permission;
         this.namespace = namespace;
-        this.resource = resource;
+        this.resourceType = resourceType;
     }
 
     public UserAccess(){
@@ -49,9 +63,9 @@ public class UserAccess {
     public static class UserAccessBuilder {
 
         private String username;
-        private String role;
+        private Permission permission;
         private String namespace;
-        private String resource;
+        private ResourceType resourceType;
         private int id;
 
         public UserAccessBuilder setUsername(String username) {
@@ -59,8 +73,8 @@ public class UserAccess {
             return this;
         }
 
-        public UserAccessBuilder setRole(String role) {
-            this.role = role;
+        public UserAccessBuilder setPermission(Permission permission) {
+            this.permission = permission;
             return this;
         }
 
@@ -69,8 +83,8 @@ public class UserAccess {
             return this;
         }
 
-        public UserAccessBuilder setResource(String resource) {
-            this.resource = resource;
+        public UserAccessBuilder setResourceType(ResourceType resourceType) {
+            this.resourceType = resourceType;
             return this;
         }
 
@@ -80,7 +94,7 @@ public class UserAccess {
         }
 
         public UserAccess build(){
-            return new UserAccess(username, role, namespace, resource, id);
+            return new UserAccess(username, permission, namespace, resourceType, id);
         }
     }
 
@@ -88,16 +102,16 @@ public class UserAccess {
         return username;
     }
 
-    public String getRole() {
-        return role;
+    public Permission getPermission() {
+        return permission;
     }
 
     public String getNamespace() {
         return namespace;
     }
 
-    public String getResource() {
-        return resource;
+    public ResourceType getResourceType() {
+        return resourceType;
     }
 
     public int getId() {
@@ -129,23 +143,23 @@ public class UserAccess {
 
         if (id != that.id) return false;
         if (!Objects.equals(username, that.username)) return false;
-        if (!Objects.equals(role, that.role)) return false;
+        if (!Objects.equals(permission, that.permission)) return false;
         if (!Objects.equals(namespace, that.namespace)) return false;
-        return Objects.equals(resource, that.resource);
+        return Objects.equals(resourceType, that.resourceType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(username, role, namespace, resource, id);
+        return Objects.hash(username, permission, namespace, resourceType, id);
     }
 
     @Override
     public String toString() {
         return "UserAccess{" +
                 "username='" + username + '\'' +
-                ", role='" + role + '\'' +
+                ", permission='" + permission + '\'' +
                 ", namespace='" + namespace + '\'' +
-                ", resource='" + resource + '\'' +
+                ", resourceType='" + resourceType + '\'' +
                 ", id=" + id +
                 '}';
     }
@@ -154,16 +168,16 @@ public class UserAccess {
         this.username = username;
     }
 
-    public void setRole(String role) {
-        this.role = role;
+    public void setPermission(Permission permission) {
+        this.permission = permission;
     }
 
     public void setNamespace(String namespace) {
         this.namespace = namespace;
     }
 
-    public void setResource(String resource) {
-        this.resource = resource;
+    public void setResourceType(ResourceType resourceType) {
+        this.resourceType = resourceType;
     }
 
     public void setId(int id) {

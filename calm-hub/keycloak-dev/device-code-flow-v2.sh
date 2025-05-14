@@ -60,7 +60,7 @@ if [[ -n $ACCESS_TOKEN ]]; then
   curl -X POST --insecure -v "https://localhost:8443/calm/namespaces/finos/user-access" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $ACCESS_TOKEN" \
-    -d '{ "namespace": "finos", "resource": "*", "role": "write", "username": "demo" }'
+    -d '{ "namespace": "finos", "resourceType": "namespaces", "permission": "read", "username": "demo" }'
 
   echo -e "\nPress enter to get list of user-access details"
   read
@@ -68,5 +68,3 @@ if [[ -n $ACCESS_TOKEN ]]; then
       -H "Content-Type: application/json" \
       -H "Authorization: Bearer $ACCESS_TOKEN"
 fi
-
-#Reference: https://github.com/keycloak/keycloak-community/blob/main/design/oauth2-device-authorization-grant.md

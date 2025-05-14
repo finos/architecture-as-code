@@ -36,29 +36,29 @@ public class MongoUserAccessStore implements UserAccessStore {
     public UserAccess createUserAccessForNamespace(UserAccess userAccess)
             throws NamespaceNotFoundException, JsonParseException {
 
-        log.info("User-access details: {}",userAccess);
+        log.info("User-access details: {}", userAccess);
         if (!namespaceStore.namespaceExists(userAccess.getNamespace())) {
             throw new NamespaceNotFoundException();
         }
 
         int id = counterStore.getNextUserAccessSequenceValue();
         Document userAccessDoc = new Document("username", userAccess.getUsername())
-                .append("role", userAccess.getRole())
+                .append("permission", userAccess.getPermission().name())
                 .append("namespace", userAccess.getNamespace())
-                .append("resource", userAccess.getResource())
+                .append("resourceType", userAccess.getResourceType().name())
                 .append("createdAt", userAccess.getCreationDateTime())
                 .append("lastUpdated", userAccess.getUpdateDateTime())
                 .append("id", id);
 
         userAccessCollection.insertOne(userAccessDoc);
         log.info("UserAccess has been created for namespace: {}, resource: {}, role: {}, username: {}",
-                userAccess.getNamespace(), userAccess.getResource(), userAccess.getRole(), userAccess.getUsername());
+                userAccess.getNamespace(), userAccess.getResourceType(), userAccess.getPermission(), userAccess.getUsername());
 
         UserAccess persistedUserAccess = new UserAccess.UserAccessBuilder()
                 .setId(id)
-                .setResource(userAccess.getResource())
+                .setResourceType(userAccess.getResourceType())
                 .setNamespace(userAccess.getNamespace())
-                .setRole(userAccess.getRole())
+                .setPermission(userAccess.getPermission())
                 .setUsername(userAccess.getUsername())
                 .build();
         return persistedUserAccess;
@@ -77,12 +77,11 @@ public class MongoUserAccessStore implements UserAccessStore {
 
             UserAccess userAccess = new UserAccess.UserAccessBuilder()
                     .setUsername(doc.getString("username"))
-                    .setRole(doc.getString("role"))
+                    .setPermission(UserAccess.Permission.valueOf(doc.getString("permission")))
                     .setNamespace(namespace)
-                    .setResource(doc.getString("resource"))
+                    .setResourceType(UserAccess.ResourceType.valueOf(doc.getString("resourceType")))
                     .setId(doc.getInteger("id"))
                     .build();
-
             userAccessList.add(userAccess);
         }
 
@@ -103,9 +102,9 @@ public class MongoUserAccessStore implements UserAccessStore {
         for (Document doc : userAccessCollection.find(Filters.eq("namespace", namespace))) {
             UserAccess userAccess = new UserAccess.UserAccessBuilder()
                     .setUsername(doc.getString("username"))
-                    .setRole(doc.getString("role"))
+                    .setPermission(UserAccess.Permission.valueOf(doc.getString("permission")))
                     .setNamespace(namespace)
-                    .setResource(doc.getString("resource"))
+                    .setResourceType(UserAccess.ResourceType.valueOf(doc.getString("resourceType")))
                     .setId(doc.getInteger("id"))
                     .build();
             userAccessList.add(userAccess);

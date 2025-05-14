@@ -45,11 +45,14 @@ public class AccessControlFilter implements ContainerRequestFilter {
 
     private final JsonWebToken jwt;
     private final ResourceInfo resourceInfo;
+    private final UserAccessValidator userAccessValidator;
     private final Logger logger = LoggerFactory.getLogger(AccessControlFilter.class);
 
-    public AccessControlFilter(JsonWebToken jwt, ResourceInfo resourceInfo) {
+    public AccessControlFilter(JsonWebToken jwt, ResourceInfo resourceInfo,
+                               UserAccessValidator userAccessValidator) {
         this.jwt = jwt;
         this.resourceInfo = resourceInfo;
+        this.userAccessValidator = userAccessValidator;
     }
 
     @Override
@@ -68,6 +71,16 @@ public class AccessControlFilter implements ContainerRequestFilter {
                     .entity("Forbidden: JWT does not have required scopes.")
                     .build());
         }
+
+        String requestMethod = requestContext.getMethod();
+        String username = jwt.getClaim("preferred_username");
+        String path = requestContext.getUriInfo().getPath();
+        String namespace = requestContext.getUriInfo().getPathParameters().getFirst("namespace");
+
+        UserRequestAttributes userRequestAttributes = new UserRequestAttributes(requestMethod,
+                username, path, namespace);
+        logger.info("User request attributes: {}", userRequestAttributes);
+        userAccessValidator.validate(userRequestAttributes);
     }
 
     /**

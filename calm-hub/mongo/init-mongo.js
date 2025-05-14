@@ -2669,3 +2669,27 @@ db.architectures.insertMany([
         }]
     }
 ]);
+
+db.userAccess.insertMany([
+    {
+        "id": NumberInt(1),
+        "username": "demo_admin",
+        "permission": "write",
+        "namespace": "finos",
+        "resourceType": "all"
+    },
+    {
+        "id": NumberInt(2),
+        "username": "demo_admin",
+        "permission": "write",
+        "namespace": "workshop",
+        "resourceType": "patterns"
+    },
+    {
+        "id": NumberInt(3),
+        "username": "demo_admin",
+        "permission": "write",
+        "namespace": "traderx",
+        "resourceType": "all"
+    }
+]);
