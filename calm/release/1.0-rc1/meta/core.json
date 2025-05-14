@@ -26,6 +26,13 @@
       "items": {
         "$ref": "flow.json#/defs/flow"
       }
+    },
+    "adrs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to the architecture. These can be URLs or references to internal documentation."
     }
   },
   "defs": {
