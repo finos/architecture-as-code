@@ -39,7 +39,6 @@ export function setupCLI(program: Command) {
             const pattern: object = await loadPatternJson(options.pattern, docLoader, debug);
             const choices: CalmChoice[] = await promptUserForOptions(pattern, options.verbose);
             await runGenerate(pattern, options.output, debug, schemaDirectory, choices);
-            await runGenerate(pattern, options.output, debug, schemaDirectory, choices);
         });
 
     program
