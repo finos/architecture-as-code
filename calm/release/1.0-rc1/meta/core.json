@@ -193,16 +193,23 @@
       ]
     },
     "node-type-definition": {
-      "enum": [
-        "actor",
-        "ecosystem",
-        "system",
-        "service",
-        "database",
-        "network",
-        "ldap",
-        "webclient",
-        "data-asset"
+      "oneOf": [
+        {
+          "enum": [
+            "actor",
+            "ecosystem",
+            "system",
+            "service",
+            "database",
+            "network",
+            "ldap",
+            "webclient",
+            "data-asset"
+          ]
+        },
+        {
+          "type": "string"
+        }
       ]
     },
     "interacts-type": {
