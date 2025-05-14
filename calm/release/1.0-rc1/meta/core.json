@@ -72,7 +72,10 @@
         "interfaces": {
           "type": "array",
           "items": {
-            "$ref": "interface.json#/defs/interface-type"
+            "oneOf": [
+              { "$ref": "interface.json#/defs/interface-definition" },
+              { "$ref": "interface.json#/defs/interface-type" }
+            ]
           }
         },
         "controls": {
