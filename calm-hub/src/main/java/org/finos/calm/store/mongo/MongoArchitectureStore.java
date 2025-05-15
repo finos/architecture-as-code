@@ -9,10 +9,14 @@ import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.finos.calm.domain.*;
-import org.finos.calm.domain.exception.*;
+import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.exception.ArchitectureNotFoundException;
+import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
+import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
+import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.ArchitectureStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +26,7 @@ import java.util.List;
 import java.util.Set;
 
 @ApplicationScoped
+@Typed(MongoArchitectureStore.class)
 public class MongoArchitectureStore implements ArchitectureStore {
 
     private final MongoCounterStore counterStore;

@@ -36,6 +36,30 @@ mvn -P integration verify
 
 Development mode is designed to provide a great developer experience from using modern tools and build systems.
 
+### Storage Modes
+
+Calm Hub supports two different storage modes:
+
+1. **MongoDB Mode (Default)**: Uses MongoDB for data persistence. This is the default mode and is suitable for production deployments.
+2. **Standalone Mode**: Uses NitriteDB (an embedded NoSQL database) for data persistence. This mode is useful for development and testing without requiring an external MongoDB instance.
+
+#### Selecting Storage Mode
+
+The storage implementation is selected based on the active Quarkus profile:
+
+- **Default profile** (no profile specified): Uses MongoDB implementation
+- **Standalone profile**: Uses NitriteDB implementation
+
+To run the application in standalone mode:
+
+```shell
+# Development mode with standalone storage
+../mvnw quarkus:dev -Dcalm.database.mode=standalone
+
+# Production mode with standalone storage
+java -Dcalm.database.mode=standalone -jar target/quarkus-app/quarkus-run.jar
+```
+
 ### Mongo Database Startup
 
 In the `local-dev` directory, launch:
