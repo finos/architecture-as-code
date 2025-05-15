@@ -24,6 +24,7 @@
         "phone",
         "architectures:read",
         "architectures:all",
+        "namespace:admin",
         "adrs:read",
         "adrs:all",
         "deny:all"
@@ -143,6 +144,25 @@
     },
     {
       "name": "deny:all",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "calm-hub-producer-app",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "namespace:admin",
       "protocol": "openid-connect",
       "attributes": {
         "include.in.token.scope": "true"

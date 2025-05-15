@@ -52,13 +52,13 @@ public class PermittedScopesIntegration {
 
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("userAccess")) {
                 database.createCollection("userAccess");
-                Document document = new Document("username", "test-user")
+                Document document1 = new Document("username", "test-user")
                         .append("namespace", "finos")
                         .append("permission", UserAccess.Permission.read.name())
                         .append("resourceType", UserAccess.ResourceType.patterns.name())
                         .append("userAccessId", 101);
 
-                database.getCollection("userAccess").insertOne(document);
+                database.getCollection("userAccess").insertOne(document1);
             }
             counterSetup(database);
             namespaceSetup(database);
@@ -95,7 +95,10 @@ public class PermittedScopesIntegration {
         return accessToken;
     }
 
-    //This is not recommended from production, this password grant type is using to embedded preferred_username in jwt token to perform RBAC checks.
+    /**
+     *  This grant type is not recommended from production,
+     *  the password grant type is using to enrich preferred_username in jwt token to perform RBAC checks after jwt validation.
+     */
     private String generateAccessTokenWithPasswordGrantType(String authServerUrl, String scope) {
         String accessToken = given()
                 .auth()
@@ -167,6 +170,22 @@ public class PermittedScopesIntegration {
         given()
                 .auth().oauth2(accessToken)
                 .when().get("/calm/namespaces")
+                .then()
+                .statusCode(403);
+    }
+
+    @Test
+    @Order(6)
+    void end_to_end_forbidden_create_pattern_with_matching_scopes_but_no_user_permissions() {
+        String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
+        logger.info("authServerUrl {}", authServerUrl);
+        String accessToken = generateAccessTokenWithPasswordGrantType(authServerUrl, CalmHubScopes.ARCHITECTURES_ALL);
+        logger.info("accessToken: {}", accessToken);
+        given()
+                .auth().oauth2(accessToken)
+                .body(PATTERN)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(403);
     }
