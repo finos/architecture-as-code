@@ -1,6 +1,5 @@
-import { Logger } from 'winston';
 import { CalmDocumentType, DocumentLoader, DocumentLoadError } from './document-loader';
-import { initLogger } from '../logger';
+import { initLogger, Logger } from '../logger';
 import { readdir, readFile } from 'fs/promises';
 import { join } from 'path';
 import { SchemaDirectory } from '../schema-directory';
@@ -65,14 +64,14 @@ export class FileSystemDocumentLoader implements DocumentLoader {
 
         // TODO this currently assumes it's a schema.
         if (!parsed || !parsed['$id']) {
-            this.logger.warn('Warning: bad schema found, no $id property was defined. Path: ', schemaPath);
+            this.logger.warn('Warning: bad schema found, no $id property was defined. Path: '+ schemaPath);
             return;
         }
         
         const schemaId = parsed['$id'];
 
         if (!parsed['$schema']) {
-            this.logger.warn('Warning, loaded schema does not have $schema set and therefore may be invalid. Path: ', schemaPath);
+            this.logger.warn('Warning, loaded schema does not have $schema set and therefore may be invalid. Path: '+  schemaPath);
         }
 
         this.logger.debug('Loaded schema with $id: ' + schemaId);
