@@ -54,7 +54,7 @@ poll_token() {
 #Start token polling
 poll_token
 
-echo -e "\nPress enter to create a sample user-access details associated to finos"
+echo -e "\nPress enter to create a sample user-access details associated to finos namespace."
 read
 if [[ -n $ACCESS_TOKEN ]]; then
   curl -X POST --insecure -v "https://localhost:8443/calm/namespaces/finos/user-access" \

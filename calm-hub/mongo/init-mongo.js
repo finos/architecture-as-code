@@ -42,10 +42,10 @@ if (db.counters.countDocuments({ _id: "flowStoreCounter" }) === 1) {
     print("flowStoreCounter already exists, no initialization needed");
 }
 
-if (db.counters.countDocuments({ _id: "userAccessStoreCounter" }) === 1) {
+if (db.counters.countDocuments({ _id: "userAccessStoreCounter" }) === 0) {
     db.counters.insertOne({
         _id: "userAccessStoreCounter",
-        sequence_value: 4
+        sequence_value: 6
     });
     print("Initialized userAccessStoreCounter with sequence_value 4");
 } else {
@@ -2690,6 +2690,27 @@ db.userAccess.insertMany([
         "username": "demo_admin",
         "permission": "write",
         "namespace": "traderx",
+        "resourceType": "all"
+    },
+    {
+        "userAccessId": NumberInt(4),
+        "username": "demo",
+        "permission": "read",
+        "namespace": "finos",
+        "resourceType": "all"
+    },
+    {
+        "userAccessId": NumberInt(5),
+        "username": "demo",
+        "permission": "read",
+        "namespace": "traderx",
+        "resourceType": "all"
+    },
+    {
+        "userAccessId": NumberInt(6),
+        "username": "demo",
+        "permission": "read",
+        "namespace": "workshop",
         "resourceType": "all"
     }
 ]);
