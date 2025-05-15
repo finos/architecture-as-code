@@ -140,7 +140,6 @@ public class UserAccess {
         if (o == null || getClass() != o.getClass()) return false;
 
         UserAccess that = (UserAccess) o;
-
         if (userAccessId != that.userAccessId) return false;
         if (!Objects.equals(username, that.username)) return false;
         if (!Objects.equals(permission, that.permission)) return false;

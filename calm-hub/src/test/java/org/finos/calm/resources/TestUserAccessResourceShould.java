@@ -4,6 +4,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.store.UserAccessStore;
 import org.junit.jupiter.api.Test;
 import java.util.List;
@@ -80,6 +81,33 @@ public class TestUserAccessResourceShould {
     }
 
     @Test
+    void return_400_when_creating_user_access_with_invalid_namespace() throws Exception {
+        when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
+                .thenThrow(new NamespaceNotFoundException());
+
+        String requestBody = """
+                    {
+                        "username": "test_user",
+                        "namespace": "invalid",
+                        "resourceType": "all",
+                        "permission": "read"
+                    }
+                """;
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(requestBody)
+                .when()
+                .post("/calm/namespaces/test/user-access")
+                .then()
+                .statusCode(400)
+                .body(containsString("Bad Request"));
+
+        verify(mockUserAccessStore, times(0))
+                .createUserAccessForNamespace(any(UserAccess.class));
+    }
+
+    @Test
     void return_500_when_internal_error_occurs_during_user_access_creation() throws Exception {
         when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
                 .thenThrow(new RuntimeException("Unexpected error"));
@@ -147,6 +175,21 @@ public class TestUserAccessResourceShould {
     }
 
     @Test
+    void return_404_when_no_user_access_associated_to_provided_namespace() throws Exception {
+        when(mockUserAccessStore.getUserAccessForNamespace("test"))
+                .thenThrow(new UserAccessNotFoundException());
+
+        given()
+                .when()
+                .get("/calm/namespaces/test/user-access")
+                .then()
+                .statusCode(404)
+                .body(containsString("No access permissions found"));
+
+        verify(mockUserAccessStore, times(1)).getUserAccessForNamespace("test");
+    }
+
+    @Test
     void return_500_when_internal_error_occurs_while_getting_user_access() throws Exception {
         when(mockUserAccessStore.getUserAccessForNamespace("test"))
                 .thenThrow(new RuntimeException("DB error"));
@@ -179,5 +222,36 @@ public class TestUserAccessResourceShould {
 
         verify(mockUserAccessStore, times(1))
                 .getUserAccessForNamespaceAndId("test", 101);
+    }
+
+    @Test
+    void return_404_when_user_access_for_invalid_namespace_and_user_access_id() throws Exception {
+        when(mockUserAccessStore.getUserAccessForNamespaceAndId("invalid", 0))
+                .thenThrow(new NamespaceNotFoundException());
+
+        given()
+                .when()
+                .get("/calm/namespaces/invalid/user-access/0")
+                .then()
+                .statusCode(404)
+                .body(containsString("Invalid namespace"));
+
+        verify(mockUserAccessStore, times(1))
+                .getUserAccessForNamespaceAndId("invalid", 0);
+    }
+
+    @Test
+    void return_404_when_user_access_for_namespace_and_user_access_id_not_exists() throws Exception {
+        when(mockUserAccessStore.getUserAccessForNamespaceAndId("test", 1))
+                .thenThrow(new UserAccessNotFoundException());
+
+        given()
+                .when()
+                .get("/calm/namespaces/test/user-access/1")
+                .then()
+                .statusCode(404)
+                .body(containsString("No access permissions found"));
+
+        verify(mockUserAccessStore, times(1)).getUserAccessForNamespaceAndId("test", 1);
     }
 }

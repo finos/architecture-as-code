@@ -21,7 +21,6 @@ import java.time.LocalDateTime;
 public class UserAccessResource {
 
     private final UserAccessStore store;
-
     private final Logger logger = LoggerFactory.getLogger(UserAccessResource.class);
 
     public UserAccessResource(UserAccessStore userAccessStore){
@@ -38,12 +37,16 @@ public class UserAccessResource {
     )
     @PermittedScopes({CalmHubScopes.NAMESPACE_ADMIN})
     public Response createUserAccessForNamespace(@PathParam("namespace") String namespace,
-                                                 UserAccess userAccess) {
+                                                 UserAccess createUserAccessRequest) {
 
-        userAccess.setCreationDateTime(LocalDateTime.now());
-        userAccess.setUpdateDateTime(LocalDateTime.now());
+        createUserAccessRequest.setCreationDateTime(LocalDateTime.now());
+        createUserAccessRequest.setUpdateDateTime(LocalDateTime.now());
+        if(! namespace.equals(createUserAccessRequest.getNamespace())) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Bad Request").build();
+        }
         try {
-            return locationResponse(store.createUserAccessForNamespace(userAccess));
+            return locationResponse(store.createUserAccessForNamespace(createUserAccessRequest));
         } catch (NamespaceNotFoundException exception) {
             logger.error("Invalid namespace [{}] when creating user access", namespace, exception);
             return invalidNamespaceResponse(namespace);
@@ -70,8 +73,8 @@ public class UserAccessResource {
             logger.error("Invalid namespace [{}] when getting user-access details", namespace, exception);
             return invalidNamespaceResponse(namespace);
         } catch (UserAccessNotFoundException e) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Bad Request: " + namespace).build();
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("No access permissions found").build();
         }
     }
 
@@ -93,8 +96,8 @@ public class UserAccessResource {
             logger.error("Invalid namespace [{}] when getting user-access details", namespace, exception);
             return invalidNamespaceResponse(namespace);
         } catch (UserAccessNotFoundException e) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Bad Request: " + namespace).build();
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("No access permissions found").build();
         }
     }
 
