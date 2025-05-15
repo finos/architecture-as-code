@@ -1,0 +1,119 @@
+{
+  "$schema": "https://calm.finos.org/release/1.0-rc1/meta/calm.json",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/pattern/api-gateway-example.json",
+  "title": "API Gateway Example",
+  "adrs": [
+      "https://github.com/org/project/docs/adr/0001-use-oauth2.md",
+      "https://internal-docs.company.com/adr/0001-rate-limiting.pdf"
+  ],
+  "nodes": [
+    {
+      "name": "API Gateway",
+      "unique-id": "api-gateway",
+      "node-type": "system",
+      "description": "The API Gateway used to verify authorization and access to downstream system",
+      "well-known-endpoint": "https://api.example.com",
+      "interfaces": [
+        {
+          "unique-id": "api-gateway-ingress",
+          "host": "api.example.com",
+          "port": 443
+        }
+      ]
+    },
+    {
+      "name": "API Consumer",
+      "unique-id": "api-consumer",
+      "node-type": "system",
+      "description": "The API Consumer making an authenticated and authorized request"
+    },
+    {
+      "name": "API Producer",
+      "unique-id": "api-producer",
+      "node-type": "system",
+      "description": "The API Producer serving content",
+      "interfaces": [
+        {
+          "unique-id": "producer-ingress",
+          "host": "producer.internal.local",
+          "port": 443
+        }
+      ]
+    },
+    {
+      "name": "Identity Provider",
+      "unique-id": "idp",
+      "node-type": "system",
+      "description": "The Identity Provider used to verify the bearer token"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "api-consumer-api-gateway",
+      "description": "Issue calculation request",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-consumer"
+          },
+          "destination": {
+            "node": "api-gateway",
+            "interfaces": [
+              "api-gateway-ingress"
+            ]
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "authentication": "OAuth2"
+    },
+    {
+      "unique-id": "api-gateway-idp",
+      "description": "Validate bearer token",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-gateway"
+          },
+          "destination": {
+            "node": "idp"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "api-gateway-api-producer",
+      "description": "Forward request",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-gateway"
+          },
+          "destination": {
+            "node": "api-producer",
+            "interfaces": [
+              "producer-ingress"
+            ]
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "api-consumer-idp",
+      "description": "Acquire a bearer token",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-consumer"
+          },
+          "destination": {
+            "node": "idp"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    }
+  ]
+}

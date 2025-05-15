@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import {mkdirp} from 'mkdirp';
+import { mkdirp } from 'mkdirp';
 
 import { CalmChoice, selectChoices } from './components/options.js';
 import { instantiate } from './components/instantiate';
@@ -17,15 +17,13 @@ export async function runGenerate(pattern: object, outputPath: string, debug: bo
 
         const final = await instantiate(pattern, debug, schemaDirectory);
         const output = JSON.stringify(final, null, 2);
-        const dirname = path.dirname(outputPath); 
+        const dirname = path.dirname(outputPath);
 
         mkdirp.sync(dirname);
         fs.writeFileSync(outputPath, output);
         logger.info(`Successfully generated architecture to [${outputPath}]`);
     } catch (err) {
-        logger.debug('Error while generating architecture from pattern: ' + err.message);
-        if (debug) {
-            logger.debug(err.stack);
-        }
+        logger.error('Error while generating architecture from pattern: ' + err.message);
+        logger.debug(err.stack);
     }
 }

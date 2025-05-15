@@ -16,7 +16,7 @@ export class CalmParser {
             dereferencedData.controls = {}; // If this ends up being string documents then this will break CalmControl.fromJson
             return CalmCore.fromJson(dereferencedData);
         } catch (error) {
-            logger.error('Failed to parse calm.json:', error);
+            logger.error('Failed to parse calm.json:'+ error);
             throw error;
         }
     }
