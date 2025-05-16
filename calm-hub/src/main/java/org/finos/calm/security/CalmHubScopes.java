@@ -28,4 +28,9 @@ public class CalmHubScopes {
      * Allows full access (read, write, delete) on Adrs and read operation on Namespaces.
      */
     public static final String ADRS_ALL = "adrs:all";
+
+    /**
+     * Allow to grant access to users on namespace associated resources and for the admin operations.
+     */
+    public static final String NAMESPACE_ADMIN="namespace:admin";
 }

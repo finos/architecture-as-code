@@ -35,6 +35,10 @@ public class MongoCounterStore {
         return nextValueForCounter("flowStoreCounter");
     }
 
+    public int getNextUserAccessSequenceValue() {
+        return nextValueForCounter("userAccessStoreCounter");
+    }
+
     private int nextValueForCounter(String counterId) {
         Document filter = new Document("_id", counterId);
         Document update = new Document("$inc", new Document("sequence_value", 1));
