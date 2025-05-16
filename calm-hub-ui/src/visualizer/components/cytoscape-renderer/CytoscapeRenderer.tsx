@@ -5,18 +5,8 @@ import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
 import expandCollapse from 'cytoscape-expand-collapse';
 import { Sidebar } from '../sidebar/Sidebar.js';
 import { ZoomContext } from '../zoom-context.provider.js';
-import {
-    CalmInterfaceTypeSchema,
-    CalmHostPortInterfaceSchema,
-    CalmHostnameInterfaceSchema,
-    CalmPathInterfaceSchema,
-    CalmOAuth2AudienceInterfaceSchema,
-    CalmURLInterfaceSchema,
-    CalmRateLimitInterfaceSchema,
-    CalmContainerImageInterfaceSchema,
-    CalmPortInterfaceSchema,
-} from '../../../../../shared/src/types/interface-types.js';
-import { CalmControlsSchema } from '../../../../../shared/src/types/control-types.js';
+import { Edge, CalmNode } from '../../contracts/contracts.js';
+import { LayoutCorrectionService } from '../../services/layout-correction-service.js';
 
 // Initialize Cytoscape plugins
 nodeEdgeHtmlLabel(cytoscape);
@@ -32,42 +22,6 @@ const breadthFirstLayout = {
     avoidOverlap: true,
     padding: 30,
     spacingFactor: 1.25,
-};
-
-// Types for nodes and edges
-export type CalmNode = {
-    classes?: string;
-    data: {
-        description: string;
-        type: string;
-        label: string;
-        id: string;
-        _displayPlaceholderWithDesc: string;
-        _displayPlaceholderWithoutDesc: string;
-        parent?: string;
-        interfaces?: (
-            | CalmInterfaceTypeSchema
-            | CalmHostPortInterfaceSchema
-            | CalmHostnameInterfaceSchema
-            | CalmPathInterfaceSchema
-            | CalmOAuth2AudienceInterfaceSchema
-            | CalmURLInterfaceSchema
-            | CalmRateLimitInterfaceSchema
-            | CalmContainerImageInterfaceSchema
-            | CalmPortInterfaceSchema
-        )[];
-        controls?: CalmControlsSchema;
-    };
-};
-
-export type Edge = {
-    data: {
-        id: string;
-        label: string;
-        source: string;
-        target: string;
-        [idx: string]: string;
-    };
 };
 
 interface Props {
@@ -89,6 +43,8 @@ export const CytoscapeRenderer = ({
     const [cy, setCy] = useState<Core | null>(null);
     const { zoomLevel, updateZoom } = useContext(ZoomContext);
     const [selectedItem, setSelectedItem] = useState<CalmNode['data'] | Edge['data'] | null>(null);
+
+    const layoutCorrectionService = new LayoutCorrectionService();
 
     // Generate node label templates
     const getNodeLabelTemplateGenerator =
@@ -190,7 +146,7 @@ export const CytoscapeRenderer = ({
                 tpl: getNodeLabelTemplateGenerator(true),
             },
         ]);
-
+        layoutCorrectionService.calculateAndUpdateNodePositions(updatedCy, nodes);
         // Set Cytoscape instance
         setCy(updatedCy);
 
