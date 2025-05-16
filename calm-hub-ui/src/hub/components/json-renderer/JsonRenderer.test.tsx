@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
-import { JsonRenderer } from './JsonView.js';
+import { JsonRenderer } from './JsonRenderer.js';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('react-router-dom', async () => {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ValueTable } from './components/value-table/ValueTable.js';
-import { JsonRenderer } from './components/json-renderer/JsonView.js';
+import { JsonRenderer } from './components/json-renderer/JsonRenderer.js';
 import { Namespace, PatternID, FlowID, ArchitectureID, Version, Data } from '../model/calm.js';
 import {
     fetchNamespaces,
