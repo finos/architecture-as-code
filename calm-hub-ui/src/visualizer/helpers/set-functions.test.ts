@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { difference, intersection, union } from "../visualizer/helpers/set-functions.js";
+import { describe, expect, it } from 'vitest';
+import { difference, intersection, union } from './set-functions.js';
 
 describe('union', () => {
     it('should return the union of two sets', () => {
