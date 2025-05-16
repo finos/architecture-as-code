@@ -1,10 +1,10 @@
 import { describe, it, vi, beforeEach, expect } from "vitest";
 import cytoscape from "cytoscape";
 import { LayoutCorrectionService } from "../visualizer/services/layout-correction-service.js";
-import { BoundingBox, Node } from '../visualizer/contracts/contracts.js';
+import { BoundingBox, CalmNode } from '../visualizer/contracts/contracts.js';
 import { afterEach } from "node:test";
 
-function generateMockNodeObj(id: string, parentId?: string): Node {
+function generateMockNodeObj(id: string, parentId?: string): CalmNode {
     const nodeObj = {
         classes: `class-${id}`,
         data: {
@@ -21,7 +21,7 @@ function generateMockNodeObj(id: string, parentId?: string): Node {
     if (parentId != null) {
         nodeObj.data.parent = parentId;
     }
-    return nodeObj as Node;
+    return nodeObj as CalmNode;
 }
 
 function generateBoundingBox(x1: number, y1: number, w: number, h: number): BoundingBox {
@@ -66,7 +66,7 @@ describe(LayoutCorrectionService.name, () => {
 
     it('should call getElementById and bounding box functions on nodes to determine the nodes to be moved', () => {
         const instance = getInstance();
-        const nodes: Node[] = [
+        const nodes: CalmNode[] = [
             generateMockNodeObj('node1'),
             generateMockNodeObj('node2'),
             generateMockNodeObj('node3', 'node1'),
@@ -83,7 +83,7 @@ describe(LayoutCorrectionService.name, () => {
         const instance = getInstance();
         //Here, node 2 is inside node 1 but node 1 is not node 2's parent
         //So, node 2 is expected to be moved, but node 1 and node 3 are not
-        const nodes: Node[] = [
+        const nodes: CalmNode[] = [
             generateMockNodeObj('node1'),
             generateMockNodeObj('node2'),
             generateMockNodeObj('node3', 'node1'),
@@ -114,7 +114,7 @@ describe(LayoutCorrectionService.name, () => {
             edges: vi.fn().mockReturnValue([]),
         } as unknown as cytoscape.Core;
         
-        const nodes: Node[] = [
+        const nodes: CalmNode[] = [
             generateMockNodeObj('node1'),
             generateMockNodeObj('node2'),
             generateMockNodeObj('node3', 'node1')
@@ -145,7 +145,7 @@ describe(LayoutCorrectionService.name, () => {
             edges: vi.fn().mockReturnValue([]),
         } as unknown as cytoscape.Core;
         
-        const nodes: Node[] = [
+        const nodes: CalmNode[] = [
             generateMockNodeObj('node1'),
             generateMockNodeObj('node2', 'node1'),
             generateMockNodeObj('node3', 'node2'),
@@ -181,7 +181,7 @@ describe(LayoutCorrectionService.name, () => {
             edges: vi.fn().mockReturnValue([]),
         } as unknown as cytoscape.Core;
         
-        const nodes: Node[] = [
+        const nodes: CalmNode[] = [
             generateMockNodeObj('node1'),
             generateMockNodeObj('node2'),
             generateMockNodeObj('node3'),
