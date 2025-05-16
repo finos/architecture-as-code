@@ -58,7 +58,15 @@ export function setupCLI(program: Command) {
         .action(async (options) => {
             const { checkValidateOptions, runValidate } = await import('./command-helpers/validate');
             checkValidateOptions(program, options, PATTERN_OPTION, ARCHITECTURE_OPTION);
-            await runValidate(options);
+            await runValidate({
+                architecturePath: options.architecture,
+                patternPath: options.pattern,
+                metaSchemaPath: options.schemaDirectory,
+                verbose: !!options.verbose,
+                strict: options.strict,
+                outputFormat: options.format,
+                outputPath: options.output
+            });
         });
 
     program
@@ -114,7 +122,7 @@ export function setupCLI(program: Command) {
         });
 }
 
-async function parseDocumentLoaderConfig(options): Promise<DocumentLoaderOptions> {
+export async function parseDocumentLoaderConfig(options): Promise<DocumentLoaderOptions> {
     const logger = initLogger(options.verbose, 'calm-cli');
     if (options.schemaDirectory) {
         return {
@@ -146,11 +154,11 @@ async function parseDocumentLoaderConfig(options): Promise<DocumentLoaderOptions
     };
 }
 
-async function buildSchemaDirectory(docLoader: DocumentLoader, debug: boolean): Promise<SchemaDirectory> {
+export async function buildSchemaDirectory(docLoader: DocumentLoader, debug: boolean): Promise<SchemaDirectory> {
     return new SchemaDirectory(docLoader, debug);
 }
 
-async function loadPatternJson(patternAccessor: string, docLoader: DocumentLoader, debug: boolean): Promise<object> {
+export async function loadPatternJson(patternAccessor: string, docLoader: DocumentLoader, debug: boolean): Promise<object> {
     try {
         const url = new URL(patternAccessor);
         return await loadPatternFromCalmHub(url.href, docLoader, debug);
