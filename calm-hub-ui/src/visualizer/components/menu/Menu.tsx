@@ -40,7 +40,7 @@ export function Menu({
     }
 
     return (
-        <header className="bg-white shadow-sm">
+        <header className="bg-white shadow-xs">
             <div className="mx-auto max-w-7xl flex justify-between items-center">
                 <div className="flex items-center space-x-4">
                     {isGraphRendered && (
@@ -55,7 +55,7 @@ export function Menu({
                                     name="connection-description"
                                     aria-label="connection-description"
                                     checked={isConDescActive}
-                                    onClick={toggleConnectionDesc}
+                                    onChange={toggleConnectionDesc}
                                 />
                             </label>
                             <label className="label cursor-pointer">
@@ -67,7 +67,7 @@ export function Menu({
                                     className="toggle"
                                     aria-label="node-description"
                                     checked={isNodeDescActive}
-                                    onClick={toggleNodeDesc}
+                                    onChange={toggleNodeDesc}
                                 />
                             </label>
                         </>

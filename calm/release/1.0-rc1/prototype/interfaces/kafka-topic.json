@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/draft/1083/interfaces/kafka-topic",
+  "title": "Kafka Topic Interface",
+  "type": "object",
+  "properties": {
+    "topic": {
+      "type": "string",
+      "description": "The name of the Kafka topic"
+    },
+    "host": {
+      "type": "string",
+      "format": "hostname",
+      "description": "The Kafka broker hostname or IP"
+    },
+    "port": {
+      "type": "integer",
+      "description": "The port on which the Kafka broker is exposed",
+      "minimum": 1,
+      "maximum": 65535
+    }
+  },
+  "required": ["topic", "host", "port"]
+}

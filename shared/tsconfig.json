@@ -3,12 +3,8 @@
     "module": "Preserve",
     "moduleResolution": "bundler",
     "compilerOptions": {
-        "outDir": "dist",
+        "outDir": "dist"
     },
     "include": ["src", "../vitest-globals.d.ts"],
-    "lib": [
-        "esnext"
-    ]
-
-
+    "lib": ["esnext"]
 }

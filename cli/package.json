@@ -1,62 +1,59 @@
 {
-  "name": "@finos/calm-cli",
-  "version": "0.7.2",
-  "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
-  "main": "dist/index.js",
-  "files": [
-    "dist/"
-  ],
-  "bin": {
-    "calm": "dist/index.js"
-  },
-  "scripts": {
-    "build": "tsup && npm run copy-calm-schema && npm run copy-docify-templates",
-    "watch": "node watch.mjs",
-    "copy-calm-schema": "copyfiles \"../calm/draft/2025-03/meta/*\" dist/calm/",
-    "copy-docify-templates": "copyfiles \"../shared/dist/template-bundles/**/*\" dist --up 3",
-    "test": "vitest run",
-    "lint": "eslint src",
-    "lint-fix": "eslint src --fix",
-    "dependency-check": "dependency-check --project 'calm-cli' --scan . --out ./dependency-check-report --format ALL --suppression ../.github/node-cve-ignore-list.xml"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "keywords": [
-    "cli",
-    "validation"
-  ],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@apidevtools/json-schema-ref-parser": "^12.0.0",
-    "@inquirer/prompts": "^7.4.1",
-    "commander": "^13.1.0",
-    "copyfiles": "^2.4.1",
-    "express-rate-limit": "^7.5.0",
-    "mkdirp": "^3.0.1",
-    "ts-node": "10.9.2"
-  },
-  "devDependencies": {
-    "@types/json-pointer": "^1.0.34",
-    "@types/junit-report-builder": "^3.0.2",
-    "@types/lodash": "^4.17.16",
-    "@types/node": "^22.14.0",
-    "@types/supertest": "^6.0.3",
-    "@types/xml2js": "^0.4.14",
-    "@typescript-eslint/eslint-plugin": "^8.29.1",
-    "@typescript-eslint/parser": "^8.29.1",
-    "axios": "^1.8.4",
-    "chokidar": "^4.0.3",
-    "eslint": "^9.24.0",
-    "globals": "^16.0.0",
-    "link": "^2.1.1",
-    "supertest": "^7.1.0",
-    "tsup": "^8.4.0",
-    "typescript": "^5.8.3",
-    "xml2js": "^0.6.2"
-  },
-  "overrides": {
-    "esbuild": "^0.25.0"
-  }
+    "name": "@finos/calm-cli",
+    "version": "0.7.4",
+    "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
+    "main": "dist/index.js",
+    "files": [
+        "dist/"
+    ],
+    "bin": {
+        "calm": "dist/index.js"
+    },
+    "scripts": {
+        "build": "tsup && npm run copy-calm-schema && npm run copy-docify-templates",
+        "watch": "node watch.mjs",
+        "copy-calm-schema": "copyfiles \"../calm/draft/2025-03/meta/*\" dist/calm/",
+        "copy-docify-templates": "copyfiles \"../shared/dist/template-bundles/**/*\" dist --up 3",
+        "test": "vitest run",
+        "lint": "eslint src",
+        "lint-fix": "eslint src --fix",
+        "dependency-check": "dependency-check --project 'calm-cli' --scan . --out ./dependency-check-report --format ALL --suppression ../.github/node-cve-ignore-list.xml"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "keywords": [
+        "cli",
+        "validation"
+    ],
+    "author": "",
+    "license": "Apache-2.0",
+    "dependencies": {
+        "@apidevtools/json-schema-ref-parser": "^12.0.0",
+        "@inquirer/prompts": "^7.4.1",
+        "commander": "^13.1.0",
+        "copyfiles": "^2.4.1",
+        "express-rate-limit": "^7.5.0",
+        "mkdirp": "^3.0.1",
+        "ts-node": "10.9.2"
+    },
+    "devDependencies": {
+        "@types/json-pointer": "^1.0.34",
+        "@types/junit-report-builder": "^3.0.2",
+        "@types/lodash": "^4.17.16",
+        "@types/node": "^22.15.0",
+        "@types/supertest": "^6.0.3",
+        "@types/xml2js": "^0.4.14",
+        "@typescript-eslint/eslint-plugin": "^8.29.1",
+        "@typescript-eslint/parser": "^8.29.1",
+        "axios": "^1.8.4",
+        "chokidar": "^4.0.3",
+        "eslint": "^9.24.0",
+        "globals": "^16.0.0",
+        "link": "^2.1.1",
+        "supertest": "^7.1.0",
+        "tsup": "^8.4.0",
+        "typescript": "^5.8.3",
+        "xml2js": "^0.6.2"
+    }
 }

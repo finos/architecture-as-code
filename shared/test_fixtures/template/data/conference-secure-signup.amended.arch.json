@@ -176,5 +176,5 @@
       }
     }
   ],
-  "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json"
+  "$schema": "https://calm.finos.org/workshop/conference-secure-signup.pattern.json"
 }

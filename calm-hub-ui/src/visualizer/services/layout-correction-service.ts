@@ -1,5 +1,5 @@
 import cytoscape from "cytoscape";
-import { BoundingBox, IdAndBoundingBox, Node, NodeLayoutViolations } from '../contracts/contracts.js';
+import { BoundingBox, IdAndBoundingBox, CalmNode, NodeLayoutViolations } from '../contracts/contracts.js';
 import { difference, intersection, union } from "../helpers/set-functions.js";
 
 export class LayoutCorrectionService {
@@ -13,7 +13,7 @@ export class LayoutCorrectionService {
      * @param cyRef Reference to cytoscape graph.
      * @param nodes Nodes to seatch over.
      */
-    public calculateAndUpdateNodePositions(cyRef: cytoscape.Core, nodes: Node[]): void {
+    public calculateAndUpdateNodePositions(cyRef: cytoscape.Core, nodes: CalmNode[]): void {
         this.identifyNodesToBeMoved(cyRef, nodes);
         //Make sure all parentless containers are correctly placed first, followed by child containers of these parents
         const containers = new Set<string>([...this._nodeEnclosureMap.keys()]);
@@ -55,14 +55,14 @@ export class LayoutCorrectionService {
      * @param nodes Nodes to search over.
      * @returns An object describing nodes not contained within their ancestors, as well as nodes within non-ancestors, along with bounding boxes
      */
-    private identifyNodesToBeMoved(cyRef: cytoscape.Core, nodes: Node[]): Map<string, NodeLayoutViolations> {
+    private identifyNodesToBeMoved(cyRef: cytoscape.Core, nodes: CalmNode[]): Map<string, NodeLayoutViolations> {
         this._layoutViolations.clear();
         this._nodeEnclosureMap.clear();
         this._allNodes.clear();
         this._parentlessNodes.clear();
         
         //Iterate through nodes and populate node enclosure map
-        nodes.forEach((node: Node) => {
+        nodes.forEach((node: CalmNode) => {
             const nodeParentId = node.data.parent;
             if(nodeParentId != null) {
                 if (this._nodeEnclosureMap.get(nodeParentId) != null) {
@@ -81,7 +81,7 @@ export class LayoutCorrectionService {
             }
         })
 
-        this._allNodes = new Set<string>(nodes.map((node: Node) => node.data.id));
+        this._allNodes = new Set<string>(nodes.map((node: CalmNode) => node.data.id));
 
         const visited = new Set<string>();
         this._nodeEnclosureMap.forEach((_: Set<string>, nodeId: string) => {
