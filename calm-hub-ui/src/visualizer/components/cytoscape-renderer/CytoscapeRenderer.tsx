@@ -1,10 +1,8 @@
 import './cytoscape.css';
-import { useContext, useEffect, useRef, useState } from 'react';
-import cytoscape, { Core, EdgeSingular, NodeSingular } from 'cytoscape';
+import { useEffect, useRef } from 'react';
+import cytoscape, { EdgeSingular, NodeSingular } from 'cytoscape';
 import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
 import expandCollapse from 'cytoscape-expand-collapse';
-import { Sidebar } from '../sidebar/Sidebar.js';
-import { ZoomContext } from '../zoom-context.provider.js';
 import { Edge, CalmNode } from '../../contracts/contracts.js';
 import { LayoutCorrectionService } from '../../services/layout-correction-service.js';
 
@@ -24,81 +22,81 @@ const breadthFirstLayout = {
     spacingFactor: 1.25,
 };
 
-interface Props {
-    title?: string;
+export interface CytoscapeRendererProps {
     isNodeDescActive: boolean;
-    isConDescActive: boolean;
+    isRelationshipDescActive: boolean;
     nodes: CalmNode[];
     edges: Edge[];
+    nodeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
+    edgeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
 }
 
-export const CytoscapeRenderer = ({
-    title,
-    nodes = [],
-    edges = [],
-    isConDescActive,
-    isNodeDescActive,
-}: Props) => {
-    const cyRef = useRef<HTMLDivElement>(null);
-    const [cy, setCy] = useState<Core | null>(null);
-    const { zoomLevel, updateZoom } = useContext(ZoomContext);
-    const [selectedItem, setSelectedItem] = useState<CalmNode['data'] | Edge['data'] | null>(null);
-
-    const layoutCorrectionService = new LayoutCorrectionService();
-
-    // Generate node label templates
-    const getNodeLabelTemplateGenerator =
-        (selected = false) =>
-        (data: CalmNode['data']) => `
+function getNodeLabelTemplateGenerator(selected: boolean, includeDescription: boolean) {
+    return (data: CalmNode['data']) => `
         <div class="node element ${selected ? 'selected-node' : ''}">
             <p class="title">${data.label}</p>
             <p class="type">${data.type}</p>
-            <p class="description">${isNodeDescActive ? data.description : ''}</p>
+            <p class="description">${includeDescription ? data.description : ''}</p>
         </div>
     `;
+}
 
-    // Initialize Cytoscape instance
+function getEdgeStyle(showDescription: boolean): cytoscape.Css.Edge {
+    return {
+        width: 2,
+        'curve-style': 'bezier',
+        label: showDescription ? 'data(label)' : '',
+        'target-arrow-shape': 'triangle',
+        'text-wrap': 'ellipsis',
+        'text-background-color': 'white',
+        'text-background-opacity': 1,
+        'text-background-padding': '5px',
+    };
+}
+
+function getNodeStyle(showDescription: boolean): cytoscape.Css.Node {
+    return {
+        label: showDescription
+            ? 'data(_displayPlaceholderWithDesc)'
+            : 'data(_displayPlaceholderWithoutDesc)',
+        'text-valign': 'center',
+        'text-halign': 'center',
+        'text-wrap': 'wrap',
+        'text-max-width': '180px',
+        'font-family': 'Arial',
+        width: '200px',
+        height: 'label',
+        shape: 'rectangle',
+    };
+}
+
+const layoutCorrectionService = new LayoutCorrectionService();
+
+export function CytoscapeRenderer({
+    nodes = [],
+    edges = [],
+    isRelationshipDescActive,
+    isNodeDescActive,
+    nodeClickedCallback,
+    edgeClickedCallback,
+}: CytoscapeRendererProps) {
+    const cyRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
         const container = cyRef.current;
         if (!container) return;
 
-        // Preserve zoom and pan state if Cytoscape instance already exists
-        const currentZoom = cy?.zoom() || 1;
-        const currentPan = cy?.pan() || { x: 0, y: 0 };
-
-        // Initialize Cytoscape
-        const updatedCy = cytoscape({
+        const cy = cytoscape({
             container,
             elements: [...nodes, ...edges],
             style: [
                 {
                     selector: 'edge',
-                    style: {
-                        width: 2,
-                        'curve-style': 'bezier',
-                        label: isConDescActive ? 'data(label)' : '',
-                        'target-arrow-shape': 'triangle',
-                        'text-wrap': 'ellipsis',
-                        'text-background-color': 'white',
-                        'text-background-opacity': 1,
-                        'text-background-padding': '5px',
-                    },
+                    style: getEdgeStyle(isRelationshipDescActive),
                 },
                 {
                     selector: 'node',
-                    style: {
-                        label: isNodeDescActive
-                            ? 'data(_displayPlaceholderWithDesc)'
-                            : 'data(_displayPlaceholderWithoutDesc)',
-                        'text-valign': 'center',
-                        'text-halign': 'center',
-                        'text-wrap': 'wrap',
-                        'text-max-width': '180px',
-                        'font-family': 'Arial',
-                        width: '200px',
-                        height: 'label',
-                        shape: 'rectangle',
-                    },
+                    style: getNodeStyle(isNodeDescActive),
                 },
                 {
                     selector: ':parent',
@@ -113,67 +111,43 @@ export const CytoscapeRenderer = ({
             maxZoom: 5,
         });
 
-        // Restore zoom and pan state
-        updatedCy.zoom(currentZoom);
-        updatedCy.pan(currentPan);
-
-        // Add event listeners
-        updatedCy.on('tap', 'node', (e) => {
+        cy.on('tap', 'node', (e) => {
             const node = e.target as NodeSingular;
-            setSelectedItem(node?.data());
+            nodeClickedCallback(node?.data());
         });
 
-        updatedCy.on('tap', 'edge', (e) => {
+        cy.on('tap', 'edge', (e) => {
             const edge = e.target as EdgeSingular;
-            setSelectedItem(edge?.data());
+            edgeClickedCallback(edge?.data());
         });
 
-        updatedCy.on('zoom', () => updateZoom(updatedCy.zoom()));
-
-        // Update node labels dynamically
-        /* eslint-disable @typescript-eslint/no-explicit-any */
-        (updatedCy as Core & { nodeHtmlLabel: any }).nodeHtmlLabel([
+        // This function comes from a plugin which doesn't have proper types, which is why the hacky casting is needed
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (cy as unknown as any).nodeHtmlLabel([
             {
                 query: '.node',
                 valign: 'top',
                 valignBox: 'top',
-                tpl: getNodeLabelTemplateGenerator(false),
+                tpl: getNodeLabelTemplateGenerator(false, isNodeDescActive),
             },
             {
                 query: '.node:selected',
                 valign: 'top',
                 valignBox: 'top',
-                tpl: getNodeLabelTemplateGenerator(true),
+                tpl: getNodeLabelTemplateGenerator(true, isNodeDescActive),
             },
         ]);
-        layoutCorrectionService.calculateAndUpdateNodePositions(updatedCy, nodes);
-        // Set Cytoscape instance
-        setCy(updatedCy);
 
-        return () => {
-            updatedCy.destroy(); // Clean up Cytoscape instance
-        };
-    }, [nodes, edges, isConDescActive, isNodeDescActive, updateZoom]);
+        layoutCorrectionService.calculateAndUpdateNodePositions(cy, nodes);
+    }, [
+        nodes,
+        edges,
+        isNodeDescActive,
+        isRelationshipDescActive,
+        nodeClickedCallback,
+        edgeClickedCallback,
+        cyRef,
+    ]);
 
-    // Synchronize zoom level with context
-    useEffect(() => {
-        if (cy && cy.zoom() !== zoomLevel) {
-            cy.zoom(zoomLevel);
-        }
-    }, [cy, zoomLevel]);
-
-    return (
-        <div className="relative flex m-auto border">
-            {title && (
-                <div className="graph-title absolute m-5 bg-accent shadow-md">
-                    <span className="text-m font-thin text-primary-content">Architecture: </span>
-                    <span className="text-m font-semibold text-primary-content">{title}</span>
-                </div>
-            )}
-            <div ref={cyRef} className="flex-1 bg-white visualizer" style={{ height: '100vh' }} />
-            {selectedItem && (
-                <Sidebar selectedData={selectedItem} closeSidebar={() => setSelectedItem(null)} />
-            )}
-        </div>
-    );
-};
+    return <div ref={cyRef} className="flex-1 bg-white visualizer" style={{ height: '100vh' }} />;
+}
