@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { Sidebar } from '../visualizer/components/sidebar/Sidebar.js';
-import { Edge, CalmNode } from '../visualizer/contracts/contracts.js';
+import { Sidebar } from './Sidebar.js';
+import { CalmNode, Edge } from '../../contracts/contracts.js';
 
 describe('Sidebar Component', () => {
     const mockCloseSidebar = vi.fn();

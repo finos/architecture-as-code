@@ -1,8 +1,8 @@
-import { describe, it, vi, beforeEach, expect } from "vitest";
-import cytoscape from "cytoscape";
-import { LayoutCorrectionService } from "../visualizer/services/layout-correction-service.js";
-import { BoundingBox, CalmNode } from '../visualizer/contracts/contracts.js';
-import { afterEach } from "node:test";
+import { describe, it, vi, beforeEach, expect } from 'vitest';
+import cytoscape from 'cytoscape';
+import { afterEach } from 'node:test';
+import { BoundingBox, CalmNode } from '../contracts/contracts.js';
+import { LayoutCorrectionService } from './layout-correction-service.js';
 
 function generateMockNodeObj(id: string, parentId?: string): CalmNode {
     const nodeObj = {
@@ -31,11 +31,16 @@ function generateBoundingBox(x1: number, y1: number, w: number, h: number): Boun
         y1: y1,
         y2: y1 + h,
         w: w,
-        h: h
+        h: h,
     };
 }
 
-function generateMockCyRefGetElementById(x1: number, y1: number, w: number, h: number): cytoscape.NodeSingular {
+function generateMockCyRefGetElementById(
+    x1: number,
+    y1: number,
+    w: number,
+    h: number
+): cytoscape.NodeSingular {
     return {
         boundingBox: vi.fn().mockReturnValue(generateBoundingBox(x1, y1, w, h)),
         position: vi.fn(),
@@ -43,7 +48,6 @@ function generateMockCyRefGetElementById(x1: number, y1: number, w: number, h: n
 }
 
 describe(LayoutCorrectionService.name, () => {
-
     let mockCyRef: cytoscape.Core;
     let mockCyRefGetElementById: cytoscape.NodeSingular;
 
@@ -53,7 +57,7 @@ describe(LayoutCorrectionService.name, () => {
             getElementById: vi.fn().mockImplementation(() => mockCyRefGetElementById),
             nodes: vi.fn().mockReturnValue([]),
             edges: vi.fn().mockReturnValue([]),
-          } as unknown as cytoscape.Core;
+        } as unknown as cytoscape.Core;
     });
 
     afterEach(() => {
@@ -73,9 +77,9 @@ describe(LayoutCorrectionService.name, () => {
         ];
 
         instance.calculateAndUpdateNodePositions(mockCyRef, nodes);
-        expect(mockCyRef.getElementById).toHaveBeenCalledWith("node1");
-        expect(mockCyRef.getElementById).toHaveBeenCalledWith("node2");
-        expect(mockCyRef.getElementById).toHaveBeenCalledWith("node3");
+        expect(mockCyRef.getElementById).toHaveBeenCalledWith('node1');
+        expect(mockCyRef.getElementById).toHaveBeenCalledWith('node2');
+        expect(mockCyRef.getElementById).toHaveBeenCalledWith('node3');
         expect(mockCyRefGetElementById.boundingBox).toHaveBeenCalledTimes(7);
     });
 
@@ -92,7 +96,8 @@ describe(LayoutCorrectionService.name, () => {
         instance.calculateAndUpdateNodePositions(mockCyRef, nodes);
         //Once for node 2
         expect(mockCyRefGetElementById.position).toHaveBeenCalledWith({
-            x: -100, y: -100,
+            x: -100,
+            y: -100,
         });
     });
 
@@ -105,25 +110,26 @@ describe(LayoutCorrectionService.name, () => {
         const mockCyRefGetElementByIdNode3 = generateMockCyRefGetElementById(-150, -150, 100, 100);
         mockCyRef = {
             getElementById: vi.fn().mockImplementation((id) => {
-                if (id === "node1") return mockCyRefGetElementByIdNode1;
-                if (id === "node2") return mockCyRefGetElementByIdNode2;
-                if (id === "node3") return mockCyRefGetElementByIdNode3;
+                if (id === 'node1') return mockCyRefGetElementByIdNode1;
+                if (id === 'node2') return mockCyRefGetElementByIdNode2;
+                if (id === 'node3') return mockCyRefGetElementByIdNode3;
                 return null;
             }),
             nodes: vi.fn().mockReturnValue([]),
             edges: vi.fn().mockReturnValue([]),
         } as unknown as cytoscape.Core;
-        
+
         const nodes: CalmNode[] = [
             generateMockNodeObj('node1'),
             generateMockNodeObj('node2'),
-            generateMockNodeObj('node3', 'node1')
+            generateMockNodeObj('node3', 'node1'),
         ];
 
         instance.calculateAndUpdateNodePositions(mockCyRef, nodes);
         //Once for node 3
         expect(mockCyRefGetElementByIdNode3.position).toHaveBeenCalledWith({
-            x: 50, y: 50,
+            x: 50,
+            y: 50,
         });
     });
 
@@ -136,15 +142,15 @@ describe(LayoutCorrectionService.name, () => {
         const mockCyRefGetElementByIdNode3 = generateMockCyRefGetElementById(-50, -50, 50, 50);
         mockCyRef = {
             getElementById: vi.fn().mockImplementation((id) => {
-                if (id === "node1") return mockCyRefGetElementByIdNode1;
-                if (id === "node2") return mockCyRefGetElementByIdNode2;
-                if (id === "node3") return mockCyRefGetElementByIdNode3;
+                if (id === 'node1') return mockCyRefGetElementByIdNode1;
+                if (id === 'node2') return mockCyRefGetElementByIdNode2;
+                if (id === 'node3') return mockCyRefGetElementByIdNode3;
                 return null;
             }),
             nodes: vi.fn().mockReturnValue([]),
             edges: vi.fn().mockReturnValue([]),
         } as unknown as cytoscape.Core;
-        
+
         const nodes: CalmNode[] = [
             generateMockNodeObj('node1'),
             generateMockNodeObj('node2', 'node1'),
@@ -154,11 +160,13 @@ describe(LayoutCorrectionService.name, () => {
         instance.calculateAndUpdateNodePositions(mockCyRef, nodes);
         //Once for node 2 (move to centre of node 1)
         expect(mockCyRefGetElementByIdNode2.position).toHaveBeenCalledWith({
-            x: 50, y: 50,
+            x: 50,
+            y: 50,
         });
         //Once for node 3 (move to centre of node 2, which has just moved)
         expect(mockCyRefGetElementByIdNode3.position).toHaveBeenCalledWith({
-            x: 85, y: 85,
+            x: 85,
+            y: 85,
         });
     });
 
@@ -171,16 +179,16 @@ describe(LayoutCorrectionService.name, () => {
         const mockCyRefGetElementByIdNode4 = generateMockCyRefGetElementById(10, 10, 40, 40);
         mockCyRef = {
             getElementById: vi.fn().mockImplementation((id) => {
-                if (id === "node1") return mockCyRefGetElementByIdNode1;
-                if (id === "node2") return mockCyRefGetElementByIdNode2;
-                if (id === "node3") return mockCyRefGetElementByIdNode3;
-                if (id === "node4") return mockCyRefGetElementByIdNode4;
+                if (id === 'node1') return mockCyRefGetElementByIdNode1;
+                if (id === 'node2') return mockCyRefGetElementByIdNode2;
+                if (id === 'node3') return mockCyRefGetElementByIdNode3;
+                if (id === 'node4') return mockCyRefGetElementByIdNode4;
                 return null;
             }),
             nodes: vi.fn().mockReturnValue([]),
             edges: vi.fn().mockReturnValue([]),
         } as unknown as cytoscape.Core;
-        
+
         const nodes: CalmNode[] = [
             generateMockNodeObj('node1'),
             generateMockNodeObj('node2'),
@@ -191,7 +199,8 @@ describe(LayoutCorrectionService.name, () => {
         instance.calculateAndUpdateNodePositions(mockCyRef, nodes);
         //Once for node 3 (move between node 1 and node 2)
         expect(mockCyRefGetElementByIdNode3.position).toHaveBeenCalledWith({
-            x: -50, y: -50,
+            x: -50,
+            y: -50,
         });
     });
 });

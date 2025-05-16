@@ -1,9 +1,8 @@
-import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { Menu } from '../visualizer/components/menu/Menu.js';
-import { ZoomContext } from '../visualizer/components/zoom-context.provider.js';
+import { Menu } from './Menu.js';
+import { ZoomContext } from '../zoom-context.provider.js';
 
 describe('Menu', () => {
     const handleUploadMock = vi.fn();
@@ -36,7 +35,7 @@ describe('Menu', () => {
     it('should call toggleConnectionDesc on checkbox click', async () => {
         renderMenu();
         const checkbox = screen.getByRole('checkbox', { name: 'connection-description' });
-        await userEvent.click(checkbox);
+        fireEvent.click(checkbox);
         await waitFor(() => {
             expect(toggleConnectionDescMock).toHaveBeenCalledTimes(1);
         });
@@ -45,7 +44,7 @@ describe('Menu', () => {
     it('should call toggleNodeDesc on checkbox click', async () => {
         renderMenu();
         const checkbox = screen.getByRole('checkbox', { name: 'node-description' });
-        await userEvent.click(checkbox);
+        fireEvent.click(checkbox);
         await waitFor(() => {
             expect(toggleNodeDescMock).toHaveBeenCalledTimes(1);
         });
@@ -55,7 +54,8 @@ describe('Menu', () => {
         renderMenu();
         const file = new File(['example content'], 'example.txt', { type: 'text/plain' });
         const input = screen.getByLabelText('Architecture');
-        await userEvent.upload(input, file);
+        const user = userEvent.setup();
+        await user.upload(input, file);
         await waitFor(() => {
             expect(handleUploadMock).toHaveBeenCalledWith(file);
         });
@@ -77,12 +77,12 @@ describe('Menu', () => {
         const zoomInButton = screen.getByText('+');
         const zoomOutButton = screen.getByText('-');
 
-        await userEvent.click(zoomInButton);
+        fireEvent.click(zoomInButton);
         await waitFor(() => {
             expect(updateZoomMock).toHaveBeenCalledWith(1.1);
         });
 
-        await userEvent.click(zoomOutButton);
+        fireEvent.click(zoomOutButton);
         await waitFor(() => {
             expect(updateZoomMock).toHaveBeenCalledWith(0.9);
         });
