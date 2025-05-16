@@ -5,6 +5,18 @@ import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
 import expandCollapse from 'cytoscape-expand-collapse';
 import { Sidebar } from '../sidebar/Sidebar.js';
 import { ZoomContext } from '../zoom-context.provider.js';
+import {
+    CalmInterfaceTypeSchema,
+    CalmHostPortInterfaceSchema,
+    CalmHostnameInterfaceSchema,
+    CalmPathInterfaceSchema,
+    CalmOAuth2AudienceInterfaceSchema,
+    CalmURLInterfaceSchema,
+    CalmRateLimitInterfaceSchema,
+    CalmContainerImageInterfaceSchema,
+    CalmPortInterfaceSchema,
+} from '../../../../../shared/src/types/interface-types.js';
+import { CalmControlsSchema } from '../../../../../shared/src/types/control-types.js';
 
 // Initialize Cytoscape plugins
 nodeEdgeHtmlLabel(cytoscape);
@@ -23,7 +35,7 @@ const breadthFirstLayout = {
 };
 
 // Types for nodes and edges
-export type Node = {
+export type CalmNode = {
     classes?: string;
     data: {
         description: string;
@@ -32,7 +44,19 @@ export type Node = {
         id: string;
         _displayPlaceholderWithDesc: string;
         _displayPlaceholderWithoutDesc: string;
-        [idx: string]: string;
+        parent?: string;
+        interfaces?: (
+            | CalmInterfaceTypeSchema
+            | CalmHostPortInterfaceSchema
+            | CalmHostnameInterfaceSchema
+            | CalmPathInterfaceSchema
+            | CalmOAuth2AudienceInterfaceSchema
+            | CalmURLInterfaceSchema
+            | CalmRateLimitInterfaceSchema
+            | CalmContainerImageInterfaceSchema
+            | CalmPortInterfaceSchema
+        )[];
+        controls?: CalmControlsSchema;
     };
 };
 
@@ -50,7 +74,7 @@ interface Props {
     title?: string;
     isNodeDescActive: boolean;
     isConDescActive: boolean;
-    nodes: Node[];
+    nodes: CalmNode[];
     edges: Edge[];
 }
 
@@ -64,13 +88,12 @@ export const CytoscapeRenderer = ({
     const cyRef = useRef<HTMLDivElement>(null);
     const [cy, setCy] = useState<Core | null>(null);
     const { zoomLevel, updateZoom } = useContext(ZoomContext);
-    const [selectedNode, setSelectedNode] = useState<Node['data'] | null>(null);
-    const [selectedEdge, setSelectedEdge] = useState<Edge['data'] | null>(null);
+    const [selectedItem, setSelectedItem] = useState<CalmNode['data'] | Edge['data'] | null>(null);
 
     // Generate node label templates
     const getNodeLabelTemplateGenerator =
         (selected = false) =>
-        (data: Node['data']) => `
+        (data: CalmNode['data']) => `
         <div class="node element ${selected ? 'selected-node' : ''}">
             <p class="title">${data.label}</p>
             <p class="type">${data.type}</p>
@@ -108,12 +131,14 @@ export const CytoscapeRenderer = ({
                 {
                     selector: 'node',
                     style: {
-                        label: isNodeDescActive ? 'data(_displayPlaceholderWithDesc)' : 'data(_displayPlaceholderWithoutDesc)',
+                        label: isNodeDescActive
+                            ? 'data(_displayPlaceholderWithDesc)'
+                            : 'data(_displayPlaceholderWithoutDesc)',
                         'text-valign': 'center',
                         'text-halign': 'center',
                         'text-wrap': 'wrap',
                         'text-max-width': '180px',
-                        "font-family": 'Arial',
+                        'font-family': 'Arial',
                         width: '200px',
                         height: 'label',
                         shape: 'rectangle',
@@ -139,14 +164,12 @@ export const CytoscapeRenderer = ({
         // Add event listeners
         updatedCy.on('tap', 'node', (e) => {
             const node = e.target as NodeSingular;
-            setSelectedEdge(null);
-            setSelectedNode(node?.data());
+            setSelectedItem(node?.data());
         });
 
         updatedCy.on('tap', 'edge', (e) => {
             const edge = e.target as EdgeSingular;
-            setSelectedNode(null);
-            setSelectedEdge(edge?.data());
+            setSelectedItem(edge?.data());
         });
 
         updatedCy.on('zoom', () => updateZoom(updatedCy.zoom()));
@@ -192,11 +215,8 @@ export const CytoscapeRenderer = ({
                 </div>
             )}
             <div ref={cyRef} className="flex-1 bg-white visualizer" style={{ height: '100vh' }} />
-            {selectedNode && (
-                <Sidebar selectedData={selectedNode} closeSidebar={() => setSelectedNode(null)} />
-            )}
-            {selectedEdge && (
-                <Sidebar selectedData={selectedEdge} closeSidebar={() => setSelectedEdge(null)} />
+            {selectedItem && (
+                <Sidebar selectedData={selectedItem} closeSidebar={() => setSelectedItem(null)} />
             )}
         </div>
     );
