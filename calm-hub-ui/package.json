@@ -9,6 +9,7 @@
         "serve": "vite preview",
         "prod": "npm run build && mkdir -p ../calm-hub/src/main/resources/META-INF/resources && rsync -a build/* ../calm-hub/src/main/resources/META-INF/resources",
         "test": "vitest run",
+        "watch-test": "vitest watch",
         "lint": "eslint .",
         "format": "prettier --write .",
         "copy-public": "copyfiles -u 1 ../brand/**/* public/"
