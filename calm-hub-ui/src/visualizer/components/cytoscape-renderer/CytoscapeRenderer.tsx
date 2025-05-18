@@ -2,7 +2,6 @@ import './cytoscape.css';
 import { useContext, useEffect, useRef, useState } from 'react';
 import cytoscape, { Core, EdgeSingular, NodeSingular } from 'cytoscape';
 import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
-import { Sidebar } from '../sidebar/Sidebar.js';
 import { ZoomContext } from '../zoom-context.provider.js';
 import { Edge, CalmNode } from '../../contracts/contracts.js';
 import { LayoutCorrectionService } from '../../services/layout-correction-service.js';
@@ -169,9 +168,6 @@ export const CytoscapeRenderer = ({
                 </div>
             )}
             <div ref={cyRef} className="flex-1 bg-white visualizer" style={{ height: '100vh' }} />
-            {selectedItem && (
-                <Sidebar selectedData={selectedItem} closeSidebar={() => setSelectedItem(null)} />
-            )}
         </div>
     );
 };
