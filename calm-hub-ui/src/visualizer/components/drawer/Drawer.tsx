@@ -1,6 +1,5 @@
 import { Sidebar } from '../sidebar/Sidebar.js';
 import { useState } from 'react';
-import { CytoscapeRenderer } from '../cytoscape-renderer/CytoscapeRenderer.js';
 import {
     CalmArchitectureSchema,
     CalmRelationshipSchema,
@@ -12,6 +11,7 @@ import {
     CALMInteractsRelationship,
 } from '../../../../../shared/src/types.js';
 import { CalmNode, Edge } from '../../contracts/contracts.js';
+import { VisualizerContainer } from '../visualizer-container/VisualizerContainer.js';
 
 interface DrawerProps {
     calmInstance?: CalmArchitectureSchema;
@@ -193,8 +193,8 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
                 />
                 <div className="drawer-content">
                     {calmInstance ? (
-                        <CytoscapeRenderer
-                            isConDescActive={isConDescActive}
+                        <VisualizerContainer
+                            isRelationshipDescActive={isConDescActive}
                             isNodeDescActive={isNodeDescActive}
                             title={title}
                             nodes={nodes}
