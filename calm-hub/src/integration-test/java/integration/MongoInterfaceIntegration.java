@@ -7,6 +7,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.bson.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.finos.calm.domain.InterfaceMeta;
 import org.finos.calm.domain.InterfaceRequest;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
@@ -18,6 +19,7 @@ import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 @QuarkusTest
 @TestProfile(IntegrationTestProfile.class)
@@ -52,18 +54,18 @@ public class MongoInterfaceIntegration {
         }
     }
 
-//    @Test
-//    @Order(1)
-//    void end_to_end_get_with_no_flow() {
-//        given()
-//                .when().get("/calm/namespaces/finos/flows")
-//                .then()
-//                .statusCode(200)
-//                .body("values", empty());
-//    }
-
     @Test
     @Order(1)
+    void end_to_end_get_when_no_interfaces_created_yet() {
+        given()
+                .when().get("/calm/namespaces/finos/interfaces")
+                .then()
+                .statusCode(200)
+                .body("values", empty());
+    }
+
+    @Test
+    @Order(2)
     void end_to_end_create_an_interface() {
         given()
                 .body(INTERFACE_REQUEST)
@@ -72,5 +74,20 @@ public class MongoInterfaceIntegration {
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/interfaces/1/versions/1.0.0"));
+    }
+
+    @Test
+    @Order(3)
+    void end_to_end_get_when_interfaces_exist() {
+        InterfaceMeta expected = new InterfaceMeta(1, "interface name", "interface description");
+        InterfaceMeta actual = given()
+                .when().get("/calm/namespaces/finos/interfaces")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(1))
+                .extract()
+                .body().jsonPath().getObject("values[0]", InterfaceMeta.class);
+
+        assertThat(actual, is(expected));
     }
 }

@@ -9,6 +9,7 @@ import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.finos.calm.domain.Interface;
 import org.finos.calm.domain.InterfaceRequest;
+import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.security.PermittedScopes;
@@ -61,6 +62,23 @@ public class InterfaceResource {
         } catch (JsonParseException e) {
             logger.error("Cannot parse Interface JSON for namespace [{}]. Interface JSON : [{}]", namespace, interfaceRequest.interfaceJson(), e);
             return invalidInterfaceJsonResponse(namespace);
+        }
+    }
+
+    @GET
+    @Path("{namespace}/interfaces")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Retrieve interfaces in a given namespace, response include unique id, name, and description",
+            description = "Interfaces stored in a given namespace"
+    )
+    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    public Response getInterfacesForNamespace(@PathParam("namespace") String namespace) {
+        try {
+            return Response.ok(new ValueWrapper<>(interfaceStore.getInterfacesForNamespace(namespace))).build();
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when retrieving interfaces", namespace, e);
+            return invalidNamespaceResponse(namespace);
         }
     }
 

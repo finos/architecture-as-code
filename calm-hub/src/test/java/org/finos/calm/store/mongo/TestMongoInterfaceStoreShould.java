@@ -1,6 +1,7 @@
 package org.finos.calm.store.mongo;
 
 
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -12,14 +13,16 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.bson.Document;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Interface;
+import org.finos.calm.domain.InterfaceMeta;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.util.Map;
+import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
@@ -114,5 +117,58 @@ class TestMongoInterfaceStoreShould {
 
         assertThrows(JsonParseException.class,
                 () -> mongoInterfaceStore.createInterfaceForNamespace(interfaceToCreate));
+    }
+
+    @Test
+    void get_interfaces_for_namespace_returns_empty_list_when_none_exist() throws NamespaceNotFoundException {
+        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(interfaceCollection.find(eq(Filters.eq("namespace", VALID_NAMESPACE))))
+                .thenReturn(findIterable);
+        Document documentMock = Mockito.mock(Document.class);
+        when(findIterable.first()).thenReturn(documentMock);
+        when(documentMock.getList("interfaces", Document.class))
+                .thenReturn(new ArrayList<>());
+
+        assertThat(mongoInterfaceStore.getInterfacesForNamespace(VALID_NAMESPACE), is(empty()));
+        verify(namespaceStore).namespaceExists(VALID_NAMESPACE);
+    }
+
+    @Test
+    void get_interfaces_for_namespace_returns_empty_list_when_mongo_collection_not_created() throws NamespaceNotFoundException {
+        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(interfaceCollection.find(eq(Filters.eq("namespace", VALID_NAMESPACE))))
+                .thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(null);
+
+        assertThat(mongoInterfaceStore.getInterfacesForNamespace(VALID_NAMESPACE), is(empty()));
+        verify(namespaceStore).namespaceExists(VALID_NAMESPACE);
+    }
+
+
+
+    @Test
+    void get_flow_for_namespace_returns_values() throws NamespaceNotFoundException {
+        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(interfaceCollection.find(eq(Filters.eq("namespace", VALID_NAMESPACE))))
+                .thenReturn(findIterable);
+        Document documentMock = Mockito.mock(Document.class);
+        when(findIterable.first()).thenReturn(documentMock);
+
+        Document doc1 = new Document(
+                Map.of("interfaceId", 1,
+                        "name", "test-interface",
+                        "description","interface description"))
+                .append("versions", new Document("1-0-0", Document.parse("{\"test\":\"json\"}")));
+
+
+        when(documentMock.getList("interfaces", Document.class)).thenReturn(Collections.singletonList(doc1));
+
+        List<InterfaceMeta> interfaces = mongoInterfaceStore.getInterfacesForNamespace(VALID_NAMESPACE);
+
+        assertThat(interfaces, is(List.of(new InterfaceMeta(1, "test-interface", "interface description"))));
+        verify(namespaceStore).namespaceExists(VALID_NAMESPACE);
     }
 }

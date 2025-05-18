@@ -5,13 +5,18 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Interface;
+import org.finos.calm.domain.InterfaceMeta;
 import org.finos.calm.domain.InterfaceRequest;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.InterfaceStore;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -105,5 +110,33 @@ class TestInterfaceResourceShould {
                 .setInterfaceJson("{ \"test\":\"json\"}")
                 .build();
         verify(interfaceStore, times(1)).createInterfaceForNamespace(interfaceToCreate);
+    }
+
+    @Test
+    void return_a_404_when_an_invalid_namespace_is_provided_on_get_interfaces() throws NamespaceNotFoundException {
+        when(interfaceStore.getInterfacesForNamespace(anyString())).thenThrow(new NamespaceNotFoundException());
+
+        given()
+                .when()
+                .get("/calm/namespaces/invalid/interfaces")
+                .then()
+                .statusCode(404);
+
+        verify(interfaceStore, times(1)).getInterfacesForNamespace("invalid");
+    }
+
+    @Test
+    void return_list_of_interface_metas_when_valid_namespace_provided_on_get_interfaces() throws NamespaceNotFoundException {
+        InterfaceMeta expectedInterface = new InterfaceMeta(1, "test-interface", "this is a test interface");
+        when(interfaceStore.getInterfacesForNamespace(anyString())).thenReturn(List.of(expectedInterface));
+
+        given()
+                .when()
+                .get("/calm/namespaces/valid/interfaces")
+                .then()
+                .statusCode(200)
+                .body(equalTo("{\"values\":[{\"description\":\"this is a test interface\",\"id\":1,\"name\":\"test-interface\"}]}"));
+
+        verify(interfaceStore, times(1)).getInterfacesForNamespace("valid");
     }
 }
