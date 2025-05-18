@@ -2,7 +2,7 @@ import { IoAddOutline, IoCloseOutline, IoRemoveOutline } from 'react-icons/io5';
 import { useState } from 'react';
 import { CalmNode, Edge } from '../../contracts/contracts.js';
 
-interface SidebarProps {
+export interface SidebarProps {
     selectedData: CalmNode['data'] | Edge['data'];
     closeSidebar: () => void;
 }
