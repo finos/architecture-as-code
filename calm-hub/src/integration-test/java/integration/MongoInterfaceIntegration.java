@@ -86,7 +86,8 @@ public class MongoInterfaceIntegration {
                 .statusCode(200)
                 .body("values", hasSize(1))
                 .extract()
-                .body().jsonPath().getObject("values[0]", InterfaceMeta.class);
+                .body()
+                .jsonPath().getObject("values[0]", InterfaceMeta.class);
 
         assertThat(actual, is(expected));
     }
