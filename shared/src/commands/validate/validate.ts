@@ -5,8 +5,7 @@ import { Spectral, ISpectralDiagnostic, RulesetDefinition } from '@stoplight/spe
 import validationRulesForPattern from '../../spectral/rules-pattern';
 import validationRulesForArchitecture from '../../spectral/rules-architecture';
 import { DiagnosticSeverity } from '@stoplight/types';
-import * as winston from 'winston';
-import { initLogger } from '../../logger.js';
+import { initLogger, Logger } from '../../logger.js';
 import { ValidationOutput, ValidationOutcome } from './validation.output.js';
 import { SpectralResult } from './spectral.result.js';
 import createJUnitReport from './output-formats/junit-output.js';
@@ -14,7 +13,7 @@ import prettyFormat from './output-formats/pretty-output.js';
 import { SchemaDirectory } from '../../schema-directory.js';
 import { FileSystemDocumentLoader } from '../../document-loader/file-system-document-loader';
 
-let logger: winston.Logger; // defined later at startup
+let logger: Logger; // defined later at startup
 
 
 /**
@@ -145,7 +144,7 @@ export async function validate(
             throw new Error('You must provide at least an architecture or a pattern');
         }
     } catch (error) {
-        logger.error('An error occured:', error);
+        logger.error('An error occured:'+ error);
         throw error;
     }
 }

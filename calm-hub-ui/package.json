@@ -15,7 +15,7 @@
     },
     "dependencies": {
         "@tailwindcss/vite": "^4.1.4",
-        "@types/node": "^22.9.0",
+        "@types/node": "^22.15.0",
         "@types/react": "^18.3.12",
         "@types/react-dom": "^18.3.1",
         "@vitejs/plugin-react-swc": "^3.7.2",
@@ -61,7 +61,7 @@
         "tailwindcss": "^4.1.4",
         "typescript": "^5.5.3",
         "typescript-eslint": "^8.14.0",
-        "vite": "^6.2.5",
+        "vite": "^6.3.4",
         "vitest": "^3.0.6"
     },
     "resolutions": {
@@ -69,7 +69,7 @@
         "express": "4.21.2",
         "nth-check": "2.1.1",
         "postcss": "8.5.1",
-        "rollup": "4.39.0"
+        "rollup": "4.40.2"
     },
     "proxy": "http://127.0.0.1:8080/",
     "eslintConfig": {

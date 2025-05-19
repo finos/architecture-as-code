@@ -35,6 +35,7 @@
         "@stoplight/spectral-core": "^1.19.5",
         "@stoplight/spectral-functions": "^1.9.4",
         "ajv": "^8.17.1",
+        "axios": "^1.9.0",
         "copyfiles": "^2.4.1",
         "handlebars": "^4.7.8",
         "js-yaml": "^4.1.0",
@@ -42,6 +43,7 @@
         "jsonpath-plus": "^10.3.0",
         "junit-report-builder": "^5.1.1",
         "lodash": "^4.17.21",
+        "loglevel": "^1.9.2",
         "mkdirp": "^3.0.1",
         "regexparam": "^3.0.0",
         "string-table": "^0.1.5",
@@ -54,18 +56,20 @@
         "@types/json-pointer": "^1.0.34",
         "@types/junit-report-builder": "^3.0.2",
         "@types/lodash": "^4.17.16",
-        "@types/node": "^22.14.0",
+        "@types/node": "^22.15.0",
         "@typescript-eslint/eslint-plugin": "^8.29.1",
         "@typescript-eslint/parser": "^8.29.1",
+        "axios-mock-adapter": "^2.1.0",
         "eslint": "^9.24.0",
         "fetch-mock": "^12.5.2",
         "globals": "^16.0.0",
+        "memfs": "^4.17.0",
         "msw": "^2.7.3",
         "typescript": "^5.8.3"
     },
     "overrides": {
         "path-to-regexp": "3.3.0",
-        "rollup": "4.39.0",
+        "rollup": "4.40.2",
         "jsonpath-plus": "^10.3.0"
     }
 }

@@ -1,5 +1,6 @@
 import { CALM_META_SCHEMA_DIRECTORY } from '../consts';
 import { SchemaDirectory } from '../schema-directory';
+import { CalmHubDocumentLoader } from './calmhub-document-loader';
 import { FileSystemDocumentLoader } from './file-system-document-loader';
 
 export type CalmDocumentType = 'architecture' | 'pattern' | 'schema';
@@ -31,7 +32,7 @@ export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions, debug:
         return new FileSystemDocumentLoader(directoryPaths, debug);
     } 
     case 'calmhub': {
-        throw new Error('CALMHub document loader not implemented yet.');
+        return new CalmHubDocumentLoader(docLoaderOpts.calmHubUrl, debug);
     }
     default:
         throw new Error('Invalid document load mode when constructing DocumentLoader!');

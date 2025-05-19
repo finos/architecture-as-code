@@ -5,7 +5,7 @@
     ":dependencyDashboard"
   ],
   "lockFileMaintenance": {
-    "enabled": true,
+    "enabled": false,
     "schedule": ["before 7am on monday"]
   },
   "packageRules": [
@@ -17,10 +17,9 @@
     },
     {
       "groupName": "patch-dependencies",
-      "matchUpdateTypes": ["patch"],
+      "matchUpdateTypes": ["minor"],
       "automerge": true,
-      "automergeType": "pr",
-      "labels": ["patch-upgrades"]
+      "automergeType": "pr"
     }
   ]
 }

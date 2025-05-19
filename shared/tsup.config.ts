@@ -4,7 +4,7 @@ export default defineConfig({
     entry: [
         'src/docify/template-bundles/docusaurus/docusaurus-transformer.ts'
     ],
-    format: ['cjs'],
+    format: ['esm'],
     clean: true,
     outDir: 'dist/template-bundles/docusaurus',
     target: 'node18',

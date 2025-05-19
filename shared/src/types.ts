@@ -1,64 +1,54 @@
-export interface CALMArchitecture {
-  nodes: CALMNode[],
-  relationships: CALMRelationship[]
-}
-
-export type NodeType = 'actor' | 'system' | 'service' | 'database' | 'network' | 'ldap' | 'dataclient';
-
-export interface CALMNode {
-  name: string,
-  class?: string,
-  'unique-id': string,
-  'node-type': NodeType,
-  description: string,
-  'data-classification'?: string,
-  'run-as'?: string,
-}
-
-export type CALMRelationship = CALMInteractsRelationship | CALMConnectsRelationship | CALMDeployedInRelationship | CALMComposedOfRelationship;
+import { CalmControlsSchema } from './types/control-types';
+import {
+    CalmAuthenticationSchema,
+    CalmProtocolSchema,
+} from './types/core-types';
+import { CalmMetadataSchema } from './types/metadata-types';
 
 export interface CALMInteractsRelationship {
-  'relationship-type': {
-      'interacts': {
-          actor: string,
-          nodes: string[]
-      }
-  },
-  ['unique-id']: string,
-  description?: string
+    'relationship-type': {
+        interacts: {
+            actor: string;
+            nodes: string[];
+        };
+    };
+    ['unique-id']: string;
+    description?: string;
 }
 
 export interface CALMConnectsRelationship {
-  'relationship-type': {
-      'connects': {
-          source: { node: string, interface?: string },
-          destination: { node: string, interface?: string }
-      }
-  },
-  ['unique-id']: string,
-  protocol?: string,
-  authentication?: string,
-  description?: string
+    'relationship-type': {
+        connects: {
+            source: { node: string; interfaces: string[] };
+            destination: { node: string; interfaces: string[] };
+        };
+    };
+    ['unique-id']: string;
+    description?: string;
+    protocol?: CalmProtocolSchema;
+    authentication?: CalmAuthenticationSchema;
+    metadata?: CalmMetadataSchema;
+    controls?: CalmControlsSchema;
 }
 
 export interface CALMDeployedInRelationship {
-  'relationship-type': {
-      'deployed-in': {
-          container: string,
-          nodes: string[]
-      }
-  },
-  ['unique-id']: string,
-  description?: string
+    'relationship-type': {
+        'deployed-in': {
+            container: string;
+            nodes: string[];
+        };
+    };
+    ['unique-id']: string;
+    description?: string;
 }
 
 export interface CALMComposedOfRelationship {
-  'relationship-type': {
-      'composed-of': {
-          container: string,
-          nodes: string[]
-      },
-  }
-  ['unique-id']: string,
-  description?: string
+    'relationship-type': {
+        'composed-of': {
+            container: string;
+            nodes: string[];
+        };
+    };
+    ['unique-id']: string;
+    description?: string;
 }
