@@ -1,5 +1,4 @@
-import React, { useContext } from 'react';
-import { ZoomContext } from '../zoom-context.provider.js';
+import React from 'react';
 
 interface MenuProps {
     handleUpload: (instanceFile: File) => void;
@@ -21,26 +20,9 @@ export function Menu({
     const upload = (file: File) => {
         handleUpload(file);
     };
-    const { zoomLevel, updateZoom } = useContext(ZoomContext);
-
-    function zoomIn() {
-        //Obtain percentage as integer
-        const currentPercentageZoom = Math.round(zoomLevel * 100);
-        //Add 10% to the zoom or round to upper 10% interval
-        const newPercentageZoom = Math.floor(currentPercentageZoom / 10) * 10 + 10;
-        updateZoom(newPercentageZoom / 100);
-    }
-
-    function zoomOut() {
-        //Obtain percentage as integer
-        const currentPercentageZoom = Math.round(zoomLevel * 100);
-        //Subtract 10% from the zoom or round to lower 10% interval - but not less than zero
-        const newPercentageZoom = Math.max(Math.ceil(currentPercentageZoom / 10) * 10 - 10, 0);
-        updateZoom(newPercentageZoom / 100);
-    }
 
     return (
-        <header className="bg-white shadow-sm">
+        <header className="bg-white shadow-xs">
             <div className="mx-auto max-w-7xl flex justify-between items-center">
                 <div className="flex items-center space-x-4">
                     {isGraphRendered && (
@@ -55,7 +37,7 @@ export function Menu({
                                     name="connection-description"
                                     aria-label="connection-description"
                                     checked={isConDescActive}
-                                    onClick={toggleConnectionDesc}
+                                    onChange={toggleConnectionDesc}
                                 />
                             </label>
                             <label className="label cursor-pointer">
@@ -67,35 +49,10 @@ export function Menu({
                                     className="toggle"
                                     aria-label="node-description"
                                     checked={isNodeDescActive}
-                                    onClick={toggleNodeDesc}
+                                    onChange={toggleNodeDesc}
                                 />
                             </label>
                         </>
-                    )}
-                </div>
-                <div className="flex-1 flex justify-center">
-                    {isGraphRendered && (
-                        <div className="flex items-center space-x-4">
-                            <div className="label">
-                                <span className="label label-text text-base-content">
-                                    Zoom: {(zoomLevel * 100).toFixed(0)}%
-                                </span>
-                                <button
-                                    className={`btn btn-xs ms-1 ps-2 pe-2 ${zoomLevel >= 5 ? 'btn-disabled' : ''}`}
-                                    onClick={zoomIn}
-                                    disabled={zoomLevel >= 5}
-                                >
-                                    +
-                                </button>
-                                <button
-                                    className={`btn btn-xs ms-1 ps-2 pe-2 ${zoomLevel <= 0.1 ? 'btn-disabled' : ''}`}
-                                    onClick={zoomOut}
-                                    disabled={zoomLevel <= 0.1}
-                                >
-                                    -
-                                </button>
-                            </div>
-                        </div>
                     )}
                 </div>
                 <div className="menu-end">

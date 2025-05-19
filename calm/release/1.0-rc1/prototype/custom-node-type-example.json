@@ -1,0 +1,38 @@
+{
+  "$schema": "https://calm.finos.org/release/1.0-rc1/meta/calm.json",
+  "nodes": [
+    {
+      "unique-id": "standard-node",
+      "node-type": "service",
+      "name": "Standard Service",
+      "description": "This node uses a standard node type from the enum"
+    },
+    {
+      "unique-id": "custom-node",
+      "node-type": "microservice",
+      "name": "Custom Microservice",
+      "description": "This node uses a custom node type that is not in the standard enum"
+    },
+    {
+      "unique-id": "custom-node-2",
+      "node-type": "gateway",
+      "name": "API Gateway",
+      "description": "Another example of a custom node type"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "rel-1",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "custom-node"
+          },
+          "destination": {
+            "node": "standard-node"
+          }
+        }
+      }
+    }
+  ]
+}

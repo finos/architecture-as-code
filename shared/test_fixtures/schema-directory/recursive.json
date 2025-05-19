@@ -3,9 +3,9 @@
   "$id": "https://calm.com/recursive.json",
   "title": "API Gateway Pattern",
   "type": "object",
-  "$defs": {
+  "defs": {
     "circular": {
-      "$ref": "https://calm.com/recursive.json#/$defs/circular",
+      "$ref": "https://calm.com/recursive.json#/defs/circular",
       "properties": {
         "prop": {
           "const": "test"
@@ -13,7 +13,7 @@
       }
     },
     "top-level": {
-      "$ref": "https://calm.com/recursive.json#/$defs/circular",
+      "$ref": "https://calm.com/recursive.json#/defs/circular",
       "properties": {
         "top-level": {
           "const": "test"

@@ -173,9 +173,10 @@ describe('CLI Integration Tests', () => {
 
     test('generate command produces the expected output', async () => {
         const apiGatewayPatternPath = path.join(__dirname, '../../calm/pattern/api-gateway.json');
+        const schemaDirectoryPath = path.join(__dirname, '../../calm/draft');
         const targetOutputFile = path.join(tempDir, 'generate-output.json');
 
-        const cmd = calm(`generate -p ${apiGatewayPatternPath} -o ${targetOutputFile}`);
+        const cmd = calm(`generate -p ${apiGatewayPatternPath} -o ${targetOutputFile} -s ${schemaDirectoryPath}`);
         await execPromise(cmd);
 
         const outputString = fs.readFileSync(targetOutputFile, 'utf-8');
@@ -189,6 +190,8 @@ describe('CLI Integration Tests', () => {
 
 
     test('server command starts and responds to /health', async () => {
+        // TODO does this actually test anything? 
+        // mock axios.get to return a 200 response and then call axios.get and assert it's 200?
         (axios.get as Mock).mockResolvedValue({ status: 200, data: { status: 'ok' } });
         const serverCmd = calm('server -p 3002 --schemaDirectory ../../dist/calm/');
         const serverProcess = exec(serverCmd);

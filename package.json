@@ -1,39 +1,36 @@
 {
-  "name": "@finos/calm-workspace",
-  "version": "0.0.0",
-  "private": true,
-  "workspaces": [
-    "shared",
-    "cli",
-    "docs",
-    "calm-hub-ui"
-  ],
-  "scripts": {
-    "build": "npm run build --workspaces --if-present",
-    "build:cli": "npm run build --workspace shared --workspace cli",
-    "build:shared": "npm run build --workspace shared",
-    "build:docs": "npm run build --workspace docs",
-    "test": "npm run test --workspaces --if-present",
-    "test:cli": "npm run build:cli && npm run test --workspace cli",
-    "test:shared": "npm run build:shared && npm run test --workspace shared",
-    "lint": "npm run lint --workspaces --if-present",
-    "lint-fix": "npm run lint-fix --workspaces --if-present",
-    "watch": "run-p watch:cli watch:shared",
-    "watch:cli": "npm run watch --workspace cli",
-    "watch:shared": "npm run watch --workspace shared",
-    "link:cli": "npm link --workspace cli",
-    "calm-hub-ui:run": "npm run start --workspace calm-hub-ui"
-  },
-  "devDependencies": {
-    "@vitest/coverage-v8": "^3.1.1",
-    "link": "^2.1.1",
-    "npm-run-all2": "^7.0.2",
-    "vitest": "^3.1.1"
-  },
-  "dependencies": {
-    "@finos/calm-shared": "^0.2.2"
-  },
-  "overrides": {
-    "esbuild": "^0.25.0"
-  }
+    "name": "@finos/calm-workspace",
+    "version": "0.0.0",
+    "private": true,
+    "workspaces": [
+        "shared",
+        "cli",
+        "docs",
+        "calm-hub-ui"
+    ],
+    "scripts": {
+        "build": "npm run build --workspaces --if-present",
+        "build:cli": "npm run build --workspace shared --workspace cli",
+        "build:shared": "npm run build --workspace shared",
+        "build:docs": "npm run build --workspace docs",
+        "test": "npm run test --workspaces --if-present",
+        "test:cli": "npm run build:cli && npm run test --workspace cli",
+        "test:shared": "npm run build:shared && npm run test --workspace shared",
+        "lint": "npm run lint --workspaces --if-present",
+        "lint-fix": "npm run lint-fix --workspaces --if-present",
+        "watch": "run-p watch:cli watch:shared",
+        "watch:cli": "npm run watch --workspace cli",
+        "watch:shared": "npm run watch --workspace shared",
+        "link:cli": "npm link --workspace cli",
+        "calm-hub-ui:run": "npm run start --workspace calm-hub-ui"
+    },
+    "devDependencies": {
+        "@vitest/coverage-v8": "^3.1.1",
+        "link": "^2.1.1",
+        "npm-run-all2": "^8.0.0",
+        "vitest": "^3.1.1"
+    },
+    "dependencies": {
+        "@finos/calm-shared": "^0.2.2"
+    }
 }

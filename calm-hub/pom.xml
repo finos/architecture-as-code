@@ -21,11 +21,6 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-text</artifactId>
-      <version>1.13.1</version>
-    </dependency>
-    <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-jsonb</artifactId>
     </dependency>
@@ -159,8 +154,8 @@
               <goal>install-node-and-npm</goal>
             </goals>
             <configuration>
-              <nodeVersion>v18.18.0</nodeVersion>
-              <npmVersion>9.8.1</npmVersion>
+              <nodeVersion>v22.15.0</nodeVersion>
+              <npmVersion>11.3.0</npmVersion>
             </configuration>
           </execution>
           <execution>

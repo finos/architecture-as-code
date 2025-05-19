@@ -5,15 +5,15 @@ import { Spectral, ISpectralDiagnostic, RulesetDefinition } from '@stoplight/spe
 import validationRulesForPattern from '../../spectral/rules-pattern';
 import validationRulesForArchitecture from '../../spectral/rules-architecture';
 import { DiagnosticSeverity } from '@stoplight/types';
-import * as winston from 'winston';
-import { initLogger } from '../../logger.js';
+import { initLogger, Logger } from '../../logger.js';
 import { ValidationOutput, ValidationOutcome } from './validation.output.js';
 import { SpectralResult } from './spectral.result.js';
 import createJUnitReport from './output-formats/junit-output.js';
 import prettyFormat from './output-formats/pretty-output.js';
 import { SchemaDirectory } from '../../schema-directory.js';
+import { FileSystemDocumentLoader } from '../../document-loader/file-system-document-loader';
 
-let logger: winston.Logger; // defined later at startup
+let logger: Logger; // defined later at startup
 
 
 /**
@@ -77,11 +77,12 @@ function buildAjv2020(schemaDirectory: SchemaDirectory, debug: boolean): Ajv2020
  * @param metaSchemaLocation File location from which to load schemas.
  * @returns an initialised SchemaDirectory.
  */
-async function loadMetaSchemas(metaSchemaLocation: string): Promise<SchemaDirectory> {
+async function loadMetaSchemas(metaSchemaLocation: string, debug: boolean): Promise<SchemaDirectory> {
     logger.info(`Loading meta schema(s) from ${metaSchemaLocation}`);
 
-    const schemaDirectory = new SchemaDirectory();
-    await schemaDirectory.loadSchemas(metaSchemaLocation);
+    const docLoader = new FileSystemDocumentLoader([metaSchemaLocation], debug);
+    const schemaDirectory = new SchemaDirectory(docLoader, debug);
+    await schemaDirectory.loadSchemas();
 
     return schemaDirectory;
 }
@@ -143,7 +144,7 @@ export async function validate(
             throw new Error('You must provide at least an architecture or a pattern');
         }
     } catch (error) {
-        logger.error('An error occured:', error);
+        logger.error('An error occured:'+ error);
         throw error;
     }
 }
@@ -158,7 +159,7 @@ export async function validate(
  * @returns the validation outcome with the results of the spectral and json schema validations.
  */
 async function validateArchitectureAgainstPattern(jsonSchemaArchitectureLocation:string, jsonSchemaLocation:string, metaSchemaPath:string, debug: boolean): Promise<ValidationOutcome>{
-    const schemaDirectory = await loadMetaSchemas(metaSchemaPath);
+    const schemaDirectory = await loadMetaSchemas(metaSchemaPath, debug);
     const ajv = buildAjv2020(schemaDirectory, debug);
 
     logger.info(`Loading pattern from : ${jsonSchemaLocation}`);
@@ -198,7 +199,7 @@ async function validateArchitectureAgainstPattern(jsonSchemaArchitectureLocation
  */
 async function validatePatternOnly(jsonSchemaLocation: string, metaSchemaPath: string, debug: boolean): Promise<ValidationOutcome> {
     logger.debug('Architecture was not provided, only the Pattern Schema will be validated');
-    const schemaDirectory = await loadMetaSchemas(metaSchemaPath);
+    const schemaDirectory = await loadMetaSchemas(metaSchemaPath, debug);
     const ajv = buildAjv2020(schemaDirectory, debug);
 
     const patternSchema = await getFileFromUrlOrPath(jsonSchemaLocation);
