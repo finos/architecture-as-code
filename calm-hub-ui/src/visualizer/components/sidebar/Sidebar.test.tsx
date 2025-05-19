@@ -11,6 +11,28 @@ describe('Sidebar Component', () => {
         label: 'Node 1',
         type: 'type-1',
         description: 'Mock Node',
+        _displayPlaceholderWithDesc: '',
+        _displayPlaceholderWithoutDesc: '',
+        interfaces: [
+            {
+                'unique-id': 'load-balancer-host-port',
+                host: '[[ HOST ]]',
+                port: -1,
+            },
+        ],
+        controls: {
+            cbom: {
+                description: 'Control requirements for delivering patterns',
+                requirements: [
+                    {
+                        'control-requirement-url':
+                            'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-specification.json',
+                        'control-config-url':
+                            'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-configuration.json',
+                    },
+                ],
+            },
+        },
     } as CalmNode['data'];
 
     const mockEdgeData: Edge['data'] = {
@@ -37,6 +59,29 @@ describe('Sidebar Component', () => {
         expect(screen.getByText('edge-1')).toBeInTheDocument();
         expect(screen.getByText('node-1')).toBeInTheDocument();
         expect(screen.getByText('node-2')).toBeInTheDocument();
+    });
+
+    it('should display message unknown entity', () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        render(<Sidebar selectedData={{} as any} closeSidebar={mockCloseSidebar} />);
+
+        expect(screen.getByText('Unknown Selected Entity')).toBeInTheDocument();
+        expect(screen.queryByText('Node Details')).not.toBeInTheDocument();
+        expect(screen.queryByText('Edge Details')).not.toBeInTheDocument();
+    });
+
+    it('should display controls and interfaces if available', () => {
+        render(<Sidebar selectedData={mockNodeData} closeSidebar={mockCloseSidebar} />);
+
+        expect(
+            screen.getByText(
+                'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-specification.json'
+            )
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText('Control requirements for delivering patterns')
+        ).toBeInTheDocument();
+        expect(screen.getByText('load-balancer-host-port')).toBeInTheDocument();
     });
 
     it('should call closeSidebar when close button is clicked', () => {
