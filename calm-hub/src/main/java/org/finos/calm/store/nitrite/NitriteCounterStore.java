@@ -105,7 +105,7 @@ public class NitriteCounterStore {
         }
         
         Integer currentValue = countersDoc.get(counterField, Integer.class);
-        int nextValue = currentValue + 1;
+        int nextValue = currentValue==null ? 1 : currentValue + 1;
         
         countersDoc.put(counterField, nextValue);
         counterCollection.update(countersDoc);
