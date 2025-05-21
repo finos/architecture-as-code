@@ -17,8 +17,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,7 +54,7 @@ public class TestNitriteDomainStoreShould {
         List<String> result = domainStore.getDomains();
 
         // Assert
-        assertTrue(result.isEmpty());
+        assertThat(result.isEmpty(), is(true));
         verify(mockCollection).find();
     }
 
@@ -70,9 +73,9 @@ public class TestNitriteDomainStoreShould {
         List<String> result = domainStore.getDomains();
 
         // Assert
-        assertEquals(2, result.size());
-        assertTrue(result.contains("domain1"));
-        assertTrue(result.contains("domain2"));
+        assertThat(result.size(), is(2));
+        assertThat(result, hasItem("domain1"));
+        assertThat(result, hasItem("domain2"));
         verify(mockCollection).find();
     }
 
@@ -101,8 +104,8 @@ public class TestNitriteDomainStoreShould {
         Domain result = domainStore.createDomain(TEST_DOMAIN_NAME);
 
         // Assert
-        assertNotNull(result);
-        assertEquals(TEST_DOMAIN_NAME, result.getName());
+        assertThat(result, is(notNullValue()));
+        assertThat(result.getName(), is(TEST_DOMAIN_NAME));
         verify(mockCollection).find(any(Filter.class));
         verify(mockCollection).insert(any(Document.class));
     }

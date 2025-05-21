@@ -19,10 +19,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-// import java.util.Set; // Removed unused import
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -75,7 +77,7 @@ public class TestNitriteFlowStoreShould {
         List<Integer> result = flowStore.getFlowsForNamespace(NAMESPACE);
 
         // Assert
-        assertTrue(result.isEmpty());
+        assertThat(result, is(empty()));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
     }
 
@@ -95,7 +97,7 @@ public class TestNitriteFlowStoreShould {
         List<Integer> result = flowStore.getFlowsForNamespace(NAMESPACE);
 
         // Assert
-        assertTrue(result.isEmpty());
+        assertThat(result, is(empty()));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
     }
 
@@ -120,9 +122,8 @@ public class TestNitriteFlowStoreShould {
         List<Integer> result = flowStore.getFlowsForNamespace(NAMESPACE);
 
         // Assert
-        assertEquals(2, result.size());
-        assertTrue(result.contains(1001));
-        assertTrue(result.contains(1002));
+        assertThat(result, hasSize(2));
+        assertThat(result, hasItems(1001, 1002));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
     }
 
@@ -175,10 +176,10 @@ public class TestNitriteFlowStoreShould {
         Flow result = flowStore.createFlowForNamespace(flow);
 
         // Assert
-        assertEquals(FLOW_ID, result.getId());
-        assertEquals(NAMESPACE, result.getNamespace());
-        assertEquals("1.0.0", result.getDotVersion());
-        assertEquals(VALID_JSON, result.getFlowJson());
+        assertThat(result.getId(), is(FLOW_ID));
+        assertThat(result.getNamespace(), is(NAMESPACE));
+        assertThat(result.getDotVersion(), is("1.0.0"));
+        assertThat(result.getFlowJson(), is(VALID_JSON));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
         verify(mockCounterStore).getNextFlowSequenceValue();
         verify(mockCollection).insert(any(Document.class));
@@ -211,10 +212,10 @@ public class TestNitriteFlowStoreShould {
         Flow result = flowStore.createFlowForNamespace(flow);
 
         // Assert
-        assertEquals(FLOW_ID, result.getId());
-        assertEquals(NAMESPACE, result.getNamespace());
-        assertEquals("1.0.0", result.getDotVersion());
-        assertEquals(VALID_JSON, result.getFlowJson());
+        assertThat(result.getId(), is(FLOW_ID));
+        assertThat(result.getNamespace(), is(NAMESPACE));
+        assertThat(result.getDotVersion(), is("1.0.0"));
+        assertThat(result.getFlowJson(), is(VALID_JSON));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
         verify(mockCounterStore).getNextFlowSequenceValue();
         verify(mockCollection).update(any(Filter.class), any(Document.class));
@@ -295,7 +296,7 @@ public class TestNitriteFlowStoreShould {
         List<String> result = flowStore.getFlowVersions(flow);
 
         // Assert
-        assertNotNull(result);
+        assertThat(result, is(notNullValue()));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
         verify(versions).getFields();
     }
@@ -407,7 +408,7 @@ public class TestNitriteFlowStoreShould {
         String result = flowStore.getFlowForVersion(flow);
 
         // Assert
-        assertEquals(VALID_JSON, result);
+        assertThat(result, is(VALID_JSON));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
     }
 
@@ -497,7 +498,7 @@ public class TestNitriteFlowStoreShould {
         Flow result = flowStore.createFlowForVersion(flow);
 
         // Assert
-        assertEquals(flow, result);
+        assertThat(result, is(flow));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
         verify(mockCollection).update(any(Filter.class), any(Document.class));
     }
@@ -578,7 +579,7 @@ public class TestNitriteFlowStoreShould {
         Flow result = flowStore.updateFlowForVersion(flow);
 
         // Assert
-        assertEquals(flow, result);
+        assertThat(result, is(flow));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
         verify(mockCollection).update(any(Filter.class), any(Document.class));
     }

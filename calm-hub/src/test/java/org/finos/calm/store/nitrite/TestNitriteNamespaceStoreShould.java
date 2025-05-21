@@ -15,7 +15,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -52,9 +53,8 @@ public class TestNitriteNamespaceStoreShould {
         List<String> result = namespaceStore.getNamespaces();
         
         // Assert
-        assertEquals(2, result.size());
-        assertTrue(result.contains("finos"));
-        assertTrue(result.contains("workshop"));
+        assertThat(result, hasSize(2));
+        assertThat(result, hasItems("finos", "workshop"));
     }
     
     @Test
@@ -70,7 +70,7 @@ public class TestNitriteNamespaceStoreShould {
         List<String> result = namespaceStore.getNamespaces();
         
         // Assert
-        assertTrue(result.isEmpty());
+        assertThat(result, is(empty()));
     }
     
     @Test
@@ -86,7 +86,7 @@ public class TestNitriteNamespaceStoreShould {
         boolean result = namespaceStore.namespaceExists("finos");
         
         // Assert
-        assertTrue(result);
+        assertThat(result, is(true));
     }
     
     @Test
@@ -100,6 +100,6 @@ public class TestNitriteNamespaceStoreShould {
         boolean result = namespaceStore.namespaceExists("non-existent");
         
         // Assert
-        assertFalse(result);
+        assertThat(result, is(false));
     }
 }

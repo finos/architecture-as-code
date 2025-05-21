@@ -16,8 +16,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,7 +50,7 @@ public class TestNitriteCoreSchemaStoreShould {
         List<String> versions = schemaStore.getVersions();
 
         // Assert
-        assertTrue(versions.isEmpty());
+        assertThat(versions.isEmpty(), is(true));
         verify(mockCollection).find();
     }
 
@@ -56,10 +58,10 @@ public class TestNitriteCoreSchemaStoreShould {
     public void testGetVersions_whenCollectionHasDocuments_returnsVersions() {
         // Arrange
         DocumentCursor cursor = mock(DocumentCursor.class);
-        
+
         Document doc1 = Document.createDocument().put("version", "1.0.0");
         Document doc2 = Document.createDocument().put("version", "1.0.1");
-        
+
         when(cursor.iterator()).thenReturn(Arrays.asList(doc1, doc2).iterator());
         when(mockCollection.find()).thenReturn(cursor);
 
@@ -67,9 +69,9 @@ public class TestNitriteCoreSchemaStoreShould {
         List<String> versions = schemaStore.getVersions();
 
         // Assert
-        assertEquals(2, versions.size());
-        assertTrue(versions.contains("1.0.0"));
-        assertTrue(versions.contains("1.0.1"));
+        assertThat(versions.size(), is(2));
+        assertThat(versions, hasItem("1.0.0"));
+        assertThat(versions, hasItem("1.0.1"));
         verify(mockCollection).find();
     }
 
@@ -84,7 +86,7 @@ public class TestNitriteCoreSchemaStoreShould {
         Map<String, Object> schemas = schemaStore.getSchemasForVersion("1.0.0");
 
         // Assert
-        assertNull(schemas);
+        assertThat(schemas, is(nullValue()));
         verify(mockCollection).find(any(Filter.class));
     }
 
@@ -92,15 +94,15 @@ public class TestNitriteCoreSchemaStoreShould {
     public void testGetSchemasForVersion_whenVersionExists_returnsSchemas() {
         // Arrange
         DocumentCursor cursor = mock(DocumentCursor.class);
-        
+
         Map<String, Object> expectedSchemas = new HashMap<>();
         expectedSchemas.put("schema1", "value1");
         expectedSchemas.put("schema2", "value2");
-        
+
         Document doc = Document.createDocument()
                 .put("version", "1.0.0")
                 .put("schemas", expectedSchemas);
-        
+
         when(cursor.firstOrNull()).thenReturn(doc);
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
@@ -108,8 +110,8 @@ public class TestNitriteCoreSchemaStoreShould {
         Map<String, Object> schemas = schemaStore.getSchemasForVersion("1.0.0");
 
         // Assert
-        assertNotNull(schemas);
-        assertEquals(expectedSchemas, schemas);
+        assertThat(schemas, is(notNullValue()));
+        assertThat(schemas, is(expectedSchemas));
         verify(mockCollection).find(any(Filter.class));
     }
 
