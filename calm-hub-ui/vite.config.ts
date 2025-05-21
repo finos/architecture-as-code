@@ -10,7 +10,7 @@ export default defineConfig({
         globals: true,
         environment: 'jsdom',
         environmentMatchGlobs: [['./src/**/*.tsx', 'jsdom']],
-        setupFiles: ['./src/tests/vitest.setup.ts'],
+        setupFiles: ['./vitest.setup.ts'],
     },
     build: {
         outDir: 'build',
