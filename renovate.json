@@ -20,6 +20,10 @@
       "matchUpdateTypes": ["minor"],
       "automerge": true,
       "automergeType": "pr"
+    },
+    {
+      "matchUpdateTypes": ["patch"],
+      "enabled": false
     }
   ]
 }
