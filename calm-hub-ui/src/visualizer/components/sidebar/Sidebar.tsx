@@ -1,4 +1,4 @@
-import { IoAddOutline, IoCloseOutline, IoRemoveOutline } from 'react-icons/io5';
+import { IoCloseOutline } from 'react-icons/io5';
 import { useState } from 'react';
 import { CalmNode, Edge } from '../../contracts/contracts.js';
 import { EdgeDisplay } from './EdgeDisplay.js';
