@@ -40,9 +40,6 @@ public class NitriteDBConfig {
     @ConfigProperty(name = "calm.standalone.password", defaultValue = "admin")
     String password;
 
-    @ConfigProperty(name = "calm.standalone.init-script-path")
-    String initScriptPath;
-
     private Nitrite db;
 
     @PostConstruct
