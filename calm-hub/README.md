@@ -71,6 +71,45 @@ docker-compose up
 This setups a Mongo Database that works with the application.
 You might see a conflict if you have run using the deploy profile, you can `docker rm container-name` to fix this.
 
+### Adding additional storage modes
+To prevent ambiguous dependency injection using Quarkus, but enable runtime storage optionality, if you add a new set of store implementations, you must add them to the Producer classes.
+
+* The store interfaces are located in the `org.finos.calm.store` package.
+* The specific implementations are placed in their own specific package, e.g. `org.finos.calm.store.nitrite` and `org.finos.calm.store.mongo`.
+* The producers are located in the `org.finos.calm.store.producer` package.
+
+Using the AdrStoreProducer as an example, once you have added your new store implementation would `@Inject` it into an implementation specific property and add the selection criteria to the  `@Produces` annotated method.
+
+```java
+public class AdrStoreProducer {
+
+    @Inject
+    @ConfigProperty(name = "calm.database.mode", defaultValue = "mongo")
+    String databaseMode;
+
+    @Inject
+    MongoAdrStore mongoAdrStore;
+
+    @Inject
+    NitriteAdrStore standaloneAdrStore;
+
+    /**
+     * Produces the appropriate AdrStore implementation based on the configured database mode.
+     *
+     * @return the AdrStore implementation
+     */
+    @Produces
+    @ApplicationScoped
+    public AdrStore produceAdrStore() {
+        if ("standalone".equals(databaseMode)) {
+            return standaloneAdrStore;
+        } else {
+            return mongoAdrStore;
+        }
+    }
+}
+```
+
 ### Server Side with Hot Reload
 
 From the `calm-hub` directory
