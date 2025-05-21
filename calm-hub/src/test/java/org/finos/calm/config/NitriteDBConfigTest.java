@@ -1,11 +1,7 @@
 package org.finos.calm.config;
 
 import io.quarkus.test.junit.QuarkusTest;
-import org.bson.json.JsonParseException;
 import org.dizitart.no2.Nitrite;
-import org.dizitart.no2.collection.Document;
-import org.dizitart.no2.collection.NitriteCollection;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,14 +9,8 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import static org.mockito.Mockito.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
