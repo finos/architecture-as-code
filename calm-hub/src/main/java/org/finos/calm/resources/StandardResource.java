@@ -7,6 +7,8 @@ import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
+import org.finos.calm.domain.exception.StandardVersionExistsException;
+import org.finos.calm.domain.exception.StandardVersionNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.StandardStore;
@@ -75,7 +77,59 @@ public class StandardResource {
         }
     }
 
+    @GET
+    @Path("{namespace}/standards/{standardId}/versions/{version}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    public Response getStandardForVersion(@PathParam("namespace") String namespace, @PathParam("standardId") Integer standardId,
+                                          @PathParam("version") String version) {
+        try {
+            Standard standard = new Standard();
+            standard.setNamespace(namespace);
+            standard.setId(standardId);
+            standard.setVersion(version);
+            return Response.ok(standardStore.getStandardForVersion(standard)).build();
+        } catch (StandardNotFoundException e) {
+            logger.error("Invalid standard [{}] when retrieving standard versions", standardId, e);
+            return invalidStandardResponse(standardId);
+        } catch (StandardVersionNotFoundException e) {
+            logger.error("Invalid standard [{}] with invalid version [{}] when retrieving standard version", standardId, version, e);
+            return invalidStandardVersionResponse(standardId, version);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when retrieving standard versions", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        }
+    }
+
+    @POST
+    @Path("{namespace}/standards/{standardId}/versions/{version}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    public Response createStandardForVersion(@PathParam("namespace") String namespace, @PathParam("standardId") Integer standardId,
+                                             @PathParam("version") String version, Standard standard) throws URISyntaxException {
+
+        try {
+            standardStore.createStandardForVersion(standard);
+            return Response.created(new URI("/calm/namespaces/" + namespace + "/standards/" + standardId + "/versions/" + version)).build();
+        } catch (StandardVersionExistsException e) {
+            logger.error("Standard Version [{}] already exists", version, e);
+            return Response.status(Response.Status.CONFLICT).entity("Standard version already exists: " + version).build();
+        } catch (StandardNotFoundException e) {
+            logger.error("Invalid standard [{}] when retrieving standard versions", standardId, e);
+            return invalidStandardResponse(standardId);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when retrieving standard versions", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        }
+    }
+
     private Response invalidStandardResponse(int standardId) {
         return Response.status(Response.Status.NOT_FOUND).entity("Invalid standard provided: " + standardId).build();
+    }
+
+    private Response invalidStandardVersionResponse(int standardId, String version) {
+        return Response.status(Response.Status.NOT_FOUND).entity("Standard Version not found. ID [" + standardId
+                + "] Version [" + version + "]").build();
     }
 }

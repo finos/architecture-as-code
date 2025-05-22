@@ -197,6 +197,7 @@
                 <configuration>
                     <excludes>
                         <exclude>**/*Builder.*</exclude>
+                        <exclude>**/*CalmResourceErrorResponses.*</exclude>
                     </excludes>
                 </configuration>
                 <executions>

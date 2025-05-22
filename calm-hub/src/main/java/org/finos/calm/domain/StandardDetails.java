@@ -6,11 +6,13 @@ public class StandardDetails {
     private String name;
     private String description;
     private Integer id;
+    private String version;
 
-    public StandardDetails(String name, String description, Integer id) {
+    public StandardDetails(String name, String description, Integer id , String version) {
         this.name = name;
         this.description = description;
         this.id = id;
+        this.version = version;
     }
 
     public StandardDetails() {
@@ -39,6 +41,14 @@ public class StandardDetails {
 
     public void setId(Integer id) {
         this.id = id;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
     }
 
     @Override
