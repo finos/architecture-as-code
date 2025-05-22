@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -44,6 +46,16 @@ public class TestPatternResourceShould {
                 .statusCode(404);
 
         verify(mockPatternStore, times(1)).getPatternsForNamespace("invalid");
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_patterns() throws NamespaceNotFoundException {
+        given()
+                .when()
+                .get("/calm/namespaces/fin_os/patterns")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
     }
 
     @Test
@@ -107,6 +119,21 @@ public class TestPatternResourceShould {
     }
 
     @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_create_pattern() throws NamespaceNotFoundException {
+
+        String pattern = "{ \"test\": this is invalid json";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(pattern)
+                .when()
+                .post("/calm/namespaces/invalid_/patterns")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+    }
+
+    @Test
     void return_a_created_with_location_of_pattern_when_creating_pattern() throws NamespaceNotFoundException {
         String patternJson = "{ \"test\": \"json\" }";
         String namespace = "finos";
@@ -136,6 +163,16 @@ public class TestPatternResourceShould {
                 .build();
 
         verify(mockPatternStore, times(1)).createPatternForNamespace(expectedPatternToCreate);
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_pattern_versions() throws NamespaceNotFoundException {
+        given()
+                .when()
+                .get("/calm/namespaces/fin_os/patterns/12/versions")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
     }
 
     private void verifyExpectedPatternForVersions(String namespace) throws PatternNotFoundException, NamespaceNotFoundException {
@@ -182,6 +219,26 @@ public class TestPatternResourceShould {
         }
 
         verifyExpectedPatternForVersions(namespace);
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_pattern() throws NamespaceNotFoundException {
+        given()
+                .when()
+                .get("/calm/namespaces/fin_os/patterns/12/versions/1.0.0")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_version_is_provided_on_get_pattern() throws NamespaceNotFoundException {
+        given()
+                .when()
+                .get("/calm/namespaces/finos/patterns/12/versions/1.0.invalid0")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
     }
 
     private void verifyExpectedGetPattern(String namespace) throws PatternNotFoundException, NamespaceNotFoundException, PatternVersionNotFoundException {
@@ -231,6 +288,30 @@ public class TestPatternResourceShould {
         verifyExpectedGetPattern(namespace);
     }
 
+    @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_create_new_pattern_version() throws NamespaceNotFoundException {
+        given()
+                .when()
+                .header("Content-Type", "application/json")
+                .body("{ \"test\": \"json\" }")
+                .post("/calm/namespaces/fin_os/patterns/20/versions/1.0.1")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_version_is_provided_on_create_new_pattern_version() throws NamespaceNotFoundException {
+        given()
+                .when()
+                .header("Content-Type", "application/json")
+                .body("{ \"test\": \"json\" }")
+                .post("/calm/namespaces/finos/patterns/20/versions/1.0invalid.1")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
+
     static Stream<Arguments> provideParametersForCreatePatternTests() {
         return Stream.of(
                 Arguments.of( new NamespaceNotFoundException(), 404),
@@ -242,7 +323,7 @@ public class TestPatternResourceShould {
 
     @ParameterizedTest
     @MethodSource("provideParametersForCreatePatternTests")
-    void respond_correctly_to_create_pattern(Throwable exceptionToThrow, int expectedStatusCode) throws PatternNotFoundException, PatternVersionExistsException, NamespaceNotFoundException {
+    void respond_correctly_to_create_new_pattern_version(Throwable exceptionToThrow, int expectedStatusCode) throws PatternNotFoundException, PatternVersionExistsException, NamespaceNotFoundException {
         Pattern expectedPattern = new Pattern.PatternBuilder()
                 .setNamespace("test")
                 .setVersion("1.0.1")
