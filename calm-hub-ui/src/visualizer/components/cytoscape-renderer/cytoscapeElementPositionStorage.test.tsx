@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { CytoscapeElementPositionStorage, StoredNodePosition } from './cytoscapeElementPositionStorage.js';
 
 const mockData: StoredNodePosition[] = [
