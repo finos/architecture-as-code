@@ -5,6 +5,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.store.CoreSchemaStore;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 @ApplicationScoped
+@Typed(MongoCoreSchemaStore.class)
 public class MongoCoreSchemaStore implements CoreSchemaStore {
 
     private final MongoCollection<Document> schemaCollection;

@@ -1,5 +1,7 @@
 package org.finos.calm.resources;
 
+import jakarta.validation.constraints.Pattern;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -20,6 +22,11 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
+
 /**
  * Resource for managing architectures in a given namespace
  */
@@ -33,6 +40,7 @@ public class ArchitectureResource {
     @ConfigProperty(name = "allow.put.operations", defaultValue = "false")
     Boolean allowPutOperations;
 
+    @Inject
     public ArchitectureResource(ArchitectureStore store) {
         this.store = store;
     }
@@ -50,7 +58,9 @@ public class ArchitectureResource {
             description = "Architecture stored in a given namespace"
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
-    public Response getArchitecturesForNamespace(@PathParam("namespace") String namespace) {
+    public Response getArchitecturesForNamespace(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
+    ) {
         try {
             return Response.ok(new ValueWrapper<>(store.getArchitecturesForNamespace(namespace))).build();
         } catch (NamespaceNotFoundException e) {
@@ -68,7 +78,9 @@ public class ArchitectureResource {
             description = "Creates a architecture for a given namespace with an allocated ID and version 1.0.0"
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
-    public Response createArchitectureForNamespace(@PathParam("namespace") String namespace, String architectureJson) throws URISyntaxException {
+    public Response createArchitectureForNamespace(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace, String architectureJson
+    ) throws URISyntaxException {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
                 .setArchitecture(architectureJson)
@@ -93,7 +105,10 @@ public class ArchitectureResource {
             description = "Architecture versions are not opinionated, outside of the first version created"
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
-    public Response getArchitectureVersions(@PathParam("namespace") String namespace, @PathParam("architectureId") int architectureId) {
+    public Response getArchitectureVersions(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("architectureId") int architectureId
+    ) {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
                 .setId(architectureId)
@@ -118,7 +133,10 @@ public class ArchitectureResource {
             description = "Retrieve architectures at a specific version"
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
-    public Response getArchitecture(@PathParam("namespace") String namespace, @PathParam("architectureId") int architectureId, @PathParam("version") String version) {
+    public Response getArchitecture(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("architectureId") int architectureId,
+            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version) {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
                 .setId(architectureId)
@@ -144,7 +162,12 @@ public class ArchitectureResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
-    public Response createVersionedArchitecture(@PathParam("namespace") String namespace, @PathParam("architectureId") int architectureId, @PathParam("version") String version, String architectureJson) throws URISyntaxException {
+    public Response createVersionedArchitecture(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("architectureId") int architectureId,
+            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
+            String architectureJson
+    ) throws URISyntaxException {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
                 .setId(architectureId)
@@ -176,7 +199,11 @@ public class ArchitectureResource {
             description = "In mutable version stores architecture updates are supported by this endpoint, operation unavailable returned in repositories without configuration specified"
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
-    public Response updateVersionedArchitecture(@PathParam("namespace") String namespace, @PathParam("architectureId") int architectureId, @PathParam("version") String version, String architectureJson) throws URISyntaxException {
+    public Response updateVersionedArchitecture(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("architectureId") int architectureId,
+            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
+            String architectureJson) throws URISyntaxException {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
                 .setId(architectureId)
