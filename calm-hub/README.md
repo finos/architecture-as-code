@@ -36,6 +36,30 @@ mvn -P integration verify
 
 Development mode is designed to provide a great developer experience from using modern tools and build systems.
 
+### Storage Modes
+
+Calm Hub supports two different storage modes:
+
+1. **MongoDB Mode (Default)**: Uses MongoDB for data persistence. This is the default mode and is suitable for production deployments.
+2. **Standalone Mode**: Uses NitriteDB (an embedded NoSQL database) for data persistence. This mode is useful for development and testing without requiring an external MongoDB instance.
+
+#### Selecting Storage Mode
+
+The storage implementation is selected based on the active Quarkus profile:
+
+- **Default profile** (no profile specified): Uses MongoDB implementation
+- **Standalone profile**: Uses NitriteDB implementation
+
+To run the application in standalone mode:
+
+```shell
+# Development mode with standalone storage
+../mvnw quarkus:dev -Dcalm.database.mode=standalone
+
+# Production mode with standalone storage
+java -Dcalm.database.mode=standalone -jar target/quarkus-app/quarkus-run.jar
+```
+
 ### Mongo Database Startup
 
 In the `local-dev` directory, launch:
@@ -46,6 +70,45 @@ docker-compose up
 
 This setups a Mongo Database that works with the application.
 You might see a conflict if you have run using the deploy profile, you can `docker rm container-name` to fix this.
+
+### Adding additional storage modes
+To prevent ambiguous dependency injection using Quarkus, but enable runtime storage optionality, if you add a new set of store implementations, you must add them to the Producer classes.
+
+* The store interfaces are located in the `org.finos.calm.store` package.
+* The specific implementations are placed in their own specific package, e.g. `org.finos.calm.store.nitrite` and `org.finos.calm.store.mongo`.
+* The producers are located in the `org.finos.calm.store.producer` package.
+
+Using the AdrStoreProducer as an example, once you have added your new store implementation would `@Inject` it into an implementation specific property and add the selection criteria to the  `@Produces` annotated method.
+
+```java
+public class AdrStoreProducer {
+
+    @Inject
+    @ConfigProperty(name = "calm.database.mode", defaultValue = "mongo")
+    String databaseMode;
+
+    @Inject
+    MongoAdrStore mongoAdrStore;
+
+    @Inject
+    NitriteAdrStore standaloneAdrStore;
+
+    /**
+     * Produces the appropriate AdrStore implementation based on the configured database mode.
+     *
+     * @return the AdrStore implementation
+     */
+    @Produces
+    @ApplicationScoped
+    public AdrStore produceAdrStore() {
+        if ("standalone".equals(databaseMode)) {
+            return standaloneAdrStore;
+        } else {
+            return mongoAdrStore;
+        }
+    }
+}
+```
 
 ### Server Side with Hot Reload
 

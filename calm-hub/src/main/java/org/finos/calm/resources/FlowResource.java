@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -31,6 +32,7 @@ public class FlowResource {
     @ConfigProperty(name = "allow.put.operations", defaultValue = "false")
     Boolean allowPutOperations;
 
+    @Inject
     public FlowResource(FlowStore store) {
         this.store = store;
     }
