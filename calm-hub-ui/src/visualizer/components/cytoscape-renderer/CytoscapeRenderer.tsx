@@ -2,13 +2,11 @@ import './cytoscape.css';
 import { useEffect, useRef } from 'react';
 import cytoscape, { EdgeSingular, NodeSingular } from 'cytoscape';
 import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
-import expandCollapse from 'cytoscape-expand-collapse';
 import { Edge, CalmNode } from '../../contracts/contracts.js';
 import { LayoutCorrectionService } from '../../services/layout-correction-service.js';
 
 // Initialize Cytoscape plugins
 nodeEdgeHtmlLabel(cytoscape);
-expandCollapse(cytoscape);
 
 // Layout configuration
 const breadthFirstLayout = {

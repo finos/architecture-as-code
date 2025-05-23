@@ -121,6 +121,10 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
                 newData.data.interfaces = node.interfaces;
             }
 
+            if (node.controls) {
+                newData.data.controls = node.controls;
+            }
+
             const composedOfRel = composedOfRelationships[node['unique-id']];
             const deployedInRel = deployedInRelationships[node['unique-id']];
 
