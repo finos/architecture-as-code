@@ -2,19 +2,24 @@ import {
     CalmContainerImageInterfaceSchema,
     CalmHostnameInterfaceSchema,
     CalmHostPortInterfaceSchema,
-    CalmInterfaceTypeSchema,
     CalmNodeInterfaceSchema,
     CalmOAuth2AudienceInterfaceSchema,
     CalmPathInterfaceSchema, CalmPortInterfaceSchema,
     CalmRateLimitInterfaceSchema, CalmRateLimitKeySchema,
     CalmURLInterfaceSchema
 } from '../types/interface-types.js';
+import { CalmInterfaceDefinitionSchema } from '../types/interface-types.js';
+import { CalmInterfaceSchema }           from '../types/core-types.js';
+
 
 export class CalmInterface {
     constructor(public uniqueId: string) {}
 
-    static fromJson(data: CalmInterfaceTypeSchema): CalmInterface {
-        if ('host' in data && 'port' in data) {
+    static fromJson(data: CalmInterfaceSchema): CalmInterface {
+        if ('interface-definition-url' in data && 'configuration' in data) {
+            return CalmInterfaceDefinition.fromJson(data as CalmInterfaceDefinitionSchema);
+        }
+        else if ('host' in data && 'port' in data) {
             return CalmHostPortInterface.fromJson(data as CalmHostPortInterfaceSchema);
         } else if ('hostname' in data) {
             return CalmHostnameInterface.fromJson(data as CalmHostnameInterfaceSchema);
@@ -33,6 +38,24 @@ export class CalmInterface {
         } else {
             throw new Error('Unknown interface type');
         }
+    }
+}
+
+export class CalmInterfaceDefinition extends CalmInterface {
+    constructor(
+        public uniqueId: string,
+        public interfaceDefinitionUrl: string,
+        public configuration: Record<string, unknown>
+    ) {
+        super(uniqueId);
+    }
+
+    static fromJson(data: CalmInterfaceDefinitionSchema): CalmInterfaceDefinition {
+        return new CalmInterfaceDefinition(
+            data['unique-id'],
+            data['interface-definition-url'],
+            data.configuration
+        );
     }
 }
 
