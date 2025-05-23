@@ -1,4 +1,12 @@
-import { CalmRelationship, CalmInteractsType, CalmConnectsType, CalmDeployedInType, CalmComposedOfType, CalmOptionsRelationshipType } from './relationship.js';
+import {
+    CalmRelationship,
+    CalmInteractsType,
+    CalmConnectsType,
+    CalmDeployedInType,
+    CalmComposedOfType,
+    CalmOptionsRelationshipType,
+    CalmOptionType
+} from './relationship.js';
 import { CalmRelationshipSchema } from '../types/core-types.js';
 import { CalmNodeInterface } from './interface.js';
 
@@ -120,37 +128,58 @@ describe('CalmRelationship', () => {
             'unique-id': 'relationship-004',
             description: 'A choice between which nodes will be in the architecture',
             'relationship-type': {
-                'options': [
-                    {
-                        description: 'This is option 1',
-                        nodes: ['node-1'],
-                        relationships: ['relationship-1-x']
-                    },
-                    {
-                        description: 'This is option 2',
-                        nodes: ['node-2'],
-                        relationships: ['relationship-2-x']
-                    }
+                options: [
+                    [
+                        {
+                            description: 'This is option 1',
+                            nodes: ['node-1'],
+                            relationships: ['relationship-1-x']
+                        }
+                    ],
+                    [
+                        {
+                            description: 'This is option 2',
+                            nodes: ['node-2'],
+                            relationships: ['relationship-2-x']
+                        }
+                    ]
                 ]
             },
             protocol: 'TCP',
             authentication: 'OAuth2',
             metadata: [{ key: 'value4' }],
-            controls: { 'control-004': { description: 'Test control 4', requirements: [{ 'control-requirement-url': 'https://example.com/requirement4', 'control-config-url': 'https://example.com/config4' }] } }
+            controls: {
+                'control-004': {
+                    description: 'Test control 4',
+                    requirements: [
+                        {
+                            'control-requirement-url': 'https://example.com/requirement4',
+                            'control-config-url': 'https://example.com/config4'
+                        }
+                    ]
+                }
+            }
         };
 
         const relationship = CalmRelationship.fromJson(composedOfRelationshipData);
-
         expect(relationship).toBeInstanceOf(CalmRelationship);
-        expect(relationship.relationshipType).toBeInstanceOf(CalmOptionsRelationshipType);
+        expect(relationship.relationshipType).toBeInstanceOf(
+            CalmOptionsRelationshipType
+        );
 
-        const optionsRelationship = relationship.relationshipType as CalmOptionsRelationshipType;
-        expect(optionsRelationship.options).toEqual([
+        const optionsRt = relationship.relationshipType as CalmOptionsRelationshipType;
+        expect(optionsRt.options).toHaveLength(2);
+        expect(optionsRt.options[0]).toBeInstanceOf(CalmOptionType);
+        expect(optionsRt.options[1]).toBeInstanceOf(CalmOptionType);
+
+        expect(optionsRt.options[0].decisions).toEqual([
             {
                 description: 'This is option 1',
                 nodes: ['node-1'],
                 relationships: ['relationship-1-x']
-            },
+            }
+        ]);
+        expect(optionsRt.options[1].decisions).toEqual([
             {
                 description: 'This is option 2',
                 nodes: ['node-2'],
@@ -158,4 +187,5 @@ describe('CalmRelationship', () => {
             }
         ]);
     });
+
 });

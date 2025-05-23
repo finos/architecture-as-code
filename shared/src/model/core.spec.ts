@@ -1,3 +1,4 @@
+// core.spec.ts
 import { CalmCore } from './core.js';
 import { CalmCoreSchema } from '../types/core-types.js';
 
@@ -12,11 +13,23 @@ const coreData: CalmCoreSchema = {
                 'detailed-architecture': 'https://example.com/architecture',
                 'required-pattern': 'https://example.com/pattern'
             },
-            interfaces: [{ 'unique-id': 'interface-001', hostname: 'localhost'}],
-            controls: { 'control-001': { description: 'Test control', requirements: [{ 'control-requirement-url': 'https://example.com/requirement', 'control-config-url': 'https://example.com/config' }] } },
+            interfaces: [
+                { 'unique-id': 'interface-001', hostname: 'localhost' }
+            ],
+            controls: {
+                'control-001': {
+                    description: 'Test control',
+                    requirements: [
+                        {
+                            'control-requirement-url': 'https://example.com/requirement',
+                            'control-config-url': 'https://example.com/config'
+                        }
+                    ]
+                }
+            },
             metadata: [{ key: 'value' }],
             'data-classification': 'Public',
-            'run-as': 'admin',
+            'run-as': 'admin'
         }
     ],
     relationships: [
@@ -32,53 +45,91 @@ const coreData: CalmCoreSchema = {
             protocol: 'HTTP',
             authentication: 'OAuth2',
             metadata: [{ key: 'value' }],
-            controls: { 'control-001': { description: 'Test control', requirements: [{ 'control-requirement-url': 'https://example.com/requirement', 'control-config-url': 'https://example.com/config' }] } }
+            controls: {
+                'control-001': {
+                    description: 'Test control',
+                    requirements: [
+                        {
+                            'control-requirement-url': 'https://example.com/requirement',
+                            'control-config-url': 'https://example.com/config'
+                        }
+                    ]
+                }
+            }
         }
     ],
     metadata: [{ key: 'value' }],
-    controls: { 'control-001': { description: 'Test control', requirements: [{ 'control-requirement-url': 'https://example.com/requirement', 'control-config-url': 'https://example.com/config' }] } },
-    flows: []
+    controls: {
+        'control-001': {
+            description: 'Test control',
+            requirements: [
+                {
+                    'control-requirement-url': 'https://example.com/requirement',
+                    'control-config-url': 'https://example.com/config'
+                }
+            ]
+        }
+    },
+    flows: [],
+    adrs: ['http://adr1', 'http://adr2']
 };
 
 describe('CalmCore', () => {
-    it('should create a CalmCore instance from CoreSchema data', () => {
+    it('should create a CalmCore instance from full CoreSchema data', () => {
         const core = CalmCore.fromJson(coreData);
 
         expect(core).toBeInstanceOf(CalmCore);
         expect(core.nodes).toHaveLength(1);
         expect(core.relationships).toHaveLength(1);
-        expect(core.metadata).toEqual({ data: { key: 'value' } });
+        expect(core.metadata.data).toEqual({ key: 'value' });
         expect(core.controls).toHaveLength(1);
-        expect(core.controls[0].controlId).toBe('control-001');
         expect(core.flows).toHaveLength(0);
+
+        // New ADRs field
+        expect(core.adrs).toEqual(['http://adr1', 'http://adr2']);
     });
 
-    it('should handle optional fields in CalmCore', () => {
-        const coreDataWithoutOptionalFields: CalmCoreSchema = {
+    it('should handle missing optional fields (relationships, flows, adrs)', () => {
+        const minimalData: CalmCoreSchema = {
             nodes: [
                 {
                     'unique-id': 'node-002',
                     'node-type': 'service',
-                    name: 'Another Test Node',
-                    description: 'Another test node description',
+                    name: 'Another Node',
+                    description: 'Another test node',
                     details: {
-                        'detailed-architecture': 'https://example.com/architecture-2',
-                        'required-pattern': 'https://example.com/pattern-2'
+                        'detailed-architecture': '',
+                        'required-pattern': ''
                     },
-                    interfaces: [{ 'unique-id': 'interface-001', hostname: 'localhost'}],
-                    controls: { 'control-002': { description: 'Another test control', requirements: [{ 'control-requirement-url': 'https://example.com/requirement2', 'control-config-url': 'https://example.com/config2' }] } },
-                    metadata: [{ key: 'value' }]
+                    interfaces: [],
+                    controls: {},
+                    metadata: []
                 }
             ],
-            metadata: [{ key: 'value' }],
-            controls: { 'control-002': { description: 'Another test control', requirements: [{ 'control-requirement-url': 'https://example.com/requirement2', 'control-config-url': 'https://example.com/config2' }] } },
+            metadata: [],
+            controls: {}
+            // relationships, flows, adrs omitted
         };
+        const core = CalmCore.fromJson(minimalData);
 
-        const coreWithoutOptionalFields = CalmCore.fromJson(coreDataWithoutOptionalFields);
+        expect(core).toBeInstanceOf(CalmCore);
+        expect(core.nodes).toHaveLength(1);
+        expect(core.relationships).toHaveLength(0);
+        expect(core.flows).toHaveLength(0);
+        expect(core.adrs).toEqual([]);
+        expect(core.metadata.data).toEqual({});
+        expect(core.controls).toHaveLength(0);
+    });
 
-        expect(coreWithoutOptionalFields).toBeInstanceOf(CalmCore);
-        expect(coreWithoutOptionalFields.nodes).toHaveLength(1);
-        expect(coreWithoutOptionalFields.relationships).toHaveLength(0);
-        expect(coreWithoutOptionalFields.flows).toHaveLength(0);
+    it('should default all collections when empty schema is passed', () => {
+        const emptySchema: CalmCoreSchema = {};
+        const core = CalmCore.fromJson(emptySchema);
+
+        expect(core.nodes).toHaveLength(0);
+        expect(core.relationships).toHaveLength(0);
+        expect(core.controls).toHaveLength(0);
+        expect(core.flows).toHaveLength(0);
+        expect(core.adrs).toEqual([]);
+        expect(core.metadata.data).toEqual({});
     });
 });

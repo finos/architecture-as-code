@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import org.finos.calm.domain.Domain;
@@ -23,6 +24,7 @@ public class DomainSchemaResource {
      *
      * @param store the DomainStore instance
      */
+    @Inject
     public DomainSchemaResource(DomainStore store) {
         this.store = store;
     }

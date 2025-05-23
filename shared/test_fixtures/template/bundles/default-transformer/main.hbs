@@ -31,14 +31,21 @@
 | Owner Type      | Name        | Email               | Description                        |
 |-----------------|-------------|---------------------|------------------------------------|
       {{#each requirements}}
-| {{controlConfigUrl.owner-type}} | {{controlConfigUrl.owner.name}} | {{controlConfigUrl.owner.email}} | {{controlConfigUrl.description}} |
+        {{#if controlConfigUrl}}
+          {{#with controlConfigUrl}}
+| {{owner-type}} | {{owner.name}} | {{owner.email}} | {{description}} |
+          {{/with}}
+        {{else}}
+          {{#with controlConfig}}
+| {{owner-type}} | {{owner.name}} | {{owner.email}} | {{description}} |
+          {{/with}}
+        {{/if}}
       {{/each}}
     {{else}}
 _No ownership requirements defined._
     {{/if}}
   {{/if}}
 {{/each}}
-
 
 ## Metadata
 ```

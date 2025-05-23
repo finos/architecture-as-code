@@ -1,3 +1,8 @@
+export type CalmInterfaceDefinitionSchema = {
+    'unique-id': string
+    'interface-definition-url': string
+    configuration: Record<string, unknown>
+}
 
 export type CalmInterfaceTypeSchema = {
     'unique-id': string;
@@ -5,7 +10,7 @@ export type CalmInterfaceTypeSchema = {
 
 export type CalmNodeInterfaceSchema = {
     node: string;
-    interfaces: string[];
+    interfaces?: string[];
 };
 
 export type CalmHostPortInterfaceSchema = CalmInterfaceTypeSchema & {

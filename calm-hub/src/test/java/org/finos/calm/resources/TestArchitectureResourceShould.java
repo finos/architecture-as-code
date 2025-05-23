@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -44,6 +46,16 @@ public class TestArchitectureResourceShould {
                 .statusCode(404);
 
         verify(mockArchitectureStore, times(1)).getArchitecturesForNamespace("invalid");
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_architectures() throws NamespaceNotFoundException {
+        given()
+                .when()
+                .get("/calm/namespaces/fin_os/architectures")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
     }
 
     @Test
@@ -107,6 +119,18 @@ public class TestArchitectureResourceShould {
     }
 
     @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_create_architecture() throws NamespaceNotFoundException {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{ \"test\": \"json\" }")
+                .when()
+                .post("/calm/namespaces/fin_os/architectures")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+    }
+
+    @Test
     void return_a_created_with_location_of_architecture_when_creating_architecture() throws NamespaceNotFoundException {
         String architectureJson = "{ \"test\": \"json\" }";
         String namespace = "finos";
@@ -136,6 +160,16 @@ public class TestArchitectureResourceShould {
                 .build();
 
         verify(mockArchitectureStore, times(1)).createArchitectureForNamespace(expectedArchitectureToCreate);
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_architecture_versions() throws NamespaceNotFoundException {
+        given()
+                .when()
+                .get("/calm/namespaces/fin_os/architectures/12/versions")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
     }
 
     private void verifyExpectedArchitectureForVersions(String namespace) throws NamespaceNotFoundException, ArchitectureNotFoundException {
@@ -184,6 +218,26 @@ public class TestArchitectureResourceShould {
         verifyExpectedArchitectureForVersions(namespace);
     }
 
+    @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_architecture() throws NamespaceNotFoundException {
+        given()
+                .when()
+                .get("/calm/namespaces/fin_os/architectures/12/versions/1.0.0")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_version_is_provided_on_get_architecture() throws NamespaceNotFoundException {
+        given()
+                .when()
+                .get("/calm/namespaces/finos/architectures/12/versions/1.0.invalid0")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
+
     private void verifyExpectedGetArchitecture(String namespace) throws ArchitectureNotFoundException, NamespaceNotFoundException, ArchitectureVersionNotFoundException {
         Architecture expectedArchitectureToRetrieve = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
@@ -229,6 +283,30 @@ public class TestArchitectureResourceShould {
         }
 
         verifyExpectedGetArchitecture(namespace);
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_create_new_version_of_architecture() throws NamespaceNotFoundException {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{ \"test\": \"json\" }")
+                .when()
+                .post("/calm/namespaces/fin_os/architectures/20/versions/1.0.1")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_version_is_provided_on_create_new_version_of_architecture() throws NamespaceNotFoundException {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{ \"test\": \"json\" }")
+                .when()
+                .post("/calm/namespaces/finos/architectures/20/versions/1.0.invalid1")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForCreateArchitectureTests() {

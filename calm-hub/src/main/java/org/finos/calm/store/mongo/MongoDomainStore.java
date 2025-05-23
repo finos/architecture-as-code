@@ -4,6 +4,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.finos.calm.domain.Domain;
 import org.finos.calm.domain.exception.DomainAlreadyExistsException;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
+@Typed(MongoDomainStore.class)
 public class MongoDomainStore implements DomainStore {
 
     private final MongoCollection<Document> domainsCollection;

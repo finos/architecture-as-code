@@ -1,7 +1,7 @@
 db = db.getSiblingDB('calmSchemas');  // Use the calmSchemas database
 
 // Insert the initial counter document if it doesn't exist
-if (db.counters.countDocuments({ _id: "patternStoreCounter" }) === 1) {
+if (db.counters.countDocuments({ _id: "patternStoreCounter" }) === 0) {
     db.counters.insertOne({
         _id: "patternStoreCounter",
         sequence_value: 1
@@ -11,7 +11,7 @@ if (db.counters.countDocuments({ _id: "patternStoreCounter" }) === 1) {
     print("patternStoreCounter already exists, no initialization needed");
 }
 
-if (db.counters.countDocuments({ _id: "architectureStoreCounter" }) === 1) {
+if (db.counters.countDocuments({ _id: "architectureStoreCounter" }) === 0) {
     db.counters.insertOne({
         _id: "architectureStoreCounter",
         sequence_value: 1
@@ -21,7 +21,7 @@ if (db.counters.countDocuments({ _id: "architectureStoreCounter" }) === 1) {
     print("architectureStoreCounter already exists, no initialization needed");
 }
 
-if (db.counters.countDocuments({ _id: "adrStoreCounter" }) === 1) {
+if (db.counters.countDocuments({ _id: "adrStoreCounter" }) === 0) {
     db.counters.insertOne({
         _id: "adrStoreCounter",
         sequence_value: 1
@@ -32,7 +32,7 @@ if (db.counters.countDocuments({ _id: "adrStoreCounter" }) === 1) {
 }
 
 
-if (db.counters.countDocuments({ _id: "flowStoreCounter" }) === 1) {
+if (db.counters.countDocuments({ _id: "flowStoreCounter" }) === 0) {
     db.counters.insertOne({
         _id: "flowStoreCounter",
         sequence_value: 1
@@ -885,11 +885,17 @@ db.schemas.insertMany([               // Insert initial documents into the schem
     }
 ]);
 
-db.namespaces.insertMany([
-    { namespace: "finos" },
-    { namespace: "workshop" },
-    { namespace: "traderx" }
-]);
+// Insert namespaces if they don't exist
+if (db.namespaces.countDocuments() === 0) {
+    db.namespaces.insertMany([
+        { namespace: "finos" },
+        { namespace: "workshop" },
+        { namespace: "traderx" }
+    ]);
+    print("Initialized namespaces: finos, workshop, traderx");
+} else {
+    print("Namespaces already exist, no initialization needed");
+}
 
 db.patterns.insertMany([
     {

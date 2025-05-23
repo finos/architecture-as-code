@@ -1,4 +1,4 @@
-import React from 'react';
+import { useRef } from 'react';
 
 interface MenuProps {
     handleUpload: (instanceFile: File) => void;
@@ -17,8 +17,20 @@ export function Menu({
     isConDescActive,
     isNodeDescActive,
 }: MenuProps) {
+    const inputRef = useRef<HTMLInputElement>(null);
     const upload = (file: File) => {
         handleUpload(file);
+    };
+
+    const handleFileChange = (event: { target: { files: FileList | null } }) => {
+        if (event.target.files) {
+            const file = event.target.files[0];
+            upload(file);
+        }
+    };
+
+    const handleUploadBtnClick = () => {
+        inputRef?.current?.click();
     };
 
     return (
@@ -56,29 +68,19 @@ export function Menu({
                     )}
                 </div>
                 <div className="menu-end">
-                    <ul className="menu menu-horizontal px-1" aria-label="navbar-menu-items">
-                        <li>
-                            <details>
-                                <summary>Upload</summary>
-                                <ul className="p-2 z-1" aria-label="upload-dropdown-items">
-                                    <li className="text-base-content">
-                                        <label>
-                                            Architecture
-                                            <input
-                                                id="file"
-                                                type="file"
-                                                aria-label="upload-architecture"
-                                                className="hidden"
-                                                onChange={(
-                                                    e: React.ChangeEvent<HTMLInputElement>
-                                                ) => e.target.files && upload(e.target.files[0])}
-                                            />
-                                        </label>
-                                    </li>
-                                </ul>
-                            </details>
-                        </li>
-                    </ul>
+                    <button className="m-2 btn btn-outline" onClick={handleUploadBtnClick}>
+                        Upload Architecture
+                    </button>
+                    <input
+                        hidden
+                        id="file"
+                        data-testid="file-input"
+                        type="file"
+                        aria-label="upload-architecture"
+                        className="hidden"
+                        ref={inputRef}
+                        onChange={handleFileChange}
+                    />
                 </div>
             </div>
         </header>
