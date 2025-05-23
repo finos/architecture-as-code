@@ -5,7 +5,7 @@ import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
 import expandCollapse from 'cytoscape-expand-collapse';
 import { Edge, CalmNode } from '../../contracts/contracts.js';
 import { LayoutCorrectionService } from '../../services/layout-correction-service.js';
-import { CytoscapeElementPositionStorage } from './cytoscapeElementPositionStorage.js';
+import { CytoscapeElementPositionStorage } from '../../services/cytoscapeElementPositionStorageService.js';
 
 // Initialize Cytoscape plugins
 nodeEdgeHtmlLabel(cytoscape);
@@ -117,11 +117,11 @@ export function CytoscapeRenderer({
             cy.nodes().forEach((node) => {
                 const match = savedPositions.find((n) => n.id === node.id());
                 if (match) {
-                  node.position(match.position);
+                    node.position(match.position);
                 }
-              });
-            
-              cy.fit();
+            });
+
+            cy.fit();
         }
 
         cy.on('tap', 'node', (e) => {
@@ -134,11 +134,10 @@ export function CytoscapeRenderer({
             edgeClickedCallback(edge?.data());
         });
 
-
         cy.on('dragfree', 'node', () => {
             const nodePositions = cy.nodes().map((node) => ({
-              id: node.id(),
-              position: node.position(),
+                id: node.id(),
+                position: node.position(),
             }));
             CytoscapeElementPositionStorage.save(nodePositions);
         });
