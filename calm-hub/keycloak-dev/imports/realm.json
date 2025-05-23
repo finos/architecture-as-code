@@ -174,6 +174,45 @@
         "adrs:read",
         "architectures:all"
       ]
+    },
+    {
+      "clientId": "calm-hub-admin-app",
+      "name": "calm-hub-admin-app",
+      "description": "CalmHub Admin for Managing UserAccess",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": true,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [],
+      "webOrigins": [],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "backchannel.logout.session.required": "true",
+        "post.logout.redirect.uris": "+",
+        "display.on.consent.screen": "false",
+        "oauth2.device.authorization.grant.enabled": "true",
+        "backchannel.logout.revoke.offline.tokens": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "defaultClientScopes": [
+        "profile"
+      ],
+      "optionalClientScopes": [
+        "namespace:admin"
+      ]
     }
   ],
   "clientScopes": [
@@ -559,6 +598,22 @@
           }
         }
       ]
+    },
+    {
+      "name": "namespace:admin",
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "calm-hub-producer-app",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
     }
   ],
   "defaultOptionalClientScopes": [
@@ -566,6 +621,7 @@
     "adrs:all",
     "architectures:read",
     "architectures:all",
+    "namespace:admin",
     "offline_access",
     "service_account"
   ],
@@ -591,6 +647,12 @@
       "roles": [
         "calm-hub-readonly"
       ]
+    },
+    {
+      "clientScope": "namespace:admin",
+      "roles": [
+        "calm-hub-admin"
+      ]
     }
   ],
   "roles": {
@@ -599,6 +661,13 @@
         "name": "calm-hub-readonly",
         "clientRole": false,
         "description": "Readonly role with access to read scopes",
+        "composite": false,
+        "attributes": {}
+      },
+      {
+        "name": "calm-hub-admin",
+        "clientRole": false,
+        "description": "Admin role to grant access to calm-hub users",
         "composite": false,
         "attributes": {}
       }
@@ -624,6 +693,27 @@
       ],
       "realmRoles": [
         "calm-hub-readonly"
+      ]
+    },
+    {
+      "username": "demo_admin",
+      "enabled": true,
+      "email": "demo_admin@calm-hub.finos.org",
+      "firstName": "Demo User",
+      "lastName": "Admin",
+      "attributes": {
+        "department": "Technology",
+        "location": "HQ"
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "changeme",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "calm-hub-admin"
       ]
     }
   ]

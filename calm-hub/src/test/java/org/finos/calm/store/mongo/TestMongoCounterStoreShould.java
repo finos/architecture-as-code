@@ -81,4 +81,19 @@ public class TestMongoCounterStoreShould {
 
         assertThat(counterStore.getNextFlowSequenceValue(), equalTo(25));
     }
+
+    @Test
+    void return_the_next_value_in_sequence_for_user_access_collection() {
+        Document document = new Document("sequence_value", 3);
+
+        when(counterCollection.findOneAndUpdate(
+                argThat(arg -> arg instanceof Document &&
+                        ((Document) arg).containsKey("_id") &&
+                        "userAccessStoreCounter".equals(((Document) arg).get("_id"))),
+                any(Document.class),
+                any(FindOneAndUpdateOptions.class)
+        )).thenReturn(document);
+
+        assertThat(counterStore.getNextUserAccessSequenceValue(), equalTo(3));
+    }
 }
