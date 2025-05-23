@@ -1,6 +1,10 @@
 export type CalmControlDetailSchema = {
     'control-requirement-url': string;
     'control-config-url': string;
+}
+    | {
+    'control-requirement-url': string;
+    'control-config': Record<string, unknown>;
 };
 
 export type CalmControlSchema = {

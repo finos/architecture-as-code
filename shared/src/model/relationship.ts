@@ -2,7 +2,7 @@ import { CalmMetadata } from './metadata.js';
 import { CalmControl } from './control.js';
 import {
     CalmComposedOfRelationshipSchema,
-    CalmConnectsRelationshipSchema, CalmDeployedInRelationshipSchema,
+    CalmConnectsRelationshipSchema, CalmDecisionSchema, CalmDeployedInRelationshipSchema,
     CalmInteractsRelationshipSchema,
     CalmOptionsRelationshipSchema,
     CalmOptionTypeSchema,
@@ -99,10 +99,18 @@ export class CalmComposedOfType extends CalmRelationshipType {
 }
 
 export class CalmOptionType {
-    constructor(public description: string, public nodes: string[], public relationships: string[]) {}
+    constructor(public decisions: CalmDecisionType[]) {}
 
     static fromJson(data: CalmOptionTypeSchema) {
-        return new CalmOptionType(data.description, data.nodes, data.relationships);
+        return new CalmOptionType(data);
+    }
+}
+
+export class CalmDecisionType {
+    constructor(public description: string, public nodes: string[], public relationships: string[], public controls?: string[], public metadata?: string[]) {}
+
+    static fromJson(data: CalmDecisionSchema) {
+        return new CalmDecisionType(data.description, data.nodes, data.relationships, data.controls, data.metadata);
     }
 }
 
