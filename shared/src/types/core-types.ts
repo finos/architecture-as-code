@@ -2,58 +2,40 @@ import {
     CalmContainerImageInterfaceSchema,
     CalmHostnameInterfaceSchema,
     CalmHostPortInterfaceSchema,
+    CalmInterfaceDefinitionSchema,
     CalmInterfaceTypeSchema,
     CalmNodeInterfaceSchema,
     CalmOAuth2AudienceInterfaceSchema,
-    CalmPathInterfaceSchema,
-    CalmPortInterfaceSchema,
+    CalmPathInterfaceSchema, CalmPortInterfaceSchema,
     CalmRateLimitInterfaceSchema,
-    CalmURLInterfaceSchema,
+    CalmURLInterfaceSchema
 } from './interface-types.js';
 import { CalmControlsSchema } from './control-types.js';
 import { CalmMetadataSchema } from './metadata-types.js';
 import { CalmFlowSchema } from './flow-types.js';
 
-export type CalmNodeTypeSchema =
-    | 'actor'
-    | 'ecosystem'
-    | 'system'
-    | 'service'
-    | 'database'
-    | 'network'
-    | 'ldap'
-    | 'webclient'
-    | 'data-asset';
-export type CalmDataClassificationSchema =
-    | 'Public'
-    | 'Confidential'
-    | 'Highly Restricted'
-    | 'MNPI'
-    | 'PII';
-export type CalmProtocolSchema =
-    | 'HTTP'
-    | 'HTTPS'
-    | 'FTP'
-    | 'SFTP'
-    | 'JDBC'
-    | 'WebSocket'
-    | 'SocketIO'
-    | 'LDAP'
-    | 'AMQP'
-    | 'TLS'
-    | 'mTLS'
-    | 'TCP';
-export type CalmAuthenticationSchema =
-    | 'Basic'
-    | 'OAuth2'
-    | 'Kerberos'
-    | 'SPNEGO'
-    | 'Certificate';
+export type CalmNodeTypeSchema = 'actor' | 'ecosystem' | 'system' | 'service' | 'database' | 'network' | 'ldap' | 'webclient' | 'data-asset';
+export type CalmDataClassificationSchema = 'Public' | 'Confidential' | 'Highly Restricted' | 'MNPI' | 'PII';
+export type CalmProtocolSchema = 'HTTP' | 'HTTPS' | 'FTP' | 'SFTP' | 'JDBC' | 'WebSocket' | 'SocketIO' | 'LDAP' | 'AMQP' | 'TLS' | 'mTLS' | 'TCP';
+export type CalmAuthenticationSchema = 'Basic' | 'OAuth2' | 'Kerberos' | 'SPNEGO' | 'Certificate';
 
 export type CalmNodeDetailsSchema = {
     'detailed-architecture': string;
     'required-pattern': string;
 };
+
+export type CalmInterfaceSchema =
+    | CalmInterfaceDefinitionSchema
+    | CalmInterfaceTypeSchema
+    | CalmHostPortInterfaceSchema
+    | CalmHostnameInterfaceSchema
+    | CalmPathInterfaceSchema
+    | CalmOAuth2AudienceInterfaceSchema
+    | CalmURLInterfaceSchema
+    | CalmRateLimitInterfaceSchema
+    | CalmContainerImageInterfaceSchema
+    | CalmPortInterfaceSchema
+
 
 export type CalmNodeSchema = {
     'unique-id': string;
@@ -63,17 +45,7 @@ export type CalmNodeSchema = {
     details?: CalmNodeDetailsSchema;
     'data-classification'?: CalmDataClassificationSchema;
     'run-as'?: string;
-    interfaces?: (
-        | CalmInterfaceTypeSchema
-        | CalmHostPortInterfaceSchema
-        | CalmHostnameInterfaceSchema
-        | CalmPathInterfaceSchema
-        | CalmOAuth2AudienceInterfaceSchema
-        | CalmURLInterfaceSchema
-        | CalmRateLimitInterfaceSchema
-        | CalmContainerImageInterfaceSchema
-        | CalmPortInterfaceSchema
-    )[];
+    interfaces?: CalmInterfaceSchema[];
     controls?: CalmControlsSchema;
     metadata?: CalmMetadataSchema;
 };
@@ -98,11 +70,15 @@ export type CalmComposedOfRelationshipSchema = {
     nodes: string[];
 };
 
-export type CalmOptionTypeSchema = {
-    description: string;
-    nodes: string[];
-    relationships: string[];
-};
+export type CalmOptionTypeSchema = CalmDecisionSchema[]
+
+export type CalmDecisionSchema = {
+    description: string,
+    nodes: string[],
+    relationships: string[],
+    controls?: string[],
+    metadata?: string[]
+}
 
 export type CalmOptionsRelationshipSchema = CalmOptionTypeSchema[];
 
@@ -114,9 +90,10 @@ export type CalmRelationshipTypeSchema = {
     options?: CalmOptionsRelationshipSchema;
 };
 
+
 export type CalmRelationshipSchema = {
     'unique-id': string;
-    description?: string;
+    'description'?: string;
     'relationship-type': CalmRelationshipTypeSchema;
     protocol?: CalmProtocolSchema;
     authentication?: CalmAuthenticationSchema;
@@ -124,14 +101,14 @@ export type CalmRelationshipSchema = {
     controls?: CalmControlsSchema;
 };
 
-//TODO: There is no required section.
 export type CalmCoreSchema = {
     nodes?: CalmNodeSchema[];
     relationships?: CalmRelationshipSchema[];
     metadata?: CalmMetadataSchema;
     controls?: CalmControlsSchema;
     flows?: CalmFlowSchema[];
+    adrs?: string[];
 };
 
-export type CalmArchitectureSchema = CalmCoreSchema;
-export type CalmPatternSchema = CalmCoreSchema;
+export type CalmArchitectureSchema = CalmCoreSchema
+export type CalmPatternSchema = CalmCoreSchema

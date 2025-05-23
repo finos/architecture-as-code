@@ -22,7 +22,7 @@
 |-----------------|-------------|---------------------|------------------------------------|
 | Business Owner | Jo Bloggs | jo.bloggs@finos.org | Captures who is responsible from business perspective |
 | System Owner | Jane Doe | jane.doe@finos.org | Captures who is responsible from system ownership |
-
+| Data Owner | Captain Data | captain.data@finos.org | Captures who is responsible for data captain |
 
 ## Metadata
 ```

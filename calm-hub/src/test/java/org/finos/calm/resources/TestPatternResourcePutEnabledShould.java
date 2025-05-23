@@ -8,6 +8,7 @@ import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.store.PatternStore;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -27,6 +28,30 @@ public class TestPatternResourcePutEnabledShould {
 
     @InjectMock
     PatternStore mockPatternStore;
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_create_new_pattern_version() throws NamespaceNotFoundException {
+        given()
+                .when()
+                .header("Content-Type", "application/json")
+                .body("{ \"test\": \"json\" }")
+                .put("/calm/namespaces/fin_os/patterns/20/versions/1.0.1")
+                .then()
+                .statusCode(400)
+                .body(containsString("namespace must match pattern '^[A-Za-z0-9-]+$'"));
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_version_is_provided_on_create_new_pattern_version() throws NamespaceNotFoundException {
+        given()
+                .when()
+                .header("Content-Type", "application/json")
+                .body("{ \"test\": \"json\" }")
+                .put("/calm/namespaces/finos/patterns/20/versions/1.0invalid.1")
+                .then()
+                .statusCode(400)
+                .body(containsString("version must match pattern '^(0|[1-9][0-9]*)[.](0|[1-9][0-9]*)[.](0|[1-9][0-9]*)$"));
+    }
 
     static Stream<Arguments> provideParametersForPutPatternTests() {
         return Stream.of(

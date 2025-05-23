@@ -3,15 +3,26 @@ import {CalmControlDetailSchema, CalmControlsSchema} from '../types/control-type
 export class CalmControlDetail {
     constructor(
         public controlRequirementUrl: string,
-        public controlConfigUrl: string
+        public controlConfigUrl?: string,
+        public controlConfig?: Record<string, unknown>
     ) {}
 
     static fromJson(data: CalmControlDetailSchema): CalmControlDetail {
-        return new CalmControlDetail(
-            data['control-requirement-url'],
-            data['control-config-url']
-        );
+        if ('control-config-url' in data) {
+            return new CalmControlDetail(
+                data['control-requirement-url'],
+                data['control-config-url'],
+                undefined
+            );
+        } else {
+            return new CalmControlDetail(
+                data['control-requirement-url'],
+                undefined,
+                data['control-config']
+            );
+        }
     }
+
 }
 
 export class CalmControl {
