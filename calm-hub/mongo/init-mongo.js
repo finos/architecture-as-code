@@ -47,7 +47,7 @@ if (db.counters.countDocuments({ _id: "userAccessStoreCounter" }) === 0) {
         _id: "userAccessStoreCounter",
         sequence_value: 6
     });
-    print("Initialized userAccessStoreCounter with sequence_value 4");
+    print("Initialized userAccessStoreCounter with sequence_value 6");
 } else {
     print("userAccessStoreCounter already exists, no initialization needed");
 }
@@ -2688,7 +2688,7 @@ db.userAccess.insertMany([
     {
         "userAccessId": NumberInt(3),
         "username": "demo_admin",
-        "permission": "write",
+        "permission": "read",
         "namespace": "traderx",
         "resourceType": "all"
     },

@@ -1,6 +1,5 @@
 package org.finos.calm.security;
 
-import jakarta.ws.rs.ForbiddenException;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.UserAccess.Permission;
 import org.finos.calm.domain.UserAccess.ResourceType;
@@ -25,46 +24,58 @@ class TestUserAccessValidatorShould {
     }
 
     @Test
-    void should_allow_access_when_user_has_sufficient_permissions() throws Exception {
-        UserRequestAttributes attributes = new UserRequestAttributes("GET", "testuser",
+    void return_true_when_user_has_sufficient_permissions() throws Exception {
+        UserRequestAttributes requestAttributes = new UserRequestAttributes("GET", "testuser",
                 "/calm/namespace/finos/patterns", "finos");
         UserAccess userAccess = new UserAccess("testuser", Permission.read, "finos", ResourceType.patterns);
-        when(userAccessStore.getUserAccessForUsername("testuser")).thenReturn(List.of(userAccess));
-        assertDoesNotThrow(() -> validator.validate(attributes));
+        when(userAccessStore.getUserAccessForUsername("testuser"))
+                .thenReturn(List.of(userAccess));
+
+        boolean actual = validator.isUserAuthorized(requestAttributes);
+        assertTrue(actual);
     }
 
     @Test
-    void should_deny_access_when_user_has_no_matching_permission() throws Exception {
+    void return_false_when_user_has_no_matching_permission() throws Exception {
         UserRequestAttributes requestAttributes = new UserRequestAttributes("GET", "testuser",
                 "/calm/namespace/finos/patterns", "finos");
         UserAccess userAccess = new UserAccess("testuser", Permission.read, "workshop", ResourceType.patterns);
-        when(userAccessStore.getUserAccessForUsername("testuser")).thenReturn(List.of(userAccess));
-        assertThrows(ForbiddenException.class, () -> validator.validate(requestAttributes));
+        when(userAccessStore.getUserAccessForUsername("testuser"))
+                .thenReturn(List.of(userAccess));
+
+        boolean actual = validator.isUserAuthorized(requestAttributes);
+        assertFalse(actual);
     }
 
     @Test
-    void should_allow_read_access_when_user_has_write_permission() throws Exception {
+    void return_true_when_user_has_write_permission() throws Exception {
         UserRequestAttributes requestAttributes = new UserRequestAttributes("GET", "testuser",
                 "/calm/namespace/finos/patterns", "finos");
         UserAccess userAccess = new UserAccess("testuser", Permission.write, "finos", ResourceType.patterns);
+        when(userAccessStore.getUserAccessForUsername("testuser"))
+                .thenReturn(List.of(userAccess));
 
-        when(userAccessStore.getUserAccessForUsername("testuser")).thenReturn(List.of(userAccess));
-        assertDoesNotThrow(() -> validator.validate(requestAttributes));
+        boolean actual = validator.isUserAuthorized(requestAttributes);
+        assertTrue(actual);
     }
 
     @Test
-    void should_allow_access_to_default_get_namespaces_endpoint() throws Exception {
+    void return_true_when_user_accessing_default_get_namespaces_endpoint() throws Exception {
         UserRequestAttributes requestAttributes = new UserRequestAttributes("GET", "testuser",
                 "/calm/namespaces", null);
-        when(userAccessStore.getUserAccessForUsername("testuser")).thenThrow(new UserAccessNotFoundException());
-        assertDoesNotThrow(() -> validator.validate(requestAttributes));
+
+        boolean actual = validator.isUserAuthorized(requestAttributes);
+        assertTrue(actual);
     }
 
     @Test
-    void should_deny_access_when_user_access_notfound_and_not_default_accessible_request() throws Exception {
+    void return_false_when_no_permissions_are_mapped_to_user() throws Exception {
         UserRequestAttributes requestAttributes = new UserRequestAttributes("GET", "testuser",
                 "/calm/namespaces/test/finos", "finos");
-        when(userAccessStore.getUserAccessForUsername("testuser")).thenThrow(new UserAccessNotFoundException());
-        assertThrows(ForbiddenException.class, () -> validator.validate(requestAttributes));
+        when(userAccessStore.getUserAccessForUsername("testuser"))
+                .thenThrow(new UserAccessNotFoundException());
+
+        boolean actual = validator.isUserAuthorized(requestAttributes);
+        assertFalse(actual);
     }
 }

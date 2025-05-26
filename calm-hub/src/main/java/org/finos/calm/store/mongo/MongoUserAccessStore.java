@@ -121,7 +121,8 @@ public class MongoUserAccessStore implements UserAccessStore {
         }
 
         Document document = userAccessCollection.find(Filters.and(Filters.eq("namespace", namespace),
-                Filters.eq("userAccessId", userAccessId))).first();
+                        Filters.eq("userAccessId", userAccessId)))
+                .first();
 
         if (null == document) {
             throw new UserAccessNotFoundException();

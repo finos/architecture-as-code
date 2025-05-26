@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CLIENT_ID="0cda28f4-102e-4913-b61c-d57a664e1b2b" #calm-hub-device-flow
-SCOPE="api://calm-hub-producer-app/patterns.read api://calm-hub-producer-app/patterns.write"
+SCOPE="api://calm-hub-producer-app/architectures:read api://calm-hub-producer-app/architectures:all"
 TENANT_ID="3c9baf76-e5a3-42b6-8b21-46660e5d2cfb"
 
 DEVICE_AUTH_ENDPOINT="https://login.microsoftonline.com/$TENANT_ID/oauth2/v2.0/devicecode"

@@ -54,17 +54,25 @@ poll_token() {
 #Start token polling
 poll_token
 
-echo -e "\nPress enter to create a sample user-access details associated to finos namespace."
+echo -e "\nPositive Case: Press enter to create a sample user-access for finos resources."
 read
 if [[ -n $ACCESS_TOKEN ]]; then
   curl -X POST --insecure -v "https://localhost:8443/calm/namespaces/finos/user-access" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $ACCESS_TOKEN" \
-    -d '{ "namespace": "finos", "resourceType": "namespaces", "permission": "read", "username": "demo" }'
+    -d '{ "namespace": "finos", "resourceType": "patterns", "permission": "read", "username": "demo" }'
 
-  echo -e "\nPress enter to get list of user-access details"
+  echo -e "\nPositive Case: Press enter to get list of user-access details associated to namespace:finos"
   read
   curl --insecure -v "https://localhost:8443/calm/namespaces/finos/user-access" \
       -H "Content-Type: application/json" \
       -H "Authorization: Bearer $ACCESS_TOKEN"
+
+  echo
+  echo -e "\nFailure Case: Press enter to create a sample user-access for traderx namespace."
+  read
+  curl -X POST --insecure -v "https://localhost:8443/calm/namespaces/traderx/user-access" \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $ACCESS_TOKEN" \
+      -d '{ "namespace": "traderx", "resourceType": "patterns", "permission": "read", "username": "demo" }'
 fi

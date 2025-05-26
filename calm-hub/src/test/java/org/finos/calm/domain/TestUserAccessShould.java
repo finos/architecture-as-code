@@ -6,10 +6,10 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-public class TestUserAccess {
+public class TestUserAccessShould {
 
     @Test
-    void user_access_should_return_built_instance_values() {
+    void return_built_instance_values() {
         Integer expectedUserAccessId = 100;
         String expectedNamespace = "finos";
         String expectedUsername = "test_user";
@@ -32,7 +32,7 @@ public class TestUserAccess {
     }
     
     @Test
-    void user_access_equals_should_return_true_for_same_user_access_instances() {
+    void return_true_for_same_user_access_instances() {
 
         UserAccess userAccess1 = new UserAccess.UserAccessBuilder()
                 .setUserAccessId(100)
@@ -54,7 +54,7 @@ public class TestUserAccess {
     }
 
     @Test
-    void user_access_equals_should_return_false_for_different_user_access_instances() {
+    void return_false_for_different_user_access_instances() {
 
         UserAccess userAccess1 = new UserAccess.UserAccessBuilder()
                 .setUserAccessId(100)

@@ -1,6 +1,11 @@
 package org.finos.calm.resources;
 
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
@@ -23,7 +28,7 @@ public class UserAccessResource {
     private final UserAccessStore store;
     private final Logger logger = LoggerFactory.getLogger(UserAccessResource.class);
 
-    public UserAccessResource(UserAccessStore userAccessStore){
+    public UserAccessResource(UserAccessStore userAccessStore) {
         this.store = userAccessStore;
     }
 
@@ -41,7 +46,8 @@ public class UserAccessResource {
 
         createUserAccessRequest.setCreationDateTime(LocalDateTime.now());
         createUserAccessRequest.setUpdateDateTime(LocalDateTime.now());
-        if(! namespace.equals(createUserAccessRequest.getNamespace())) {
+        if (!namespace.equals(createUserAccessRequest.getNamespace())) {
+            logger.error("Request contains an invalid namespace [{}]", createUserAccessRequest.getNamespace());
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("Bad Request").build();
         }
@@ -50,7 +56,8 @@ public class UserAccessResource {
         } catch (NamespaceNotFoundException exception) {
             logger.error("Invalid namespace [{}] when creating user access", namespace, exception);
             return invalidNamespaceResponse(namespace);
-        } catch (URISyntaxException e) {
+        } catch (URISyntaxException ex) {
+            logger.error("Failed to create user-access for namespace: [{}] ", namespace, ex);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity("System Malfunction failed to create user-access").build();
         }
@@ -72,9 +79,11 @@ public class UserAccessResource {
         } catch (NamespaceNotFoundException exception) {
             logger.error("Invalid namespace [{}] when getting user-access details", namespace, exception);
             return invalidNamespaceResponse(namespace);
-        } catch (UserAccessNotFoundException e) {
+        } catch (UserAccessNotFoundException ex) {
+            logger.error("Use-access details are not found [{}]", namespace, ex);
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("No access permissions found").build();
+                    .entity("No access permissions found")
+                    .build();
         }
     }
 
@@ -87,7 +96,7 @@ public class UserAccessResource {
     )
     @PermittedScopes({CalmHubScopes.NAMESPACE_ADMIN})
     public Response getUserAccessForNamespaceAndId(@PathParam("namespace") String namespace,
-    @PathParam("userAccessId") Integer userAccessId) {
+                                                   @PathParam("userAccessId") Integer userAccessId) {
 
         try {
             return Response.ok(store.getUserAccessForNamespaceAndId(namespace, userAccessId))
@@ -109,6 +118,7 @@ public class UserAccessResource {
 
     private Response invalidNamespaceResponse(String namespace) {
         return Response.status(Response.Status.NOT_FOUND)
-                .entity("Invalid namespace provided: " + namespace).build();
+                .entity("Invalid namespace provided: " + namespace)
+                .build();
     }
 }

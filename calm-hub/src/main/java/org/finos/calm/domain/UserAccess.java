@@ -23,7 +23,6 @@ public class UserAccess {
         flows,
         adrs,
         architectures,
-        namespaces,
         all
     }
 

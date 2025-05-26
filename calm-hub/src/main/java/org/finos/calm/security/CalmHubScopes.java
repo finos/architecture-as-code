@@ -32,5 +32,5 @@ public class CalmHubScopes {
     /**
      * Allow to grant access to users on namespace associated resources and for the admin operations.
      */
-    public static final String NAMESPACE_ADMIN="namespace:admin";
+    public static final String NAMESPACE_ADMIN = "namespace:admin";
 }

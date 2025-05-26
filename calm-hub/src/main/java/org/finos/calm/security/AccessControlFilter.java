@@ -70,8 +70,22 @@ public class AccessControlFilter implements ContainerRequestFilter {
             requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
                     .entity("Forbidden: JWT does not have required scopes.")
                     .build());
+            return;
         }
 
+        authorizeUserRequest(requestContext);
+    }
+
+    /**
+     * Validates whether the requesting user has the required access permissions based on the request context.
+     *
+     * <p>This method extracts the HTTP method, username (from JWT), request path, and namespace
+     * from the incoming request and checks whether the user is authorized to access the requested resource.
+     * If the user lacks the necessary permissions, the request is aborted with a 403 Forbidden response.
+     *
+     * @param requestContext the container request context containing request metadata and parameters
+     */
+    private void authorizeUserRequest(ContainerRequestContext requestContext) {
         String requestMethod = requestContext.getMethod();
         String username = jwt.getClaim("preferred_username");
         String path = requestContext.getUriInfo().getPath();
@@ -79,8 +93,14 @@ public class AccessControlFilter implements ContainerRequestFilter {
 
         UserRequestAttributes userRequestAttributes = new UserRequestAttributes(requestMethod,
                 username, path, namespace);
-        logger.info("User request attributes: {}", userRequestAttributes);
-        userAccessValidator.validate(userRequestAttributes);
+        logger.debug("User request attributes: {}", userRequestAttributes);
+
+        if (!userAccessValidator.isUserAuthorized(userRequestAttributes)) {
+            logger.warn("No access permissions assigned to the user: [{}]", userRequestAttributes.username());
+            requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
+                    .entity("Forbidden: user does not have required access grants")
+                    .build());
+        }
     }
 
     /**

@@ -50,7 +50,7 @@ public class TestAccessControlFilterShould {
     }
 
     @Test
-    void allow_the_request_when_token_scopes_matching() throws NoSuchMethodException {
+    void allow_the_request_when_token_scopes_matching_and_user_has_required_permissions() throws NoSuchMethodException {
         Method method = TestNamespaceResource.class.getMethod("createNamespace");
 
         when(resourceInfo.getResourceMethod()).thenReturn(method);
@@ -63,10 +63,32 @@ public class TestAccessControlFilterShould {
         multivaluedMap.add("namespace", "test");
         when(mockUriInfo.getPathParameters()).thenReturn(multivaluedMap);
         when(requestContext.getUriInfo()).thenReturn(mockUriInfo);
-        doNothing().when(userAccessValidator).validate(any(UserRequestAttributes.class));
+        when(userAccessValidator.isUserAuthorized(any(UserRequestAttributes.class))).thenReturn(true);
 
         accessControlFilter.filter(requestContext);
         verify(requestContext, never()).abortWith(any());
+    }
+
+    @Test
+    void abort_the_request_when_token_scopes_matching_and_user_has_no_required_access() throws NoSuchMethodException {
+        Method method = TestNamespaceResource.class.getMethod("createNamespace");
+
+        when(resourceInfo.getResourceMethod()).thenReturn(method);
+        when(jwt.getClaim("scope")).thenReturn("openid architectures:all");
+        when(jwt.getClaim("preferred_username")).thenReturn("test");
+
+        UriInfo mockUriInfo = mock(UriInfo.class);
+        when(mockUriInfo.getPath()).thenReturn("/calm/namespaces");
+        MultivaluedMap<String, String> multivaluedMap = new MultivaluedHashMap<>();
+        multivaluedMap.add("namespace", "test");
+        when(mockUriInfo.getPathParameters()).thenReturn(multivaluedMap);
+        when(requestContext.getUriInfo()).thenReturn(mockUriInfo);
+        when(userAccessValidator.isUserAuthorized(any(UserRequestAttributes.class)))
+                .thenReturn(false);
+
+        accessControlFilter.filter(requestContext);
+        verify(requestContext)
+                .abortWith(argThat(response -> response.getStatus() == HttpStatus.SC_FORBIDDEN));
     }
 
     @Test
