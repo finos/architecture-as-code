@@ -1,17 +1,17 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { Edge, Node } from '../visualizer/components/cytoscape-renderer/CytoscapeRenderer.js';
-import { Sidebar } from '../visualizer/components/sidebar/Sidebar.js';
+import { Sidebar } from './Sidebar.js';
+import { CalmNode, Edge } from '../../contracts/contracts.js';
 
 describe('Sidebar Component', () => {
     const mockCloseSidebar = vi.fn();
 
-    const mockNodeData: Node['data'] = {
+    const mockNodeData: CalmNode['data'] = {
         id: 'node-1',
         label: 'Node 1',
         type: 'type-1',
         description: 'Mock Node',
-    };
+    } as CalmNode['data'];
 
     const mockEdgeData: Edge['data'] = {
         id: 'edge-1',
