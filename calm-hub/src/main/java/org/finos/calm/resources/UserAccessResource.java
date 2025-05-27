@@ -104,7 +104,8 @@ public class UserAccessResource {
         } catch (NamespaceNotFoundException exception) {
             logger.error("Invalid namespace [{}] when getting user-access details", namespace, exception);
             return invalidNamespaceResponse(namespace);
-        } catch (UserAccessNotFoundException e) {
+        } catch (UserAccessNotFoundException ex) {
+            logger.error("Use-access details are not found [{}]", namespace, ex);
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("No access permissions found").build();
         }
