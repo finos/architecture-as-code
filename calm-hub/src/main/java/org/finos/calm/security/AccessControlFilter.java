@@ -116,7 +116,7 @@ public class AccessControlFilter implements ContainerRequestFilter {
                 .anyMatch(tokenScopes::contains);
 
         if (hasMatch) {
-            logger.info("Request allowed, PermittedScopes are: {}, there is a matching scope found in accessToken: [{}]", requiredScopes, tokenScopes);
+            logger.debug("Request allowed, PermittedScopes are: {}, there is a matching scope found in accessToken: [{}]", requiredScopes, tokenScopes);
         } else {
             logger.error("Request denied, PermittedScopes are: {}, no matching scopes found in accessToken: [{}]", requiredScopes, tokenScopes);
         }
