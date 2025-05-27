@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.finos.calm.domain.UserAccess;
@@ -20,25 +21,21 @@ public class TestUserAccessResourceShould {
     @InjectMock
     UserAccessStore mockUserAccessStore;
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     @Test
     void return_201_created_with_location_header_when_user_access_is_created() throws Exception {
-        UserAccess persistedUserAccess = new UserAccess();
-        persistedUserAccess.setUserAccessId(101);
-        persistedUserAccess.setNamespace("finos");
-        persistedUserAccess.setPermission(UserAccess.Permission.read);
-        persistedUserAccess.setResourceType(UserAccess.ResourceType.patterns);
-        persistedUserAccess.setUsername("test_user");
-        when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
-                .thenReturn(persistedUserAccess);
 
-        String requestBody = """
-                    {
-                        "username": "test_user",
-                        "namespace": "finos",
-                        "resourceType": "patterns",
-                        "permission": "read"
-                    }
-                """;
+        UserAccess userAccess = new UserAccess();
+        userAccess.setNamespace("finos");
+        userAccess.setPermission(UserAccess.Permission.read);
+        userAccess.setResourceType(UserAccess.ResourceType.patterns);
+        userAccess.setUsername("test_user");
+        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
+
+        userAccess.setUserAccessId(101);
+        when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
+                .thenReturn(userAccess);
 
         given()
                 .header("Content-Type", "application/json")
@@ -58,14 +55,12 @@ public class TestUserAccessResourceShould {
         when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
                 .thenThrow(new NamespaceNotFoundException());
 
-        String requestBody = """
-                    {
-                        "username": "test_user",
-                        "namespace": "invalid",
-                        "resourceType": "all",
-                        "permission": "read"
-                    }
-                """;
+        UserAccess userAccess = new UserAccess();
+        userAccess.setNamespace("invalid");
+        userAccess.setPermission(UserAccess.Permission.read);
+        userAccess.setResourceType(UserAccess.ResourceType.all);
+        userAccess.setUsername("test_user");
+        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
 
         given()
                 .header("Content-Type", "application/json")
@@ -85,14 +80,12 @@ public class TestUserAccessResourceShould {
         when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
                 .thenThrow(new NamespaceNotFoundException());
 
-        String requestBody = """
-                    {
-                        "username": "test_user",
-                        "namespace": "invalid",
-                        "resourceType": "all",
-                        "permission": "read"
-                    }
-                """;
+        UserAccess userAccess = new UserAccess();
+        userAccess.setNamespace("invalid");
+        userAccess.setPermission(UserAccess.Permission.read);
+        userAccess.setResourceType(UserAccess.ResourceType.all);
+        userAccess.setUsername("test_user");
+        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
 
         given()
                 .header("Content-Type", "application/json")
@@ -112,14 +105,12 @@ public class TestUserAccessResourceShould {
         when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class)))
                 .thenThrow(new RuntimeException("Unexpected error"));
 
-        String requestBody = """
-                    {
-                        "username": "test_user",
-                        "namespace": "finos",
-                        "resourceType": "all",
-                        "permission": "read"
-                    }
-                """;
+        UserAccess userAccess = new UserAccess();
+        userAccess.setNamespace("finos");
+        userAccess.setPermission(UserAccess.Permission.read);
+        userAccess.setResourceType(UserAccess.ResourceType.all);
+        userAccess.setUsername("test_user");
+        String requestBody = OBJECT_MAPPER.writeValueAsString(userAccess);
 
         given()
                 .header("Content-Type", "application/json")
@@ -145,7 +136,8 @@ public class TestUserAccessResourceShould {
         userAccess2.setUsername("test_user2");
         userAccess2.setNamespace("test");
 
-        when(mockUserAccessStore.getUserAccessForNamespace("test")).thenReturn(List.of(userAccess1, userAccess2));
+        when(mockUserAccessStore.getUserAccessForNamespace("test"))
+                .thenReturn(List.of(userAccess1, userAccess2));
 
         given()
                 .when()
@@ -252,6 +244,7 @@ public class TestUserAccessResourceShould {
                 .statusCode(404)
                 .body(containsString("No access permissions found"));
 
-        verify(mockUserAccessStore, times(1)).getUserAccessForNamespaceAndId("test", 1);
+        verify(mockUserAccessStore, times(1))
+                .getUserAccessForNamespaceAndId("test", 1);
     }
 }
