@@ -3,7 +3,7 @@ export interface StoredNodePosition {
     position: { x: number; y: number };
 }
 
-let STORAGE_KEY = '_CytoscapeNodePositions';
+const STORAGE_KEY = '_CytoscapeNodePositions';
 
 export const CytoscapeElementPositionStorage = {
     posKey(title: string) {
