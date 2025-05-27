@@ -3,20 +3,24 @@ export interface StoredNodePosition {
     position: { x: number; y: number };
 }
 
-const STORAGE_KEY = 'cytoscapeNodePositions';
+let STORAGE_KEY = '_CytoscapeNodePositions';
 
 export const CytoscapeElementPositionStorage = {
-    save(positions: StoredNodePosition[]) {
+    posKey(title: string) {
+        return title + STORAGE_KEY;
+    },
+
+    save(title: string, positions: StoredNodePosition[]) {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
+            localStorage.setItem(this.posKey(title), JSON.stringify(positions));
         } catch (err) {
             console.error('Failed to save node positions:', err);
         }
     },
 
-    load(): StoredNodePosition[] | null {
+    load(title: string): StoredNodePosition[] | null {
         try {
-            const data = localStorage.getItem(STORAGE_KEY);
+            const data = localStorage.getItem(this.posKey(title));
             return data ? JSON.parse(data) : null;
         } catch (err) {
             console.error('Failed to load node positions:', err);
@@ -24,7 +28,7 @@ export const CytoscapeElementPositionStorage = {
         }
     },
 
-    clear() {
-        localStorage.removeItem(STORAGE_KEY);
+    clear(title: string) {
+        localStorage.removeItem(this.posKey(title));
     },
 };

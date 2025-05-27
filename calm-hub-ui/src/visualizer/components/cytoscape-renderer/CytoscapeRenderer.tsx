@@ -24,6 +24,7 @@ const breadthFirstLayout = {
 };
 
 export interface CytoscapeRendererProps {
+    title: string;
     isNodeDescActive: boolean;
     isRelationshipDescActive: boolean;
     nodes: CalmNode[];
@@ -75,6 +76,7 @@ const layoutCorrectionService = new LayoutCorrectionService();
 
 export function CytoscapeRenderer({
     nodes = [],
+    title = '',
     edges = [],
     isRelationshipDescActive,
     isNodeDescActive,
@@ -112,7 +114,7 @@ export function CytoscapeRenderer({
             maxZoom: 5,
         });
 
-        const savedPositions = CytoscapeElementPositionStorage.load();
+        const savedPositions = CytoscapeElementPositionStorage.load(title);
         if (savedPositions) {
             cy.nodes().forEach((node) => {
                 const match = savedPositions.find((n) => n.id === node.id());
@@ -139,7 +141,7 @@ export function CytoscapeRenderer({
                 id: node.id(),
                 position: node.position(),
             }));
-            CytoscapeElementPositionStorage.save(nodePositions);
+            CytoscapeElementPositionStorage.save(title, nodePositions);
         });
 
         // This function comes from a plugin which doesn't have proper types, which is why the hacky casting is needed
@@ -165,6 +167,7 @@ export function CytoscapeRenderer({
             cy.destroy();
         };
     }, [
+        title,
         nodes,
         edges,
         isNodeDescActive,

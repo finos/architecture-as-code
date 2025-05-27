@@ -8,6 +8,7 @@ const mockData: StoredNodePosition[] = [
     { id: 'node-1', position: { x: 100, y: 200 } },
     { id: 'node-2', position: { x: 300, y: 400 } },
 ];
+const title = 'test';
 
 describe('PositionStorage', () => {
     beforeEach(() => {
@@ -19,32 +20,32 @@ describe('PositionStorage', () => {
     });
 
     it('saves node positions to localStorage', () => {
-        CytoscapeElementPositionStorage.save(mockData);
-        const stored = localStorage.getItem('cytoscapeNodePositions');
+        CytoscapeElementPositionStorage.save(title, mockData);
+        const stored = localStorage.getItem('test_CytoscapeNodePositions');
         expect(stored).not.toBeNull();
         expect(JSON.parse(stored!)).toEqual(mockData);
     });
 
     it('loads node positions from localStorage', () => {
-        localStorage.setItem('cytoscapeNodePositions', JSON.stringify(mockData));
-        const loaded = CytoscapeElementPositionStorage.load();
+        localStorage.setItem('test_CytoscapeNodePositions', JSON.stringify(mockData));
+        const loaded = CytoscapeElementPositionStorage.load(title);
         expect(loaded).toEqual(mockData);
     });
 
     it('returns null if nothing is stored', () => {
-        const loaded = CytoscapeElementPositionStorage.load();
+        const loaded = CytoscapeElementPositionStorage.load(title);
         expect(loaded).toBeNull();
     });
 
     it('clears node positions from localStorage', () => {
-        CytoscapeElementPositionStorage.save(mockData);
-        CytoscapeElementPositionStorage.clear();
-        expect(localStorage.getItem('cytoscapeNodePositions')).toBeNull();
+        CytoscapeElementPositionStorage.save(title, mockData);
+        CytoscapeElementPositionStorage.clear(title);
+        expect(localStorage.getItem('test_CytoscapeNodePositions')).toBeNull();
     });
 
     it('handles malformed JSON gracefully', () => {
         localStorage.setItem('cytoscapeNodePositions', 'this is not json');
-        const loaded = CytoscapeElementPositionStorage.load();
+        const loaded = CytoscapeElementPositionStorage.load(title);
         expect(loaded).toBeNull();
     });
 });
