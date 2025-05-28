@@ -16,10 +16,14 @@
       "groupName": "lockfile-maintenance"
     },
     {
-      "groupName": "patch-dependencies",
+      "groupName": "minor-dependencies",
       "matchUpdateTypes": ["minor"],
       "automerge": true,
       "automergeType": "pr"
+    },
+    {
+      "matchUpdateTypes": ["patch"],
+      "enabled": false
     }
   ]
 }

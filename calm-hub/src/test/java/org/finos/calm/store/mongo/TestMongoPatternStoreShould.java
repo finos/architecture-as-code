@@ -3,7 +3,10 @@ package org.finos.calm.store.mongo;
 import com.mongodb.MongoWriteException;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteError;
-import com.mongodb.client.*;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.UpdateOptions;
@@ -14,7 +17,7 @@ import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.json.JsonParseException;
-import org.finos.calm.domain.*;
+import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
@@ -50,6 +53,7 @@ public class TestMongoPatternStoreShould {
     private MongoPatternStore mongoPatternStore;
 
     private final String validJson = "{\"test\": \"test\"}";
+
     @BeforeEach
     void setup() {
         mongoDatabase = Mockito.mock(MongoDatabase.class);
@@ -278,7 +282,7 @@ public class TestMongoPatternStoreShould {
     }
 
     @Test
-    void throw_an_exception_when_pattern_for_given_version_does_not_exist()  {
+    void throw_an_exception_when_pattern_for_given_version_does_not_exist() {
         mockSetupPatternDocumentWithVersions();
 
         Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos")

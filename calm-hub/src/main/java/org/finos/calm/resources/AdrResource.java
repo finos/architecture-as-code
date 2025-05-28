@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -44,6 +45,7 @@ public class AdrResource {
     private final AdrStore store;
     private final Logger logger = LoggerFactory.getLogger(AdrResource.class);
 
+    @Inject
     public AdrResource(AdrStore store) {
         this.store = store;
     }
