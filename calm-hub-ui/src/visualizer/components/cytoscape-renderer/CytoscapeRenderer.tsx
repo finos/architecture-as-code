@@ -5,7 +5,10 @@ import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
 import expandCollapse from 'cytoscape-expand-collapse';
 import { Edge, CalmNode } from '../../contracts/contracts.js';
 import { LayoutCorrectionService } from '../../services/layout-correction-service.js';
-import { CytoscapeElementPositionStorage } from '../../services/cytoscapeElementPositionStorageService.js';
+import {
+    saveNodePositions,
+    loadStoredNodePositions,
+} from '../../services/node-position-service.js';
 
 // Initialize Cytoscape plugins
 nodeEdgeHtmlLabel(cytoscape);
@@ -114,7 +117,7 @@ export function CytoscapeRenderer({
             maxZoom: 5,
         });
 
-        const savedPositions = CytoscapeElementPositionStorage.load(title);
+        const savedPositions = loadStoredNodePositions(title);
         if (savedPositions) {
             cy.nodes().forEach((node) => {
                 const match = savedPositions.find((n) => n.id === node.id());
@@ -141,7 +144,7 @@ export function CytoscapeRenderer({
                 id: node.id(),
                 position: node.position(),
             }));
-            CytoscapeElementPositionStorage.save(title, nodePositions);
+            saveNodePositions(title, nodePositions);
         });
 
         // This function comes from a plugin which doesn't have proper types, which is why the hacky casting is needed
