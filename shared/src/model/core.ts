@@ -11,7 +11,8 @@ export class CalmCore {
         public relationships: CalmRelationship[],
         public metadata: CalmMetadata,
         public controls: CalmControl[],
-        public flows: CalmFlow[]
+        public flows: CalmFlow[],
+        public adrs: string[]
     ) {}
 
     static fromJson(data: CalmCoreSchema): CalmCore {
@@ -20,7 +21,8 @@ export class CalmCore {
             data.relationships?  data.relationships.map(CalmRelationship.fromJson) : [],
             data.metadata? CalmMetadata.fromJson(data.metadata) : new CalmMetadata({}),
             data.controls? CalmControl.fromJson(data.controls) : [],
-            data.flows? data.flows.map(CalmFlow.fromJson) : []
+            data.flows? data.flows.map(CalmFlow.fromJson) : [],
+            data.adrs ? data.adrs : []
         );
     }
 }

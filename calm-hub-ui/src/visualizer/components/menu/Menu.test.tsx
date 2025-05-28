@@ -25,7 +25,7 @@ describe('Menu', () => {
         renderMenu();
         expect(screen.getByText('Relationship Descriptions')).toBeInTheDocument();
         expect(screen.getByText('Node Descriptions')).toBeInTheDocument();
-        expect(screen.getByText('Upload')).toBeInTheDocument();
+        expect(screen.getByText('Upload Architecture')).toBeInTheDocument();
     });
 
     it('should call toggleConnectionDesc on checkbox click', async () => {
@@ -49,7 +49,7 @@ describe('Menu', () => {
     it('should call handleUpload on file input change', async () => {
         renderMenu();
         const file = new File(['example content'], 'example.txt', { type: 'text/plain' });
-        const input = screen.getByLabelText('Architecture');
+        const input = screen.getByTestId('file-input');
         const user = userEvent.setup();
         await user.upload(input, file);
         await waitFor(() => {

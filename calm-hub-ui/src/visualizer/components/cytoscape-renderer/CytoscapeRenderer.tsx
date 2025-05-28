@@ -4,6 +4,10 @@ import cytoscape, { EdgeSingular, NodeSingular } from 'cytoscape';
 import expandCollapse from 'cytoscape-expand-collapse';
 import { Edge, CalmNode } from '../../contracts/contracts.js';
 import { LayoutCorrectionService } from '../../services/layout-correction-service.js';
+import {
+    saveNodePositions,
+    loadStoredNodePositions,
+} from '../../services/node-position-service.js';
 
 // Initialize Cytoscape plugins
 expandCollapse(cytoscape);
@@ -23,6 +27,7 @@ const breadthFirstLayout = {
 const textFontSize = '20px';
 
 export interface CytoscapeRendererProps {
+    title: string;
     isNodeDescActive: boolean;
     isRelationshipDescActive: boolean;
     nodes: CalmNode[];
@@ -70,6 +75,7 @@ const layoutCorrectionService = new LayoutCorrectionService();
 
 export function CytoscapeRenderer({
     nodes = [],
+    title = '',
     edges = [],
     isRelationshipDescActive,
     isNodeDescActive,
@@ -108,6 +114,18 @@ export function CytoscapeRenderer({
             maxZoom: 5,
         });
 
+        const savedPositions = loadStoredNodePositions(title);
+        if (savedPositions) {
+            cy.nodes().forEach((node) => {
+                const match = savedPositions.find((n) => n.id === node.id());
+                if (match) {
+                    node.position(match.position);
+                }
+            });
+
+            cy.fit();
+        }
+
         cy.on('tap', 'node', (e) => {
             const node = e.target as NodeSingular;
             nodeClickedCallback(node?.data());
@@ -118,8 +136,21 @@ export function CytoscapeRenderer({
             edgeClickedCallback(edge?.data());
         });
 
+        cy.on('dragfree', 'node', () => {
+            const nodePositions = cy.nodes().map((node) => ({
+                id: node.id(),
+                position: node.position(),
+            }));
+            saveNodePositions(title, nodePositions);
+        });
+
         layoutCorrectionService.calculateAndUpdateNodePositions(cy, nodes);
+
+        return () => {
+            cy.destroy();
+        };
     }, [
+        title,
         nodes,
         edges,
         isNodeDescActive,

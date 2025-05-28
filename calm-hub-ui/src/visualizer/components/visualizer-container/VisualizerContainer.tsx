@@ -12,7 +12,7 @@ interface VisualizerContainerProps {
 }
 
 export function VisualizerContainer({
-    title,
+    title = '',
     nodes = [],
     edges = [],
     isRelationshipDescActive,
@@ -29,6 +29,7 @@ export function VisualizerContainer({
                 </div>
             )}
             <CytoscapeRenderer
+                title={title}
                 isNodeDescActive={isNodeDescActive}
                 isRelationshipDescActive={isRelationshipDescActive}
                 nodes={nodes}
