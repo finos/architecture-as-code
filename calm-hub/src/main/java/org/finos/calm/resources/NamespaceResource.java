@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import org.eclipse.microprofile.openapi.annotations.Operation;
@@ -13,6 +14,7 @@ public class NamespaceResource {
 
     private final NamespaceStore namespaceStore;
 
+    @Inject
     public NamespaceResource(NamespaceStore store) {
         this.namespaceStore = store;
     }

@@ -4,6 +4,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.finos.calm.store.NamespaceStore;
 
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
+@Typed(MongoNamespaceStore.class)
 public class MongoNamespaceStore implements NamespaceStore {
 
     private final MongoCollection<Document> namespaceCollection;

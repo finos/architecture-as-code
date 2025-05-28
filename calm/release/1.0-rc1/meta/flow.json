@@ -33,12 +33,6 @@
         ]
       }
     },
-    "metadata": {
-      "type": "array",
-      "items": {
-        "type": "object"
-      }
-    },
     "flow": {
       "type": "object",
       "properties": {
@@ -69,7 +63,7 @@
           "$ref": "control.json#/defs/controls"
         },
         "metadata": {
-          "$ref": "#/defs/metadata"
+          "$ref": "core.json#/defs/metadata"
         }
       },
       "required": [

@@ -6,9 +6,11 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.ReturnDocument;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 
 @ApplicationScoped
+@Typed(MongoCounterStore.class)
 public class MongoCounterStore {
 
     private final MongoCollection<Document> counterCollection;
@@ -33,6 +35,10 @@ public class MongoCounterStore {
 
     public int getNextFlowSequenceValue() {
         return nextValueForCounter("flowStoreCounter");
+    }
+
+    public int getNextUserAccessSequenceValue() {
+        return nextValueForCounter("userAccessStoreCounter");
     }
 
     private int nextValueForCounter(String counterId) {

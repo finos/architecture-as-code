@@ -1,7 +1,7 @@
 db = db.getSiblingDB('calmSchemas');  // Use the calmSchemas database
 
 // Insert the initial counter document if it doesn't exist
-if (db.counters.countDocuments({ _id: "patternStoreCounter" }) === 1) {
+if (db.counters.countDocuments({ _id: "patternStoreCounter" }) === 0) {
     db.counters.insertOne({
         _id: "patternStoreCounter",
         sequence_value: 1
@@ -11,7 +11,7 @@ if (db.counters.countDocuments({ _id: "patternStoreCounter" }) === 1) {
     print("patternStoreCounter already exists, no initialization needed");
 }
 
-if (db.counters.countDocuments({ _id: "architectureStoreCounter" }) === 1) {
+if (db.counters.countDocuments({ _id: "architectureStoreCounter" }) === 0) {
     db.counters.insertOne({
         _id: "architectureStoreCounter",
         sequence_value: 1
@@ -21,7 +21,7 @@ if (db.counters.countDocuments({ _id: "architectureStoreCounter" }) === 1) {
     print("architectureStoreCounter already exists, no initialization needed");
 }
 
-if (db.counters.countDocuments({ _id: "adrStoreCounter" }) === 1) {
+if (db.counters.countDocuments({ _id: "adrStoreCounter" }) === 0) {
     db.counters.insertOne({
         _id: "adrStoreCounter",
         sequence_value: 1
@@ -32,7 +32,7 @@ if (db.counters.countDocuments({ _id: "adrStoreCounter" }) === 1) {
 }
 
 
-if (db.counters.countDocuments({ _id: "flowStoreCounter" }) === 1) {
+if (db.counters.countDocuments({ _id: "flowStoreCounter" }) === 0) {
     db.counters.insertOne({
         _id: "flowStoreCounter",
         sequence_value: 1
@@ -40,6 +40,16 @@ if (db.counters.countDocuments({ _id: "flowStoreCounter" }) === 1) {
     print("Initialized flowStoreCounter with sequence_value 1");
 } else {
     print("flowStoreCounter already exists, no initialization needed");
+}
+
+if (db.counters.countDocuments({ _id: "userAccessStoreCounter" }) === 0) {
+    db.counters.insertOne({
+        _id: "userAccessStoreCounter",
+        sequence_value: 6
+    });
+    print("Initialized userAccessStoreCounter with sequence_value 6");
+} else {
+    print("userAccessStoreCounter already exists, no initialization needed");
 }
 
 db.schemas.insertMany([               // Insert initial documents into the schemas collection
@@ -885,11 +895,17 @@ db.schemas.insertMany([               // Insert initial documents into the schem
     }
 ]);
 
-db.namespaces.insertMany([
-    { namespace: "finos" },
-    { namespace: "workshop" },
-    { namespace: "traderx" }
-]);
+// Insert namespaces if they don't exist
+if (db.namespaces.countDocuments() === 0) {
+    db.namespaces.insertMany([
+        { namespace: "finos" },
+        { namespace: "workshop" },
+        { namespace: "traderx" }
+    ]);
+    print("Initialized namespaces: finos, workshop, traderx");
+} else {
+    print("Namespaces already exist, no initialization needed");
+}
 
 db.patterns.insertMany([
     {
@@ -2657,5 +2673,50 @@ db.architectures.insertMany([
                 }
             }
         }]
+    }
+]);
+
+db.userAccess.insertMany([
+    {
+        "userAccessId": NumberInt(1),
+        "username": "demo_admin",
+        "permission": "write",
+        "namespace": "finos",
+        "resourceType": "all"
+    },
+    {
+        "userAccessId": NumberInt(2),
+        "username": "demo_admin",
+        "permission": "write",
+        "namespace": "workshop",
+        "resourceType": "patterns"
+    },
+    {
+        "userAccessId": NumberInt(3),
+        "username": "demo_admin",
+        "permission": "read",
+        "namespace": "traderx",
+        "resourceType": "all"
+    },
+    {
+        "userAccessId": NumberInt(4),
+        "username": "demo",
+        "permission": "read",
+        "namespace": "finos",
+        "resourceType": "all"
+    },
+    {
+        "userAccessId": NumberInt(5),
+        "username": "demo",
+        "permission": "read",
+        "namespace": "traderx",
+        "resourceType": "all"
+    },
+    {
+        "userAccessId": NumberInt(6),
+        "username": "demo",
+        "permission": "read",
+        "namespace": "workshop",
+        "resourceType": "all"
     }
 ]);
