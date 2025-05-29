@@ -1,0 +1,55 @@
+{
+    "adr": {
+        "consideredOptions": [
+            {
+                "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+                "name": "Making a table",
+                "negativeConsequences": [
+                    "Very little reusable code",
+                    "Have to set the border of each cell"
+                ],
+                "positiveConsequences": ["Looks better than current design"]
+            },
+            {
+                "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+                "name": "Using a collabsible list",
+                "negativeConsequences": ["Harder to code", "Daisy UI will not play ball"],
+                "positiveConsequences": ["Looks much better than current design"]
+            }
+        ],
+        "contextAndProblemStatement": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.  \n                        \n*Lorem ipsum dolor sit amet*, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+        "creationDateTime": "2025-04-29T12:44:25.465265627",
+        "decisionDrivers": [
+            "Example of a decision driver (one)",
+            "Example of a decision driver (two)"
+        ],
+        "decisionOutcome": {
+            "chosenOption": {
+                "description": "Lorem ipsum dolor sit amet, **consectetur adipiscing elit, sed do eiusmod tempor incididunt** ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+                "name": "Using a collabsible list",
+                "negativeConsequences": ["Harder to code", "Daisy UI will not play ball"],
+                "positiveConsequences": [
+                    "Looks much better than current design",
+                    "More compact view"
+                ]
+            },
+            "rationale": "It looks much nicer than the current design and allows users to collapse and exand options at will"
+        },
+        "links": [
+            {
+                "href": "http://my-link.com",
+                "rel": "My Link"
+            },
+            {
+                "href": "http://my-link.com",
+                "rel": "My Link Two"
+            }
+        ],
+        "status": "draft",
+        "title": "ADR - 1",
+        "updateDateTime": "2025-04-29T12:44:25.465338085"
+    },
+    "id": 1,
+    "namespace": "finos",
+    "revision": 1
+}
