@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react';
 import { ValueTable } from './components/value-table/ValueTable.js';
 import { JsonRenderer } from './components/json-renderer/JsonRenderer.js';
-import { Namespace, PatternID, FlowID, ArchitectureID, Version, Data } from '../model/calm.js';
+import {
+    Namespace,
+    PatternID,
+    FlowID,
+    ArchitectureID,
+    Version,
+    Data,
+    Revision,
+    AdrID,
+    Adr,
+} from '../model/calm.js';
 import {
     fetchNamespaces,
     fetchPatternIDs,
@@ -15,6 +25,8 @@ import {
     fetchArchitecture,
 } from '../service/calm-service.js';
 import { Navbar } from '../components/navbar/Navbar.js';
+import { AdrRenderer } from './components/adr-renderer/AdrRenderer.js';
+import { AdrService } from '../service/adr-service/adr-service.js';
 
 function Hub() {
     const [namespaces, setNamespaces] = useState<Namespace[]>([]);
@@ -22,12 +34,17 @@ function Hub() {
     const [patternIDs, setPatternIDs] = useState<PatternID[]>([]);
     const [flowIDs, setFlowIDs] = useState<FlowID[]>([]);
     const [architectureIDs, setArchitectureIDs] = useState<ArchitectureID[]>([]);
+    const [adrIDs, setAdrIDs] = useState<AdrID[]>([]);
     const [currentPatternOrFlowID, setCurrentPatternOrFlowID] = useState<string | undefined>();
     const [currentVersion, setCurrentVersion] = useState<Version | undefined>();
+    const [currentRevision, setCurrentRevision] = useState<Revision | undefined>();
     const [currentCalmType, setCurrentCalmType] = useState<string | undefined>();
 
     const [data, setData] = useState<Data | undefined>();
+    const [adrData, setAdrData] = useState<Adr | undefined>();
     const [versions, setVersions] = useState<Version[]>([]);
+    const [revisions, setRevisions] = useState<Revision[]>([]);
+    const adrService = new AdrService();
 
     useEffect(() => {
         fetchNamespaces(setNamespaces);
@@ -40,31 +57,42 @@ function Hub() {
         setVersions([]);
         setCurrentCalmType(undefined);
         setData(undefined);
+        setAdrData(undefined);
         setCurrentNamespace(namespace);
         fetchPatternIDs(namespace, setPatternIDs);
     };
 
-    const handleCalmTypeSelection = (calmType: string) => {
+    const handleCalmTypeSelection = async (calmType: string) => {
         setCurrentCalmType(calmType);
 
         if (calmType === 'Patterns') {
             fetchPatternIDs(currentNamespace!, setPatternIDs);
             setFlowIDs([]);
             setArchitectureIDs([]);
+            setAdrIDs([]);
         } else if (calmType === 'Flows') {
             fetchFlowIDs(currentNamespace!, setFlowIDs);
             setPatternIDs([]);
             setArchitectureIDs([]);
+            setAdrIDs([]);
         } else if (calmType === 'Architectures') {
             fetchArchitectureIDs(currentNamespace!, setArchitectureIDs);
+            setPatternIDs([]);
+            setFlowIDs([]);
+            setAdrIDs([]);
+        } else if (calmType === 'ADRs') {
+            adrService.fetchAdrIDs(currentNamespace!).then((res) => setAdrIDs(res));
+            setRevisions([]);
+            setArchitectureIDs([]);
             setPatternIDs([]);
             setFlowIDs([]);
         }
         setVersions([]);
         setData(undefined);
+        setAdrData(undefined);
     };
 
-    const handlePatternOrFlowSelection = (selectedID: string) => {
+    const handlePatternOrFlowSelection = async (selectedID: string) => {
         setCurrentPatternOrFlowID(selectedID);
 
         if (currentCalmType === 'Patterns') {
@@ -73,6 +101,10 @@ function Hub() {
             fetchFlowVersions(currentNamespace!, selectedID, setVersions);
         } else if (currentCalmType === 'Architectures') {
             fetchArchitectureVersions(currentNamespace!, selectedID, setVersions);
+        } else if (currentCalmType === 'ADRs') {
+            adrService
+                .fetchAdrRevisions(currentNamespace!, selectedID)
+                .then((res) => setRevisions(res));
         }
     };
 
@@ -91,6 +123,18 @@ function Hub() {
                 setData
             );
         }
+        setAdrData(undefined);
+    };
+
+    const handleRevisionSelection = async (revision: Revision) => {
+        setCurrentRevision(revision);
+
+        if (currentCalmType === 'ADRs') {
+            adrService
+                .fetchAdr(currentNamespace || '', currentPatternOrFlowID || '', revision)
+                .then((res) => setAdrData(res));
+            setData(undefined);
+        }
     };
 
     return (
@@ -107,7 +151,7 @@ function Hub() {
                     {currentNamespace && (
                         <ValueTable
                             header="Calm Type"
-                            values={['Architectures', 'Patterns', 'Flows']}
+                            values={['Architectures', 'Patterns', 'Flows', 'ADRs']}
                             callback={handleCalmTypeSelection}
                             currentValue={currentCalmType}
                         />
@@ -120,30 +164,47 @@ function Hub() {
                                     ? 'Patterns'
                                     : currentCalmType === 'Flows'
                                       ? 'Flows'
-                                      : 'Architectures'
+                                      : currentCalmType === 'Architectures'
+                                        ? 'Architectures'
+                                        : 'ADRs'
                             }
                             values={
                                 currentCalmType === 'Patterns'
                                     ? patternIDs
                                     : currentCalmType === 'Flows'
                                       ? flowIDs
-                                      : architectureIDs
+                                      : currentCalmType === 'Architectures'
+                                        ? architectureIDs
+                                        : adrIDs
                             }
                             callback={handlePatternOrFlowSelection}
                             currentValue={currentPatternOrFlowID}
                         />
                     )}
 
-                    {currentNamespace && currentCalmType && (
-                        <ValueTable
-                            header="Versions"
-                            values={versions}
-                            callback={handleVersionSelection}
-                            currentValue={currentVersion}
-                        />
-                    )}
+                    {currentNamespace &&
+                        currentCalmType &&
+                        (currentCalmType !== 'ADRs' ? (
+                            <ValueTable
+                                header="Versions"
+                                values={versions}
+                                callback={handleVersionSelection}
+                                currentValue={currentVersion}
+                            />
+                        ) : (
+                            <ValueTable
+                                header="Revisions"
+                                values={revisions}
+                                callback={handleRevisionSelection}
+                                currentValue={currentRevision}
+                            />
+                        ))}
                 </div>
-                <JsonRenderer json={data} />
+                {currentCalmType !== 'ADRs' ? (
+                    <JsonRenderer jsonString={data} />
+                ) : (
+                    <AdrRenderer adrDetails={adrData} />
+                )}
             </div>
         </>
     );
