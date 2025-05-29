@@ -10,6 +10,7 @@ import {
     styleTitle,
 } from '../../helper-functions/adr/adr-helper-function.js';
 import { displayAdrStatus } from '../../../model/adr/adr-status/adrStatus.js';
+import './AdrRenderer.css';
 
 interface AdrRendererProps {
     adrDetails: Adr | undefined;
