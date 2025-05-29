@@ -1,0 +1,7 @@
+.markdownParagraphSpacing p {
+    margin-bottom: 1.5% !important;
+}
+
+.adr-title {
+    min-height: auto;
+}
