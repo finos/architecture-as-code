@@ -117,8 +117,8 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
                     description: node.description,
                     type: node['node-type'],
                     id: node['unique-id'],
-                    _displayPlaceholderWithDesc: `${generateDisplayPlaceHolderWithoutDesc(node)}\n\n${node.description}\n`,
-                    _displayPlaceholderWithoutDesc: `${generateDisplayPlaceHolderWithoutDesc(node)}`,
+                    labelWithDescription: `${generateDisplayPlaceHolderWithoutDesc(node)}\n\n${node.description}\n`,
+                    labelWithoutDescription: `${generateDisplayPlaceHolderWithoutDesc(node)}`,
                 },
             };
 

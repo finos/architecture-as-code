@@ -53,8 +53,8 @@ function getEdgeStyle(showDescription: boolean): cytoscape.Css.Edge {
 function getNodeStyle(showDescription: boolean): cytoscape.Css.Node {
     return {
         label: showDescription
-            ? 'data(_displayPlaceholderWithDesc)'
-            : 'data(_displayPlaceholderWithoutDesc)',
+            ? 'data(labelWithDescription)'
+            : 'data(labelWithoutDescription)',
         'text-valign': 'center',
         'text-halign': 'center',
         'text-wrap': 'wrap',
@@ -92,24 +92,24 @@ export function CytoscapeRenderer({
             container,
             elements: [...nodes, ...edges],
             style: [
-            {
-                selector: 'edge',
-                style: getEdgeStyle(isRelationshipDescActive),
-            },
-            {
-                selector: 'node',
-                style: getNodeStyle(isNodeDescActive),
-            },
-            {
-                selector: ':parent',
-                style: {
-                label: 'data(label)',
-                "background-color": 'white',
-                "border-style": 'dashed',
-                "border-width": 2,
-                "border-dash-pattern": [8, 10], // [dash length, gap length]
+                {
+                    selector: 'edge',
+                    style: getEdgeStyle(isRelationshipDescActive),
                 },
-            },
+                {
+                    selector: 'node',
+                    style: getNodeStyle(isNodeDescActive),
+                },
+                {
+                    selector: ':parent',
+                    style: {
+                        label: 'data(label)',
+                        "background-color": 'white',
+                        "border-style": 'dashed',
+                        "border-width": 2,
+                        "border-dash-pattern": [8, 10], // [dash length, gap length]
+                    },
+                },
             ],
             layout: breadthFirstLayout,
             boxSelectionEnabled: true,
