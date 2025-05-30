@@ -180,6 +180,7 @@ export function CytoscapeRenderer({
         nodeClickedCallback,
         edgeClickedCallback,
         cyRef,
+        calmKey
     ]);
 
     return <div ref={cyRef} className="flex-1 bg-white visualizer" style={{ height: '100vh' }} />;

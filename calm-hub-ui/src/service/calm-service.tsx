@@ -146,6 +146,7 @@ export async function fetchFlow(
         );
         const response = await res.json();
         const data: Data = { id: flowID, version: version, calmType: CalmType.Flow, name: namespace, data: response };
+        setFlow(data);
     } catch (error) {
         console.error(
             `Error fetching flow for namespace ${namespace}, flow ID ${flowID}, version ${version}:`,
