@@ -1,18 +1,20 @@
-export enum adrStatus {
-    draft = 'draft',
-    proposed = 'proposed',
-    accepted = 'accepted',
-    superseded = 'superseded',
-    rejected = 'rejected',
-    deprecated = 'deprecated',
-}
+export type adrStatus =
+    | 'draft'
+    | 'proposed'
+    | 'accepted'
+    | 'superseded'
+    | 'rejected'
+    | 'deprecated';
 
-export function displayAdrStatus(adrStatus: adrStatus) {
+function setAdrStatusCasing(adrStatus: adrStatus) {
+    return adrStatus.charAt(0).toUpperCase() + adrStatus.slice(1);
+}
+export function DisplayAdrStatus(props: { adrStatus: adrStatus }) {
     let adrStatusStyling =
         'inline rounded-full text-center text-s ps-3 pe-3 ms-3 relative bottom-1 font-bold border-solid border-2';
-    let adrStatusString = adrStatus.charAt(0).toUpperCase() + adrStatus.slice(1);
+    let adrStatusString = setAdrStatusCasing(props.adrStatus);
 
-    switch (adrStatus) {
+    switch (props.adrStatus) {
         case 'draft': {
             adrStatusStyling = adrStatusStyling + ' border-orange-500 text-orange-500';
             break;

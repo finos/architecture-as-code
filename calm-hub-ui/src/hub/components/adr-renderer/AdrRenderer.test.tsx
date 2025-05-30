@@ -26,7 +26,7 @@ describe('ADR Renderer', () => {
     };
     const adrDetails = {
         title: 'adr title',
-        status: adrStatus.draft,
+        status: 'draft',
         creationDateTime: '2025-04-29T12:44:25.465265627',
         updateDateTime: '2025-04-30T12:50:25.465265627',
         contextAndProblemStatement: 'This is the markdown *context* and the markdown *problem*',

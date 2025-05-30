@@ -9,7 +9,7 @@ import {
     getDate,
     styleTitle,
 } from '../../helper-functions/adr/adr-helper-function.js';
-import { displayAdrStatus } from '../../../model/adr/adr-status/adrStatus.js';
+import { DisplayAdrStatus } from '../../../model/adr/adr-status/adrStatus.js';
 import './AdrRenderer.css';
 
 interface AdrRendererProps {
@@ -35,7 +35,7 @@ export function AdrRenderer({ adrDetails }: AdrRendererProps) {
 
             <div>
                 <h1 className="font-bold inline text-4xl">{adr && adr!.title}</h1>
-                {adr && adr!.status && displayAdrStatus(adr && adr!.status)}
+                {adr && adr!.status && <DisplayAdrStatus adrStatus={adr.status} />}
             </div>
 
             <div className="mt-3 collapse collapse-arrow">
