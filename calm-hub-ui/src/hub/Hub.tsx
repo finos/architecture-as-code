@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react';
 import { ValueTable } from './components/value-table/ValueTable.js';
 import { JsonRenderer } from './components/json-renderer/JsonRenderer.js';
-import { Namespace, PatternID, FlowID, ArchitectureID, Version, Data } from '../model/calm.js';
+import {
+    Namespace,
+    PatternID,
+    FlowID,
+    ArchitectureID,
+    Version,
+    Data,
+    CalmType,
+} from '../model/calm.js';
 import {
     fetchNamespaces,
     fetchPatternIDs,
@@ -47,15 +55,15 @@ function Hub() {
     const handleCalmTypeSelection = (calmType: string) => {
         setCurrentCalmType(calmType);
 
-        if (calmType === 'Patterns') {
+        if (calmType === CalmType.Pattern) {
             fetchPatternIDs(currentNamespace!, setPatternIDs);
             setFlowIDs([]);
             setArchitectureIDs([]);
-        } else if (calmType === 'Flows') {
+        } else if (calmType === CalmType.Flow) {
             fetchFlowIDs(currentNamespace!, setFlowIDs);
             setPatternIDs([]);
             setArchitectureIDs([]);
-        } else if (calmType === 'Architectures') {
+        } else if (calmType === CalmType.Architecture) {
             fetchArchitectureIDs(currentNamespace!, setArchitectureIDs);
             setPatternIDs([]);
             setFlowIDs([]);
@@ -67,11 +75,11 @@ function Hub() {
     const handlePatternOrFlowSelection = (selectedID: string) => {
         setCurrentPatternOrFlowID(selectedID);
 
-        if (currentCalmType === 'Patterns') {
+        if (currentCalmType === CalmType.Pattern) {
             fetchPatternVersions(currentNamespace!, selectedID, setVersions);
-        } else if (currentCalmType === 'Flows') {
+        } else if (currentCalmType === CalmType.Flow) {
             fetchFlowVersions(currentNamespace!, selectedID, setVersions);
-        } else if (currentCalmType === 'Architectures') {
+        } else if (currentCalmType === CalmType.Architecture) {
             fetchArchitectureVersions(currentNamespace!, selectedID, setVersions);
         }
     };
@@ -79,11 +87,11 @@ function Hub() {
     const handleVersionSelection = (version: Version) => {
         setCurrentVersion(version);
 
-        if (currentCalmType === 'Patterns') {
+        if (currentCalmType === CalmType.Pattern) {
             fetchPattern(currentNamespace || '', currentPatternOrFlowID || '', version, setData);
-        } else if (currentCalmType === 'Flows') {
+        } else if (currentCalmType === CalmType.Flow) {
             fetchFlow(currentNamespace || '', currentPatternOrFlowID || '', version, setData);
-        } else if (currentCalmType === 'Architectures') {
+        } else if (currentCalmType === CalmType.Architecture) {
             fetchArchitecture(
                 currentNamespace || '',
                 currentPatternOrFlowID || '',
@@ -107,7 +115,7 @@ function Hub() {
                     {currentNamespace && (
                         <ValueTable
                             header="Calm Type"
-                            values={['Architectures', 'Patterns', 'Flows']}
+                            values={Object.values(CalmType) as string[]}
                             callback={handleCalmTypeSelection}
                             currentValue={currentCalmType}
                         />
@@ -116,16 +124,16 @@ function Hub() {
                     {currentNamespace && currentCalmType && (
                         <ValueTable
                             header={
-                                currentCalmType === 'Patterns'
-                                    ? 'Patterns'
-                                    : currentCalmType === 'Flows'
-                                      ? 'Flows'
-                                      : 'Architectures'
+                                currentCalmType === CalmType.Pattern
+                                    ? CalmType.Pattern
+                                    : currentCalmType === CalmType.Flow
+                                      ? CalmType.Flow
+                                      : CalmType.Architecture
                             }
                             values={
-                                currentCalmType === 'Patterns'
+                                currentCalmType === CalmType.Pattern
                                     ? patternIDs
-                                    : currentCalmType === 'Flows'
+                                    : currentCalmType === CalmType.Flow
                                       ? flowIDs
                                       : architectureIDs
                             }

@@ -1,16 +1,24 @@
 import { useNavigate } from 'react-router-dom';
 import { allExpanded, defaultStyles, JsonView } from 'react-json-view-lite';
 import 'react-json-view-lite/dist/index.css';
+import { Data } from '../../../model/calm.js';
 
 interface JsonRendererProps {
-    json?: object;
+    json?: Data;
 }
 
 function NoData() {
     return <div className=" text-center">Please select a document to load.</div>;
 }
 
-function JsonDisplay({ data, handleClick }: { data: object; handleClick: () => void }) {
+function DisplayData(json: Data) {
+    return {
+        name: json.name,
+        data: json.data,
+    };
+}
+
+function JsonDisplay({ data, handleClick }: { data: Data; handleClick: () => void }) {
     return (
         <div>
             <button
@@ -19,7 +27,11 @@ function JsonDisplay({ data, handleClick }: { data: object; handleClick: () => v
             >
                 Visualize
             </button>
-            <JsonView data={data} shouldExpandNode={allExpanded} style={defaultStyles} />
+            <JsonView
+                data={DisplayData(data)}
+                shouldExpandNode={allExpanded}
+                style={defaultStyles}
+            />
         </div>
     );
 }

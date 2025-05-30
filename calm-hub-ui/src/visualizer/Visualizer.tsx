@@ -6,9 +6,10 @@ import React from 'react';
 import { Menu } from './components/menu/Menu.js';
 import { useLocation } from 'react-router-dom';
 import { CalmArchitectureSchema } from '@finos/calm-shared/src/types/core-types.js';
+import { Data } from '../model/calm.js';
 
 function Visualizer() {
-    const [title, setTitle] = useState<string | undefined>(undefined);
+    const [title, setTitle] = useState<string>('');
     const [instance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
     const [isConDescActive, setConDescActive] = React.useState(true);
     const [isNodeDescActive, setNodeDescActive] = React.useState(true);
@@ -16,6 +17,7 @@ function Visualizer() {
     const data = useMemo(() => location.state || {}, [location.state]);
     const [fileInstance, setFileInstance] = useState<string | undefined>(undefined);
     const [fileTitle, setFileTitle] = useState<string | undefined>(undefined);
+    const [calmData, setCalmData] = useState<Data | undefined>(undefined);
     const toggleState = (setter: React.Dispatch<React.SetStateAction<boolean>>) => () =>
         setter((prev) => !prev);
 
@@ -26,8 +28,9 @@ function Visualizer() {
     }
 
     useEffect(() => {
-        setTitle(fileTitle ?? data?.name);
-        setCALMInstance(fileInstance ?? data?.data);
+        setCalmData(data),
+        setTitle(fileTitle ?? data.name);
+        setCALMInstance(fileInstance ?? data.data);
     }, [fileInstance, fileTitle, data]);
 
     return (
@@ -46,6 +49,7 @@ function Visualizer() {
                 isConDescActive={isConDescActive}
                 calmInstance={instance}
                 title={title}
+                data={calmData}
             />
         </div>
     );

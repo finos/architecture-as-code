@@ -34,6 +34,7 @@ export interface CytoscapeRendererProps {
     edges: Edge[];
     nodeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
     edgeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
+    calmKey?: string;
 }
 
 function getNodeLabelTemplateGenerator(selected: boolean, includeDescription: boolean) {
@@ -85,6 +86,7 @@ export function CytoscapeRenderer({
     isNodeDescActive,
     nodeClickedCallback,
     edgeClickedCallback,
+    calmKey,
 }: CytoscapeRendererProps) {
     const cyRef = useRef<HTMLDivElement>(null);
 
@@ -117,7 +119,7 @@ export function CytoscapeRenderer({
             maxZoom: 5,
         });
 
-        const savedPositions = loadStoredNodePositions(title);
+        const savedPositions = loadStoredNodePositions(calmKey ? calmKey : title);
         if (savedPositions) {
             cy.nodes().forEach((node) => {
                 const match = savedPositions.find((n) => n.id === node.id());
@@ -144,7 +146,7 @@ export function CytoscapeRenderer({
                 id: node.id(),
                 position: node.position(),
             }));
-            saveNodePositions(title, nodePositions);
+            saveNodePositions(calmKey ? calmKey : title, nodePositions);
         });
 
         // This function comes from a plugin which doesn't have proper types, which is why the hacky casting is needed

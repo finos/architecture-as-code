@@ -9,6 +9,7 @@ interface VisualizerContainerProps {
     isRelationshipDescActive: boolean;
     nodes: CalmNode[];
     edges: Edge[];
+    calmKey?: string;
 }
 
 export function VisualizerContainer({
@@ -17,6 +18,7 @@ export function VisualizerContainer({
     edges = [],
     isRelationshipDescActive,
     isNodeDescActive,
+    calmKey,
 }: VisualizerContainerProps) {
     const [selectedItem, setSelectedItem] = useState<CalmNode['data'] | Edge['data'] | null>(null);
 
@@ -36,6 +38,7 @@ export function VisualizerContainer({
                 edges={edges}
                 nodeClickedCallback={(x) => setSelectedItem(x)}
                 edgeClickedCallback={(x) => setSelectedItem(x)}
+                calmKey={calmKey}
             />
             {selectedItem && (
                 <Sidebar selectedData={selectedItem} closeSidebar={() => setSelectedItem(null)} />

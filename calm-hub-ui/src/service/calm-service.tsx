@@ -1,4 +1,4 @@
-import { Namespace, PatternID, Version, FlowID, ArchitectureID, Data } from '../model/calm.js';
+import { Namespace, PatternID, Version, FlowID, ArchitectureID, Data, CalmType } from '../model/calm.js';
 import { getToken } from '../authService.js';
 
 /**
@@ -116,7 +116,7 @@ export async function fetchPattern(
             }
         );
         const response = await res.json();
-        const data: Data = { name: namespace, data: response };
+        const data: Data = { id: patternID, version: version, calmType: CalmType.Pattern, name: namespace, data: response };
         setPattern(data);
     } catch (error) {
         console.error(
@@ -145,8 +145,7 @@ export async function fetchFlow(
             }
         );
         const response = await res.json();
-        const data: Data = { name: namespace, data: response };
-        setFlow(data);
+        const data: Data = { id: flowID, version: version, calmType: CalmType.Flow, name: namespace, data: response };
     } catch (error) {
         console.error(
             `Error fetching flow for namespace ${namespace}, flow ID ${flowID}, version ${version}:`,
@@ -218,7 +217,7 @@ export async function fetchArchitecture(
             }
         );
         const response = await res.json();
-        const data: Data = { name: namespace, data: response };
+        const data: Data = { id: architectureID, version: version, calmType: CalmType.Architecture, name: namespace, data: response };
         setArchitecture(data);
     } catch (error) {
         console.error(
