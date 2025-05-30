@@ -31,7 +31,7 @@ To contribute new controls or modify existing ones:
 1. Follow the CALM control schema specification
 2. Ensure your control is well-documented with clear requirements and rationale
 3. Include appropriate examples and test cases
-4. Submit a pull request with detailed description of the control's purpose and use cases
+4. Submit a pull request with a detailed description of the control's purpose and use cases
 
 ## Usage
 
