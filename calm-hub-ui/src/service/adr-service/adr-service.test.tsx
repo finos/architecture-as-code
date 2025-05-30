@@ -10,7 +10,7 @@ const mock = new AxiosMockAdapter(ax as never);
 const namespace = 'test-namespace';
 const adrId = '1';
 const revision = '1';
-const expectedAdr = JSON.parse(fs.readFileSync('./src/service/adr-service/adr.json', 'utf8'));
+const expectedAdr = JSON.parse(fs.readFileSync('./src/fixtures/adr.json', 'utf8'));
 
 const errorStatusCodes = [400, 401, 403, 404, 500];
 
