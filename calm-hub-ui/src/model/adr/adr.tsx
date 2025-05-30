@@ -1,11 +1,11 @@
-import { adrStatus } from './adr-status/adrStatus.js';
+import { AdrStatus } from './adr-status/adrStatus.js';
 import { Decision } from './decision.js';
 import { Link } from './link.js';
 import { Option } from './option.js';
 
 export interface Adr {
     title: string;
-    status: adrStatus;
+    status: AdrStatus;
     creationDateTime: string;
     updateDateTime: string;
     contextAndProblemStatement: string;

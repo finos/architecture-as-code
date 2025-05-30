@@ -13,29 +13,17 @@ import { DisplayAdrStatus } from '../../../model/adr/adr-status/adrStatus.js';
 import './AdrRenderer.css';
 
 interface AdrRendererProps {
-    adrDetails: Adr | undefined;
+    adrDetails?: Adr;
 }
 
 export function AdrRenderer({ adrDetails }: AdrRendererProps) {
-    const defaultMessage = <div className="text-center">Please select an ADR to load</div>;
-    let adr = undefined;
-
-    if (adrDetails !== undefined) {
-        adr = adrDetails?.adr;
-    }
+    const adr = adrDetails?.adr;
 
     const adrView = (
         <div>
-            <button
-                className="bg-primary hover:bg-accent text-white font-bold py-2 px-4 rounded float-right"
-                onClick={handleClick}
-            >
-                Edit ADR
-            </button>
-
             <div>
-                <h1 className="font-bold inline text-4xl">{adr && adr!.title}</h1>
-                {adr && adr!.status && <DisplayAdrStatus adrStatus={adr.status} />}
+                <h1 className="font-bold inline text-4xl">{adr!.title}</h1>
+                {adr!.status && <DisplayAdrStatus adrStatus={adr!.status} />}
             </div>
 
             <div className="mt-3 collapse collapse-arrow">
@@ -43,7 +31,7 @@ export function AdrRenderer({ adrDetails }: AdrRendererProps) {
                 {styleTitle('Context and Problem')}
 
                 <div className="collapse-content ps-0 markdownParagraphSpacing">
-                    <Markdown>{adr && adr!.contextAndProblemStatement}</Markdown>
+                    <Markdown>{adr!.contextAndProblemStatement}</Markdown>
                 </div>
             </div>
 
@@ -52,7 +40,7 @@ export function AdrRenderer({ adrDetails }: AdrRendererProps) {
                 {styleTitle('Decision Drivers')}
 
                 <div className="collapse-content pt-1 pe-2">
-                    {adr && displayDecisionDrivers(adr!.decisionDrivers)}
+                    {displayDecisionDrivers(adr!.decisionDrivers)}
                 </div>
             </div>
 
@@ -61,7 +49,7 @@ export function AdrRenderer({ adrDetails }: AdrRendererProps) {
                 {styleTitle('Considered Options')}
 
                 <div className="collapse-content ps-0 pt-0">
-                    {adr && displayConsideredOptions(adr!.consideredOptions)}
+                    {displayConsideredOptions(adr!.consideredOptions)}
                 </div>
             </div>
 
@@ -70,7 +58,7 @@ export function AdrRenderer({ adrDetails }: AdrRendererProps) {
                 {styleTitle('Decision Outcome')}
 
                 <div className="collapse-content ps-0">
-                    {adr && displayChosenOption(adr!.decisionOutcome)}
+                    {displayChosenOption(adr!.decisionOutcome)}
                 </div>
             </div>
 
@@ -78,30 +66,23 @@ export function AdrRenderer({ adrDetails }: AdrRendererProps) {
                 <input type="checkbox" defaultChecked className="peer" />
                 {styleTitle('Relevant Links')}
 
-                <div className="pt-1 pe-2 collapse-content">{adr && displayLinks(adr!.links)}</div>
+                <div className="pt-1 pe-2 collapse-content">{displayLinks(adr!.links)}</div>
             </div>
 
             <div className="italic  text-xs">
                 <div>
                     <p className="inline"> Created on </p>
-                    {adr && getDate(adr.creationDateTime)}
+                    {getDate(adr!.creationDateTime)}
                 </div>
                 <div>
                     <p className="inline"> Last updated on </p>
-                    {adr && getDate(adr.updateDateTime)}
+                    {getDate(adr!.updateDateTime)}
                 </div>
             </div>
         </div>
     );
 
-    function handleClick() {
-        // edit funtionality
-        console.log('editing mode');
-    }
-
-    const content = adrDetails && adrDetails.adr ? adrView : defaultMessage;
-
     return (
-        <div className="p-5 flex-1 overflow-auto border-l-2 border-black bg-white">{content}</div>
+        <div className="p-5 flex-1 overflow-auto border-l-2 border-black bg-white">{adrView}</div>
     );
 }

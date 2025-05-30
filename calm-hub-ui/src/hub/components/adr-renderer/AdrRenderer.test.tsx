@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { AdrRenderer } from '../../../hub/components/adr-renderer/AdrRenderer.js';
 import { Option } from '../../../model/adr/option.js';
 import { Adr } from '../../../model/calm.js';
-import { adrStatus } from '../../../model/adr/adr-status/adrStatus.js';
+import { AdrStatus } from '../../../model/adr/adr-status/adrStatus.js';
 
 describe('ADR Renderer', () => {
     const optionOne: Option = {
@@ -26,7 +26,7 @@ describe('ADR Renderer', () => {
     };
     const adrDetails = {
         title: 'adr title',
-        status: 'draft',
+        status: 'draft' as AdrStatus,
         creationDateTime: '2025-04-29T12:44:25.465265627',
         updateDateTime: '2025-04-30T12:50:25.465265627',
         contextAndProblemStatement: 'This is the markdown *context* and the markdown *problem*',
@@ -48,11 +48,6 @@ describe('ADR Renderer', () => {
     function renderAdr() {
         return render(<AdrRenderer adrDetails={adr} />);
     }
-
-    it('should not render the ADR until it is selected', () => {
-        render(<AdrRenderer adrDetails={undefined} />);
-        expect(screen.getByText('Please select an ADR to load')).toBeInTheDocument();
-    });
 
     it('should render the ADR view when ADR is selected', () => {
         renderAdr();

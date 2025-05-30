@@ -1,4 +1,4 @@
-export type adrStatus =
+export type AdrStatus =
     | 'draft'
     | 'proposed'
     | 'accepted'
@@ -6,13 +6,14 @@ export type adrStatus =
     | 'rejected'
     | 'deprecated';
 
-function setAdrStatusCasing(adrStatus: adrStatus) {
+function capitaliseFirstLetter(adrStatus: string) {
     return adrStatus.charAt(0).toUpperCase() + adrStatus.slice(1);
 }
-export function DisplayAdrStatus(props: { adrStatus: adrStatus }) {
+
+export function DisplayAdrStatus(props: { adrStatus: AdrStatus }) {
     let adrStatusStyling =
         'inline rounded-full text-center text-s ps-3 pe-3 ms-3 relative bottom-1 font-bold border-solid border-2';
-    let adrStatusString = setAdrStatusCasing(props.adrStatus);
+    let adrStatusString = capitaliseFirstLetter(props.adrStatus);
 
     switch (props.adrStatus) {
         case 'draft': {

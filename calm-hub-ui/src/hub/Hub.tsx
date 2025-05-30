@@ -202,8 +202,12 @@ function Hub() {
                 </div>
                 {currentCalmType !== 'ADRs' ? (
                     <JsonRenderer json={data} />
-                ) : (
+                ) : adrData ? (
                     <AdrRenderer adrDetails={adrData} />
+                ) : (
+                    <div className="p-5 flex-1 overflow-auto border-l-2 border-black bg-[#eee] text-center">
+                        Please select an ADR to load
+                    </div>
                 )}
             </div>
         </>
