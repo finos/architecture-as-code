@@ -2722,6 +2722,7 @@ db.userAccess.insertMany([
 ]);
 
 db.adrs.insertMany([
+	{
         namespace: 'finos',
         adrs: [
             {

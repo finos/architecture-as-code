@@ -201,7 +201,7 @@ function Hub() {
                         ))}
                 </div>
                 {currentCalmType !== 'ADRs' ? (
-                    <JsonRenderer jsonString={data} />
+                    <JsonRenderer json={data} />
                 ) : (
                     <AdrRenderer adrDetails={adrData} />
                 )}
