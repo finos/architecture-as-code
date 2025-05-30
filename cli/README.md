@@ -48,7 +48,7 @@ Generate an architecture from a CALM pattern file.
 Options:
   -p, --pattern <file>          Path to the pattern file to use. May be a file path or a URL.
   -o, --output <file>           Path location at which to output the generated file. (default: "architecture.json")
-  -s, --schemaDirectory <path>  Path to the directory containing the meta schemas to use. (default: "../calm/draft")
+  -s, --schemaDirectory <path>  Path to the directory containing the meta schemas to use. (default: "../calm/release")
   -v, --verbose                 Enable verbose logging. (default: false)
   -h, --help                    display help for command
 ```
@@ -73,7 +73,7 @@ Validate that an architecture conforms to a given CALM pattern.
 Options:
   -p, --pattern <file>          Path to the pattern file to use. May be a file path or a URL.
   -a, --architecture <file>     Path to the pattern architecture file to use. May be a file path or a URL.
-  -s, --schemaDirectory <path>  Path to the directory containing the meta schemas to use. (default: "../calm/draft")
+  -s, --schemaDirectory <path>  Path to the directory containing the meta schemas to use. (default: "../calm/release")
   --strict                      When run in strict mode, the CLI will fail if any warnings are reported. (default: false)
   -f, --format <format>         The format of the output (choices: "json", "junit", default: "json")
   -o, --output <file>           Path location at which to output the generated file.
