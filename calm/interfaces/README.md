@@ -45,7 +45,7 @@ To contribute new interfaces or modify existing ones:
 2. Ensure your interface is well-documented with clear protocol definitions
 3. Include comprehensive examples and test cases
 4. Provide migration guides for breaking changes
-5. Submit a pull request with detailed description of the interface's purpose and use cases
+5. Submit a pull request with a detailed description of the interface's purpose and use cases
 
 ## Usage
 
