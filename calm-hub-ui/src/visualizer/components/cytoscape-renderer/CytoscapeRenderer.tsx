@@ -36,16 +36,6 @@ export interface CytoscapeRendererProps {
     edgeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
 }
 
-function getNodeLabelTemplateGenerator(selected: boolean, includeDescription: boolean) {
-    return (data: CalmNode['data']) => `
-        <div class="node element ${selected ? 'selected-node' : ''}">
-            <p class="title">${data.label}</p>
-            <p class="type">${data.type}</p>
-            <p class="description">${includeDescription ? data.description : ''}</p>
-        </div>
-    `;
-}
-
 function getEdgeStyle(showDescription: boolean): cytoscape.Css.Edge {
     return {
         width: 2,
@@ -147,36 +137,18 @@ export function CytoscapeRenderer({
             saveNodePositions(title, nodePositions);
         });
 
-        // This function comes from a plugin which doesn't have proper types, which is why the hacky casting is needed
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (cy as unknown as any).nodeHtmlLabel([
-            {
-                query: '.node',
-                valign: 'top',
-                valignBox: 'top',
-                tpl: getNodeLabelTemplateGenerator(false, isNodeDescActive),
-            },
-            {
-                query: '.node:selected',
-                valign: 'top',
-                valignBox: 'top',
-                tpl: getNodeLabelTemplateGenerator(true, isNodeDescActive),
-            },
-        ]);
-
         layoutCorrectionService.calculateAndUpdateNodePositions(cy, nodes);
 
         return () => {
             cy.destroy();
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         title,
         nodes,
         edges,
         isNodeDescActive,
         isRelationshipDescActive,
-        nodeClickedCallback,
-        edgeClickedCallback,
         cyRef,
     ]);
 
