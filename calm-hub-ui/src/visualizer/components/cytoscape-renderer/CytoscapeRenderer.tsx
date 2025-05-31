@@ -1,7 +1,6 @@
 import './cytoscape.css';
 import { useEffect, useRef } from 'react';
 import cytoscape, { EdgeSingular, NodeSingular } from 'cytoscape';
-import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
 import { Edge, CalmNode } from '../../contracts/contracts.js';
 import { LayoutCorrectionService } from '../../services/layout-correction-service.js';
 import {
@@ -10,7 +9,6 @@ import {
 } from '../../services/node-position-service.js';
 
 // Initialize Cytoscape plugins
-nodeEdgeHtmlLabel(cytoscape);
 
 // Layout configuration
 const breadthFirstLayout = {
@@ -23,6 +21,8 @@ const breadthFirstLayout = {
     padding: 30,
     spacingFactor: 1.25,
 };
+// Text font size for node and edge labels
+const textFontSize = '20px';
 
 export interface CytoscapeRendererProps {
     title: string;
@@ -32,16 +32,6 @@ export interface CytoscapeRendererProps {
     edges: Edge[];
     nodeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
     edgeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
-}
-
-function getNodeLabelTemplateGenerator(selected: boolean, includeDescription: boolean) {
-    return (data: CalmNode['data']) => `
-        <div class="node element ${selected ? 'selected-node' : ''}">
-            <p class="title">${data.label}</p>
-            <p class="type">${data.type}</p>
-            <p class="description">${includeDescription ? data.description : ''}</p>
-        </div>
-    `;
 }
 
 function getEdgeStyle(showDescription: boolean): cytoscape.Css.Edge {
@@ -54,19 +44,23 @@ function getEdgeStyle(showDescription: boolean): cytoscape.Css.Edge {
         'text-background-color': 'white',
         'text-background-opacity': 1,
         'text-background-padding': '5px',
+        'font-size': textFontSize,
     };
 }
 
 function getNodeStyle(showDescription: boolean): cytoscape.Css.Node {
     return {
-        label: showDescription
-            ? 'data(_displayPlaceholderWithDesc)'
-            : 'data(_displayPlaceholderWithoutDesc)',
+        label: showDescription ? 'data(labelWithDescription)' : 'data(labelWithoutDescription)',
         'text-valign': 'center',
         'text-halign': 'center',
         'text-wrap': 'wrap',
         'text-max-width': '180px',
         'font-family': 'Arial',
+        'background-color': '#f5f5f5',
+        'border-color': 'black',
+        'border-width': 1,
+        padding: '10px',
+        'font-size': textFontSize,
         width: '200px',
         height: 'label',
         shape: 'rectangle',
@@ -106,6 +100,10 @@ export function CytoscapeRenderer({
                     selector: ':parent',
                     style: {
                         label: 'data(label)',
+                        'background-color': 'white',
+                        'border-style': 'dashed',
+                        'border-width': 2,
+                        'border-dash-pattern': [8, 10], // [dash length, gap length]
                     },
                 },
             ],
@@ -144,23 +142,6 @@ export function CytoscapeRenderer({
             }));
             saveNodePositions(title, nodePositions);
         });
-
-        // This function comes from a plugin which doesn't have proper types, which is why the hacky casting is needed
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (cy as unknown as any).nodeHtmlLabel([
-            {
-                query: '.node',
-                valign: 'top',
-                valignBox: 'top',
-                tpl: getNodeLabelTemplateGenerator(false, isNodeDescActive),
-            },
-            {
-                query: '.node:selected',
-                valign: 'top',
-                valignBox: 'top',
-                tpl: getNodeLabelTemplateGenerator(true, isNodeDescActive),
-            },
-        ]);
 
         layoutCorrectionService.calculateAndUpdateNodePositions(cy, nodes);
 
