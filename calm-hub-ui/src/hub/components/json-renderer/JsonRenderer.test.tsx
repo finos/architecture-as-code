@@ -29,29 +29,16 @@ describe('JsonRenderer', () => {
         expect(screen.queryByText(/visualize/i)).not.toBeInTheDocument();
     });
 
-    it('renders JsonView and Visualize button when jsonString is provided', () => {
+    it('renders JsonView when jsonString is provided', () => {
         const data = { foo: 'bar', num: 42 };
         render(
             <MemoryRouter>
                 <JsonRenderer json={data} />
             </MemoryRouter>
         );
-        expect(screen.getByText(/visualize/i)).toBeInTheDocument();
         expect(screen.getByText(/foo/i)).toBeInTheDocument();
         expect(screen.getByText(/bar/i)).toBeInTheDocument();
         expect(screen.getByText(/num/i)).toBeInTheDocument();
         expect(screen.getByText(/42/i)).toBeInTheDocument();
-    });
-
-    it('navigates to /visualizer with state when Visualize button is clicked', () => {
-        const data = { foo: 'bar' };
-        render(
-            <MemoryRouter>
-                <JsonRenderer json={data} />
-            </MemoryRouter>
-        );
-        const button = screen.getByText(/visualize/i);
-        fireEvent.click(button);
-        expect(mockNavigate).toHaveBeenCalledWith('/visualizer', { state: data });
     });
 });
