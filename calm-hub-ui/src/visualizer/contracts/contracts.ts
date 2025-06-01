@@ -5,7 +5,6 @@ import { CalmControlsSchema } from '@finos/calm-shared/src/types/control-types.j
 export type CytoscapeNode = {
     classes?: string;
     data: CytoscapeNodeData & {
-        parent?: string;
         cytoscapeProps: {
             labelWithDescription: string;
             labelWithoutDescription: string;
@@ -17,9 +16,10 @@ export type CytoscapeNodeData = {
     id: string;
     description: string;
     type: string;
-    label: string;
+    name: string;
     interfaces?: CalmInterfaceSchema[];
     controls?: CalmControlsSchema;
+    parent?: string;
 };
 
 export type Edge = {

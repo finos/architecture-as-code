@@ -11,7 +11,7 @@ import {
     CALMConnectsRelationship,
     CALMInteractsRelationship,
 } from '../../../../../shared/src/types.js';
-import { CalmNode, Edge } from '../../contracts/contracts.js';
+import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { VisualizerContainer } from '../visualizer-container/VisualizerContainer.js';
 
 interface DrawerProps {
@@ -93,7 +93,7 @@ function getDeployedInRelationships(calmInstance: CalmArchitectureSchema) {
 }
 
 export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive }: DrawerProps) {
-    const [selectedNode, setSelectedNode] = useState<CalmNode | null>(null);
+    const [selectedNode, setSelectedNode] = useState<CytoscapeNode | null>(null);
 
     function closeSidebar() {
         setSelectedNode(null);
@@ -103,22 +103,24 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
         return `${node.name}\n[${node['node-type']}]`;
     }
 
-    function getNodes(): CalmNode[] {
+    function getNodes(): CytoscapeNode[] {
         if (!calmInstance || !calmInstance.relationships) return [];
 
         const composedOfRelationships = getComposedOfRelationships(calmInstance);
         const deployedInRelationships = getDeployedInRelationships(calmInstance);
 
         return (calmInstance.nodes ?? []).map((node) => {
-            const newData: CalmNode = {
+            const newData: CytoscapeNode = {
                 classes: 'node',
                 data: {
-                    label: node.name,
+                    id: node['unique-id'],
+                    name: node.name,
                     description: node.description,
                     type: node['node-type'],
-                    id: node['unique-id'],
-                    labelWithDescription: `${generateDisplayPlaceHolderWithoutDesc(node)}\n\n${node.description}\n`,
-                    labelWithoutDescription: `${generateDisplayPlaceHolderWithoutDesc(node)}`,
+                    cytoscapeProps: {
+                        labelWithDescription: `${generateDisplayPlaceHolderWithoutDesc(node)}\n\n${node.description}\n`,
+                        labelWithoutDescription: `${generateDisplayPlaceHolderWithoutDesc(node)}`,
+                    },
                 },
             };
 

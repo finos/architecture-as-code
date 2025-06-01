@@ -1,14 +1,12 @@
 import './cytoscape.css';
 import { useEffect, useRef } from 'react';
 import cytoscape, { EdgeSingular, NodeSingular } from 'cytoscape';
-import { Edge, CalmNode } from '../../contracts/contracts.js';
+import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { LayoutCorrectionService } from '../../services/layout-correction-service.js';
 import {
     saveNodePositions,
     loadStoredNodePositions,
 } from '../../services/node-position-service.js';
-
-// Initialize Cytoscape plugins
 
 // Layout configuration
 const breadthFirstLayout = {
@@ -28,10 +26,10 @@ export interface CytoscapeRendererProps {
     title: string;
     isNodeDescActive: boolean;
     isRelationshipDescActive: boolean;
-    nodes: CalmNode[];
+    nodes: CytoscapeNode[];
     edges: Edge[];
-    nodeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
-    edgeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
+    nodeClickedCallback: (x: CytoscapeNode['data'] | Edge['data']) => void;
+    edgeClickedCallback: (x: CytoscapeNode['data'] | Edge['data']) => void;
 }
 
 function getEdgeStyle(showDescription: boolean): cytoscape.Css.Edge {
@@ -50,7 +48,9 @@ function getEdgeStyle(showDescription: boolean): cytoscape.Css.Edge {
 
 function getNodeStyle(showDescription: boolean): cytoscape.Css.Node {
     return {
-        label: showDescription ? 'data(labelWithDescription)' : 'data(labelWithoutDescription)',
+        label: showDescription
+            ? 'data(cytoscapeProps.labelWithDescription)'
+            : 'data(cytoscapeProps.labelWithoutDescription)',
         'text-valign': 'center',
         'text-halign': 'center',
         'text-wrap': 'wrap',
@@ -99,7 +99,7 @@ export function CytoscapeRenderer({
                 {
                     selector: ':parent',
                     style: {
-                        label: 'data(label)',
+                        label: 'data(name)',
                         'background-color': 'white',
                         'border-style': 'dashed',
                         'border-width': 2,

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CalmNode, Edge } from '../../contracts/contracts.js';
+import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { Sidebar } from '../sidebar/Sidebar.js';
 import { CytoscapeRenderer } from '../cytoscape-renderer/CytoscapeRenderer.js';
 
@@ -7,7 +7,7 @@ interface VisualizerContainerProps {
     title?: string;
     isNodeDescActive: boolean;
     isRelationshipDescActive: boolean;
-    nodes: CalmNode[];
+    nodes: CytoscapeNode[];
     edges: Edge[];
 }
 
@@ -18,7 +18,9 @@ export function VisualizerContainer({
     isRelationshipDescActive,
     isNodeDescActive,
 }: VisualizerContainerProps) {
-    const [selectedItem, setSelectedItem] = useState<CalmNode['data'] | Edge['data'] | null>(null);
+    const [selectedItem, setSelectedItem] = useState<CytoscapeNode['data'] | Edge['data'] | null>(
+        null
+    );
 
     return (
         <div className="relative flex m-auto border" data-testid="visualizer-container">
@@ -38,7 +40,15 @@ export function VisualizerContainer({
                 edgeClickedCallback={(x) => setSelectedItem(x)}
             />
             {selectedItem && (
-                <Sidebar selectedData={selectedItem} closeSidebar={() => setSelectedItem(null)} />
+                <Sidebar
+                    selectedData={(() => {
+                        // Note: assigning cytoscapeProps to undefined, then gets rendered in the sidebar JSON rederer.
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                        const { cytoscapeProps, ...nodeData } = selectedItem;
+                        return nodeData;
+                    })()}
+                    closeSidebar={() => setSelectedItem(null)}
+                />
             )}
         </div>
     );

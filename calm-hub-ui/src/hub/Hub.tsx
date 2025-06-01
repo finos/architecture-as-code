@@ -18,6 +18,8 @@ import { Navbar } from '../components/navbar/Navbar.js';
 import { useNavigate } from 'react-router-dom';
 
 function Hub() {
+    const navigate = useNavigate();
+
     const [namespaces, setNamespaces] = useState<Namespace[]>([]);
     const [currentNamespace, setCurrentNamespace] = useState<Namespace | undefined>();
     const [patternIDs, setPatternIDs] = useState<PatternID[]>([]);
@@ -45,10 +47,9 @@ function Hub() {
         fetchPatternIDs(namespace, setPatternIDs);
     };
 
-    const handleClick = (data: Data) => {
-        let navigate = useNavigate();
+    function handleClick(data: Data) {
         navigate('/visualizer', { state: data });
-    };
+    }
 
     const handleCalmTypeSelection = (calmType: string) => {
         setCurrentCalmType(calmType);

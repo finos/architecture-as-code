@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { JsonRenderer } from './JsonRenderer.js';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
