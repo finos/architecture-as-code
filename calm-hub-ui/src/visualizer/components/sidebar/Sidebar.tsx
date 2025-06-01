@@ -1,19 +1,17 @@
 import { IoCloseOutline } from 'react-icons/io5';
-import { useState } from 'react';
-import { CalmNode, Edge } from '../../contracts/contracts.js';
-import { EdgeDisplay } from './EdgeDisplay.js';
-import { NodeDisplay } from './NodeDisplay.js';
+import { CytoscapeNodeData, Edge } from '../../contracts/contracts.js';
+import { JsonRenderer } from '../../../hub/components/json-renderer/JsonRenderer.js';
 
 export interface SidebarProps {
-    selectedData: CalmNode['data'] | Edge['data'];
+    selectedData: CytoscapeNodeData | Edge['data'];
     closeSidebar: () => void;
 }
 
-function isCALMNodeData(data: CalmNode['data'] | Edge['data']): data is CalmNode['data'] {
+function isCALMNodeData(data: CytoscapeNodeData | Edge['data']): data is CytoscapeNodeData {
     return data.id != null && data.type != null;
 }
 
-function isCALMEdgeData(data: CalmNode['data'] | Edge['data']): data is Edge['data'] {
+function isCALMEdgeData(data: CytoscapeNodeData | Edge['data']): data is Edge['data'] {
     return (
         'source' in data &&
         'target' in data &&
@@ -24,12 +22,6 @@ function isCALMEdgeData(data: CalmNode['data'] | Edge['data']): data is Edge['da
 }
 
 export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
-    const [isDetailsExpanded, setDetailsExpanded] = useState(true);
-
-    const toggleDetailsVisibility = () => {
-        setDetailsExpanded((prev) => !prev);
-    };
-
     const isCALMNode = isCALMNodeData(selectedData);
     const isCALMEdge = isCALMEdgeData(selectedData);
 
@@ -50,14 +42,21 @@ export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
                     </button>
                 </div>
                 {isCALMNode && (
-                    <NodeDisplay
-                        selectedData={selectedData}
-                        isDetailsExpanded={isDetailsExpanded}
-                        toggleDetailsVisibility={toggleDetailsVisibility}
-                    />
+                    <>
+                        <div className="text-xl font-bold mb-2">Node Details</div>
+                        <div className="max-w-full overflow-y-auto overflow-x-auto">
+                            <JsonRenderer json={selectedData} />
+                        </div>
+                    </>
                 )}
-                {isCALMEdge && <EdgeDisplay selectedData={selectedData} />}
-
+                {isCALMEdge && (
+                    <>
+                        <div className="text-xl font-bold mb-2">Edge Details</div>
+                        <div className="max-w-full overflow-y-auto overflow-x-auto">
+                            <JsonRenderer json={selectedData} />
+                        </div>
+                    </>
+                )}
                 {!isCALMEdge && !isCALMNode && (
                     <div className="text-xl font-bold mb-2">Unknown Selected Entity</div>
                 )}
