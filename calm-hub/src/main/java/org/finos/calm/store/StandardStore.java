@@ -12,7 +12,7 @@ import java.util.List;
 public interface StandardStore {
     List<StandardDetails> getStandardsForNamespace(String namespace) throws NamespaceNotFoundException;
     Standard createStandardForNamespace(Standard standard) throws NamespaceNotFoundException;
-    List<String> getStandardVersions(Standard standard) throws NamespaceNotFoundException, StandardNotFoundException;
-    Standard getStandardForVersion(StandardDetails standardDetails) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionNotFoundException;
+    List<String> getStandardVersions(StandardDetails standard) throws NamespaceNotFoundException, StandardNotFoundException;
+    String getStandardForVersion(StandardDetails standardDetails) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionNotFoundException;
     Standard createStandardForVersion(Standard standard) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionExistsException;
 }

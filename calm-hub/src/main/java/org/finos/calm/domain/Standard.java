@@ -3,32 +3,23 @@ package org.finos.calm.domain;
 import java.util.Objects;
 
 public class Standard extends StandardDetails {
-    private String standard;
-    private String namespace;
+    private String standardJson;
 
-    public Standard(String name, String description, String standard, Integer id, String version) {
+    public Standard(String name, String description, String standardJson, Integer id, String version) {
         super(name, description, id, version);
-        this.standard = standard;
+        this.standardJson = standardJson;
     }
 
     public Standard() {
         // Default constructor
     }
 
-    public String getStandard() {
-        return standard;
+    public String getStandardJson() {
+        return standardJson;
     }
 
-    public void setStandard(String standard) {
-        this.standard = standard;
-    }
-
-    public String getNamespace() {
-        return namespace;
-    }
-
-    public void setNamespace(String namespace) {
-        this.namespace = namespace;
+    public void setStandardJson(String standardJson) {
+        this.standardJson = standardJson;
     }
 
     @Override
@@ -36,11 +27,12 @@ public class Standard extends StandardDetails {
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         Standard standard1 = (Standard) o;
-        return Objects.equals(standard, standard1.standard);
+        return Objects.equals(standardJson, standard1.standardJson);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), standard);
+        return Objects.hash(super.hashCode(), standardJson);
     }
+
 }

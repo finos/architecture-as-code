@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import org.codehaus.plexus.util.cli.Arg;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.StandardDetails;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -23,7 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static io.restassured.RestAssured.expect;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -169,8 +167,8 @@ public class TestStandardResourceShould {
         if(exceptionToThrow != null) {
             when(mockStandardStore.getStandardForVersion(any(StandardDetails.class))).thenThrow(exceptionToThrow);
         } else {
-            standard.setStandard(objectMapper.writeValueAsString(standard));
-            when(mockStandardStore.getStandardForVersion(any(StandardDetails.class))).thenReturn(standard);
+            standard.setStandardJson(objectMapper.writeValueAsString(standard));
+            when(mockStandardStore.getStandardForVersion(any(StandardDetails.class))).thenReturn("{}");
         }
 
         if(expectedStatusCode == 200) {
@@ -179,7 +177,7 @@ public class TestStandardResourceShould {
                     .get("/calm/namespaces/" + namespace + "/standards/5/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode)
-                    .body(containsString("{\"standard\":\"{\\\"name\\\":null,\\\"description\\\":null,\\\"id\\\":null,\\\"version\\\":null,\\\"standard\\\":null,\\\"namespace\\\":null}\"}"));
+                    .body(containsString("{}"));
         } else {
             given()
                     .when()
@@ -207,7 +205,7 @@ public class TestStandardResourceShould {
         standard.setId(5);
         standard.setName("amazing-pattern");
         standard.setDescription("An amazing pattern");
-        standard.setStandard("{}");
+        standard.setStandardJson("{}");
         standard.setNamespace(namespace);
         standard.setVersion("1.0.1");
 

@@ -81,4 +81,20 @@ public class TestMongoCounterStoreShould {
 
         assertThat(counterStore.getNextFlowSequenceValue(), equalTo(25));
     }
+
+    @Test
+    void return_the_next_value_in_sequence_for_standards() {
+        Document document = new Document("sequence_value", 25);
+
+        when(counterCollection.findOneAndUpdate(
+                argThat(arg -> arg instanceof Document &&
+                        ((Document) arg).containsKey("_id") &&
+                        "standardStoreCounter".equals(((Document) arg).get("_id"))),
+                any(Document.class),
+                any(FindOneAndUpdateOptions.class)
+        )).thenReturn(document);
+
+
+        assertThat(counterStore.getNextStandardSequenceValue(), equalTo(25));
+    }
 }
