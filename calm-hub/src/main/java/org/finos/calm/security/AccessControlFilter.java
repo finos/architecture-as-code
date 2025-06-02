@@ -45,11 +45,14 @@ public class AccessControlFilter implements ContainerRequestFilter {
 
     private final JsonWebToken jwt;
     private final ResourceInfo resourceInfo;
+    private final UserAccessValidator userAccessValidator;
     private final Logger logger = LoggerFactory.getLogger(AccessControlFilter.class);
 
-    public AccessControlFilter(JsonWebToken jwt, ResourceInfo resourceInfo) {
+    public AccessControlFilter(JsonWebToken jwt, ResourceInfo resourceInfo,
+                               UserAccessValidator userAccessValidator) {
         this.jwt = jwt;
         this.resourceInfo = resourceInfo;
+        this.userAccessValidator = userAccessValidator;
     }
 
     @Override
@@ -67,6 +70,36 @@ public class AccessControlFilter implements ContainerRequestFilter {
             requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
                     .entity("Forbidden: JWT does not have required scopes.")
                     .build());
+            return;
+        }
+
+        authorizeUserRequest(requestContext);
+    }
+
+    /**
+     * Validates whether the requesting user has the required access permissions based on the request context.
+     *
+     * <p>This method extracts the HTTP method, username (from JWT), request path, and namespace
+     * from the incoming request and checks whether the user is authorized to access the requested resource.
+     * If the user lacks the necessary permissions, the request is aborted with a 403 Forbidden response.
+     *
+     * @param requestContext the container request context containing request metadata and parameters
+     */
+    private void authorizeUserRequest(ContainerRequestContext requestContext) {
+        String requestMethod = requestContext.getMethod();
+        String username = jwt.getClaim("preferred_username");
+        String path = requestContext.getUriInfo().getPath();
+        String namespace = requestContext.getUriInfo().getPathParameters().getFirst("namespace");
+
+        UserRequestAttributes userRequestAttributes = new UserRequestAttributes(requestMethod,
+                username, path, namespace);
+        logger.debug("User request attributes: {}", userRequestAttributes);
+
+        if (!userAccessValidator.isUserAuthorized(userRequestAttributes)) {
+            logger.warn("No access permissions assigned to the user: [{}]", userRequestAttributes.username());
+            requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
+                    .entity("Forbidden: user does not have required access grants")
+                    .build());
         }
     }
 
@@ -83,7 +116,7 @@ public class AccessControlFilter implements ContainerRequestFilter {
                 .anyMatch(tokenScopes::contains);
 
         if (hasMatch) {
-            logger.info("Request allowed, PermittedScopes are: {}, there is a matching scope found in accessToken: [{}]", requiredScopes, tokenScopes);
+            logger.debug("Request allowed, PermittedScopes are: {}, there is a matching scope found in accessToken: [{}]", requiredScopes, tokenScopes);
         } else {
             logger.error("Request denied, PermittedScopes are: {}, no matching scopes found in accessToken: [{}]", requiredScopes, tokenScopes);
         }

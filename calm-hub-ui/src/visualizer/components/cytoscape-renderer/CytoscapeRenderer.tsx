@@ -5,6 +5,10 @@ import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
 import expandCollapse from 'cytoscape-expand-collapse';
 import { Edge, CalmNode } from '../../contracts/contracts.js';
 import { LayoutCorrectionService } from '../../services/layout-correction-service.js';
+import {
+    saveNodePositions,
+    loadStoredNodePositions,
+} from '../../services/node-position-service.js';
 
 // Initialize Cytoscape plugins
 nodeEdgeHtmlLabel(cytoscape);
@@ -23,6 +27,7 @@ const breadthFirstLayout = {
 };
 
 export interface CytoscapeRendererProps {
+    title: string;
     isNodeDescActive: boolean;
     isRelationshipDescActive: boolean;
     nodes: CalmNode[];
@@ -74,6 +79,7 @@ const layoutCorrectionService = new LayoutCorrectionService();
 
 export function CytoscapeRenderer({
     nodes = [],
+    title = '',
     edges = [],
     isRelationshipDescActive,
     isNodeDescActive,
@@ -111,6 +117,18 @@ export function CytoscapeRenderer({
             maxZoom: 5,
         });
 
+        const savedPositions = loadStoredNodePositions(title);
+        if (savedPositions) {
+            cy.nodes().forEach((node) => {
+                const match = savedPositions.find((n) => n.id === node.id());
+                if (match) {
+                    node.position(match.position);
+                }
+            });
+
+            cy.fit();
+        }
+
         cy.on('tap', 'node', (e) => {
             const node = e.target as NodeSingular;
             nodeClickedCallback(node?.data());
@@ -119,6 +137,14 @@ export function CytoscapeRenderer({
         cy.on('tap', 'edge', (e) => {
             const edge = e.target as EdgeSingular;
             edgeClickedCallback(edge?.data());
+        });
+
+        cy.on('dragfree', 'node', () => {
+            const nodePositions = cy.nodes().map((node) => ({
+                id: node.id(),
+                position: node.position(),
+            }));
+            saveNodePositions(title, nodePositions);
         });
 
         // This function comes from a plugin which doesn't have proper types, which is why the hacky casting is needed
@@ -139,7 +165,12 @@ export function CytoscapeRenderer({
         ]);
 
         layoutCorrectionService.calculateAndUpdateNodePositions(cy, nodes);
+
+        return () => {
+            cy.destroy();
+        };
     }, [
+        title,
         nodes,
         edges,
         isNodeDescActive,

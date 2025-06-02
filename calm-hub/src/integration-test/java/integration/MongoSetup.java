@@ -38,10 +38,12 @@ public class MongoSetup {
             Document architectureStoreCounter = new Document("_id", "architectureStoreCounter").append("sequence_value", 0);
             Document adrStoreCounter = new Document("_id", "adrStoreCounter").append("sequence_value", 0);
             Document standardStoreCounter = new Document("_id", "standardStoreCounter").append("sequence_value", 0);
+            Document userAccessStoreCounter = new Document("_id", "userAccessStoreCounter").append("sequence_value", 0);
             database.getCollection("counters").insertOne(patternStoreCounter);
             database.getCollection("counters").insertOne(architectureStoreCounter);
             database.getCollection("counters").insertOne(adrStoreCounter);
             database.getCollection("counters").insertOne(standardStoreCounter);
+            database.getCollection("counters").insertOne(userAccessStoreCounter);
         }
     }
 }

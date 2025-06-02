@@ -52,6 +52,16 @@ if (db.counters.countDocuments({ _id: "flowStoreCounter" }) === 0) {
     print("flowStoreCounter already exists, no initialization needed");
 }
 
+if (db.counters.countDocuments({ _id: "userAccessStoreCounter" }) === 0) {
+    db.counters.insertOne({
+        _id: "userAccessStoreCounter",
+        sequence_value: 6
+    });
+    print("Initialized userAccessStoreCounter with sequence_value 6");
+} else {
+    print("userAccessStoreCounter already exists, no initialization needed");
+}
+
 db.schemas.insertMany([               // Insert initial documents into the schemas collection
     {
         version: "2025-03",
@@ -2673,5 +2683,50 @@ db.architectures.insertMany([
                 }
             }
         }]
+    }
+]);
+
+db.userAccess.insertMany([
+    {
+        "userAccessId": NumberInt(1),
+        "username": "demo_admin",
+        "permission": "write",
+        "namespace": "finos",
+        "resourceType": "all"
+    },
+    {
+        "userAccessId": NumberInt(2),
+        "username": "demo_admin",
+        "permission": "write",
+        "namespace": "workshop",
+        "resourceType": "patterns"
+    },
+    {
+        "userAccessId": NumberInt(3),
+        "username": "demo_admin",
+        "permission": "read",
+        "namespace": "traderx",
+        "resourceType": "all"
+    },
+    {
+        "userAccessId": NumberInt(4),
+        "username": "demo",
+        "permission": "read",
+        "namespace": "finos",
+        "resourceType": "all"
+    },
+    {
+        "userAccessId": NumberInt(5),
+        "username": "demo",
+        "permission": "read",
+        "namespace": "traderx",
+        "resourceType": "all"
+    },
+    {
+        "userAccessId": NumberInt(6),
+        "username": "demo",
+        "permission": "read",
+        "namespace": "workshop",
+        "resourceType": "all"
     }
 ]);
