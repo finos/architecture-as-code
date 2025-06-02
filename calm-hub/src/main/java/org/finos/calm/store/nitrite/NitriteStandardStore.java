@@ -9,7 +9,6 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
-import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.StandardDetails;
 import org.finos.calm.domain.exception.*;
@@ -25,7 +24,7 @@ import java.util.Set;
 import static org.dizitart.no2.filters.FluentFilter.where;
 
 /**
- * Implementation of the PatternStore interface using NitriteDB.
+ * Implementation of the StandardStore interface using NitriteDB.
  * This implementation is used when the application is running in standalone mode.
  */
 @ApplicationScoped
@@ -50,7 +49,7 @@ public class NitriteStandardStore implements StandardStore {
         this.standardCollection = db.getCollection(COLLECTION_NAME);
         this.namespaceStore = namespaceStore;
         this.counterStore = counterStore;
-        LOG.info("NitritePatternStore initialized with collection: {}", COLLECTION_NAME);
+        LOG.info("NitriteStandardStore initialized with collection: {}", COLLECTION_NAME);
     }
 
 
@@ -64,7 +63,7 @@ public class NitriteStandardStore implements StandardStore {
         Filter filter = where(NAMESPACE_FIELD).eq(namespace);
         Iterator<Document> namespaceIterator = standardCollection.find(filter).iterator();
 
-        // If no patterns exist for this namespace yet
+        // If no standards exist for this namespace yet
         if (!namespaceIterator.hasNext()) {
             LOG.debug("No standards found for namespace '{}'", namespace);
             return List.of();
@@ -100,7 +99,7 @@ public class NitriteStandardStore implements StandardStore {
             throw new JsonParseException(e.getMessage());
         }
 
-        int id = counterStore.getNextPatternSequenceValue();
+        int id = counterStore.getNextStandardSequenceValue();
 
         Filter filter = where(NAMESPACE_FIELD).eq(standard.getNamespace());
         Document namespaceDocument = standardCollection.find(filter).firstOrNull();
@@ -112,7 +111,7 @@ public class NitriteStandardStore implements StandardStore {
                 .put(VERSIONS_FIELD, Document.createDocument().put("1-0-0", standard.getStandardJson()));
 
         if (namespaceDocument == null) {
-            // Create new namespace document with pattern
+            // Create new namespace document with standard
             Document newNamespaceDoc = Document.createDocument()
                     .put(NAMESPACE_FIELD, standard.getNamespace())
                     .put(STANDARDS_FIELD, List.of(standardDocument));
@@ -168,7 +167,7 @@ public class NitriteStandardStore implements StandardStore {
 
         Document standardDocument = findStandardDocument(standardDetails);
         if (standardDocument == null) {
-            LOG.warn("Pattern with ID {} not found in namespace '{}'", standardDetails.getId(), standardDetails.getNamespace());
+            LOG.warn("Standard with ID {} not found in namespace '{}'", standardDetails.getId(), standardDetails.getNamespace());
             throw new StandardNotFoundException();
         }
 
@@ -217,7 +216,7 @@ public class NitriteStandardStore implements StandardStore {
         versions.put(standard.getMongoVersion(), standard.getStandardJson());
         standardDoc.put(VERSIONS_FIELD, versions);
 
-        // Update the pattern in the namespace document
+        // Update the standard in the namespace document
         List<Document> standards = namespaceDocument.get(STANDARDS_FIELD, List.class);
         // Create a mutable copy of the list
         standards = new ArrayList<>(standards);

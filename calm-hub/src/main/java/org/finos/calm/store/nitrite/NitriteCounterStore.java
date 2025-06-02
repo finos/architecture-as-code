@@ -26,6 +26,7 @@ public class NitriteCounterStore {
     private static final String ARCHITECTURE_COUNTER = "architecture_counter";
     private static final String ADR_COUNTER = "adr_counter";
     private static final String FLOW_COUNTER = "flow_counter";
+    private static final String STANDARD_COUNTER = "standard_counter";
     
     // Use a single document with a numeric ID to store all counters
     private static final String COUNTERS_DOC_ID = "1";
@@ -89,6 +90,15 @@ public class NitriteCounterStore {
      */
     public int getNextFlowSequenceValue() {
         return nextValueForCounter(FLOW_COUNTER);
+    }
+
+    /**
+     * Get the next sequence value for standard store.
+     *
+     * @return The next sequence value
+     */
+    public int getNextStandardSequenceValue() {
+        return nextValueForCounter(STANDARD_COUNTER);
     }
 
     /**

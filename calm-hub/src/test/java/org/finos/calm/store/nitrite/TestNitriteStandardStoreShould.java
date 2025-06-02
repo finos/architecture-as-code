@@ -5,7 +5,6 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
-import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.StandardDetails;
 import org.finos.calm.domain.exception.*;
@@ -135,7 +134,7 @@ public class TestNitriteStandardStoreShould {
         standard.setStandardJson(STANDARD_JSON);
 
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
-        when(mockCounterStore.getNextPatternSequenceValue()).thenReturn(STANDARD_ID);
+        when(mockCounterStore.getNextStandardSequenceValue()).thenReturn(STANDARD_ID);
 
         DocumentCursor cursor = mock(DocumentCursor.class);
         when(cursor.firstOrNull()).thenReturn(null);
@@ -190,19 +189,16 @@ public class TestNitriteStandardStoreShould {
 
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
-        // Create a simplified test setup that focuses only on what's needed
-        // for the getPatternVersions method to work
-
         // Mock the versionsDoc with the fields we need
         Document versionsDoc = mock(Document.class);
         when(versionsDoc.getFields()).thenReturn(new HashSet<>(Arrays.asList("1-0-0", "1-1-0")));
 
-        // Mock the pattern document
+        // Mock the standard document
         Document standardDoc = mock(Document.class);
         when(standardDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
         when(standardDoc.get("standardId", Integer.class)).thenReturn(STANDARD_ID);
 
-        // Create the namespace document with the pattern
+        // Create the namespace document with the standard
         Document namespaceDoc = mock(Document.class);
         when(namespaceDoc.get(eq("standards"), any())).thenReturn(Collections.singletonList(standardDoc));
 
@@ -271,14 +267,14 @@ public class TestNitriteStandardStoreShould {
         Document versionsDoc = mock(Document.class);
         when(versionsDoc.get(anyString(), eq(String.class))).thenReturn(null); // Version not found
 
-        // Mock the pattern document
-        Document patternDoc = mock(Document.class);
-        when(patternDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
-        when(patternDoc.get("standardId", Integer.class)).thenReturn(STANDARD_ID);
+        // Mock the standard document
+        Document standardDoc = mock(Document.class);
+        when(standardDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
+        when(standardDoc.get("standardId", Integer.class)).thenReturn(STANDARD_ID);
 
-        // Create the namespace document with the pattern
+        // Create the namespace document with the standard
         Document namespaceDoc = mock(Document.class);
-        when(namespaceDoc.get(eq("standards"), any())).thenReturn(Collections.singletonList(patternDoc));
+        when(namespaceDoc.get(eq("standards"), any())).thenReturn(Collections.singletonList(standardDoc));
 
         // Set up the cursor mock
         DocumentCursor cursor = mock(DocumentCursor.class);
@@ -303,12 +299,12 @@ public class TestNitriteStandardStoreShould {
         Document versionsDoc = mock(Document.class);
         when(versionsDoc.get(eq("1-0-0"), eq(String.class))).thenReturn(STANDARD_JSON);
 
-        // Mock the pattern document
+        // Mock the standard document
         Document standardDoc = mock(Document.class);
         when(standardDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
         when(standardDoc.get("standardId", Integer.class)).thenReturn(STANDARD_ID);
 
-        // Create the namespace document with the pattern
+        // Create the namespace document with the standard
         Document namespaceDoc = mock(Document.class);
         when(namespaceDoc.get(eq("standards"), any())).thenReturn(Collections.singletonList(standardDoc));
 
@@ -392,12 +388,12 @@ public class TestNitriteStandardStoreShould {
         Document versionsDoc = mock(Document.class);
         when(versionsDoc.containsKey(anyString())).thenReturn(true); // Version already exists
 
-        // Mock the pattern document
+        // Mock the standard document
         Document standardDoc = mock(Document.class);
         when(standardDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
         when(standardDoc.get("standardId", Integer.class)).thenReturn(STANDARD_ID);
 
-        // Create a list of standards with our pattern document
+        // Create a list of standards with document
         List<Document> standards = Collections.singletonList(standardDoc);
 
         // Mock the namespace document
@@ -429,7 +425,7 @@ public class TestNitriteStandardStoreShould {
         when(standardDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
         when(standardDoc.get("standardId", Integer.class)).thenReturn(STANDARD_ID);
 
-        // Create a list of standards with our pattern document
+        // Create a list of standards with our standards document
         List<Document> standards = new ArrayList<>();
         standards.add(standardDoc);
 

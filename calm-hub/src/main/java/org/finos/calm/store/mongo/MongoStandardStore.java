@@ -91,7 +91,7 @@ public class MongoStandardStore implements StandardStore {
         List<Document> standards = (List<Document>) result.get("standards");
         for (Document standardDoc : standards) {
             if (standard.getId().equals(standardDoc.getInteger("standardId"))) {
-                // Extract the versions map from the matching pattern
+                // Extract the versions map from the matching standard
                 Document versions = (Document) standardDoc.get("versions");
                 Set<String> versionKeys = versions.keySet();
 
