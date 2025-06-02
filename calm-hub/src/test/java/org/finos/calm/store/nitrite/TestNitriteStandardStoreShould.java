@@ -330,7 +330,7 @@ public class TestNitriteStandardStoreShould {
         assertThrows(NamespaceNotFoundException.class, () -> standardStore.createStandardForVersion(standard));
     }
 
-    private @NotNull Standard getStandardToPersist() {
+    private Standard getStandardToPersist() {
         Standard standard = new Standard();
         standard.setNamespace(NAMESPACE);
         standard.setId(STANDARD_ID);
