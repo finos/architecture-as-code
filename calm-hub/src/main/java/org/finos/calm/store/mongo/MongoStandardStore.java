@@ -8,9 +8,9 @@ import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.StandardDetails;
 import org.finos.calm.domain.exception.*;
@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Set;
 
 @ApplicationScoped
+@Typed(MongoStandardStore.class)
 public class MongoStandardStore implements StandardStore {
 
     private final MongoCounterStore counterStore;

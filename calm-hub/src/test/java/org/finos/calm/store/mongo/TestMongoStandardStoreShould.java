@@ -118,9 +118,9 @@ public class TestMongoStandardStoreShould {
         List<StandardDetails> standards = mongoStandardStore.getStandardsForNamespace("finos");
 
         assertThat(standards.size(), is(1));
-        assertThat(standards.get(0).getName(), is("Test Standard"));
-        assertThat(standards.get(0).getDescription(), is("Test Description"));
-        assertThat(standards.get(0).getId(), is(55));
+        assertThat(standards.getFirst().getName(), is("Test Standard"));
+        assertThat(standards.getFirst().getDescription(), is("Test Description"));
+        assertThat(standards.getFirst().getId(), is(55));
 
         verify(namespaceStore).namespaceExists("finos");
     }
