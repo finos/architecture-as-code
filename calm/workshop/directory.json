@@ -1,5 +1,5 @@
 {
-  "https://calm.finos.org/draft/2025-03/meta/control-requirement.json": "../draft/2025-03/meta/control-requirement.json",
+  "https://calm.finos.org/release/1.0-rc1/meta/control-requirement.json": "../release/1.0-rc1/meta/control-requirement.json",
   "https://calm.finos.org/workshop/controls/micro-segmentation.config.json": "controls/micro-segmentation.config.json",
   "https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json": "controls/micro-segmentation.requirement.json",
   "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json": "controls/permitted-connection.requirement.json",

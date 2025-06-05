@@ -68,4 +68,21 @@ public class NitriteCoreSchemaStore implements CoreSchemaStore {
         LOG.debug("No schemas found for version '{}'", version);
         return null;
     }
+
+    @Override
+    public void createSchemaVersion(String version, Map<String, Object> schemas) {
+        // Check if version already exists
+        Filter filter = where(VERSION_FIELD).eq(version);
+        Document existingDoc = schemaCollection.find(filter).firstOrNull();
+        
+        if (existingDoc == null) {
+            Document schemaDoc = Document.createDocument()
+                    .put(VERSION_FIELD, version)
+                    .put(SCHEMAS_FIELD, schemas);
+            schemaCollection.insert(schemaDoc);
+            LOG.info("Created schema version: {}", version);
+        } else {
+            LOG.debug("Schema version '{}' already exists, skipping creation", version);
+        }
+    }
 }

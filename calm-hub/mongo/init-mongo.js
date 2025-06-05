@@ -31,6 +31,16 @@ if (db.counters.countDocuments({ _id: "adrStoreCounter" }) === 0) {
     print("adrStoreCounter already exists, no initialization needed");
 }
 
+if (db.counters.countDocuments({ _id: "standardStoreCounter" }) === 0) {
+    db.counters.insertOne({
+        _id: "standardStoreCounter",
+        sequence_value: 1
+    });
+    print("Initialized standardStoreCounter with sequence_value 1");
+} else {
+    print("standardStoreCounter already exists, no initialization needed");
+}
+
 
 if (db.counters.countDocuments({ _id: "flowStoreCounter" }) === 0) {
     db.counters.insertOne({

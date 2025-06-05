@@ -104,6 +104,39 @@ public class TestMongoCoreSchemaStoreShould {
         verify(documentMock).get("schemas", Map.class);
     }
 
+    @Test
+    void create_schema_version_when_version_does_not_exist() {
+        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        when(schemaCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(null); // version doesn't exist
+
+        Map<String, Object> schemas = new HashMap<>();
+        schemas.put("calm.json", new HashMap<>());
+        schemas.put("core.json", new HashMap<>());
+
+        mongoCoreSchemaStore.createSchemaVersion("2024-10", schemas);
+
+        verify(schemaCollection).find(Filters.eq("version", "2024-10"));
+        verify(schemaCollection).insertOne(any(Document.class));
+    }
+
+    @Test
+    void do_not_create_schema_version_when_version_already_exists() {
+        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        when(schemaCollection.find(any(Bson.class))).thenReturn(findIterable);
+        
+        Document existingDoc = new Document("version", "2024-10");
+        when(findIterable.first()).thenReturn(existingDoc); // version exists
+
+        Map<String, Object> schemas = new HashMap<>();
+        schemas.put("calm.json", new HashMap<>());
+
+        mongoCoreSchemaStore.createSchemaVersion("2024-10", schemas);
+
+        verify(schemaCollection).find(Filters.eq("version", "2024-10"));
+        verify(schemaCollection, Mockito.never()).insertOne(any(Document.class));
+    }
+
     private FindIterable<Document> emptyFindIterableSetup() {
         FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
         MongoCursor<Document> emptyCursor = Mockito.mock(MongoCursor.class);
