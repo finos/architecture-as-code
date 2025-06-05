@@ -50,7 +50,7 @@ function buildPatternOption(optionType: 'oneOf' | 'anyOf', ...choices: object[])
 
 function buildNode(uniqueId: string): object {
     return {
-        '$ref': 'https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node',
+        '$ref': 'https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/node',
         'type': 'object',
         'properties': {
             'unique-id': {
@@ -71,7 +71,7 @@ function buildNode(uniqueId: string): object {
 
 function buildConnectsRelationship(id: string, prompt: string, source: string, destination: string): object {
     return {
-        '$ref': 'https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship',
+        '$ref': 'https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/relationship',
         'type': 'object',
         'properties': {
             'unique-id': {
