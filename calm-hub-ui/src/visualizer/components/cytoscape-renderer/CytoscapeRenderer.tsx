@@ -126,6 +126,13 @@ export function CytoscapeRenderer({
                         "border-dash-pattern": [8, 10], // [dash length, gap length]
                     },
                 },
+                {
+                    selector: ':parent:selected',
+                    style: {
+                        'border-color': accentColor,
+                        'border-width': 3,
+                    },
+                },
             ],
             layout: breadthFirstLayout,
             boxSelectionEnabled: true,
