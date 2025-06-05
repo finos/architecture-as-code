@@ -11,7 +11,10 @@ import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.StandardDetails;
-import org.finos.calm.domain.exception.*;
+import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StandardNotFoundException;
+import org.finos.calm.domain.exception.StandardVersionExistsException;
+import org.finos.calm.domain.exception.StandardVersionNotFoundException;
 import org.finos.calm.store.StandardStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -221,7 +224,7 @@ public class NitriteStandardStore implements StandardStore {
         // Create a mutable copy of the list
         standards = new ArrayList<>(standards);
         for (int i = 0; i < standards.size(); i++) {
-            Document doc = (Document) standards.get(i);
+            Document doc = standards.get(i);
             if (doc.get(STANDARD_ID_FIELD, Integer.class).equals(standard.getId())) {
                 standards.set(i, standardDoc);
                 break;

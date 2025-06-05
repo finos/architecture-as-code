@@ -15,7 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -89,9 +89,7 @@ public class TestNitriteUserAccessStoreShould {
         when(mockNamespaceStore.namespaceExists("nonexistent")).thenReturn(false);
 
         // Act & Assert
-        assertThrows(NamespaceNotFoundException.class, () -> {
-            userAccessStore.createUserAccessForNamespace(userAccess);
-        });
+        assertThrows(NamespaceNotFoundException.class, () -> userAccessStore.createUserAccessForNamespace(userAccess));
     }
 
     @Test
@@ -99,7 +97,7 @@ public class TestNitriteUserAccessStoreShould {
         // Arrange
         Document mockDoc = mock(Document.class);
         when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
-        when(mockCursor.iterator()).thenReturn(Arrays.asList(mockDoc).iterator());
+        when(mockCursor.iterator()).thenReturn(Collections.singletonList(mockDoc).iterator());
         
         when(mockDoc.get("username", String.class)).thenReturn("testuser");
         when(mockDoc.get("namespace", String.class)).thenReturn("finos");
@@ -112,20 +110,18 @@ public class TestNitriteUserAccessStoreShould {
 
         // Assert
         assertThat(result, hasSize(1));
-        assertThat(result.get(0).getUsername(), is("testuser"));
-        assertThat(result.get(0).getNamespace(), is("finos"));
+        assertThat(result.getFirst().getUsername(), is("testuser"));
+        assertThat(result.getFirst().getNamespace(), is("finos"));
     }
 
     @Test
     public void testGetUserAccessForUsername_ThrowsExceptionWhenNotFound() {
         // Arrange
         when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
-        when(mockCursor.iterator()).thenReturn(java.util.Collections.<Document>emptyList().iterator());
+        when(mockCursor.iterator()).thenReturn(Collections.emptyIterator());
 
         // Act & Assert
-        assertThrows(UserAccessNotFoundException.class, () -> {
-            userAccessStore.getUserAccessForUsername("nonexistent");
-        });
+        assertThrows(UserAccessNotFoundException.class, () -> userAccessStore.getUserAccessForUsername("nonexistent"));
     }
 
     @Test
@@ -134,7 +130,7 @@ public class TestNitriteUserAccessStoreShould {
         Document mockDoc = mock(Document.class);
         when(mockNamespaceStore.namespaceExists("finos")).thenReturn(true);
         when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
-        when(mockCursor.iterator()).thenReturn(Arrays.asList(mockDoc).iterator());
+        when(mockCursor.iterator()).thenReturn(Collections.singletonList(mockDoc).iterator());
         
         when(mockDoc.get("username", String.class)).thenReturn("testuser");
         when(mockDoc.get("namespace", String.class)).thenReturn("finos");
@@ -147,7 +143,7 @@ public class TestNitriteUserAccessStoreShould {
 
         // Assert
         assertThat(result, hasSize(1));
-        assertThat(result.get(0).getNamespace(), is("finos"));
+        assertThat(result.getFirst().getNamespace(), is("finos"));
     }
 
     @Test
@@ -156,9 +152,7 @@ public class TestNitriteUserAccessStoreShould {
         when(mockNamespaceStore.namespaceExists("nonexistent")).thenReturn(false);
 
         // Act & Assert
-        assertThrows(NamespaceNotFoundException.class, () -> {
-            userAccessStore.getUserAccessForNamespace("nonexistent");
-        });
+        assertThrows(NamespaceNotFoundException.class, () -> userAccessStore.getUserAccessForNamespace("nonexistent"));
     }
 
     @Test
@@ -192,8 +186,6 @@ public class TestNitriteUserAccessStoreShould {
         when(mockCursor.firstOrNull()).thenReturn(null);
 
         // Act & Assert
-        assertThrows(UserAccessNotFoundException.class, () -> {
-            userAccessStore.getUserAccessForNamespaceAndId("finos", 1);
-        });
+        assertThrows(UserAccessNotFoundException.class, () -> userAccessStore.getUserAccessForNamespaceAndId("finos", 1));
     }
 }
