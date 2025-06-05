@@ -7,7 +7,7 @@ import path from 'path';
 import { SchemaDirectory } from '@finos/calm-shared';
 import { FileSystemDocumentLoader } from '@finos/calm-shared/dist/document-loader/file-system-document-loader';
 
-const schemaDirectoryPath : string = __dirname + '/../../../../calm/draft';
+const schemaDirectoryPath : string = __dirname + '/../../../../calm/release';
 const apiGatewayPatternPath: string = __dirname + '/../../../../calm/pattern';
 
 describe('ValidationRouter', () => {

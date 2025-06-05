@@ -173,7 +173,7 @@ describe('CLI Integration Tests', () => {
 
     test('generate command produces the expected output', async () => {
         const apiGatewayPatternPath = path.join(__dirname, '../../calm/pattern/api-gateway.json');
-        const schemaDirectoryPath = path.join(__dirname, '../../calm/draft');
+        const schemaDirectoryPath = path.join(__dirname, '../../calm/release');
         const targetOutputFile = path.join(tempDir, 'generate-output.json');
 
         const cmd = calm(`generate -p ${apiGatewayPatternPath} -o ${targetOutputFile} -s ${schemaDirectoryPath}`);
