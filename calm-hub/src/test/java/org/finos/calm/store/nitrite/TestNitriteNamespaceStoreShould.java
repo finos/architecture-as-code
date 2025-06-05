@@ -102,4 +102,33 @@ public class TestNitriteNamespaceStoreShould {
         // Assert
         assertThat(result, is(false));
     }
+    
+    @Test
+    public void testCreateNamespace_whenNamespaceDoesNotExist_createsNamespace() {
+        // Arrange
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(null);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+        
+        // Act
+        namespaceStore.createNamespace("new-namespace");
+        
+        // Assert
+        verify(mockCollection).insert(any(Document.class));
+    }
+    
+    @Test
+    public void testCreateNamespace_whenNamespaceAlreadyExists_doesNotCreateDuplicate() {
+        // Arrange
+        Document existingDoc = Document.createDocument("namespace", "existing-namespace");
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(existingDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+        
+        // Act
+        namespaceStore.createNamespace("existing-namespace");
+        
+        // Assert
+        verify(mockCollection, never()).insert(any(Document.class));
+    }
 }

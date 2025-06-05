@@ -6,10 +6,12 @@ import jakarta.inject.Inject;
 import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
-import org.dizitart.no2.collection.NitriteId;
+import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.dizitart.no2.filters.FluentFilter.where;
 
 /**
  * Implementation of a counter store using NitriteDB.
@@ -27,9 +29,11 @@ public class NitriteCounterStore {
     private static final String ADR_COUNTER = "adr_counter";
     private static final String FLOW_COUNTER = "flow_counter";
     private static final String STANDARD_COUNTER = "standard_counter";
+    private static final String USER_ACCESS_COUNTER = "user_access_counter";
     
-    // Use a single document with a numeric ID to store all counters
-    private static final String COUNTERS_DOC_ID = "1";
+    // Use a field to identify the counters document
+    private static final String COUNTER_TYPE_FIELD = "counter_type";
+    private static final String COUNTERS_DOC_TYPE = "main_counters";
 
     private final NitriteCollection counterCollection;
 
@@ -37,20 +41,24 @@ public class NitriteCounterStore {
     public NitriteCounterStore(@StandaloneQualifier Nitrite db) {
         this.counterCollection = db.getCollection(COLLECTION_NAME);
         LOG.info("NitriteCounterStore initialized with collection: {}", COLLECTION_NAME);
-        initializeCountersDocument();
     }
-    
+
     /**
      * Initialize the counters document if it doesn't exist yet
      */
     private void initializeCountersDocument() {
-        Document countersDoc = counterCollection.getById(NitriteId.createId(COUNTERS_DOC_ID));
+        Filter filter = where(COUNTER_TYPE_FIELD).eq(COUNTERS_DOC_TYPE);
+        Document countersDoc = counterCollection.find(filter).firstOrNull();
+        
         if (countersDoc == null) {
             countersDoc = Document.createDocument()
+                    .put(COUNTER_TYPE_FIELD, COUNTERS_DOC_TYPE)
                     .put(PATTERN_COUNTER, 0)
                     .put(ARCHITECTURE_COUNTER, 0)
                     .put(ADR_COUNTER, 0)
-                    .put(FLOW_COUNTER, 0);
+                    .put(FLOW_COUNTER, 0)
+                    .put(STANDARD_COUNTER, 0)
+                    .put(USER_ACCESS_COUNTER, 0);
             counterCollection.insert(countersDoc);
             LOG.info("Initialized counters document");
         }
@@ -102,20 +110,31 @@ public class NitriteCounterStore {
     }
 
     /**
+     * Get the next sequence value for user access store.
+     *
+     * @return The next sequence value
+     */
+    public int getNextUserAccessSequenceValue() {
+        return nextValueForCounter(USER_ACCESS_COUNTER);
+    }
+
+    /**
      * Get the next value for a specific counter.
      *
      * @param counterField The counter field name
      * @return The next sequence value
      */
     private synchronized int nextValueForCounter(String counterField) {
-        Document countersDoc = counterCollection.getById(NitriteId.createId(COUNTERS_DOC_ID));
+        Filter filter = where(COUNTER_TYPE_FIELD).eq(COUNTERS_DOC_TYPE);
+        Document countersDoc = counterCollection.find(filter).firstOrNull();
+        
         if (countersDoc == null) {
             initializeCountersDocument();
-            countersDoc = counterCollection.getById(NitriteId.createId(COUNTERS_DOC_ID));
+            countersDoc = counterCollection.find(filter).firstOrNull();
         }
         
         Integer currentValue = countersDoc.get(counterField, Integer.class);
-        int nextValue = currentValue==null ? 1 : currentValue + 1;
+        int nextValue = currentValue == null ? 1 : currentValue + 1;
         
         countersDoc.put(counterField, nextValue);
         counterCollection.update(countersDoc);
