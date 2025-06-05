@@ -18,7 +18,10 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Architecture;
-import org.finos.calm.domain.exception.*;
+import org.finos.calm.domain.exception.ArchitectureNotFoundException;
+import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
+import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
+import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -44,7 +47,6 @@ public class TestMongoArchitectureStoreShould {
     @InjectMock
     MongoNamespaceStore namespaceStore;
 
-    private MongoDatabase mongoDatabase;
     private MongoCollection<Document> architectureCollection;
     private MongoArchitectureStore mongoArchitectureStore;
     private final String NAMESPACE = "finos";
@@ -52,7 +54,7 @@ public class TestMongoArchitectureStoreShould {
     private final String validJson = "{\"test\": \"test\"}";
     @BeforeEach
     void setup() {
-        mongoDatabase = Mockito.mock(MongoDatabase.class);
+        MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
         architectureCollection = Mockito.mock(MongoCollection.class);
 
         when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
@@ -215,7 +217,7 @@ public class TestMongoArchitectureStoreShould {
         Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE).setId(42).build();
         List<String> architectureVersions = mongoArchitectureStore.getArchitectureVersions(architecture);
 
-        assertThat(architectureVersions, is(Arrays.asList("1.0.0")));
+        assertThat(architectureVersions, is(List.of("1.0.0")));
     }
 
     @Test
@@ -262,10 +264,8 @@ public class TestMongoArchitectureStoreShould {
 
         Document paddingArchitecture = new Document("architectureId", 0);
 
-        Document mainDocument = new Document("namespace", NAMESPACE)
+        return new Document("namespace", NAMESPACE)
                 .append("architectures", Arrays.asList(paddingArchitecture, targetStoredArchitecture));
-
-        return mainDocument;
     }
 
     private void mockSetupArchitectureDocumentWithVersions() {
