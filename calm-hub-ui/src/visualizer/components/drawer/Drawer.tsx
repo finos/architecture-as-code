@@ -187,7 +187,7 @@ export function Drawer({
             .filter((edge): edge is Edge => edge !== undefined);
     }
 
-    function setStorageKey(title: string, data?: Data): string {
+    function createStorageKey(title: string, data?: Data): string {
         if (!data || !data.name || !data.calmType || !data.id || !data.version) {
             return title;
         }
@@ -215,7 +215,7 @@ export function Drawer({
                             title={title}
                             nodes={nodes}
                             edges={edges}
-                            calmKey={setStorageKey(title, data)}
+                            calmKey={createStorageKey(title, data)}
                         />
                     ) : (
                         <div className="flex justify-center items-center h-full">

@@ -7,8 +7,7 @@ import {
     FlowID,
     ArchitectureID,
     Version,
-    Data,
-    CalmType,
+    Data
 } from '../model/calm.js';
 import {
     fetchNamespaces,
@@ -55,15 +54,15 @@ function Hub() {
     const handleCalmTypeSelection = (calmType: string) => {
         setCurrentCalmType(calmType);
 
-        if (calmType === CalmType.Pattern) {
+        if (calmType === 'Patterns') {
             fetchPatternIDs(currentNamespace!, setPatternIDs);
             setFlowIDs([]);
             setArchitectureIDs([]);
-        } else if (calmType === CalmType.Flow) {
+        } else if (calmType === 'Flows') {
             fetchFlowIDs(currentNamespace!, setFlowIDs);
             setPatternIDs([]);
             setArchitectureIDs([]);
-        } else if (calmType === CalmType.Architecture) {
+        } else if (calmType === 'Architectures') {
             fetchArchitectureIDs(currentNamespace!, setArchitectureIDs);
             setPatternIDs([]);
             setFlowIDs([]);
@@ -75,11 +74,11 @@ function Hub() {
     const handlePatternOrFlowSelection = (selectedID: string) => {
         setCurrentPatternOrFlowID(selectedID);
 
-        if (currentCalmType === CalmType.Pattern) {
+        if (currentCalmType === 'Patterns') {
             fetchPatternVersions(currentNamespace!, selectedID, setVersions);
-        } else if (currentCalmType === CalmType.Flow) {
+        } else if (currentCalmType === 'Flows') {
             fetchFlowVersions(currentNamespace!, selectedID, setVersions);
-        } else if (currentCalmType === CalmType.Architecture) {
+        } else if (currentCalmType === 'Architectures') {
             fetchArchitectureVersions(currentNamespace!, selectedID, setVersions);
         }
     };
@@ -87,11 +86,11 @@ function Hub() {
     const handleVersionSelection = (version: Version) => {
         setCurrentVersion(version);
 
-        if (currentCalmType === CalmType.Pattern) {
+        if (currentCalmType === 'Patterns') {
             fetchPattern(currentNamespace || '', currentPatternOrFlowID || '', version, setData);
-        } else if (currentCalmType === CalmType.Flow) {
+        } else if (currentCalmType === 'Flows') {
             fetchFlow(currentNamespace || '', currentPatternOrFlowID || '', version, setData);
-        } else if (currentCalmType === CalmType.Architecture) {
+        } else if (currentCalmType === 'Architectures') {
             fetchArchitecture(
                 currentNamespace || '',
                 currentPatternOrFlowID || '',
@@ -115,7 +114,7 @@ function Hub() {
                     {currentNamespace && (
                         <ValueTable
                             header="Calm Type"
-                            values={Object.values(CalmType) as string[]}
+                            values= {['Architectures', 'Patterns', 'Flows']}
                             callback={handleCalmTypeSelection}
                             currentValue={currentCalmType}
                         />
@@ -124,16 +123,16 @@ function Hub() {
                     {currentNamespace && currentCalmType && (
                         <ValueTable
                             header={
-                                currentCalmType === CalmType.Pattern
-                                    ? CalmType.Pattern
-                                    : currentCalmType === CalmType.Flow
-                                      ? CalmType.Flow
-                                      : CalmType.Architecture
+                                currentCalmType === 'Patterns'
+                                    ? 'Patterns'
+                                    : currentCalmType === 'Flows'
+                                      ? 'Flows'
+                                      : 'Architectures'
                             }
                             values={
-                                currentCalmType === CalmType.Pattern
+                                currentCalmType === 'Patterns'
                                     ? patternIDs
-                                    : currentCalmType === CalmType.Flow
+                                    : currentCalmType === 'Flows'
                                       ? flowIDs
                                       : architectureIDs
                             }

@@ -27,14 +27,13 @@ const breadthFirstLayout = {
 const textFontSize = '20px';
 
 export interface CytoscapeRendererProps {
-    title: string;
     isNodeDescActive: boolean;
     isRelationshipDescActive: boolean;
     nodes: CalmNode[];
     edges: Edge[];
     nodeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
     edgeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
-    calmKey?: string;
+    calmKey: string;
 }
 
 function getEdgeStyle(showDescription: boolean): cytoscape.Css.Edge {
@@ -76,7 +75,6 @@ const layoutCorrectionService = new LayoutCorrectionService();
 
 export function CytoscapeRenderer({
     nodes = [],
-    title = '',
     edges = [],
     isRelationshipDescActive,
     isNodeDescActive,
@@ -119,7 +117,7 @@ export function CytoscapeRenderer({
             maxZoom: 5,
         });
 
-        const savedPositions = loadStoredNodePositions(calmKey ? calmKey : title);
+        const savedPositions = loadStoredNodePositions(calmKey);
         if (savedPositions) {
             cy.nodes().forEach((node) => {
                 const match = savedPositions.find((n) => n.id === node.id());
@@ -146,7 +144,7 @@ export function CytoscapeRenderer({
                 id: node.id(),
                 position: node.position(),
             }));
-            saveNodePositions(calmKey ? calmKey : title, nodePositions);
+            saveNodePositions(calmKey, nodePositions);
         });
 
         layoutCorrectionService.calculateAndUpdateNodePositions(cy, nodes);
@@ -155,7 +153,6 @@ export function CytoscapeRenderer({
             cy.destroy();
         };
     }, [
-        title,
         nodes,
         edges,
         isNodeDescActive,

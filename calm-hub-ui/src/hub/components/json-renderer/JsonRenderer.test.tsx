@@ -2,7 +2,6 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { JsonRenderer } from './JsonRenderer.js';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { CalmType } from '../../../model/calm.js';
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
@@ -35,7 +34,7 @@ describe('JsonRenderer', () => {
             id: '42',
             version: '0.0.1',
             name: 'bar',
-            calmType: CalmType.Architecture,
+            calmType: 'Architectures',
             data: undefined,
         };
         render(
@@ -55,7 +54,7 @@ describe('JsonRenderer', () => {
             id: '42',
             version: '0.0.1',
             name: 'bar',
-            calmType: CalmType.Architecture,
+            calmType: 'Architectures',
             data: undefined,
         };
         render(
