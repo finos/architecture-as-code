@@ -10,13 +10,13 @@
 			"version": "latest",
 			"jdkVersion": "latest",
 			"jdkDistro": "open"
-		},
-		"containerEnv": {
-			"JAVA_HOME": "/root/.sdkman/candidates/java/current"
-		},
-		"hostRequirements": {
-			"cpus": 4,
-			"memory": "16gb"
 		}
+	},
+	"containerEnv": {
+		"JAVA_HOME": "/root/.sdkman/candidates/java/current"
+	},
+	"hostRequirements": {
+		"cpus": 4,
+		"memory": "16gb"
 	}
 }
