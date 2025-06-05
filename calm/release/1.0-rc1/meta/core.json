@@ -191,7 +191,7 @@
       ]
     },
     "node-type-definition": {
-      "oneOf": [
+      "anyOf": [
         {
           "enum": [
             "actor",
