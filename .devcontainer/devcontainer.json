@@ -1,5 +1,5 @@
 {
-	"image": "mcr.microsoft.com/devcontainers/universal:2",
+	"image": "mcr.microsoft.com/devcontainers/universal:3",
 	"features": {
 		"ghcr.io/devcontainers-contrib/features/maven-sdkman:2": {
 			"version": "latest",
@@ -11,5 +11,12 @@
 			"jdkVersion": "latest",
 			"jdkDistro": "open"
 		}
+	},
+	"containerEnv": {
+		"JAVA_HOME": "/root/.sdkman/candidates/java/current"
+	},
+	"hostRequirements": {
+		"cpus": 4,
+		"memory": "16gb"
 	}
 }
