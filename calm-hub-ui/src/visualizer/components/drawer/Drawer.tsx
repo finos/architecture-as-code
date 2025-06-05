@@ -2,6 +2,7 @@ import { Sidebar } from '../sidebar/Sidebar.js';
 import { useState } from 'react';
 import {
     CalmArchitectureSchema,
+    CalmNodeSchema,
     CalmRelationshipSchema,
 } from '../../../../../shared/src/types/core-types.js';
 import {
@@ -106,6 +107,10 @@ export function Drawer({
         setSelectedNode(null);
     }
 
+    function generateDisplayPlaceHolderWithoutDesc(node: CalmNodeSchema): string {
+        return `${node.name}\n[${node['node-type']}]`;
+    }
+
     function getNodes(): CalmNode[] {
         if (!calmInstance || !calmInstance.relationships) return [];
 
@@ -120,8 +125,8 @@ export function Drawer({
                     description: node.description,
                     type: node['node-type'],
                     id: node['unique-id'],
-                    _displayPlaceholderWithDesc: `${node.name}\n\n\n${node['node-type']}\n\n\n${node.description}\n`,
-                    _displayPlaceholderWithoutDesc: `${node.name}\n\n\n${node['node-type']}`,
+                    labelWithDescription: `${generateDisplayPlaceHolderWithoutDesc(node)}\n\n${node.description}\n`,
+                    labelWithoutDescription: `${generateDisplayPlaceHolderWithoutDesc(node)}`,
                 },
             };
 
