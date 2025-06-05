@@ -125,8 +125,6 @@ export function CytoscapeRenderer({
                     node.position(match.position);
                 }
             });
-
-            cy.fit();
         }
 
         cy.on('tap', 'node', (e) => {
