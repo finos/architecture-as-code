@@ -14,7 +14,7 @@ public class TestCalmHubScopesShould {
         Constructor<CalmHubScopes> constructor = CalmHubScopes.class.getDeclaredConstructor();
         constructor.setAccessible(true);
         Exception actual = assertThrows(InvocationTargetException.class, constructor::newInstance);
-        assertTrue(actual.getCause() instanceof UnsupportedOperationException);
+        assertInstanceOf(UnsupportedOperationException.class, actual.getCause());
     }
 
     @Test

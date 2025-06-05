@@ -16,7 +16,7 @@ const inputSecurePatternPath = join(
 
 const expectedDir = join(__dirname, '../../../test_fixtures/command/generate/expected-output');
 const outputDir = join(__dirname, '../../../test_fixtures/command/generate/actual-output');
-const schemaDir = join(__dirname, '../../../../calm/draft/2025-03/meta');
+const schemaDir = join(__dirname, '../../../../calm/release/1.0-rc1/meta');
 
 const outputPath = join(outputDir, 'conference-signup.arch.json');
 const outputSecurePath = join(outputDir, 'conference-secure-signup.arch.json');

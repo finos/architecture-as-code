@@ -19,8 +19,8 @@ export type CalmNode = {
         type: string;
         label: string;
         id: string;
-        _displayPlaceholderWithDesc: string;
-        _displayPlaceholderWithoutDesc: string;
+        labelWithDescription: string;
+        labelWithoutDescription: string;
         parent?: string;
         interfaces?: (
             | CalmInterfaceTypeSchema
