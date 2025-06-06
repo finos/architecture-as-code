@@ -1,5 +1,8 @@
 package org.finos.calm.store.mongo;
 
+import com.mongodb.MongoWriteException;
+import com.mongodb.ServerAddress;
+import com.mongodb.WriteError;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
@@ -10,6 +13,7 @@ import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.json.JsonParseException;
@@ -17,6 +21,7 @@ import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.StandardDetails;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
+import org.finos.calm.domain.exception.StandardVersionExistsException;
 import org.finos.calm.domain.exception.StandardVersionNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -303,5 +308,54 @@ public class TestMongoStandardStoreShould {
 
         assertThrows(StandardVersionNotFoundException.class,
                 () -> mongoStandardStore.getStandardForVersion(standardDetails));
+    }
+
+    @Test
+    void throw_an_exception_for_create_standard_for_version_when_a_namespace_doesnt_exist() {
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> mongoStandardStore.createStandardForVersion(standardToStore()));
+    }
+
+    @Test
+    void throw_an_exception_for_create_standard_for_version_when_a_standard_doesnt_exist() {
+        mockSetupStandardDocumentWithVersions();
+        Standard standard = standardToStore();
+        standard.setId(50);
+
+        WriteError writeError = new WriteError(2, "The positional operator did not find the match needed from the query", new BsonDocument());
+        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress());
+        when(standardCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class))).thenThrow(mongoWriteException);
+
+        assertThrows(StandardNotFoundException.class, () -> mongoStandardStore.createStandardForVersion(standard));
+    }
+
+    @Test
+    void throw_an_exception_for_create_standard_for_version_when_a_version_already_exists() {
+        mockSetupStandardDocumentWithVersions();
+        Standard standard = standardToStore();
+        standard.setVersion("1.0.0");
+
+        assertThrows(StandardVersionExistsException.class, () -> mongoStandardStore.createStandardForVersion(standard));
+    }
+
+    @Test
+    void accept_the_creation_of_a_valid_version() throws StandardVersionExistsException, StandardNotFoundException, NamespaceNotFoundException {
+        mockSetupStandardDocumentWithVersions();
+        Standard standard = standardToStore();
+        mongoStandardStore.createStandardForVersion(standard);
+
+        verify(standardCollection).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+    }
+
+    private Standard standardToStore() {
+        Standard standard = new Standard();
+        standard.setId(42);
+        standard.setNamespace("finos");
+        standard.setVersion("1.0.1");
+        standard.setName("Second Version");
+        standard.setDescription("Second Description");
+        standard.setStandardJson("{}");
+        return standard;
     }
 }

@@ -13,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
@@ -104,5 +106,55 @@ public class MongoStandardIntegration {
                 .then()
                 .statusCode(200)
                 .body(equalTo("{}"));
+    }
+
+    @Test
+    @Order(5)
+    void end_to_end_create_a_new_standard_version_for_standard() {
+        setupTestStandardForPersistenceRetrieval();
+
+        given()
+                .body(testStandard)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/standards/1/versions/2.0.0")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("calm/namespaces/finos/standards/1/versions/2.0.0"));
+    }
+
+    @Test
+    @Order(6)
+    void end_to_end_verify_retrieval_of_standard_json() {
+        setupTestStandardForPersistenceRetrieval();
+
+        given()
+                .when().get("/calm/namespaces/finos/standards/1/versions/2.0.0")
+                .then()
+                .statusCode(200)
+                .body(equalTo(testStandard.getStandardJson()));
+    }
+
+    @Test
+    void end_to_end_verify_standard_details_and_if_they_are_updated() {
+        setupTestStandardForPersistenceRetrieval();
+
+        Map<String, Object> expected = new HashMap<>();
+        expected.put("id", 1);
+        expected.put("name", "New Name");
+        expected.put("description", "New Description");
+
+        given()
+                .when().get("/calm/namespaces/finos/standards")
+                .then()
+                .statusCode(200)
+                .body("values", hasItem(equalTo(expected)));
+    }
+
+    private void setupTestStandardForPersistenceRetrieval() {
+        testStandard.setStandardJson("{}");
+        testStandard.setName("New Name");
+        testStandard.setDescription("New Description");
+        testStandard.setVersion("2.0.0");
+        testStandard.setId(1);
     }
 }
