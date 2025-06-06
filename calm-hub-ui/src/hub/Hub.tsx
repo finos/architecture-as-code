@@ -10,7 +10,7 @@ import {
     Data,
     Revision,
     AdrID,
-    Adr,
+    Adr
 } from '../model/calm.js';
 import {
     fetchNamespaces,

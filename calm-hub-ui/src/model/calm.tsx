@@ -11,7 +11,12 @@ export type Flow = string;
 export type Version = string;
 export type Revision = string;
 export type Adr = AdrMeta;
+export type CalmType =  'Architectures' | 'Patterns' | 'Flows' | 'ADRs';
+
 export type Data = {
+    id: string;
+    version: string;
     name: Namespace;
     data: Pattern | Architecture | Flow | Adr | undefined;
+    calmType: CalmType;
 };
