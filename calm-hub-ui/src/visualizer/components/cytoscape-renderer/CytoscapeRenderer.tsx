@@ -27,13 +27,13 @@ const breadthFirstLayout = {
 const textFontSize = '20px';
 
 export interface CytoscapeRendererProps {
-    title: string;
     isNodeDescActive: boolean;
     isRelationshipDescActive: boolean;
     nodes: CalmNode[];
     edges: Edge[];
     nodeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
     edgeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
+    calmKey: string;
 }
 
 function getEdgeStyle(showDescription: boolean): cytoscape.Css.Edge {
@@ -75,12 +75,12 @@ const layoutCorrectionService = new LayoutCorrectionService();
 
 export function CytoscapeRenderer({
     nodes = [],
-    title = '',
     edges = [],
     isRelationshipDescActive,
     isNodeDescActive,
     nodeClickedCallback,
     edgeClickedCallback,
+    calmKey,
 }: CytoscapeRendererProps) {
     const cyRef = useRef<HTMLDivElement>(null);
 
@@ -92,24 +92,26 @@ export function CytoscapeRenderer({
             container,
             elements: [...nodes, ...edges],
             style: [
-                {
-                    selector: 'edge',
-                    style: getEdgeStyle(isRelationshipDescActive),
+            {
+                selector: 'edge',
+                style: getEdgeStyle(isRelationshipDescActive),
+            },
+            {
+                selector: 'node',
+                style: getNodeStyle(isNodeDescActive),
+            },
+            {
+                selector: ':parent',
+                style: {
+                    label: 'data(label)',
+                    'text-valign': 'top',
+                    'text-halign': 'center',
+                    "background-color": 'white',
+                    "border-style": 'dashed',
+                    "border-width": 2,
+                    "border-dash-pattern": [8, 10], // [dash length, gap length]
                 },
-                {
-                    selector: 'node',
-                    style: getNodeStyle(isNodeDescActive),
-                },
-                {
-                    selector: ':parent',
-                    style: {
-                        label: 'data(label)',
-                        "background-color": 'white',
-                        "border-style": 'dashed',
-                        "border-width": 2,
-                        "border-dash-pattern": [8, 10], // [dash length, gap length]
-                    },
-                },
+            },
             ],
             layout: breadthFirstLayout,
             boxSelectionEnabled: true,
@@ -117,7 +119,7 @@ export function CytoscapeRenderer({
             maxZoom: 5,
         });
 
-        const savedPositions = loadStoredNodePositions(title);
+        const savedPositions = loadStoredNodePositions(calmKey);
         if (savedPositions) {
             cy.nodes().forEach((node) => {
                 const match = savedPositions.find((n) => n.id === node.id());
@@ -144,7 +146,7 @@ export function CytoscapeRenderer({
                 id: node.id(),
                 position: node.position(),
             }));
-            saveNodePositions(title, nodePositions);
+            saveNodePositions(calmKey, nodePositions);
         });
 
         layoutCorrectionService.calculateAndUpdateNodePositions(cy, nodes);
@@ -153,7 +155,6 @@ export function CytoscapeRenderer({
             cy.destroy();
         };
     }, [
-        title,
         nodes,
         edges,
         isNodeDescActive,
@@ -161,6 +162,7 @@ export function CytoscapeRenderer({
         nodeClickedCallback,
         edgeClickedCallback,
         cyRef,
+        calmKey
     ]);
 
     return <div ref={cyRef} className="flex-1 bg-white visualizer" style={{ height: '100vh' }} />;
