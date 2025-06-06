@@ -218,6 +218,8 @@ public class NitriteStandardStore implements StandardStore {
         // Add the new version
         versions.put(standard.getMongoVersion(), standard.getStandardJson());
         standardDoc.put(VERSIONS_FIELD, versions);
+        standardDoc.put(NAME_FIELD, standard.getName());
+        standardDoc.put(DESCRIPTION_FIELD, standard.getDescription());
 
         // Update the standard in the namespace document
         List<Document> standards = namespaceDocument.get(STANDARDS_FIELD, List.class);
