@@ -13,10 +13,18 @@
 		}
 	},
 	"containerEnv": {
-		"JAVA_HOME": "/root/.sdkman/candidates/java/current"
+		"JAVA_HOME": "/usr/local/sdkman/candidates/java/current"
 	},
+	"postCreateCommand": "echo 'export JAVA_HOME=/usr/local/sdkman/candidates/java/current' >> ~/.bashrc",
 	"hostRequirements": {
 		"cpus": 4,
 		"memory": "16gb"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"vscjava.vscode-java-pack"
+			]
+		}
 	}
 }
