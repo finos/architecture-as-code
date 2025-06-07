@@ -1,9 +1,13 @@
-import cytoscape from "cytoscape";
-import { BoundingBox, IdAndBoundingBox, CalmNode, NodeLayoutViolations } from '../contracts/contracts.js';
-import { difference, intersection, union } from "../helpers/set-functions.js";
+import cytoscape from 'cytoscape';
+import {
+    BoundingBox,
+    IdAndBoundingBox,
+    CytoscapeNode,
+    NodeLayoutViolations,
+} from '../contracts/contracts.js';
+import { difference, intersection, union } from '../helpers/set-functions.js';
 
 export class LayoutCorrectionService {
-    
     //PUBLIC METHODS-------------------------
 
     /**
@@ -13,7 +17,7 @@ export class LayoutCorrectionService {
      * @param cyRef Reference to cytoscape graph.
      * @param nodes Nodes to seatch over.
      */
-    public calculateAndUpdateNodePositions(cyRef: cytoscape.Core, nodes: CalmNode[]): void {
+    public calculateAndUpdateNodePositions(cyRef: cytoscape.Core, nodes: CytoscapeNode[]): void {
         this.identifyNodesToBeMoved(cyRef, nodes);
         //Make sure all parentless containers are correctly placed first, followed by child containers of these parents
         const containers = new Set<string>([...this._nodeEnclosureMap.keys()]);
@@ -32,7 +36,7 @@ export class LayoutCorrectionService {
     }
 
     //PRIVATE MEMBERS---------------------------
-    
+
     //Maps Node IDs to their bounding boxes, as well as those of parents for which they violate layout rules.
     private _layoutViolations = new Map<string, NodeLayoutViolations>();
 
@@ -45,7 +49,6 @@ export class LayoutCorrectionService {
     //Set of all nodes in the graph
     private _allNodes = new Set<string>();
 
-
     //PRIVATE METHODS----------------------------
 
     /**
@@ -55,16 +58,19 @@ export class LayoutCorrectionService {
      * @param nodes Nodes to search over.
      * @returns An object describing nodes not contained within their ancestors, as well as nodes within non-ancestors, along with bounding boxes
      */
-    private identifyNodesToBeMoved(cyRef: cytoscape.Core, nodes: CalmNode[]): Map<string, NodeLayoutViolations> {
+    private identifyNodesToBeMoved(
+        cyRef: cytoscape.Core,
+        nodes: CytoscapeNode[]
+    ): Map<string, NodeLayoutViolations> {
         this._layoutViolations.clear();
         this._nodeEnclosureMap.clear();
         this._allNodes.clear();
         this._parentlessNodes.clear();
-        
+
         //Iterate through nodes and populate node enclosure map
-        nodes.forEach((node: CalmNode) => {
+        nodes.forEach((node: CytoscapeNode) => {
             const nodeParentId = node.data.parent;
-            if(nodeParentId != null) {
+            if (nodeParentId != null) {
                 if (this._nodeEnclosureMap.get(nodeParentId) != null) {
                     this._nodeEnclosureMap.get(nodeParentId)?.add(node.data.id);
                 } else {
@@ -73,35 +79,56 @@ export class LayoutCorrectionService {
                 //We can also identify nodes that are not within their parent if the parent is defined
                 const parentBoundingBox = this.getNodeBoundingBox(cyRef, nodeParentId);
                 const nodeBoundingBox = this.getNodeBoundingBox(cyRef, node.data.id);
-                if(!this.boxContainedIn(nodeBoundingBox, parentBoundingBox)) {
-                    this.addLayoutViolation(node.data.id, nodeBoundingBox, nodeParentId, parentBoundingBox, true);
+                if (!this.boxContainedIn(nodeBoundingBox, parentBoundingBox)) {
+                    this.addLayoutViolation(
+                        node.data.id,
+                        nodeBoundingBox,
+                        nodeParentId,
+                        parentBoundingBox,
+                        true
+                    );
                 }
             } else {
                 this._parentlessNodes.add(node.data.id);
             }
-        })
+        });
 
-        this._allNodes = new Set<string>(nodes.map((node: CalmNode) => node.data.id));
+        this._allNodes = new Set<string>(nodes.map((node: CytoscapeNode) => node.data.id));
 
         const visited = new Set<string>();
         this._nodeEnclosureMap.forEach((_: Set<string>, nodeId: string) => {
             this.updateEnclosedNodesMap(nodeId, this._nodeEnclosureMap, visited);
-        })
+        });
 
         //Iterate over keys in map to check if any non-enclosed nodes are intersecting
-        this._nodeEnclosureMap.forEach((enclosed: Set<string>, parentId: string, nodeEnclosureMap: Map<string, Set<string>>) => {
-            const nonEnclosedNodes = difference(this._allNodes, enclosed.add(parentId));
-            nonEnclosedNodes.forEach((nonEnclosedNodeId: string) => {
-                //If the current parent is supposed to be enclosed by the non enclosed node id
-                if(!(nodeEnclosureMap.get(nonEnclosedNodeId)?.has(parentId) ?? false)) {
-                    const nonParentBoundingBox = this.getNodeBoundingBox(cyRef, parentId);
-                    const nonEnclosedNodeBoundingBox = this.getNodeBoundingBox(cyRef, nonEnclosedNodeId);
-                    if (this.boxesIntersect(nonParentBoundingBox, nonEnclosedNodeBoundingBox)) {
-                        this.addLayoutViolation(nonEnclosedNodeId, nonEnclosedNodeBoundingBox, parentId, nonParentBoundingBox, false);
+        this._nodeEnclosureMap.forEach(
+            (
+                enclosed: Set<string>,
+                parentId: string,
+                nodeEnclosureMap: Map<string, Set<string>>
+            ) => {
+                const nonEnclosedNodes = difference(this._allNodes, enclosed.add(parentId));
+                nonEnclosedNodes.forEach((nonEnclosedNodeId: string) => {
+                    //If the current parent is supposed to be enclosed by the non enclosed node id
+                    if (!(nodeEnclosureMap.get(nonEnclosedNodeId)?.has(parentId) ?? false)) {
+                        const nonParentBoundingBox = this.getNodeBoundingBox(cyRef, parentId);
+                        const nonEnclosedNodeBoundingBox = this.getNodeBoundingBox(
+                            cyRef,
+                            nonEnclosedNodeId
+                        );
+                        if (this.boxesIntersect(nonParentBoundingBox, nonEnclosedNodeBoundingBox)) {
+                            this.addLayoutViolation(
+                                nonEnclosedNodeId,
+                                nonEnclosedNodeBoundingBox,
+                                parentId,
+                                nonParentBoundingBox,
+                                false
+                            );
+                        }
                     }
-                }   
-            })
-        })
+                });
+            }
+        );
         return this._layoutViolations;
     }
 
@@ -113,7 +140,11 @@ export class LayoutCorrectionService {
     private correctNodePosition(cyRef: cytoscape.Core, nodeId: string): void {
         const layoutViolationsForNode = this._layoutViolations.get(nodeId);
         if (layoutViolationsForNode != null) {
-            const correctedPosition = this.getCorrectedPosition(cyRef, nodeId, layoutViolationsForNode);
+            const correctedPosition = this.getCorrectedPosition(
+                cyRef,
+                nodeId,
+                layoutViolationsForNode
+            );
             cyRef.getElementById(nodeId).position(correctedPosition);
         }
     }
@@ -121,13 +152,17 @@ export class LayoutCorrectionService {
     /**
      * Recursive function that updates the node enclosure map based on parent-child relationships. Used to build up the
      * node enclosure map and to ensure that all nodes are accounted for.
-     * @param currentValue 
-     * @param enclosureMap 
-     * @param visited 
+     * @param currentValue
+     * @param enclosureMap
+     * @param visited
      */
-    private updateEnclosedNodesMap(currentValue: string, enclosureMap: Map<string, Set<string>>, visited: Set<string>): void {
+    private updateEnclosedNodesMap(
+        currentValue: string,
+        enclosureMap: Map<string, Set<string>>,
+        visited: Set<string>
+    ): void {
         //If we have already visited child from another node, no need to go again
-        if(!visited.has(currentValue)) {
+        if (!visited.has(currentValue)) {
             visited.add(currentValue);
             const children = enclosureMap.get(currentValue);
             //Recursion only if children defined
@@ -152,8 +187,8 @@ export class LayoutCorrectionService {
      * @returns a boolean: `true` if box 1 is within box 2, else `false`
      */
     private boxContainedIn(box1: BoundingBox, box2: BoundingBox): boolean {
-        const boxHorizontallyInside = (box1.x1 > box2.x1) && (box1.x2 < box2.x2);
-        const boxVerticallyInside = (box1.y1 > box2.y1) && (box1.y2 < box2.y2);
+        const boxHorizontallyInside = box1.x1 > box2.x1 && box1.x2 < box2.x2;
+        const boxVerticallyInside = box1.y1 > box2.y1 && box1.y2 < box2.y2;
         return boxHorizontallyInside && boxVerticallyInside;
     }
 
@@ -164,8 +199,8 @@ export class LayoutCorrectionService {
      * @returns a boolean: `true` if boxes intersect, else `false`
      */
     private boxesIntersect(box1: BoundingBox, box2: BoundingBox): boolean {
-        const boxHorizontallyOutside = (box1.x1 > box2.x2) || (box2.x1 > box1.x2);
-        const boxVerticallyOutside = (box1.y1 > box2.y2) || (box2.y1 > box1.y2);
+        const boxHorizontallyOutside = box1.x1 > box2.x2 || box2.x1 > box1.x2;
+        const boxVerticallyOutside = box1.y1 > box2.y2 || box2.y1 > box1.y2;
         return !(boxHorizontallyOutside || boxVerticallyOutside);
     }
 
@@ -177,10 +212,16 @@ export class LayoutCorrectionService {
      * @param parentBoundingBox Bounding box of the node being violated
      * @param shouldBeInside Boolean describing the type of violation
      */
-    private addLayoutViolation(nodeId: string, nodeBoundingBox: BoundingBox, parentId: string, parentBoundingBox: BoundingBox, shouldBeInside: boolean): void {
+    private addLayoutViolation(
+        nodeId: string,
+        nodeBoundingBox: BoundingBox,
+        parentId: string,
+        parentBoundingBox: BoundingBox,
+        shouldBeInside: boolean
+    ): void {
         const constraint: IdAndBoundingBox = {
             nodeId: parentId,
-            boundingBox: parentBoundingBox
+            boundingBox: parentBoundingBox,
         };
 
         let nodeViolationEntry = this._layoutViolations.get(nodeId);
@@ -189,9 +230,9 @@ export class LayoutCorrectionService {
             nodeViolationEntry = {
                 nodeBoundingBox: nodeBoundingBox,
                 shouldBeInside: [],
-                shouldBeOutside: []
+                shouldBeOutside: [],
             };
-        } 
+        }
 
         if (shouldBeInside) {
             nodeViolationEntry.shouldBeInside.push(constraint);
@@ -209,7 +250,11 @@ export class LayoutCorrectionService {
      * violates the layout rules - these may be ancestors the node is not rendering in or non-ancestors the node is rendering in.
      * @returns The suggested position as an object.
      */
-    private getCorrectedPosition(cyref: cytoscape.Core, nodeId: string, violations: NodeLayoutViolations): cytoscape.Position {
+    private getCorrectedPosition(
+        cyref: cytoscape.Core,
+        nodeId: string,
+        violations: NodeLayoutViolations
+    ): cytoscape.Position {
         const xRanges: [number, number][] = [[-Infinity, Infinity]];
         const yRanges: [number, number][] = [[-Infinity, Infinity]];
         //Update ranges based on containers the node needs to be in
@@ -221,17 +266,25 @@ export class LayoutCorrectionService {
             yRanges[0][1] = Math.min(yRanges[0][1], container.boundingBox.y2);
         });
         //Update ranges so that the new node position cannot intersect with other non-ancestor nodes
-        difference(this._allNodes, this.getLineage(nodeId)).forEach((nonCollisionNodeId: string) => {
-            const boundingBox = this.getNodeBoundingBox(cyref, nonCollisionNodeId);
-            this.updateRanges(xRanges, [boundingBox.x1, boundingBox.x2]);
-            this.updateRanges(yRanges, [boundingBox.y1, boundingBox.y2]);
-        });
+        difference(this._allNodes, this.getLineage(nodeId)).forEach(
+            (nonCollisionNodeId: string) => {
+                const boundingBox = this.getNodeBoundingBox(cyref, nonCollisionNodeId);
+                this.updateRanges(xRanges, [boundingBox.x1, boundingBox.x2]);
+                this.updateRanges(yRanges, [boundingBox.y1, boundingBox.y2]);
+            }
+        );
         //Find nearest range to current position of node
-        const xRange = this.findClosestRange(xRanges, [violations.nodeBoundingBox.x1, violations.nodeBoundingBox.x2]);
-        const yRange = this.findClosestRange(yRanges, [violations.nodeBoundingBox.y1, violations.nodeBoundingBox.y2]);
+        const xRange = this.findClosestRange(xRanges, [
+            violations.nodeBoundingBox.x1,
+            violations.nodeBoundingBox.x2,
+        ]);
+        const yRange = this.findClosestRange(yRanges, [
+            violations.nodeBoundingBox.y1,
+            violations.nodeBoundingBox.y2,
+        ]);
         return {
             x: this.findPositionFromRange(xRange, violations.nodeBoundingBox.w),
-            y: this.findPositionFromRange(yRange, violations.nodeBoundingBox.h)
+            y: this.findPositionFromRange(yRange, violations.nodeBoundingBox.h),
         };
     }
 
@@ -268,7 +321,7 @@ export class LayoutCorrectionService {
     private updateRanges(ranges: [number, number][], newRange: [number, number]): void {
         const leftResult = this.binarySearchOverRanges(ranges, newRange[0]);
         const rightResult = this.binarySearchOverRanges(ranges, newRange[1]);
-        
+
         if (leftResult.intersects && rightResult.intersects) {
             //If the new range falls within another range, we have to split the range
             if (leftResult.index == rightResult.index) {
@@ -276,7 +329,7 @@ export class LayoutCorrectionService {
                 ranges[leftResult.index][1] = newRange[0];
                 ranges.splice(leftResult.index + 1, 0, [newRange[1], oldRangeRight]);
             }
-            //If the ranges are different, delete all ranges in between 
+            //If the ranges are different, delete all ranges in between
             else {
                 ranges[leftResult.index][1] = newRange[0];
                 ranges[rightResult.index][0] = newRange[1];
@@ -287,12 +340,10 @@ export class LayoutCorrectionService {
         else if (leftResult.intersects) {
             ranges[leftResult.index][1] = newRange[0];
             ranges.splice(leftResult.index + 1, rightResult.index - leftResult.index - 1);
-        }
-        else if(rightResult.intersects) {
+        } else if (rightResult.intersects) {
             ranges[rightResult.index][0] = newRange[1];
             ranges.splice(leftResult.index, rightResult.index - leftResult.index);
-        }
-        else {
+        } else {
             ranges.splice(leftResult.index, rightResult.index - leftResult.index);
         }
     }
@@ -303,25 +354,27 @@ export class LayoutCorrectionService {
      * @param searchValue Value to search in ranges
      * @returns object containing a numerical index and a boolean indicating whether the value intersects the range
      */
-    private binarySearchOverRanges(ranges: [number, number][], searchValue: number): { index: number, intersects: boolean } {
+    private binarySearchOverRanges(
+        ranges: [number, number][],
+        searchValue: number
+    ): { index: number; intersects: boolean } {
         let left = 0;
         let right = ranges.length - 1;
         let precedes = ranges.length;
 
         while (left <= right) {
-            const mid = Math.floor((left + right)/2);
+            const mid = Math.floor((left + right) / 2);
             const midIndexedRange = ranges[mid];
-            if ((midIndexedRange[0] <= searchValue) && (midIndexedRange[1] >= searchValue)) {
+            if (midIndexedRange[0] <= searchValue && midIndexedRange[1] >= searchValue) {
                 return { index: mid, intersects: true };
-            }
-            else if (searchValue > midIndexedRange[1]) {
+            } else if (searchValue > midIndexedRange[1]) {
                 left = mid + 1;
             } else {
                 right = mid - 1;
                 precedes = mid;
             }
         }
-        return { index: precedes, intersects: false };  
+        return { index: precedes, intersects: false };
     }
 
     /**
@@ -330,15 +383,24 @@ export class LayoutCorrectionService {
      * @param searchRange The provided range
      * @returns The closest range.
      */
-    private findClosestRange(ranges: [number, number][], searchRange: [number, number]): [number, number] {
+    private findClosestRange(
+        ranges: [number, number][],
+        searchRange: [number, number]
+    ): [number, number] {
         const rangeSpan = searchRange[1] - searchRange[0];
 
         let closestRange = ranges[0];
-        let closestDistance = Math.min(Math.abs(searchRange[0] - ranges[0][0]), Math.abs(searchRange[1] - ranges[0][1]))
+        let closestDistance = Math.min(
+            Math.abs(searchRange[0] - ranges[0][0]),
+            Math.abs(searchRange[1] - ranges[0][1])
+        );
         ranges.forEach((currentRange: [number, number]) => {
-            const currentDistance = Math.min(Math.abs(searchRange[0] - currentRange[0]), Math.abs(searchRange[1] - currentRange[1]));
+            const currentDistance = Math.min(
+                Math.abs(searchRange[0] - currentRange[0]),
+                Math.abs(searchRange[1] - currentRange[1])
+            );
             const currentSpan = currentRange[1] - currentRange[0];
-            if ((currentDistance < closestDistance) && (rangeSpan < currentSpan)) {
+            if (currentDistance < closestDistance && rangeSpan < currentSpan) {
                 closestRange = currentRange;
                 closestDistance = currentDistance;
             }
@@ -354,15 +416,12 @@ export class LayoutCorrectionService {
     private findPositionFromRange(range: [number, number], padding: number): number {
         if (!Number.isFinite(range[0]) && !Number.isFinite(range[1])) {
             return 0;
-        }
-        else if (!Number.isFinite(range[0])) {
+        } else if (!Number.isFinite(range[0])) {
             return range[1] - padding;
-        }
-        else if (!Number.isFinite(range[1])) {
+        } else if (!Number.isFinite(range[1])) {
             return range[0] + padding;
-        } 
-        else {
-            return (range[0] + range[1])/2;
+        } else {
+            return (range[0] + range[1]) / 2;
         }
     }
 }

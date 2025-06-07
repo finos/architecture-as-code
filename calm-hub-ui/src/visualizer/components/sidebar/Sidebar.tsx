@@ -1,17 +1,17 @@
-import { IoAddOutline, IoCloseOutline, IoRemoveOutline } from 'react-icons/io5';
-import { useState } from 'react';
-import { CalmNode, Edge } from '../../contracts/contracts.js';
+import { IoCloseOutline } from 'react-icons/io5';
+import { CytoscapeNodeData, Edge } from '../../contracts/contracts.js';
+import { JsonRenderer } from '../../../hub/components/json-renderer/JsonRenderer.js';
 
 export interface SidebarProps {
-    selectedData: CalmNode['data'] | Edge['data'];
+    selectedData: CytoscapeNodeData | Edge['data'];
     closeSidebar: () => void;
 }
 
-function isCALMNodeData(data: CalmNode['data'] | Edge['data']): data is CalmNode['data'] {
+function isCALMNodeData(data: CytoscapeNodeData | Edge['data']): data is CytoscapeNodeData {
     return data.id != null && data.type != null;
 }
 
-function isCALMEdgeData(data: CalmNode['data'] | Edge['data']): data is Edge['data'] {
+function isCALMEdgeData(data: CytoscapeNodeData | Edge['data']): data is Edge['data'] {
     return (
         'source' in data &&
         'target' in data &&
@@ -22,20 +22,13 @@ function isCALMEdgeData(data: CalmNode['data'] | Edge['data']): data is Edge['da
 }
 
 export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
-    const [isInterfacesVisible, setIsInterfacesVisible] = useState(true);
-
-    const toggleInterfacesVisibility = () => {
-        setIsInterfacesVisible((prev) => !prev);
-    };
-
-    // Determine if we have selected a node or edge or something else
     const isCALMNode = isCALMNodeData(selectedData);
     const isCALMEdge = isCALMEdgeData(selectedData);
 
     return (
-        <div className="fixed right-0 h-full w-80 bg-base-300 shadow-lg">
+        <div className="fixed right-0 h-full w-90 bg-base-300 shadow-lg">
             <label htmlFor="node-details" className="drawer-overlay" onClick={closeSidebar}></label>
-            <div className="menu bg-base-300 text-base-content min-h-full w-80 p-4">
+            <div className="menu bg-base-300 text-base-content h-full w-90 p-4">
                 <div className="flex justify-end">
                     <button
                         aria-label="close-sidebar"
@@ -49,103 +42,21 @@ export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
                     </button>
                 </div>
                 {isCALMNode && (
-                    <div>
+                    <>
                         <div className="text-xl font-bold mb-2">Node Details</div>
-                        <div className="space-y-2">
-                            <div className="node-details">
-                                <p>
-                                    <span className="font-light">unique-id: </span>
-                                    <span className="font-semibold">{selectedData.id}</span>
-                                </p>
-                                <p>
-                                    <span className="font-light">name: </span>
-                                    <span className="font-semibold">{selectedData.label}</span>
-                                </p>
-                                <p>
-                                    <span className="font-light">node-type: </span>
-                                    <span className="font-semibold">{selectedData.type}</span>
-                                </p>
-                                <p>
-                                    <span className="font-light">description: </span>
-                                    <span className="font-semibold">
-                                        {selectedData.description}
-                                    </span>
-                                </p>
-                            </div>
-                            {selectedData.interfaces && (
-                                <div className="interfaces">
-                                    <div className="flex items-center justify-between">
-                                        <span className="font-light">interfaces: </span>
-                                        <button
-                                            aria-label="toggle-interfaces"
-                                            onClick={toggleInterfacesVisibility}
-                                            className="ml-auto btn btn-xs btn-outline"
-                                        >
-                                            {isInterfacesVisible ? (
-                                                <IoRemoveOutline size={16} />
-                                            ) : (
-                                                <IoAddOutline size={16} />
-                                            )}
-                                        </button>
-                                    </div>
-                                    {isInterfacesVisible && (
-                                        <div className="space-y-4">
-                                            {selectedData.interfaces.map((interfaceItem) => (
-                                                <div className="ml-4 border-b border-gray-300 pb-4">
-                                                    <div className="space-y-1">
-                                                        {Object.entries(interfaceItem).map(
-                                                            ([key, value]) => (
-                                                                <div
-                                                                    key={key}
-                                                                    className="flex cursor-default"
-                                                                >
-                                                                    <span className="font-light">
-                                                                        {key}:{' '}
-                                                                    </span>
-                                                                    <span className="font-semibold">
-                                                                        {String(value)}
-                                                                    </span>
-                                                                </div>
-                                                            )
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                        <div className="max-w-full overflow-y-auto overflow-x-auto">
+                            <JsonRenderer json={selectedData} />
                         </div>
-                    </div>
+                    </>
                 )}
-
                 {isCALMEdge && (
-                    <div>
+                    <>
                         <div className="text-xl font-bold mb-2">Edge Details</div>
-                        <div className="space-y-2">
-                            <p>
-                                <span className="font-light">unique-id: </span>
-                                <span className="font-semibold">{selectedData.id}</span>
-                            </p>
-
-                            <p>
-                                <span className="font-light">description: </span>
-                                <span className="font-semibold">{selectedData.label}</span>
-                            </p>
-
-                            <p>
-                                <span className="font-light">source: </span>
-                                <span className="font-semibold">{selectedData.source}</span>
-                            </p>
-
-                            <p>
-                                <span className="font-light">target: </span>
-                                <span className="font-semibold">{selectedData.target}</span>
-                            </p>
+                        <div className="max-w-full overflow-y-auto overflow-x-auto">
+                            <JsonRenderer json={selectedData} />
                         </div>
-                    </div>
+                    </>
                 )}
-
                 {!isCALMEdge && !isCALMNode && (
                     <div className="text-xl font-bold mb-2">Unknown Selected Entity</div>
                 )}

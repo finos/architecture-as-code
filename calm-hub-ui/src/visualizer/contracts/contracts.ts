@@ -1,40 +1,25 @@
-import cytoscape from "cytoscape";
-import {
-    CalmInterfaceTypeSchema,
-    CalmHostPortInterfaceSchema,
-    CalmHostnameInterfaceSchema,
-    CalmPathInterfaceSchema,
-    CalmOAuth2AudienceInterfaceSchema,
-    CalmURLInterfaceSchema,
-    CalmRateLimitInterfaceSchema,
-    CalmContainerImageInterfaceSchema,
-    CalmPortInterfaceSchema,
-} from '../../../../shared/src/types/interface-types.js';
-import { CalmControlsSchema } from '../../../../shared/src/types/control-types.js';
+import cytoscape from 'cytoscape';
+import { CalmInterfaceSchema } from '@finos/calm-shared/src/types/core-types.js';
+import { CalmControlsSchema } from '@finos/calm-shared/src/types/control-types.js';
 
-export type CalmNode = {
+export type CytoscapeNode = {
     classes?: string;
-    data: {
-        description: string;
-        type: string;
-        label: string;
-        id: string;
-        labelWithDescription: string;
-        labelWithoutDescription: string;
-        parent?: string;
-        interfaces?: (
-            | CalmInterfaceTypeSchema
-            | CalmHostPortInterfaceSchema
-            | CalmHostnameInterfaceSchema
-            | CalmPathInterfaceSchema
-            | CalmOAuth2AudienceInterfaceSchema
-            | CalmURLInterfaceSchema
-            | CalmRateLimitInterfaceSchema
-            | CalmContainerImageInterfaceSchema
-            | CalmPortInterfaceSchema
-        )[];
-        controls?: CalmControlsSchema;
+    data: CytoscapeNodeData & {
+        cytoscapeProps: {
+            labelWithDescription: string;
+            labelWithoutDescription: string;
+        };
     };
+};
+
+export type CytoscapeNodeData = {
+    id: string;
+    description: string;
+    type: string;
+    name: string;
+    interfaces?: CalmInterfaceSchema[];
+    controls?: CalmControlsSchema;
+    parent?: string;
 };
 
 export type Edge = {
@@ -57,7 +42,7 @@ export type IdAndBoundingBox = {
 export type NodeLayoutViolations = {
     shouldBeInside: IdAndBoundingBox[];
     shouldBeOutside: IdAndBoundingBox[];
-    nodeBoundingBox: BoundingBox
+    nodeBoundingBox: BoundingBox;
 };
 
 export type IdAndPosition = {
