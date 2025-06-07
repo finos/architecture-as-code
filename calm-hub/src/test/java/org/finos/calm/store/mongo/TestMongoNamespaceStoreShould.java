@@ -96,4 +96,33 @@ public class TestMongoNamespaceStoreShould {
         assertThat(mongoNamespaceStore.namespaceExists(namespace), is(true));
         verify(namespaceCollection).find(new Document("namespace", namespace));
     }
+
+    @Test
+    void create_namespace_when_it_does_not_exist() {
+        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        String namespace = "new-namespace";
+
+        when(namespaceCollection.find(any(Document.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(null); // namespace doesn't exist
+
+        mongoNamespaceStore.createNamespace(namespace);
+
+        verify(namespaceCollection).find(new Document("namespace", namespace));
+        verify(namespaceCollection).insertOne(new Document("namespace", namespace));
+    }
+
+    @Test
+    void do_not_create_namespace_when_it_already_exists() {
+        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        String namespace = "existing-namespace";
+
+        when(namespaceCollection.find(any(Document.class))).thenReturn(findIterable);
+        Document documentMock = Mockito.mock(Document.class);
+        when(findIterable.first()).thenReturn(documentMock); // namespace exists
+
+        mongoNamespaceStore.createNamespace(namespace);
+
+        verify(namespaceCollection).find(new Document("namespace", namespace));
+        verify(namespaceCollection, Mockito.never()).insertOne(any(Document.class));
+    }
 }

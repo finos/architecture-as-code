@@ -13,12 +13,14 @@ import {
 } from '../../../../../shared/src/types.js';
 import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { VisualizerContainer } from '../visualizer-container/VisualizerContainer.js';
+import { Data } from '../../../model/calm.js';
 
 interface DrawerProps {
     calmInstance?: CalmArchitectureSchema;
-    title?: string;
+    title: string;
     isNodeDescActive: boolean;
     isConDescActive: boolean;
+    data?: Data;
 }
 
 function isComposedOf(
@@ -92,7 +94,13 @@ function getDeployedInRelationships(calmInstance: CalmArchitectureSchema) {
     return deployedInRelationships;
 }
 
-export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive }: DrawerProps) {
+export function Drawer({
+    calmInstance,
+    title,
+    isConDescActive,
+    isNodeDescActive,
+    data,
+}: DrawerProps) {
     const [selectedNode, setSelectedNode] = useState<CytoscapeNode | null>(null);
 
     function closeSidebar() {
@@ -185,6 +193,13 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
             .filter((edge): edge is Edge => edge !== undefined);
     }
 
+    function createStorageKey(title: string, data?: Data): string {
+        if (!data || !data.name || !data.calmType || !data.id || !data.version) {
+            return title;
+        }
+        return `${data.name}/${data.calmType}/${data.id}/${data.version}`;
+    }
+
     const edges = getEdges();
     const nodes = getNodes();
 
@@ -206,6 +221,7 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
                             title={title}
                             nodes={nodes}
                             edges={edges}
+                            calmKey={createStorageKey(title, data)}
                         />
                     ) : (
                         <div className="flex justify-center items-center h-full">

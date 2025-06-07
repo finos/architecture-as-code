@@ -30,15 +30,21 @@ describe('JsonRenderer', () => {
     });
 
     it('renders JsonView when jsonString is provided', () => {
-        const data = { foo: 'bar', num: 42 };
+        const data = {
+            id: '42',
+            version: '0.0.1',
+            name: 'bar',
+            calmType: 'Architectures',
+            data: undefined,
+        };
         render(
             <MemoryRouter>
                 <JsonRenderer json={data} />
             </MemoryRouter>
         );
-        expect(screen.getByText(/foo/i)).toBeInTheDocument();
+        expect(screen.getByText(/name/i)).toBeInTheDocument();
         expect(screen.getByText(/bar/i)).toBeInTheDocument();
-        expect(screen.getByText(/num/i)).toBeInTheDocument();
-        expect(screen.getByText(/42/i)).toBeInTheDocument();
+        expect(screen.getByText(/data/i)).toBeInTheDocument();
+        expect(screen.getByText(/undefined/i)).toBeInTheDocument();
     });
 });

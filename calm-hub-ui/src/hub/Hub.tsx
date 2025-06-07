@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react';
 import { ValueTable } from './components/value-table/ValueTable.js';
 import { JsonRenderer } from './components/json-renderer/JsonRenderer.js';
-import { Namespace, PatternID, FlowID, ArchitectureID, Version, Data } from '../model/calm.js';
+import {
+    Namespace,
+    PatternID,
+    FlowID,
+    ArchitectureID,
+    Version,
+    Data
+} from '../model/calm.js';
 import {
     fetchNamespaces,
     fetchPatternIDs,
@@ -114,7 +121,7 @@ function Hub() {
                     {currentNamespace && (
                         <ValueTable
                             header="Calm Type"
-                            values={['Architectures', 'Patterns', 'Flows']}
+                            values= {['Architectures', 'Patterns', 'Flows']}
                             callback={handleCalmTypeSelection}
                             currentValue={currentCalmType}
                         />

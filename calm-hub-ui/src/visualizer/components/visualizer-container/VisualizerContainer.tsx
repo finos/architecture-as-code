@@ -9,6 +9,7 @@ interface VisualizerContainerProps {
     isRelationshipDescActive: boolean;
     nodes: CytoscapeNode[];
     edges: Edge[];
+    calmKey: string;
 }
 
 export function VisualizerContainer({
@@ -17,6 +18,7 @@ export function VisualizerContainer({
     edges = [],
     isRelationshipDescActive,
     isNodeDescActive,
+    calmKey,
 }: VisualizerContainerProps) {
     const [selectedItem, setSelectedItem] = useState<CytoscapeNode['data'] | Edge['data'] | null>(
         null
@@ -31,13 +33,13 @@ export function VisualizerContainer({
                 </div>
             )}
             <CytoscapeRenderer
-                title={title}
                 isNodeDescActive={isNodeDescActive}
                 isRelationshipDescActive={isRelationshipDescActive}
                 nodes={nodes}
                 edges={edges}
                 nodeClickedCallback={(x) => setSelectedItem(x)}
                 edgeClickedCallback={(x) => setSelectedItem(x)}
+                calmKey={calmKey}
             />
             {selectedItem && (
                 <Sidebar
