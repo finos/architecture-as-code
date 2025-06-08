@@ -20,7 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -64,19 +63,24 @@ public class NitriteStandardStore implements StandardStore {
         }
 
         Filter filter = where(NAMESPACE_FIELD).eq(namespace);
-        Iterator<Document> namespaceIterator = standardCollection.find(filter).iterator();
+        Document namespaceDocument = standardCollection.find(filter).firstOrNull();
 
         // If no standards exist for this namespace yet
-        if (!namespaceIterator.hasNext()) {
+        if (namespaceDocument == null) {
+            LOG.debug("No standards found for namespace '{}'", namespace);
+            return List.of();
+        }
+
+        List<Document> standards = namespaceDocument.get(STANDARDS_FIELD, List.class);
+        if (standards == null || standards.isEmpty()) {
             LOG.debug("No standards found for namespace '{}'", namespace);
             return List.of();
         }
 
         List<StandardDetails> standardDetails = new ArrayList<>();
 
-        while (namespaceIterator.hasNext()) {
+        for (Document standard : standards) {
             StandardDetails details = new StandardDetails();
-            Document standard = namespaceIterator.next();
             details.setName(standard.get(NAME_FIELD, String.class));
             details.setDescription(standard.get(DESCRIPTION_FIELD, String.class));
             details.setId(standard.get(STANDARD_ID_FIELD, Integer.class));
