@@ -7,7 +7,10 @@ import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.StandardDetails;
-import org.finos.calm.domain.exception.*;
+import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StandardNotFoundException;
+import org.finos.calm.domain.exception.StandardVersionExistsException;
+import org.finos.calm.domain.exception.StandardVersionNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -65,10 +68,54 @@ public class TestNitriteStandardStoreShould {
         // Arrange
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
-        // Create a mock cursor that returns null for firstOrNull()
+        // Mock cursor to return null for firstOrNull() (no namespace document found)
         DocumentCursor mockCursor = mock(DocumentCursor.class);
-        when(mockCursor.iterator()).thenReturn(Collections.emptyIterator());
+        when(mockCursor.firstOrNull()).thenReturn(null);
         when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+
+        // Act
+        List<StandardDetails> result = standardStore.getStandardsForNamespace(NAMESPACE);
+
+        // Assert
+        assertThat(result, is(notNullValue()));
+        assertThat(result.isEmpty(), is(true));
+    }
+
+    @Test
+    public void testGetStandardsForNamespace_whenNamespaceExistsButStandardsArrayIsNull_returnsEmptyList() throws NamespaceNotFoundException {
+        // Arrange
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        // Create namespace document with null standards array
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("standards", null);
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        // Act
+        List<StandardDetails> result = standardStore.getStandardsForNamespace(NAMESPACE);
+
+        // Assert
+        assertThat(result, is(notNullValue()));
+        assertThat(result.isEmpty(), is(true));
+    }
+
+    @Test
+    public void testGetStandardsForNamespace_whenNamespaceExistsButStandardsArrayIsEmpty_returnsEmptyList() throws NamespaceNotFoundException {
+        // Arrange
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        // Create namespace document with empty standards array
+        Document namespaceDoc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("standards", Collections.emptyList());
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
         List<StandardDetails> result = standardStore.getStandardsForNamespace(NAMESPACE);
@@ -97,7 +144,7 @@ public class TestNitriteStandardStoreShould {
                 .put("standards", standards);
 
         DocumentCursor cursor = mock(DocumentCursor.class);
-        when(cursor.iterator()).thenReturn(standards.iterator());
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
