@@ -1,5 +1,6 @@
 package org.finos.calm.store.mongo;
 
+import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -144,6 +145,52 @@ public class MongoStandardStore implements StandardStore {
 
     @Override
     public Standard createStandardForVersion(Standard standard) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionExistsException {
-        throw new UnsupportedOperationException();
+        if(!namespaceStore.namespaceExists(standard.getNamespace())) {
+            throw new NamespaceNotFoundException();
+        }
+
+        if(versionExists(standard)) {
+            throw new StandardVersionExistsException();
+        }
+
+        writeStandardToMongo(standard);
+
+        return standard;
+    }
+
+    private void writeStandardToMongo(Standard standard) throws StandardNotFoundException, NamespaceNotFoundException {
+        retrieveStandardVersions(standard);
+
+        Document standardDocument = Document.parse(standard.getStandardJson());
+        Document filter = new Document("namespace", standard.getNamespace())
+                .append("standards.standardId", standard.getId());
+
+        Document update = new Document("$set", new Document()
+                .append("standards.$.name", standard.getName())
+                .append("standards.$.description", standard.getDescription())
+                .append("standards.$.versions." + standard.getMongoVersion(), standardDocument));
+
+        try {
+            standardCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
+        } catch (MongoWriteException ex) {
+            throw new StandardNotFoundException();
+        }
+    }
+
+    private boolean versionExists(StandardDetails standard) {
+        Document filter = new Document("namespace", standard.getNamespace()).append("standards.standardId", standard.getId());
+        Bson projection = Projections.fields(Projections.include("standards.versions." + standard.getId()));
+        Document result = standardCollection.find(filter).projection(projection).first();
+
+        if(result != null) {
+            List<Document> standards = (List<Document>) result.get("standards");
+            for (Document standardDoc : standards) {
+                Document versions = (Document) standardDoc.get("versions");
+                if (versions != null && versions.containsKey(standard.getMongoVersion())) {
+                    return true;  // The version already exists
+                }
+            }
+        }
+        return false;
     }
 }
