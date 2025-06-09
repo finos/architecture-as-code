@@ -11,7 +11,7 @@ import {
     CALMConnectsRelationship,
     CALMInteractsRelationship,
 } from '../../../../../shared/src/types.js';
-import { CalmNode, Edge } from '../../contracts/contracts.js';
+import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { VisualizerContainer } from '../visualizer-container/VisualizerContainer.js';
 import { Data } from '../../../model/calm.js';
 
@@ -101,7 +101,7 @@ export function Drawer({
     isNodeDescActive,
     data,
 }: DrawerProps) {
-    const [selectedNode, setSelectedNode] = useState<CalmNode | null>(null);
+    const [selectedNode, setSelectedNode] = useState<CytoscapeNode | null>(null);
 
     function closeSidebar() {
         setSelectedNode(null);
@@ -111,27 +111,33 @@ export function Drawer({
         return `${node.name}\n[${node['node-type']}]`;
     }
 
-    function getNodes(): CalmNode[] {
+    function getNodes(): CytoscapeNode[] {
         if (!calmInstance || !calmInstance.relationships) return [];
 
         const composedOfRelationships = getComposedOfRelationships(calmInstance);
         const deployedInRelationships = getDeployedInRelationships(calmInstance);
 
         return (calmInstance.nodes ?? []).map((node) => {
-            const newData: CalmNode = {
+            const newData: CytoscapeNode = {
                 classes: 'node',
                 data: {
-                    label: node.name,
+                    id: node['unique-id'],
+                    name: node.name,
                     description: node.description,
                     type: node['node-type'],
-                    id: node['unique-id'],
-                    labelWithDescription: `${generateDisplayPlaceHolderWithoutDesc(node)}\n\n${node.description}\n`,
-                    labelWithoutDescription: `${generateDisplayPlaceHolderWithoutDesc(node)}`,
+                    cytoscapeProps: {
+                        labelWithDescription: `${generateDisplayPlaceHolderWithoutDesc(node)}\n\n${node.description}\n`,
+                        labelWithoutDescription: `${generateDisplayPlaceHolderWithoutDesc(node)}`,
+                    },
                 },
             };
 
             if (node.interfaces) {
                 newData.data.interfaces = node.interfaces;
+            }
+
+            if (node.controls) {
+                newData.data.controls = node.controls;
             }
 
             const composedOfRel = composedOfRelationships[node['unique-id']];
