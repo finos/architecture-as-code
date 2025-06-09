@@ -109,6 +109,10 @@ public class StandardResource {
     public Response createStandardForVersion(@PathParam("namespace") String namespace, @PathParam("standardId") Integer standardId,
                                              @PathParam("version") String version, Standard standard) throws URISyntaxException {
 
+        standard.setNamespace(namespace);
+        standard.setId(standardId);
+        standard.setVersion(version);
+
         try {
             standardStore.createStandardForVersion(standard);
             return Response.created(new URI("/calm/namespaces/" + namespace + "/standards/" + standardId + "/versions/" + version)).build();
