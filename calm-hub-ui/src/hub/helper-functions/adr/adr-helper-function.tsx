@@ -13,7 +13,7 @@ export function StyleTitle(props: { title: string }) {
 }
 
 export function GetDate(props: { date: string }) {
-    let newDate = new Date(props.date);
+    const newDate = new Date(props.date);
 
     return (
         <div className="font-bold inline">
@@ -25,8 +25,8 @@ export function GetDate(props: { date: string }) {
 }
 
 export function DisplayLinks(props: { links: Link[] }) {
-    let returnList = [];
-    for (var link of props.links) {
+    const returnList = [];
+    for (const link of props.links) {
         returnList.push(
             <li key={link.rel} className="ms-3 list-row">
                 <a href={link.href} rel={link.rel} target="_blank" className="underline">
@@ -39,8 +39,8 @@ export function DisplayLinks(props: { links: Link[] }) {
 }
 
 export function DisplayDecisionDrivers(props: { drivers: string[] }) {
-    let returnList = [];
-    for (var driver of props.drivers) {
+    const returnList = [];
+    for (const driver of props.drivers) {
         returnList.push(
             <li className="ms-3" key={driver}>
                 {driver}
@@ -51,12 +51,12 @@ export function DisplayDecisionDrivers(props: { drivers: string[] }) {
 }
 
 function getListOfConsequences(consequences: string[], positive: boolean) {
-    let returnList = [];
+    const returnList = [];
     let bulletStyling = 'ps-4 marker-negative list-none';
     if (positive) {
         bulletStyling = 'ps-4 marker-positive list-none';
     }
-    for (var i = 0; i < consequences.length; i++) {
+    for (let i = 0; i < consequences.length; i++) {
         returnList.push(
             <li key={consequences[i].valueOf()} className={bulletStyling}>
                 {consequences[i].valueOf()}
@@ -67,8 +67,8 @@ function getListOfConsequences(consequences: string[], positive: boolean) {
 }
 
 export function DisplayConsideredOptions(props: { consideredOptions: Option[] }) {
-    let returnList = [];
-    for (var consideredOption of props.consideredOptions) {
+    const returnList = [];
+    for (const consideredOption of props.consideredOptions) {
         returnList.push(
             <div className="mt-3">
                 <div className="collapse collapse-arrow border border-l-4 border-gray-300 border-l-blue-500">

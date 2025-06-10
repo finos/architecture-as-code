@@ -10,7 +10,7 @@ import {
     Data,
     Revision,
     AdrID,
-    Adr
+    Adr,
 } from '../model/calm.js';
 import {
     fetchNamespaces,
@@ -27,8 +27,11 @@ import {
 import { Navbar } from '../components/navbar/Navbar.js';
 import { AdrRenderer } from './components/adr-renderer/AdrRenderer.js';
 import { AdrService } from '../service/adr-service/adr-service.js';
+import { useNavigate } from 'react-router-dom';
 
 function Hub() {
+    const navigate = useNavigate();
+
     const [namespaces, setNamespaces] = useState<Namespace[]>([]);
     const [currentNamespace, setCurrentNamespace] = useState<Namespace | undefined>();
     const [patternIDs, setPatternIDs] = useState<PatternID[]>([]);
@@ -61,6 +64,10 @@ function Hub() {
         setCurrentNamespace(namespace);
         fetchPatternIDs(namespace, setPatternIDs);
     };
+
+    function handleClick(data: Data) {
+        navigate('/visualizer', { state: data });
+    }
 
     const handleCalmTypeSelection = async (calmType: string) => {
         setCurrentCalmType(calmType);
@@ -201,7 +208,17 @@ function Hub() {
                         ))}
                 </div>
                 {currentCalmType !== 'ADRs' ? (
-                    <JsonRenderer json={data} />
+                    <div className="p-5 flex-1 overflow-auto bg-[#eee]">
+                        {data && (
+                            <button
+                                className="bg-primary hover:bg-blue-500 text-white font-bold py-2 px-4 rounded float-right"
+                                onClick={() => handleClick(data)}
+                            >
+                                Visualize
+                            </button>
+                        )}
+                        <JsonRenderer json={data} />
+                    </div>
                 ) : adrData ? (
                     <AdrRenderer adrDetails={adrData} />
                 ) : (

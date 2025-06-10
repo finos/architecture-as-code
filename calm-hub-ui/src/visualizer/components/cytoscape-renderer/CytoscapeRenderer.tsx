@@ -1,16 +1,12 @@
 import './cytoscape.css';
 import { useEffect, useRef } from 'react';
 import cytoscape, { EdgeSingular, NodeSingular } from 'cytoscape';
-import expandCollapse from 'cytoscape-expand-collapse';
-import { Edge, CalmNode } from '../../contracts/contracts.js';
+import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { LayoutCorrectionService } from '../../services/layout-correction-service.js';
 import {
     saveNodePositions,
     loadStoredNodePositions,
 } from '../../services/node-position-service.js';
-
-// Initialize Cytoscape plugins
-expandCollapse(cytoscape);
 
 // Layout configuration
 const breadthFirstLayout = {
@@ -29,10 +25,10 @@ const textFontSize = '20px';
 export interface CytoscapeRendererProps {
     isNodeDescActive: boolean;
     isRelationshipDescActive: boolean;
-    nodes: CalmNode[];
+    nodes: CytoscapeNode[];
     edges: Edge[];
-    nodeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
-    edgeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
+    nodeClickedCallback: (x: CytoscapeNode['data'] | Edge['data']) => void;
+    edgeClickedCallback: (x: CytoscapeNode['data'] | Edge['data']) => void;
     calmKey: string;
 }
 
@@ -53,8 +49,8 @@ function getEdgeStyle(showDescription: boolean): cytoscape.Css.Edge {
 function getNodeStyle(showDescription: boolean): cytoscape.Css.Node {
     return {
         label: showDescription
-            ? 'data(labelWithDescription)'
-            : 'data(labelWithoutDescription)',
+            ? 'data(cytoscapeProps.labelWithDescription)'
+            : 'data(cytoscapeProps.labelWithoutDescription)',
         'text-valign': 'center',
         'text-halign': 'center',
         'text-wrap': 'wrap',
@@ -63,7 +59,7 @@ function getNodeStyle(showDescription: boolean): cytoscape.Css.Node {
         'background-color': '#f5f5f5',
         'border-color': 'black',
         'border-width': 1,
-        'padding': '10px',
+        padding: '10px',
         'font-size': textFontSize,
         width: '200px',
         height: 'label',
@@ -92,26 +88,26 @@ export function CytoscapeRenderer({
             container,
             elements: [...nodes, ...edges],
             style: [
-            {
-                selector: 'edge',
-                style: getEdgeStyle(isRelationshipDescActive),
-            },
-            {
-                selector: 'node',
-                style: getNodeStyle(isNodeDescActive),
-            },
-            {
-                selector: ':parent',
-                style: {
-                    label: 'data(label)',
-                    'text-valign': 'top',
-                    'text-halign': 'center',
-                    "background-color": 'white',
-                    "border-style": 'dashed',
-                    "border-width": 2,
-                    "border-dash-pattern": [8, 10], // [dash length, gap length]
+                {
+                    selector: 'edge',
+                    style: getEdgeStyle(isRelationshipDescActive),
                 },
-            },
+                {
+                    selector: 'node',
+                    style: getNodeStyle(isNodeDescActive),
+                },
+                {
+                    selector: ':parent',
+                    style: {
+                        label: 'data(name)',
+                        'text-valign': 'top',
+                        'text-halign': 'center',
+                        'background-color': 'white',
+                        'border-style': 'dashed',
+                        'border-width': 2,
+                        'border-dash-pattern': [8, 10], // [dash length, gap length]
+                    },
+                },
             ],
             layout: breadthFirstLayout,
             boxSelectionEnabled: true,
@@ -162,7 +158,7 @@ export function CytoscapeRenderer({
         nodeClickedCallback,
         edgeClickedCallback,
         cyRef,
-        calmKey
+        calmKey,
     ]);
 
     return <div ref={cyRef} className="flex-1 bg-white visualizer" style={{ height: '100vh' }} />;

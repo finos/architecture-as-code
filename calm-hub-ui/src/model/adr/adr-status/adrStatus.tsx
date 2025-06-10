@@ -13,7 +13,7 @@ function capitaliseFirstLetter(adrStatus: string) {
 export function DisplayAdrStatus(props: { adrStatus: AdrStatus }) {
     let adrStatusStyling =
         'inline rounded-full text-center text-s ps-3 pe-3 ms-3 relative bottom-1 font-bold border-solid border-2';
-    let adrStatusString = capitaliseFirstLetter(props.adrStatus);
+    const adrStatusString = capitaliseFirstLetter(props.adrStatus);
 
     switch (props.adrStatus) {
         case 'draft': {
