@@ -50,7 +50,7 @@ public class TestPatternResourcePutEnabledShould {
                 .put("/calm/namespaces/finos/patterns/20/versions/1.0invalid.1")
                 .then()
                 .statusCode(400)
-                .body(containsString("version must match pattern '^(0|[1-9][0-9]*)[.](0|[1-9][0-9]*)[.](0|[1-9][0-9]*)$"));
+                .body(containsString("version must match pattern '^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$"));
     }
 
     static Stream<Arguments> provideParametersForPutPatternTests() {

@@ -14,14 +14,22 @@ This documentation is generated from the **CALM Architecture-as-Code** model.
 
 ### Nodes
 {{#each nodes}}
-    - [{{title}}](nodes/{{slug}})
+    - [{{title}}](nodes/{{id}})
 {{/each}}
 
-{{#if (notEmpty flows) }}
-### Flows
-{{#each flows}}
-    - [{{title}}](flows/{{slug}})
+### Relationships
+{{#each relationships}}
+    - [{{kebabToTitleCase title}}](relationships/{{id}})
 {{/each}}
+
+
+### Flows
+{{#if (notEmpty flows) }}
+{{#each flows}}
+    - [{{title}}](flows/{{id}})
+{{/each}}
+{{else}}
+     _No flows defined._
 {{/if}}
 
 {{#if (notEmpty controls) }}
@@ -31,4 +39,15 @@ This documentation is generated from the **CALM Architecture-as-Code** model.
 {{#controls}}
 |{{id}}|{{name}}|{{description}}|{{domain}}|{{scope}}|{{appliedTo}}|
 {{/controls}}
+{{/if}}
+
+
+### MetaData
+{{> metadata.hbs data=metadata.data}}
+
+{{#if (notEmpty adrs)}}
+### Adrs
+{{#each adrs}}
+- [{{this}}]({{this}})
+{{/each}}
 {{/if}}

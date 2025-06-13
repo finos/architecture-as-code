@@ -12,6 +12,16 @@ module.exports = {
     organizationName: 'my-org',
     projectName: 'calm-docs',
 
+    themeConfig: {
+        navbar: {
+            title: 'CALM Documentation',
+            logo: {
+                alt: 'Calm Logo',
+                src: 'img/2025_CALM_Icon.svg',
+            },
+        },
+    },
+
     themes: [
         '@docusaurus/theme-mermaid',
     ],

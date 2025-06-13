@@ -12,6 +12,7 @@ import java.util.*;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.*;
 
 @QuarkusTest
@@ -126,6 +127,137 @@ public class TestCoreSchemaResourceShould {
                 .body(equalTo(TEST_CORE_SCHEMA));
 
         verify(mockCoreSchemaStore, times(1)).getSchemasForVersion("2021-01");
+    }
+
+    @Test
+    void create_schema_version_successfully() {
+        when(mockCoreSchemaStore.getSchemasForVersion("2024-10")).thenReturn(null);
+
+        Map<String, Object> schemas = new HashMap<>();
+        schemas.put("calm.json", new HashMap<>());
+        schemas.put("core.json", new HashMap<>());
+
+        given()
+                .contentType("application/json")
+                .body("{\"version\":\"2024-10\",\"schemas\":{\"calm.json\":{},\"core.json\":{}}}")
+                .when()
+                .post("/calm/schemas")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/schemas/2024-10/meta"));
+
+        verify(mockCoreSchemaStore).getSchemasForVersion("2024-10");
+        verify(mockCoreSchemaStore).createSchemaVersion(eq("2024-10"), any(Map.class));
+    }
+
+    @Test
+    void return_400_when_version_is_null() {
+        given()
+                .contentType("application/json")
+                .body("{\"schemas\":{\"calm.json\":{}}}")
+                .when()
+                .post("/calm/schemas")
+                .then()
+                .statusCode(400)
+                .body(containsString("Version is required"));
+
+        verify(mockCoreSchemaStore, never()).getSchemasForVersion(any());
+        verify(mockCoreSchemaStore, never()).createSchemaVersion(any(), any());
+    }
+
+    @Test
+    void return_400_when_version_is_empty() {
+        given()
+                .contentType("application/json")
+                .body("{\"version\":\"\",\"schemas\":{\"calm.json\":{}}}")
+                .when()
+                .post("/calm/schemas")
+                .then()
+                .statusCode(400)
+                .body(containsString("Version is required"));
+
+        verify(mockCoreSchemaStore, never()).getSchemasForVersion(any());
+        verify(mockCoreSchemaStore, never()).createSchemaVersion(any(), any());
+    }
+
+    @Test
+    void return_400_when_schemas_are_null() {
+        given()
+                .contentType("application/json")
+                .body("{\"version\":\"2024-10\"}")
+                .when()
+                .post("/calm/schemas")
+                .then()
+                .statusCode(400)
+                .body(containsString("Schemas are required"));
+
+        verify(mockCoreSchemaStore, never()).getSchemasForVersion(any());
+        verify(mockCoreSchemaStore, never()).createSchemaVersion(any(), any());
+    }
+
+    @Test
+    void return_400_when_schemas_are_empty() {
+        given()
+                .contentType("application/json")
+                .body("{\"version\":\"2024-10\",\"schemas\":{}}")
+                .when()
+                .post("/calm/schemas")
+                .then()
+                .statusCode(400)
+                .body(containsString("Schemas are required"));
+
+        verify(mockCoreSchemaStore, never()).getSchemasForVersion(any());
+        verify(mockCoreSchemaStore, never()).createSchemaVersion(any(), any());
+    }
+
+    @Test
+    void return_409_when_schema_version_already_exists() {
+        Map<String, Object> existingSchemas = new HashMap<>();
+        existingSchemas.put("calm.json", new HashMap<>());
+        when(mockCoreSchemaStore.getSchemasForVersion("2024-10")).thenReturn(existingSchemas);
+
+        given()
+                .contentType("application/json")
+                .body("{\"version\":\"2024-10\",\"schemas\":{\"calm.json\":{}}}")
+                .when()
+                .post("/calm/schemas")
+                .then()
+                .statusCode(409)
+                .body(containsString("Schema version already exists"));
+
+        verify(mockCoreSchemaStore).getSchemasForVersion("2024-10");
+        verify(mockCoreSchemaStore, never()).createSchemaVersion(any(), any());
+    }
+
+    @Test
+    void return_400_when_request_body_is_null() {
+        given()
+                .contentType("application/json")
+                .when()
+                .post("/calm/schemas")
+                .then()
+                .statusCode(400)
+                .body(containsString("Version is required"));
+
+        verify(mockCoreSchemaStore, never()).getSchemasForVersion(any());
+        verify(mockCoreSchemaStore, never()).createSchemaVersion(any(), any());
+    }
+
+    @Test
+    void trim_whitespace_from_version() {
+        when(mockCoreSchemaStore.getSchemasForVersion("2024-10")).thenReturn(null);
+
+        given()
+                .contentType("application/json")
+                .body("{\"version\":\"  2024-10  \",\"schemas\":{\"calm.json\":{}}}")
+                .when()
+                .post("/calm/schemas")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/schemas/2024-10/meta"));
+
+        verify(mockCoreSchemaStore).getSchemasForVersion("2024-10");
+        verify(mockCoreSchemaStore).createSchemaVersion(eq("2024-10"), any(Map.class));
     }
 
     private void setupMockSchemasForVersion() {

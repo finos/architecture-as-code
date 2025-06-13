@@ -13,8 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -47,7 +47,7 @@ public class TestNitriteDomainStoreShould {
     public void testGetDomains_returnsEmptyList_whenNoDomainsExist() {
         // Arrange
         DocumentCursor cursor = mock(DocumentCursor.class);
-        when(cursor.iterator()).thenReturn(new ArrayList<Document>().iterator());
+        when(cursor.iterator()).thenReturn(Collections.emptyIterator());
         when(mockCollection.find()).thenReturn(cursor);
 
         // Act

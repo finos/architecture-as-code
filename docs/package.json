@@ -36,7 +36,7 @@
     "@docusaurus/module-type-aliases": "3.8.0",
     "@docusaurus/types": "3.8.0",
     "express": "^5.1.0",
-    "webpack-dev-server": "^5.2.1"
+    "webpack-dev-server": "^5.2.2"
   },
   "browserslist": {
     "production": [

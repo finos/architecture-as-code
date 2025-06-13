@@ -47,7 +47,6 @@ public class TestMongoFlowStoreShould {
     @InjectMock
     MongoNamespaceStore namespaceStore;
 
-    private MongoDatabase mongoDatabase;
     private MongoCollection<Document> flowCollection;
     private MongoFlowStore mongoFlowStore;
     private final String NAMESPACE = "finos";
@@ -55,7 +54,7 @@ public class TestMongoFlowStoreShould {
     private final String validJson = "{\"test\": \"test\"}";
     @BeforeEach
     void setup() {
-        mongoDatabase = Mockito.mock(MongoDatabase.class);
+        MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
         flowCollection = Mockito.mock(MongoCollection.class);
 
         when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
@@ -220,7 +219,7 @@ public class TestMongoFlowStoreShould {
         Flow flow = new Flow.FlowBuilder().setNamespace(NAMESPACE).setId(42).build();
         List<String> flowVersions = mongoFlowStore.getFlowVersions(flow);
 
-        assertThat(flowVersions, is(Arrays.asList("1.0.0")));
+        assertThat(flowVersions, is(List.of("1.0.0")));
     }
 
     @Test
@@ -267,10 +266,8 @@ public class TestMongoFlowStoreShould {
 
         Document paddingFlow = new Document("flowId", 0);
 
-        Document mainDocument = new Document("namespace", NAMESPACE)
+        return new Document("namespace", NAMESPACE)
                 .append("flows", Arrays.asList(paddingFlow, targetStoredFlow));
-
-        return mainDocument;
     }
 
     private void mockSetupFlowDocumentWithVersions() {

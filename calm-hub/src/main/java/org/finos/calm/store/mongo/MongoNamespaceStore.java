@@ -36,4 +36,12 @@ public class MongoNamespaceStore implements NamespaceStore {
         Document query = new Document("namespace", namespace);
         return namespaceCollection.find(query).first() != null;
     }
+
+    @Override
+    public void createNamespace(String namespace) {
+        if (!namespaceExists(namespace)) {
+            Document namespaceDoc = new Document("namespace", namespace);
+            namespaceCollection.insertOne(namespaceDoc);
+        }
+    }
 }

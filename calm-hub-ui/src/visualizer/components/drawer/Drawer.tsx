@@ -11,14 +11,16 @@ import {
     CALMConnectsRelationship,
     CALMInteractsRelationship,
 } from '../../../../../shared/src/types.js';
-import { CalmNode, Edge } from '../../contracts/contracts.js';
+import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { VisualizerContainer } from '../visualizer-container/VisualizerContainer.js';
+import { Data } from '../../../model/calm.js';
 
 interface DrawerProps {
     calmInstance?: CalmArchitectureSchema;
-    title?: string;
+    title: string;
     isNodeDescActive: boolean;
     isConDescActive: boolean;
+    data?: Data;
 }
 
 function isComposedOf(
@@ -92,8 +94,14 @@ function getDeployedInRelationships(calmInstance: CalmArchitectureSchema) {
     return deployedInRelationships;
 }
 
-export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive }: DrawerProps) {
-    const [selectedNode, setSelectedNode] = useState<CalmNode | null>(null);
+export function Drawer({
+    calmInstance,
+    title,
+    isConDescActive,
+    isNodeDescActive,
+    data,
+}: DrawerProps) {
+    const [selectedNode, setSelectedNode] = useState<CytoscapeNode | null>(null);
 
     function closeSidebar() {
         setSelectedNode(null);
@@ -103,27 +111,33 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
         return `${node.name}\n[${node['node-type']}]`;
     }
 
-    function getNodes(): CalmNode[] {
+    function getNodes(): CytoscapeNode[] {
         if (!calmInstance || !calmInstance.relationships) return [];
 
         const composedOfRelationships = getComposedOfRelationships(calmInstance);
         const deployedInRelationships = getDeployedInRelationships(calmInstance);
 
         return (calmInstance.nodes ?? []).map((node) => {
-            const newData: CalmNode = {
+            const newData: CytoscapeNode = {
                 classes: 'node',
                 data: {
-                    label: node.name,
+                    id: node['unique-id'],
+                    name: node.name,
                     description: node.description,
                     type: node['node-type'],
-                    id: node['unique-id'],
-                    labelWithDescription: `${generateDisplayPlaceHolderWithoutDesc(node)}\n\n${node.description}\n`,
-                    labelWithoutDescription: `${generateDisplayPlaceHolderWithoutDesc(node)}`,
+                    cytoscapeProps: {
+                        labelWithDescription: `${generateDisplayPlaceHolderWithoutDesc(node)}\n\n${node.description}\n`,
+                        labelWithoutDescription: `${generateDisplayPlaceHolderWithoutDesc(node)}`,
+                    },
                 },
             };
 
             if (node.interfaces) {
                 newData.data.interfaces = node.interfaces;
+            }
+
+            if (node.controls) {
+                newData.data.controls = node.controls;
             }
 
             const composedOfRel = composedOfRelationships[node['unique-id']];
@@ -179,6 +193,13 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
             .filter((edge): edge is Edge => edge !== undefined);
     }
 
+    function createStorageKey(title: string, data?: Data): string {
+        if (!data || !data.name || !data.calmType || !data.id || !data.version) {
+            return title;
+        }
+        return `${data.name}/${data.calmType}/${data.id}/${data.version}`;
+    }
+
     const edges = getEdges();
     const nodes = getNodes();
 
@@ -200,6 +221,7 @@ export function Drawer({ calmInstance, title, isConDescActive, isNodeDescActive 
                             title={title}
                             nodes={nodes}
                             edges={edges}
+                            calmKey={createStorageKey(title, data)}
                         />
                     ) : (
                         <div className="flex justify-center items-center h-full">

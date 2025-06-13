@@ -5,6 +5,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
+@Typed(MongoUserAccessStore.class)
 public class MongoUserAccessStore implements UserAccessStore {
 
     private final MongoCollection<Document> userAccessCollection;

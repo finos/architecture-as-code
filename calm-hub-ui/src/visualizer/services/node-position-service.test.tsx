@@ -10,7 +10,7 @@ const mockData: StoredNodePosition[] = [
     { id: 'node-2', position: { x: 300, y: 400 } },
 ];
 const title = 'test';
-const key = 'test-calmhub-node-positions';
+const key = 'test';
 
 describe('PositionStorage', () => {
     beforeEach(() => {
@@ -23,7 +23,7 @@ describe('PositionStorage', () => {
 
     it('creates storage key for localStrorage', () => {
         saveNodePositions('title', mockData);
-        const stored = localStorage.getItem('title-calmhub-node-positions');
+        const stored = localStorage.getItem('title');
         expect(stored).not.toBeNull();
     });
 

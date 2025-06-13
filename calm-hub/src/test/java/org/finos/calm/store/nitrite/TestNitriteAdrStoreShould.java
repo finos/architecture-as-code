@@ -8,17 +8,8 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
-import org.finos.calm.domain.adr.Adr;
-import org.finos.calm.domain.adr.AdrMeta;
-import org.finos.calm.domain.adr.Decision;
-import org.finos.calm.domain.adr.Link;
-import org.finos.calm.domain.adr.Option;
-import org.finos.calm.domain.adr.Status;
-import org.finos.calm.domain.exception.AdrNotFoundException;
-import org.finos.calm.domain.exception.AdrParseException;
-import org.finos.calm.domain.exception.AdrPersistenceException;
-import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
-import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.adr.*;
+import org.finos.calm.domain.exception.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,9 +28,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -144,7 +134,7 @@ public class TestNitriteAdrStoreShould {
     }
 
     @Test
-    public void testRetrieveAdrDoc_whenAdrDoesNotExist_throwsException() throws Exception {
+    public void testRetrieveAdrDoc_whenAdrDoesNotExist_throwsException() {
         // Arrange
         AdrMeta adrMeta = createSampleAdrMeta();
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
@@ -163,7 +153,7 @@ public class TestNitriteAdrStoreShould {
     }
 
     @Test
-    public void testRetrieveRevisionsDoc_whenRevisionsNotFound_throwsException() throws Exception {
+    public void testRetrieveRevisionsDoc_whenRevisionsNotFound_throwsException() {
         // Arrange
         AdrMeta adrMeta = createSampleAdrMeta();
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
@@ -188,7 +178,7 @@ public class TestNitriteAdrStoreShould {
     }
 
     @Test
-    public void testWriteAdrToNitrite_whenAdrNotFound_throwsException() throws Exception {
+    public void testWriteAdrToNitrite_whenAdrNotFound_throwsException() {
         // Arrange
         AdrMeta adrMeta = createSampleAdrMeta();
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
@@ -234,7 +224,7 @@ public class TestNitriteAdrStoreShould {
     }
 
     @Test
-    public void testWriteAdrToNitriteWithPersistenceException() throws Exception {
+    public void testWriteAdrToNitriteWithPersistenceException() {
         // This test demonstrates a scenario that would lead to AdrPersistenceException
         // We're testing the exception type directly rather than through the implementation
         // to ensure we have coverage of the exception type
@@ -492,7 +482,7 @@ public class TestNitriteAdrStoreShould {
     }
 
     private AdrMeta createSampleAdrMeta() {
-        Option option1 = new Option("Option 1", "Description", Arrays.asList("Pro 1"), Arrays.asList("Con 1"));
+        Option option1 = new Option("Option 1", "Description", List.of("Pro 1"), List.of("Con 1"));
 
         Adr adr = new Adr.AdrBuilder()
                 .setTitle("Sample ADR")

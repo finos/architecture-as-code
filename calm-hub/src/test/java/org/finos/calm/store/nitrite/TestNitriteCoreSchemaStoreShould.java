@@ -115,6 +115,47 @@ public class TestNitriteCoreSchemaStoreShould {
         verify(mockCollection).find(any(Filter.class));
     }
 
+    @Test
+    public void testCreateSchemaVersion_whenVersionDoesNotExist_createsNewVersion() {
+        // Arrange
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(null);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        Map<String, Object> schemas = new HashMap<>();
+        schemas.put("calm.json", new HashMap<>());
+        schemas.put("core.json", new HashMap<>());
+
+        // Act
+        schemaStore.createSchemaVersion("2024-10", schemas);
+
+        // Assert
+        verify(mockCollection).find(any(Filter.class));
+        verify(mockCollection).insert(any(Document.class));
+    }
+
+    @Test
+    public void testCreateSchemaVersion_whenVersionAlreadyExists_doesNotCreateDuplicate() {
+        // Arrange
+        Document existingDoc = Document.createDocument()
+                .put("version", "2024-10")
+                .put("schemas", new HashMap<>());
+        
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(existingDoc);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        Map<String, Object> schemas = new HashMap<>();
+        schemas.put("calm.json", new HashMap<>());
+
+        // Act
+        schemaStore.createSchemaVersion("2024-10", schemas);
+
+        // Assert
+        verify(mockCollection).find(any(Filter.class));
+        verify(mockCollection, never()).insert(any(Document.class));
+    }
+
     /**
      * Helper class to simulate an empty iterator for DocumentCursor
      */

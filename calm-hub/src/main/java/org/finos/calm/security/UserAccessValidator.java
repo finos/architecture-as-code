@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * Validates whether a user is authorized to access a particular resource based on
  * their assigned permissions and namespaces.
- *
+ * <p>
  * This validator is active only when the 'secure' profile is enabled.
  */
 @ApplicationScoped
@@ -90,7 +90,7 @@ public class UserAccessValidator {
     private boolean isDefaultAccessibleResource(UserRequestAttributes userRequestAttributes) {
         //TODO: How to protect GET - /calm/namespaces endpoint, by maintaining namespace specific user grants.
         return "/calm/namespaces".equals(userRequestAttributes.path()) &&
-                "get".equalsIgnoreCase(userRequestAttributes.requestMethod().toLowerCase());
+                "get".equalsIgnoreCase(userRequestAttributes.requestMethod());
     }
 
     /**

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { VisualizerContainer } from './VisualizerContainer.js';
-import { CalmNode, Edge } from '../../contracts/contracts.js';
+import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { SidebarProps } from '../sidebar/Sidebar.js';
 import { CytoscapeRendererProps } from '../cytoscape-renderer/CytoscapeRenderer.js';
 
@@ -74,18 +74,20 @@ describe('VisualizerContainer', () => {
     });
 
     it('shows Sidebar when a node is clicked and closes it', () => {
-        const nodes: CalmNode[] = [
+        const nodes: CytoscapeNode[] = [
             {
                 data: {
                     description: '',
                     type: '',
-                    label: 'node1',
+                    name: 'node1',
                     id: 'node1',
-                    labelWithDescription: '',
-                    labelWithoutDescription: '',
                     parent: undefined,
                     interfaces: undefined,
                     controls: undefined,
+                    cytoscapeProps: {
+                        labelWithDescription: '',
+                        labelWithoutDescription: '',
+                    },
                 },
             },
         ];

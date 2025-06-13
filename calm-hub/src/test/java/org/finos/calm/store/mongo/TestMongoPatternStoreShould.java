@@ -47,8 +47,7 @@ public class TestMongoPatternStoreShould {
     @InjectMock
     MongoNamespaceStore namespaceStore;
 
-    private MongoDatabase mongoDatabase;
-    private MongoCollection<Document> patternCollection;
+    private MongoCollection patternCollection;
 
     private MongoPatternStore mongoPatternStore;
 
@@ -56,7 +55,7 @@ public class TestMongoPatternStoreShould {
 
     @BeforeEach
     void setup() {
-        mongoDatabase = Mockito.mock(MongoDatabase.class);
+        MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
         patternCollection = Mockito.mock(MongoCollection.class);
 
         when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
@@ -218,7 +217,7 @@ public class TestMongoPatternStoreShould {
         Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(42).build();
         List<String> patternVersions = mongoPatternStore.getPatternVersions(pattern);
 
-        assertThat(patternVersions, is(Arrays.asList("1.0.0")));
+        assertThat(patternVersions, is(List.of("1.0.0")));
     }
 
     @Test
@@ -265,10 +264,8 @@ public class TestMongoPatternStoreShould {
 
         Document paddingPattern = new Document("patternId", 0);
 
-        Document mainDocument = new Document("namespace", "finos")
+        return new Document("namespace", "finos")
                 .append("patterns", Arrays.asList(paddingPattern, targetStoredPattern));
-
-        return mainDocument;
     }
 
     private void mockSetupPatternDocumentWithVersions() {

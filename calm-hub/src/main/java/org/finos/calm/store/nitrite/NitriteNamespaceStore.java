@@ -55,4 +55,16 @@ public class NitriteNamespaceStore implements NamespaceStore {
         LOG.debug("Namespace '{}' exists: {}", namespace, exists);
         return exists;
     }
+
+    @Override
+    public void createNamespace(String namespace) {
+        if (!namespaceExists(namespace)) {
+            Document namespaceDoc = Document.createDocument()
+                    .put(NAMESPACE_FIELD, namespace);
+            namespaceCollection.insert(namespaceDoc);
+            LOG.info("Created namespace: {}", namespace);
+        } else {
+            LOG.debug("Namespace '{}' already exists, skipping creation", namespace);
+        }
+    }
 }

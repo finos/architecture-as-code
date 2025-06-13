@@ -6,5 +6,5 @@ public enum Status {
     accepted,
     superseded,
     rejected,
-    deprecated;
+    deprecated
 }

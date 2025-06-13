@@ -8,7 +8,7 @@ import { useLocation } from 'react-router-dom';
 import { CalmArchitectureSchema } from '@finos/calm-shared/src/types/core-types.js';
 
 function Visualizer() {
-    const [title, setTitle] = useState<string | undefined>(undefined);
+    const [title, setTitle] = useState<string>('');
     const [instance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
     const [isConDescActive, setConDescActive] = React.useState(true);
     const [isNodeDescActive, setNodeDescActive] = React.useState(true);
@@ -26,8 +26,8 @@ function Visualizer() {
     }
 
     useEffect(() => {
-        setTitle(fileTitle ?? data?.name);
-        setCALMInstance(fileInstance ?? data?.data);
+        setTitle(fileTitle ?? data.name);
+        setCALMInstance(fileInstance ?? data.data);
     }, [fileInstance, fileTitle, data]);
 
     return (
@@ -46,6 +46,7 @@ function Visualizer() {
                 isConDescActive={isConDescActive}
                 calmInstance={instance}
                 title={title}
+                data={data}
             />
         </div>
     );

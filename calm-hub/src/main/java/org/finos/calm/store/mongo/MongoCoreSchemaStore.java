@@ -45,4 +45,18 @@ public class MongoCoreSchemaStore implements CoreSchemaStore {
 
         return null;
     }
+
+    @Override
+    public void createSchemaVersion(String version, Map<String, Object> schemas) {
+        // Check if version already exists
+        Bson filter = Filters.eq("version", version);
+        Document existingDoc = schemaCollection.find(filter).first();
+        
+        if (existingDoc == null) {
+            Document schemaDoc = new Document()
+                    .append("version", version)
+                    .append("schemas", schemas);
+            schemaCollection.insertOne(schemaDoc);
+        }
+    }
 }

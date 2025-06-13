@@ -1,9 +1,13 @@
 package org.finos.calm.resources;
 
 import jakarta.inject.Inject;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.ValueWrapper;
@@ -13,6 +17,8 @@ import org.finos.calm.store.CoreSchemaStore;
 import org.owasp.html.HtmlPolicyBuilder;
 import org.owasp.html.PolicyFactory;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -76,5 +82,61 @@ public class CoreSchemaResource {
         }
 
         return Response.ok(schemas.get(schemaName)).build();
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Create Schema Version",
+            description = "Create a new schema version with associated schemas"
+    )
+    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    public Response createSchemaVersion(SchemaVersionRequest request) throws URISyntaxException {
+        if (request == null || request.getVersion() == null || request.getVersion().trim().isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("{\"error\":\"Version is required\"}")
+                    .build();
+        }
+
+        if (request.getSchemas() == null || request.getSchemas().isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("{\"error\":\"Schemas are required\"}")
+                    .build();
+        }
+
+        String version = request.getVersion().trim();
+        
+        // Check if version already exists
+        if (coreSchemaStore.getSchemasForVersion(version) != null) {
+            return Response.status(Response.Status.CONFLICT)
+                    .entity("{\"error\":\"Schema version already exists\"}")
+                    .build();
+        }
+
+        coreSchemaStore.createSchemaVersion(version, request.getSchemas());
+        return Response.created(new URI("/calm/schemas/" + version + "/meta")).build();
+    }
+
+    // Inner class for request body
+    public static class SchemaVersionRequest {
+        private String version;
+        private Map<String, Object> schemas;
+
+        public String getVersion() {
+            return version;
+        }
+
+        public void setVersion(String version) {
+            this.version = version;
+        }
+
+        public Map<String, Object> getSchemas() {
+            return schemas;
+        }
+
+        public void setSchemas(Map<String, Object> schemas) {
+            this.schemas = schemas;
+        }
     }
 }

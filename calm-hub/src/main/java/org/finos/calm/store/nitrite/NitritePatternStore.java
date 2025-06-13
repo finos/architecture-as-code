@@ -73,8 +73,7 @@ public class NitritePatternStore implements PatternStore {
 
         if (rawPatterns != null) {
             for (Object patternObj : rawPatterns) {
-                if (patternObj instanceof Document) {
-                    Document patternDoc = (Document) patternObj;
+                if (patternObj instanceof Document patternDoc) {
                     Integer patternId = patternDoc.get(PATTERN_ID_FIELD, Integer.class);
                     if (patternId != null) {
                         patternIds.add(patternId);
@@ -157,10 +156,9 @@ public class NitritePatternStore implements PatternStore {
         }
 
         Document versions = patternDoc.get(VERSIONS_FIELD, Document.class);
-        List<String> versionList = new ArrayList<>();
         // In NitriteDB, we need to get the field names directly
         Set<String> fieldNames = versions.getFields();
-        versionList.addAll(fieldNames);
+        List<String> versionList = new ArrayList<>(fieldNames);
 
         LOG.debug("Retrieved {} versions for pattern {} in namespace '{}'", 
                 versionList.size(), pattern.getId(), pattern.getNamespace());
@@ -231,7 +229,7 @@ public class NitritePatternStore implements PatternStore {
         // Create a mutable copy of the list
         patterns = new ArrayList<>(patterns);
         for (int i = 0; i < patterns.size(); i++) {
-            Document doc = (Document) patterns.get(i);
+            Document doc = patterns.get(i);
             if (doc.get(PATTERN_ID_FIELD, Integer.class) == pattern.getId()) {
                 patterns.set(i, patternDoc);
                 break;
@@ -276,7 +274,7 @@ public class NitritePatternStore implements PatternStore {
         // Create a mutable copy of the list
         patterns = new ArrayList<>(patterns);
         for (int i = 0; i < patterns.size(); i++) {
-            Document doc = (Document) patterns.get(i);
+            Document doc = patterns.get(i);
             if (doc.get(PATTERN_ID_FIELD, Integer.class) == pattern.getId()) {
                 patterns.set(i, patternDoc);
                 break;
@@ -312,8 +310,7 @@ public class NitritePatternStore implements PatternStore {
         }
 
         for (Object patternObj : patterns) {
-            if (patternObj instanceof Document) {
-                Document patternDoc = (Document) patternObj;
+            if (patternObj instanceof Document patternDoc) {
                 Integer id = patternDoc.get(PATTERN_ID_FIELD, Integer.class);
                 if (id != null && id == patternId) {
                     return patternDoc;

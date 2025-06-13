@@ -31,6 +31,16 @@ if (db.counters.countDocuments({ _id: "adrStoreCounter" }) === 0) {
     print("adrStoreCounter already exists, no initialization needed");
 }
 
+if (db.counters.countDocuments({ _id: "standardStoreCounter" }) === 0) {
+    db.counters.insertOne({
+        _id: "standardStoreCounter",
+        sequence_value: 1
+    });
+    print("Initialized standardStoreCounter with sequence_value 1");
+} else {
+    print("standardStoreCounter already exists, no initialization needed");
+}
+
 
 if (db.counters.countDocuments({ _id: "flowStoreCounter" }) === 0) {
     db.counters.insertOne({
@@ -2719,4 +2729,89 @@ db.userAccess.insertMany([
         "namespace": "workshop",
         "resourceType": "all"
     }
+]);
+
+db.adrs.insertMany([
+	{
+        namespace: 'finos',
+        adrs: [
+            {
+                adrId: NumberInt(1),
+                revisions: {
+                    1: {
+                        title: 'Example ADR',
+                        status: 'draft',
+                        creationDateTime: [2025, 4, 29, 12, 44, 25, 465265627],
+                        updateDateTime: [2025, 5, 29, 12, 10, 0, 465338085],
+                        contextAndProblemStatement: `**Lorem ipsum dolor sit amet** , consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.  \
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.  
+Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat *nulla pariatur* 
+
+Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+     
+![An Example Flowchart Image](https://s3-eu-west-1.amazonaws.com/arisexpress/info_site/flowchart.png "an example flowchart image")
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.  \n  \nLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                        `,
+                        decisionDrivers: [
+                            'Lorem ipsum dolor sit amet.',
+                            'Consectetur adipiscing elit.',
+                            'Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+                        ],
+                        consideredOptions: [
+                            {
+                                name: 'Making a table to display the considered options',
+                                description: `Lorem ipsum dolor sit amet, **consectetur adipiscing elit**, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex *ea commodo consequat*. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.`,
+                                positiveConsequences: [
+                                    'Is compact',
+                                    'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor',
+                                ],
+                                negativeConsequences: [
+                                    'Very little reusable code',
+                                    'Have to set the border of each cell',
+                                    'Both the positive and negative consequesnces are both lists so this will not display nicely',
+                                ],
+                            },
+                            {
+                                name: 'Using a collapsible list to display the considered options',
+                                description:
+                                    'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
+                                positiveConsequences: [
+                                    'Looks much better than current design',
+                                    'Screen will look less cluttered',
+                                ],
+                                negativeConsequences: [
+                                    'Daisy UI will not play ball',
+                                ],
+                            },
+                        ],
+                        decisionOutcome: {
+                            chosenOption: {
+                                name: 'Using a collapsible list  to display the considered options',
+                                description:
+                                    'Lorem ipsum dolor sit amet, **consectetur adipiscing elit, sed do eiusmod tempor incididunt** ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
+                                positiveConsequences: [
+                                    'Looks much better than current design',
+                                    'Screen will look less cluttered',
+                                ],
+                                negativeConsequences: [
+                                    'Daisy UI will not play ball',
+                                ],
+                            },
+                            rationale:
+                                'It looks much nicer than the current design and allows users to collapse and exand options at will',
+                        },
+                        links: [
+                            { rel: 'Daisy UI', href: 'http://my-link.com' },
+                            {
+                                rel: 'Suggested table design',
+                                href: 'http://my-link.com',
+                            },
+                        ],
+                    },
+                },
+            },
+        ],
+    },
 ]);
