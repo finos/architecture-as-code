@@ -175,13 +175,14 @@ export function CytoscapeRenderer({
         return () => {
             cy.destroy();
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         title,
         nodes,
         edges,
         isNodeDescActive,
         isRelationshipDescActive,
+        nodeClickedCallback,
+        edgeClickedCallback,
         cyRef,
     ]);
 
