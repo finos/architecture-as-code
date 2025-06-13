@@ -11,45 +11,42 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
     getTransformedModel(calmJson: string) {
         const calmSchema: CalmCoreSchema = JSON.parse(calmJson);
         const architecture: Architecture = CalmCore.fromJson(calmSchema);
-
-        const relationships = architecture.relationships;
         const graph = new CalmRelationshipGraph(architecture.relationships);
 
         const nodes = architecture.nodes.map(node => ({
+            ...node,
             id: node.uniqueId,
             title: node.name,
-            name: node.name,
-            slug: node.uniqueId, // Generate slug
             description: node.description || 'No description available.',
             nodeType: node.nodeType || 'unknown',
-            controls: node.controls,
-            interfaces: node.interfaces,
-            runAs: node.runAs,
-            dataClassification: node.dataClassification,
             relatedRelationships: graph.getRelatedRelationships(node.uniqueId),
             relatedNodes: graph.getRelatedNodes(node.uniqueId)
         }));
 
         const flows = architecture.flows.map(flow => {
             const transformedTransitions = flow.transitions.map((transition: CalmFlowTransition) => ({
+                ...transition,
                 relationshipId: transition.relationshipUniqueId,
-                sequenceNumber: transition.sequenceNumber,
-                summary: transition.summary,
-                direction: transition.direction,
                 source: this.getSourceFromRelationship(transition.relationshipUniqueId),
                 target: this.getTargetFromRelationship(transition.relationshipUniqueId)
             }));
 
             return {
+                ...flow,
                 title: flow.name,
                 id: flow.uniqueId,
-                slug: flow.uniqueId,
-                name: flow.name,
-                description: flow.description,
-                transitions: transformedTransitions,
-                controls: flow.controls
+                transitions: transformedTransitions
             };
         });
+
+        const relationships = architecture.relationships.map(rel => ({
+            ...rel,
+            id: rel.uniqueId,
+            title: rel.uniqueId
+        }));
+
+        const metadata = architecture.metadata;
+
 
         const controlRequirements: Record<string, { id:string, content:string, domain:string}[]> = {};
 
@@ -62,10 +59,9 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
                     if (!controlRequirements[id]) {
                         controlRequirements[id] = [];
                         controlRequirements[id].push({
-                            id: id,
+                            id,
                             content: requirement,
                             domain: control.controlId
-
                         });
                     }
 
@@ -75,18 +71,17 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
 
         const controlConfigurations: Record<string, { id:string, name:string, schema:string, description:string, domain: string, scope: string, appliedTo: string, content: string }[]> = {};
 
-
-        // Collect control requirements and configurations from nodes, flows, and relationships
         const addControlConfigurationToTable = (controls: CalmControl[], scope: string, appliedTo: string) => {
             controls.forEach(control => {
                 control.requirements.forEach( detail => {
                     const configuration = detail.controlConfigUrl;
-                    if (configuration['control-id']) {
-                        if (!controlConfigurations[configuration['control-id']]) {
-                            controlConfigurations[configuration['control-id']] = [];
+                    const id = configuration['control-id'];
+                    if (id) {
+                        if (!controlConfigurations[id]) {
+                            controlConfigurations[id] = [];
                         }
-                        controlConfigurations[configuration['control-id']].push({
-                            id: configuration['control-id'],
+                        controlConfigurations[id].push({
+                            id,
                             name: configuration['name'],
                             schema: configuration['$schema'],
                             description: configuration['description'],
@@ -115,7 +110,6 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
             addControlRequirementToTable(flow.controls, 'Flow', flow.uniqueId);
         });
 
-
         const groupedByDomainRequirements: Record<string, { id: string; content: string; domain: string }[]> = {};
 
         Object.values(controlRequirements).forEach(requirements => {
@@ -127,7 +121,6 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
             });
         });
 
-
         const groupedByDomainConfigurations: Record<string, { id:string, name:string, schema:string, description:string, domain: string, scope: string, appliedTo: string, content: string }[]> = {};
 
         Object.values(controlConfigurations).forEach(controlConfigurations => {
@@ -138,8 +131,6 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
                 groupedByDomainConfigurations[req.domain].push(req);
             });
         });
-
-
 
         const controls = Object.entries(controlConfigurations).flatMap(([id, configurations]) =>
             configurations.map(config => ({
@@ -155,14 +146,16 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
             }))
         );
 
-        const C4model =  new C4Model(architecture);
+        const C4model = new C4Model(architecture);
 
         return {
             nodes,
+            relationships,
             flows,
             controls,
             controlReqs,
             C4model,
+            metadata,
             docs: {
                 nodes,
                 flows,
@@ -172,7 +165,8 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
                 groupedByDomainRequirements,
                 groupedByDomainConfigurations,
                 C4model,
-                controlConfigurations
+                controlConfigurations,
+                metadata
             }
         };
     }
@@ -207,9 +201,6 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
             }
         };
     }
-
-
-
 
     private getSourceFromRelationship(relationshipId: string): string {
         return relationshipId.split('-uses-')[0];
