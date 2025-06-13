@@ -121,6 +121,7 @@ describe('CytoscapeRenderer', () => {
     });
 
     it('saves node positions on dragfree event', () => {
+        mocks.nodes.mockReturnValue([]);
         mocks.on.mockImplementation((event, selector, handler) => {
             if (event === 'dragfree' && selector === 'node') {
                 // Simulate the dragfree event handler being called
