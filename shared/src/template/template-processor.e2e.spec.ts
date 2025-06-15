@@ -12,6 +12,7 @@ const DATA_DIR = path.join(FIXTURES_DIR, 'data');
 const EXPECTED_OUTPUT_DIR = path.join(FIXTURES_DIR, 'expected-output');
 
 describe('TemplateProcessor E2E', () => {
+    const normalizeLineEndings = (str) => str.replace(/\r?\n/g, '\n');
 
     beforeEach(() => {
         if (fs.existsSync(OUTPUT_DIR)) {
@@ -173,15 +174,15 @@ describe('TemplateProcessor E2E', () => {
     it('should use TemplateDefaultTransformer when no transformer is specified', async () => {
         const mapping = new Map<string, string>([
             ['https://calm.finos.org/docuflow/flow/document-upload', path.join(DATA_DIR, 'flow-document-upload.json')],
-            ['https://calm.finos.org/controls/owner-responsibility.requirement.json', path.join(DATA_DIR, 'controls/owner-responsibility.requirement.json')],
-            ['https://calm.finos.org/controls/architect.configuration.json', path.join(DATA_DIR, 'controls/architect.configuration.json')],
-            ['https://calm.finos.org/controls/system-owner.configuration.json', path.join(DATA_DIR, 'controls/system-owner.configuration.json')],
-            ['https://calm.finos.org/controls/business-owner.configuration.json', path.join(DATA_DIR, 'controls/business-owner.configuration.json')],
+            ['https://calm.finos.org/controls/owner-responsibility.requirement.json', path.join(DATA_DIR, 'controls', 'owner-responsibility.requirement.json')],
+            ['https://calm.finos.org/controls/architect.configuration.json', path.join(DATA_DIR, 'controls', 'architect.configuration.json')],
+            ['https://calm.finos.org/controls/system-owner.configuration.json', path.join(DATA_DIR, 'controls', 'system-owner.configuration.json')],
+            ['https://calm.finos.org/controls/business-owner.configuration.json', path.join(DATA_DIR, 'controls', 'business-owner.configuration.json')],
         ]);
 
         const processor = new TemplateProcessor(
             path.join(DATA_DIR, 'document-system-with-controls.json'),
-            path.join(FIXTURES_DIR, 'bundles/default-transformer'),
+            path.join(FIXTURES_DIR, 'bundles', 'default-transformer'),
             OUTPUT_DIR,
             mapping
         );
@@ -191,8 +192,8 @@ describe('TemplateProcessor E2E', () => {
         const actualFile = path.join(OUTPUT_DIR, 'doc-system-one-pager.md');
         const expectedFile = path.join(EXPECTED_OUTPUT_DIR, 'doc-system-one-pager.md');
         expect(fs.existsSync(actualFile)).toBe(true);
-        const actualContent = fs.readFileSync(actualFile, 'utf8').trim();
-        const expectedContent = fs.readFileSync(expectedFile, 'utf8').trim();
+        const actualContent = normalizeLineEndings(fs.readFileSync(actualFile, 'utf8').trim());
+        const expectedContent = normalizeLineEndings(fs.readFileSync(expectedFile, 'utf8').trim());
         expect(actualContent).toEqual(expectedContent);
 
     });

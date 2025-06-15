@@ -121,12 +121,12 @@ describe('TemplateEngine', () => {
 
         engine.generate(userData, '/output');
 
-        expect(mkdirSyncSpy).toHaveBeenCalledWith('/output', { recursive: true });
-        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname('/output/1.txt'), { recursive: true });
-        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname('/output/2.txt'), { recursive: true });
+        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.sep + 'output', { recursive: true });
+        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname(path.sep + path.join('output', '1.txt')), { recursive: true });
+        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname(path.sep + path.join('output', '2.txt')), { recursive: true });
         expect(writeFileSyncSpy).toHaveBeenCalledTimes(2);
-        expect(writeFileSyncSpy).toHaveBeenCalledWith('/output/1.txt', 'User: Alice', 'utf8');
-        expect(writeFileSyncSpy).toHaveBeenCalledWith('/output/2.txt', 'User: Bob', 'utf8');
+        expect(writeFileSyncSpy).toHaveBeenCalledWith(path.sep + path.join('output', '1.txt'), 'User: Alice', 'utf8');
+        expect(writeFileSyncSpy).toHaveBeenCalledWith(path.sep + path.join('output', '2.txt'), 'User: Bob', 'utf8');
     });
 
     it('should handle single output templates', () => {
@@ -153,10 +153,10 @@ describe('TemplateEngine', () => {
 
         engine.generate(testData, '/output');
 
-        expect(mkdirSyncSpy).toHaveBeenCalledWith('/output', { recursive: true });
-        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname('/output/output.txt'), { recursive: true });
+        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.sep + 'output', { recursive: true });
+        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname(path.sep + path.join('output', 'output.txt')), { recursive: true });
         expect(writeFileSyncSpy).toHaveBeenCalledTimes(1);
-        expect(writeFileSyncSpy).toHaveBeenCalledWith('/output/output.txt', 'User: Alice', 'utf8');
+        expect(writeFileSyncSpy).toHaveBeenCalledWith(path.sep + path.join('output', 'output.txt'), 'User: Alice', 'utf8');
     });
 
     it('should log a warning when registering a missing partial template', () => {
