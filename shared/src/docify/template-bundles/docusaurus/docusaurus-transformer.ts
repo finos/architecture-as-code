@@ -1,17 +1,18 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 import {Architecture,CalmCore} from '../../../model/core';
-import {CalmControl} from '../../../model/control';
-import {CalmFlowTransition} from '../../../model/flow';
 import {CalmTemplateTransformer} from '../../../template/types';
 import {CalmCoreSchema} from '../../../types/core-types';
 import {CalmRelationshipGraph} from '../../graphing/relationship-graph';
 import {C4Model} from '../../graphing/c4';
+import {FlowSequenceHelper} from '../../graphing/flow-sequence-helper';
+import {ControlRegistry} from '../../graphing/control-registry';
 
 export default class DocusaurusTransformer implements CalmTemplateTransformer {
     getTransformedModel(calmJson: string) {
         const calmSchema: CalmCoreSchema = JSON.parse(calmJson);
         const architecture: Architecture = CalmCore.fromJson(calmSchema);
         const graph = new CalmRelationshipGraph(architecture.relationships);
+        const flowHelper = new FlowSequenceHelper();
 
         const nodes = architecture.nodes.map(node => ({
             ...node,
@@ -24,12 +25,7 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
         }));
 
         const flows = architecture.flows.map(flow => {
-            const transformedTransitions = flow.transitions.map((transition: CalmFlowTransition) => ({
-                ...transition,
-                relationshipId: transition.relationshipUniqueId,
-                source: this.getSourceFromRelationship(transition.relationshipUniqueId),
-                target: this.getTargetFromRelationship(transition.relationshipUniqueId)
-            }));
+            const transformedTransitions = flowHelper.transformFlowTransitions(flow.transitions, architecture);
 
             return {
                 ...flow,
@@ -42,111 +38,23 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
         const relationships = architecture.relationships.map(rel => ({
             ...rel,
             id: rel.uniqueId,
-            title: rel.uniqueId
+            title: rel.uniqueId,
+            relationshipType: rel.relationshipType
         }));
 
         const metadata = architecture.metadata;
 
+        const controlRegistry = new ControlRegistry(architecture);
+        controlRegistry.processControls();
 
-        const controlRequirements: Record<string, { id:string, content:string, domain:string}[]> = {};
-
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const addControlRequirementToTable = (controls: CalmControl[], domain: string, appliedTo: string) => {
-            controls.forEach(control => {
-                control.requirements.forEach( detail => {
-                    const requirement =  detail.controlRequirementUrl;
-                    const id = requirement['$id'].split('/').filter(Boolean).pop() || '';
-                    if (!controlRequirements[id]) {
-                        controlRequirements[id] = [];
-                        controlRequirements[id].push({
-                            id,
-                            content: requirement,
-                            domain: control.controlId
-                        });
-                    }
-
-                });
-            });
-        };
-
-        const controlConfigurations: Record<string, { id:string, name:string, schema:string, description:string, domain: string, scope: string, appliedTo: string, content: string }[]> = {};
-
-        const addControlConfigurationToTable = (controls: CalmControl[], scope: string, appliedTo: string) => {
-            controls.forEach(control => {
-                control.requirements.forEach( detail => {
-                    const configuration = detail.controlConfigUrl;
-                    const id = configuration['control-id'];
-                    if (id) {
-                        if (!controlConfigurations[id]) {
-                            controlConfigurations[id] = [];
-                        }
-                        controlConfigurations[id].push({
-                            id,
-                            name: configuration['name'],
-                            schema: configuration['$schema'],
-                            description: configuration['description'],
-                            domain: control.controlId,
-                            scope,
-                            appliedTo,
-                            content: configuration
-                        });
-                    }
-                });
-            });
-        };
-
-        architecture.nodes.forEach(node => {
-            addControlConfigurationToTable(node.controls, 'Node', node.uniqueId);
-            addControlRequirementToTable(node.controls, 'Node', node.uniqueId);
-        });
-
-        architecture.relationships.forEach(relationship => {
-            addControlConfigurationToTable(relationship.controls, 'Relationship', relationship.uniqueId);
-            addControlRequirementToTable(relationship.controls, 'Relationship', relationship.uniqueId);
-        });
-
-        architecture.flows.forEach(flow => {
-            addControlConfigurationToTable(flow.controls, 'Flow', flow.uniqueId);
-            addControlRequirementToTable(flow.controls, 'Flow', flow.uniqueId);
-        });
-
-        const groupedByDomainRequirements: Record<string, { id: string; content: string; domain: string }[]> = {};
-
-        Object.values(controlRequirements).forEach(requirements => {
-            requirements.forEach(req => {
-                if (!groupedByDomainRequirements[req.domain]) {
-                    groupedByDomainRequirements[req.domain] = [];
-                }
-                groupedByDomainRequirements[req.domain].push(req);
-            });
-        });
-
-        const groupedByDomainConfigurations: Record<string, { id:string, name:string, schema:string, description:string, domain: string, scope: string, appliedTo: string, content: string }[]> = {};
-
-        Object.values(controlConfigurations).forEach(controlConfigurations => {
-            controlConfigurations.forEach(req => {
-                if (!groupedByDomainConfigurations[req.domain]) {
-                    groupedByDomainConfigurations[req.domain] = [];
-                }
-                groupedByDomainConfigurations[req.domain].push(req);
-            });
-        });
-
-        const controls = Object.entries(controlConfigurations).flatMap(([id, configurations]) =>
-            configurations.map(config => ({
-                id,
-                ...config
-            }))
-        );
-
-        const controlReqs = Object.entries(controlRequirements).flatMap(([id, requirements]) =>
-            requirements.map(requirement => ({
-                id,
-                ...requirement
-            }))
-        );
+        const controls = controlRegistry.getControls();
+        const controlReqs = controlRegistry.getControlRequirements();
+        const groupedByDomainRequirements = controlRegistry.getGroupedByDomainRequirements();
+        const groupedByDomainConfigurations = controlRegistry.getGroupedByDomainConfigurations();
+        const controlConfigurations = controlRegistry.getControlConfigurations();
 
         const C4model = new C4Model(architecture);
+        const adrs = architecture.adrs;
 
         return {
             nodes,
@@ -156,6 +64,7 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
             controlReqs,
             C4model,
             metadata,
+            adrs,
             docs: {
                 nodes,
                 flows,
@@ -166,7 +75,8 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
                 groupedByDomainConfigurations,
                 C4model,
                 controlConfigurations,
-                metadata
+                metadata,
+                adrs
             }
         };
     }
@@ -202,11 +112,4 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
         };
     }
 
-    private getSourceFromRelationship(relationshipId: string): string {
-        return relationshipId.split('-uses-')[0];
-    }
-
-    private getTargetFromRelationship(relationshipId: string): string {
-        return relationshipId.split('-uses-').slice(-1)[0];
-    }
 }

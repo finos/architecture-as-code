@@ -56,7 +56,6 @@ export function buildParentChildMappings(relationships: CalmRelationship[]): {
                 parentLookup[nodeId] = container;
             });
         }
-        // Handle other relationship types as needed
     });
 
     return { parentLookup, childrenLookup };
@@ -105,7 +104,6 @@ export class C4Model {
 
         calmCore.relationships.forEach(rel => {
             if (rel.relationshipType instanceof CalmComposedOfType) {
-                // Already handled via parent-child mapping, skip adding to relationships
                 return;
             }
             else if (rel.relationshipType instanceof CalmInteractsType) {
@@ -131,6 +129,3 @@ export class C4Model {
         });
     }
 }
-
-
-

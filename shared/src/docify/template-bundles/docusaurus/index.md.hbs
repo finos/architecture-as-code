@@ -12,18 +12,18 @@ This documentation is generated from the **CALM Architecture-as-Code** model.
 ## High Level Architecture
 {{> c4-container.hbs}}
 
-### Nodes
+## Nodes
 {{#each nodes}}
     - [{{title}}](nodes/{{id}})
 {{/each}}
 
-### Relationships
+## Relationships
 {{#each relationships}}
     - [{{kebabToTitleCase title}}](relationships/{{id}})
 {{/each}}
 
 
-### Flows
+## Flows
 {{#if (notEmpty flows) }}
 {{#each flows}}
     - [{{title}}](flows/{{id}})
@@ -32,22 +32,25 @@ This documentation is generated from the **CALM Architecture-as-Code** model.
      _No flows defined._
 {{/if}}
 
+## Controls
 {{#if (notEmpty controls) }}
-### Controls
 | ID    | Name             | Description                  | Domain    | Scope        | Applied To                |
 |-------|------------------|------------------------------|-----------|--------------|---------------------------|
 {{#controls}}
 |{{id}}|{{name}}|{{description}}|{{domain}}|{{scope}}|{{appliedTo}}|
 {{/controls}}
+{{else}}
+  _No Controls defined._
 {{/if}}
 
-
-### MetaData
+## Metadata
 {{> metadata.hbs data=metadata.data}}
 
+## Adrs
 {{#if (notEmpty adrs)}}
-### Adrs
 {{#each adrs}}
 - [{{this}}]({{this}})
 {{/each}}
+{{else}}
+  _No Adrs defined._
 {{/if}}

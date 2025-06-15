@@ -3,9 +3,20 @@ id: {{id}}
 title: {{title}}
 ---
 
-## Flow Overview
-{{description}}
+## Details
+<div className="table-container">
+| Field               | Value                    |
+|---------------------|--------------------------|
+| **Unique ID**       | {{id}}                   |
+| **Name**            | {{name}}                 |
+| **Description**     | {{description}}          |
+</div>
 
+## Sequence Diagram
 {{> flow-sequence.hbs}}
 
+## Controls
 {{> controls.hbs}}
+
+## Metadata
+{{> metadata.hbs data=metadata.data}}
