@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { Docifier } from './docifier.js';
-import { mkdirSync, rmSync, existsSync} from 'fs';
+import { rmSync, existsSync} from 'fs';
 import { join } from 'path';
 
 const INPUT_DIR = join(
@@ -13,16 +13,16 @@ const WORKSHOP_DIR = join(
     '../../../calm/workshop/controls'
 );
 
+const CALM_DIR = join(
+    __dirname,
+    '../../../calm/release/1.0-rc1/meta'
+);
+
 const OUTPUT_DIR = join(__dirname, '../../test_fixtures/docify/workshop/actual-output');
 const NON_SECURE_VERSION_DOC_WEBSITE =  join(OUTPUT_DIR,'non-secure');
 const SECURE_VERSION_DOC_WEBSITE =  join(OUTPUT_DIR,'secure');
 
 describe('Docifier E2E - Real Model and Template', () => {
-    beforeEach(() => {
-        rmSync(OUTPUT_DIR, { recursive: true, force: true });
-        mkdirSync(OUTPUT_DIR, { recursive: true });
-    });
-
     afterEach(() => {
         rmSync(OUTPUT_DIR, { recursive: true, force: true });
     });
@@ -45,13 +45,17 @@ describe('Docifier E2E - Real Model and Template', () => {
 
     it('generates documentation from the conference-secure-signup.arch.json model', async () => {
         const mapping = new Map<string, string>([
+            ['https://calm.finos.org/release/1.0-rc1/meta/control-requirement.json', join(CALM_DIR, 'control-requirement.json')],
+            ['https://calm.finos.org/workshop/controls/micro-segmentation.config.json', join(WORKSHOP_DIR, 'micro-segmentation.config.json')],
+            ['https://calm.finos.org/workshop/controls/permitted-connection-http.config.json', join(WORKSHOP_DIR, 'permitted-connection-http.config.json')],
+            ['https://calm.finos.org/workshop/controls/permitted-connection-jdbc.config.json', join(WORKSHOP_DIR, 'permitted-connection-jdbc.config.json')],
             ['https://calm.finos.org/workshop/controls/micro-segmentation.config.json', join(WORKSHOP_DIR, 'micro-segmentation.config.json')],
             ['https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json', join(WORKSHOP_DIR, 'micro-segmentation.requirement.json')],
             ['https://calm.finos.org/workshop/controls/permitted-connection.requirement.json', join(WORKSHOP_DIR, 'permitted-connection.requirement.json')],
         ]);
 
 
-        const docifier = new Docifier('WEBSITE', join(INPUT_DIR, 'conference-signup.arch.json'), SECURE_VERSION_DOC_WEBSITE, mapping);
+        const docifier = new Docifier('WEBSITE', join(INPUT_DIR, 'conference-secure-signup-amended.arch.json'), SECURE_VERSION_DOC_WEBSITE, mapping);
 
         await docifier.docify();
 

@@ -1,0 +1,180 @@
+{
+  "nodes": [
+    {
+      "unique-id": "conference-website",
+      "name": "Conference Website",
+      "description": "Website to sign up for a conference",
+      "node-type": "webclient",
+      "interfaces": [
+        {
+          "unique-id": "conference-website-url",
+          "url": "https://calm.finos.org/amazing-website"
+        }
+      ]
+    },
+    {
+      "unique-id": "load-balancer",
+      "name": "Load Balancer",
+      "description": "The attendees service, or a placeholder for another application",
+      "node-type": "network",
+      "interfaces": [
+        {
+          "unique-id": "load-balancer-host-port",
+          "host": "localhost",
+          "port": 80
+        }
+      ]
+    },
+    {
+      "unique-id": "attendees",
+      "name": "Attendees Service",
+      "description": "The attendees service, or a placeholder for another application",
+      "node-type": "service",
+      "interfaces": [
+        {
+          "unique-id": "attendees-image",
+          "image": "masteringapi/attendees-quarkus:ws-native-db"
+        },
+        {
+          "unique-id": "attendees-port",
+          "port": 8080
+        }
+      ]
+    },
+    {
+      "unique-id": "attendees-store",
+      "name": "Attendees Store",
+      "description": "Persistent storage for attendees",
+      "node-type": "database",
+      "interfaces": [
+        {
+          "unique-id": "database-image",
+          "image": "postgres-db:13"
+        },
+        {
+          "unique-id": "database-port",
+          "port": 5432
+        }
+      ]
+    },
+    {
+      "unique-id": "k8s-cluster",
+      "name": "Kubernetes Cluster",
+      "description": "Kubernetes Cluster with network policy rules enabled",
+      "node-type": "system",
+      "controls": {
+        "security": {
+          "description": "Security requirements for the Kubernetes cluster",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json",
+              "control-config-url": "https://calm.finos.org/workshop/controls/micro-segmentation.config.json"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "conference-website-load-balancer",
+      "description": "Request attendee details",
+      "protocol": "HTTPS",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "conference-website"
+          },
+          "destination": {
+            "node": "load-balancer"
+          }
+        }
+      },
+      "controls": {
+        "security": {
+          "description": "Security Controls for the connection",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json",
+              "control-config-url": "https://calm.finos.org/workshop/controls/permitted-connection-http.config.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "load-balancer-attendees",
+      "description": "Forward",
+      "protocol": "mTLS",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "load-balancer"
+          },
+          "destination": {
+            "node": "attendees"
+          }
+        }
+      },
+      "controls": {
+        "security": {
+          "description": "Security Controls for the connection",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json",
+              "control-config-url": "https://calm.finos.org/workshop/controls/permitted-connection-http.config.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "attendees-attendees-store",
+      "description": "Store or request attendee details",
+      "protocol": "JDBC",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "attendees"
+          },
+          "destination": {
+            "node": "attendees-store"
+          }
+        }
+      },
+      "controls": {
+        "security": {
+          "description": "Security Controls for the connection",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json",
+              "control-config-url": "https://calm.finos.org/workshop/controls/permitted-connection-jdbc.config.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "deployed-in-k8s-cluster",
+      "description": "Components deployed on the k8s cluster",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "k8s-cluster",
+          "nodes": [
+            "load-balancer",
+            "attendees",
+            "attendees-store"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": [
+    {
+      "kubernetes": {
+        "namespace": "conference"
+      }
+    }
+  ],
+  "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json"
+}

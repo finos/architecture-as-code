@@ -1,18 +1,12 @@
 import './cytoscape.css';
 import { useEffect, useRef } from 'react';
 import cytoscape, { EdgeSingular, NodeSingular } from 'cytoscape';
-import nodeEdgeHtmlLabel from 'cytoscape-node-edge-html-label';
-import expandCollapse from 'cytoscape-expand-collapse';
-import { Edge, CalmNode } from '../../contracts/contracts.js';
+import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { LayoutCorrectionService } from '../../services/layout-correction-service.js';
 import {
     saveNodePositions,
     loadStoredNodePositions,
 } from '../../services/node-position-service.js';
-
-// Initialize Cytoscape plugins
-nodeEdgeHtmlLabel(cytoscape);
-expandCollapse(cytoscape);
 
 // Layout configuration
 const breadthFirstLayout = {
@@ -25,25 +19,17 @@ const breadthFirstLayout = {
     padding: 30,
     spacingFactor: 1.25,
 };
+// Text font size for node and edge labels
+const textFontSize = '20px';
 
 export interface CytoscapeRendererProps {
-    title: string;
     isNodeDescActive: boolean;
     isRelationshipDescActive: boolean;
-    nodes: CalmNode[];
+    nodes: CytoscapeNode[];
     edges: Edge[];
-    nodeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
-    edgeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
-}
-
-function getNodeLabelTemplateGenerator(selected: boolean, includeDescription: boolean) {
-    return (data: CalmNode['data']) => `
-        <div class="node element ${selected ? 'selected-node' : ''}">
-            <p class="title">${data.label}</p>
-            <p class="type">${data.type}</p>
-            <p class="description">${includeDescription ? data.description : ''}</p>
-        </div>
-    `;
+    nodeClickedCallback: (x: CytoscapeNode['data'] | Edge['data']) => void;
+    edgeClickedCallback: (x: CytoscapeNode['data'] | Edge['data']) => void;
+    calmKey: string;
 }
 
 function getEdgeStyle(showDescription: boolean): cytoscape.Css.Edge {
@@ -56,19 +42,25 @@ function getEdgeStyle(showDescription: boolean): cytoscape.Css.Edge {
         'text-background-color': 'white',
         'text-background-opacity': 1,
         'text-background-padding': '5px',
+        'font-size': textFontSize,
     };
 }
 
 function getNodeStyle(showDescription: boolean): cytoscape.Css.Node {
     return {
         label: showDescription
-            ? 'data(_displayPlaceholderWithDesc)'
-            : 'data(_displayPlaceholderWithoutDesc)',
+            ? 'data(cytoscapeProps.labelWithDescription)'
+            : 'data(cytoscapeProps.labelWithoutDescription)',
         'text-valign': 'center',
         'text-halign': 'center',
         'text-wrap': 'wrap',
         'text-max-width': '180px',
         'font-family': 'Arial',
+        'background-color': '#f5f5f5',
+        'border-color': 'black',
+        'border-width': 1,
+        padding: '10px',
+        'font-size': textFontSize,
         width: '200px',
         height: 'label',
         shape: 'rectangle',
@@ -79,14 +71,16 @@ const layoutCorrectionService = new LayoutCorrectionService();
 
 export function CytoscapeRenderer({
     nodes = [],
-    title = '',
     edges = [],
     isRelationshipDescActive,
     isNodeDescActive,
     nodeClickedCallback,
     edgeClickedCallback,
+    calmKey,
 }: CytoscapeRendererProps) {
     const cyRef = useRef<HTMLDivElement>(null);
+    const zoom = useRef(1);
+    const pan = useRef({ x: 0, y: 0 });
 
     useEffect(() => {
         const container = cyRef.current;
@@ -107,7 +101,13 @@ export function CytoscapeRenderer({
                 {
                     selector: ':parent',
                     style: {
-                        label: 'data(label)',
+                        label: 'data(name)',
+                        'text-valign': 'top',
+                        'text-halign': 'center',
+                        'background-color': 'white',
+                        'border-style': 'dashed',
+                        'border-width': 2,
+                        'border-dash-pattern': [8, 10], // [dash length, gap length]
                     },
                 },
             ],
@@ -117,60 +117,50 @@ export function CytoscapeRenderer({
             maxZoom: 5,
         });
 
-        const savedPositions = loadStoredNodePositions(title);
+        const savedPositions = loadStoredNodePositions(calmKey);
         if (savedPositions) {
-            cy.nodes().forEach((node) => {
-                const match = savedPositions.find((n) => n.id === node.id());
-                if (match) {
-                    node.position(match.position);
-                }
-            });
+            cy.nodes()
+                .filter((node: cytoscape.NodeSingular) => !node.is(':parent'))
+                .forEach((node) => {
+                    const match = savedPositions.find((n) => n.id === node.id());
+                    if (match) {
+                        node.position(match.position);
+                    }
+                });
 
-            cy.fit();
+            cy.zoom(zoom.current);
+            cy.pan(pan.current);
         }
 
         cy.on('tap', 'node', (e) => {
             const node = e.target as NodeSingular;
-            nodeClickedCallback(node?.data());
+            nodeClickedCallback(node.data());
         });
 
         cy.on('tap', 'edge', (e) => {
             const edge = e.target as EdgeSingular;
-            edgeClickedCallback(edge?.data());
+            edgeClickedCallback(edge.data());
         });
 
         cy.on('dragfree', 'node', () => {
-            const nodePositions = cy.nodes().map((node) => ({
-                id: node.id(),
-                position: node.position(),
-            }));
-            saveNodePositions(title, nodePositions);
+            const nodePositions = cy
+                .nodes()
+                .filter((node: cytoscape.NodeSingular) => !node.is(':parent'))
+                .map((node: cytoscape.NodeSingular) => ({
+                    id: node.id(),
+                    position: node.position(),
+                }));
+            saveNodePositions(calmKey, nodePositions);
         });
-
-        // This function comes from a plugin which doesn't have proper types, which is why the hacky casting is needed
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (cy as unknown as any).nodeHtmlLabel([
-            {
-                query: '.node',
-                valign: 'top',
-                valignBox: 'top',
-                tpl: getNodeLabelTemplateGenerator(false, isNodeDescActive),
-            },
-            {
-                query: '.node:selected',
-                valign: 'top',
-                valignBox: 'top',
-                tpl: getNodeLabelTemplateGenerator(true, isNodeDescActive),
-            },
-        ]);
 
         layoutCorrectionService.calculateAndUpdateNodePositions(cy, nodes);
 
         return () => {
+            zoom.current = cy.zoom();
+            pan.current = cy.pan();
             cy.destroy();
         };
     }, [
-        title,
         nodes,
         edges,
         isNodeDescActive,
@@ -178,6 +168,7 @@ export function CytoscapeRenderer({
         nodeClickedCallback,
         edgeClickedCallback,
         cyRef,
+        calmKey,
     ]);
 
     return <div ref={cyRef} className="flex-1 bg-white visualizer" style={{ height: '100vh' }} />;

@@ -242,6 +242,7 @@ describe('TemplateProcessor E2E', () => {
         const EXPECTED_OUTPUT_WORKSHOP_DIR = path.join(FIXTURES_DIR, 'expected-output/workshop/infrastructure');
 
         const mapping = new Map<string, string>([
+            ['https://calm.finos.org/release/1.0-rc1/meta/control-requirement.json', join(WORKSHOP_DIR, '../release/1.0-rc1/meta/control-requirement.json')],
             ['https://calm.finos.org/workshop/controls/micro-segmentation.config.json', join(WORKSHOP_DIR, 'controls/micro-segmentation.config.json')],
             ['https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json', join(WORKSHOP_DIR, 'controls/micro-segmentation.requirement.json')],
             ['https://calm.finos.org/workshop/controls/permitted-connection.requirement.json', join(WORKSHOP_DIR, 'controls/permitted-connection.requirement.json')],

@@ -6,7 +6,7 @@ export function Navbar() {
         <div className="navbar bg-base-100 border-b-2 border-base-200 text-primary-content">
             <div className="navbar-start flex items-center">
                 <div className="dropdown lg:hidden">
-                    <div tabIndex={0} role="button" className="btn btn-ghost">
+                    <div tabIndex={0} role="button" className="btn btn-ghost text-primary">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             className="h-5 w-5"
@@ -24,7 +24,7 @@ export function Navbar() {
                     </div>
                     <ul
                         tabIndex={0}
-                        className="menu menu-xs dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow"
+                        className="menu menu-xs dropdown-content bg-base-100 text-primary rounded-box z-[1] mt-3 w-52 p-2 shadow"
                     >
                         <li>
                             <NavLink to="/">Hub</NavLink>
