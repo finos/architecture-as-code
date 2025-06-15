@@ -1,6 +1,7 @@
 import { TemplateCalmFileDereferencer } from './template-calm-file-dereferencer';
 import path from 'path';
 import {InMemoryResolver} from '../resolver/calm-reference-resolver';
+import {resolve as url_resolve, cwd as url_cwd} from '@apidevtools/json-schema-ref-parser/lib/util/url';
 
 
 describe('TemplateCalmFileDereferencer', () => {
@@ -20,8 +21,8 @@ describe('TemplateCalmFileDereferencer', () => {
         ]);
 
         const mockResolver = new InMemoryResolver({
-            [path.resolve('data/add-update-account.json')]: { flow: 'Add Update Account Content' },
-            [path.resolve('data/load-list-of-accounts.json')]: { flow: 'Load List of Accounts Content' }
+            [url_resolve(url_cwd(), path.resolve('data/add-update-account.json'))]: { flow: 'Add Update Account Content' },
+            [url_resolve(url_cwd(), path.resolve('data/load-list-of-accounts.json'))]: { flow: 'Load List of Accounts Content' }
         });
 
         dereferencer = new TemplateCalmFileDereferencer(urlFileMapping, mockResolver);
