@@ -4,6 +4,7 @@ import { CalmFlowTransition } from '../../model/flow';
 import { CalmRelationship, CalmInteractsType, CalmConnectsType, CalmComposedOfType } from '../../model/relationship';
 
 export class FlowSequenceHelper {
+    public static readonly UNKNOWN_NODE = 'unknown';
     /**
      * Transforms flow transitions by adding source and target information
      * @param transitions The flow transitions to transform
@@ -21,10 +22,6 @@ export class FlowSequenceHelper {
 
     public getSourceFromRelationship(relationshipId: string, architecture: Architecture): string {
         const relationship = this.findRelationshipById(relationshipId, architecture);
-        if (!relationship) {
-            const nodeId = relationshipId.split('-uses-')[0];
-            return this.getNodeNameById(nodeId, architecture) || nodeId;
-        }
 
         if (relationship.relationshipType instanceof CalmInteractsType) {
             const nodeId = relationship.relationshipType.actor;
@@ -36,17 +33,12 @@ export class FlowSequenceHelper {
             const nodeId = relationship.relationshipType.container;
             return this.getNodeNameById(nodeId, architecture) || nodeId;
         } else {
-            const nodeId = relationshipId.split('-uses-')[0];
-            return this.getNodeNameById(nodeId, architecture) || nodeId;
+            return FlowSequenceHelper.UNKNOWN_NODE;
         }
     }
 
     public getTargetFromRelationship(relationshipId: string, architecture: Architecture): string {
         const relationship = this.findRelationshipById(relationshipId, architecture);
-        if (!relationship) {
-            const nodeId = relationshipId.split('-uses-').slice(-1)[0];
-            return this.getNodeNameById(nodeId, architecture) || nodeId;
-        }
 
         if (relationship.relationshipType instanceof CalmInteractsType) {
             const nodeId = relationship.relationshipType.nodes[0] || '';
@@ -58,8 +50,7 @@ export class FlowSequenceHelper {
             const nodeId = relationship.relationshipType.nodes[0] || '';
             return nodeId;
         } else {
-            const nodeId = relationshipId.split('-uses-').slice(-1)[0];
-            return this.getNodeNameById(nodeId, architecture) || nodeId;
+            return FlowSequenceHelper.UNKNOWN_NODE;
         }
     }
 

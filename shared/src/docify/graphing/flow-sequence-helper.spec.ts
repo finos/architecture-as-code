@@ -104,9 +104,21 @@ describe('FlowSequenceHelper', () => {
             expect(source).toBe('actor1');
         });
 
-        it('should fallback to splitting ID for non-existent relationship', () => {
-            const source = helper.getSourceFromRelationship('service1-uses-service2', architecture);
-            expect(source).toBe('service1');
+        it('should return unknown for unsupported relationship type', () => {
+            // Create a relationship with an unsupported type
+            const unsupportedRel = new CalmRelationship(
+                'unsupported-rel',
+                { type: 'unsupported' } as unknown,
+                new CalmMetadata({}),
+                [],
+                'Unsupported relationship type'
+            );
+
+            // Add it to the architecture
+            architecture.relationships.push(unsupportedRel);
+
+            const source = helper.getSourceFromRelationship('unsupported-rel', architecture);
+            expect(source).toBe(FlowSequenceHelper.UNKNOWN_NODE);
         });
     });
 
@@ -127,9 +139,21 @@ describe('FlowSequenceHelper', () => {
             expect(target).toBe('service1');
         });
 
-        it('should fallback to splitting ID for non-existent relationship', () => {
-            const target = helper.getTargetFromRelationship('service1-uses-service2', architecture);
-            expect(target).toBe('service2');
+        it('should return unknown for unsupported relationship type', () => {
+            // Create a relationship with an unsupported type
+            const unsupportedRel = new CalmRelationship(
+                'unsupported-rel-target',
+                { type: 'unsupported' } as unknown,
+                new CalmMetadata({}),
+                [],
+                'Unsupported relationship type'
+            );
+
+            // Add it to the architecture
+            architecture.relationships.push(unsupportedRel);
+
+            const target = helper.getTargetFromRelationship('unsupported-rel-target', architecture);
+            expect(target).toBe(FlowSequenceHelper.UNKNOWN_NODE);
         });
     });
 
