@@ -2,14 +2,33 @@
 import { Architecture } from '../../model/core';
 import { CalmControl } from '../../model/control';
 
+interface ControlRequirementGroup {
+    id: string;
+    content: string;
+    domain: string;
+    scope: string;
+    appliedTo: string;
+}
+
+interface ControlConfigurationGroup {
+    id: string;
+    name: string;
+    schema: string;
+    description: string;
+    domain: string;
+    scope: string;
+    appliedTo: string;
+    content: string;
+}
+
 /**
  * A class that manages control requirements and configurations across architecture documents
  */
 export class ControlRegistry {
-    private controlRequirements: Record<string, { id: string, content: string, domain: string, scope: string, appliedTo: string }[]> = {};
-    private controlConfigurations: Record<string, { id: string, name: string, schema: string, description: string, domain: string, scope: string, appliedTo: string, content: string }[]> = {};
-    private groupedByDomainRequirements: Record<string, { id: string, content: string, domain: string, scope: string, appliedTo: string }[]> = {};
-    private groupedByDomainConfigurations: Record<string, { id: string, name: string, schema: string, description: string, domain: string, scope: string, appliedTo: string, content: string }[]> = {};
+    private controlRequirements: Record<string, ControlRequirementGroup[]> = {};
+    private controlConfigurations: Record<string, ControlConfigurationGroup[]> = {};
+    private groupedByDomainRequirements: Record<string, ControlRequirementGroup[]> = {};
+    private groupedByDomainConfigurations: Record<string, ControlConfigurationGroup[]> = {};
     private architecture: Architecture;
 
     /**
@@ -66,22 +85,32 @@ export class ControlRegistry {
                 );
 
                 if (!isDuplicate) {
-                    existing.push({
+                    const controlRequirement: ControlRequirementGroup = {
                         id,
                         content: requirement,
                         domain: control.controlId,
                         scope,
                         appliedTo
-                    });
+                    };
+                    existing.push(controlRequirement);
                     this.controlRequirements[id] = existing;
                 }
             });
         });
     }
 
+    /**
+     * Extracts the last segment from a path string
+     * @param path The path string to extract from
+     * @returns The last segment of the path
+     */
+    private extractLastSegmentFromPath(path: string): string | undefined {
+        return path.split('/').filter(Boolean).pop();
+    }
+
     private getRequirementId(requirement: unknown): string | undefined {
         if (typeof requirement === 'string') {
-            return requirement.split('/').filter(Boolean).pop();
+            return this.extractLastSegmentFromPath(requirement);
         }
 
         if (
@@ -90,7 +119,7 @@ export class ControlRegistry {
             '$id' in requirement &&
             typeof (requirement as Record<string, unknown>)['$id'] === 'string'
         ) {
-            return (requirement as Record<string, string>)['$id'].split('/').filter(Boolean).pop();
+            return this.extractLastSegmentFromPath((requirement as Record<string, string>)['$id']);
         }
 
         return undefined;
@@ -121,7 +150,7 @@ export class ControlRegistry {
                     );
 
                     if (!existingEntry) {
-                        this.controlConfigurations[id].push({
+                        const controlConfiguration: ControlConfigurationGroup = {
                             id,
                             name: config['name'] ?? '',
                             schema: config['$schema'] ?? '',
@@ -130,7 +159,8 @@ export class ControlRegistry {
                             scope,
                             appliedTo,
                             content: detail.controlConfigUrl
-                        });
+                        };
+                        this.controlConfigurations[id].push(controlConfiguration);
                     }
                 }
             });
@@ -170,7 +200,7 @@ export class ControlRegistry {
      * Gets the flattened list of controls
      * @returns Array of control objects
      */
-    public getControls(): { id: string, name: string, schema: string, description: string, domain: string, scope: string, appliedTo: string, content: string }[] {
+    public getControls(): ControlConfigurationGroup[] {
         return Object.entries(this.controlConfigurations).flatMap(([id, configurations]) =>
             configurations.map(config => ({
                 id,
@@ -183,7 +213,7 @@ export class ControlRegistry {
      * Gets the flattened list of control requirements
      * @returns Array of control requirement objects
      */
-    public getControlRequirements(): { id: string, content: string, domain: string, scope: string, appliedTo: string }[] {
+    public getControlRequirements(): ControlRequirementGroup[] {
         return Object.entries(this.controlRequirements).flatMap(([id, requirements]) =>
             requirements.map(requirement => ({
                 id,
@@ -196,7 +226,7 @@ export class ControlRegistry {
      * Gets the control requirements grouped by domain
      * @returns Record of control requirements grouped by domain
      */
-    public getGroupedByDomainRequirements(): Record<string, { id: string, content: string, domain: string, scope: string, appliedTo: string }[]> {
+    public getGroupedByDomainRequirements(): Record<string, ControlRequirementGroup[]> {
         return this.groupedByDomainRequirements;
     }
 
@@ -204,7 +234,7 @@ export class ControlRegistry {
      * Gets the control configurations grouped by domain
      * @returns Record of control configurations grouped by domain
      */
-    public getGroupedByDomainConfigurations(): Record<string, { id: string, name: string, schema: string, description: string, domain: string, scope: string, appliedTo: string, content: string }[]> {
+    public getGroupedByDomainConfigurations(): Record<string, ControlConfigurationGroup[]> {
         return this.groupedByDomainConfigurations;
     }
 
@@ -212,7 +242,7 @@ export class ControlRegistry {
      * Gets the raw control configurations
      * @returns Record of control configurations
      */
-    public getControlConfigurations(): Record<string, { id: string, name: string, schema: string, description: string, domain: string, scope: string, appliedTo: string, content: string }[]> {
+    public getControlConfigurations(): Record<string, ControlRequirementGroup[]> {
         return this.controlConfigurations;
     }
 }
