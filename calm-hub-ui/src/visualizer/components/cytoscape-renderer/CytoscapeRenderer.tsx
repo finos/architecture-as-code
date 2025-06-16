@@ -69,6 +69,7 @@ function getNodeStyle(showDescription: boolean): cytoscape.Css.Node {
 
 const layoutCorrectionService = new LayoutCorrectionService();
 
+const accentLightColor = getComputedStyle(document.documentElement).getPropertyValue('--color-accent-light').trim();
 const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim();
 const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim();
 
@@ -104,7 +105,7 @@ export function CytoscapeRenderer({
                 {
                     selector: 'node:selected',
                     style: {
-                        backgroundColor: accentColor,
+                        backgroundColor: accentLightColor,
                     }
                 },
                 {
