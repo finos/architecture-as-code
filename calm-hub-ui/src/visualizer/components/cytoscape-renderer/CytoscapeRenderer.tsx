@@ -1,16 +1,12 @@
 import './cytoscape.css';
 import { useEffect, useRef } from 'react';
 import cytoscape, { EdgeSingular, NodeSingular } from 'cytoscape';
-import expandCollapse from 'cytoscape-expand-collapse';
-import { Edge, CalmNode } from '../../contracts/contracts.js';
+import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { LayoutCorrectionService } from '../../services/layout-correction-service.js';
 import {
     saveNodePositions,
     loadStoredNodePositions,
 } from '../../services/node-position-service.js';
-
-// Initialize Cytoscape plugins
-expandCollapse(cytoscape);
 
 // Layout configuration
 const breadthFirstLayout = {
@@ -27,13 +23,13 @@ const breadthFirstLayout = {
 const textFontSize = '20px';
 
 export interface CytoscapeRendererProps {
-    title: string;
     isNodeDescActive: boolean;
     isRelationshipDescActive: boolean;
-    nodes: CalmNode[];
+    nodes: CytoscapeNode[];
     edges: Edge[];
-    nodeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
-    edgeClickedCallback: (x: CalmNode['data'] | Edge['data']) => void;
+    nodeClickedCallback: (x: CytoscapeNode['data'] | Edge['data']) => void;
+    edgeClickedCallback: (x: CytoscapeNode['data'] | Edge['data']) => void;
+    calmKey: string;
 }
 
 function getEdgeStyle(showDescription: boolean): cytoscape.Css.Edge {
@@ -53,8 +49,8 @@ function getEdgeStyle(showDescription: boolean): cytoscape.Css.Edge {
 function getNodeStyle(showDescription: boolean): cytoscape.Css.Node {
     return {
         label: showDescription
-            ? 'data(labelWithDescription)'
-            : 'data(labelWithoutDescription)',
+            ? 'data(cytoscapeProps.labelWithDescription)'
+            : 'data(cytoscapeProps.labelWithoutDescription)',
         'text-valign': 'center',
         'text-halign': 'center',
         'text-wrap': 'wrap',
@@ -63,7 +59,7 @@ function getNodeStyle(showDescription: boolean): cytoscape.Css.Node {
         'background-color': '#f5f5f5',
         'border-color': 'black',
         'border-width': 1,
-        'padding': '10px',
+        padding: '10px',
         'font-size': textFontSize,
         width: '200px',
         height: 'label',
@@ -78,14 +74,16 @@ const primaryColor = getComputedStyle(document.documentElement).getPropertyValue
 
 export function CytoscapeRenderer({
     nodes = [],
-    title = '',
     edges = [],
     isRelationshipDescActive,
     isNodeDescActive,
     nodeClickedCallback,
     edgeClickedCallback,
+    calmKey,
 }: CytoscapeRendererProps) {
     const cyRef = useRef<HTMLDivElement>(null);
+    const zoom = useRef(1);
+    const pan = useRef({ x: 0, y: 0 });
 
     useEffect(() => {
         const container = cyRef.current;
@@ -119,11 +117,13 @@ export function CytoscapeRenderer({
                 {
                     selector: ':parent',
                     style: {
-                        label: 'data(label)',
-                        "background-color": 'white',
-                        "border-style": 'dashed',
-                        "border-width": 2,
-                        "border-dash-pattern": [8, 10], // [dash length, gap length]
+                        label: 'data(name)',
+                        'text-valign': 'top',
+                        'text-halign': 'center',
+                        'background-color': 'white',
+                        'border-style': 'dashed',
+                        'border-width': 2,
+                        'border-dash-pattern': [8, 10], // [dash length, gap length]
                     },
                 },
                 {
@@ -140,43 +140,50 @@ export function CytoscapeRenderer({
             maxZoom: 5,
         });
 
-        const savedPositions = loadStoredNodePositions(title);
+        const savedPositions = loadStoredNodePositions(calmKey);
         if (savedPositions) {
-            cy.nodes().forEach((node) => {
-                const match = savedPositions.find((n) => n.id === node.id());
-                if (match) {
-                    node.position(match.position);
-                }
-            });
+            cy.nodes()
+                .filter((node: cytoscape.NodeSingular) => !node.is(':parent'))
+                .forEach((node) => {
+                    const match = savedPositions.find((n) => n.id === node.id());
+                    if (match) {
+                        node.position(match.position);
+                    }
+                });
 
-            cy.fit();
+            cy.zoom(zoom.current);
+            cy.pan(pan.current);
         }
 
         cy.on('tap', 'node', (e) => {
             const node = e.target as NodeSingular;
-            nodeClickedCallback(node?.data());
+            nodeClickedCallback(node.data());
         });
 
         cy.on('tap', 'edge', (e) => {
             const edge = e.target as EdgeSingular;
-            edgeClickedCallback(edge?.data());
+            edgeClickedCallback(edge.data());
         });
 
         cy.on('dragfree', 'node', () => {
-            const nodePositions = cy.nodes().map((node) => ({
-                id: node.id(),
-                position: node.position(),
-            }));
-            saveNodePositions(title, nodePositions);
+            const nodePositions = cy
+                .nodes()
+                .filter((node: cytoscape.NodeSingular) => !node.is(':parent'))
+                .map((node: cytoscape.NodeSingular) => ({
+                    id: node.id(),
+                    position: node.position(),
+                }));
+            saveNodePositions(calmKey, nodePositions);
         });
 
         layoutCorrectionService.calculateAndUpdateNodePositions(cy, nodes);
 
         return () => {
+            zoom.current = cy.zoom();
+            pan.current = cy.pan();
             cy.destroy();
         };
     }, [
-        title,
         nodes,
         edges,
         isNodeDescActive,
@@ -184,6 +191,7 @@ export function CytoscapeRenderer({
         nodeClickedCallback,
         edgeClickedCallback,
         cyRef,
+        calmKey,
     ]);
 
     return <div ref={cyRef} className="flex-1 bg-white visualizer" style={{ height: '100vh' }} />;
