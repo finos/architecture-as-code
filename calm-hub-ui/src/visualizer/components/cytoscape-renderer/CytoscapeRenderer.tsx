@@ -69,6 +69,10 @@ function getNodeStyle(showDescription: boolean): cytoscape.Css.Node {
 
 const layoutCorrectionService = new LayoutCorrectionService();
 
+const accentLightColor = getComputedStyle(document.documentElement).getPropertyValue('--color-accent-light').trim();
+const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim();
+const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim();
+
 export function CytoscapeRenderer({
     nodes = [],
     edges = [],
@@ -99,6 +103,19 @@ export function CytoscapeRenderer({
                     style: getNodeStyle(isNodeDescActive),
                 },
                 {
+                    selector: 'node:selected',
+                    style: {
+                        backgroundColor: accentLightColor,
+                    }
+                },
+                {
+                    selector: 'edge:selected',
+                    style: {
+                        'line-color': primaryColor,
+                        'target-arrow-color': primaryColor,
+                    }
+                },
+                {
                     selector: ':parent',
                     style: {
                         label: 'data(name)',
@@ -108,6 +125,13 @@ export function CytoscapeRenderer({
                         'border-style': 'dashed',
                         'border-width': 2,
                         'border-dash-pattern': [8, 10], // [dash length, gap length]
+                    },
+                },
+                {
+                    selector: ':parent:selected',
+                    style: {
+                        'border-color': accentColor,
+                        'border-width': 3,
                     },
                 },
             ],
