@@ -8,6 +8,7 @@ on:
     paths:
       - 'calm/draft/**'
       - 'calm/samples/**'
+      - 'calm/workshop/**'
 
 jobs:
   sync-to-s3:
@@ -28,3 +29,6 @@ jobs:
     - name: Sync calm/samples folder to S3
       run: |
         aws s3 sync calm/samples s3://${{ vars.AWS_S3_BUCKET }}/samples --delete
+    - name: Sync calm/workshop folder to S3
+      run: |
+        aws s3 sync calm/workshop s3://${{ vars.AWS_S3_BUCKET }}/workshop --delete
