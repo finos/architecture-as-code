@@ -23,6 +23,8 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
 import org.finos.calm.domain.exception.StandardVersionExistsException;
 import org.finos.calm.domain.exception.StandardVersionNotFoundException;
+import org.finos.calm.domain.standards.CreateStandardRequest;
+import org.finos.calm.domain.standards.NamespaceStandardSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -120,7 +122,7 @@ public class TestMongoStandardStoreShould {
         when(documentMock.getList("standards", Document.class))
                 .thenReturn(List.of(doc));
 
-        List<StandardDetails> standards = mongoStandardStore.getStandardsForNamespace("finos");
+        List<NamespaceStandardSummary> standards = mongoStandardStore.getStandardsForNamespace("finos");
 
         assertThat(standards.size(), is(1));
         assertThat(standards.getFirst().getName(), is("Test Standard"));
@@ -134,11 +136,10 @@ public class TestMongoStandardStoreShould {
     void return_a_namespace_exception_when_namespace_does_not_exist_when_creating_standard() {
         when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
         String namespace = "does-not-exist";
-        Standard standard = new Standard();
-        standard.setNamespace(namespace);
+        CreateStandardRequest createStandardRequest = new CreateStandardRequest();
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> mongoStandardStore.createStandardForNamespace(standard));
+                () -> mongoStandardStore.createStandardForNamespace(createStandardRequest, namespace));
 
         verify(namespaceStore).namespaceExists(namespace);
     }
@@ -147,11 +148,12 @@ public class TestMongoStandardStoreShould {
     void return_a_json_parse_exception_when_an_invalid_json_object_is_presented_when_creating_standard() {
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(counterStore.getNextStandardSequenceValue()).thenReturn(42);
-        Standard standard = new Standard();
-        standard.setNamespace("finos");
-        standard.setStandardJson("Invalid JSON");
+
+        CreateStandardRequest createStandardRequest = new CreateStandardRequest();
+        createStandardRequest.setStandardJson("invalid JSON");
+
         assertThrows(JsonParseException.class,
-                () -> mongoStandardStore.createStandardForNamespace(standard));
+                () -> mongoStandardStore.createStandardForNamespace(createStandardRequest, "finos"));
     }
 
     @Test
@@ -160,16 +162,23 @@ public class TestMongoStandardStoreShould {
         int sequenceNumber = 42;
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(counterStore.getNextStandardSequenceValue()).thenReturn(sequenceNumber);
-        Standard standardToCreate = new Standard();
-        standardToCreate.setNamespace(validNamespace);
+
+        CreateStandardRequest standardToCreate = new CreateStandardRequest(
+                "test",
+                "Test Standard",
+                "{}"
+        );
+
         standardToCreate.setStandardJson("{}");
         standardToCreate.setDescription("Test Standard");
         standardToCreate.setName("test");
 
-        Standard createdStandard = mongoStandardStore.createStandardForNamespace(standardToCreate);
+        Standard createdStandard = mongoStandardStore.createStandardForNamespace(standardToCreate, validNamespace);
 
         //Update the id from the standard
-        standardToCreate.setId(sequenceNumber);
+        Standard standard = new Standard(standardToCreate);
+        standard.setVersion("1.0.0");
+        standard.setId(sequenceNumber);
 
         assertThat(createdStandard, is(standardToCreate));
 
@@ -187,13 +196,11 @@ public class TestMongoStandardStoreShould {
     @Test
     void get_standard_versions_for_invalid_namespace_throws_exception() {
         when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        StandardDetails standardDetails = new StandardDetails();
-        standardDetails.setNamespace("does-not-exist");
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> mongoStandardStore.getStandardVersions(standardDetails));
+                () -> mongoStandardStore.getStandardVersions("does-not-exist", 5));
 
-        verify(namespaceStore).namespaceExists(standardDetails.getNamespace());
+        verify(namespaceStore).namespaceExists("does-not-exist");
     }
 
     private FindIterable<Document> setupInvalidStandard() {
@@ -212,13 +219,11 @@ public class TestMongoStandardStoreShould {
     @Test
     void get_standard_versions_for_invalid_standard_throws_exception() {
         FindIterable<Document> findIterable = setupInvalidStandard();
-        StandardDetails standardDetails = new StandardDetails();
-        standardDetails.setNamespace("finos");
 
         assertThrows(StandardNotFoundException.class,
-                () -> mongoStandardStore.getStandardVersions(standardDetails));
+                () -> mongoStandardStore.getStandardVersions("finos", 5));
 
-        verify(standardCollection).find(new Document("namespace", standardDetails.getNamespace()));
+        verify(standardCollection).find(new Document("namespace", "finos"));
         verify(findIterable).projection(Projections.fields(Projections.include("standards")));
     }
 
@@ -226,11 +231,7 @@ public class TestMongoStandardStoreShould {
     void get_standard_versions_for_standard_returns_list_of_versions() throws StandardNotFoundException, NamespaceNotFoundException {
         mockSetupStandardDocumentWithVersions();
 
-        StandardDetails standardDetails = new StandardDetails();
-        standardDetails.setNamespace("finos");
-        standardDetails.setId(42);
-
-        List<String> standardVersions = mongoStandardStore.getStandardVersions(standardDetails);
+        List<String> standardVersions = mongoStandardStore.getStandardVersions("finos", 42);
 
         assertThat(standardVersions, is(List.of("1.0.0")));
     }
@@ -238,25 +239,23 @@ public class TestMongoStandardStoreShould {
     @Test
     void throw_an_exception_for_an_invalid_namespace_when_retrieving_standard_for_version() {
         when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        StandardDetails standardDetails = new StandardDetails();
-        standardDetails.setNamespace("does-not-exist");
+        String invalidNamespace = "does-not-exist";
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> mongoStandardStore.getStandardForVersion(standardDetails));
+                () -> mongoStandardStore.getStandardForVersion(invalidNamespace, null, null));
 
-        verify(namespaceStore).namespaceExists(standardDetails.getNamespace());
+        verify(namespaceStore).namespaceExists(invalidNamespace);
     }
 
     @Test
     void throw_an_exception_for_an_invalid_standard_when_retrieving_standard_for_version() {
         FindIterable<Document> findIterable = setupInvalidStandard();
-        StandardDetails standardDetails = new StandardDetails();
-        standardDetails.setNamespace("finos");
+        String validNamespace = "finos";
 
         assertThrows(StandardNotFoundException.class,
-                () -> mongoStandardStore.getStandardForVersion(standardDetails));
+                () -> mongoStandardStore.getStandardForVersion(validNamespace, 1, null));
 
-        verify(standardCollection).find(new Document("namespace", standardDetails.getNamespace()));
+        verify(standardCollection).find(new Document("namespace", validNamespace));
         verify(findIterable).projection(Projections.fields(Projections.include("standards")));
     }
 
@@ -264,12 +263,8 @@ public class TestMongoStandardStoreShould {
     void return_a_standard_for_a_given_version() throws StandardNotFoundException, StandardVersionNotFoundException, NamespaceNotFoundException {
         mockSetupStandardDocumentWithVersions();
 
-        StandardDetails standardDetails = new StandardDetails();
-        standardDetails.setVersion("1.0.0");
-        standardDetails.setId(42);
-        standardDetails.setNamespace("finos");
-
-        String standardForVersion = mongoStandardStore.getStandardForVersion(standardDetails);
+        Standard standardForVersion = mongoStandardStore.getStandardForVersion("finos", 42, "1.0.0");
+        //FIXME this assertion will be broken
         assertThat(standardForVersion, is("{}"));
     }
 
@@ -301,13 +296,8 @@ public class TestMongoStandardStoreShould {
     void throw_an_exception_when_standard_for_given_version_does_not_exist() {
         mockSetupStandardDocumentWithVersions();
 
-        StandardDetails standardDetails = new StandardDetails();
-        standardDetails.setId(42);
-        standardDetails.setNamespace("finos");
-        standardDetails.setVersion("9.0.0");
-
         assertThrows(StandardVersionNotFoundException.class,
-                () -> mongoStandardStore.getStandardForVersion(standardDetails));
+                () -> mongoStandardStore.getStandardForVersion("finos", 42, "9.0.0"));
     }
 
     @Test

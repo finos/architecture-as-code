@@ -15,6 +15,8 @@ import org.bson.conversions.Bson;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.StandardDetails;
 import org.finos.calm.domain.exception.*;
+import org.finos.calm.domain.standards.CreateStandardRequest;
+import org.finos.calm.domain.standards.NamespaceStandardSummary;
 import org.finos.calm.store.StandardStore;
 
 import java.util.ArrayList;
@@ -37,7 +39,7 @@ public class MongoStandardStore implements StandardStore {
     }
 
     @Override
-    public List<StandardDetails> getStandardsForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespaceStandardSummary> getStandardsForNamespace(String namespace) throws NamespaceNotFoundException {
         if(!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
@@ -49,49 +51,53 @@ public class MongoStandardStore implements StandardStore {
         }
 
         List<Document> standards = namespaceDocument.getList("standards", Document.class);
-        List<StandardDetails> standardDetails = new ArrayList<>();
+        List<NamespaceStandardSummary> namespaceStanadardSummary = new ArrayList<>();
 
         for (Document standard : standards) {
-            StandardDetails details = new StandardDetails();
-            details.setName(standard.getString("name"));
-            details.setDescription(standard.getString("description"));
-            details.setId(standard.getInteger("standardId"));
-            standardDetails.add(details);
+            NamespaceStandardSummary standardSummary = new NamespaceStandardSummary(
+                    standard.getString("name"),
+                    standard.getString("description"),
+                    standard.getInteger("standardId")
+            );
+
+            namespaceStanadardSummary.add(standardSummary);
         }
 
-        return standardDetails;
+        return namespaceStanadardSummary;
     }
 
     @Override
-    public Standard createStandardForNamespace(Standard standard) throws NamespaceNotFoundException {
-        if(!namespaceStore.namespaceExists(standard.getNamespace())) {
+    public Standard createStandardForNamespace(CreateStandardRequest standardRequest, String namespace) throws NamespaceNotFoundException {
+        Standard createdStandard = new Standard(standardRequest);
+        if(!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
 
         int id = counterStore.getNextStandardSequenceValue();
         Document standardDocument = new Document("standardId", id)
-                .append("name", standard.getName())
-                .append("description", standard.getDescription())
+                .append("name", standardRequest.getName())
+                .append("description", standardRequest.getDescription())
                 .append("versions",
-                new Document("1-0-0", Document.parse(standard.getStandardJson())));
+                new Document("1-0-0", Document.parse(standardRequest.getStandardJson())));
 
         standardCollection.updateOne(
-                Filters.eq("namespace", standard.getNamespace()),
+                Filters.eq("namespace", namespace),
                 Updates.push("standards", standardDocument),
                 new UpdateOptions().upsert(true));
 
-        standard.setId(id);
+        createdStandard.setId(id);
+        createdStandard.setVersion("1.0.0");
 
-        return standard;
+        return createdStandard;
     }
 
     @Override
-    public List<String> getStandardVersions(StandardDetails standard) throws NamespaceNotFoundException, StandardNotFoundException {
-        Document result = retrieveStandardVersions(standard);
+    public List<String> getStandardVersions(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException {
+        Document result = retrieveStandardVersions(namespace, standardId);
 
         List<Document> standards = (List<Document>) result.get("standards");
         for (Document standardDoc : standards) {
-            if (standard.getId().equals(standardDoc.getInteger("standardId"))) {
+            if (standardId.equals(standardDoc.getInteger("standardId"))) {
                 // Extract the versions map from the matching standard
                 Document versions = (Document) standardDoc.get("versions");
                 Set<String> versionKeys = versions.keySet();
@@ -109,12 +115,14 @@ public class MongoStandardStore implements StandardStore {
 
     }
 
-    private Document retrieveStandardVersions(StandardDetails standard) throws NamespaceNotFoundException, StandardNotFoundException {
-        if(!namespaceStore.namespaceExists(standard.getNamespace())) {
+    private Document retrieveStandardVersions(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException {
+        //FIXME there is a bug here where standardId is not used, which will be fine when one standard exists
+
+        if(!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
 
-        Bson filter = new Document("namespace", standard.getNamespace());
+        Bson filter = new Document("namespace", namespace);
         Bson projection = Projections.fields(Projections.include("standards"));
 
         Document result = standardCollection.find(filter).projection(projection).first();
@@ -127,66 +135,70 @@ public class MongoStandardStore implements StandardStore {
     }
 
     @Override
-    public String getStandardForVersion(StandardDetails standardDetails) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionNotFoundException {
-        Document result = retrieveStandardVersions(standardDetails);
+    public Standard getStandardForVersion(String namespace, Integer standardId, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionNotFoundException {
+        Document result = retrieveStandardVersions(namespace, standardId);
         List<Document> standards = (List<Document>) result.get("standards");
+        Standard standard = new Standard();
         for (Document standardDoc : standards) {
-            if (standardDetails.getId().equals(standardDoc.getInteger("standardId"))) {
+            if (standardId.equals(standardDoc.getInteger("standardId"))) {
                 Document versions = (Document) standardDoc.get("versions");
-                Document versionDoc = (Document) versions.get(standardDetails.getMongoVersion());
+                Document versionDoc = (Document) versions.get(version.replace('.', '-'));
                 if(versionDoc == null) {
                     throw new StandardVersionNotFoundException();
                 }
-                return versionDoc.toJson();
+                //FIXME Populate the full standard
+                return standard;
             }
         }
         throw new StandardNotFoundException();
     }
 
     @Override
-    public Standard createStandardForVersion(Standard standard) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionExistsException {
-        if(!namespaceStore.namespaceExists(standard.getNamespace())) {
+    public Standard createStandardForVersion(CreateStandardRequest standardRequest, String namespace, Integer standardId, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionExistsException {
+        if(!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
 
-        if(versionExists(standard)) {
+        if(versionExists(namespace, standardId, version)) {
             throw new StandardVersionExistsException();
         }
 
-        writeStandardToMongo(standard);
-
-        return standard;
+        return writeStandardToMongo(standardRequest, namespace, standardId, version);
     }
 
-    private void writeStandardToMongo(Standard standard) throws StandardNotFoundException, NamespaceNotFoundException {
-        retrieveStandardVersions(standard);
+    private Standard writeStandardToMongo(CreateStandardRequest createStandardRequest, String namespace, Integer standardId, String version) throws StandardNotFoundException, NamespaceNotFoundException {
+        retrieveStandardVersions(namespace, standardId);
 
-        Document standardDocument = Document.parse(standard.getStandardJson());
-        Document filter = new Document("namespace", standard.getNamespace())
-                .append("standards.standardId", standard.getId());
+        Document standardDocument = Document.parse(createStandardRequest.getStandardJson());
+        Document filter = new Document("namespace", namespace)
+                .append("standards.standardId", standardId);
 
         Document update = new Document("$set", new Document()
-                .append("standards.$.name", standard.getName())
-                .append("standards.$.description", standard.getDescription())
-                .append("standards.$.versions." + standard.getMongoVersion(), standardDocument));
+                .append("standards.$.name", createStandardRequest.getName())
+                .append("standards.$.description", createStandardRequest.getDescription())
+                .append("standards.$.versions." + version.replace('.', '-'), standardDocument));
 
         try {
             standardCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
         } catch (MongoWriteException ex) {
             throw new StandardNotFoundException();
         }
+        Standard standard = new Standard(createStandardRequest);
+        standard.setId(standardId);
+        standard.setVersion(version);
+        return standard;
     }
 
-    private boolean versionExists(StandardDetails standard) {
-        Document filter = new Document("namespace", standard.getNamespace()).append("standards.standardId", standard.getId());
-        Bson projection = Projections.fields(Projections.include("standards.versions." + standard.getId()));
+    private boolean versionExists(String namespace, Integer standardId, String version) {
+        Document filter = new Document("namespace", namespace).append("standards.standardId", standardId);
+        Bson projection = Projections.fields(Projections.include("standards.versions." + standardId));
         Document result = standardCollection.find(filter).projection(projection).first();
 
         if(result != null) {
             List<Document> standards = (List<Document>) result.get("standards");
             for (Document standardDoc : standards) {
                 Document versions = (Document) standardDoc.get("versions");
-                if (versions != null && versions.containsKey(standard.getMongoVersion())) {
+                if (versions != null && versions.containsKey(version.replace('.', '-'))) {
                     return true;  // The version already exists
                 }
             }
