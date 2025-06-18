@@ -229,10 +229,10 @@ function Hub() {
                 </ul>
             </div>
 
-            <div className="flex flex-row h-[90%]">
-                <div className="flex flex-row w-1/3">{displaySideBar()}</div>
+            <div className="flex flex-row h-[90%] overflow-auto">
+                <div className="flex flex-row w-1/4">{displaySideBar()}</div>
                 {currentResources.calmType !== 'ADRs' ? (
-                    <div className="p-5 flex-1 overflow-auto bg-[#eee]">
+                    <div className="p-5 flex-1 overflow-auto bg-[#eee] border-t-1 border-gray-300">
                         {data && (
                             <button
                                 className="bg-primary hover:bg-blue-500 text-white font-bold py-2 px-4 rounded float-right"
@@ -246,7 +246,7 @@ function Hub() {
                 ) : adrData ? (
                     <AdrRenderer adrDetails={adrData} />
                 ) : (
-                    <div className="p-5 flex-1 overflow-auto border-l-2 border-black bg-[#eee] text-center">
+                    <div className="p-5 flex-1  bg-[#eee] text-center">
                         Please select an ADR to load
                     </div>
                 )}
