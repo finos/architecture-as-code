@@ -1,9 +1,9 @@
-import { TemplateEngine } from './template-engine';
-import { TemplateBundleFileLoader } from './template-bundle-file-loader';
-import { CalmTemplateTransformer, IndexFile } from './types';
+import {TemplateEngine} from './template-engine';
+import {TemplateBundleFileLoader} from './template-bundle-file-loader';
+import {CalmTemplateTransformer, IndexFile} from './types';
 import fs from 'fs';
 import path from 'path';
-import { vi } from 'vitest';
+import {vi} from 'vitest';
 
 vi.mock('fs');
 
@@ -87,7 +87,7 @@ describe('TemplateEngine', () => {
         mockFileLoader.getTemplateFiles.mockReturnValue({});
 
         const engine = new TemplateEngine(mockFileLoader, mockTransformer);
-        engine.generate({}, '/output');
+        engine.generate({}, './output');
 
         expect(loggerWarnSpy).toHaveBeenCalledWith('⚠️ Skipping unknown template: unknown.hbs');
     });
@@ -119,14 +119,14 @@ describe('TemplateEngine', () => {
             ],
         };
 
-        engine.generate(userData, '/output');
+        engine.generate(userData, './output');
 
-        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.sep + 'output', { recursive: true });
-        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname(path.sep + path.join('output', '1.txt')), { recursive: true });
-        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname(path.sep + path.join('output', '2.txt')), { recursive: true });
+        expect(mkdirSyncSpy).toHaveBeenCalledWith('./output', {recursive: true});
+        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname(path.join('./output', '1.txt')), {recursive: true});
+        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname(path.join('./output', '2.txt')), {recursive: true});
         expect(writeFileSyncSpy).toHaveBeenCalledTimes(2);
-        expect(writeFileSyncSpy).toHaveBeenCalledWith(path.sep + path.join('output', '1.txt'), 'User: Alice', 'utf8');
-        expect(writeFileSyncSpy).toHaveBeenCalledWith(path.sep + path.join('output', '2.txt'), 'User: Bob', 'utf8');
+        expect(writeFileSyncSpy).toHaveBeenCalledWith(path.join('./output', '1.txt'), 'User: Alice', 'utf8');
+        expect(writeFileSyncSpy).toHaveBeenCalledWith(path.join('./output', '2.txt'), 'User: Bob', 'utf8');
     });
 
     it('should handle single output templates', () => {
@@ -151,12 +151,12 @@ describe('TemplateEngine', () => {
 
         const testData = { data: { id: '123', name: 'Alice' } };
 
-        engine.generate(testData, '/output');
+        engine.generate(testData, './output');
 
-        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.sep + 'output', { recursive: true });
-        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname(path.sep + path.join('output', 'output.txt')), { recursive: true });
+        expect(mkdirSyncSpy).toHaveBeenCalledWith('./output', {recursive: true});
+        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname(path.join('./output', 'output.txt')), {recursive: true});
         expect(writeFileSyncSpy).toHaveBeenCalledTimes(1);
-        expect(writeFileSyncSpy).toHaveBeenCalledWith(path.sep + path.join('output', 'output.txt'), 'User: Alice', 'utf8');
+        expect(writeFileSyncSpy).toHaveBeenCalledWith(path.join('./output', 'output.txt'), 'User: Alice', 'utf8');
     });
 
     it('should log a warning when registering a missing partial template', () => {
@@ -174,7 +174,7 @@ describe('TemplateEngine', () => {
         mockFileLoader.getTemplateFiles.mockReturnValue(templateFiles);
 
         const engine = new TemplateEngine(mockFileLoader, mockTransformer);
-        engine.generate({ data: { name: 'Alice' } }, '/output');
+        engine.generate({data: {name: 'Alice'}}, './output');
 
         expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining('⚠️ Missing partial template: header.hbs'));
     });
@@ -194,7 +194,7 @@ describe('TemplateEngine', () => {
         mockFileLoader.getTemplateFiles.mockReturnValue(templateFiles);
 
         const engine = new TemplateEngine(mockFileLoader, mockTransformer);
-        engine.generate({ data: { id: '1', name: 'Alice' } }, '/output');
+        engine.generate({data: {id: '1', name: 'Alice'}}, './output');
 
         expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining('⚠️ Expected array for repeated output, but found non-array for main.hbs'));
     });
@@ -214,7 +214,7 @@ describe('TemplateEngine', () => {
         mockFileLoader.getTemplateFiles.mockReturnValue(templateFiles);
 
         const engine = new TemplateEngine(mockFileLoader, mockTransformer);
-        engine.generate({ data: { id: '1', name: 'Alice' } }, '/output');
+        engine.generate({data: {id: '1', name: 'Alice'}}, './output');
 
         expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining('⚠️ Unknown output-type: invalid-type'));
     });
@@ -237,7 +237,7 @@ describe('TemplateEngine', () => {
         mockFileLoader.getTemplateFiles.mockReturnValue(templateFiles);
 
         const engine = new TemplateEngine(mockFileLoader, mockTransformer);
-        engine.generate({ data: { name: 'Alice' } }, '/output');
+        engine.generate({data: {name: 'Alice'}}, './output');
 
         expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining('✅ Registering partial template: header.hbs'));
     });
