@@ -6,6 +6,7 @@
 [data-theme='light'] {
     --color-primary: #000063;
     --color-accent: #007dff;
+    --color-accent-light: #b2d8f5;
 }
 
 #root {

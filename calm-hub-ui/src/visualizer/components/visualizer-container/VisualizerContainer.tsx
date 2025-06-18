@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { Sidebar } from '../sidebar/Sidebar.js';
 import { CytoscapeRenderer } from '../cytoscape-renderer/CytoscapeRenderer.js';
@@ -24,6 +24,8 @@ export function VisualizerContainer({
         null
     );
 
+    const entityClickedCallback = useCallback((x: CalmNode['data'] | Edge['data']) => setSelectedItem(x), []);
+
     return (
         <div className="relative flex m-auto border" data-testid="visualizer-container">
             {title && (
@@ -37,8 +39,8 @@ export function VisualizerContainer({
                 isRelationshipDescActive={isRelationshipDescActive}
                 nodes={nodes}
                 edges={edges}
-                nodeClickedCallback={(x) => setSelectedItem(x)}
-                edgeClickedCallback={(x) => setSelectedItem(x)}
+                nodeClickedCallback={entityClickedCallback}
+                edgeClickedCallback={entityClickedCallback}
                 calmKey={calmKey}
             />
             {selectedItem && (

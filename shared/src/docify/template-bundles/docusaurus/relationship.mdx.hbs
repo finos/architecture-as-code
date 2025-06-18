@@ -3,7 +3,7 @@ id: {{id}}
 title: {{kebabToTitleCase id}}
 ---
 
-## Relationship Details
+## Details
 <div className="table-container">
 | Field               | Value                    |
 |---------------------|--------------------------|
@@ -21,30 +21,19 @@ graph TD;
 {{else if (instanceOf relationshipType "CalmConnectsType")}}
 {{relationshipType.source.node}} -- Connects --> {{relationshipType.destination.node}};
 {{else if (instanceOf relationshipType "CalmComposedOfType")}}
-{{#if (eq relationshipType.container ../id)}}
 {{#each relationshipType.nodes}}
 {{../relationshipType.container}} -- Composed Of --> {{this}};
-{{/each}}
-{{/if}}
-{{#each relationshipType.nodes}}
-{{#if (eq this ../../id)}}
-{{../relationshipType.container}} -- Composed Of --> {{this}};
-{{/if}}
 {{/each}}
 {{else if (instanceOf relationshipType "CalmDeployedInType")}}
 {{#each relationshipType.nodes}}
 {{../relationshipType.container}} -- Deployed In --> {{this}};
 {{/each}}
-{{#each relationshipType.nodes}}
-{{#if (eq this ../../id)}}
-{{../relationshipType.container}} -- Deployed In --> {{this}};
-{{/if}}
-{{/each}}
 {{/if}}
 
 ```
 
+## Controls
 {{> controls.hbs}}
 
-## MetaData
+## Metadata
 {{> metadata.hbs data=metadata.data}}
