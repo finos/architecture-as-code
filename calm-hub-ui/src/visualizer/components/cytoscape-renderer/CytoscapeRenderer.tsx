@@ -69,6 +69,10 @@ function getNodeStyle(showDescription: boolean): cytoscape.Css.Node {
 
 const layoutCorrectionService = new LayoutCorrectionService();
 
+const accentLightColor = getComputedStyle(document.documentElement).getPropertyValue('--color-accent-light').trim();
+const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim();
+const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim();
+
 export function CytoscapeRenderer({
     nodes = [],
     edges = [],
@@ -79,6 +83,8 @@ export function CytoscapeRenderer({
     calmKey,
 }: CytoscapeRendererProps) {
     const cyRef = useRef<HTMLDivElement>(null);
+    const zoom = useRef(1);
+    const pan = useRef({ x: 0, y: 0 });
 
     useEffect(() => {
         const container = cyRef.current;
@@ -97,6 +103,19 @@ export function CytoscapeRenderer({
                     style: getNodeStyle(isNodeDescActive),
                 },
                 {
+                    selector: 'node:selected',
+                    style: {
+                        backgroundColor: accentLightColor,
+                    }
+                },
+                {
+                    selector: 'edge:selected',
+                    style: {
+                        'line-color': primaryColor,
+                        'target-arrow-color': primaryColor,
+                    }
+                },
+                {
                     selector: ':parent',
                     style: {
                         label: 'data(name)',
@@ -108,6 +127,13 @@ export function CytoscapeRenderer({
                         'border-dash-pattern': [8, 10], // [dash length, gap length]
                     },
                 },
+                {
+                    selector: ':parent:selected',
+                    style: {
+                        'border-color': accentColor,
+                        'border-width': 3,
+                    },
+                },
             ],
             layout: breadthFirstLayout,
             boxSelectionEnabled: true,
@@ -117,37 +143,45 @@ export function CytoscapeRenderer({
 
         const savedPositions = loadStoredNodePositions(calmKey);
         if (savedPositions) {
-            cy.nodes().forEach((node) => {
-                const match = savedPositions.find((n) => n.id === node.id());
-                if (match) {
-                    node.position(match.position);
-                }
-            });
+            cy.nodes()
+                .filter((node: cytoscape.NodeSingular) => !node.is(':parent'))
+                .forEach((node) => {
+                    const match = savedPositions.find((n) => n.id === node.id());
+                    if (match) {
+                        node.position(match.position);
+                    }
+                });
 
-            cy.fit();
+            cy.zoom(zoom.current);
+            cy.pan(pan.current);
         }
 
         cy.on('tap', 'node', (e) => {
             const node = e.target as NodeSingular;
-            nodeClickedCallback(node?.data());
+            nodeClickedCallback(node.data());
         });
 
         cy.on('tap', 'edge', (e) => {
             const edge = e.target as EdgeSingular;
-            edgeClickedCallback(edge?.data());
+            edgeClickedCallback(edge.data());
         });
 
         cy.on('dragfree', 'node', () => {
-            const nodePositions = cy.nodes().map((node) => ({
-                id: node.id(),
-                position: node.position(),
-            }));
+            const nodePositions = cy
+                .nodes()
+                .filter((node: cytoscape.NodeSingular) => !node.is(':parent'))
+                .map((node: cytoscape.NodeSingular) => ({
+                    id: node.id(),
+                    position: node.position(),
+                }));
             saveNodePositions(calmKey, nodePositions);
         });
 
         layoutCorrectionService.calculateAndUpdateNodePositions(cy, nodes);
 
         return () => {
+            zoom.current = cy.zoom();
+            pan.current = cy.pan();
             cy.destroy();
         };
     }, [
