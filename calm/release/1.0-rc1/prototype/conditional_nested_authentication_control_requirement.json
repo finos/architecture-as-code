@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/draft/1233/prototype/authentication-control-requirement.json",
+  "title": "Authentication Control Requirement",
+  "type": "object",
+  "properties": {
+    "mechanism": {
+      "type": "string",
+      "enum": ["certificate", "OIDC/OAuth2", "password/secret", "saml"],
+      "description": "Specifies the authentication mechanism used."
+    },
+    "certificate-authority": {
+      "type": "string",
+      "description": "The certificate authority used to sign client certificates."
+    },
+    "identity-provider": {
+      "type": "string",
+      "description": "The identity provider used for OIDC/OAuth2."
+    },
+    "client-password-storage": {
+      "type": "string",
+      "enum": ["credentials vault", "database", "file", "hardcoded in the application"],
+      "description": "Where the client password or secret is stored."
+    },
+    "server-password-storage": {
+      "type": "string",
+      "enum": ["credentials vault", "database", "file"],
+      "description": "Where the server password or secret is stored."
+    }
+  },
+  "required": ["mechanism"],
+  "allOf": [
+    {
+      "if": {
+        "properties": { "mechanism": { "const": "certificate" } }
+      },
+      "then": {
+        "required": ["certificate-authority"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "mechanism": { "const": "OIDC/OAuth2" } }
+      },
+      "then": {
+        "required": ["identity-provider"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "mechanism": { "const": "password/secret" } }
+      },
+      "then": {
+        "required": ["client-password-storage", "server-password-storage"]
+      }
+    }
+  ]
+}
