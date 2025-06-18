@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path, {join} from 'path';
-import { promises as fsPromises } from 'fs';
 import { TemplateProcessor } from './template-processor';
 import {CalmNodeSchema} from '../types/core-types';
 import {CalmInterfaceTypeSchema} from '../types/interface-types';
+import {expectDirectoryMatch} from '../test/file-comparison';
 const FIXTURES_DIR = path.resolve(__dirname, '../../test_fixtures/template');
 const WORKSHOP_DIR = path.resolve(__dirname, '../../../calm/workshop');
 const WORKSHOP_ARCH_DIR = path.resolve(__dirname, '../../test_fixtures/command/generate/expected-output');
@@ -12,7 +12,6 @@ const DATA_DIR = path.join(FIXTURES_DIR, 'data');
 const EXPECTED_OUTPUT_DIR = path.join(FIXTURES_DIR, 'expected-output');
 
 describe('TemplateProcessor E2E', () => {
-    const normalizeLineEndings = (str) => str.replace(/\r?\n/g, '\n');
 
     beforeEach(() => {
         if (fs.existsSync(OUTPUT_DIR)) {
@@ -174,15 +173,15 @@ describe('TemplateProcessor E2E', () => {
     it('should use TemplateDefaultTransformer when no transformer is specified', async () => {
         const mapping = new Map<string, string>([
             ['https://calm.finos.org/docuflow/flow/document-upload', path.join(DATA_DIR, 'flow-document-upload.json')],
-            ['https://calm.finos.org/controls/owner-responsibility.requirement.json', path.join(DATA_DIR, 'controls', 'owner-responsibility.requirement.json')],
-            ['https://calm.finos.org/controls/architect.configuration.json', path.join(DATA_DIR, 'controls', 'architect.configuration.json')],
-            ['https://calm.finos.org/controls/system-owner.configuration.json', path.join(DATA_DIR, 'controls', 'system-owner.configuration.json')],
-            ['https://calm.finos.org/controls/business-owner.configuration.json', path.join(DATA_DIR, 'controls', 'business-owner.configuration.json')],
+            ['https://calm.finos.org/controls/owner-responsibility.requirement.json', path.join(DATA_DIR, 'controls/owner-responsibility.requirement.json')],
+            ['https://calm.finos.org/controls/architect.configuration.json', path.join(DATA_DIR, 'controls/architect.configuration.json')],
+            ['https://calm.finos.org/controls/system-owner.configuration.json', path.join(DATA_DIR, 'controls/system-owner.configuration.json')],
+            ['https://calm.finos.org/controls/business-owner.configuration.json', path.join(DATA_DIR, 'controls/business-owner.configuration.json')],
         ]);
 
         const processor = new TemplateProcessor(
             path.join(DATA_DIR, 'document-system-with-controls.json'),
-            path.join(FIXTURES_DIR, 'bundles', 'default-transformer'),
+            path.join(FIXTURES_DIR, 'bundles/default-transformer'),
             OUTPUT_DIR,
             mapping
         );
@@ -192,8 +191,8 @@ describe('TemplateProcessor E2E', () => {
         const actualFile = path.join(OUTPUT_DIR, 'doc-system-one-pager.md');
         const expectedFile = path.join(EXPECTED_OUTPUT_DIR, 'doc-system-one-pager.md');
         expect(fs.existsSync(actualFile)).toBe(true);
-        const actualContent = normalizeLineEndings(fs.readFileSync(actualFile, 'utf8').trim());
-        const expectedContent = normalizeLineEndings(fs.readFileSync(expectedFile, 'utf8').trim());
+        const actualContent = fs.readFileSync(actualFile, 'utf8').trim();
+        const expectedContent = fs.readFileSync(expectedFile, 'utf8').trim();
         expect(actualContent).toEqual(expectedContent);
 
     });
@@ -258,36 +257,7 @@ describe('TemplateProcessor E2E', () => {
 
         await expect(processor.processTemplate()).resolves.not.toThrow();
 
-        const actualFiles = await getAllFiles(OUTPUT_DIR);
-        const expectedFiles = await getAllFiles(EXPECTED_OUTPUT_WORKSHOP_DIR);
-
-        const actualRelPaths = new Set(actualFiles.map(f => relativeFilePath(OUTPUT_DIR, f)));
-        const expectedRelPaths = new Set(expectedFiles.map(f => relativeFilePath(EXPECTED_OUTPUT_WORKSHOP_DIR, f)));
-
-        // 🧪 Compare file lists
-        expect(actualRelPaths).toEqual(expectedRelPaths);
-
-        // 🧪 Compare contents
-        for (const relPath of expectedRelPaths) {
-            const actualContent = await fsPromises.readFile(path.join(OUTPUT_DIR, relPath), 'utf-8');
-            const expectedContent = await fsPromises.readFile(path.join(EXPECTED_OUTPUT_WORKSHOP_DIR, relPath), 'utf-8');
-            expect(actualContent).toEqual(expectedContent);
-        }
+        await expectDirectoryMatch(EXPECTED_OUTPUT_WORKSHOP_DIR,OUTPUT_DIR);
     });
-
-    async function getAllFiles(dir: string): Promise<string[]> {
-        const dirents = await fsPromises.readdir(dir, { withFileTypes: true });
-        const files = await Promise.all(
-            dirents.map((dirent) => {
-                const res = path.resolve(dir, dirent.name);
-                return dirent.isDirectory() ? getAllFiles(res) : res;
-            })
-        );
-        return files.flat();
-    }
-
-    function relativeFilePath(baseDir: string, fullPath: string): string {
-        return path.relative(baseDir, fullPath);
-    }
 
 });
