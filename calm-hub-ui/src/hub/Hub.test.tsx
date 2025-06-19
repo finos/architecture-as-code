@@ -114,7 +114,7 @@ describe('Hub', () => {
         expect(screen.getByRole('button', { name: 'pattern2' })).toBeInTheDocument();
     });
 
-    it('shows versions after resource selection', async () => {
+    it('shows versions after pattern resource selection', async () => {
         renderWithRouter(<Hub />);
         fireEvent.click(screen.getByText('namespace1'));
         fireEvent.click(screen.getByText('Patterns'));
@@ -124,12 +124,50 @@ describe('Hub', () => {
         expect(screen.getByRole('button', { name: '2.0' })).toBeInTheDocument();
     });
 
-    it('renders JsonRenderer after version selection', async () => {
+    it('shows versions after architecture resource selection', async () => {
+        renderWithRouter(<Hub />);
+        fireEvent.click(screen.getByText('namespace1'));
+        fireEvent.click(screen.getByText('Architectures'));
+        fireEvent.click(screen.getByText('arch1'));
+        expect(await screen.findByText('Versions')).toBeInTheDocument();
+        expect(await screen.findByRole('button', { name: '2.1' })).toBeInTheDocument();
+    });
+
+    it('shows versions after flow resource selection', async () => {
+        renderWithRouter(<Hub />);
+        fireEvent.click(screen.getByText('namespace1'));
+        fireEvent.click(screen.getByText('Flows'));
+        fireEvent.click(screen.getByText('flow1'));
+        expect(await screen.findByText('Versions')).toBeInTheDocument();
+        expect(await screen.findByRole('button', { name: '1.1' })).toBeInTheDocument();
+    });
+
+    it('renders JsonRenderer after pattern version selection', async () => {
         renderWithRouter(<Hub />);
         fireEvent.click(screen.getByText('namespace1'));
         fireEvent.click(screen.getByText('Patterns'));
         fireEvent.click(screen.getByText('pattern1'));
         fireEvent.click(screen.getByText('1.0'));
+
+        expect(await screen.findByTestId('json-renderer')).toBeInTheDocument();
+    });
+
+    it('renders JsonRenderer after architecture version selection', async () => {
+        renderWithRouter(<Hub />);
+        fireEvent.click(screen.getByText('namespace1'));
+        fireEvent.click(screen.getByText('Architectures'));
+        fireEvent.click(screen.getByText('arch1'));
+        fireEvent.click(screen.getByText('2.1'));
+
+        expect(await screen.findByTestId('json-renderer')).toBeInTheDocument();
+    });
+
+    it('renders JsonRenderer after flow version selection', async () => {
+        renderWithRouter(<Hub />);
+        fireEvent.click(screen.getByText('namespace1'));
+        fireEvent.click(screen.getByText('Flows'));
+        fireEvent.click(screen.getByText('flow1'));
+        fireEvent.click(screen.getByText('1.1'));
 
         expect(await screen.findByTestId('json-renderer')).toBeInTheDocument();
     });
@@ -148,7 +186,19 @@ describe('Hub', () => {
         expect(await screen.findByTestId('adr-renderer')).toBeInTheDocument();
     });
 
-    it('shows breadcrumbs and resets on click', async () => {
+    it('does not render ADR Renderer before revision selection', async () => {
+        renderWithRouter(<Hub />);
+        fireEvent.click(screen.getByText('namespace1'));
+        fireEvent.click(screen.getByText('ADRs'));
+
+        expect(await screen.findByText('adr1')).toBeInTheDocument();
+        fireEvent.click(screen.getByText('adr1'));
+
+        expect(screen.queryByTestId('adr-renderer')).not.toBeInTheDocument();
+        expect(screen.getByText('Please select an ADR to load')).toBeInTheDocument();
+    });
+
+    it('shows breadcrumbs and resets when namespaces is clicked', async () => {
         renderWithRouter(<Hub />);
         fireEvent.click(screen.getByText('namespace1'));
         fireEvent.click(screen.getByText('Patterns'));
@@ -156,5 +206,30 @@ describe('Hub', () => {
         expect(screen.getByText('Namespaces')).toBeInTheDocument();
         fireEvent.click(screen.getByText('Namespaces'));
         expect(await screen.findByText('namespace1')).toBeInTheDocument();
+        expect(screen.queryByText('pattern1')).not.toBeInTheDocument();
+    });
+
+    it('shows breadcrumbs and resets to show CALM types when namespace is clicked', async () => {
+        renderWithRouter(<Hub />);
+        fireEvent.click(screen.getByText('namespace1'));
+        fireEvent.click(screen.getByText('Patterns'));
+        fireEvent.click(screen.getByText('pattern1'));
+        fireEvent.click(screen.getByText('namespace1'));
+
+        expect(await screen.findByText('namespace1')).toBeInTheDocument();
+        expect(screen.queryByText('Calm Type')).toBeInTheDocument();
+        expect(screen.queryByText('pattern1')).not.toBeInTheDocument();
+    });
+
+    it('shows breadcrumbs and resets to show the list of Patterns when Patterns is clicked', async () => {
+        renderWithRouter(<Hub />);
+        fireEvent.click(screen.getByText('namespace1'));
+        fireEvent.click(screen.getByText('Patterns'));
+        fireEvent.click(screen.getByText('pattern1'));
+        fireEvent.click(screen.getByText('Patterns'));
+
+        expect(await screen.findByText('namespace1')).toBeInTheDocument();
+        expect(screen.queryByText('pattern1')).toBeInTheDocument();
+        expect(screen.queryByText('Calm Type')).not.toBeInTheDocument();
     });
 });

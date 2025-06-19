@@ -127,20 +127,6 @@ function Hub() {
         if (
             currentResources.namespace &&
             currentResources.calmType &&
-            !currentResources.resourceID
-        ) {
-            return (
-                <ValueTable
-                    header={currentResources.calmType}
-                    values={values}
-                    callback={handleResourceSelection}
-                    currentValue={currentResources.resourceID}
-                />
-            );
-        }
-        if (
-            currentResources.namespace &&
-            currentResources.calmType &&
             currentResources.resourceID
         ) {
             if (currentResources.calmType !== 'ADRs') {
@@ -162,8 +148,16 @@ function Hub() {
                     />
                 );
             }
-        }
-        if (currentResources.namespace) {
+        } else if (currentResources.namespace && currentResources.calmType) {
+            return (
+                <ValueTable
+                    header={currentResources.calmType}
+                    values={values}
+                    callback={handleResourceSelection}
+                    currentValue={currentResources.resourceID}
+                />
+            );
+        } else if (currentResources.namespace) {
             return (
                 <ValueTable
                     header="Calm Type"
@@ -172,8 +166,7 @@ function Hub() {
                     currentValue={currentResources.calmType}
                 />
             );
-        }
-        if (!currentResources.namespace) {
+        } else {
             return (
                 <ValueTable
                     header="Namespaces"
