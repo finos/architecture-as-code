@@ -1,4 +1,3 @@
-/* eslint-disable  @typescript-eslint/no-explicit-any */
 import { Architecture } from '../../model/core';
 import { CalmFlowTransition } from '../../model/flow';
 import { CalmRelationship, CalmInteractsType, CalmConnectsType, CalmComposedOfType } from '../../model/relationship';
