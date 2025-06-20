@@ -1,38 +1,46 @@
 import { useCallback, useState } from 'react';
-import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
+import { CytoscapeNode, CytoscapeNodeData, Edge } from '../../contracts/contracts.js';
 import { Sidebar } from '../sidebar/Sidebar.js';
-import { CytoscapeRenderer } from '../cytoscape-renderer/CytoscapeRenderer.js';
+import { CytoscapeRenderer } from '../cytoscape/cytoscape-renderer/CytoscapeRenderer.js';
+import React from 'react';
+import { CytoscapeControlPanel } from '../cytoscape/cytoscape-control-panel/CytoscapeControlPanel.js';
 
 interface VisualizerContainerProps {
     title?: string;
-    isNodeDescActive: boolean;
-    isRelationshipDescActive: boolean;
     nodes: CytoscapeNode[];
     edges: Edge[];
     calmKey: string;
 }
 
 export function VisualizerContainer({
-    title = '',
+    title,
     nodes = [],
     edges = [],
-    isRelationshipDescActive,
-    isNodeDescActive,
     calmKey,
 }: VisualizerContainerProps) {
+    const [isRelationshipDescActive, setConDescActive] = React.useState(true);
+    const [isNodeDescActive, setNodeDescActive] = React.useState(true);
+    const toggleState = (setter: React.Dispatch<React.SetStateAction<boolean>>) => () =>
+        setter((prev) => !prev);
     const [selectedItem, setSelectedItem] = useState<CytoscapeNode['data'] | Edge['data'] | null>(
         null
     );
 
-    const entityClickedCallback = useCallback((x: CalmNode['data'] | Edge['data']) => setSelectedItem(x), []);
+    const entityClickedCallback = useCallback(
+        (x: CytoscapeNode['data'] | Edge['data']) => setSelectedItem(x),
+        []
+    );
 
     return (
         <div className="relative flex m-auto border" data-testid="visualizer-container">
             {title && (
-                <div className="graph-title absolute m-5 bg-accent shadow-md">
-                    <span className="text-m font-thin text-primary-content">Architecture: </span>
-                    <span className="text-m font-semibold text-primary-content">{title}</span>
-                </div>
+                <CytoscapeControlPanel
+                    title={title}
+                    isNodeDescActive={isNodeDescActive}
+                    isRelationshipDescActive={isRelationshipDescActive}
+                    toggleNodeDesc={toggleState(setNodeDescActive)}
+                    toggleConnectionDesc={toggleState(setConDescActive)}
+                />
             )}
             <CytoscapeRenderer
                 isNodeDescActive={isNodeDescActive}

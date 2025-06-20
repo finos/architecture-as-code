@@ -8,42 +8,13 @@ describe('Menu', () => {
     const toggleConnectionDescMock = vi.fn();
     const toggleNodeDescMock = vi.fn();
 
-    const renderMenu = (isGraphRendered = true) => {
-        return render(
-            <Menu
-                handleUpload={handleUploadMock}
-                isGraphRendered={isGraphRendered}
-                toggleConnectionDesc={toggleConnectionDescMock}
-                toggleNodeDesc={toggleNodeDescMock}
-                isConDescActive={true}
-                isNodeDescActive={true}
-            />
-        );
+    const renderMenu = () => {
+        return render(<Menu handleUpload={handleUploadMock} />);
     };
 
     it('should render Menu', () => {
         renderMenu();
-        expect(screen.getByText('Relationship Descriptions')).toBeInTheDocument();
-        expect(screen.getByText('Node Descriptions')).toBeInTheDocument();
         expect(screen.getByText('Upload Architecture')).toBeInTheDocument();
-    });
-
-    it('should call toggleConnectionDesc on checkbox click', async () => {
-        renderMenu();
-        const checkbox = screen.getByRole('checkbox', { name: 'connection-description' });
-        fireEvent.click(checkbox);
-        await waitFor(() => {
-            expect(toggleConnectionDescMock).toHaveBeenCalledTimes(1);
-        });
-    });
-
-    it('should call toggleNodeDesc on checkbox click', async () => {
-        renderMenu();
-        const checkbox = screen.getByRole('checkbox', { name: 'node-description' });
-        fireEvent.click(checkbox);
-        await waitFor(() => {
-            expect(toggleNodeDescMock).toHaveBeenCalledTimes(1);
-        });
     });
 
     it('should call handleUpload on file input change', async () => {
