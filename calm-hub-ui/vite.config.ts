@@ -11,6 +11,9 @@ export default defineConfig({
         environment: 'jsdom',
         environmentMatchGlobs: [['./src/**/*.tsx', 'jsdom']],
         setupFiles: ['./vitest.setup.ts'],
+        coverage: {
+            provider: 'v8',
+        },
     },
     build: {
         outDir: 'build',
