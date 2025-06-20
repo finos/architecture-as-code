@@ -3,7 +3,7 @@ import { initLogger } from '@finos/calm-shared';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
 import path from 'path';
-import {runValidate, writeOutputFile, checkValidateOptions} from './validate';
+import {runValidate, writeOutputFile, checkValidateOptions, ValidateOptions} from './validate';
 import { Command } from 'commander';
 import { Mock } from 'vitest';
 
@@ -30,13 +30,13 @@ describe('runValidate', () => {
     });
 
     it('should process validation successfully', async () => {
-        const options = {
-            architecture: 'arch.json',
-            pattern: 'pattern.json',
-            schemaDirectory: 'schemas',
+        const options: ValidateOptions = {
+            architecturePath: 'arch.json',
+            patternPath: 'pattern.json',
+            metaSchemaPath: 'schemas',
             verbose: true,
-            format: 'json',
-            output: 'out.json',
+            outputFormat: 'json',
+            outputPath: 'out.json',
             strict: false,
         };
 
@@ -56,13 +56,13 @@ describe('runValidate', () => {
     });
 
     it('should call process.exit(1) when an error occurs', async () => {
-        const options = {
-            architecture: 'arch.json',
-            pattern: 'pattern.json',
-            schemaDirectory: 'schemas',
-            verbose: false,
-            format: 'json',
-            output: 'out.json',
+        const options: ValidateOptions = {
+            architecturePath: 'arch.json',
+            patternPath: 'pattern.json',
+            metaSchemaPath: 'schemas',
+            verbose: true,
+            outputFormat: 'json',
+            outputPath: 'out.json',
             strict: false,
         };
 
