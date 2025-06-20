@@ -9,6 +9,7 @@ on:
       - 'calm/draft/**'
       - 'calm/samples/**'
       - 'calm/workshop/**'
+      - 'calm/getting-started/**'
       - 'calm/release/**'
 
 jobs:
@@ -36,3 +37,6 @@ jobs:
     - name: Sync calm/workshop folder to S3
       run: |
         aws s3 sync calm/workshop s3://${{ vars.AWS_S3_BUCKET }}/workshop --delete
+    - name: Sync calm/getting-started folder to S3
+      run: |
+        aws s3 sync calm/getting-started s3://${{ vars.AWS_S3_BUCKET }}/getting-started --delete
