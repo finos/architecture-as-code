@@ -61,6 +61,14 @@ const config = {
                 sidebarPath: require.resolve('./sidebars.js'),
             },
         ],
+        [
+            '@docusaurus/plugin-content-docs',
+            {
+                id: 'getting-started',
+                path: 'getting-started',
+                routeBasePath: 'getting-started',
+            }
+        ],
     ],
 
     themeConfig:

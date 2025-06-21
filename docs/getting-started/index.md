@@ -1,4 +1,16 @@
-# CALM: Get Started in 5 Minutes
+---
+id: getting-started
+title: 🚀 Get Started in 5 Minutes
+slug: /
+sidebar_position: 0
+hide_title: true
+---
+
+![CALM Logo](/img/2025_CALM_Horizontal.svg)
+
+---
+
+# 🚀 Get Started in 5 Minutes
 
 This demo showcases the **CALM** approach in action. Designed to help you get started with CALM in just 5 minutes.
 
@@ -10,7 +22,7 @@ This demo showcases the **CALM** approach in action. Designed to help you get st
 - Visualise your architecture using CALM Hub
 - Docify Your Architecture
 
-## 🚀 Prerequisites
+## ⚙ Prerequisites
 
 * Java 21 or higher
 * Maven 3.8.6 or higher
@@ -18,12 +30,12 @@ This demo showcases the **CALM** approach in action. Designed to help you get st
 * NPM
 * Have a clone of the [architecture-as-code repository](https://github.com/finos/architecture-as-code)
 
-All commands in this guide are run from the `calm/getting-started` directory of the clone.
+All commands in this guide are run from the `root` directory of the clone.
 
 To start lets build all the projects in the repository.
 
-```shell
-../../mvnw -f ../../pom.xml clean install
+```
+./mvnw clean install
 ```
 
 Assuming all went well, you will see a message like this:
@@ -51,7 +63,7 @@ Assuming all went well, you will see a message like this:
 To start CALM Hub locally in standalone mode, run the following:
 
 ```shell
-../../mvnw -f ../../pom.xml -pl calm-hub quarkus:dev -Dcalm.database.mode=standalone
+./mvnw -pl calm-hub quarkus:dev -Dcalm.database.mode=standalone
 ```
 
 You should see output indicating that the application has started successfully, including a message like:
@@ -73,7 +85,7 @@ Press [e] to edit command line args (currently ''), [r] to resume testing, [o] T
 
 Open a browser and navigate to http://localhost:8080 to access the CALM Hub UI. You should see the CALM Hub interface,
 ready for use like below.
-![CALM Hub Interface](img/empty-calm-hub.png)
+![CALM Hub Interface](/img/empty-calm-hub.png)
 Great, you now have a local instance of CALM Hub running!
 
 ## 📦 How to install the CALM CLI
@@ -86,23 +98,27 @@ npm install -g @finos/calm-cli
 ```
 
 Verify the installation.
+
 ```shell
 calm --version
 ```
+
 This getting started has been verified to work against 0.7.7 of the cli.
 
 ---
 
 ## 🛠️ How to generate a concrete architecture instantiation from a pattern
+
 Use the CALM CLI to generate an architecture instantiation from a predefined pattern:
 
 ```shell
 calm generate \
-  --pattern ./conference-signup.pattern.json \
-  --output ./conference-signup.arch.json
+  --pattern ./calm/getting-started/conference-signup.pattern.json \
+  --output ./calm/getting-started/conference-signup.arch.json
 ```
 
 This step expands the reusable pattern into a concrete architecture model. You should see output like this:
+
 ```
 warn [_TemplateEngine]:     Warning, no schema loading mechanism was defined. Only the bundled core schemas will be available; you may see empty definitions or errors.
 info [_TemplateEngine]:     Loading json from file: ./calm/getting-started/conference-signup.pattern.json
@@ -118,8 +134,8 @@ command:
 
 ```shell
 calm validate \
-  --pattern ./conference-signup.pattern.json \
-  --architecture ./conference-signup.arch.json
+  --pattern ./calm/getting-started/conference-signup.pattern.json \
+  --architecture ./calm/getting-started/conference-signup.arch.json
 ```
 
 You should see output like this:
@@ -225,10 +241,10 @@ and navigate to the Visualizer tab.
 
 Click on the `Upload Architecture` button and select the `conference-signup.arch.json` file you just generated.
 You should see your architecture visualised like below.
-![CALM Hub Visualisation](img/visualizer.png)
+![CALM Hub Visualisation](/img/visualizer.png)
 You can now drag around the boxes to rearrange them, zoom in and out, and click on the boxes to see more details about
 each component.
-![CALM Hub Visualisation](img/visualizer-details.png)
+![CALM Hub Visualisation](/img/visualizer-details.png)
 CALM Hub is a bit like Maven Central or NPM for your architecture documents, to learn more about developing CALM Hub,
 check out the [CALM Hub README](https://github.com/finos/architecture-as-code/tree/main/calm-hub)
 
@@ -237,13 +253,15 @@ check out the [CALM Hub README](https://github.com/finos/architecture-as-code/tr
 CALM Hub is a great tool for visualising your architecture, but sometimes you want to generate documentation that you
 can share with others. For this, we can use the `docify` command from the CALM CLI.
 To generate documentation from your architecture, run the following command:
+
 ```shell
 calm docify \
-  --input ./conference-signup.arch.json \
-  --output ./website
+  --input ./calm/getting-started/conference-signup.arch.json \
+  --output ./calm/getting-started/website
 ```
 
 You'll see output like this:
+
 ```
 info [_TemplateEngine]:     📥 Loading index.json from /opt/homebrew/lib/node_modules/@finos/calm-cli/dist/template-bundles/docusaurus/index.json
 info [_TemplateEngine]:     ✅ Successfully loaded template bundle: docusaurus-docs
@@ -332,14 +350,15 @@ info [_TemplateEngine]:
 ```
 
 Now let's run up our documentation website.
+
 ```shell
-npm install ./website 
-npm start --prefix ./website
+npm install ./calm/getting-started/website 
+npm start --prefix ./calm/getting-started/website
 ```
 
 Give it a few seconds to start up, and then open your browser to http://localhost:3000. You should see the documentation
 website with your architecture visualised like below.
-![CALM Docify Website](img/docify.png)
+![CALM Docify Website](/img/docify.png)
 
 
 

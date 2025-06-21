@@ -1,0 +1,42 @@
+.table-container {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    overflow-x: auto; /* Allow scrolling if necessary */
+}
+
+.table-container table {
+    flex: 1; /* Ensure all tables are equal width */
+    width: 100%;
+    min-width: 600px; /* Prevent tables from being too small */
+    table-layout: fixed; /* Force table to obey column widths */
+    border-collapse: collapse;
+}
+
+.table-container thead {
+    display: inherit; /* Ensures correct header grouping */
+    width: 100%;
+}
+
+.table-container th,
+.table-container td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    vertical-align: top; /* Ensure alignment stays consistent */
+    word-wrap: break-word; /* Ensure text wraps properly */
+    overflow-wrap: break-word;
+}
+
+/* Fix column widths */
+.table-container th:first-child,
+.table-container td:first-child {
+    min-width: 200px; /* Fix first column width */
+    max-width: 200px; /* Fix first column width */
+    white-space: wrap; /* Prevent wrapping */
+}
+
+.table-container th:last-child,
+.table-container td:last-child {
+    width: 100%; /* Expand second column */
+}
