@@ -2,21 +2,9 @@ import { useRef } from 'react';
 
 interface MenuProps {
     handleUpload: (instanceFile: File) => void;
-    isGraphRendered: boolean;
-    toggleConnectionDesc: () => void;
-    toggleNodeDesc: () => void;
-    isConDescActive?: boolean;
-    isNodeDescActive?: boolean;
 }
 
-export function Menu({
-    handleUpload,
-    isGraphRendered,
-    toggleConnectionDesc,
-    toggleNodeDesc,
-    isConDescActive,
-    isNodeDescActive,
-}: MenuProps) {
+export function Menu({ handleUpload }: MenuProps) {
     const inputRef = useRef<HTMLInputElement>(null);
     const upload = (file: File) => {
         handleUpload(file);
@@ -35,40 +23,12 @@ export function Menu({
 
     return (
         <header className="bg-white shadow-xs">
-            <div className="mx-auto max-w-7xl flex justify-between items-center">
-                <div className="flex items-center space-x-4">
-                    {isGraphRendered && (
-                        <>
-                            <label className="label cursor-pointer">
-                                <span className="label label-text text-base-content">
-                                    Relationship Descriptions
-                                </span>
-                                <input
-                                    type="checkbox"
-                                    className="toggle"
-                                    name="connection-description"
-                                    aria-label="connection-description"
-                                    checked={isConDescActive}
-                                    onChange={toggleConnectionDesc}
-                                />
-                            </label>
-                            <label className="label cursor-pointer">
-                                <span className="label label-text text-base-content">
-                                    Node Descriptions
-                                </span>
-                                <input
-                                    type="checkbox"
-                                    className="toggle"
-                                    aria-label="node-description"
-                                    checked={isNodeDescActive}
-                                    onChange={toggleNodeDesc}
-                                />
-                            </label>
-                        </>
-                    )}
-                </div>
+            <div className="mx-auto max-w-7xl flex justify-end items-center">
                 <div className="menu-end">
-                    <button className="m-2 btn btn-outline" onClick={handleUploadBtnClick}>
+                    <button
+                        className="m-2 btn btn-outline btn-primary"
+                        onClick={handleUploadBtnClick}
+                    >
                         Upload Architecture
                     </button>
                     <input

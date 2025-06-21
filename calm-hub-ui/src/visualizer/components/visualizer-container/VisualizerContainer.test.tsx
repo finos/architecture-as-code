@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { VisualizerContainer } from './VisualizerContainer.js';
 import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { SidebarProps } from '../sidebar/Sidebar.js';
-import { CytoscapeRendererProps } from '../cytoscape-renderer/CytoscapeRenderer.js';
+import { CytoscapeRendererProps } from '../cytoscape/cytoscape-renderer/CytoscapeRenderer.js';
 
 vi.mock('../sidebar/Sidebar.js', () => ({
     Sidebar: ({ closeSidebar }: SidebarProps) => (
@@ -13,7 +13,7 @@ vi.mock('../sidebar/Sidebar.js', () => ({
     ),
 }));
 
-vi.mock('../cytoscape-renderer/CytoscapeRenderer.js', () => ({
+vi.mock('../cytoscape/cytoscape-renderer/CytoscapeRenderer.js', () => ({
     CytoscapeRenderer: ({
         nodeClickedCallback,
         edgeClickedCallback,
@@ -34,43 +34,10 @@ vi.mock('../cytoscape-renderer/CytoscapeRenderer.js', () => ({
 describe('VisualizerContainer', () => {
     it('renders without crashing', () => {
         render(
-            <VisualizerContainer
-                isNodeDescActive={false}
-                isRelationshipDescActive={false}
-                nodes={[]}
-                edges={[]}
-            />
+            <VisualizerContainer title="Test Architecture" calmKey="test" nodes={[]} edges={[]} />
         );
 
         expect(screen.getByTestId('visualizer-container')).toBeInTheDocument();
-    });
-
-    it('renders the title if provided', () => {
-        render(
-            <VisualizerContainer
-                title="Test Architecture"
-                isNodeDescActive={false}
-                isRelationshipDescActive={false}
-                nodes={[]}
-                edges={[]}
-            />
-        );
-
-        expect(screen.getByText('Architecture:')).toBeInTheDocument();
-        expect(screen.getByText('Test Architecture')).toBeInTheDocument();
-    });
-
-    it('does not render the title if not provided', () => {
-        render(
-            <VisualizerContainer
-                isNodeDescActive={false}
-                isRelationshipDescActive={false}
-                nodes={[]}
-                edges={[]}
-            />
-        );
-
-        expect(screen.queryByText('Architecture:')).not.toBeInTheDocument();
     });
 
     it('shows Sidebar when a node is clicked and closes it', () => {
@@ -94,8 +61,8 @@ describe('VisualizerContainer', () => {
 
         render(
             <VisualizerContainer
-                isNodeDescActive={true}
-                isRelationshipDescActive={false}
+                title="Test Architecture"
+                calmKey="test"
                 nodes={nodes}
                 edges={[]}
             />
@@ -123,8 +90,8 @@ describe('VisualizerContainer', () => {
 
         render(
             <VisualizerContainer
-                isNodeDescActive={false}
-                isRelationshipDescActive={true}
+                title="Test Architecture"
+                calmKey="test"
                 nodes={[]}
                 edges={edges}
             />

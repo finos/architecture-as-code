@@ -36,7 +36,7 @@ export function Navbar() {
                 </div>
                 <a className="btn btn-ghost">
                     <img
-                        src="/brand/Icon/2025_CALM_Icon.svg"
+                        src="/brand/Horizontal/2025_CALM_Horizontal_Navbar_Logo.svg"
                         alt="CALM Logo"
                         className="h-10 logo"
                     />
