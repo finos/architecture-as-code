@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { CytoscapeNode, CytoscapeNodeData, Edge } from '../../contracts/contracts.js';
+import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { Sidebar } from '../sidebar/Sidebar.js';
 import { CytoscapeRenderer } from '../cytoscape/cytoscape-renderer/CytoscapeRenderer.js';
 import React from 'react';

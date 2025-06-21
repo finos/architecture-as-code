@@ -1,10 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Visualizer from './Visualizer.js';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
+import { CalmArchitectureSchema } from '@finos/calm-shared';
+import { Data } from '../model/calm.js';
+import { ReactNode } from 'react';
 
 vi.mock('./components/drawer/Drawer.js', () => ({
-    Drawer: ({ calmInstance, title, data }: any) => (
+    Drawer: ({
+        calmInstance,
+        title,
+        data,
+    }: {
+        calmInstance?: CalmArchitectureSchema;
+        title: string;
+        data?: Data;
+    }) => (
         <div data-testid="drawer">
             <span>{title}</span>
             <span>{JSON.stringify(calmInstance)}</span>
@@ -21,9 +32,9 @@ const mockFile = {
     name: 'test.json',
     type: 'application/json',
     text: () => Promise.resolve(mockFileContent),
-};
+} as File;
 vi.mock('./components/menu/Menu.js', () => ({
-    Menu: ({ handleUpload }: any) => (
+    Menu: ({ handleUpload }: { handleUpload: (instanceFile: File) => void }) => (
         <button data-testid="upload" onClick={() => handleUpload(mockFile)}>
             Upload Architecture
         </button>
@@ -57,7 +68,7 @@ describe('Visualizer', () => {
                 data: { key: 'value' },
             },
         };
-        const Wrapper = ({ children }: any) => (
+        const Wrapper = ({ children }: { children: ReactNode }) => (
             <MemoryRouter initialEntries={[{ pathname: '/', state }]}>{children}</MemoryRouter>
         );
         render(
@@ -83,7 +94,7 @@ describe('Visualizer', () => {
 
     it('falls back to location.state if no file uploaded', () => {
         const state = { name: 'Fallback Title', data: { fallback: true } };
-        const Wrapper = ({ children }: any) => (
+        const Wrapper = ({ children }: { children: ReactNode }) => (
             <MemoryRouter initialEntries={[{ pathname: '/', state }]}>{children}</MemoryRouter>
         );
         render(

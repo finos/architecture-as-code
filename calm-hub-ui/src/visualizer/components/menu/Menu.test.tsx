@@ -1,12 +1,10 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { Menu } from './Menu.js';
 
 describe('Menu', () => {
     const handleUploadMock = vi.fn();
-    const toggleConnectionDescMock = vi.fn();
-    const toggleNodeDescMock = vi.fn();
 
     const renderMenu = () => {
         return render(<Menu handleUpload={handleUploadMock} />);

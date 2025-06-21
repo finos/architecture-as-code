@@ -20,7 +20,7 @@ export function CytoscapeControlPanel({
             </div>
             <hr className="my-4 border-base-300" />
             <div>
-                <div className="text-sm font-semibold mb-2 text-primary">Properties</div>
+                <div className="text-sm font-semibold mb-2 text-primary">Display Settings</div>
                 <div className="flex flex-col gap-2 text-sm">
                     <label className="label cursor-pointer">
                         <input

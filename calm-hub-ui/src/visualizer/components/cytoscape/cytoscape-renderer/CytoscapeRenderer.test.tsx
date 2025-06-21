@@ -31,11 +31,11 @@ vi.mock('cytoscape', () => {
 });
 
 // Mock services
-vi.mock('../../services/node-position-service.js', () => ({
+vi.mock('../../../services/node-position-service.js', () => ({
     loadStoredNodePositions: vi.fn(() => undefined),
     saveNodePositions: vi.fn(),
 }));
-vi.mock('../../services/layout-correction-service.js', () => ({
+vi.mock('../../../services/layout-correction-service.js', () => ({
     LayoutCorrectionService: vi.fn().mockImplementation(() => ({
         calculateAndUpdateNodePositions: vi.fn(),
     })),
