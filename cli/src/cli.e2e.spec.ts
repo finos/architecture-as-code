@@ -1,12 +1,12 @@
 import { exec, execSync } from 'child_process';
-import path from 'path';
+import path, {join} from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { parseStringPromise } from 'xml2js';
 import util from 'util';
 import axios from 'axios';
 import { Mock } from 'vitest';
-// Mock axios
+import {expectDirectoryMatch, expectFilesMatch} from '@finos/calm-shared';
 vi.mock('axios');
 
 const execPromise = util.promisify(exec);
@@ -247,4 +247,116 @@ describe('CLI Integration Tests', () => {
             expect(fs.existsSync(file)).toBeTruthy();
         }
     });
+
+    test('Getting Started Verification - CLI Steps', async () => {
+        const GETTING_STARTED_DIR = join(__dirname,'../../calm/getting-started');
+        const GETTING_STARTED_TEST_FIXTURES_DIR = join(__dirname,'../../cli/test_fixtures/getting-started');
+
+        // This will enforce that people verify the getting-started guide works prior to any cli change
+        const { stdout } = await execPromise(calm('--version'));
+        expect(stdout.trim()).toMatch('0.7.8'); // basic semver check
+
+        //STEP 1: Generate Architecture From Pattern
+        const inputPattern = path.resolve(GETTING_STARTED_DIR, 'conference-signup.pattern.json');
+        const outputArchitecture = path.resolve(GETTING_STARTED_DIR,'conference-signup.arch.json');
+        await execPromise(calm(`generate --pattern ${inputPattern} --output ${outputArchitecture}`));
+
+        const expectedOutputArchitecture = path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR,'STEP-1/conference-signup.arch.json');
+        expectFilesMatch(expectedOutputArchitecture, outputArchitecture);
+
+
+        //STEP 2: Generate Docify Website From Architecture
+        const outputWebsite = path.resolve(GETTING_STARTED_DIR, 'website');
+        await execPromise(calm(`docify --input ${outputArchitecture} --output ${outputWebsite}`));
+
+        const expectedOutputDocifyWebsite = path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR,'STEP-2/website');
+        expectDirectoryMatch(expectedOutputDocifyWebsite, outputWebsite);
+
+
+        //STEP 3: Add flow to architecture-document
+        const flowsDir = path.resolve(GETTING_STARTED_DIR, 'flows');
+        const flowFile = path.resolve(flowsDir, 'conference-signup.flow.json');
+        const flowUrl  = 'https://calm.finos.org/getting-started/flows/conference-signup.flow.json';
+        fs.mkdirSync(flowsDir, { recursive: true });
+
+        /* eslint-disable quotes */
+        writeJson(flowFile, {
+            "$schema": "https://calm.finos.org/release/1.0-rc1/meta/flow.json",
+            "$id": flowUrl,
+            "unique-id": "flow-conference-signup",
+            "name": "Conference Signup Flow",
+            "description": "Flow for registering a user through the conference website and storing their details in the attendee database.",
+            "transitions": [
+                {
+                    "relationship-unique-id": "conference-website-load-balancer",
+                    "sequence-number": 1,
+                    "summary": "User submits sign-up form via Conference Website to Load Balancer"
+                },
+                {
+                    "relationship-unique-id": "load-balancer-attendees",
+                    "sequence-number": 2,
+                    "summary": "Load Balancer forwards request to Attendees Service"
+                },
+                {
+                    "relationship-unique-id": "attendees-attendees-store",
+                    "sequence-number": 3,
+                    "summary": "Attendees Service stores attendee info in the Attendees Store"
+                }
+            ]
+        });
+
+        expectFilesMatch(
+            path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR, 'STEP-3/flows/conference-signup.flow.json'),
+            flowFile
+        );
+
+        const directory = path.resolve(GETTING_STARTED_DIR, 'directory.json');
+        writeJson(directory, {
+            "https://calm.finos.org/getting-started/flows/conference-signup.flow.json": "flows/conference-signup-with-flow.arch.json"
+        });  //since the flow document is not published
+
+
+
+        patchJson(outputArchitecture, arch => {
+            arch['flows'] =  arch['flows'] || [];
+            if (!arch['flows'].includes(flowUrl)) arch['flows'].push(flowUrl);
+        });
+        expectFilesMatch(
+            path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR,'STEP-3/conference-signup-with-flow.arch.json'),
+            outputArchitecture
+        );
+
+        // Patch directory.json to map the URL → local path
+        patchJson(directory, dir => {
+            dir[flowUrl] = 'flows/conference-signup.flow.json';
+        });
+        expectFilesMatch(
+            path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR,'STEP-3/directory.json'),
+            directory
+        );
+
+        const outputWebsiteWithFlow = path.resolve(GETTING_STARTED_DIR, 'website-with-flow');
+        await execPromise(calm(`docify --input ${outputArchitecture} --output ${outputWebsiteWithFlow} --url-to-local-file-mapping ${directory}`));
+
+        const expectedOutputDocifyWebsiteWithFLow = path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR,'STEP-3/website');
+        expectDirectoryMatch(expectedOutputDocifyWebsiteWithFLow, outputWebsiteWithFlow);
+
+    });
+
+    function writeJson(filePath: string, obj: object) {
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        fs.writeFileSync(filePath, JSON.stringify(obj, null, 2));
+    }
+
+    function readJson(filePath: string) {
+        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    }
+
+    function patchJson(filePath: string, patchFn: (o: object) => void) {
+        const obj = readJson(filePath);
+        patchFn(obj);
+        writeJson(filePath, obj);
+    }
+
+
 });
