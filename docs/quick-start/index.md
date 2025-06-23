@@ -1,5 +1,5 @@
 ---
-id: getting-started
+id: quick-start
 title: 🚀 Get Started in 5 Minutes
 slug: /
 sidebar_position: 0
