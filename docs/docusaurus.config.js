@@ -64,9 +64,9 @@ const config = {
         [
             '@docusaurus/plugin-content-docs',
             {
-                id: 'getting-started',
-                path: 'getting-started',
-                routeBasePath: 'getting-started',
+                id: 'quick-start',
+                path: 'quick-start',
+                routeBasePath: 'quick-start',
             }
         ],
     ],
@@ -84,10 +84,10 @@ const config = {
                 },
                 items: [
                     {
-                        to: '/getting-started/',
+                        to: '/quick-start/',
                         label: '🚀 Get Started in 5 Mins',
                         position: 'left',
-                        activeBaseRegex: `/getting-started/`,
+                        activeBaseRegex: `/quick-start/`,
                     },
                     {
                         to: '/talks/',
