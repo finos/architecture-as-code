@@ -89,7 +89,7 @@ Verify the installation.
 ```shell
 calm --version
 ```
-This getting started has been verified to work against 0.7.7 of the cli.
+This getting started has been verified to work against 0.7.8 of the cli.
 
 ---
 
@@ -341,5 +341,78 @@ Give it a few seconds to start up, and then open your browser to http://localhos
 website with your architecture visualised like below.
 ![CALM Docify Website](img/docify.png)
 
+## 🌐 Capturing business flows
+You now have a fully functional documentation website for your architecture, generated from CALM. This shows you your logical architecture and the non-functional requirements, modelling in CALM by the Controls. But systems have business flows which inform the requirements, how can we capture those?
 
+Let's take a look at the architecture file which you generated. Open it in your favourite editor, and with the top level sections collapsed, you should see the following:
+
+```json
+{
+  "$schema": "https://calm.finos.org/getting-started/conference-signup.pattern.json"
+  "nodes": [
+  ],
+  "relationships": [
+  ],
+  "metadata": [
+  ]
+}
+```
+Add a new array called `flows` with a single flow in, we've provided you with it below to copy and paste into your architecture:
+```json
+{
+  "$schema": "https://calm.finos.org/getting-started/conference-signup.pattern.json"
+  "nodes": [
+  ],
+  "relationships": [
+  ],
+  "metadata": [
+  ],
+  "flows": [
+    {
+      "$schema": "https://calm.finos.org/release/1.0-rc1/meta/flow.json",
+      "$id": "https://calm.finos.org/getting-started/flows/conference-signup.flow.json",
+      "unique-id": "flow-conference-signup",
+      "name": "Conference Signup Flow",
+      "description": "Flow for registering a user through the conference website and storing their details in the attendee database.",
+      "transitions": [
+        {
+          "relationship-unique-id": "conference-website-load-balancer",
+          "sequence-number": 1,
+          "summary": "User submits sign-up form via Conference Website to Load Balancer"
+        },
+        {
+          "relationship-unique-id": "load-balancer-attendees",
+          "sequence-number": 2,
+          "summary": "Load Balancer forwards request to Attendees Service"
+        },
+        {
+          "relationship-unique-id": "attendees-attendees-store",
+          "sequence-number": 3,
+          "summary": "Attendees Service stores attendee info in the Attendees Store"
+        }
+      ]
+    }
+  ]
+}
+```
+Save the file and then run the `docify` command again to regenerate the documentation:
+
+```shell
+calm docify \
+  --input ./conference-signup.arch.json \
+  --output ./website
+```
+![CALM Docify Website with Flows](./img/docify-with-flow.png)
+
+Congratulations! You have now:
+- Installed and run CALM Hub locally
+- Installed the CALM CLI
+- Generated a concrete architecture from a pattern
+- Visualised your architecture using CALM Hub
+- Docified your architecture
+- Captured business flows in your architecture
+- Generated documentation for your architecture including business flows
+
+## 🎉 Get Involved!
+If you found this demo useful, please consider contributing to the CALM project. 
 

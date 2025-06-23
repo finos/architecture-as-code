@@ -84,6 +84,12 @@ const config = {
                 },
                 items: [
                     {
+                        to: '/getting-started/',
+                        label: '🚀 Get Started in 5 Mins',
+                        position: 'left',
+                        activeBaseRegex: `/getting-started/`,
+                    },
+                    {
                         to: '/talks/',
                         label: 'Talks',
                         position: 'left',
