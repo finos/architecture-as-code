@@ -1,0 +1,30 @@
+{
+  "name": "TBC",
+  "description": "TBC",
+  "instructions": [
+    "Use the CALM metamodel strictly as defined in release/1.0-rc1.",
+    "Do not introduce or infer undocumented elements not defined in the metamodel.",
+    "When describing components or flows, use CALM primitives like Capability, System, Actor, Flow, and Interface.",
+    "Use terms consistently with our domain glossary and prefer CALM-native naming over ad hoc labels.",
+    "Where applicable, reference system-context.md to maintain consistency in descriptions."
+  ],
+  "context": {
+    "include": [
+      ".cody/",
+      "calm/",
+      "docs/architecture-overview.md",
+      "README.md"
+    ],
+    "exclude": [
+      "node_modules/",
+      ".git/",
+      "**/target/",
+      "**/tests/"
+    ]
+  },
+  "capabilities": {
+    "autocomplete": true,
+    "chat": true,
+    "embeddings": true
+  }
+}
