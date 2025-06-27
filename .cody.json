@@ -1,25 +1,22 @@
 {
-  "name": "TBC",
-  "description": "TBC",
+  "name": "CALM Architecture Authoring Context",
+  "description": "Provides modeling examples, structure, and usage rules for authoring CALM architecture documents (release/1.0-rc1).",
   "instructions": [
-    "Use the CALM metamodel strictly as defined in release/1.0-rc1.",
-    "Do not introduce or infer undocumented elements not defined in the metamodel.",
-    "When describing components or flows, use CALM primitives like Capability, System, Actor, Flow, and Interface.",
-    "Use terms consistently with our domain glossary and prefer CALM-native naming over ad hoc labels.",
-    "Where applicable, reference system-context.md to maintain consistency in descriptions."
+    "Use only CALM constructs (node, interface, relationship, flow, control, metadata) according to the 1.0-rc1 schema.",
+    "Always include required fields such as unique-id, name, and description.",
+    "Use metadata only where appropriate. Use schema-conformant structures for controls and interfaces.",
+    "Refer to .cody examples before suggesting structure or property usage.",
+    "When referencing sub-architectures, use the detailed-architecture key on the node."
   ],
   "context": {
     "include": [
-      ".cody/",
-      "calm/",
-      "docs/architecture-overview.md",
-      "README.md"
-    ],
-    "exclude": [
-      "node_modules/",
-      ".git/",
-      "**/target/",
-      "**/tests/"
+      ".cody/node-examples.md",
+      ".cody/interface-examples.md",
+      ".cody/relationship-examples.md",
+      ".cody/flow-examples.md",
+      ".cody/control-examples.md",
+      ".cody/metadata-examples.md",
+      ".cody/architecture-file-examples.md"
     ]
   },
   "capabilities": {
