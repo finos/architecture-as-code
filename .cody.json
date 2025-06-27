@@ -16,7 +16,10 @@
       ".cody/flow-examples.md",
       ".cody/control-examples.md",
       ".cody/metadata-examples.md",
-      ".cody/architecture-file-examples.md"
+      ".cody/architecture-file-examples.md",
+      ".cody/rules.md",
+      ".cody/glossary.md",
+      ".cody/faq.md"
     ]
   },
   "capabilities": {
