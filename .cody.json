@@ -10,16 +10,17 @@
   ],
   "context": {
     "include": [
+      ".cody/calm-overview.md",
+      ".cody/rules.md",
+      ".cody/glossary.md",
+      ".cody/faq.md",
       ".cody/node-examples.md",
       ".cody/interface-examples.md",
       ".cody/relationship-examples.md",
       ".cody/flow-examples.md",
       ".cody/control-examples.md",
       ".cody/metadata-examples.md",
-      ".cody/architecture-file-examples.md",
-      ".cody/rules.md",
-      ".cody/glossary.md",
-      ".cody/faq.md"
+      ".cody/architecture-file-examples.md"
     ]
   },
   "capabilities": {
