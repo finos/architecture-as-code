@@ -85,6 +85,8 @@ export function AdrRenderer({ adrDetails }: AdrRendererProps) {
     );
 
     return (
-        <div className="p-5 flex-1 overflow-auto border-l-2 border-black bg-white">{adrView}</div>
+        <div className="p-5 flex-1 overflow-auto bg-white border-t-1 border-gray-300">
+            {adrView}
+        </div>
     );
 }

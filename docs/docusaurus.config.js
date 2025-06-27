@@ -61,6 +61,14 @@ const config = {
                 sidebarPath: require.resolve('./sidebars.js'),
             },
         ],
+        [
+            '@docusaurus/plugin-content-docs',
+            {
+                id: 'quick-start',
+                path: 'quick-start',
+                routeBasePath: 'quick-start',
+            }
+        ],
     ],
 
     themeConfig:
@@ -75,6 +83,12 @@ const config = {
                     src: 'img/2025_CALM_Icon.svg',
                 },
                 items: [
+                    {
+                        to: '/quick-start/',
+                        label: '🚀 Get Started in 5 Mins',
+                        position: 'left',
+                        activeBaseRegex: `/quick-start/`,
+                    },
                     {
                         to: '/talks/',
                         label: 'Talks',

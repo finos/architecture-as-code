@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-require-imports, no-undef */
-const remarkReplaceLinks = require('./src/remark/remark-replace-links');
+import remarkReplaceLinks from './src/remark/remark-replace-links';
 
 module.exports = {
     title: 'My Docusaurus Docs',

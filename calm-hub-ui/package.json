@@ -9,6 +9,7 @@
         "serve": "vite preview",
         "prod": "npm run build && mkdir -p ../calm-hub/src/main/resources/META-INF/resources && rsync -a build/* ../calm-hub/src/main/resources/META-INF/resources",
         "test": "vitest run",
+        "test-coverage": "vitest run --coverage",
         "watch-test": "vitest watch",
         "lint": "eslint .",
         "format": "prettier --write .",
@@ -20,6 +21,9 @@
         "@types/react": "^18.3.12",
         "@types/react-dom": "^18.3.1",
         "@vitejs/plugin-react-swc": "^3.7.2",
+        "@vitest/coverage-v8": "^3.1.4",
+        "axios": "^1.9.0",
+        "axios-mock-adapter": "^2.1.0",
         "copyfiles": "^2.4.1",
         "cytoscape": "^3.30.3",
         "cytoscape-cola": "^2.5.1",
@@ -29,14 +33,12 @@
         "react-dom": "^19.1.0",
         "react-icons": "^5.5.0",
         "react-json-view-lite": "^2.4.1",
+        "react-markdown": "^10.1.0",
         "react-router-dom": "^7.6.0",
         "typescript": "^4.9.5",
         "vite-plugin-svgr": "^4.3.0",
         "vite-tsconfig-paths": "^5.1.4",
-        "web-vitals": "^5.0.1",
-        "react-markdown": "^10.1.0",
-        "axios": "^1.9.0",
-        "axios-mock-adapter": "^2.1.0"
+        "web-vitals": "^5.0.1"
     },
     "devDependencies": {
         "@eslint/js": "^9.25.0",
@@ -63,7 +65,7 @@
         "tailwindcss": "^4.1.4",
         "typescript": "^5.5.3",
         "typescript-eslint": "^8.14.0",
-        "vite": "^6.3.5",
+        "vite": "^7.0.0",
         "vitest": "^3.0.6"
     },
     "resolutions": {

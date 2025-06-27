@@ -9,7 +9,9 @@ const v8CoverageSettings: CoverageV8Options = {
         functions: 75,
         lines: 75,
         statements: 75
-    }
+    },
+    exclude: ['test_fixtures/**'],
+    include: ['**/*.ts']
 }
 
 export default defineConfig({
