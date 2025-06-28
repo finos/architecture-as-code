@@ -69,11 +69,11 @@
         "vitest": "^3.0.6"
     },
     "resolutions": {
-        "css-what": "6.1.0",
+        "css-what": "6.2.2",
         "express": "4.21.2",
         "nth-check": "2.1.1",
         "postcss": "8.5.3",
-        "rollup": "4.40.2"
+        "rollup": "4.44.1"
     },
     "proxy": "http://127.0.0.1:8080/",
     "eslintConfig": {
