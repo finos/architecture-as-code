@@ -16,11 +16,11 @@ import org.jboss.resteasy.reactive.RestResponse;
 public interface AdrClient {
     @GET
     @Path("/calm/namespaces/{namespace}/adrs")
-    ValueWrapper<String> getAdrIds(String namespace);
+    ValueWrapper<String> getAdrIds(@PathParam("namespace") String namespace);
 
     @GET
     @Path("/calm/namespaces/{namespace}/adrs/{id}")
-    AdrResponse getAdrDetail(String namespace, String id);
+    AdrResponse getAdrDetail(@PathParam("namespace") String namespace, @PathParam("id") String id);
 
     @POST
     @Path("/calm/namespaces/{namespace}/adrs")
