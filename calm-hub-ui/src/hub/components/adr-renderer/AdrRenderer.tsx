@@ -8,8 +8,8 @@ import {
     DisplayLinks,
     GetDate,
     StyleTitle,
+    DisplayAdrStatus,
 } from '../../helper-functions/adr/adr-helper-function.js';
-import { DisplayAdrStatus } from '../../../model/adr/adr-status/adrStatus.js';
 import './AdrRenderer.css';
 
 interface AdrRendererProps {

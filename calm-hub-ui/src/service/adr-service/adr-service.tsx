@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { getToken } from '../../authService.js';
+import { CalmAdrMeta } from '@finos/calm-shared/src/model/adr.js';
 
 export class AdrService {
     private readonly ax: AxiosInstance;
@@ -14,7 +15,7 @@ export class AdrService {
     /**
      * Fetch adr IDs for a given namespace and set them using the provided setter function.
      */
-    async fetchAdrIDs(namespace: string) {
+    async fetchAdrIDs(namespace: string) : Promise<number[]> {
         return this.ax
             .get(`/calm/namespaces/${namespace}/adrs`, {
                 headers: {
@@ -32,7 +33,7 @@ export class AdrService {
     /**
      * Fetch revisions for a given namespace and adr ID and set them using the provided setter function.
      */
-    async fetchAdrRevisions(namespace: string, adrID: string) {
+    async fetchAdrRevisions(namespace: string, adrID: string): Promise<number[]> {
         return this.ax
             .get(`/calm/namespaces/${namespace}/adrs/${adrID}/revisions`, {
                 headers: {
@@ -50,7 +51,7 @@ export class AdrService {
     /**
      * Fetch a specific adr by namespace, adr ID, and revision, and set it using the provided setter function.
      */
-    async fetchAdr(namespace: string, adrID: string, revision: string) {
+    async fetchAdr(namespace: string, adrID: string, revision: string): Promise<CalmAdrMeta> {
         return this.ax
             .get(`/calm/namespaces/${namespace}/adrs/${adrID}/revisions/${revision}`, {
                 headers: {
