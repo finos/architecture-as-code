@@ -2,6 +2,7 @@ package org.finos.calm.mcp.resources;
 
 import io.quarkiverse.mcp.server.Resource;
 import io.quarkiverse.mcp.server.TextResourceContents;
+import io.quarkiverse.mcp.server.Tool;
 import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
@@ -105,6 +106,15 @@ public class CalmSchemaResources {
             """, SCHEMA_VERSION, SCHEMA_VERSION, SCHEMA_BASE_PATH, SCHEMA_VERSION);
         
         return TextResourceContents.create("calm://schema/version-info", versionInfo);
+    }
+
+    @Tool(description = "The version of the schema that should be used for generating architectures")
+    public TextResourceContents getSchemaUrl() {
+        String schemaVersionInfo = """
+                The version of the CALM Schema for creating architectures is: https://calm.finos.org/release/1.0-rc1/meta/calm.json
+            """;
+
+        return TextResourceContents.create("calm://schema/schema-url", schemaVersionInfo);
     }
 
     /**
