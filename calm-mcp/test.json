@@ -1,0 +1,294 @@
+{
+  "$schema": "https://calm.finos.org/release/1.0-rc1/meta/calm.json",
+  "spec-version": "release/1.0-rc1",
+  "architecture-version": "1.0.0",
+  "title": "Travel Agent Booking System",
+  "description": "A three-tier travel booking system with React frontend, Spring Boot API, and PostgreSQL database",
+
+  "nodes": {
+    "react-frontend": {
+      "node-type": "system",
+      "name": "Travel Booking Frontend",
+      "description": "React-based web application for travel booking interface",
+      "technology": "React 18",
+      "deployment": {
+        "environment": "web-browser",
+        "hosting": "CDN/Web Server"
+      },
+      "interfaces": {
+        "web-ui": {
+          "type": "http",
+          "protocol": "https",
+          "port": 443,
+          "data-classification": "public",
+          "schema": {
+            "type": "web-interface",
+            "endpoints": [
+              "/booking",
+              "/search",
+              "/confirmation",
+              "/profile"
+            ]
+          }
+        },
+        "api-client": {
+          "type": "http-client",
+          "protocol": "https",
+          "data-classification": "internal",
+          "schema": {
+            "type": "rest-client",
+            "consumes": ["application/json"],
+            "produces": ["application/json"]
+          }
+        }
+      }
+    },
+
+    "spring-boot-api": {
+      "node-type": "service",
+      "name": "Travel Booking API",
+      "description": "Spring Boot REST API for travel booking business logic",
+      "technology": "Spring Boot 3.x",
+      "deployment": {
+        "environment": "kubernetes",
+        "replicas": 3
+      },
+      "interfaces": {
+        "rest-api": {
+          "type": "http",
+          "protocol": "https",
+          "port": 8080,
+          "data-classification": "internal",
+          "schema": {
+            "type": "openapi",
+            "version": "3.0.0",
+            "endpoints": {
+              "/api/v1/bookings": {
+                "methods": ["GET", "POST", "PUT", "DELETE"],
+                "description": "Booking management endpoints"
+              },
+              "/api/v1/search": {
+                "methods": ["GET", "POST"],
+                "description": "Travel search endpoints"
+              },
+              "/api/v1/customers": {
+                "methods": ["GET", "POST", "PUT"],
+                "description": "Customer management endpoints"
+              },
+              "/api/v1/payments": {
+                "methods": ["POST"],
+                "description": "Payment processing endpoints"
+              }
+            }
+          }
+        },
+        "database-client": {
+          "type": "database-connection",
+          "protocol": "tcp",
+          "port": 5432,
+          "data-classification": "confidential",
+          "schema": {
+            "type": "jdbc",
+            "driver": "postgresql",
+            "connection-pool": {
+              "min-size": 5,
+              "max-size": 20
+            }
+          }
+        }
+      }
+    },
+
+    "postgres-database": {
+      "node-type": "datastore",
+      "name": "Travel Booking Database",
+      "description": "PostgreSQL database storing booking, customer, and travel data",
+      "technology": "PostgreSQL 15",
+      "deployment": {
+        "environment": "kubernetes",
+        "storage": "persistent-volume",
+        "backup-strategy": "daily-snapshots"
+      },
+      "interfaces": {
+        "database-server": {
+          "type": "database",
+          "protocol": "tcp",
+          "port": 5432,
+          "data-classification": "confidential",
+          "schema": {
+            "type": "relational-database",
+            "tables": {
+              "customers": {
+                "columns": ["id", "name", "email", "phone", "created_at"],
+                "primary-key": "id"
+              },
+              "bookings": {
+                "columns": ["id", "customer_id", "travel_date", "destination", "status", "total_amount", "created_at"],
+                "primary-key": "id",
+                "foreign-keys": ["customer_id"]
+              },
+              "payments": {
+                "columns": ["id", "booking_id", "amount", "payment_method", "status", "processed_at"],
+                "primary-key": "id",
+                "foreign-keys": ["booking_id"]
+              },
+              "destinations": {
+                "columns": ["id", "name", "country", "description", "base_price"],
+                "primary-key": "id"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "relationships": {
+    "frontend-to-api": {
+      "relationship-type": "connects",
+      "source": "react-frontend",
+      "destination": "spring-boot-api",
+      "interface-source": "api-client",
+      "interface-destination": "rest-api",
+      "protocol": "https",
+      "data-flow": "bidirectional",
+      "description": "Frontend makes REST API calls to the Spring Boot service"
+    },
+
+    "api-to-database": {
+      "relationship-type": "connects",
+      "source": "spring-boot-api",
+      "destination": "postgres-database",
+      "interface-source": "database-client",
+      "interface-destination": "database-server",
+      "protocol": "tcp",
+      "data-flow": "bidirectional",
+      "description": "API service connects to PostgreSQL database for data persistence"
+    }
+  },
+
+  "flows": {
+    "booking-flow": {
+      "name": "Travel Booking Process",
+      "description": "End-to-end flow for creating a travel booking",
+      "steps": [
+        {
+          "step": 1,
+          "name": "Search Destinations",
+          "node": "react-frontend",
+          "action": "User searches for travel destinations",
+          "interface": "web-ui"
+        },
+        {
+          "step": 2,
+          "name": "Fetch Available Options",
+          "node": "spring-boot-api",
+          "action": "API queries database for available destinations and pricing",
+          "interface": "rest-api"
+        },
+        {
+          "step": 3,
+          "name": "Query Destinations Table",
+          "node": "postgres-database",
+          "action": "Database returns destination data",
+          "interface": "database-server"
+        },
+        {
+          "step": 4,
+          "name": "Display Results",
+          "node": "react-frontend",
+          "action": "Frontend displays search results to user",
+          "interface": "web-ui"
+        },
+        {
+          "step": 5,
+          "name": "Create Booking",
+          "node": "react-frontend",
+          "action": "User selects destination and submits booking",
+          "interface": "web-ui"
+        },
+        {
+          "step": 6,
+          "name": "Process Booking",
+          "node": "spring-boot-api",
+          "action": "API validates booking data and creates booking record",
+          "interface": "rest-api"
+        },
+        {
+          "step": 7,
+          "name": "Store Booking",
+          "node": "postgres-database",
+          "action": "Database persists booking and customer information",
+          "interface": "database-server"
+        },
+        {
+          "step": 8,
+          "name": "Confirmation",
+          "node": "react-frontend",
+          "action": "Frontend displays booking confirmation to user",
+          "interface": "web-ui"
+        }
+      ]
+    }
+  },
+
+  "controls": {
+    "data-encryption": {
+      "control-type": "security",
+      "name": "Data Encryption in Transit",
+      "description": "All communications must use TLS encryption",
+      "applies-to": ["frontend-to-api"],
+      "requirements": {
+        "tls-version": "1.3",
+        "certificate-validation": "required"
+      }
+    },
+
+    "database-access-control": {
+      "control-type": "security",
+      "name": "Database Access Control",
+      "description": "Database access restricted to authorized API service only",
+      "applies-to": ["api-to-database"],
+      "requirements": {
+        "authentication": "username-password",
+        "connection-encryption": "required",
+        "network-isolation": "private-subnet"
+      }
+    },
+
+    "input-validation": {
+      "control-type": "security",
+      "name": "Input Validation",
+      "description": "All user inputs must be validated and sanitized",
+      "applies-to": ["spring-boot-api"],
+      "requirements": {
+        "sql-injection-prevention": "parameterized-queries",
+        "xss-prevention": "input-sanitization",
+        "data-validation": "schema-based"
+      }
+    },
+
+    "audit-logging": {
+      "control-type": "compliance",
+      "name": "Audit Logging",
+      "description": "All booking transactions must be logged for audit purposes",
+      "applies-to": ["spring-boot-api", "postgres-database"],
+      "requirements": {
+        "log-level": "info",
+        "retention-period": "7-years",
+        "log-integrity": "hash-protected"
+      }
+    }
+  },
+
+  "metadata": {
+    "created-by": "Architecture Team",
+    "created-date": "2025-06-30",
+    "version": "1.0.0",
+    "last-updated": "2025-06-30",
+    "business-domain": "Travel and Hospitality",
+    "compliance-frameworks": ["PCI-DSS", "GDPR"],
+    "deployment-environments": ["development", "staging", "production"],
+    "tags": ["three-tier", "web-application", "booking-system", "react", "spring-boot", "postgresql"]
+  }
+}
