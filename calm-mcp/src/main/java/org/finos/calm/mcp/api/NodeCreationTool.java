@@ -4,28 +4,7 @@ import io.quarkiverse.mcp.server.Tool;
 
 public class NodeCreationTool {
 
-    public static class NodeCreationToolResponse {
-        private final String schema;
-        private final String example;
-        private final String notes;
-
-        public NodeCreationToolResponse(String schema, String example, String notes) {
-            this.schema = schema;
-            this.example = example;
-            this.notes = notes;
-        }
-
-        public String getSchema() {
-            return schema;
-        }
-
-        public String getExample() {
-            return example;
-        }
-
-        public String getNotes() {
-            return notes;
-        }
+    public record NodeCreationToolResponse(String schema, String example, String notes) {
     }
 
     @Tool(
@@ -181,43 +160,24 @@ public class NodeCreationTool {
                         """,
                 """
                         {
-                                  "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/node",
-                                  "type": "object",
-                                  "properties": {
-                                    "unique-id": {
-                                      "const": "conference-website"
-                                    },
-                                    "name": {
-                                      "const": "Conference Website"
-                                    },
-                                    "description": {
-                                      "const": "Website to sign up for a conference"
-                                    },
-                                    "node-type": {
-                                      "const": "webclient"
-                                    },
-                                    "interfaces": {
-                                      "type": "array",
-                                      "minItems": 1,
-                                      "maxItems": 1,
-                                      "prefixItems": [
-                                        {
-                                          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/interface.json#/defs/url-interface",
-                                          "properties": {
-                                            "unique-id": {
-                                              "const": "conference-website-url"
-                                            }
-                                          }
-                                        }
-                                      ]
-                                    }
-                                  }
+                              "unique-id": "conference-website",
+                              "name": "Conference Website",
+                              "description": "Website to sign up for a conference",
+                              "node-type": "webclient",
+                              "interfaces": [
+                                {
+                                  "unique-id": "conference-website-url",
+                                  "url": "https://calm.finos.org/amazing-website"
+                                }
+                              ]
+                            },
                         """,
                   """
                         A node is a box in an architecture. It represents a variety of different possible architecture building blocks.
                         At the very top level it is a unique-id, name, description, and a node-type.
                         Beyond that is can optionally contain interfaces, defining the possible ways in which relationships can interact with a node.
-                        There is also the option to add controls, which are typically non-functional requirements
+                        There is also the option to add controls, which are typically non-functional requirements.
+                        When creating interfaces on a node, they are typically on created on the receiving node of the relationship.
                         """
         );
     }
