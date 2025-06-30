@@ -19,61 +19,61 @@ public class CalmSchemaResources {
     private static final String SCHEMA_VERSION = "1.0-rc1";
     private static final String SCHEMA_BASE_PATH = "/calm-schema/meta/";
 
-    @Resource(uri = "calm://schema/core")
+    @Resource(uri = "calm://schema/core", description = "Core CALM schema defining nodes, relationships, and fundamental architecture constructs")
     public TextResourceContents getCoreSchema() {
         return loadSchemaResource("core.json", "calm://schema/core", 
             "Core CALM schema defining nodes, relationships, and fundamental architecture constructs");
     }
 
-    @Resource(uri = "calm://schema/calm")
+    @Resource(uri = "calm://schema/calm", description = "Main CALM schema that combines all vocabulary definitions into a comprehensive architecture modeling language")
     public TextResourceContents getCalmSchema() {
         return loadSchemaResource("calm.json", "calm://schema/calm", 
             "Main CALM schema that combines all vocabulary definitions");
     }
 
-    @Resource(uri = "calm://schema/control")
+    @Resource(uri = "calm://schema/control", description = "CALM control schema for compliance and governance definitions including security, audit, and regulatory controls")
     public TextResourceContents getControlSchema() {
         return loadSchemaResource("control.json", "calm://schema/control", 
             "CALM control schema for compliance and governance definitions");
     }
 
-    @Resource(uri = "calm://schema/control-requirement")
+    @Resource(uri = "calm://schema/control-requirement", description = "CALM control requirement schema for defining compliance requirements and control specifications")
     public TextResourceContents getControlRequirementSchema() {
         return loadSchemaResource("control-requirement.json", "calm://schema/control-requirement", 
             "CALM control requirement schema for defining compliance requirements");
     }
 
-    @Resource(uri = "calm://schema/evidence")
+    @Resource(uri = "calm://schema/evidence", description = "CALM evidence schema for compliance evidence and audit trails supporting governance and regulatory requirements")
     public TextResourceContents getEvidenceSchema() {
         return loadSchemaResource("evidence.json", "calm://schema/evidence", 
             "CALM evidence schema for compliance evidence and audit trails");
     }
 
-    @Resource(uri = "calm://schema/flow")
+    @Resource(uri = "calm://schema/flow", description = "CALM flow schema for defining business process flows and data movement patterns through architecture components")
     public TextResourceContents getFlowSchema() {
         return loadSchemaResource("flow.json", "calm://schema/flow", 
             "CALM flow schema for defining business process flows through architecture");
     }
 
-    @Resource(uri = "calm://schema/interface")
+    @Resource(uri = "calm://schema/interface", description = "CALM interface schema for defining communication endpoints, protocols, and API specifications between components")
     public TextResourceContents getInterfaceSchema() {
         return loadSchemaResource("interface.json", "calm://schema/interface", 
             "CALM interface schema for defining communication endpoints and protocols");
     }
 
-    @Resource(uri = "calm://schema/units")
+    @Resource(uri = "calm://schema/units", description = "CALM units schema for measurement and quantification definitions including performance metrics and capacity planning")
     public TextResourceContents getUnitsSchema() {
         return loadSchemaResource("units.json", "calm://schema/units", 
             "CALM units schema for measurement and quantification definitions");
     }
 
-    @Resource(uri = "calm://schema/release-notes")
+    @Resource(uri = "calm://schema/release-notes", description = "CALM v1.0-rc1 release notes and changelog documenting features, changes, and migration guidance")
     public TextResourceContents getReleaseNotes() {
         return loadSchemaResource("../RELEASE_NOTES.md", "calm://schema/release-notes", 
             "CALM v" + SCHEMA_VERSION + " release notes and changelog");
     }
 
-    @Resource(uri = "calm://schema/version-info")
+    @Resource(uri = "calm://schema/version-info", description = "CALM schema version information including available schemas, URLs, and usage guidance for v1.0-rc1")
     public TextResourceContents getVersionInfo() {
         String versionInfo = String.format("""
             # CALM Schema Version Information
