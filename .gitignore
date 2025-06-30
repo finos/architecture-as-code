@@ -29,3 +29,4 @@ node_modules/
 
 coverage/
 /cli/test/template-bundles/
+calm-mcp/calm-mcp-quarkus.log
