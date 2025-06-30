@@ -274,7 +274,7 @@ async function validateArchitectureOnly(architectureSchemaLocation: string, meta
                     calmSchemaObject = JSON.parse(rawContent);
                 }
                 
-                logger.debug(`Loaded schema object`);
+                logger.debug('Loaded schema object');
                 
                 const validateSchema = await ajv.compileAsync(calmSchemaObject);
                 
@@ -391,19 +391,6 @@ async function getFileFromPath(filePath: string) {
     }
     const file = await fs.readFile(filePath, 'utf-8');
     return JSON.parse(file);
-}
-
-async function getSchemaFromUrlOrPath(input: string) {
-    const urlPattern = /^https?:\/\//;
-    if (urlPattern.test(input)) {
-        const content = await loadFileFromUrl(input);
-        return typeof content === 'string' ? content : JSON.stringify(content);
-    }
-    // For local files, read as raw string without parsing
-    if (!existsSync(input)) {
-        throw new Error(`File could not be found at ${input}`);
-    }
-    return await fs.readFile(input, 'utf-8');
 }
 
 async function loadFileFromUrl(fileUrl: string) {

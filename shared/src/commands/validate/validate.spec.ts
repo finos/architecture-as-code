@@ -535,16 +535,16 @@ describe('validate - architecture only', () => {
 
         // Create a simple valid architecture with a CALM schema reference
         const validArchitecture = {
-            "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/calm.json",
-            "nodes": [
+            '$schema': 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/calm.json',
+            'nodes': [
                 {
-                    "unique-id": "test-node",
-                    "node-type": "system",
-                    "name": "Test Node",
-                    "description": "A test node"
+                    'unique-id': 'test-node',
+                    'node-type': 'system',
+                    'name': 'Test Node',
+                    'description': 'A test node'
                 }
             ],
-            "relationships": []
+            'relationships': []
         };
 
         fetchMock.mockGlobal().route('http://exist/valid-architecture.json', JSON.stringify(validArchitecture));
