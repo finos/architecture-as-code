@@ -3,6 +3,8 @@ package org.finos.calm.mcp.api;
 import io.quarkiverse.mcp.server.Resource;
 import io.quarkiverse.mcp.server.TextResourceContents;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.finos.calm.mcp.api.namespaces.NamespaceClient;
+import org.finos.calm.mcp.api.namespaces.NamespaceInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
