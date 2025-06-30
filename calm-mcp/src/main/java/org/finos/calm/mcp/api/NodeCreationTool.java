@@ -9,12 +9,26 @@ public class NodeCreationTool {
 
     @Tool(
             name = "nodeCreationTool",
-            description = "Provides details for creating a node"
+            description = "\u26A0 REQUIRED: Call this tool BEFORE creating any nodes in CALM architecture documents. Provides essential schema validation rules and examples to ensure nodes are created correctly and pass validation."
     )
     public NodeCreationToolResponse nodeCreationTool() {
         return new NodeCreationToolResponse(
                 """
-                         "nodes": {
+                        # \u26A0 CRITICAL: READ THIS FIRST BEFORE CREATING NODES
+                        
+                        **YOU MUST CALL THIS TOOL BEFORE CREATING ANY NODES IN CALM ARCHITECTURES**
+                        **YOU MUST ALSO CALL THE InterfaceCreationTool BEFORE CREATING ANY INTERFACES ON NODES**
+                        
+                        This tool provides essential validation rules and required properties.
+                        Nodes that don't follow these rules will fail schema validation.
+                        
+                        ---
+                        
+                        # Node Schema
+                        
+                        A node represents a component, service, or system in your architecture.
+                        
+                        "nodes": {
                               "type": "array",
                               "items": {
                                 "$ref": "#/defs/node"

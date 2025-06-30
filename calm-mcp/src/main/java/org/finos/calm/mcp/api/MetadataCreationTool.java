@@ -30,29 +30,72 @@ public class MetadataCreationTool {
 
     @Tool(
             name = "metadataCreationTool",
-            description = "Provides details for creating metadata in CALM architecture documents"
+            description = "🚨 REQUIRED: Call this tool BEFORE adding metadata to any CALM architecture elements (architecture, nodes, relationships, flows). Provides critical schema validation rules - metadata MUST always be arrays, never objects."
     )
     public MetadataCreationToolResponse metadataCreationTool() {
         return new MetadataCreationToolResponse(
                 """
+                        # 🚨 CRITICAL: READ THIS FIRST BEFORE CREATING METADATA
+                        
+                        **YOU MUST CALL THIS TOOL BEFORE ADDING METADATA TO ANY CALM ELEMENTS**
+                        
+                        This tool provides essential validation rules that prevent schema errors.
+                        Metadata that isn't an array will fail validation with "must be array" errors.
+                        
+                        ---
+                        
+                        # CALM Metadata Schema (release/1.0-rc1)
+                        
+                        ## 🚨 CRITICAL: Metadata is ALWAYS an Array
+                        
+                        ```json
                         "metadata": {
                           "type": "array",
                           "items": {
                             "type": "object"
                           }
                         }
+                        ```
                         
-                        # Metadata can be used in multiple CALM constructs:
+                        ⚠️ **IMPORTANT: Metadata must ALWAYS be an array of objects, never a single object!**
                         
-                        ## 1. Architecture-level metadata (top-level)
+                        ## ✅ CORRECT Format (Array of Objects):
+                        ```json
                         "metadata": [
                           {
                             "key": "value",
                             "another-key": "another-value"
                           }
                         ]
+                        ```
+                        
+                        ## ❌ WRONG Format (Single Object):
+                        ```json
+                        "metadata": {
+                          "key": "value",
+                          "another-key": "another-value"
+                        }
+                        ```
+                        
+                        # Metadata Usage in CALM Constructs:
+                        
+                        ## 1. Architecture-level metadata (top-level)
+                        ```json
+                        {
+                          "$schema": "https://calm.finos.org/release/1.0-rc1/meta/calm.json",
+                          "name": "My Architecture",
+                          "metadata": [
+                            {
+                              "version": "1.0.0",
+                              "created-by": "Architecture Team",
+                              "environment": "production"
+                            }
+                          ]
+                        }
+                        ```
                         
                         ## 2. Node-level metadata
+                        ```json
                         "nodes": [
                           {
                             "unique-id": "node-example",
@@ -68,8 +111,10 @@ public class MetadataCreationTool {
                             ]
                           }
                         ]
+                        ```
                         
                         ## 3. Relationship-level metadata
+                        ```json
                         "relationships": [
                           {
                             "unique-id": "rel-example",
@@ -82,30 +127,31 @@ public class MetadataCreationTool {
                             },
                             "metadata": [
                               {
-                                "bandwidth": "1Gbps",
-                                "encryption": "TLSv1.3",
-                                "last-tested": "2025-06-30"
+                                "protocol": "HTTPS",
+                                "authentication": "Bearer Token",
+                                "rate-limit": "100/minute"
                               }
                             ]
                           }
                         ]
+                        ```
                         
-                        ## 4. Flow-level metadata (in flow.json schema)
+                        ## 4. Flow-level metadata
+                        ```json
                         "flows": [
                           {
                             "unique-id": "flow-example",
-                            "name": "Example Flow",
-                            "description": "Example flow description",
-                            "transitions": [...],
+                            "description": "Example flow",
                             "metadata": [
                               {
-                                "business-owner": "Operations Team",
-                                "sla": "2 seconds",
-                                "last-audited": "2025-06-12"
+                                "business-process": "Order Processing",
+                                "sla": "99.9% uptime",
+                                "compliance": "PCI-DSS"
                               }
                             ]
                           }
                         ]
+                        ```
                         """,
                 """
                         # Architecture-level metadata example
@@ -177,27 +223,58 @@ public class MetadataCreationTool {
                         }
                         """,
                 """
-                        Metadata in CALM 1.0-rc1 is defined as an array of objects, providing flexible key-value storage for enriching architecture models.
+                        # CALM Metadata Guidelines
                         
-                        Key characteristics:
-                        • Schema: Array of objects with no predefined structure
-                        • Flexibility: Can contain any key-value pairs relevant to your architecture
-                        • Scope: Available at architecture, node, relationship, and flow levels
-                        • Purpose: Enrich models with operational, compliance, and business context
+                        ## 🚨 CRITICAL REQUIREMENT: Always Use Arrays
                         
-                        Common metadata use cases:
-                        • Operational data: versions, owners, deployment info, resource limits
-                        • Compliance: regulatory requirements, audit dates, certifications
-                        • Business context: SLAs, business owners, criticality levels
-                        • Technical details: frameworks, runtimes, monitoring, health checks
-                        • Infrastructure: deployment targets, scaling info, networking details
+                        Metadata in CALM 1.0-rc1 is **ALWAYS** defined as an array of objects. This is a strict schema requirement that cannot be violated.
                         
-                        Best practices:
+                        ### ✅ CORRECT: Array Format
+                        ```json
+                        "metadata": [
+                          {
+                            "version": "1.0.0",
+                            "owner": "Platform Team"
+                          }
+                        ]
+                        ```
+                        
+                        ### ❌ WRONG: Object Format
+                        ```json
+                        "metadata": {
+                          "version": "1.0.0",
+                          "owner": "Platform Team"
+                        }
+                        ```
+                        
+                        ## Key Characteristics:
+                        • **Schema**: Array of objects with no predefined structure
+                        • **Flexibility**: Can contain any key-value pairs relevant to your architecture
+                        • **Scope**: Available at architecture, node, relationship, and flow levels
+                        • **Purpose**: Enrich models with operational, compliance, and business context
+                        • **Validation**: Must always be an array, even for single metadata objects
+                        
+                        ## Common Use Cases:
+                        • **Operational**: versions, owners, deployment info, resource limits, health checks
+                        • **Compliance**: regulatory requirements, audit dates, certifications, data classification
+                        • **Business**: SLAs, business owners, criticality levels, cost centers
+                        • **Technical**: frameworks, runtimes, monitoring, infrastructure details
+                        • **Deployment**: environments, scaling info, networking, container details
+                        
+                        ## Validation Rules:
+                        1. **Always use array syntax**: `"metadata": [...]` never `"metadata": {...}`
+                        2. **Objects within arrays**: Each array item must be an object `{}`
+                        3. **Flexible content**: No restrictions on object properties or structure
+                        4. **Multiple objects allowed**: Can have multiple metadata objects in the array
+                        5. **Empty arrays allowed**: `"metadata": []` is valid if no metadata needed
+                        
+                        ## Best Practices:
                         • Use consistent naming conventions across your organization
                         • Include timestamps in ISO 8601 format for date/time values
                         • Group related metadata logically within single objects
                         • Consider tooling that can consume and validate your metadata structure
                         • Use metadata to drive automation, monitoring, and compliance reporting
+                        • Always validate your CALM documents against the schema
                         """
         );
     }
