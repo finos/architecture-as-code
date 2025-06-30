@@ -70,6 +70,12 @@ public class CalmPromptResources {
         return loadMarkdownResource("/prompts/rules.md", "calm://prompts/rules");
     }
 
+    @Resource(uri = "calm://prompts/generation-guidance", description = "CALM guide for how to create archiecture documents and patterns")
+    public TextResourceContents getGenerationGuidance()
+    {
+        return loadMarkdownResource("/prompts/generation-guidance.md", "calm://prompts/generation-guidance");
+    }
+
     /**
      * Helper method to load markdown resources from the classpath.
      * 
