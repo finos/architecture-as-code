@@ -13,7 +13,7 @@ public interface ArchitectureClient {
 
     @POST
     @Path("/calm/namespaces/{namespace}/architectures/{architectureId}/versions/{version}")
-    void postArchitecture(
+    void postNewArchitectureVersion(
             @PathParam("namespace") String namespace,
             @PathParam("architectureId") String architectureId,
             @PathParam("version") String version,

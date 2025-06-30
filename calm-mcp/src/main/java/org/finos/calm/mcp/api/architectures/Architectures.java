@@ -25,4 +25,17 @@ public class Architectures {
                 .map(ArchitecturesInformation::new)
                 .toList();
     }
+
+    @Tool(
+            name = "postNewArchitecture",
+            description = "Create a brand new architecture defined using CALM under a given namespace."
+    )
+    public String postNewArchitecture(String architecture, String namespace) {
+        try {
+            architecturesClient.postNewArchitecture(namespace, architecture);
+            return "Created a new architecture in the [%s] namespace".formatted(namespace);
+        } catch (Exception e) {
+            return "Architecture post failed with error: %s".formatted(e.getMessage());
+        }
+    }
 }

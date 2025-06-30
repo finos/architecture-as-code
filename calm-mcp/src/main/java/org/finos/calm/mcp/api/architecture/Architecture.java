@@ -22,18 +22,19 @@ public class Architecture {
     }
 
     @Tool(
-            name = "postArchitecture",
+            name = "postNewArchitectureVersion",
             description = "Post a new version of a CALM architecture under a given namespace and architecture ID. " +
                     "To make this post request, you need the namespace, architecture ID for the architecture you're posting to. " +
                     "You also need to specify a new semantic version. Finally you need to provide a string which is the " +
                     "CALM architecture document called 'architecture'."
     )
-    public String postArchitecture(String architecture, String namespace, String architectureId, String version) {
+    public String postNewArchitectureVersion(String architecture, String namespace, String architectureId, String version) {
         try {
-            architectureClient.postArchitecture(namespace, architectureId, version, architecture);
+            architectureClient.postNewArchitectureVersion(namespace, architectureId, version, architecture);
+            return "A new version [%s] of architecture [%s] was created in the [%s] namespace"
+                    .formatted(version, architectureId, namespace);
         } catch (Exception e) {
             return "Architecture post failed with error: %s".formatted(e.getMessage());
         }
-        return "A new version [%s] of architecture [%s] was created in the [%s] namespace".formatted(version, architectureId, namespace);
     }
 }
