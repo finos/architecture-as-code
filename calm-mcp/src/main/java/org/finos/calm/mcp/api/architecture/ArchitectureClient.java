@@ -1,8 +1,6 @@
 package org.finos.calm.mcp.api.architecture;
 
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
@@ -12,4 +10,13 @@ public interface ArchitectureClient {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/calm/namespaces/{namespace}/architectures/{architectureId}/versions/{version}")
     String getArchitecture(String namespace, String architectureId, String version);
+
+    @POST
+    @Path("/calm/namespaces/{namespace}/architectures/{architectureId}/versions/{version}")
+    void postArchitecture(
+            @PathParam("namespace") String namespace,
+            @PathParam("architectureId") String architectureId,
+            @PathParam("version") String version,
+            String architecture
+    );
 }
