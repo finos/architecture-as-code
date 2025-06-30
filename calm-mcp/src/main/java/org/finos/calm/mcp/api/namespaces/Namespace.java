@@ -1,4 +1,4 @@
-package org.finos.calm.mcp.api;
+package org.finos.calm.mcp.api.namespaces;
 
 import io.quarkiverse.mcp.server.Tool;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -16,7 +16,9 @@ public class Namespace {
 
     @Tool(
             name = "getNamespaces",
-            description = "Returns a list of namespace identifiers in CALM. Namespaces represent logical groups of architecture models, such as controls, patterns, or specifications tied to a specific team, function, or domain."
+            description = "Returns a list of namespace identifiers in CALM. Namespaces represent logical groups of " +
+                    "architecture models, such as controls, patterns, or specifications tied " +
+                    "to a specific team, function, or domain."
     )
     public List<NamespaceInformation> getNamespaces() {
         return namespaceClient.getNamespaces().getValues()

@@ -1,12 +1,12 @@
-package org.finos.calm.mcp.api;
+package org.finos.calm.mcp.api.architectureVersions;
 
-public class NamespaceInformation {
+public class VersionsInformation {
     private String name;
     private String description;
 
-    public NamespaceInformation(String name) {
+    public VersionsInformation(String name) {
         this.name = name;
-        this.description = "Namespace " + name + " grouping associated CALM documents together under ownership. For example patterns, architectures";
+        this.description = "Version " + name + " represents a semantic version of a CALM resource. For example 1.0.0 or 1.4.2 as a more recent version.";
     }
 
     public String getName() {

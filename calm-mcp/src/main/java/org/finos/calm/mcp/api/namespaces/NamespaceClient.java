@@ -1,4 +1,4 @@
-package org.finos.calm.mcp.api;
+package org.finos.calm.mcp.api.namespaces;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
