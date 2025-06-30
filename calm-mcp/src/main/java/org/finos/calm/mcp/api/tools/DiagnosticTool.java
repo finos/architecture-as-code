@@ -1,4 +1,4 @@
-package org.finos.calm.mcp.api;
+package org.finos.calm.mcp.api.tools;
 
 import io.quarkiverse.mcp.server.Tool;
 import jakarta.inject.Inject;
@@ -39,7 +39,7 @@ public class DiagnosticTool {
             
         } catch (Exception e) {
             result.append("❌ ERROR: ").append(e.getMessage()).append("\n");
-            result.append("Stack trace: ").append(e.toString()).append("\n");
+            result.append("Stack trace: ").append(e).append("\n");
         }
         
         return result.toString();

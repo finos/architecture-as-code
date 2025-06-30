@@ -8,7 +8,7 @@ import java.util.List;
  * @param <T> the type of the values
  */
 public class ValueWrapper<T> {
-    private List<T> values;
+    private final List<T> values;
 
     public ValueWrapper(List<T> values) {
         this.values = values;
