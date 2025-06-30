@@ -1,4 +1,4 @@
-package org.finos.calm.mcp.api;
+package org.finos.calm.mcp.api.tools;
 
 import io.quarkiverse.mcp.server.Tool;
 

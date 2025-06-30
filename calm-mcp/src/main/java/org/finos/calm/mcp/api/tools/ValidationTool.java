@@ -1,4 +1,4 @@
-package org.finos.calm.mcp.api;
+package org.finos.calm.mcp.api.tools;
 
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
@@ -24,10 +24,10 @@ public class ValidationTool {
     private final Logger log = LoggerFactory.getLogger(ValidationTool.class);
 
     public static class ValidationResult {
-        private boolean success;
-        private String output;
-        private String error;
-        private int exitCode;
+        private final boolean success;
+        private final String output;
+        private final String error;
+        private final int exitCode;
 
         public ValidationResult(boolean success, String output, String error, int exitCode) {
             this.success = success;
