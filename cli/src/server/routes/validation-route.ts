@@ -1,9 +1,5 @@
 import {SchemaDirectory,  initLogger, validate} from '@finos/calm-shared';
 import { Router, Request, Response } from 'express';
-import { promises as fs } from 'fs';
-import path from 'path';
-import os, { arch } from 'os';
-import { v4 as uuidv4 } from 'uuid';
 import winston from 'winston';
 import { ValidationOutcome } from '@finos/calm-shared';
 import rateLimit from 'express-rate-limit';

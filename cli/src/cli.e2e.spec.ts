@@ -369,7 +369,7 @@ describe('CLI Integration Tests', () => {
     }
 
     // Utility to recursively remove specific line/character fields from JSON
-    function removeLineNumbers(obj: any) {
+    function removeLineNumbers(obj: object) {
         const fieldsToRemove = ['line_start', 'line_end', 'character_start', 'character_end'];
         if (Array.isArray(obj)) {
             obj.forEach(removeLineNumbers);

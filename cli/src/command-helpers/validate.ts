@@ -6,7 +6,7 @@ import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
 import {Command} from 'commander';
 import { ValidateOutputFormat } from '@finos/calm-shared/dist/commands/validate/validate';
-import { buildSchemaDirectory, loadPatternJson, parseDocumentLoaderConfig } from '../cli';
+import { loadPatternJson, parseDocumentLoaderConfig } from '../cli';
 import { buildDocumentLoader } from '@finos/calm-shared/dist/document-loader/document-loader';
 
 export interface ValidateOptions {

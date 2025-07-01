@@ -54,6 +54,7 @@ vi.mock('@finos/calm-shared/dist/document-loader/document-loader', async () => (
 describe('runValidate', () => {
     beforeEach(() => {
         vi.resetAllMocks();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         process.exit = mocks.processExit as any;
     });
 
