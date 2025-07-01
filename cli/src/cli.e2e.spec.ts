@@ -254,7 +254,7 @@ describe('CLI Integration Tests', () => {
 
         // This will enforce that people verify the getting-started guide works prior to any cli change
         const { stdout } = await execPromise(calm('--version'));
-        expect(stdout.trim()).toMatch('0.7.8'); // basic semver check
+        expect(stdout.trim()).toMatch('0.7.9'); // basic semver check
 
         //STEP 1: Generate Architecture From Pattern
         const inputPattern = path.resolve(GETTING_STARTED_DIR, 'conference-signup.pattern.json');

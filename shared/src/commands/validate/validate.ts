@@ -138,7 +138,7 @@ export async function validate(
         } else if (jsonSchemaLocation) {
             return await validatePatternOnly(jsonSchemaLocation, metaSchemaPath, debug);
         } else if (jsonSchemaArchitectureLocation) {
-            return await validateArchitectureOnly(jsonSchemaArchitectureLocation);
+            return await validateArchitectureOnly(jsonSchemaArchitectureLocation, metaSchemaPath, debug);
         } else {
             logger.debug('You must provide at least an architecture or a pattern');
             throw new Error('You must provide at least an architecture or a pattern');
@@ -221,16 +221,87 @@ async function validatePatternOnly(jsonSchemaLocation: string, metaSchemaPath: s
 
 /**
  * Run the spectral validations for the case where only the architecture is provided.
+ * When no pattern is provided, validate the architecture against the CALM schema specified in its $schema property.
  * 
  * @param architectureSchemaLocation - The location of the architecture schema.
- * @returns the validation outcome with the results of the spectral validation.
+ * @param metaSchemaPath - The path of the meta schemas to use for ajv (optional).
+ * @param debug - The flag to enable debug logging (optional).
+ * @returns the validation outcome with the results of the spectral validation and JSON schema validation.
  */
-async function validateArchitectureOnly(architectureSchemaLocation: string): Promise<ValidationOutcome> {
-    logger.debug('Pattern was not provided, only the Architecture will be validated');
+async function validateArchitectureOnly(architectureSchemaLocation: string, metaSchemaPath?: string, debug: boolean = false): Promise<ValidationOutcome> {
+    logger.debug('Pattern was not provided, validating Architecture against its specified CALM schema');
     
     const jsonSchemaArchitecture = await getFileFromUrlOrPath(architectureSchemaLocation);
-    const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(jsonSchemaArchitecture, validationRulesForArchitecture); 
-    return new ValidationOutcome([], spectralResultForArchitecture.spectralIssues, spectralResultForArchitecture.errors, spectralResultForArchitecture.warnings);
+    const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(jsonSchemaArchitecture, validationRulesForArchitecture);
+    
+    let jsonSchemaValidations = [];
+    let errors = spectralResultForArchitecture.errors;
+    const warnings = spectralResultForArchitecture.warnings;
+    
+    logger.debug(`metaSchemaPath provided: ${metaSchemaPath}`);
+    
+    // If metaSchemaPath is provided, attempt to validate against the CALM schema specified in the architecture
+    if (metaSchemaPath) {
+        logger.debug('Attempting CALM schema validation');
+        try {
+            const architectureObj = typeof jsonSchemaArchitecture === 'string' ? JSON.parse(jsonSchemaArchitecture) : jsonSchemaArchitecture;
+            const schemaUrl = architectureObj.$schema;
+            
+            logger.debug(`Parsed architecture object, $schema: ${schemaUrl}`);
+            
+            if (schemaUrl) {
+                logger.debug(`Found $schema reference: ${schemaUrl}`);
+                logger.debug('Validating architecture against its specified CALM schema');
+                
+                const schemaDirectory = await loadMetaSchemas(metaSchemaPath, debug);
+                const ajv = buildAjv2020(schemaDirectory, debug);
+                
+                // Load the schema from the URL specified in the architecture
+                logger.debug(`Loading schema from: ${schemaUrl}`);
+                
+                // For schema loading, we need to handle both URL and local file cases
+                let calmSchemaObject;
+                const urlPattern = /^https?:\/\//;
+                if (urlPattern.test(schemaUrl)) {
+                    const content = await loadFileFromUrl(schemaUrl);
+                    calmSchemaObject = typeof content === 'string' ? JSON.parse(content) : content;
+                } else {
+                    // For local files, read as raw string and parse
+                    if (!existsSync(schemaUrl)) {
+                        throw new Error(`Schema file could not be found at ${schemaUrl}`);
+                    }
+                    const rawContent = await fs.readFile(schemaUrl, 'utf-8');
+                    calmSchemaObject = JSON.parse(rawContent);
+                }
+                
+                logger.debug('Loaded schema object');
+                
+                const validateSchema = await ajv.compileAsync(calmSchemaObject);
+                
+                logger.debug('Compiled schema, running validation');
+                const validationResult = validateSchema(architectureObj);
+                logger.debug(`Validation result: ${validationResult}`);
+                
+                if (!validationResult) {
+                    logger.debug(`JSON Schema validation raw output: ${prettifyJson(validateSchema.errors)}`);
+                    errors = true;
+                    jsonSchemaValidations = convertJsonSchemaIssuesToValidationOutputs(validateSchema.errors);
+                    logger.debug(`Converted ${jsonSchemaValidations.length} validation errors`);
+                }
+            } else {
+                logger.debug('No $schema property found in architecture document, skipping CALM schema validation');
+            }
+        } catch (error) {
+            logger.debug(`Error during CALM schema validation: ${error.message}`);
+            logger.debug(`Error stack: ${error.stack}`);
+            // Don't fail the entire validation if schema validation fails - just log and continue with spectral validation
+        }
+    } else {
+        logger.debug('No metaSchemaPath provided, skipping CALM schema validation');
+    }
+    
+    logger.debug(`Returning validation outcome with ${jsonSchemaValidations.length} JSON schema validations, errors: ${errors}`);
+    return new ValidationOutcome(jsonSchemaValidations, spectralResultForArchitecture.spectralIssues, errors, warnings);
 }
 
 function extractSpectralRuleNames(): string[] {

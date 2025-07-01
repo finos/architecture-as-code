@@ -528,8 +528,45 @@ describe('validate - architecture only', () => {
         expect(response.allValidationOutputs()).not.toBeNull();
         expect(response.allValidationOutputs().length).toBe(0);
     });
-});
 
+    it('validates architecture against schema specified in $schema property when no pattern provided', async () => {
+        const expectedSpectralOutput: ISpectralDiagnostic[] = [];
+        mockRunFunction.mockReturnValue(expectedSpectralOutput);
+
+        // Create a simple valid architecture with a CALM schema reference
+        const validArchitecture = {
+            '$schema': 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/calm.json',
+            'nodes': [
+                {
+                    'unique-id': 'test-node',
+                    'node-type': 'system',
+                    'name': 'Test Node',
+                    'description': 'A test node'
+                }
+            ],
+            'relationships': []
+        };
+
+        fetchMock.mockGlobal().route('http://exist/valid-architecture.json', JSON.stringify(validArchitecture));
+        
+        // Mock the CALM schema
+        const calmSchema = readFileSync(path.resolve(__dirname, '../../../test_fixtures/calm/calm.json'), 'utf8');
+        fetchMock.mockGlobal().route('https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/calm.json', calmSchema);
+
+        // Mock the core schema
+        const coreSchema = readFileSync(path.resolve(__dirname, '../../../test_fixtures/calm/core.json'), 'utf8');
+        fetchMock.mockGlobal().route('https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/core.json', coreSchema);
+
+        const response = await validate('http://exist/valid-architecture.json', '', metaSchemaLocation, false);
+        
+        expect(response).not.toBeNull();
+        expect(response).not.toBeUndefined();
+        
+        // For a valid architecture, we should not have errors
+        expect(response.hasErrors).toBeFalsy();
+        expect(response.hasWarnings).toBeFalsy();
+    });
+});
 
 function buildISpectralDiagnostic(code: string, message: string, severity: number): ISpectralDiagnostic {
     return {

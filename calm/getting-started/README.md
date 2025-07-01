@@ -89,7 +89,7 @@ Verify the installation.
 ```shell
 calm --version
 ```
-This getting started has been verified to work against 0.7.8 of the cli.
+This getting started has been verified to work against 0.7.9 of the cli.
 
 ---
 
