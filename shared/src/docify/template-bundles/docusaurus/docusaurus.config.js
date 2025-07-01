@@ -1,4 +1,4 @@
-/* eslint-disable no-undef */
+/* eslint-disable @typescript-eslint/no-require-imports, no-undef */
 import remarkReplaceLinks from './src/remark/remark-replace-links';
 
 module.exports = {
