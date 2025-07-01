@@ -159,11 +159,12 @@ export async function buildSchemaDirectory(docLoader: DocumentLoader, debug: boo
 }
 
 export async function loadPatternJson(patternAccessor: string, docLoader: DocumentLoader, debug: boolean): Promise<object> {
+    let url: URL;
     try {
-        const url = new URL(patternAccessor);
-        return await loadPatternFromCalmHub(url.href, docLoader, debug);
+        url = new URL(patternAccessor);
     } catch (_) {
         // If the pattern is not a URL, it must be a file path
         return await loadJsonFromFile(patternAccessor, debug);
     }
+    return await loadPatternFromCalmHub(url.href, docLoader, debug);
 }
