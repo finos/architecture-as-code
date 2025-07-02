@@ -63,7 +63,6 @@ export class ValidationRouter {
             return res.status(201).type('json').send(outcome);
         } catch (error) {
             return res.status(500).type('json').send(new ErrorResponse(error.message));
-        } finally {
         }
     };
 }
