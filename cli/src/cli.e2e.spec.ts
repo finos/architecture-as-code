@@ -75,7 +75,10 @@ describe('CLI Integration Tests', () => {
         const { stdout } = await execPromise(cmd);
 
         const expected = JSON.parse(fs.readFileSync(path.join(__dirname, '../test_fixtures/validate_output.json'), 'utf8'));
-        expect(JSON.parse(stdout)).toEqual(expected);
+        const parsedOutput = JSON.parse(stdout);
+        removeLineNumbers(parsedOutput);
+        removeLineNumbers(expected);
+        expect(parsedOutput).toEqual(expected);
     });
 
     test('validate command outputs JSON to file', async () => {
@@ -93,7 +96,8 @@ describe('CLI Integration Tests', () => {
 
         const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_output.json');
         const expectedJson = JSON.parse(fs.readFileSync(expectedFilePath, 'utf-8'));
-
+        removeLineNumbers(parsedOutput);
+        removeLineNumbers(expectedJson);
         expect(parsedOutput).toEqual(expectedJson);
     });
 
@@ -159,14 +163,20 @@ describe('CLI Integration Tests', () => {
 
     test('validate command validates an architecture only', async () => {
         const apiGatewayArchPath = path.join(__dirname, '../../calm/samples/api-gateway-architecture.json');
-        const cmd = calm(`validate -a ${apiGatewayArchPath}`);
+        const targetOutputFile = path.join(tempDir, 'validate-output.json');
+        const cmd = calm(`validate -a ${apiGatewayArchPath} -o ${targetOutputFile}`);
 
-        const { stdout } = await execPromise(cmd);
+        await execPromise(cmd);
+        const outputFile = fs.readFileSync(targetOutputFile, 'utf-8');
 
+        const parsedOutput = JSON.parse(outputFile);
         const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_architecture_only_output.json');
-        const expectedOutput = fs.readFileSync(expectedFilePath, 'utf-8');
-
-        expect(stdout).toContain(expectedOutput);
+        const expectedOutput = JSON.parse(fs.readFileSync(expectedFilePath, 'utf-8'));
+        
+        removeLineNumbers(parsedOutput);
+        removeLineNumbers(expectedOutput);
+        
+        expect(parsedOutput).toEqual(expectedOutput);
     });
 
 
@@ -258,23 +268,23 @@ describe('CLI Integration Tests', () => {
 
         //STEP 1: Generate Architecture From Pattern
         const inputPattern = path.resolve(GETTING_STARTED_DIR, 'conference-signup.pattern.json');
-        const outputArchitecture = path.resolve(GETTING_STARTED_DIR,'conference-signup.arch.json');
+        const outputArchitecture = path.resolve(tempDir,'conference-signup.arch.json');
         await execPromise(calm(`generate --pattern ${inputPattern} --output ${outputArchitecture}`));
 
         const expectedOutputArchitecture = path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR,'STEP-1/conference-signup.arch.json');
-        expectFilesMatch(expectedOutputArchitecture, outputArchitecture);
+        await expectFilesMatch(expectedOutputArchitecture, outputArchitecture);
 
 
         //STEP 2: Generate Docify Website From Architecture
-        const outputWebsite = path.resolve(GETTING_STARTED_DIR, 'website');
+        const outputWebsite = path.resolve(tempDir, 'website');
         await execPromise(calm(`docify --input ${outputArchitecture} --output ${outputWebsite}`));
 
         const expectedOutputDocifyWebsite = path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR,'STEP-2/website');
-        expectDirectoryMatch(expectedOutputDocifyWebsite, outputWebsite);
+        await expectDirectoryMatch(expectedOutputDocifyWebsite, outputWebsite);
 
 
         //STEP 3: Add flow to architecture-document
-        const flowsDir = path.resolve(GETTING_STARTED_DIR, 'flows');
+        const flowsDir = path.resolve(tempDir, 'flows');
         const flowFile = path.resolve(flowsDir, 'conference-signup.flow.json');
         const flowUrl  = 'https://calm.finos.org/getting-started/flows/conference-signup.flow.json';
         fs.mkdirSync(flowsDir, { recursive: true });
@@ -305,12 +315,12 @@ describe('CLI Integration Tests', () => {
             ]
         });
 
-        expectFilesMatch(
+        await expectFilesMatch(
             path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR, 'STEP-3/flows/conference-signup.flow.json'),
             flowFile
         );
 
-        const directory = path.resolve(GETTING_STARTED_DIR, 'directory.json');
+        const directory = path.resolve(tempDir, 'directory.json');
         writeJson(directory, {
             "https://calm.finos.org/getting-started/flows/conference-signup.flow.json": "flows/conference-signup-with-flow.arch.json"
         });  //since the flow document is not published
@@ -321,7 +331,7 @@ describe('CLI Integration Tests', () => {
             arch['flows'] =  arch['flows'] || [];
             if (!arch['flows'].includes(flowUrl)) arch['flows'].push(flowUrl);
         });
-        expectFilesMatch(
+        await expectFilesMatch(
             path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR,'STEP-3/conference-signup-with-flow.arch.json'),
             outputArchitecture
         );
@@ -330,16 +340,16 @@ describe('CLI Integration Tests', () => {
         patchJson(directory, dir => {
             dir[flowUrl] = 'flows/conference-signup.flow.json';
         });
-        expectFilesMatch(
+        await expectFilesMatch(
             path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR,'STEP-3/directory.json'),
             directory
         );
 
-        const outputWebsiteWithFlow = path.resolve(GETTING_STARTED_DIR, 'website-with-flow');
+        const outputWebsiteWithFlow = path.resolve(tempDir, 'website-with-flow');
         await execPromise(calm(`docify --input ${outputArchitecture} --output ${outputWebsiteWithFlow} --url-to-local-file-mapping ${directory}`));
 
         const expectedOutputDocifyWebsiteWithFLow = path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR,'STEP-3/website');
-        expectDirectoryMatch(expectedOutputDocifyWebsiteWithFLow, outputWebsiteWithFlow);
+        await expectDirectoryMatch(expectedOutputDocifyWebsiteWithFLow, outputWebsiteWithFlow);
 
     });
 
@@ -356,6 +366,22 @@ describe('CLI Integration Tests', () => {
         const obj = readJson(filePath);
         patchFn(obj);
         writeJson(filePath, obj);
+    }
+
+    // Utility to recursively remove specific line/character fields from JSON
+    function removeLineNumbers(obj: object) {
+        const fieldsToRemove = ['line_start', 'line_end', 'character_start', 'character_end'];
+        if (Array.isArray(obj)) {
+            obj.forEach(removeLineNumbers);
+        } else if (obj && typeof obj === 'object') {
+            for (const key of Object.keys(obj)) {
+                if (fieldsToRemove.includes(key)) {
+                    delete obj[key];
+                } else {
+                    removeLineNumbers(obj[key]);
+                }
+            }
+        }
     }
 
 

@@ -1,9 +1,5 @@
-import {SchemaDirectory, initLogger, validate} from '@finos/calm-shared';
+import {SchemaDirectory,  initLogger, validate} from '@finos/calm-shared';
 import { Router, Request, Response } from 'express';
-import { promises as fs } from 'fs';
-import path from 'path';
-import os from 'os';
-import { v4 as uuidv4 } from 'uuid';
 import winston from 'winston';
 import { ValidationOutcome } from '@finos/calm-shared';
 import rateLimit from 'express-rate-limit';
@@ -61,32 +57,15 @@ export class ValidationRouter {
             this.logger.error('Failed to load schema: ' + err);
             return res.status(500).type('json').send(new ErrorResponse('Failed to load schema: ' + err));
         }
-        const tempInstantiation = await createTemporaryFile();
-        const tempPattern = await createTemporaryFile();
         try {
 
-            await fs.writeFile(tempInstantiation, JSON.stringify(architecture, null, 4), { mode: 0o600 });
-            await fs.writeFile(tempPattern, JSON.stringify(foundSchema, null, 4), { mode: 0o600 });
-            const outcome = await validate(tempInstantiation, tempPattern, this.schemaDirectoryPath, true);
+            const outcome = await validate(architecture, foundSchema, this.schemaDirectoryPath, true);
             return res.status(201).type('json').send(outcome);
         } catch (error) {
             return res.status(500).type('json').send(new ErrorResponse(error.message));
-        } finally {
-            [tempInstantiation, tempPattern].forEach(element => {
-                fs.unlink(element).catch((reason) => {
-                    this.logger.warn('Failed to delete temporary file ' + element + ' with error: ' + reason);
-                });
-            });
         }
     };
 }
-
-async function createTemporaryFile(): Promise<string> {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'calm-'));
-    const tempFilePath = path.join(tempDir, `calm-instantiation-${uuidv4()}.json`);
-    return tempFilePath;
-}
-
 
 class ErrorResponse {
     error: string;
