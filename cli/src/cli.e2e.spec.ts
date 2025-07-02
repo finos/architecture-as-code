@@ -349,7 +349,7 @@ describe('CLI Integration Tests', () => {
         await execPromise(calm(`docify --input ${outputArchitecture} --output ${outputWebsiteWithFlow} --url-to-local-file-mapping ${directory}`));
 
         const expectedOutputDocifyWebsiteWithFLow = path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR,'STEP-3/website');
-        await expectDirectoryMatch(expectedOutputDocifyWebsiteWithFLow, outputWebsiteWithFlow)
+        await expectDirectoryMatch(expectedOutputDocifyWebsiteWithFLow, outputWebsiteWithFlow);
 
     });
 
