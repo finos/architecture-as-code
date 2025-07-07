@@ -163,14 +163,14 @@ async function validateArchitectureAgainstPattern(jsonSchemaArchitectureLocation
     const ajv = buildAjv2020(schemaDirectory, debug);
 
     logger.info(`Loading pattern from : ${jsonSchemaLocation}`);
-    const jsonSchema = await getFileFromUrlOrPath(jsonSchemaLocation);
-    const spectralResultForPattern: SpectralResult = await runSpectralValidations(stripRefs(jsonSchema), validationRulesForPattern);
+    const [jsonSchema, jsonSchemaString] = await getFileAndStringFromUrlOrPath(jsonSchemaLocation);
+    const spectralResultForPattern: SpectralResult = await runSpectralValidations(stripRefsFromString(jsonSchemaString), validationRulesForPattern);
     const validateSchema = await ajv.compileAsync(jsonSchema);
 
     logger.info(`Loading architecture from : ${jsonSchemaArchitectureLocation}`);
-    const jsonSchemaArchitecture = await getFileFromUrlOrPath(jsonSchemaArchitectureLocation);
+    const [jsonSchemaArchitecture, jsonSchemaArchitectureString] = await getFileAndStringFromUrlOrPath(jsonSchemaArchitectureLocation);
 
-    const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(jsonSchemaArchitecture, validationRulesForArchitecture);
+    const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(jsonSchemaArchitectureString, validationRulesForArchitecture);
 
     const spectralResult = mergeSpectralResults(spectralResultForPattern, spectralResultForArchitecture);
 
@@ -202,8 +202,8 @@ async function validatePatternOnly(jsonSchemaLocation: string, metaSchemaPath: s
     const schemaDirectory = await loadMetaSchemas(metaSchemaPath, debug);
     const ajv = buildAjv2020(schemaDirectory, debug);
 
-    const patternSchema = await getFileFromUrlOrPath(jsonSchemaLocation);
-    const spectralValidationResults: SpectralResult = await runSpectralValidations(stripRefs(patternSchema), validationRulesForPattern);
+    const [patternSchema, patternSchemaString] = await getFileAndStringFromUrlOrPath(jsonSchemaLocation);
+    const spectralValidationResults: SpectralResult = await runSpectralValidations(stripRefsFromString(patternSchemaString), validationRulesForPattern);
     
     let errors = spectralValidationResults.errors;
     const warnings = spectralValidationResults.warnings;
@@ -322,6 +322,10 @@ export function stripRefs(obj: object): string {
     return JSON.stringify(obj).replaceAll('$ref', 'ref');
 }
 
+export function stripRefsFromString(jsonString: string): string {
+    return jsonString.replaceAll('"$ref"', '"ref"');
+}
+
 export function sortSpectralIssueBySeverity(issues: ISpectralDiagnostic[]): void {
     issues.sort((issue1: ISpectralDiagnostic, issue2: ISpectralDiagnostic) =>
         issue1.severity.valueOf() - issue2.severity.valueOf()
@@ -350,8 +354,8 @@ export function convertSpectralDiagnosticToValidationOutputs(spectralIssues: ISp
             issue.message,
             '/' + issue.path.join('/'),
             '',
-            startRange.line,
-            endRange.line,
+            startRange.line + 1, // Convert from 0-based to 1-based line numbers
+            endRange.line + 1,   // Convert from 0-based to 1-based line numbers
             startRange.character,
             endRange.character
         );
@@ -385,12 +389,34 @@ async function getFileFromUrlOrPath(input: string) {
     return await getFileFromPath(input);
 }
 
+
+async function getFileAndStringFromUrlOrPath(input: string): Promise<[object, string]> {
+    const urlPattern = /^https?:\/\//;
+    let jsonString: string;
+    
+    if (urlPattern.test(input)) {
+        jsonString = await loadFileStringFromUrl(input);
+    } else {
+        jsonString = await getFileStringFromPath(input);
+    }
+    
+    const jsonObject = JSON.parse(jsonString);
+    return [jsonObject, jsonString];
+}
+
 async function getFileFromPath(filePath: string) {
     if (!existsSync(filePath)) {
         throw new Error(`File could not be found at ${filePath}`);
     }
     const file = await fs.readFile(filePath, 'utf-8');
     return JSON.parse(file);
+}
+
+async function getFileStringFromPath(filePath: string): Promise<string> {
+    if (!existsSync(filePath)) {
+        throw new Error(`File could not be found at ${filePath}`);
+    }
+    return await fs.readFile(filePath, 'utf-8');
 }
 
 async function loadFileFromUrl(fileUrl: string) {
@@ -400,6 +426,14 @@ async function loadFileFromUrl(fileUrl: string) {
     }
     const body = await res.json();
     return body;
+}
+
+async function loadFileStringFromUrl(fileUrl: string): Promise<string> {
+    const res = await fetch(fileUrl);
+    if (!res.ok) {
+        throw new Error(`The http request to ${fileUrl} did not succeed. Status code ${res.status}`);
+    }
+    return await res.text();
 }
 
 /**

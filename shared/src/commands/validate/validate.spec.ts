@@ -117,7 +117,7 @@ describe('validation support functions', () => {
                         'destination',
                         'interface'
                     ],
-                    range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
+                    range: { start: { line: 0, character: 1 }, end: { line: 1, character: 1 } }
                 }
             ];
 
@@ -145,7 +145,7 @@ describe('validation support functions', () => {
                     message: 'Must not contain string properties set to the empty string or numerical properties set to zero',
                     severity: 0,
                     path: [],
-                    range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
+                    range: { start: { line: 0, character: 1 }, end: { line: 1, character: 1 } }
                 }
             ];
 
@@ -342,7 +342,7 @@ describe('validate pattern and architecture', () => {
                 message: 'Must not contain string properties set to the empty string or numerical properties set to zero',
                 severity: 0,
                 path: ['/nodes'],
-                range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
+                range: { start: { line: 0, character: 1 }, end: { line: 1, character: 1 } }
             }
         ];
 
@@ -369,7 +369,7 @@ describe('validate pattern and architecture', () => {
                 message: 'Must not contain string properties set to the empty string or numerical properties set to zero',
                 severity: 0,
                 path: ['/nodes'],
-                range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
+                range: { start: { line: 0, character: 1 }, end: { line: 1, character: 1 } }
             }
         ];
 
@@ -396,7 +396,7 @@ describe('validate pattern and architecture', () => {
                 message: 'Test warning',
                 severity: 1,
                 path: ['nodes'],
-                range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
+                range: { start: { line: 0, character: 1 }, end: { line: 1, character: 1 } }
             }
         ];
 
@@ -435,7 +435,7 @@ describe('validate pattern only', () => {
                 message: 'Example error',
                 severity: 0,
                 path: ['/nodes'],
-                range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
+                range: { start: { line: 0, character: 1 }, end: { line: 1, character: 1 } }
             }
         ];
 
@@ -494,7 +494,7 @@ describe('validate - architecture only', () => {
                 message: 'Example error',
                 severity: 0,
                 path: ['/nodes'],
-                range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
+                range: { start: { line: 0, character: 1 }, end: { line: 1, character: 1 } }
             }
         ];
 
@@ -581,6 +581,6 @@ function buildISpectralDiagnostic(code: string, message: string, severity: numbe
             'destination',
             'interface'
         ],
-        range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
+        range: { start: { line: 0, character: 1 }, end: { line: 1, character: 1 } }
     };
 }
