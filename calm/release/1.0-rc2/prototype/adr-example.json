@@ -64,8 +64,7 @@
           }
         }
       },
-      "protocol": "HTTPS",
-      "authentication": "OAuth2"
+      "protocol": "HTTPS"
     },
     {
       "unique-id": "api-gateway-idp",
