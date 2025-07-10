@@ -33,8 +33,8 @@
           "description": "Authentication between System A and System B",
           "requirements": [
             {
-              "control-requirement-url": "https://calm.finos.org/release/1.0-rc1/prototype/authentication-control-requirement.json",
-              "control-config-url": "https://calm.finos.org/release/1.0-rc1/prototype/authentication-control-config.json"
+              "control-requirement-url": "https://calm.finos.org/release/1.0-rc2/prototype/authentication-control-requirement.json",
+              "control-config-url": "https://calm.finos.org/release/1.0-rc2/prototype/authentication-control-config.json"
             }
           ]
         }
