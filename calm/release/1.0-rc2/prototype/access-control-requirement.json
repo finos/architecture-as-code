@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/draft/1233/prototype/access-control-requirement.json",
+  "title": "Access Control Requirement",
+  "description": "Requirements for access control implementation",
+  "type": "object",
+  "properties": {
+    "access-model": {
+      "type": "string",
+      "description": "The access control model to implement",
+      "enum": ["RBAC", "ABAC", "MAC", "DAC"]
+    },
+    "multi-factor-authentication": {
+      "type": "boolean",
+      "description": "Whether multi-factor authentication is required"
+    },
+    "session-timeout": {
+      "type": "integer",
+      "description": "Session timeout in minutes",
+      "minimum": 1,
+      "maximum": 1440
+    },
+    "password-policy": {
+      "type": "object",
+      "description": "Password policy requirements",
+      "properties": {
+        "minimum-length": {
+          "type": "integer",
+          "description": "Minimum password length",
+          "minimum": 8
+        },
+        "require-special-chars": {
+          "type": "boolean",
+          "description": "Whether special characters are required"
+        },
+        "require-numbers": {
+          "type": "boolean",
+          "description": "Whether numbers are required"
+        },
+        "require-mixed-case": {
+          "type": "boolean",
+          "description": "Whether mixed case is required"
+        }
+      },
+      "required": [
+        "minimum-length",
+        "require-special-chars",
+        "require-numbers",
+        "require-mixed-case"
+      ]
+    }
+  },
+  "required": [
+    "access-model",
+    "multi-factor-authentication",
+    "session-timeout",
+    "password-policy"
+  ]
+}
