@@ -5,12 +5,12 @@
   "type": "object",
   "allOf": [
     {
-      "$ref": "https://calm.finos.org/release/1.0-rc1/meta/control-requirement.json"
+      "$ref": "https://calm.finos.org/release/1.0-rc2/meta/control-requirement.json"
     }
   ],
   "properties": {
     "expected-message-rate": {
-      "$ref": "https://calm.finos.org/release/1.0-rc1/meta/units.json#/defs/rate-unit",
+      "$ref": "https://calm.finos.org/release/1.0-rc2/meta/units.json#/defs/rate-unit",
       "description": "Define the expected message rate that the flow should handle (e.g., 1000 per second)."
     }
   },

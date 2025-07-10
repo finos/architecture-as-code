@@ -1,5 +1,5 @@
 {
-  "$schema": "https://calm.finos.org/release/1.0-rc1/meta/calm.json",
+  "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
   "nodes": [
     {
       "unique-id": "kafka-service",
@@ -9,7 +9,7 @@
       "interfaces": [
         {
           "unique-id": "int-kafka-001",
-          "interface-definition-url": "https://calm.finos.org/release/1.0-rc1/prototype/interfaces/kafka-topic.json",
+          "interface-definition-url": "https://calm.finos.org/release/1.0-rc2/prototype/interfaces/kafka-topic.json",
           "configuration": {
             "topic": "trade-events",
             "host": "kafka.internal.local",
@@ -26,7 +26,7 @@
       "interfaces": [
         {
           "unique-id": "int-grpc-001",
-          "interface-definition-url": "https://calm.finos.org/release/1.0-rc1/prototype/interfaces/grpc-service.json",
+          "interface-definition-url": "https://calm.finos.org/release/1.0-rc2/prototype/interfaces/grpc-service.json",
           "configuration": {
             "service-name": "TradeService",
             "host": "api.internal.local",

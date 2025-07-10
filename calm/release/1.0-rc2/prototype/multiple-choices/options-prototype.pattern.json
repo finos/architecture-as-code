@@ -1,6 +1,6 @@
 {
-  "$schema": "https://calm.finos.org/release/1.0-rc1/meta/calm.json",
-  "$id": "https://calm.finos.org/release/1.0-rc1/prototype/oneof/options-prototype.pattern.json",
+  "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+  "$id": "https://calm.finos.org/release/1.0-rc2/prototype/oneof/options-prototype.pattern.json",
   "title": "Application A/B/C + Database Pattern",
   "type": "object",
   "properties": {
@@ -12,7 +12,7 @@
         {
           "oneOf": [
             {
-              "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/node",
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
               "type": "object",
               "properties": {
                 "unique-id": {
@@ -30,7 +30,7 @@
               }
             },
             {
-              "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/node",
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
               "type": "object",
               "properties": {
                 "unique-id": {
@@ -52,7 +52,7 @@
         {
           "anyOf": [
             {
-              "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/node",
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
               "type": "object",
               "properties": {
                 "unique-id": {
@@ -70,7 +70,7 @@
               }
             },
             {
-              "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/node",
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
               "type": "object",
               "properties": {
                 "unique-id": {
@@ -90,7 +90,7 @@
           ]
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -108,7 +108,7 @@
           }
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -135,7 +135,7 @@
         {
           "oneOf": [
             {
-              "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/relationship",
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
               "type": "object",
               "properties": {
                 "unique-id": {
@@ -155,7 +155,7 @@
               }
             },
             {
-              "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/relationship",
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
               "type": "object",
               "properties": {
                 "unique-id": {
@@ -177,7 +177,7 @@
           ]
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/relationship",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -197,7 +197,7 @@
           }
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/relationship",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -217,7 +217,7 @@
                     {
                       "oneOf": [
                         {
-                          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/decision",
+                          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/decision",
                           "type": "object",
                           "properties": {
                             "description": {
@@ -236,7 +236,7 @@
                           }
                         },
                         {
-                          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/decision",
+                          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/decision",
                           "type": "object",
                           "properties": {
                             "description": {
@@ -267,7 +267,7 @@
           }
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/relationship",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -287,7 +287,7 @@
                     {
                       "anyOf": [
                         {
-                          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/decision",
+                          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/decision",
                           "type": "object",
                           "properties": {
                             "description": {
@@ -304,7 +304,7 @@
                           }
                         },
                         {
-                          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/decision",
+                          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/decision",
                           "type": "object",
                           "properties": {
                             "description": {

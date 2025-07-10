@@ -1,5 +1,5 @@
 {
-  "$schema": "https://calm.finos.org/release/1.0-rc1/meta/calm.json",
+  "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
   "nodes": [
     {
       "unique-id": "standard-node",
