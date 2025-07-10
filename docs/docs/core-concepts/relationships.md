@@ -33,22 +33,51 @@ Below is an example of a relationship definition connecting a service to a datab
 
 ```json
 {
-  "unique-id": "rel-001",
-  "description": "Payment Service accesses Payment Database",
-  "relationship-type": {
-    "connects": {
-      "source": {
-        "node": "service-123",
-        "interfaces": ["api-interface"]
-      },
-      "destination": {
-        "node": "database-456",
-        "interfaces": ["db-interface"]
-      }
+  "nodes": [
+    {
+      "unique-id": "spring-service",
+      "node-type": "service",
+      "name": "Spring Boot Service",
+      "description": "A Spring Boot microservice that provides business functionality and connects to a database for persistence."
+    },
+    {
+      "unique-id": "postgres-db",
+      "node-type": "database",
+      "name": "PostgreSQLDatabase",
+      "description": "A PostgreSQL database that persistently stores data for the Spring Boot service.",
+      "interfaces": [
+        {
+          "unique-id": "db-interface",
+          "host": "db.example.com",
+          "port": 5432,
+          "database": "example-db",
+          "username": "${DB_USERNAME}",
+          "password": "${DB_PASSWORD}",
+          "schema": "example"
+        }
+      ]
     }
-  },
-  "protocol": "HTTPS",
-  "authentication": "OAuth2"
+  ],
+  "relationships": [
+    {
+      "unique-id": "service-to-db",
+      "description": "The Spring Boot service connects to the PostgreSQL database for persistence.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "spring-service"
+          },
+          "destination": {
+            "node": "postgres-db",
+            "interfaces": [
+              "db-interface"
+            ]
+          }
+        }
+      },
+      "protocol": "JDBC"
+    }
+  ]
 }
 ```
 
@@ -59,3 +88,7 @@ Relationships are crucial for understanding how your architecture functions as a
 - **Map Dependencies**: Clearly illustrate how different components rely on one another, helping identify potential bottlenecks or points of failure.
 - **Define Interactions**: Specify how data flows between systems, aiding in security assessments and performance evaluations.
 - **Encapsulate Complexity**: Use hierarchical relationships to manage complex systems, nesting components where necessary for clarity.
+
+It should be noted that interfaces are not mandatory for defining a relationship between nodes but provide additional detail that tools may require to drive automation capabilities. It is therefore not required for example to define an interface on a node calling another node, that interface may be implicit, but you would likely want to define the interface the client node is calling as that defines a functional interface on the node being called.
+
+You can see this in the example above; the relationship is connecting a service to a database via an explicit interface on the database but implicitly on the service.  
