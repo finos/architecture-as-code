@@ -63,9 +63,6 @@
           },
           "additionalProperties": false
         },
-        "data-classification": {
-          "$ref": "#/defs/data-classification"
-        },
         "run-as": {
           "type": "string"
         },
@@ -164,15 +161,6 @@
         "relationship-type"
       ],
       "additionalProperties": true
-    },
-    "data-classification": {
-      "enum": [
-        "Public",
-        "Confidential",
-        "Highly Restricted",
-        "MNPI",
-        "PII"
-      ]
     },
     "protocol": {
       "enum": [
