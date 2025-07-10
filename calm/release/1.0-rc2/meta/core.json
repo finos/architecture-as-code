@@ -63,9 +63,6 @@
           },
           "additionalProperties": false
         },
-        "run-as": {
-          "type": "string"
-        },
         "interfaces": {
           "type": "array",
           "items": {
