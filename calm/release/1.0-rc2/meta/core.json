@@ -218,9 +218,11 @@
       "type": "object",
       "properties": {
         "source": {
+          "$ref": "interface.json#/defs/node-interface",
           "type": "string"
         },
         "destination": {
+          "$ref": "interface.json#/defs/node-interface",
           "type": "string"
         }
       },

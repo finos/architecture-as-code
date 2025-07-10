@@ -33,6 +33,23 @@
       "required": [
         "unique-id"
       ]
+    },
+    "node-interface": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "type": "string"
+        },
+        "interfaces": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "node"
+      ]
     }
   }
 }
