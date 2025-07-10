@@ -11,11 +11,11 @@
           "type": "string",
           "description": "Unique identifier for this interface instance"
         },
-        "interface-definition-url": {
+        "definition-url": {
           "type": "string",
           "description": "URI of the external schema this interface configuration conforms to"
         },
-        "configuration": {
+        "config": {
           "type": "object",
           "description": "Inline configuration conforming to the external interface schema"
         }
