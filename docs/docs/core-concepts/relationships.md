@@ -24,7 +24,6 @@ Relationships in CALM have several properties that capture the nature and specif
   - **composed-of**: Describes hierarchical relationships, showing how one node is composed of other sub-nodes.
 - **description**: Provides additional context about the nature of the relationship.
 - **protocol**: Defines the protocol used in the connection, such as HTTP, HTTPS, or WebSocket.
-- **authentication**: Specifies authentication methods, like OAuth2 or Certificate, used to secure the interaction.
 - **controls**: Optional policies or constraints that apply to the relationship, such as encryption requirements.
 
 ### Example of a Relationship Definition
