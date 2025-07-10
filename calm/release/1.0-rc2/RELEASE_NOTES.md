@@ -58,6 +58,7 @@ The following built-in interface types have been removed from the schema:
 **Removed Properties:**
 - `data-classification` enum and property removed from relationships
 - `metadata` removed from decision definition
+- `run-as` property removed from node definitions
 
 **Interface Reference Changes:**
 - Node interface references changed from complex `node-interface` objects to simple strings
