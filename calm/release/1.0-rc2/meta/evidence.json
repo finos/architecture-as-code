@@ -19,7 +19,7 @@
             "type": "string"
           }
         },
-        "control-configuration-url": {
+        "control-config-url": {
           "type": "string",
           "description": "URI for the control configuration this evidence relates to"
         }
