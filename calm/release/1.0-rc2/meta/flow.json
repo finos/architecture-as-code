@@ -15,7 +15,7 @@
           "type": "integer",
           "description": "Indicates the sequence of the relationship in the flow"
         },
-        "summary": {
+        "description": {
           "type": "string",
           "description": "Functional summary of what is happening in the transition"
         },
@@ -29,7 +29,7 @@
         "required": [
           "relationship-unique-id",
           "sequence-number",
-          "summary"
+          "description"
         ]
       }
     },
