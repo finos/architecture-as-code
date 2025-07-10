@@ -7,28 +7,28 @@
     "control-detail": {
       "type": "object",
       "properties": {
-        "control-requirement-url": {
+        "requirement-url": {
           "type": "string",
           "description": "The requirement schema that specifies how a control should be defined"
         },
-        "control-config-url": {
+        "config-url": {
           "type": "string",
           "description": "The configuration of how the control requirement schema is met"
         },
-        "control-config": {
+        "config": {
           "type": "object",
           "description": "Inline configuration of how the control requirement schema is met"
         }
       },
       "required": [
-        "control-requirement-url"
+        "requirement-url"
       ],
       "oneOf": [
         {
-          "required": ["control-config-url"]
+          "required": ["config-url"]
         },
         {
-          "required": ["control-config"]
+          "required": ["config"]
         }
       ]
     },
