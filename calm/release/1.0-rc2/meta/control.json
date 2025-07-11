@@ -1,34 +1,34 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://calm.finos.org/release/1.0-rc1/meta/control.json",
+  "$id": "https://calm.finos.org/release/1.0-rc2/meta/control.json",
   "title": "Common Architecture Language Model Controls",
   "description": "Controls model requirements for domains. For example, a security domain contains a series of control requirements",
   "defs": {
     "control-detail": {
       "type": "object",
       "properties": {
-        "control-requirement-url": {
+        "requirement-url": {
           "type": "string",
           "description": "The requirement schema that specifies how a control should be defined"
         },
-        "control-config-url": {
+        "config-url": {
           "type": "string",
           "description": "The configuration of how the control requirement schema is met"
         },
-        "control-config": {
+        "config": {
           "type": "object",
           "description": "Inline configuration of how the control requirement schema is met"
         }
       },
       "required": [
-        "control-requirement-url"
+        "requirement-url"
       ],
       "oneOf": [
         {
-          "required": ["control-config-url"]
+          "required": ["config-url"]
         },
         {
-          "required": ["control-config"]
+          "required": ["config"]
         }
       ]
     },

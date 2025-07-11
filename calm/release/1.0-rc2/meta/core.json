@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://calm.finos.org/release/1.0-rc1/meta/core.json",
+  "$id": "https://calm.finos.org/release/1.0-rc2/meta/core.json",
   "title": "Common Architecture Language Model (CALM) Vocab",
   "properties": {
     "nodes": {
@@ -62,12 +62,6 @@
             }
           },
           "additionalProperties": false
-        },
-        "data-classification": {
-          "$ref": "#/defs/data-classification"
-        },
-        "run-as": {
-          "type": "string"
         },
         "interfaces": {
           "type": "array",
@@ -164,15 +158,6 @@
         "relationship-type"
       ],
       "additionalProperties": true
-    },
-    "data-classification": {
-      "enum": [
-        "Public",
-        "Confidential",
-        "Highly Restricted",
-        "MNPI",
-        "PII"
-      ]
     },
     "protocol": {
       "enum": [
@@ -303,12 +288,6 @@
           }
         },
         "controls": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "metadata": {
           "type": "array",
           "items": {
             "type": "string"

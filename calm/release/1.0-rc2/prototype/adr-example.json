@@ -1,5 +1,5 @@
 {
-  "$schema": "https://calm.finos.org/release/1.0-rc1/meta/calm.json",
+  "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
   "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/pattern/api-gateway-example.json",
   "title": "API Gateway Example",
   "adrs": [
@@ -64,8 +64,7 @@
           }
         }
       },
-      "protocol": "HTTPS",
-      "authentication": "OAuth2"
+      "protocol": "HTTPS"
     },
     {
       "unique-id": "api-gateway-idp",

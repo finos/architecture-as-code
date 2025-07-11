@@ -4,7 +4,7 @@
       "description": "Data security controls for the system",
       "requirements": [
         {
-          "control-requirement-url": "https://calm.finos.org/release/1.0-rc1/prototype/data-encryption-requirement.json",
+          "control-requirement-url": "https://calm.finos.org/release/1.0-rc2/prototype/data-encryption-requirement.json",
           "control-config": {
             "encryption-algorithm": "AES-256",
             "key-rotation-period": "90-days",
@@ -13,8 +13,8 @@
           }
         },
         {
-          "control-requirement-url": "https://calm.finos.org/release/1.0-rc1/prototype/access-control-requirement.json",
-          "control-config-url": "https://calm.finos.org/release/1.0-rc1/prototype/rbac-config.json"
+          "control-requirement-url": "https://calm.finos.org/release/1.0-rc2/prototype/access-control-requirement.json",
+          "control-config-url": "https://calm.finos.org/release/1.0-rc2/prototype/rbac-config.json"
         }
       ]
     }
