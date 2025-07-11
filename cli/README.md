@@ -189,45 +189,95 @@ curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/vali
 
 ## CALM Template
 
-The CALM Template system allows users to generate different machine or human-readable outputs from a CALM model by providing a **template bundle**.
+The CALM Template system allows users to generate documentation and other outputs from a CALM model using simple Handlebars templates with built-in CALM widgets.
 
 ```shell
 calm template --help
 Usage: calm template [options]
 
-Generate files from a CALM model using a Handlebars template bundle.
+Generate files from a CALM model using Handlebars templates with CALM widgets.
 
 Options:
   --input <path>                      Path to the CALM model JSON file.
-  --bundle <path>                     Path to the template bundle directory.
-  --output <path>                     Path to output directory.
+  --template <path>                   Path to a single Handlebars template file.
+  --bundle <path>                     Path to a template bundle directory (advanced usage).
+  --output <path>                     Path to output file or directory.
   --url-to-local-file-mapping <path>  Path to mapping file which maps URLs to local paths.
   -v, --verbose                       Enable verbose logging. (default: false)
   -h, --help                          display help for command
 ```
 
-### Creating a Template Bundle
+### Simple Template Usage (Recommended)
 
-A template bundle consists of:
-
-- `index.json`: Defines the structure of the template and how it maps to CALM model elements.
-- A **CalmTemplateTransformer** implementation: Transforms the CALM model into a format that can be rendered by Handlebars.
-- Handlebar templates define the final output format.
-- The `--url-to-local-file-mapping` option allows you to provide a JSON file that maps external URLs to local files.  
-   This is useful when working with files that are not yet published but are referenced in the model.
-
-  Example content
-
-      ```json
-      {
-          "https://calm.finos.org/docuflow/flow/document-upload": "flows/flow-document-upload.json"
-      }
-      ```
-
-  Sample usage would be as follows (assuming at root of project)
+The easiest way to use the template command is with a single template file that uses built-in CALM widgets:
 
 ```shell
-calm template --input ./cli/test_fixtures/template/model/document-system.json   --bundle cli/test_fixtures/template/template-bundles/doc-system   --output one_pager   --url-to-local-file-mapping cli/test_fixtures/template/model/url-to-file-directory.json -v
+calm template --input architecture.json --template my-template.md --output documentation.md
+```
+
+#### Template Syntax
+
+Templates use intuitive Handlebars syntax with built-in CALM widgets:
+
+```handlebars
+# {{ architecture.title }}
+
+## Services
+{{ table architecture.nodes filter='node-type:service' }}
+
+## API Gateway Details
+**Name:** {{ architecture.nodes['api-gateway'].name }}
+**Description:** {{ architecture.nodes['api-gateway'].description }}
+
+## Controls
+{{ table architecture.nodes['api-gateway'].controls }}
+
+## Individual Control Requirements
+{{ table architecture.nodes['api-gateway'].controls.security.requirements[0] }}
+
+## Architecture Metadata
+{{ table architecture.metadata }}
+```
+
+#### Available Widgets
+
+- **`{{ table data }}`** - Generate markdown tables from any data
+- **`{{ table data filter='property:value' }}`** - Filter data before creating tables
+- **`{{ table data columns='col1,col2,col3' }}`** - Specify which columns to include
+- **`{{ architecture.nodes['unique-id'] }}`** - Access nodes by unique ID
+- **`{{ architecture.nodes['id'].controls['control-name'] }}`** - Access specific controls
+- **`{{ architecture.nodes['id'].controls.name.requirements[0] }}`** - Access array elements
+
+#### Schema-Based Controls
+
+Controls are automatically resolved from their schema URLs and displayed as readable tables:
+
+```handlebars
+<!-- Single control shows schema-based key-value table -->
+{{ table architecture.nodes['payment-service'].controls['pci-compliance'] }}
+
+<!-- Individual requirements show detailed property tables -->
+{{ table architecture.nodes['api-gateway'].controls.security.requirements[0] }}
+```
+
+### Advanced Template Bundle Usage
+
+For complex scenarios, you can still use template bundles with custom transformers:
+
+```shell
+calm template --input architecture.json --bundle ./template-bundle --output ./output
+```
+
+A template bundle consists of:
+- `index.json`: Defines the bundle structure
+- Custom transformer implementation
+- Multiple Handlebars template files
+- The `--url-to-local-file-mapping` option for external URL mapping
+
+```json
+{
+    "https://calm.finos.org/docuflow/flow/document-upload": "flows/flow-document-upload.json"
+}
 ```
 
 ## CALM Docify

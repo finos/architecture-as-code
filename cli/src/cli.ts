@@ -86,21 +86,34 @@ export function setupCLI(program: Command) {
 
     program
         .command('template')
-        .description('Generate files from a CALM model using a Handlebars template bundle')
+        .description('Generate files from a CALM model using a Handlebars template')
         .requiredOption('--input <path>', 'Path to the CALM model JSON file')
-        .requiredOption('--bundle <path>', 'Path to the template bundle directory')
-        .requiredOption('--output <path>', 'Path to output directory')
+        .option('--bundle <path>', 'Path to the template bundle directory')
+        .option('--template <path>', 'Path to a single template file (uses calm-widgets helpers automatically)')
+        .requiredOption('--output <path>', 'Path to output directory or file')
         .option('--url-to-local-file-mapping <path>', 'Path to mapping file which maps URLs to local paths')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
-            const { getUrlToLocalFileMap } = await import('./command-helpers/template');
+            const { getUrlToLocalFileMap, processSimpleTemplate } = await import('./command-helpers/template');
             const { TemplateProcessor } = await import('@finos/calm-shared');
+            
             if (options.verbose) {
                 process.env.DEBUG = 'true';
             }
+            
             const localDirectory = getUrlToLocalFileMap(options.urlToLocalFileMapping);
-            const processor = new TemplateProcessor(options.input, options.bundle, options.output, localDirectory);
-            await processor.processTemplate();
+            
+            // Handle simple template file processing
+            if (options.template) {
+                await processSimpleTemplate(options.input, options.template, options.output, localDirectory);
+            } else if (options.bundle) {
+                // Traditional bundle processing
+                const processor = new TemplateProcessor(options.input, options.bundle, options.output, localDirectory);
+                await processor.processTemplate();
+            } else {
+                console.error('Error: Either --template or --bundle must be specified');
+                process.exit(1);
+            }
         });
 
     program
