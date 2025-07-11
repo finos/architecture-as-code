@@ -218,12 +218,10 @@
       "type": "object",
       "properties": {
         "source": {
-          "$ref": "interface.json#/defs/node-interface",
-          "type": "string"
+          "$ref": "interface.json#/defs/node-interface"
         },
         "destination": {
-          "$ref": "interface.json#/defs/node-interface",
-          "type": "string"
+          "$ref": "interface.json#/defs/node-interface"
         }
       },
       "required": [
