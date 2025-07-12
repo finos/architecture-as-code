@@ -1,0 +1,121 @@
+{
+  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-08/meta/calm.json",
+  "title": "Test Architecture for Verification",
+  "version": "1.0.0",
+  "nodes": [
+    {
+      "unique-id": "api-gateway",
+      "node-type": "service",
+      "name": "API Gateway Service",
+      "description": "Central API gateway handling all external requests and routing",
+      "interfaces": [
+        {
+          "unique-id": "external-api",
+          "direction": "inbound",
+          "protocol": "HTTPS",
+          "data-classification": "public"
+        }
+      ],
+      "controls": {
+        "security": {
+          "description": "Security controls for API gateway",
+          "requirements": [
+            {
+              "control-requirement": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-specification.json",
+              "control-config": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-configuration.json"
+            }
+          ]
+        },
+        "monitoring": {
+          "description": "Monitoring and observability controls",
+          "requirements": [
+            {
+              "control-requirement": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-specification.json",
+              "control-config": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-configuration.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "user-service",
+      "node-type": "service",
+      "name": "User Management Service",
+      "description": "Handles user authentication, authorization, and profile management",
+      "interfaces": [
+        {
+          "unique-id": "user-api",
+          "direction": "bidirectional",
+          "protocol": "HTTP",
+          "data-classification": "internal"
+        }
+      ],
+      "controls": {
+        "data-protection": {
+          "description": "Data protection and privacy controls for user data",
+          "requirements": [
+            {
+              "control-requirement": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-specification.json",
+              "control-config": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-configuration.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "database-server",
+      "node-type": "datastore",
+      "name": "Main Database",
+      "description": "Primary database storing application data",
+      "interfaces": [
+        {
+          "unique-id": "db-connection",
+          "direction": "inbound",
+          "protocol": "PostgreSQL",
+          "data-classification": "confidential"
+        }
+      ],
+      "controls": {
+        "backup": {
+          "description": "Database backup and recovery controls",
+          "requirements": [
+            {
+              "control-requirement": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-specification.json",
+              "control-config": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-configuration.json"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "api-to-user",
+      "relationship-type": "connects",
+      "parties": ["api-gateway", "user-service"],
+      "protocol": "HTTP",
+      "authentication": "JWT"
+    },
+    {
+      "unique-id": "user-to-db",
+      "relationship-type": "connects",
+      "parties": ["user-service", "database-server"],
+      "protocol": "PostgreSQL",
+      "authentication": "database-auth"
+    }
+  ],
+  "metadata": [
+    {
+      "key": "environment",
+      "value": "test"
+    },
+    {
+      "key": "team",
+      "value": "platform-engineering"
+    },
+    {
+      "key": "version",
+      "value": "1.0.0"
+    }
+  ]
+}

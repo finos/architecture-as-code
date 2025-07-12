@@ -1,0 +1,35 @@
+name: Build Calm Widgets
+
+on:
+  pull_request:
+    branches:
+      - "main"
+  push:
+    branches:
+      - "main"
+
+jobs:
+  calm-widgets:
+    name: Build, Test, and Lint Calm Widgets Module
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR Branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: v22
+
+      - name: Install workspace
+        run: npm ci
+
+      - name: Lint Calm Widgets Module
+        run: npm run lint --workspace=calm-widgets
+
+      - name: Build workspace
+        run: npm run build:calm-widgets
+
+      - name: Run tests with coverage for Calm Widgets
+        run: npm run test:coverage --workspace=calm-widgets

@@ -1,0 +1,54 @@
+{{!-- 
+CALM Table Widget
+Renders CALM architecture data as a table
+
+Usage Examples:
+  {{> table data=architecture.nodes}}
+  {{> table data=(extract architecture "nodes[node-type==service]")}}
+  {{> table data=architecture.nodes format="html"}}
+  {{> table data=architecture.nodes columns="unique-id,name,node-type"}}
+  {{> table data=architecture.nodes headers=false}}
+
+Parameters:
+  - data: Array of objects to render
+  - format: "markdown" (default) or "html"
+  - columns: Comma-separated list of columns or array of column objects
+  - headers: Include headers (default: true)
+  - emptyMessage: Message when no data (default: "No data available")
+--}}
+
+{{#if (hasData data)}}
+{{#if (eq format "html")}}
+<table>
+{{#if (ne headers false)}}
+  <thead>
+    <tr>
+{{#each (getColumns data columns)}}
+      <th>{{this.label}}</th>
+{{/each}}
+    </tr>
+  </thead>
+{{/if}}
+  <tbody>
+{{#each data}}
+    <tr>
+{{#each (getColumns ../data ../columns)}}
+      <td>{{formatTableValue (getValue ../../this this.key)}}</td>
+{{/each}}
+    </tr>
+{{/each}}
+  </tbody>
+</table>
+{{else}}
+{{!-- Markdown format --}}
+{{#if (ne headers false)}}
+{{#each (getColumns data columns)}}{{#unless @first}} | {{/unless}}{{this.label}}{{/each}}
+{{#each (getColumns data columns)}}{{#unless @first}} | {{/unless}}---{{/each}}
+{{/if}}
+{{#each data}}
+{{#each (getColumns ../data ../columns)}}{{#unless @first}} | {{/unless}}{{formatTableValue (getValue ../../this this.key)}}{{/each}}
+{{/each}}
+{{/if}}
+{{else}}
+{{#if emptyMessage}}{{emptyMessage}}{{else}}_No data available_{{/if}}
+{{/if}}

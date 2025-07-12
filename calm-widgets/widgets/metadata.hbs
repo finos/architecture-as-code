@@ -1,0 +1,35 @@
+{{!-- 
+CALM Metadata Widget
+Renders CALM metadata array as formatted output
+
+Usage Examples:
+  {{> metadata data=node.metadata}}
+  {{> metadata data=architecture.metadata format="html"}}
+  {{> metadata data=relationship.metadata}}
+
+Parameters:
+  - data: Metadata array to render
+  - format: "markdown" (default) or "html"
+  - emptyMessage: Message when no metadata (default: "No metadata")
+--}}
+
+{{#if (hasData data)}}
+{{#if (eq format "html")}}
+<ul>
+{{#each data}}
+{{#each this}}
+  <li><strong>{{@key}}:</strong> {{formatMetadataValue this}}</li>
+{{/each}}
+{{/each}}
+</ul>
+{{else}}
+{{!-- Markdown format --}}
+{{#each data}}
+{{#each this}}
+- **{{@key}}:** {{formatMetadataValue this}}
+{{/each}}
+{{/each}}
+{{/if}}
+{{else}}
+{{#if emptyMessage}}{{emptyMessage}}{{else}}_No metadata_{{/if}}
+{{/if}}
