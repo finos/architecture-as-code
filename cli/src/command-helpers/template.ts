@@ -28,7 +28,7 @@ interface ExtendedControlSchema extends CalmControlSchema {
  * Converts: architecture.nodes['api-gateway'].controls['cbom']
  * To: direct property access that Handlebars can understand
  */
-function processBracketNotation(templateContent: string, architectureData: ArchitectureData): string {
+export function processBracketNotation(templateContent: string, architectureData: ArchitectureData): string {
     // Flatten array access by creating indexed properties in the data structure FIRST
     flattenArrayAccess(architectureData);
     
@@ -95,7 +95,7 @@ function processBracketNotation(templateContent: string, architectureData: Archi
  * Flatten array access by creating indexed properties in the data structure
  * This allows bracket notation like [0] to work as ._0 in Handlebars
  */
-function flattenArrayAccess(architectureData: ArchitectureData): void {
+export function flattenArrayAccess(architectureData: ArchitectureData): void {
     if (!architectureData.nodes || !Array.isArray(architectureData.nodes)) {
         return;
     }
@@ -125,7 +125,7 @@ function flattenArrayAccess(architectureData: ArchitectureData): void {
 /**
  * Recursively flatten arrays in an object by creating indexed properties
  */
-function flattenObjectArrays(obj: ControlData): void {
+export function flattenObjectArrays(obj: ControlData): void {
     if (!obj || typeof obj !== 'object') {
         return;
     }
@@ -180,7 +180,7 @@ function flattenObjectArrays(obj: ControlData): void {
  * Resolve control schemas by fetching requirement and configuration data
  * and augmenting the architecture data with resolved schema information
  */
-async function resolveControlSchemas(architectureData: ArchitectureData): Promise<void> {
+export async function resolveControlSchemas(architectureData: ArchitectureData): Promise<void> {
     if (!architectureData.nodes || !Array.isArray(architectureData.nodes)) {
         return;
     }
@@ -195,7 +195,7 @@ async function resolveControlSchemas(architectureData: ArchitectureData): Promis
 /**
  * Resolve schemas for all controls in a node
  */
-async function resolveNodeControlSchemas(controls: CalmControlsSchema): Promise<void> {
+export async function resolveNodeControlSchemas(controls: CalmControlsSchema): Promise<void> {
     for (const [_controlKey, controlValue] of Object.entries(controls)) {
         if (controlValue && typeof controlValue === 'object' && (controlValue as CalmControlSchema).requirements) {
             await resolveControlRequirements(controlValue as ExtendedControlSchema);
@@ -206,7 +206,7 @@ async function resolveNodeControlSchemas(controls: CalmControlsSchema): Promise<
 /**
  * Resolve requirements for a single control
  */
-async function resolveControlRequirements(control: ExtendedControlSchema): Promise<void> {
+export async function resolveControlRequirements(control: ExtendedControlSchema): Promise<void> {
     if (!control.requirements || !Array.isArray(control.requirements)) {
         return;
     }
@@ -242,7 +242,7 @@ async function resolveControlRequirements(control: ExtendedControlSchema): Promi
 /**
  * Fetch JSON data from URL
  */
-async function fetchJsonFromUrl(url: string): Promise<unknown> {
+export async function fetchJsonFromUrl(url: string): Promise<unknown> {
     if (!url || typeof url !== 'string') {
         return null;
     }
@@ -262,7 +262,7 @@ async function fetchJsonFromUrl(url: string): Promise<unknown> {
 /**
  * Fetch configuration data (URL or inline object)
  */
-async function fetchConfigData(config: string | ConfigData): Promise<ConfigData | null> {
+export async function fetchConfigData(config: string | ConfigData): Promise<ConfigData | null> {
     if (!config) {
         return null;
     }
@@ -284,7 +284,7 @@ async function fetchConfigData(config: string | ConfigData): Promise<ConfigData 
 /**
  * Extract properties from JSON schema
  */
-function extractSchemaProperties(schema: unknown): string[] {
+export function extractSchemaProperties(schema: unknown): string[] {
     if (!schema || typeof schema !== 'object' || schema === null || !('properties' in schema)) {
         return [];
     }
@@ -303,7 +303,7 @@ function extractSchemaProperties(schema: unknown): string[] {
 /**
  * Extract configuration values matching schema properties
  */
-function extractConfigValues(config: ConfigData, schema: unknown): Record<string, unknown> {
+export function extractConfigValues(config: ConfigData, schema: unknown): Record<string, unknown> {
     if (!config || !schema || typeof schema !== 'object' || schema === null || !('properties' in schema)) {
         return {};
     }
