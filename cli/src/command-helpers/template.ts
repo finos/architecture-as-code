@@ -366,27 +366,11 @@ export async function processSimpleTemplate(
         // Pre-fetch and resolve control schemas for proper table generation
         await resolveControlSchemas(architectureData);
         
-        // Import Handlebars and calm-widgets
+        // Import Handlebars
         const Handlebars = await import('handlebars');
-        const { registerCalmWidgetsWithInstance } = await import('@finos/calm-widgets');
         
         // Create a new Handlebars instance
         const handlebars = Handlebars.create();
-        
-        // Register calm-widgets helpers
-        registerCalmWidgetsWithInstance(handlebars);
-        
-        // Register widget partials (controls, metadata, etc.)
-        const widgetPartials = {
-            'controls': fs.readFileSync(path.resolve(__dirname, '../../calm-widgets/dist/widgets/controls.hbs'), 'utf-8'),
-            'metadata': fs.readFileSync(path.resolve(__dirname, '../../calm-widgets/dist/widgets/metadata.hbs'), 'utf-8'),
-            'list': fs.readFileSync(path.resolve(__dirname, '../../calm-widgets/dist/widgets/list.hbs'), 'utf-8'),
-            'table': fs.readFileSync(path.resolve(__dirname, '../../calm-widgets/dist/widgets/table.hbs'), 'utf-8')
-        };
-        
-        Object.entries(widgetPartials).forEach(([name, content]) => {
-            handlebars.registerPartial(name, content);
-        });
         
         // Add utility helper for current date
         handlebars.registerHelper('currentDate', () => {

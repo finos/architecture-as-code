@@ -1,10 +1,17 @@
-import fs from 'node:fs';
 import path from 'path';
+import { vi } from 'vitest';
 import { getUrlToLocalFileMap } from './template';
+
+// Mock the fs module
+vi.mock('node:fs', () => ({
+    readFileSync: vi.fn(),
+}));
+
+import * as fs from 'node:fs';
 
 describe('getUrlToLocalFileMap', () => {
     afterEach(() => {
-        vi.restoreAllMocks();
+        vi.clearAllMocks();
     });
 
     it('should return an empty Map when no mapping file is provided', () => {
@@ -19,7 +26,7 @@ describe('getUrlToLocalFileMap', () => {
             'https://calm.finos.org/docuflow/flow/document-upload': 'flows/flow-document-upload.json'
         });
 
-        vi.spyOn(fs, 'readFileSync').mockReturnValue(fakeContent);
+        vi.mocked(fs.readFileSync).mockReturnValue(fakeContent);
 
         const result = getUrlToLocalFileMap(fakePath);
 
@@ -35,7 +42,7 @@ describe('getUrlToLocalFileMap', () => {
     it('should log an error and exit process when file reading fails', () => {
         const fakePath = '/fake/mapping.json';
 
-        vi.spyOn(fs, 'readFileSync').mockImplementation(() => {
+        vi.mocked(fs.readFileSync).mockImplementation(() => {
             throw new Error('read error');
         });
         const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
