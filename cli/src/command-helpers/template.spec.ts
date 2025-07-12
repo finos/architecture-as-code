@@ -77,44 +77,44 @@ describe('getUrlToLocalFileMap', () => {
 describe('processBracketNotation', () => {
     it('should process bracket notation and create resolved nodes', () => {
         const templateContent = '{{architecture.nodes[\'api-gateway\'].name}}';
-        const architectureData = {
+        const architectureData: unknown = {
             nodes: [
                 { 'unique-id': 'api-gateway', 'node-type': 'service', name: 'API Gateway', description: 'API Gateway service' },
                 { 'unique-id': 'database', 'node-type': 'database', name: 'Database', description: 'Database service' }
             ]
-        } as any;
+        };
 
         const result = processBracketNotation(templateContent, architectureData);
 
         expect(result).toContain('architecture._nodes.api-gateway.name');
-        expect(architectureData._nodes).toBeDefined();
-        expect(architectureData._nodes!['api-gateway']).toEqual({ 'unique-id': 'api-gateway', 'node-type': 'service', name: 'API Gateway', description: 'API Gateway service' });
+        expect((architectureData as Record<string, unknown>)._nodes).toBeDefined();
+        expect((architectureData as Record<string, Record<string, unknown>>)._nodes!['api-gateway']).toEqual({ 'unique-id': 'api-gateway', 'node-type': 'service', name: 'API Gateway', description: 'API Gateway service' });
     });
 
     it('should handle empty nodes array', () => {
         const templateContent = '{{architecture.metadata.name}}';
-        const architectureData = { nodes: [] } as any;
+        const architectureData: unknown = { nodes: [] };
 
         const result = processBracketNotation(templateContent, architectureData);
 
         expect(result).toBe(templateContent);
-        expect(architectureData._nodes).toEqual({});
+        expect((architectureData as Record<string, unknown>)._nodes).toEqual({});
     });
 
     it('should handle missing nodes', () => {
         const templateContent = '{{architecture.metadata.name}}';
-        const architectureData = {} as any;
+        const architectureData: unknown = {};
 
         const result = processBracketNotation(templateContent, architectureData);
 
         expect(result).toBe(templateContent);
-        expect(architectureData._nodes).toEqual({});
+        expect((architectureData as Record<string, unknown>)._nodes).toEqual({});
     });
 });
 
 describe('flattenArrayAccess', () => {
     it('should flatten array access in nodes', () => {
-        const architectureData = {
+        const architectureData: unknown = {
             nodes: [
                 {
                     'unique-id': 'test-node',
@@ -128,22 +128,22 @@ describe('flattenArrayAccess', () => {
                     }
                 }
             ]
-        } as any;
+        };
 
         flattenArrayAccess(architectureData);
 
-        const node = architectureData.nodes[0];
+        const node = (architectureData as Record<string, unknown>).nodes[0];
         expect(node.controls.security).toHaveProperty('requirements_0', 'req1');
         expect(node.controls.security).toHaveProperty('requirements_1', 'req2');
     });
 
     it('should handle missing nodes', () => {
-        const architectureData = {} as any;
+        const architectureData: unknown = {};
         expect(() => flattenArrayAccess(architectureData)).not.toThrow();
     });
 
     it('should handle non-array nodes', () => {
-        const architectureData = { nodes: 'not-an-array' } as any;
+        const architectureData: unknown = { nodes: 'not-an-array' };
         expect(() => flattenArrayAccess(architectureData)).not.toThrow();
     });
 });
