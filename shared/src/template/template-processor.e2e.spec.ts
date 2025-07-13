@@ -247,6 +247,7 @@ describe('TemplateProcessor E2E', () => {
             ['https://calm.finos.org/workshop/controls/permitted-connection.requirement.json', join(WORKSHOP_DIR, 'controls/permitted-connection.requirement.json')],
             ['https://calm.finos.org/workshop/controls/permitted-connection-http.config.json', join(WORKSHOP_DIR, 'controls/permitted-connection-http.config.json')],
             ['https://calm.finos.org/workshop/controls/permitted-connection-jdbc.config.json', join(WORKSHOP_DIR, 'controls/permitted-connection-jdbc.config.json')],
+            ['https://calm.finos.org/workshop/flows/conference-signup.flow.json', join(WORKSHOP_DIR, 'flows/conference-signup.flow.json')],
         ]);
         const processor = new TemplateProcessor(
             amendedPath,
