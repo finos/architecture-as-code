@@ -62,6 +62,7 @@
               "type": "string"
             }
           },
+          "required" : [ "detailed-architecture" ],
           "additionalProperties": false
         },
         "interfaces": {
