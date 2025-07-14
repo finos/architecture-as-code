@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://calm.finos.org/release/1.0-rc2/meta/core.json",
   "title": "Common Architecture Language Model (CALM) Vocab",
+  "type" : "object",
   "properties": {
     "nodes": {
       "type": "array",
