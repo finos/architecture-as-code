@@ -199,10 +199,6 @@
     },
     "interacts-type": {
       "type": "object",
-      "required": [
-        "actor",
-        "nodes"
-      ],
       "properties": {
         "actor": {
           "type": "string"
@@ -214,7 +210,11 @@
             "type": "string"
           }
         }
-      }
+      },
+      "required": [
+        "actor",
+        "nodes"
+      ]
     },
     "connects-type": {
       "type": "object",
@@ -244,13 +244,13 @@
             "type": "string"
           }
         }
-      }
-    },
-    "composed-of-type": {
+      },
       "required": [
         "container",
         "nodes"
-      ],
+      ]
+    },
+    "composed-of-type": {
       "type": "object",
       "properties": {
         "container": {
@@ -263,7 +263,11 @@
             "type": "string"
           }
         }
-      }
+      },
+      "required": [
+        "container",
+        "nodes"
+      ]
     },
     "option-type": {
       "type": "array",
