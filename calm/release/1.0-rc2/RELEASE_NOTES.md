@@ -53,7 +53,7 @@ The following built-in interface types have been removed from the schema:
 
 ### 3. Core Schema Refinements (Breaking Change)
 
-**What Changed:** Several properties have been removed or simplified in the core schema.
+**What Changed:** Several properties have been removed or simplified in the core schema. Several properties are now explicitly required.
 
 **Removed Properties:**
 - `data-classification` enum and property removed from relationships
@@ -63,6 +63,10 @@ The following built-in interface types have been removed from the schema:
 **Interface Reference Changes:**
 - Node interface references changed from complex `node-interface` objects to simple strings
 - Standardised interface referencing mechanism
+
+**Newly Required Properties:**
+- The `detailed-architecture` property of `node/details` is required rather than optional, if `node/details` is provided. It was previously permitted to provide completely empty `details`.
+- The `deployed-in` relationship type now requires properties `container` and `nodes`. It was previously permitted to provide completely empty `deployed-in` details.
 
 **Benefits:**
 - Reduced schema complexity
@@ -77,6 +81,11 @@ The following built-in interface types have been removed from the schema:
 - Prototype examples updated with new schema references
 - Control requirement examples updated
 
+### 5. Metadata Flexibility (Non‑Breaking Change)
+**What Changed:**  
+The `metadata` property now accepts **either** a single object **or** an array of objects, rather than only an array.
+
+
 ## Prototype Examples
 
 All existing prototype examples have been updated to use the new v1.0-rc2 schema references:
@@ -89,6 +98,7 @@ All existing prototype examples have been updated to use the new v1.0-rc2 schema
 - `example-inline-config.json` - Inline control configurations
 - `example-mixed-config.json` - Mixed inline and URL-based configurations
 - `throughput-control-prototype.json` - Performance control requirements
+- `meta-example.json` - Object based metadata
 
 ## Migration Guide
 
@@ -113,6 +123,10 @@ All existing prototype examples have been updated to use the new v1.0-rc2 schema
 
 5. **Simplify Interface References:**
    - Update node interface references to use simple string identifiers
+
+6. **Metadata Format Flexibility:**
+ - You can now use **either** an object or an array for any `metadata` field
+ - No changes are required for existing array‑based metadata
 
 ## Compatibility Notes
 
