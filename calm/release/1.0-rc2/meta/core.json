@@ -62,10 +62,6 @@
               "type": "string"
             }
           },
-          "anyOf" : [
-            { "required" : [ "detailed-architecture" ] },
-            { "required" : [ "required-pattern" ] }
-          ],
           "additionalProperties": false
         },
         "interfaces": {
