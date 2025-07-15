@@ -34,7 +34,7 @@
         "commander": "^14.0.0",
         "copyfiles": "^2.4.1",
         "execa": "^9.6.0",
-        "express-rate-limit": "^7.5.0",
+        "express-rate-limit": "^8.0.0",
         "mkdirp": "^3.0.1",
         "ts-node": "10.9.2"
     },
