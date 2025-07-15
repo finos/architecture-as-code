@@ -27,8 +27,12 @@ export class TemplateCalmFileDereferencer {
 
     public async dereferenceCalmDoc(doc: CalmDocument): Promise<string> {
         const logger = TemplateCalmFileDereferencer.logger;
+        logger.debug('dereferenceCalmDoc: starting');
         const json = JSON.parse(doc);
-        const firstPass = await this.replaceUrls(json);
+        logger.debug('dereferenceCalmDoc: first replaceUrls pass');
+        const firstPass = await this.replaceUrls(json, new Set());
+
+        logger.debug('dereferenceCalmDoc: calling $RefParser.dereference');
         const dereferenced = await $RefParser.dereference(firstPass, {
             resolve: {
                 calmResolver: {
@@ -43,26 +47,25 @@ export class TemplateCalmFileDereferencer {
             }
         });
 
-        let final: unknown = dereferenced;
-        for (let pass = 1; pass <= 5; pass++) {
-            logger.debug(`replaceIteration ${pass}: starting`);
-            const next = await this.replaceUrls(final);
-            if (JSON.stringify(next) === JSON.stringify(final)) {
-                break;
-            }
-            final = next;
-        }
+        logger.debug('dereferenceCalmDoc: final replaceUrls pass');
+        const final = await this.replaceUrls(dereferenced, new Set());
+        logger.debug('dereferenceCalmDoc: completed');
+
         return JSON.stringify(final, null, 2);
     }
 
     /**
-     * Recursively walks the tree and inlines any HTTP URLs it knows about.
-     * After resolving, immediately re-walks the resolved value so deeper URLs
-     * get inlined in the same pass.
+     * Walks the tree and inlines any HTTP URLs it knows about.
+     * Only inlines mapped files or JSON-Schema implementations; leaves other schemas untouched.
+     * Uses `seen` to avoid infinite loops.
      */
-    private async replaceUrls(data: unknown): Promise<unknown> {
+    private async replaceUrls(
+        data: unknown,
+        seen: Set<string>
+    ): Promise<unknown> {
         const logger = TemplateCalmFileDereferencer.logger;
         logger.debug('replaceUrls: starting');
+
         const entries: AddressableEntry[] = extractNetworkAddressables(
             JSON.stringify(data)
         );
@@ -73,6 +76,13 @@ export class TemplateCalmFileDereferencer {
         const walk = async (node: unknown): Promise<unknown> => {
             if (typeof node === 'string' && /^https?:\/\//.test(node)) {
                 logger.debug(`replaceUrls.walk: examining URL ${node}`);
+
+                if (seen.has(node)) {
+                    logger.debug(`replaceUrls.walk: skipping seen URL ${node}`);
+                    return node;
+                }
+                seen.add(node);
+
                 const mapped = this.urlFileMapping.get(node);
                 if (mapped) {
                     logger.debug(`replaceUrls.walk: inlining mapped URL ${node}`);
@@ -96,18 +106,14 @@ export class TemplateCalmFileDereferencer {
 
             if (node && typeof node === 'object') {
                 logger.debug('replaceUrls.walk: descending into object');
-                const pairs = await Promise.all(
-                    Object.entries(node).map(async ([key, val]) => {
-                        logger.debug(`replaceUrls.walk: processing key ${key}`);
-                        return [
-                            key,
-                            key === '$id' || key === '$schema'
-                                ? val
-                                : await walk(val)
-                        ];
-                    })
-                );
-                return Object.fromEntries(pairs);
+                const out: Record<string, unknown> = {};
+                for (const [key, val] of Object.entries(node)) {
+                    out[key] =
+                        key === '$id' || key === '$schema'
+                            ? val
+                            : await walk(val);
+                }
+                return out;
             }
 
             return node;
