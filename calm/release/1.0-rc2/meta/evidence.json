@@ -27,7 +27,7 @@
       "required":[
         "unique-id",
         "evidence-paths",
-        "control-configuration-url"
+        "control-config-url"
       ]
     }
   },

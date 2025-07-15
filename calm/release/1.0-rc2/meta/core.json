@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://calm.finos.org/release/1.0-rc2/meta/core.json",
   "title": "Common Architecture Language Model (CALM) Vocab",
+  "type" : "object",
   "properties": {
     "nodes": {
       "type": "array",
@@ -197,10 +198,6 @@
     },
     "interacts-type": {
       "type": "object",
-      "required": [
-        "actor",
-        "nodes"
-      ],
       "properties": {
         "actor": {
           "type": "string"
@@ -212,7 +209,11 @@
             "type": "string"
           }
         }
-      }
+      },
+      "required": [
+        "actor",
+        "nodes"
+      ]
     },
     "connects-type": {
       "type": "object",
@@ -242,13 +243,13 @@
             "type": "string"
           }
         }
-      }
-    },
-    "composed-of-type": {
+      },
       "required": [
         "container",
         "nodes"
-      ],
+      ]
+    },
+    "composed-of-type": {
       "type": "object",
       "properties": {
         "container": {
@@ -261,7 +262,11 @@
             "type": "string"
           }
         }
-      }
+      },
+      "required": [
+        "container",
+        "nodes"
+      ]
     },
     "option-type": {
       "type": "array",

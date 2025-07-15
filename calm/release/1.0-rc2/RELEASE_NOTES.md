@@ -53,7 +53,7 @@ The following built-in interface types have been removed from the schema:
 
 ### 3. Core Schema Refinements (Breaking Change)
 
-**What Changed:** Several properties have been removed or simplified in the core schema.
+**What Changed:** Several properties have been removed or simplified in the core schema. Several properties are now explicitly required.
 
 **Removed Properties:**
 - `data-classification` enum and property removed from relationships
@@ -63,6 +63,10 @@ The following built-in interface types have been removed from the schema:
 **Interface Reference Changes:**
 - Node interface references changed from complex `node-interface` objects to simple strings
 - Standardised interface referencing mechanism
+
+**Newly Required Properties:**
+- The `detailed-architecture` property of `node/details` is required rather than optional, if `node/details` is provided. It was previously permitted to provide completely empty `details`.
+- The `deployed-in` relationship type now requires properties `container` and `nodes`. It was previously permitted to provide completely empty `deployed-in` details.
 
 **Benefits:**
 - Reduced schema complexity
