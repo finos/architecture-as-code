@@ -32,7 +32,7 @@ Nodes represent the individual elements of your architecture, such as services, 
 Relationships define how nodes interact, connect, or depend on each other. They represent the connections, data flows, and dependencies that exist within the system.
 
 - **Types of Relationships**: Includes direct interactions `interacts`, connections between interfaces `connects`, deployment contexts `deployed-in`, and hierarchical compositions `composed-of`.
-- **Properties**: Relationships include properties like unique-id, relationship-type, description, protocol, and authentication to detail the nature of the interaction.
+- **Properties**: Relationships include properties like unique-id, relationship-type, description and protocol to detail the nature of the interaction.
 
 ### 3. **Metadata**
 

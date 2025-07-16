@@ -282,3 +282,12 @@ function mergeSpectralResults(spectralResultPattern: SpectralResult, spectralRes
     const spectralValidations = spectralResultPattern.spectralIssues.concat(spectralResultArchitecture.spectralIssues);
     return new SpectralResult(warnings, errors, spectralValidations);
 }
+
+async function loadFileFromUrl(fileUrl: string) {
+    const res = await fetch(fileUrl);
+    if (!res.ok) {
+        throw new Error(`The http request to ${fileUrl} did not succeed. Status code ${res.status}`);
+    }
+    const body = await res.json();
+    return body;
+}
