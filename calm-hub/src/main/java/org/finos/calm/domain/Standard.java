@@ -4,7 +4,7 @@ import org.finos.calm.domain.standards.CreateStandardRequest;
 
 import java.util.Objects;
 
-public class Standard extends StandardDetails {
+public class Standard {
     private String standardJson;
     private String name;
     private String description;
@@ -38,52 +38,42 @@ public class Standard extends StandardDetails {
         this.standardJson = standardJson;
     }
 
-    @Override
     public String getName() {
         return name;
     }
 
-    @Override
     public void setName(String name) {
         this.name = name;
     }
 
-    @Override
     public String getDescription() {
         return description;
     }
 
-    @Override
     public void setDescription(String description) {
         this.description = description;
     }
 
-    @Override
     public Integer getId() {
         return id;
     }
 
-    @Override
     public void setId(Integer id) {
         this.id = id;
     }
 
-    @Override
     public String getNamespace() {
         return namespace;
     }
 
-    @Override
     public void setNamespace(String namespace) {
         this.namespace = namespace;
     }
 
-    @Override
     public String getVersion() {
         return version;
     }
 
-    @Override
     public void setVersion(String version) {
         this.version = version;
     }
@@ -91,14 +81,12 @@ public class Standard extends StandardDetails {
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-        Standard standard1 = (Standard) o;
-        return Objects.equals(standardJson, standard1.standardJson);
+        Standard standard = (Standard) o;
+        return Objects.equals(standardJson, standard.standardJson) && Objects.equals(name, standard.name) && Objects.equals(description, standard.description) && Objects.equals(id, standard.id) && Objects.equals(namespace, standard.namespace) && Objects.equals(version, standard.version);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), standardJson);
+        return Objects.hash(standardJson, name, description, id, namespace, version);
     }
-
 }

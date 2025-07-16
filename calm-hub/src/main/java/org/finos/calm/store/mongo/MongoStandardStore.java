@@ -13,7 +13,6 @@ import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.Standard;
-import org.finos.calm.domain.StandardDetails;
 import org.finos.calm.domain.exception.*;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.domain.standards.NamespaceStandardSummary;
@@ -146,7 +145,10 @@ public class MongoStandardStore implements StandardStore {
                 if(versionDoc == null) {
                     throw new StandardVersionNotFoundException();
                 }
-                //FIXME Populate the full standard
+                standard.setNamespace(namespace);
+                standard.setVersion(version);
+                standard.setId(standardId);
+                standard.setStandardJson(versionDoc.toJson());
                 return standard;
             }
         }

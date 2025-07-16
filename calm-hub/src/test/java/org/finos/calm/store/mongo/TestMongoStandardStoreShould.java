@@ -18,7 +18,6 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Standard;
-import org.finos.calm.domain.StandardDetails;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
 import org.finos.calm.domain.exception.StandardVersionExistsException;
@@ -180,7 +179,7 @@ public class TestMongoStandardStoreShould {
         standard.setVersion("1.0.0");
         standard.setId(sequenceNumber);
 
-        assertThat(createdStandard, is(standardToCreate));
+        assertThat(createdStandard, is(standard));
 
         Document expectedDoc = new Document("standardId", sequenceNumber)
                 .append("name", standardToCreate.getName())
@@ -264,8 +263,7 @@ public class TestMongoStandardStoreShould {
         mockSetupStandardDocumentWithVersions();
 
         Standard standardForVersion = mongoStandardStore.getStandardForVersion("finos", 42, "1.0.0");
-        //FIXME this assertion will be broken
-        assertThat(standardForVersion, is("{}"));
+        assertThat(standardForVersion.getStandardJson(), is("{}"));
     }
 
 
@@ -304,48 +302,39 @@ public class TestMongoStandardStoreShould {
     void throw_an_exception_for_create_standard_for_version_when_a_namespace_doesnt_exist() {
         when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
 
-        assertThrows(NamespaceNotFoundException.class, () -> mongoStandardStore.createStandardForVersion(standardToStore()));
+        assertThrows(NamespaceNotFoundException.class, () -> mongoStandardStore.createStandardForVersion(standardToStore(), "finos", 42, "9.0.0"));
     }
 
     @Test
     void throw_an_exception_for_create_standard_for_version_when_a_standard_doesnt_exist() {
         mockSetupStandardDocumentWithVersions();
-        Standard standard = standardToStore();
-        standard.setId(50);
+        CreateStandardRequest standard = standardToStore();
 
         WriteError writeError = new WriteError(2, "The positional operator did not find the match needed from the query", new BsonDocument());
         MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress());
         when(standardCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class))).thenThrow(mongoWriteException);
 
-        assertThrows(StandardNotFoundException.class, () -> mongoStandardStore.createStandardForVersion(standard));
+        assertThrows(StandardNotFoundException.class, () -> mongoStandardStore.createStandardForVersion(standard, "finos", 50, "1.0.1"));
     }
 
     @Test
     void throw_an_exception_for_create_standard_for_version_when_a_version_already_exists() {
         mockSetupStandardDocumentWithVersions();
-        Standard standard = standardToStore();
-        standard.setVersion("1.0.0");
+        CreateStandardRequest standard = standardToStore();
 
-        assertThrows(StandardVersionExistsException.class, () -> mongoStandardStore.createStandardForVersion(standard));
+        assertThrows(StandardVersionExistsException.class, () -> mongoStandardStore.createStandardForVersion(standard, "finos", 42, "1.0.0"));
     }
 
     @Test
     void accept_the_creation_of_a_valid_version() throws StandardVersionExistsException, StandardNotFoundException, NamespaceNotFoundException {
         mockSetupStandardDocumentWithVersions();
-        Standard standard = standardToStore();
-        mongoStandardStore.createStandardForVersion(standard);
+        CreateStandardRequest standard = standardToStore();
+        mongoStandardStore.createStandardForVersion(standard, "finos", 42, "1.0.1");
 
         verify(standardCollection).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
     }
 
-    private Standard standardToStore() {
-        Standard standard = new Standard();
-        standard.setId(42);
-        standard.setNamespace("finos");
-        standard.setVersion("1.0.1");
-        standard.setName("Second Version");
-        standard.setDescription("Second Description");
-        standard.setStandardJson("{}");
-        return standard;
+    private CreateStandardRequest standardToStore() {
+        return new CreateStandardRequest("Second Version", "Second Description", "{}");
     }
 }

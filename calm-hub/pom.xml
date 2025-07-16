@@ -203,6 +203,7 @@
                         <exclude>**/*Builder.*</exclude>
                         <exclude>**/*CalmResourceErrorResponses.*</exclude>
                         <exclude>**/*Constants.*</exclude>
+                        <exclude>**/*NamespaceStandardSummary.*</exclude>
                     </excludes>
                 </configuration>
                 <executions>

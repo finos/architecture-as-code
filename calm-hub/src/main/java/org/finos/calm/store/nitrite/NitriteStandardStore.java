@@ -10,7 +10,6 @@ import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.domain.Standard;
-import org.finos.calm.domain.StandardDetails;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
 import org.finos.calm.domain.exception.StandardVersionExistsException;
@@ -43,6 +42,7 @@ public class NitriteStandardStore implements StandardStore {
     private static final String VERSIONS_FIELD = "versions";
     private static final String NAME_FIELD = "name";
     private static final String DESCRIPTION_FIELD = "description";
+    private static final String JSON_FIELD = "standardJson";
 
     private final NitriteCollection standardCollection;
     private final NitriteNamespaceStore namespaceStore;
@@ -144,6 +144,7 @@ public class NitriteStandardStore implements StandardStore {
 
         createdStandard.setId(id);
         createdStandard.setVersion("1.0.0");
+        createdStandard.setNamespace(namespace);
         return createdStandard;
     }
 
@@ -184,9 +185,9 @@ public class NitriteStandardStore implements StandardStore {
 
         Document versions = standardDocument.get(VERSIONS_FIELD, Document.class);
         String mongoVersion = version.replace('.', '-');
-        String standardJson = versions.get(mongoVersion, String.class);
+        Document storedStandard = versions.get(mongoVersion, Document.class);
 
-        if (standardJson == null) {
+        if (storedStandard == null) {
             LOG.warn("Version '{}' not found for standard {} in namespace '{}'",
                     mongoVersion, standardId, namespace);
             throw new StandardVersionNotFoundException();
@@ -195,8 +196,14 @@ public class NitriteStandardStore implements StandardStore {
         LOG.debug("Retrieved version '{}' for standard {} in namespace '{}'",
                 mongoVersion, standardId, namespace);
 
-        //FIXME will need to return an actual standard
-        return new Standard();
+        Standard standard = new Standard();
+        standard.setId(standardId);
+        standard.setVersion(version);
+        standard.setNamespace(namespace);
+        standard.setDescription(standardDocument.get(DESCRIPTION_FIELD, String.class));
+        standard.setName(standardDocument.get(NAME_FIELD, String.class));
+        standard.setStandardJson(storedStandard.get(JSON_FIELD, String.class));
+        return standard;
     }
 
     @Override

@@ -210,10 +210,10 @@ public class TestStandardResourceShould {
 
     @ParameterizedTest
     @MethodSource("provideParametersForCreateStandardTests")
-    void respond_correctly_to_create_pattern(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws StandardNotFoundException, StandardVersionNotFoundException, NamespaceNotFoundException, StandardVersionExistsException {
+    void respond_correctly_to_create_standards(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws StandardNotFoundException, StandardVersionNotFoundException, NamespaceNotFoundException, StandardVersionExistsException {
         CreateStandardRequest createStandardRequest = new CreateStandardRequest();
-        createStandardRequest.setName("amazing-pattern");
-        createStandardRequest.setDescription("An amazing pattern");
+        createStandardRequest.setName("amazing-standard");
+        createStandardRequest.setDescription("An amazing standard");
         createStandardRequest.setStandardJson("{}");
 
         if (exceptionToThrow != null) {
@@ -231,23 +231,21 @@ public class TestStandardResourceShould {
                     .header("Content-Type", "application/json")
                     .body(createStandardRequest)
                     .when()
-                    .post("/calm/namespaces/finos/standards/5/versions/1.0.1")
+                    .post("/calm/namespaces/" + namespace + "/standards/5/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
-                    //Derived from stubbed pattern in resource
-                    .header("Location", containsString("/calm/namespaces/finos/standards/5/versions/1.0.1"));
+                    //Derived from stubbed standard in resource
+                    .header("Location", containsString("/calm/namespaces/valid/standards/5/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body(createStandardRequest)
                     .when()
-                    .post("/calm/namespaces/finos/standards/5/versions/1.0.1")
+                    .post("/calm/namespaces/" + namespace + "/standards/5/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }
 
         verify(mockStandardStore, times(1)).createStandardForVersion(createStandardRequest, namespace, 5, "1.0.1");
     }
-
-
 }
