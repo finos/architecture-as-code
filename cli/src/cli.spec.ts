@@ -5,8 +5,8 @@ let calmShared: typeof import('@finos/calm-shared');
 let validateModule: typeof import('./command-helpers/validate');
 let serverModule: typeof import('./server/cli-server');
 let templateModule: typeof import('./command-helpers/template');
-let fileReaderModule: typeof import('./command-helpers/file-input');
-let optionsModule: typeof import ('./command-helpers/generate-options');
+let fileReaderModule: typeof import('./command-helpers/input-loading/file-input');
+let optionsModule: typeof import('./command-helpers/generate-options');
 let fileSystemDocLoaderModule: typeof import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
 let setupCLI: typeof import('./cli').setupCLI;
 
@@ -17,7 +17,7 @@ describe('CLI Commands', () => {
         vi.resetModules();
         vi.clearAllMocks();
 
-        fileReaderModule = await import('./command-helpers/file-input');
+        fileReaderModule = await import('./command-helpers/input-loading/file-input');
         const loadFileSpy = vi.spyOn(fileReaderModule, 'loadJsonFromFile');
         loadFileSpy.mockReset();
         loadFileSpy.mockImplementation(() => Promise.resolve({}));
@@ -102,7 +102,7 @@ describe('CLI Commands', () => {
                 true,
             );
         });
-    }); 
+    });
 
     describe('Template Command', () => {
         it('should instantiate TemplateProcessor and call processTemplate', async () => {

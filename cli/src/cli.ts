@@ -1,12 +1,10 @@
 import { CALM_META_SCHEMA_DIRECTORY, initLogger, runGenerate, SchemaDirectory } from '@finos/calm-shared';
 import { Option, Command } from 'commander';
 import { version } from '../package.json';
-import { loadJsonFromFile } from './command-helpers/file-input';
 import { promptUserForOptions } from './command-helpers/generate-options';
 import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components/options';
 import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { loadCliConfig } from './cli-config';
-import { loadPatternFromCalmHub } from './command-helpers/calmhub-input';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -36,7 +34,7 @@ export function setupCLI(program: Command) {
             const docLoaderOpts = await parseDocumentLoaderConfig(options);
             const docLoader = buildDocumentLoader(docLoaderOpts, debug);
             const schemaDirectory = await buildSchemaDirectory(docLoader, debug);
-            const pattern: object = await loadPatternJson(options.pattern, docLoader, debug);
+            const pattern: object = await docLoader.loadMissingDocument(options.pattern, 'pattern');
             const choices: CalmChoice[] = await promptUserForOptions(pattern, options.verbose);
             await runGenerate(pattern, options.output, debug, schemaDirectory, choices);
         });
@@ -156,15 +154,4 @@ export async function parseDocumentLoaderConfig(options): Promise<DocumentLoader
 
 export async function buildSchemaDirectory(docLoader: DocumentLoader, debug: boolean): Promise<SchemaDirectory> {
     return new SchemaDirectory(docLoader, debug);
-}
-
-export async function loadPatternJson(patternAccessor: string, docLoader: DocumentLoader, debug: boolean): Promise<object> {
-    let url: URL;
-    try {
-        url = new URL(patternAccessor);
-    } catch (_) {
-        // If the pattern is not a URL, it must be a file path
-        return await loadJsonFromFile(patternAccessor, debug);
-    }
-    return await loadPatternFromCalmHub(url.href, docLoader, debug);
 }

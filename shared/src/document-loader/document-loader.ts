@@ -2,6 +2,8 @@ import { CALM_META_SCHEMA_DIRECTORY } from '../consts';
 import { SchemaDirectory } from '../schema-directory';
 import { CalmHubDocumentLoader } from './calmhub-document-loader';
 import { FileSystemDocumentLoader } from './file-system-document-loader';
+import { DirectUrlDocumentLoader } from './direct-url-document-loader';
+import { MultiStrategyDocumentLoader } from './multi-strategy-document-loader';
 
 export type CalmDocumentType = 'architecture' | 'pattern' | 'schema';
 
@@ -10,33 +12,30 @@ export interface DocumentLoader {
     loadMissingDocument(documentId: string, type: CalmDocumentType): Promise<object>;
 }
 
-export type DocumentLoadMode = 'filesystem' | 'calmhub';
+export type DocumentLoaderOptions = {
+    calmHubUrl?: string;
+    schemaDirectoryPath?: string;
+    debug?: boolean;
+};
 
-type FileSystemLoaderOptions = {
-    loadMode: 'filesystem';
-    schemaDirectoryPath: string;
-}
-type CalmHubLoaderOptions = {
-    loadMode: 'calmhub';
-    calmHubUrl: string;
-}
-export type DocumentLoaderOptions = FileSystemLoaderOptions | CalmHubLoaderOptions;
+export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions): DocumentLoader {
+    const loaders = [];
+    const debug = docLoaderOpts.debug ?? false;
 
-export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions, debug: boolean): DocumentLoader {
-    switch(docLoaderOpts.loadMode) {
-    case 'filesystem': {
-        const directoryPaths = [CALM_META_SCHEMA_DIRECTORY];
-        if (docLoaderOpts.schemaDirectoryPath) {
-            directoryPaths.push(docLoaderOpts.schemaDirectoryPath);
-        }
-        return new FileSystemDocumentLoader(directoryPaths, debug);
-    } 
-    case 'calmhub': {
-        return new CalmHubDocumentLoader(docLoaderOpts.calmHubUrl, debug);
+    if (docLoaderOpts.calmHubUrl) {
+        loaders.push(new CalmHubDocumentLoader(docLoaderOpts.calmHubUrl, debug));
     }
-    default:
-        throw new Error('Invalid document load mode when constructing DocumentLoader!');
+
+    // Always configure FileSystemDocumentLoader with CALM_META_SCHEMA_DIRECTORY
+    const directoryPaths = [CALM_META_SCHEMA_DIRECTORY];
+    if (docLoaderOpts.schemaDirectoryPath) {
+        directoryPaths.push(docLoaderOpts.schemaDirectoryPath);
     }
+    loaders.push(new FileSystemDocumentLoader(directoryPaths, debug));
+
+    loaders.push(new DirectUrlDocumentLoader());
+
+    return new MultiStrategyDocumentLoader(loaders);
 }
 
 type ErrorName = 'OPERATION_NOT_IMPLEMENTED' | 'UNKNOWN';
@@ -47,7 +46,7 @@ export class DocumentLoadError extends Error {
     cause: Error;
 
     constructor({
-        name, 
+        name,
         message,
         cause
     }: {
