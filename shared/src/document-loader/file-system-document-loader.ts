@@ -3,6 +3,7 @@ import { initLogger, Logger } from '../logger';
 import { readdir, readFile } from 'fs/promises';
 import { join } from 'path';
 import { SchemaDirectory } from '../schema-directory';
+import { existsSync } from 'fs';
 
 export class FileSystemDocumentLoader implements DocumentLoader {
     private readonly logger: Logger;
@@ -28,7 +29,7 @@ export class FileSystemDocumentLoader implements DocumentLoader {
                 .map(schemaPath => join(directoryPath, schemaPath));
 
             for (const schemaPath of schemaPaths) {
-                const schemaDef = await this.loadDocument(schemaPath);
+                const schemaDef = await this.loadDocument(schemaPath, 'schema');
                 if (!schemaDef) {
                     // loaded schema can't be used due to having no identifier
                     continue;
@@ -48,6 +49,16 @@ export class FileSystemDocumentLoader implements DocumentLoader {
     }
 
     async loadMissingDocument(documentId: string, type: CalmDocumentType): Promise<object> {
+        // no async exists 
+        try {
+            if (await existsSync(documentId)) {
+                this.logger.info(`${documentId} exists, loading as file...`);
+                return this.loadDocument(documentId, type);
+            }
+        } catch (err) {
+            this.logger.error(`Error checking existence of document ID ${documentId}: ${err.message}. This could be because it isn't a file path.`);
+        }
+        this.logger.info(`Document ID ${documentId} does not exist in file system, cannot load.`);
         const errorMessage = `Document with id [${documentId}] and type [${type}] was requested but not loaded at initialisation. 
             File system document loader can only load at startup. Please ensure the schemas are present on your directory path or use CALMHub.`;
         this.logger.error(errorMessage);
@@ -57,25 +68,28 @@ export class FileSystemDocumentLoader implements DocumentLoader {
         });
     }
 
-    private async loadDocument(schemaPath: string): Promise<object> {
+    private async loadDocument(schemaPath: string, type: CalmDocumentType): Promise<object> {
         this.logger.debug('Loading ' + schemaPath);
         const str = await readFile(schemaPath, 'utf-8');
         const parsed = JSON.parse(str);
 
-        // TODO this currently assumes it's a schema.
+        if (type != 'schema') {
+            return parsed;
+        }
+
         if (!parsed || !parsed['$id']) {
-            this.logger.warn('Warning: bad schema found, no $id property was defined. Path: '+ schemaPath);
+            this.logger.warn('Warning: bad schema found, no $id property was defined. Path: ' + schemaPath);
             return;
         }
-        
+
         const schemaId = parsed['$id'];
 
         if (!parsed['$schema']) {
-            this.logger.warn('Warning, loaded schema does not have $schema set and therefore may be invalid. Path: '+  schemaPath);
+            this.logger.warn('Warning, loaded schema does not have $schema set and therefore may be invalid. Path: ' + schemaPath);
         }
 
         this.logger.debug('Loaded schema with $id: ' + schemaId);
-        
+
         return parsed;
     }
 }

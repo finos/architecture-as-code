@@ -33,9 +33,9 @@ export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions): Docum
     }
     loaders.push(new FileSystemDocumentLoader(directoryPaths, debug));
 
-    loaders.push(new DirectUrlDocumentLoader());
+    loaders.push(new DirectUrlDocumentLoader(debug));
 
-    return new MultiStrategyDocumentLoader(loaders);
+    return new MultiStrategyDocumentLoader(loaders, debug);
 }
 
 type ErrorName = 'OPERATION_NOT_IMPLEMENTED' | 'UNKNOWN';

@@ -7,6 +7,7 @@ import { Command } from 'commander';
 import { ValidateOutputFormat } from '@finos/calm-shared/dist/commands/validate/validate';
 import { buildSchemaDirectory, parseDocumentLoaderConfig } from '../cli';
 import { buildDocumentLoader, DocumentLoader } from '@finos/calm-shared/dist/document-loader/document-loader';
+import { Logger } from '@finos/calm-shared/dist/logger';
 
 export interface ValidateOptions {
     patternPath?: string;
@@ -19,16 +20,18 @@ export interface ValidateOptions {
 }
 
 export async function runValidate(options: ValidateOptions) {
+    const logger = initLogger(options.verbose, 'calm-validate');
     try {
-        const debug = !!options.verbose;
         const docLoaderOpts = await parseDocumentLoaderConfig(options);
-        const docLoader: DocumentLoader = buildDocumentLoader(docLoaderOpts, debug);
-        const schemaDirectory = await buildSchemaDirectory(docLoader, debug);
+        const docLoader: DocumentLoader = buildDocumentLoader(docLoaderOpts);
+        const schemaDirectory = await buildSchemaDirectory(docLoader, options.verbose);
+        await schemaDirectory.loadSchemas();
 
         const { architecture, pattern } = await loadArchitectureAndPattern(
             options.architecturePath,
             options.patternPath,
-            docLoader
+            docLoader,
+            logger
         );
 
         const outcome = await validate(architecture, pattern, schemaDirectory, options.verbose);
@@ -37,7 +40,6 @@ export async function runValidate(options: ValidateOptions) {
         exitBasedOffOfValidationOutcome(outcome, options.strict);
     }
     catch (err) {
-        const logger = initLogger(options.verbose, 'calm-validate');
         logger.error('An error occurred while validating: ' + err.message);
         logger.debug(err.stack);
         process.exit(1);
@@ -45,41 +47,47 @@ export async function runValidate(options: ValidateOptions) {
 }
 
 // Update loadArchitectureAndPattern and helpers to use DocumentLoader type
-async function loadArchitectureAndPattern(architecturePath: string, patternPath: string, docLoader: DocumentLoader): Promise<{ architecture: object, pattern: object }> {
-    const architecture = await loadArchitecture(architecturePath, docLoader);
+async function loadArchitectureAndPattern(architecturePath: string, patternPath: string, docLoader: DocumentLoader, logger: Logger): Promise<{ architecture: object, pattern: object }> {
+    const architecture = await loadArchitecture(architecturePath, docLoader, logger);
     if (!architecture) {
         // we have already validated that at least one of the options is provided, so pattern must be set
-        const pattern = await loadPattern(patternPath, docLoader);
+        const pattern = await loadPattern(patternPath, docLoader, logger);
         return { architecture: undefined, pattern };
     }
     if (patternPath) {
         // both options set
-        const pattern = await loadPattern(patternPath, docLoader);
+        const pattern = await loadPattern(patternPath, docLoader, logger);
         return { architecture, pattern };
     }
     // architecture is set, but pattern is not; try to load pattern from architecture if present 
-    return { architecture, pattern: await loadPatternFromArchitectureIfPresent(architecture, docLoader) };
+    return { architecture, pattern: await loadPatternFromArchitectureIfPresent(architecture, docLoader, logger) };
 }
 
-async function loadPatternFromArchitectureIfPresent(architecture: object, docLoader: DocumentLoader): Promise<object> {
+async function loadPatternFromArchitectureIfPresent(architecture: object, docLoader: DocumentLoader, logger: Logger): Promise<object> {
     if (!architecture || !architecture['$schema']) {
         return;
     }
-    return docLoader.loadMissingDocument(architecture['$schema'], 'pattern');
+    const pattern = docLoader.loadMissingDocument(architecture['$schema'], 'pattern');
+    logger.debug(`Loaded pattern from architecture schema: ${architecture['$schema']}`);
+    return pattern;
 }
 
-async function loadPattern(patternPath: string, docLoader: DocumentLoader): Promise<object> {
+async function loadPattern(patternPath: string, docLoader: DocumentLoader, logger: Logger): Promise<object> {
     if (!patternPath) {
         return undefined;
     }
-    return docLoader.loadMissingDocument(patternPath, 'pattern');
+    const pattern = docLoader.loadMissingDocument(patternPath, 'pattern');
+    logger.debug(`Loaded pattern from ${patternPath}`);
+    return pattern;
 }
 
-async function loadArchitecture(architecturePath: string, docLoader: DocumentLoader): Promise<object> {
+async function loadArchitecture(architecturePath: string, docLoader: DocumentLoader, logger: Logger): Promise<object> {
     if (!architecturePath) {
         return undefined;
     }
-    return docLoader.loadMissingDocument(architecturePath, 'architecture');
+    const arch = docLoader.loadMissingDocument(architecturePath, 'architecture');
+    logger.debug(`Loaded architecture from ${architecturePath}`);
+    return arch;
 }
 
 

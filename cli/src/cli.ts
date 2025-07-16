@@ -32,7 +32,7 @@ export function setupCLI(program: Command) {
         .action(async (options) => {
             const debug = !!options.verbose;
             const docLoaderOpts = await parseDocumentLoaderConfig(options);
-            const docLoader = buildDocumentLoader(docLoaderOpts, debug);
+            const docLoader = buildDocumentLoader(docLoaderOpts);
             const schemaDirectory = await buildSchemaDirectory(docLoader, debug);
             const pattern: object = await docLoader.loadMissingDocument(options.pattern, 'pattern');
             const choices: CalmChoice[] = await promptUserForOptions(pattern, options.verbose);
@@ -77,7 +77,7 @@ export function setupCLI(program: Command) {
             const { startServer } = await import('./server/cli-server');
             const debug = !!options.verbose;
             const docLoaderOpts = await parseDocumentLoaderConfig(options);
-            const docLoader = buildDocumentLoader(docLoaderOpts, debug);
+            const docLoader = buildDocumentLoader(docLoaderOpts);
             const schemaDirectory = await buildSchemaDirectory(docLoader, debug);
             startServer(options.port, schemaDirectory, debug);
         });
@@ -122,34 +122,18 @@ export function setupCLI(program: Command) {
 
 export async function parseDocumentLoaderConfig(options): Promise<DocumentLoaderOptions> {
     const logger = initLogger(options.verbose, 'calm-cli');
-    if (options.schemaDirectory) {
-        return {
-            loadMode: 'filesystem',
-            schemaDirectoryPath: options.schemaDirectory
-        };
-    }
-    if (options.calmHubUrl) {
-        return {
-            loadMode: 'calmhub',
-            calmHubUrl: options.calmHubUrl
-        };
-    }
+    let docLoaderOpts: DocumentLoaderOptions = {
+        calmHubUrl: options.calmHubUrl,
+        schemaDirectoryPath: options.schemaDirectory,
+        debug: !!options.verbose
+    };
 
     const userConfig = await loadCliConfig();
-    if (userConfig && userConfig.calmHubUrl) {
+    if (userConfig && userConfig.calmHubUrl && !options.calmHubUrl) {
         logger.info('Using CALMHub URL from config file: ' + userConfig.calmHubUrl);
-        return {
-            loadMode: 'calmhub',
-            calmHubUrl: userConfig.calmHubUrl
-        };
+        docLoaderOpts.calmHubUrl = userConfig.calmHubUrl;
     }
-
-    logger.warn('Warning, no schema loading mechanism was defined. Only the bundled core schemas will be available; you may see empty definitions or errors.');
-
-    return {
-        loadMode: 'filesystem',
-        schemaDirectoryPath: undefined
-    };
+    return docLoaderOpts;
 }
 
 export async function buildSchemaDirectory(docLoader: DocumentLoader, debug: boolean): Promise<SchemaDirectory> {
