@@ -1,0 +1,33 @@
+{{!-- 
+CALM List Widget
+Renders CALM architecture data as a list
+
+Usage Examples:
+  {{> list data=architecture.nodes}}
+  {{> list data=architecture.nodes property="name"}}
+  {{> list data=architecture.nodes format="html"}}
+  {{> list data=(extract architecture "nodes[node-type==service]") property="unique-id"}}
+
+Parameters:
+  - data: Array of objects to render
+  - property: Property to extract from each item (default: name or unique-id)
+  - format: "markdown" (default) or "html"
+  - emptyMessage: Message when no data (default: "No items found")
+--}}
+
+{{#if (hasData data)}}
+{{#if (eq format "html")}}
+<ul>
+{{#each data}}
+  <li>{{getListItemValue this ../property}}</li>
+{{/each}}
+</ul>
+{{else}}
+{{!-- Markdown format --}}
+{{#each data}}
+- {{getListItemValue this ../property}}
+{{/each}}
+{{/if}}
+{{else}}
+{{#if emptyMessage}}{{emptyMessage}}{{else}}_No items found_{{/if}}
+{{/if}}

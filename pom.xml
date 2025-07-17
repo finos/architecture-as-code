@@ -12,13 +12,14 @@
     <properties>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
-        <quarkus.platform.version>3.23.0</quarkus.platform.version>
+        <quarkus.platform.version>3.24.3</quarkus.platform.version>
     </properties>
 
     <modules>
         <module>calm-hub</module>
         <module>cli</module>
         <module>calm</module>
+        <module>calm-widgets</module>
         <module>docs</module>
         <module>shared</module>
     </modules>

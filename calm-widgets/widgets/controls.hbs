@@ -1,0 +1,31 @@
+{{!-- 
+CALM Controls Widget
+Renders CALM controls object as formatted output
+
+Usage Examples:
+  {{> controls data=node.controls}}
+  {{> controls data=architecture.controls format="html"}}
+  {{> controls data=relationship.controls}}
+
+Parameters:
+  - data: Controls object to render
+  - format: "markdown" (default) or "html"
+  - emptyMessage: Message when no controls (default: "No controls")
+--}}
+
+{{#if (hasData data)}}
+{{#if (eq format "html")}}
+<ul>
+{{#each data}}
+  <li><strong>{{@key}}:</strong> {{formatControlValue this}}</li>
+{{/each}}
+</ul>
+{{else}}
+{{!-- Markdown format --}}
+{{#each data}}
+- **{{@key}}:** {{formatControlValue this}}
+{{/each}}
+{{/if}}
+{{else}}
+{{#if emptyMessage}}{{emptyMessage}}{{else}}_No controls_{{/if}}
+{{/if}}
