@@ -40,14 +40,14 @@ export function formatOutput(
 ): string {
     logger.info(`Formatting output as ${format}`);
     switch (format) {
-        case 'junit': {
-            const spectralRuleNames = extractSpectralRuleNames();
-            return createJUnitReport(validationOutcome, spectralRuleNames);
-        }
-        case 'pretty':
-            return prettyFormat(validationOutcome);
-        case 'json':
-            return prettifyJson(validationOutcome);
+    case 'junit': {
+        const spectralRuleNames = extractSpectralRuleNames();
+        return createJUnitReport(validationOutcome, spectralRuleNames);
+    }
+    case 'pretty':
+        return prettyFormat(validationOutcome);
+    case 'json':
+        return prettifyJson(validationOutcome);
     }
 }
 
@@ -190,8 +190,8 @@ async function validateArchitectureOnly(architecture: object): Promise<Validatio
 
     const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(JSON.stringify(architecture), validationRulesForArchitecture);
 
-    let jsonSchemaValidations = [];
-    let errors = spectralResultForArchitecture.errors;
+    const jsonSchemaValidations = [];
+    const errors = spectralResultForArchitecture.errors;
     const warnings = spectralResultForArchitecture.warnings;
 
     logger.debug(`Returning validation outcome with ${jsonSchemaValidations.length} JSON schema validations, errors: ${errors}`);
@@ -258,16 +258,16 @@ export function convertSpectralDiagnosticToValidationOutputs(spectralIssues: ISp
 
 function getSeverity(spectralSeverity: DiagnosticSeverity): string {
     switch (spectralSeverity) {
-        case 0:
-            return 'error';
-        case 1:
-            return 'warning';
-        case 2:
-            return 'info';
-        case 3:
-            return 'hint';
-        default:
-            throw Error('The spectralSeverity does not match the known values');
+    case 0:
+        return 'error';
+    case 1:
+        return 'warning';
+    case 2:
+        return 'info';
+    case 3:
+        return 'hint';
+    default:
+        throw Error('The spectralSeverity does not match the known values');
     }
 }
 
@@ -282,13 +282,4 @@ function mergeSpectralResults(spectralResultPattern: SpectralResult, spectralRes
     const warnings: boolean = spectralResultPattern.warnings || spectralResultArchitecture.warnings;
     const spectralValidations = spectralResultPattern.spectralIssues.concat(spectralResultArchitecture.spectralIssues);
     return new SpectralResult(warnings, errors, spectralValidations);
-}
-
-async function loadFileFromUrl(fileUrl: string) {
-    const res = await fetch(fileUrl);
-    if (!res.ok) {
-        throw new Error(`The http request to ${fileUrl} did not succeed. Status code ${res.status}`);
-    }
-    const body = await res.json();
-    return body;
 }

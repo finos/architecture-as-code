@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { Mock } from 'vitest';
-import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, SchemaDirectory } from '@finos/calm-shared';
+import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome } from '@finos/calm-shared';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
 import path from 'path';
@@ -67,7 +67,7 @@ describe('runValidate', () => {
     it('should process validation successfully', async () => {
         mocks.parseDocumentLoaderConfig.mockResolvedValue({});
         // Inline mock for loadMissingDocument
-        mocks.loadMissingDocument.mockImplementation((filePath: string, type: string) => {
+        mocks.loadMissingDocument.mockImplementation((filePath: string, _: string) => {
             if (filePath === 'arch.json') return Promise.resolve(dummyArch);
             if (filePath === 'pattern.json') return Promise.resolve(dummyPattern);
             return Promise.resolve();

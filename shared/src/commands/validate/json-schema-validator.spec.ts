@@ -10,11 +10,12 @@ describe('JsonSchemaValidator', () => {
     let validateFn: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
-        schemaDirectory = {
-            getSchema: vi.fn()
-        } as any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        schemaDirectory = { getSchema: vi.fn() } as any;
         pattern = { type: 'object' };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         validateFn = vi.fn() as any; // returns true/false for valid, then the function itself will have an errors property
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ajvCompileMock = vi.spyOn(Ajv2020.prototype, 'compileAsync').mockReturnValue(validateFn as any);
     });
 
@@ -40,6 +41,7 @@ describe('JsonSchemaValidator', () => {
         const validator = new JsonSchemaValidator(schemaDirectory, pattern);
         await validator.initialize();
         validateFn.mockReturnValue(false);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (validateFn as any).errors = [{ message: 'error' }];
         const result = validator.validate({});
         expect(validateFn).toHaveBeenCalledWith({});

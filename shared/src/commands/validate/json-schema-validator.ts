@@ -1,9 +1,9 @@
-import Ajv2020, { ErrorObject } from 'ajv/dist/2020.js';
+import Ajv2020, { ErrorObject, ValidateFunction } from 'ajv/dist/2020.js';
 import { SchemaDirectory } from '../../schema-directory.js';
 import { initLogger, Logger } from '../../logger.js';
 
 export class JsonSchemaValidator {
-    private validateFn: (instance: object) => boolean;
+    private validateFn: ValidateFunction<object>;
     private ajv: Ajv2020;
     private logger: Logger;
     private pattern: object;
@@ -42,7 +42,7 @@ export class JsonSchemaValidator {
         if (valid) {
             return [];
         } else {
-            return (this.validateFn as any).errors || [];
+            return this.validateFn.errors || [];
         }
     }
 }

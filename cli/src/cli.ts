@@ -122,7 +122,7 @@ export function setupCLI(program: Command) {
 
 export async function parseDocumentLoaderConfig(options): Promise<DocumentLoaderOptions> {
     const logger = initLogger(options.verbose, 'calm-cli');
-    let docLoaderOpts: DocumentLoaderOptions = {
+    const docLoaderOpts: DocumentLoaderOptions = {
         calmHubUrl: options.calmHubUrl,
         schemaDirectoryPath: options.schemaDirectory,
         debug: !!options.verbose

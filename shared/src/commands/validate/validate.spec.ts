@@ -5,7 +5,6 @@ import { ISpectralDiagnostic } from '@stoplight/spectral-core';
 import { ValidationOutcome, ValidationOutput } from './validation.output';
 import { ErrorObject } from 'ajv';
 import { SchemaDirectory } from '../../schema-directory';
-import { initial } from 'lodash';
 
 let schemaDirectory: SchemaDirectory = {
     getSchema: vi.fn(),
