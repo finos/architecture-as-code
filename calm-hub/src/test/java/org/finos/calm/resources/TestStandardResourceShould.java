@@ -5,12 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.finos.calm.domain.Standard;
-import org.finos.calm.domain.StandardDetails;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
 import org.finos.calm.domain.exception.StandardVersionExistsException;
 import org.finos.calm.domain.exception.StandardVersionNotFoundException;
+import org.finos.calm.domain.standards.CreateStandardRequest;
+import org.finos.calm.domain.standards.NamespaceStandardSummary;
 import org.finos.calm.store.StandardStore;
+import org.hamcrest.core.IsEqual;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,13 +39,13 @@ public class TestStandardResourceShould {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private Standard nist;
-    private Standard finos;
+    private NamespaceStandardSummary nistStandardSummary;
+    private NamespaceStandardSummary finosStandardSummary;
 
     @BeforeEach
     void beforeEach() {
-        nist = new Standard("nist", "NIST Standard", "{ \"test\": \"json\" }", null, null);
-        finos = new Standard("finos", "FINOS Standard", "{ \"test\": \"json\" }", null, null);
+        nistStandardSummary = new NamespaceStandardSummary("nist", "NIST Standard",1);
+        finosStandardSummary = new NamespaceStandardSummary("finos", "FINOS Standard", 2);
     }
 
     @Test
@@ -61,9 +63,9 @@ public class TestStandardResourceShould {
 
     @Test
     void return_list_of_standards_response_when_valid_namespace_provided_on_get_standards() throws NamespaceNotFoundException, JsonProcessingException {
-        List<StandardDetails> expectedStandards = List.of(this.nist, this.finos);
+        List<NamespaceStandardSummary> expectedStandardSummary = List.of(this.nistStandardSummary, this.finosStandardSummary);
 
-        when(mockStandardStore.getStandardsForNamespace("valid")).thenReturn(expectedStandards);
+        when(mockStandardStore.getStandardsForNamespace("valid")).thenReturn(expectedStandardSummary);
 
         given()
                 .when()
@@ -80,35 +82,42 @@ public class TestStandardResourceShould {
 
     @Test
     void return_a_404_when_invalid_namespace_is_provided_on_create_standards() throws NamespaceNotFoundException, JsonProcessingException {
-        when(mockStandardStore.createStandardForNamespace(any(Standard.class))).thenThrow(new NamespaceNotFoundException());
-        this.nist.setNamespace("invalid");
+        when(mockStandardStore.createStandardForNamespace(any(CreateStandardRequest.class), eq("invalid"))).thenThrow(new NamespaceNotFoundException());
+        CreateStandardRequest createStandardRequest = new CreateStandardRequest();
+        createStandardRequest.setName("nist");
+        createStandardRequest.setDescription("NIST Standard");
+        createStandardRequest.setStandardJson("{}");
 
         given()
                 .header("Content-Type", "application/json")
-                .body(objectMapper.writeValueAsString(this.nist))
+                .body(objectMapper.writeValueAsString(createStandardRequest))
                 .when()
                 .post("/calm/namespaces/invalid/standards")
                 .then()
                 .statusCode(404);
 
-        verify(mockStandardStore).createStandardForNamespace(this.nist);
+        verify(mockStandardStore).createStandardForNamespace(createStandardRequest, "invalid");
     }
 
     @Test
     void return_a_created_status_code_with_location_of_standard_when_creating_a_standard() throws NamespaceNotFoundException, JsonProcessingException {
         Standard storedNist = new Standard("nist", "NIST Standard", "{ \"test\": \"json\" }", 5, "1.0.0");
-        when(mockStandardStore.createStandardForNamespace(this.nist)).thenReturn(storedNist);
+        CreateStandardRequest createStandardRequest = new CreateStandardRequest();
+        createStandardRequest.setName("nist");
+        createStandardRequest.setDescription("NIST Standard");
+        createStandardRequest.setStandardJson("{ \"test\": \"json\" }");
+        when(mockStandardStore.createStandardForNamespace(createStandardRequest, "valid")).thenReturn(storedNist);
 
         given()
                 .header("Content-Type", "application/json")
-                .body(objectMapper.writeValueAsString(this.nist))
+                .body(objectMapper.writeValueAsString(createStandardRequest))
                 .when()
                 .post("/calm/namespaces/valid/standards")
                 .then()
                 .statusCode(201)
                 .header("Location",  containsString(("/calm/namespaces/valid/standards/5/versions/1.0.0")));
 
-        verify(mockStandardStore).createStandardForNamespace(this.nist);
+        verify(mockStandardStore).createStandardForNamespace(createStandardRequest, "valid");
     }
 
     static Stream<Arguments> provideParametersForStandardVersionTests() {
@@ -122,13 +131,11 @@ public class TestStandardResourceShould {
     @ParameterizedTest
     @MethodSource("provideParametersForStandardVersionTests")
     void respond_correctly_to_get_standard_versions_query(String namespace, Throwable exceptionToThrow, int expectedStatusCode, String expectedBody) throws StandardNotFoundException, NamespaceNotFoundException {
-        Standard standard = new Standard();
-        standard.setNamespace(namespace);
-        standard.setId(5);
+
         if(exceptionToThrow != null) {
-            when(mockStandardStore.getStandardVersions(standard)).thenThrow(exceptionToThrow);
+            when(mockStandardStore.getStandardVersions(namespace,5)).thenThrow(exceptionToThrow);
         } else {
-            when(mockStandardStore.getStandardVersions(standard)).thenReturn(List.of("1.0.0", "1.0.1"));
+            when(mockStandardStore.getStandardVersions(namespace, 5)).thenReturn(List.of("1.0.0", "1.0.1"));
         }
 
         if(expectedStatusCode == 200) {
@@ -147,7 +154,7 @@ public class TestStandardResourceShould {
                 .body(containsString(expectedBody));
         }
 
-        verify(mockStandardStore).getStandardVersions(standard);
+        verify(mockStandardStore).getStandardVersions(namespace, 5);
     }
 
     static Stream<Arguments> provideParametersForGetStandardTests() {
@@ -163,12 +170,15 @@ public class TestStandardResourceShould {
     @MethodSource("provideParametersForGetStandardTests")
     void respond_to_get_standard_for_a_specific_version_correctly(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws StandardNotFoundException, StandardVersionNotFoundException, NamespaceNotFoundException, JsonProcessingException {
         Standard standard = new Standard();
+        standard.setNamespace(namespace);
+        standard.setId(5);
+        standard.setStandardJson("{}");
 
         if(exceptionToThrow != null) {
-            when(mockStandardStore.getStandardForVersion(any(StandardDetails.class))).thenThrow(exceptionToThrow);
+            when(mockStandardStore.getStandardForVersion(namespace, 5, "1.0.0")).thenThrow(exceptionToThrow);
         } else {
             standard.setStandardJson(objectMapper.writeValueAsString(standard));
-            when(mockStandardStore.getStandardForVersion(any(StandardDetails.class))).thenReturn("{}");
+            when(mockStandardStore.getStandardForVersion(namespace, 5, "1.0.0")).thenReturn(standard);
         }
 
         if(expectedStatusCode == 200) {
@@ -177,7 +187,9 @@ public class TestStandardResourceShould {
                     .get("/calm/namespaces/" + namespace + "/standards/5/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode)
-                    .body(containsString("{}"));
+                    .body("namespace", equalTo(namespace))
+                    .body("id", equalTo(5))
+                    .body("standardJson", containsString("{}"));
         } else {
             given()
                     .when()
@@ -185,8 +197,6 @@ public class TestStandardResourceShould {
                     .then()
                     .statusCode(expectedStatusCode);
         }
-
-        verify(mockStandardStore).getStandardForVersion(any(Standard.class));
     }
 
     static Stream<Arguments> provideParametersForCreateStandardTests() {
@@ -200,43 +210,42 @@ public class TestStandardResourceShould {
 
     @ParameterizedTest
     @MethodSource("provideParametersForCreateStandardTests")
-    void respond_correctly_to_create_pattern(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws StandardNotFoundException, StandardVersionNotFoundException, NamespaceNotFoundException, StandardVersionExistsException {
-        Standard standard = new Standard();
-        standard.setId(5);
-        standard.setName("amazing-pattern");
-        standard.setDescription("An amazing pattern");
-        standard.setStandardJson("{}");
-        standard.setNamespace(namespace);
-        standard.setVersion("1.0.1");
+    void respond_correctly_to_create_standards(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws StandardNotFoundException, StandardVersionNotFoundException, NamespaceNotFoundException, StandardVersionExistsException {
+        CreateStandardRequest createStandardRequest = new CreateStandardRequest();
+        createStandardRequest.setName("amazing-standard");
+        createStandardRequest.setDescription("An amazing standard");
+        createStandardRequest.setStandardJson("{}");
 
         if (exceptionToThrow != null) {
-            when(mockStandardStore.createStandardForVersion(standard)).thenThrow(exceptionToThrow);
+            when(mockStandardStore.createStandardForVersion(createStandardRequest, namespace, 5, "1.0.1")).thenThrow(exceptionToThrow);
         } else {
-            when(mockStandardStore.createStandardForVersion(standard)).thenReturn(standard);
+            Standard createdStandard = new Standard(createStandardRequest);
+            createdStandard.setId(5);
+            createdStandard.setNamespace(namespace);
+            createdStandard.setVersion("1.0.1");
+            when(mockStandardStore.createStandardForVersion(createStandardRequest, namespace, 5, "1.0.1")).thenReturn(createdStandard);
         }
 
         if(expectedStatusCode == 201) {
             given()
                     .header("Content-Type", "application/json")
-                    .body(standard)
+                    .body(createStandardRequest)
                     .when()
-                    .post("/calm/namespaces/finos/standards/5/versions/1.0.1")
+                    .post("/calm/namespaces/" + namespace + "/standards/5/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
-                    //Derived from stubbed pattern in resource
-                    .header("Location", containsString("/calm/namespaces/finos/standards/5/versions/1.0.1"));
+                    //Derived from stubbed standard in resource
+                    .header("Location", containsString("/calm/namespaces/valid/standards/5/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
-                    .body(standard)
+                    .body(createStandardRequest)
                     .when()
-                    .post("/calm/namespaces/finos/standards/5/versions/1.0.1")
+                    .post("/calm/namespaces/" + namespace + "/standards/5/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }
 
-        verify(mockStandardStore, times(1)).createStandardForVersion(standard);
+        verify(mockStandardStore, times(1)).createStandardForVersion(createStandardRequest, namespace, 5, "1.0.1");
     }
-
-
 }

@@ -6,11 +6,12 @@ import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.domain.Standard;
-import org.finos.calm.domain.StandardDetails;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
 import org.finos.calm.domain.exception.StandardVersionExistsException;
 import org.finos.calm.domain.exception.StandardVersionNotFoundException;
+import org.finos.calm.domain.standards.CreateStandardRequest;
+import org.finos.calm.domain.standards.NamespaceStandardSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -74,7 +75,7 @@ public class TestNitriteStandardStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
 
         // Act
-        List<StandardDetails> result = standardStore.getStandardsForNamespace(NAMESPACE);
+        List<NamespaceStandardSummary> result = standardStore.getStandardsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result, is(notNullValue()));
@@ -96,7 +97,7 @@ public class TestNitriteStandardStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<StandardDetails> result = standardStore.getStandardsForNamespace(NAMESPACE);
+        List<NamespaceStandardSummary> result = standardStore.getStandardsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result, is(notNullValue()));
@@ -118,7 +119,7 @@ public class TestNitriteStandardStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<StandardDetails> result = standardStore.getStandardsForNamespace(NAMESPACE);
+        List<NamespaceStandardSummary> result = standardStore.getStandardsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result, is(notNullValue()));
@@ -148,7 +149,7 @@ public class TestNitriteStandardStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<StandardDetails> result = standardStore.getStandardsForNamespace(NAMESPACE);
+        List<NamespaceStandardSummary> result = standardStore.getStandardsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result, is(notNullValue()));
@@ -162,21 +163,19 @@ public class TestNitriteStandardStoreShould {
     @Test
     public void testCreateStandardForNamespace_whenNamespaceDoesNotExist_throwsNamespaceNotFoundException() {
         // Arrange
-        Standard standard = new Standard();
-        standard.setNamespace(NAMESPACE);
+        CreateStandardRequest standard = new CreateStandardRequest();
         standard.setStandardJson(STANDARD_JSON);
 
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 
         // Act & Assert
-        assertThrows(NamespaceNotFoundException.class, () -> standardStore.createStandardForNamespace(standard));
+        assertThrows(NamespaceNotFoundException.class, () -> standardStore.createStandardForNamespace(standard, NAMESPACE));
     }
 
     @Test
     public void testCreateStandardForNamespace_whenNamespaceExists_createsStandard() throws NamespaceNotFoundException {
         // Arrange
-        Standard standard = new Standard();
-        standard.setNamespace(NAMESPACE);
+        CreateStandardRequest standard = new CreateStandardRequest();
         standard.setStandardJson(STANDARD_JSON);
 
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
@@ -187,7 +186,7 @@ public class TestNitriteStandardStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        Standard result = standardStore.createStandardForNamespace(standard);
+        Standard result = standardStore.createStandardForNamespace(standard, NAMESPACE);
 
         // Assert
         assertThat(result, is(notNullValue()));
@@ -201,37 +200,25 @@ public class TestNitriteStandardStoreShould {
 
     @Test
     public void testGetStandardVersions_whenNamespaceDoesNotExist_throwsNamespaceNotFoundException() {
-        // Arrange
-        StandardDetails standardDetails = new StandardDetails();
-        standardDetails.setNamespace(NAMESPACE);
-        standardDetails.setId(STANDARD_ID);
-
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 
         // Act & Assert
-        assertThrows(NamespaceNotFoundException.class, () -> standardStore.getStandardVersions(standardDetails));
+        assertThrows(NamespaceNotFoundException.class, () -> standardStore.getStandardVersions(NAMESPACE, STANDARD_ID));
     }
 
     @Test
     public void testGetStandardVersions_whenStandardDoesNotExist_throwsStandardNotFoundException() {
         // Arrange
-        StandardDetails standardDetails = new StandardDetails();
-        standardDetails.setNamespace(NAMESPACE);
-        standardDetails.setId(STANDARD_ID);
-
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
         when(mockCollection.find(any(Filter.class))).thenReturn(mock(DocumentCursor.class));
 
         // Act & Assert
-        assertThrows(StandardNotFoundException.class, () -> standardStore.getStandardVersions(standardDetails));
+        assertThrows(StandardNotFoundException.class, () -> standardStore.getStandardVersions(NAMESPACE, STANDARD_ID));
     }
 
     @Test
     public void testGetStandardVersions_whenVersionsExist_returnsVersionsList() throws NamespaceNotFoundException, StandardNotFoundException {
         // Arrange
-        StandardDetails standardDetails = new StandardDetails();
-        standardDetails.setNamespace(NAMESPACE);
-        standardDetails.setId(STANDARD_ID);
 
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
@@ -257,7 +244,7 @@ public class TestNitriteStandardStoreShould {
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
         // Act
-        List<String> result = standardStore.getStandardVersions(standardDetails);
+        List<String> result = standardStore.getStandardVersions(NAMESPACE, STANDARD_ID);
 
         // Assert
         assertThat(result, is(notNullValue()));
@@ -269,25 +256,15 @@ public class TestNitriteStandardStoreShould {
     @Test
     public void testGetStandardForVersion_whenNamespaceDoesNotExist_throwsNamespaceNotFoundException() {
         // Arrange
-        StandardDetails standardDetails = new StandardDetails();
-        standardDetails.setNamespace(NAMESPACE);
-        standardDetails.setId(STANDARD_ID);
-        standardDetails.setVersion("1.0.0");
-
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 
         // Act & Assert
-        assertThrows(NamespaceNotFoundException.class, () -> standardStore.getStandardForVersion(standardDetails));
+        assertThrows(NamespaceNotFoundException.class, () -> standardStore.getStandardForVersion(NAMESPACE, STANDARD_ID, "1.0.0"));
     }
 
     @Test
     public void testGetStandardForVersion_whenStandardDoesNotExist_throwsStandardNotFoundException() {
         // Arrange
-        StandardDetails standardDetails = new StandardDetails();
-        standardDetails.setNamespace(NAMESPACE);
-        standardDetails.setId(STANDARD_ID);
-        standardDetails.setVersion("1.0.0");
-
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
         // Create a mock cursor that returns null for firstOrNull()
@@ -296,22 +273,17 @@ public class TestNitriteStandardStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
 
         // Act & Assert
-        assertThrows(StandardNotFoundException.class, () -> standardStore.getStandardForVersion(standardDetails));
+        assertThrows(StandardNotFoundException.class, () -> standardStore.getStandardForVersion(NAMESPACE, STANDARD_ID, "1.0.0"));
     }
 
     @Test
     public void testGetStandardForVersion_whenVersionDoesNotExist_throwsStandardVersionNotFoundException() {
         // Arrange
-        StandardDetails standardDetails = new StandardDetails();
-        standardDetails.setNamespace(NAMESPACE);
-        standardDetails.setId(STANDARD_ID);
-        standardDetails.setVersion("2.0.0");
-
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
         // Mock the versionsDoc with the fields we need
         Document versionsDoc = mock(Document.class);
-        when(versionsDoc.get(anyString(), eq(String.class))).thenReturn(null); // Version not found
+        when(versionsDoc.get("2-0-0", Document.class)).thenReturn(null); // Version not found
 
         // Mock the standard document
         Document standardDoc = mock(Document.class);
@@ -328,27 +300,35 @@ public class TestNitriteStandardStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act & Assert
-        assertThrows(StandardVersionNotFoundException.class, () -> standardStore.getStandardForVersion(standardDetails));
+        assertThrows(StandardVersionNotFoundException.class, () -> standardStore.getStandardForVersion(NAMESPACE, STANDARD_ID, "2.0.0"));
     }
 
     @Test
-    public void testGetStandardForVersion_whenVersionExists_returnsStandardJson() throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionNotFoundException {
-        // Arrange
-        StandardDetails standardDetails = new StandardDetails();
-        standardDetails.setNamespace(NAMESPACE);
-        standardDetails.setId(STANDARD_ID);
-        standardDetails.setVersion("1.0.0");
-
+    public void testGetStandardForVersion_whenVersionExists_returnsStandard() throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionNotFoundException {
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Standard expectedStandard = new Standard();
+        expectedStandard.setId(STANDARD_ID);
+        expectedStandard.setName("Test Standard");
+        expectedStandard.setDescription("Test Description");
+        expectedStandard.setNamespace(NAMESPACE);
+        expectedStandard.setId(STANDARD_ID);
+        expectedStandard.setVersion("2.0.0");
+        expectedStandard.setStandardJson("{}");
+
+        Document versionDoc = mock(Document.class);
+        when(versionDoc.get(eq("standardJson"), any())).thenReturn(expectedStandard.getStandardJson());
 
         // Mock the versionsDoc with the fields we need
         Document versionsDoc = mock(Document.class);
-        when(versionsDoc.get(eq("1-0-0"), eq(String.class))).thenReturn(STANDARD_JSON);
+        when(versionsDoc.get(eq("2-0-0"), any())).thenReturn(versionDoc);
 
         // Mock the standard document
         Document standardDoc = mock(Document.class);
         when(standardDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
         when(standardDoc.get("standardId", Integer.class)).thenReturn(STANDARD_ID);
+        when(standardDoc.get("name", String.class)).thenReturn(expectedStandard.getName());
+        when(standardDoc.get("description", String.class)).thenReturn(expectedStandard.getDescription());
 
         // Create the namespace document with the standard
         Document namespaceDoc = mock(Document.class);
@@ -360,29 +340,25 @@ public class TestNitriteStandardStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        String result = standardStore.getStandardForVersion(standardDetails);
+        Standard standard = standardStore.getStandardForVersion(NAMESPACE, STANDARD_ID, expectedStandard.getVersion());
 
         // Assert
-        assertThat(result, is(STANDARD_JSON));
+        assertThat(standard, equalTo(expectedStandard));
     }
 
     @Test
     public void testCreateStandardForVersion_whenNamespaceDoesNotExist_throwsNamespaceNotFoundException() {
         // Arrange
-        Standard standard = getStandardToPersist();
+        CreateStandardRequest standard = getStandardToPersist();
+
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 
         // Act & Assert
-        assertThrows(NamespaceNotFoundException.class, () -> standardStore.createStandardForVersion(standard));
+        assertThrows(NamespaceNotFoundException.class, () -> standardStore.createStandardForVersion(standard, NAMESPACE, null, null));
     }
 
-    private Standard getStandardToPersist() {
-        Standard standard = new Standard();
-        standard.setNamespace(NAMESPACE);
-        standard.setId(STANDARD_ID);
-        standard.setVersion("1.0.0");
-        standard.setStandardJson(STANDARD_JSON);
-        return standard;
+    private CreateStandardRequest getStandardToPersist() {
+        return new CreateStandardRequest("Test", "Test Description", STANDARD_JSON);
     }
 
     @Test
@@ -395,13 +371,13 @@ public class TestNitriteStandardStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
 
         // Act & Assert
-        assertThrows(StandardNotFoundException.class, () -> standardStore.createStandardForVersion(getStandardToPersist()));
+        assertThrows(StandardNotFoundException.class, () -> standardStore.createStandardForVersion(getStandardToPersist(), NAMESPACE, null, null));
     }
 
     @Test
     public void testCreateStandardForVersion_whenStandardDoesNotExist_throwsStandardNotFoundException() {
         // Arrange
-        Standard standard = getStandardToPersist();
+        CreateStandardRequest standard = getStandardToPersist();
 
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
@@ -420,13 +396,13 @@ public class TestNitriteStandardStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(namespaceCursor, standardCursor);
 
         // Act & Assert
-        assertThrows(StandardNotFoundException.class, () -> standardStore.createStandardForVersion(standard));
+        assertThrows(StandardNotFoundException.class, () -> standardStore.createStandardForVersion(standard, NAMESPACE, STANDARD_ID, null));
     }
 
     @Test
     public void testCreateStandardForVersion_whenVersionAlreadyExists_throwsStandardVersionExistsException() {
         // Arrange
-        Standard standard = getStandardToPersist();
+        CreateStandardRequest standard = getStandardToPersist();
 
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
@@ -452,13 +428,13 @@ public class TestNitriteStandardStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act & Assert
-        assertThrows(StandardVersionExistsException.class, () -> standardStore.createStandardForVersion(standard));
+        assertThrows(StandardVersionExistsException.class, () -> standardStore.createStandardForVersion(standard, NAMESPACE, STANDARD_ID, "1.0.0"));
     }
 
     @Test
     public void testCreateStandardForVersion_whenSuccess_returnsStandard() throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionExistsException {
         // Arrange
-        Standard standard = getStandardToPersist();
+        CreateStandardRequest createStandardRequest = getStandardToPersist();
 
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
@@ -485,7 +461,7 @@ public class TestNitriteStandardStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        Standard result = standardStore.createStandardForVersion(standard);
+        Standard result = standardStore.createStandardForVersion(createStandardRequest, NAMESPACE, STANDARD_ID, "1.0.0");
 
         // Assert
         assertThat(result, is(notNullValue()));

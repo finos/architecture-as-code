@@ -9,6 +9,7 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
 import org.finos.calm.domain.exception.StandardVersionExistsException;
 import org.finos.calm.domain.exception.StandardVersionNotFoundException;
+import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.StandardStore;
@@ -47,10 +48,9 @@ public class StandardResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
-    public Response createStandardForNamespace(@PathParam("namespace") String namespace, Standard standard) throws URISyntaxException {
+    public Response createStandardForNamespace(@PathParam("namespace") String namespace, CreateStandardRequest standard) throws URISyntaxException {
         try {
-            standard.setNamespace(namespace);
-            Standard createdStandard = standardStore.createStandardForNamespace(standard);
+            Standard createdStandard = standardStore.createStandardForNamespace(standard, namespace);
             return Response.created(new URI("/calm/namespaces/" + namespace + "/standards/" + createdStandard.getId() + "/versions/1.0.0")).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating standard", namespace, e);
@@ -64,10 +64,7 @@ public class StandardResource {
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
     public Response getStandardVersions(@PathParam("namespace") String namespace, @PathParam("standardId") Integer standardId) {
         try {
-            Standard standard = new Standard();
-            standard.setNamespace(namespace);
-            standard.setId(standardId);
-            return Response.ok(new ValueWrapper<>(standardStore.getStandardVersions(standard))).build();
+            return Response.ok(new ValueWrapper<>(standardStore.getStandardVersions(namespace, standardId))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving standard versions", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -88,7 +85,7 @@ public class StandardResource {
             standard.setNamespace(namespace);
             standard.setId(standardId);
             standard.setVersion(version);
-            return Response.ok(standardStore.getStandardForVersion(standard)).build();
+            return Response.ok(standardStore.getStandardForVersion(namespace, standardId, version)).build();
         } catch (StandardNotFoundException e) {
             logger.error("Invalid standard [{}] when retrieving standard versions", standardId, e);
             return invalidStandardResponse(standardId);
@@ -107,14 +104,10 @@ public class StandardResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
     public Response createStandardForVersion(@PathParam("namespace") String namespace, @PathParam("standardId") Integer standardId,
-                                             @PathParam("version") String version, Standard standard) throws URISyntaxException {
-
-        standard.setNamespace(namespace);
-        standard.setId(standardId);
-        standard.setVersion(version);
+                                             @PathParam("version") String version, CreateStandardRequest createStandardRequest) throws URISyntaxException {
 
         try {
-            standardStore.createStandardForVersion(standard);
+            standardStore.createStandardForVersion(createStandardRequest, namespace, standardId, version);
             return Response.created(new URI("/calm/namespaces/" + namespace + "/standards/" + standardId + "/versions/" + version)).build();
         } catch (StandardVersionExistsException e) {
             logger.error("Standard Version [{}] already exists", version, e);
