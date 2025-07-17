@@ -15,25 +15,30 @@ describe('JsonSchemaValidator', () => {
         } as any;
         pattern = { type: 'object' };
         validateFn = vi.fn() as any; // returns true/false for valid, then the function itself will have an errors property
-        ajvCompileMock = vi.spyOn(Ajv2020.prototype, 'compile').mockReturnValue(validateFn as any);
+        ajvCompileMock = vi.spyOn(Ajv2020.prototype, 'compileAsync').mockReturnValue(validateFn as any);
     });
 
     afterEach(() => {
         ajvCompileMock.mockRestore();
     });
 
-    it('constructs Ajv2020 with correct parameters', () => {
-        new JsonSchemaValidator(schemaDirectory, pattern, true);
+    it('constructs Ajv2020 with correct parameters', async () => {
+        const validator = new JsonSchemaValidator(schemaDirectory, pattern, true);
+        await validator.initialize();
         expect(ajvCompileMock).toHaveBeenCalledWith(pattern);
     });
 
-    it('propagates errors thrown by the constructor', () => {
+    it('initialise propagates errors thrown by ajv', async () => {
         ajvCompileMock.mockImplementation(() => { throw new Error('compile error'); });
-        expect(() => new JsonSchemaValidator(schemaDirectory, pattern)).toThrowError('compile error');
+        expect(async () => {
+            const validator = new JsonSchemaValidator(schemaDirectory, pattern);
+            await validator.initialize();
+        }).rejects.toThrowError('compile error');
     });
 
-    it('validate calls ajv validate and returns errors', () => {
+    it('validate calls ajv validate and returns errors', async () => {
         const validator = new JsonSchemaValidator(schemaDirectory, pattern);
+        await validator.initialize();
         validateFn.mockReturnValue(false);
         (validateFn as any).errors = [{ message: 'error' }];
         const result = validator.validate({});
@@ -41,10 +46,16 @@ describe('JsonSchemaValidator', () => {
         expect(result).toEqual([{ message: 'error' }]);
     });
 
-    it('validate returns empty array if valid', () => {
+    it('validate returns empty array if valid', async () => {
         const validator = new JsonSchemaValidator(schemaDirectory, pattern);
+        await validator.initialize();
         validateFn.mockReturnValue(true);
         const result = validator.validate({});
         expect(result).toEqual([]);
+    });
+
+    it('validate throws if not initialized', () => {
+        const validator = new JsonSchemaValidator(schemaDirectory, pattern);
+        expect(() => validator.validate({})).toThrowError('Validator has not been initialized. Call initialize() before validating.');
     });
 });

@@ -19,7 +19,11 @@ const mocks = vi.hoisted(() => ({
     mkdirpSync: vi.fn(),
     writeFileSync: vi.fn(),
     parseDocumentLoaderConfig: vi.fn(),
-    buildDocumentLoader: vi.fn()
+    buildDocumentLoader: vi.fn(() => ({
+        loadMissingDocument: mocks.loadMissingDocument
+    })),
+    loadSchemas: vi.fn(),
+    loadMissingDocument: vi.fn()
 }));
 
 vi.mock('@finos/calm-shared', async () => ({
@@ -27,7 +31,8 @@ vi.mock('@finos/calm-shared', async () => ({
     validate: mocks.validate,
     getFormattedOutput: mocks.getFormattedOutput,
     exitBasedOffOfValidationOutcome: mocks.exitBasedOffOfValidationOutcome,
-    initLogger: mocks.initLogger
+    initLogger: mocks.initLogger,
+    loadSchemas: mocks.loadSchemas
 }));
 
 vi.mock('mkdirp', () => ({
@@ -41,7 +46,10 @@ vi.mock('fs', () => ({
 
 vi.mock('../cli', async () => ({
     ...(await vi.importActual('../cli')),
-    parseDocumentLoaderConfig: mocks.parseDocumentLoaderConfig
+    parseDocumentLoaderConfig: mocks.parseDocumentLoaderConfig,
+    buildSchemaDirectory: vi.fn(() => ({
+        loadSchemas: mocks.loadSchemas
+    })),
 }));
 
 vi.mock('@finos/calm-shared/dist/document-loader/document-loader', async () => ({
@@ -57,14 +65,12 @@ describe('runValidate', () => {
     });
 
     it('should process validation successfully', async () => {
-        // Mock buildDocumentLoader to return an object with loadMissingDocument
         mocks.parseDocumentLoaderConfig.mockResolvedValue({});
-        mocks.buildDocumentLoader.mockReturnValue({
-            loadMissingDocument: vi.fn((filePath: string) => {
-                if (filePath === 'arch.json') return dummyArch;
-                if (filePath === 'pattern.json') return dummyPattern;
-                return undefined;
-            })
+        // Inline mock for loadMissingDocument
+        mocks.loadMissingDocument.mockImplementation((filePath: string, type: string) => {
+            if (filePath === 'arch.json') return Promise.resolve(dummyArch);
+            if (filePath === 'pattern.json') return Promise.resolve(dummyPattern);
+            return Promise.resolve();
         });
 
         const options: ValidateOptions = {
@@ -83,8 +89,10 @@ describe('runValidate', () => {
 
         await runValidate(options);
 
-        // Instead of filenames, expect dummy objects to be passed to validate
-        expect(validate).toHaveBeenCalledWith(dummyArch, dummyPattern, expect.any(SchemaDirectory), true);
+        expect(mocks.loadSchemas).toHaveBeenCalled();
+        expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch.json', 'architecture');
+        expect(mocks.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
+        expect(validate).toHaveBeenCalledWith(dummyArch, dummyPattern, expect.anything(), true);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json');
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 

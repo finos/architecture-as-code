@@ -15,6 +15,7 @@ export class FileSystemDocumentLoader implements DocumentLoader {
     }
 
     async initialise(schemaDirectory: SchemaDirectory): Promise<void> {
+        this.logger.debug('Initialising FileSystemDocumentLoader with directories: ' + this.directoryPaths.join(', '));
         for (const directoryPath of this.directoryPaths) {
             await this.loadDocumentsFromDirectory(schemaDirectory, directoryPath);
         }

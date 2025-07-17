@@ -136,14 +136,14 @@ export class SchemaDirectory {
                 this.storeDocument(schemaId, 'schema', document);
 
                 return document;
-            } 
+            }
             catch (err) {
                 if (err instanceof DocumentLoadError) {
                     if (err.name === 'OPERATION_NOT_IMPLEMENTED') {
                         const registered = this.getLoadedSchemas();
                         this.logger.warn(`Schema with $id ${schemaId} not found. Returning empty object. Registered schemas: ${registered}`);
                         return undefined;
-                    } 
+                    }
                 }
                 throw err;
             }
@@ -156,6 +156,7 @@ export class SchemaDirectory {
     }
 
     public storeDocument(documentId: string, documentType: CalmDocumentType, document: object) {
+        this.logger.debug(`Storing document with ID ${documentId} of type ${documentType}.`);
         this.schemas.set(documentId, document);
         this.schemaTypes.set(documentId, documentType);
     }

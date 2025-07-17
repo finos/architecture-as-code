@@ -126,6 +126,7 @@ export async function validate(
 async function validateArchitectureAgainstPattern(architecture: object, pattern: object, schemaDirectory: SchemaDirectory, debug: boolean): Promise<ValidationOutcome> {
     // Use JsonSchemaValidator
     const jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, pattern, debug);
+    await jsonSchemaValidator.initialize();
 
     const spectralResultForPattern: SpectralResult = await runSpectralValidations(stripRefs(pattern), validationRulesForPattern);
     const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(JSON.stringify(architecture), validationRulesForArchitecture);

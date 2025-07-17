@@ -1,6 +1,5 @@
 import axios from 'axios';
 import AxiosMockAdapter from 'axios-mock-adapter';
-import { CalmHubDocumentLoader } from './calmhub-document-loader';
 import { DirectUrlDocumentLoader } from './direct-url-document-loader';
 
 const ax = axios.create({});
@@ -11,15 +10,15 @@ mock.onGet('https://calm.finos.org/calm/schemas/2025-03/meta/core.json').reply(2
     'value': 'test'
 });
 
-describe('calmhub-document-loader', () => {
+describe('direct-url-document-loader', () => {
     let directUrlDocumentLoader;
     beforeEach(() => {
-        directUrlDocumentLoader = new DirectUrlDocumentLoader(ax);
+        directUrlDocumentLoader = new DirectUrlDocumentLoader(false, ax);
     });
 
     it('loads a document directly from a URL', async () => {
         const url = 'https://calm.finos.org/calm/schemas/2025-03/meta/core.json';
-        const document = await directUrlDocumentLoader.loadMissingDocument(url, 'schema');
+        const document = await directUrlDocumentLoader.loadMissingDocument(url, 'pattern');
         expect(document).toEqual({
             '$id': 'https://calm.finos.org/calm/schemas/2025-03/meta/core.json',
             'value': 'test'

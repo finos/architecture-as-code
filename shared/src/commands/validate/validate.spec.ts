@@ -5,6 +5,7 @@ import { ISpectralDiagnostic } from '@stoplight/spectral-core';
 import { ValidationOutcome, ValidationOutput } from './validation.output';
 import { ErrorObject } from 'ajv';
 import { SchemaDirectory } from '../../schema-directory';
+import { initial } from 'lodash';
 
 let schemaDirectory: SchemaDirectory = {
     getSchema: vi.fn(),
@@ -16,7 +17,8 @@ const mocks = vi.hoisted(() => ({
     spectralRun: vi.fn(),
     jsonSchemaValidatorConstructor: vi.fn().mockImplementation(() => {
         return {
-            validate: mocks.jsonSchemaValidate
+            validate: mocks.jsonSchemaValidate,
+            initialize: vi.fn().mockResolvedValue(undefined), // Mock initialize to resolve immediately
         };
     })
 }));
