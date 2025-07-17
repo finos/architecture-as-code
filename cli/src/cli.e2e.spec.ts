@@ -35,6 +35,7 @@ describe('CLI Integration Tests', () => {
         const tgzName = execSync('npm pack', { cwd: repoRoot })
             .toString()
             .trim();
+
         const sourceTarball = path.join(repoRoot, tgzName);
         const targetTarball = path.join(tempDir, tgzName);
         fs.renameSync(sourceTarball, targetTarball);
@@ -214,6 +215,33 @@ describe('CLI Integration Tests', () => {
         );
     });
 
+    test('validate command fails when neither architecture nor pattern is provided', async () => {
+        await expect(run(calm('validate'))).rejects.toMatchObject({
+            stderr: expect.stringContaining(
+                'error: one of the required options \'-p, --pattern <file>\' or \'-a, --architecture <file>\' was not specified'
+            )
+        });
+    });
+
+    test('validate command validates an architecture only', async () => {
+        const apiGatewayArchPath = path.join(__dirname, '../test_fixtures/api-gateway/api-gateway-architecture.json');
+        const targetOutputFile = path.join(tempDir, 'validate-output.json');
+
+        await run(calm(`validate -a ${apiGatewayArchPath} -o ${targetOutputFile}`));
+        const outputFile = fs.readFileSync(targetOutputFile, 'utf-8');
+
+        const parsedOutput = JSON.parse(outputFile);
+        const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_architecture_only_output.json');
+        const expectedOutput = JSON.parse(fs.readFileSync(expectedFilePath, 'utf-8'));
+
+        removeLineNumbers(parsedOutput);
+        removeLineNumbers(expectedOutput);
+
+        expect(parsedOutput).toEqual(expectedOutput);
+    });
+
+
+
     test('generate command produces the expected output', async () => {
         const p = path.join(
             __dirname,
@@ -329,7 +357,7 @@ describe('CLI Integration Tests', () => {
 
         // This will enforce that people verify the getting-started guide works prior to any cli change
         const { stdout } = await run(calm('--version'));
-        expect(stdout.trim()).toMatch('0.7.10'); // basic semver check
+        expect(stdout.trim()).toMatch('0.7.11'); // basic semver check
 
         //STEP 1: Generate Architecture From Pattern
         const inputPattern = path.resolve(
@@ -365,8 +393,7 @@ describe('CLI Integration Tests', () => {
         //STEP 3: Add flow to architecture-document
         const flowsDir = path.resolve(tempDir, 'flows');
         const flowFile = path.resolve(flowsDir, 'conference-signup.flow.json');
-        const flowUrl =
-            'https://calm.finos.org/getting-started/flows/conference-signup.flow.json';
+        const flowUrl = 'https://calm.finos.org/getting-started/flows/conference-signup.flow.json';
         fs.mkdirSync(flowsDir, { recursive: true });
 
         /* eslint-disable quotes */
@@ -419,10 +446,7 @@ describe('CLI Integration Tests', () => {
             if (!arch['flows'].includes(flowUrl)) arch['flows'].push(flowUrl);
         });
         await expectFilesMatch(
-            path.resolve(
-                GETTING_STARTED_TEST_FIXTURES_DIR,
-                'STEP-3/conference-signup-with-flow.arch.json'
-            ),
+            path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR, 'STEP-3/conference-signup-with-flow.arch.json'),
             outputArchitecture
         );
 
