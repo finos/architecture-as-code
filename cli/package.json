@@ -2,6 +2,11 @@
     "name": "@finos/calm-cli",
     "version": "0.7.9",
     "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
+    "homepage": "https://calm.finos.org",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/finos/architecture-as-code.git"
+    },
     "main": "dist/index.js",
     "files": [
         "dist/"
