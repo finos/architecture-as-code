@@ -1,6 +1,6 @@
-import {CalmParser} from './parser.js';
-import {CalmCore} from '../model/core.js';
-import {CalmConnectsType, CalmInteractsType} from '../model/relationship.js';
+import { CalmParser } from './parser.js';
+import { CalmCore } from '../model/core.js';
+import { CalmConnectsType, CalmInteractsType } from '../model/relationship.js';
 
 describe('CalmParser Integration Tests verifying traderx example and model fromJson', () => {
     let calmCore: CalmCore;
@@ -8,7 +8,9 @@ describe('CalmParser Integration Tests verifying traderx example and model fromJ
 
     beforeAll(async () => {
         calmParser = new CalmParser();
-        calmCore = calmParser.parse('../calm/samples/2024-12/traderx/traderx.json');
+        calmCore = calmParser.parse(
+            './test_fixtures/samples/2024-12/traderx.json'
+        );
     });
 
     test('should parse nodes correctly', () => {
@@ -30,7 +32,8 @@ describe('CalmParser Integration Tests verifying traderx example and model fromJ
         expect(interactsRel).toBeDefined();
         expect(interactsRel.description).toBe('Executes Trades');
 
-        const interactsType = interactsRel.relationshipType as CalmInteractsType;
+        const interactsType =
+            interactsRel.relationshipType as CalmInteractsType;
         expect(interactsType.actor).toBe('traderx-trader');
         expect(Array.isArray(interactsType.nodes)).toBe(true);
         expect(interactsType.nodes).toContain('web-client');
@@ -47,5 +50,4 @@ describe('CalmParser Integration Tests verifying traderx example and model fromJ
         expect(connectsType.source.node).toBe('web-client');
         expect(connectsType.destination.node).toBe('web-gui-process');
     });
-
 });

@@ -1,8 +1,0 @@
-{
-  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/domains-example/security/schema/micro-segmentation.json",
-  "control-id": "security-001",
-  "name": "Micro-segmentation of Kubernetes Cluster",
-  "description": "Micro-segmentation is in place to prevent lateral movement outside of permitted flows",
-  "permit-ingress": true,
-  "permit-egress": false
-}
