@@ -81,8 +81,8 @@ describe('CLI Commands', () => {
 
             expect(validateModule.checkValidateOptions).toHaveBeenCalled();
             expect(validateModule.runValidate).toHaveBeenCalledWith(expect.objectContaining({
-                pattern: 'pattern.json',
-                architecture: 'arch.json',
+                patternPath: 'pattern.json',
+                architecturePath: 'arch.json',
             }));
         });
     });

@@ -16,6 +16,17 @@ module.exports = {
             ],
         },
         {{/if}}
+       {{#if (notEmpty relationships)}}
+        {
+            type: 'category',
+            label: 'Relationships',
+            items: [
+                {{#each relationships}}
+                'relationships/{{this.id}}'{{#unless @last}},{{/unless}}
+                {{/each}}
+            ],
+        },
+        {{/if}}
         {{#if (notEmpty flows)}}
         {
             type: 'category',

@@ -28,3 +28,4 @@ node_modules/
 !/.mvn/wrapper/maven-wrapper.jar
 
 coverage/
+/cli/test/template-bundles/

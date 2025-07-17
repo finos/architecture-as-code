@@ -1,0 +1,44 @@
+{
+  "nodes": [
+    {
+      "unique-id": "system-a",
+      "node-type": "system",
+      "name": "System A",
+      "description": "Example system A"
+    },
+    {
+      "unique-id": "system-b",
+      "node-type": "system",
+      "name": "System B",
+      "description": "Example system B"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "system-a-to-system-b",
+      "description": "System A connects to System B",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "system-a"
+          },
+          "destination": {
+            "node": "system-b"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "controls": {
+        "authentication": {
+          "description": "Authentication between System A and System B",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/release/1.0-rc2/prototype/authentication-control-requirement.json",
+              "control-config-url": "https://calm.finos.org/release/1.0-rc2/prototype/authentication-control-config.json"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

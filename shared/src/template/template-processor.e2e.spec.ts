@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path, {join} from 'path';
-import { promises as fsPromises } from 'fs';
 import { TemplateProcessor } from './template-processor';
 import {CalmNodeSchema} from '../types/core-types';
 import {CalmInterfaceTypeSchema} from '../types/interface-types';
+import {expectDirectoryMatch} from '../test/file-comparison';
 const FIXTURES_DIR = path.resolve(__dirname, '../../test_fixtures/template');
 const WORKSHOP_DIR = path.resolve(__dirname, '../../../calm/workshop');
 const WORKSHOP_ARCH_DIR = path.resolve(__dirname, '../../test_fixtures/command/generate/expected-output');
@@ -243,8 +243,6 @@ describe('TemplateProcessor E2E', () => {
         const mapping = new Map<string, string>([
             ['https://calm.finos.org/release/1.0-rc1/meta/control-requirement.json', join(WORKSHOP_DIR, '../release/1.0-rc1/meta/control-requirement.json')],
             ['https://calm.finos.org/workshop/controls/micro-segmentation.config.json', join(WORKSHOP_DIR, 'controls/micro-segmentation.config.json')],
-            ['https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json', join(WORKSHOP_DIR, 'controls/micro-segmentation.requirement.json')],
-            ['https://calm.finos.org/workshop/controls/permitted-connection.requirement.json', join(WORKSHOP_DIR, 'controls/permitted-connection.requirement.json')],
             ['https://calm.finos.org/workshop/controls/permitted-connection-http.config.json', join(WORKSHOP_DIR, 'controls/permitted-connection-http.config.json')],
             ['https://calm.finos.org/workshop/controls/permitted-connection-jdbc.config.json', join(WORKSHOP_DIR, 'controls/permitted-connection-jdbc.config.json')],
         ]);
@@ -257,36 +255,7 @@ describe('TemplateProcessor E2E', () => {
 
         await expect(processor.processTemplate()).resolves.not.toThrow();
 
-        const actualFiles = await getAllFiles(OUTPUT_DIR);
-        const expectedFiles = await getAllFiles(EXPECTED_OUTPUT_WORKSHOP_DIR);
-
-        const actualRelPaths = new Set(actualFiles.map(f => relativeFilePath(OUTPUT_DIR, f)));
-        const expectedRelPaths = new Set(expectedFiles.map(f => relativeFilePath(EXPECTED_OUTPUT_WORKSHOP_DIR, f)));
-
-        // 🧪 Compare file lists
-        expect(actualRelPaths).toEqual(expectedRelPaths);
-
-        // 🧪 Compare contents
-        for (const relPath of expectedRelPaths) {
-            const actualContent = await fsPromises.readFile(path.join(OUTPUT_DIR, relPath), 'utf-8');
-            const expectedContent = await fsPromises.readFile(path.join(EXPECTED_OUTPUT_WORKSHOP_DIR, relPath), 'utf-8');
-            expect(actualContent).toEqual(expectedContent);
-        }
+        await expectDirectoryMatch(EXPECTED_OUTPUT_WORKSHOP_DIR,OUTPUT_DIR);
     });
-
-    async function getAllFiles(dir: string): Promise<string[]> {
-        const dirents = await fsPromises.readdir(dir, { withFileTypes: true });
-        const files = await Promise.all(
-            dirents.map((dirent) => {
-                const res = path.resolve(dir, dirent.name);
-                return dirent.isDirectory() ? getAllFiles(res) : res;
-            })
-        );
-        return files.flat();
-    }
-
-    function relativeFilePath(baseDir: string, fullPath: string): string {
-        return path.relative(baseDir, fullPath);
-    }
 
 });

@@ -52,24 +52,6 @@ const config = {
     ],
 
     plugins: [
-        // [
-        //     '@docusaurus/plugin-content-docs',
-        //     {
-        //         id: 'calm',
-        //         path: 'calm',
-        //         routeBasePath: 'calm',
-        //         sidebarPath: require.resolve('./sidebars.js'),
-        //     },
-        // ],
-        // [
-        //     '@docusaurus/plugin-content-docs',
-        //     {
-        //         id: 'community',
-        //         path: 'community',
-        //         routeBasePath: 'community',
-        //         sidebarPath: require.resolve('./sidebars.js'),
-        //     },
-        // ],
         [
             '@docusaurus/plugin-content-docs',
             {
@@ -78,6 +60,14 @@ const config = {
                 routeBasePath: 'talks',
                 sidebarPath: require.resolve('./sidebars.js'),
             },
+        ],
+        [
+            '@docusaurus/plugin-content-docs',
+            {
+                id: 'quick-start',
+                path: 'quick-start',
+                routeBasePath: 'quick-start',
+            }
         ],
     ],
 
@@ -90,27 +80,15 @@ const config = {
                 title: 'CALM',
                 logo: {
                     alt: 'CALM Logo',
-                    src: 'img/logo.svg',
+                    src: 'img/2025_CALM_Icon.svg',
                 },
                 items: [
-                    // {
-                    //     type: 'docSidebar',
-                    //     sidebarId: 'docsSidebar',
-                    //     position: 'left',
-                    //     label: 'Docs',
-                    // },
-                    // {
-                    //     to: '/calm/',
-                    //     label: 'CALM',
-                    //     position: 'left',
-                    //     activeBaseRegex: `/calm/`,
-                    // },
-                    // {
-                    //     to: '/community/',
-                    //     label: 'Community',
-                    //     position: 'left',
-                    //     activeBaseRegex: `/community/`,
-                    // },
+                    {
+                        to: '/quick-start/',
+                        label: '🚀 Get Started in 5 Mins',
+                        position: 'left',
+                        activeBaseRegex: `/quick-start/`,
+                    },
                     {
                         to: '/talks/',
                         label: 'Talks',
@@ -156,10 +134,6 @@ const config = {
                     {
                         title: 'More',
                         items: [
-                            {
-                                label: 'Working Group',
-                                href: 'https://devops.finos.org/docs/working-groups/aasc/',
-                            },
                             {
                                 label: 'GitHub',
                                 href: 'https://github.com/finos/architecture-as-code',

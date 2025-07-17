@@ -1,124 +1,155 @@
-import { TemplateCalmFileDereferencer } from './template-calm-file-dereferencer';
-import path from 'path';
-import {InMemoryResolver} from '../resolver/calm-reference-resolver';
+import { vi } from 'vitest';
+vi.mock('../logger.js', () => ({
+    initLogger: () => ({ info: vi.fn(), debug: () => {} })
+}));
 
+import { describe, it, expect, beforeEach } from 'vitest';
+import path from 'path';
+import { TemplateCalmFileDereferencer } from './template-calm-file-dereferencer.js';
+import { InMemoryResolver } from '../resolver/calm-reference-resolver.js';
+
+let dereferencer: TemplateCalmFileDereferencer;
+let urlFileMapping: Map<string, string>;
+let resolver: InMemoryResolver;
 
 describe('TemplateCalmFileDereferencer', () => {
-    let dereferencer: TemplateCalmFileDereferencer;
-    let urlFileMapping: Map<string, string>;
-
     beforeEach(() => {
-        urlFileMapping = new Map<string, string>([
-            [
-                'https://calm.finos.org/traderx/flow/add-update-account',
-                path.resolve('data/add-update-account.json')
-            ],
-            [
-                'https://calm.finos.org/traderx/flow/load-list-of-accounts',
-                path.resolve('data/load-list-of-accounts.json')
-            ]
+        const file1Path = path.resolve(__dirname, 'file1.json');
+        urlFileMapping = new Map([
+            ['http://mapped.example.com/one', file1Path]
         ]);
 
-        const mockResolver = new InMemoryResolver({
-            [path.resolve('data/add-update-account.json')]: { flow: 'Add Update Account Content' },
-            [path.resolve('data/load-list-of-accounts.json')]: { flow: 'Load List of Accounts Content' }
-        });
+        const mockData: Record<string, unknown> = {
+            'http://mapped.example.com/one': { data: 'from-file1' },
+            [file1Path]: { data: 'from-file1' },
+            'http://schema.example.com/req': {
+                $schema: 'https://json-schema.org/draft/2020-12/schema',
+                properties: { foo: { type: 'string' } }
+            },
+            'http://schema.example.com/impl': {
+                $schema: 'https://json-schema.org/draft/2020-12/schema'
+            }
+        };
 
-        dereferencer = new TemplateCalmFileDereferencer(urlFileMapping, mockResolver);
+        resolver = new InMemoryResolver(mockData);
+        dereferencer = new TemplateCalmFileDereferencer(urlFileMapping, resolver);
     });
 
-    describe('replaceUrlsWithFilePaths', () => {
-        it('should replace URLs with file content', async () => {
-            const jsonDoc = `{
-                "flows": [
-                    "https://calm.finos.org/traderx/flow/add-update-account",
-                    "https://calm.finos.org/traderx/flow/load-list-of-accounts"
-                ]
-            }`;
+    it('replaces mapped URLs with file refs', async () => {
+        const doc = JSON.stringify({ url: 'http://mapped.example.com/one' });
+        const output = await dereferencer.dereferenceCalmDoc(doc);
+        const parsed = JSON.parse(output);
+        expect(parsed.url).toEqual({ data: 'from-file1' });
+    });
 
-            const expected = `{
-                "flows": [
-                    { "flow": "Add Update Account Content" },
-                    { "flow": "Load List of Accounts Content" }
-                ]
-            }`;
+    it('inlines JSON‐Schema definitions correctly', async () => {
+        const doc = JSON.stringify({ schemaUrl: 'http://schema.example.com/req' });
+        const output = await dereferencer.dereferenceCalmDoc(doc);
+        const parsed = JSON.parse(output);
+        expect(parsed.schemaUrl).toEqual('http://schema.example.com/req');
+    });
 
-            const resolvedJson = await dereferencer.dereferenceCalmDoc(jsonDoc);
-            expect(JSON.parse(resolvedJson)).toEqual(JSON.parse(expected));
-        });
+    it('inlines JSON-Schema implementations correctly via detailed-architecture reference', async () => {
+        const firstDocUrl = 'http://schema.example.com/firstDoc';
+        const implUrl     = 'http://schema.example.com/impl';
 
-        it('should not modify non-mapped URLs', async () => {
-            const jsonDoc = `{
-                "flows": [
-                    "https://calm.finos.org/traderx/flow/unknown-url"
-                ]
-            }`;
+        urlFileMapping = new Map();
 
-            const expected = jsonDoc; // No changes expected
+        const mockData: Record<string, unknown> = {
+            [firstDocUrl]: {
+                $id: firstDocUrl,
+                $schema: 'https://json-schema.org/draft/2020-12/schema',
+                'detailed-architecture': implUrl
+            },
+            [implUrl]: {
+                $id: implUrl,
+                $schema: 'https://json-schema.org/draft/2020-12/schema'
+            }
+        };
 
-            const resolvedJson = await dereferencer.dereferenceCalmDoc(jsonDoc);
-            expect(JSON.parse(resolvedJson)).toEqual(JSON.parse(expected));
+        resolver     = new InMemoryResolver(mockData);
+        dereferencer = new TemplateCalmFileDereferencer(urlFileMapping, resolver);
+
+        const input  = JSON.stringify(mockData[firstDocUrl]);
+        const output = await dereferencer.dereferenceCalmDoc(input);
+        const parsed = JSON.parse(output);
+
+        expect(parsed).toEqual({
+            $id: firstDocUrl,
+            $schema: 'https://json-schema.org/draft/2020-12/schema',
+            'detailed-architecture': {
+                $id: implUrl,
+                $schema: 'https://json-schema.org/draft/2020-12/schema'
+            }
         });
     });
 
-    describe('dereferenceCalmDoc', () => {
-        it('should replace URLs and inline file contents', async () => {
-            const jsonDoc = `{
-                "flows": [
-                    "https://calm.finos.org/traderx/flow/add-update-account",
-                    "https://calm.finos.org/traderx/flow/load-list-of-accounts"
-                ]
-            }`;
 
-            const expected = `{
-                "flows": [
-                    { "flow": "Add Update Account Content" },
-                    { "flow": "Load List of Accounts Content" }
-                ]
-            }`;
+    it('leaves unreachable URLs intact', async () => {
+        const doc = JSON.stringify({ url: 'http://unreachable.example.com/three' });
+        const output = await dereferencer.dereferenceCalmDoc(doc);
+        const parsed = JSON.parse(output);
+        expect(parsed.url).toBe('http://unreachable.example.com/three');
+    });
 
-            const resolvedJson = await dereferencer.dereferenceCalmDoc(jsonDoc);
-            expect(JSON.parse(resolvedJson)).toEqual(JSON.parse(expected));
-        });
+    it('recurses nested structures', async () => {
+        const nestedDoc = {
+            arr: [
+                'http://mapped.example.com/one',
+                { nestedSchema: 'http://schema.example.com/req' },
+                'http://unreachable.example.com/three'
+            ]
+        };
+        const output = await dereferencer.dereferenceCalmDoc(JSON.stringify(nestedDoc));
+        const parsed = JSON.parse(output);
+        expect(parsed.arr[0]).toEqual({ data: 'from-file1' });
+        expect(parsed.arr[1].nestedSchema).toEqual('http://schema.example.com/req');
+        expect(parsed.arr[2]).toBe('http://unreachable.example.com/three');
+    });
 
-        it('should replace URLs in nested structures', async () => {
-            const jsonDoc = `{
-                "system": {
-                    "flow": "https://calm.finos.org/traderx/flow/add-update-account"
+    it('follows two levels of detailed-architecture references and inlines the final document', async () => {
+        const firstDocUrl     = 'http://schema.example.com/firstDoc';
+        const implUrl         = 'http://schema.example.com/impl';
+        const partialImplUrl  = 'http://schema.example.com/partialImpl';
+
+        const urlFileMapping = new Map<string, string>();
+
+        const mockData: Record<string, unknown> = {
+            [partialImplUrl]: {
+                $id: partialImplUrl,
+                $schema: 'https://json-schema.org/draft/2020-12/schema'
+            },
+            [implUrl]: {
+                $id: implUrl,
+                $schema: 'https://json-schema.org/draft/2020-12/schema',
+                'detailed-architecture': partialImplUrl
+            },
+            [firstDocUrl]: {
+                $id: firstDocUrl,
+                $schema: 'https://json-schema.org/draft/2020-12/schema',
+                'detailed-architecture': implUrl
+            }
+        };
+
+        const resolver     = new InMemoryResolver(mockData);
+        const dereferencer = new TemplateCalmFileDereferencer(urlFileMapping, resolver);
+
+        const firstDoc = mockData[firstDocUrl];
+        const input  = JSON.stringify(firstDoc);
+        const output = await dereferencer.dereferenceCalmDoc(input);
+        const parsed = JSON.parse(output);
+
+        expect(parsed).toEqual({
+            $id: firstDocUrl,
+            $schema: 'https://json-schema.org/draft/2020-12/schema',
+            'detailed-architecture': {
+                $id: implUrl,
+                $schema: 'https://json-schema.org/draft/2020-12/schema',
+                'detailed-architecture': {
+                    $id: partialImplUrl,
+                    $schema: 'https://json-schema.org/draft/2020-12/schema'
                 }
-            }`;
-
-            const expected = `{
-                "system": {
-                    "flow": { "flow": "Add Update Account Content" }
-                }
-            }`;
-
-            const resolvedJson = await dereferencer.dereferenceCalmDoc(jsonDoc);
-            expect(JSON.parse(resolvedJson)).toEqual(JSON.parse(expected));
-        });
-
-        it('should not replace URLs that are not in the mapping', async () => {
-            const jsonDoc = `{
-                "flows": [
-                    "https://calm.finos.org/traderx/flow/unknown-url"
-                ]
-            }`;
-
-            const expected = jsonDoc; // No changes expected
-
-            const resolvedJson = await dereferencer.dereferenceCalmDoc(jsonDoc);
-            expect(JSON.parse(resolvedJson)).toEqual(JSON.parse(expected));
-        });
-
-        it('should handle empty JSON objects', async () => {
-            const resolvedJson = await dereferencer.dereferenceCalmDoc('{}');
-            expect(JSON.parse(resolvedJson)).toEqual({});
-        });
-
-        it('should handle empty JSON arrays', async () => {
-            const resolvedJson = await dereferencer.dereferenceCalmDoc('[]');
-            expect(JSON.parse(resolvedJson)).toEqual([]);
+            }
         });
     });
 });

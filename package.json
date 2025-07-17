@@ -31,6 +31,6 @@
         "vitest": "^3.1.1"
     },
     "dependencies": {
-        "@finos/calm-shared": "^0.2.2"
+      "@finos/calm-shared": "^0.2.2"
     }
 }

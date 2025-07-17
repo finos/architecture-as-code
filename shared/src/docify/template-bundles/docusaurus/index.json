@@ -11,7 +11,21 @@
         "controls.hbs",
         "relationships.hbs",
         "table-template.html",
-        "row-template.html"
+        "row-template.html",
+        "metadata.hbs"
+      ]
+    },
+    {
+      "template": "relationship.mdx.hbs",
+      "from": "relationships",
+      "output": "docs/relationships/{{id}}.md",
+      "output-type": "repeated",
+      "partials": [
+        "controls.hbs",
+        "relationships.hbs",
+        "table-template.html",
+        "row-template.html",
+        "metadata.hbs"
       ]
     },
     {
@@ -24,6 +38,12 @@
       "template": "docusaurus.config.js",
       "from": "docs",
       "output": "docusaurus.config.js",
+      "output-type": "single"
+    },
+    {
+      "template": "2025_CALM_Icon.svg",
+      "from": "docs",
+      "output": "static/img/2025_CALM_Icon.svg",
       "output-type": "single"
     },
     {
@@ -44,7 +64,9 @@
       "output": "docs/index.md",
       "output-type": "single",
       "partials": [
-        "c4-container.hbs"
+        "c4-container.hbs",
+        "table-template.html",
+        "metadata.hbs"
       ]
     },
     {
