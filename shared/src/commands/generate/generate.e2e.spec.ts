@@ -7,11 +7,11 @@ import { SchemaDirectory } from '../../schema-directory.js';
 
 const inputPatternPath = join(
     __dirname,
-    '../../../../calm/workshop/conference-signup.pattern.json'
+    '../../../../conferences/osff-ln-2025/workshop/conference-signup.pattern.json'
 );
 const inputSecurePatternPath = join(
     __dirname,
-    '../../../../calm/workshop/conference-secure-signup.pattern.json'
+    '../../../../conferences/osff-ln-2025/workshop/conference-secure-signup.pattern.json'
 );
 
 const expectedDir = join(__dirname, '../../../test_fixtures/command/generate/expected-output');
