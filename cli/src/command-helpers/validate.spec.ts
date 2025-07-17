@@ -58,13 +58,13 @@ vi.mock('@finos/calm-shared/dist/document-loader/document-loader', async () => (
 }));
 
 describe('runValidate', () => {
+    const fakeOutcome = { valid: true };
+
     beforeEach(() => {
         vi.resetAllMocks();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         process.exit = mocks.processExit as any;
-    });
 
-    it('should process validation successfully', async () => {
         mocks.parseDocumentLoaderConfig.mockResolvedValue({});
         // Inline mock for loadMissingDocument
         mocks.loadMissingDocument.mockImplementation((filePath: string, _: string) => {
@@ -72,7 +72,11 @@ describe('runValidate', () => {
             if (filePath === 'pattern.json') return Promise.resolve(dummyPattern);
             return Promise.resolve();
         });
+        (validate as Mock).mockResolvedValue(fakeOutcome);
+        (getFormattedOutput as Mock).mockReturnValue('formatted output');
+    });
 
+    it('should process validation successfully with both architecture and pattern', async () => {
         const options: ValidateOptions = {
             architecturePath: 'arch.json',
             patternPath: 'pattern.json',
@@ -83,9 +87,6 @@ describe('runValidate', () => {
             strict: false,
         };
 
-        const fakeOutcome = { valid: true };
-        (validate as Mock).mockResolvedValue(fakeOutcome);
-        (getFormattedOutput as Mock).mockReturnValue('formatted output');
 
         await runValidate(options);
 
@@ -96,7 +97,54 @@ describe('runValidate', () => {
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json');
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
-        // When output is provided, writeOutputFile should call mkdirp.sync and writeFileSync
+        expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
+        expect(writeFileSync).toHaveBeenCalledWith('out.json', 'formatted output');
+    });
+
+    it('should process validation successfully with architecture only', async () => {
+        const options: ValidateOptions = {
+            architecturePath: 'arch.json',
+            patternPath: undefined,
+            metaSchemaPath: 'schemas',
+            verbose: true,
+            outputFormat: 'json',
+            outputPath: 'out.json',
+            strict: false,
+        };
+
+
+        await runValidate(options);
+
+        expect(mocks.loadSchemas).toHaveBeenCalled();
+        expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch.json', 'architecture');
+        expect(validate).toHaveBeenCalledWith(dummyArch, undefined, expect.anything(), true);
+        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json');
+        expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
+
+        expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
+        expect(writeFileSync).toHaveBeenCalledWith('out.json', 'formatted output');
+    });
+
+    it('should process validation successfully with pattern only', async () => {
+        const options: ValidateOptions = {
+            architecturePath: undefined,
+            patternPath: 'pattern.json',
+            metaSchemaPath: 'schemas',
+            verbose: true,
+            outputFormat: 'json',
+            outputPath: 'out.json',
+            strict: false,
+        };
+
+
+        await runValidate(options);
+
+        expect(mocks.loadSchemas).toHaveBeenCalled();
+        expect(mocks.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
+        expect(validate).toHaveBeenCalledWith(undefined, dummyPattern, expect.anything(), true);
+        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json');
+        expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
+
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
         expect(writeFileSync).toHaveBeenCalledWith('out.json', 'formatted output');
     });
