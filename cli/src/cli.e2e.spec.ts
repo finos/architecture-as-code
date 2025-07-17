@@ -329,7 +329,7 @@ describe('CLI Integration Tests', () => {
 
         // This will enforce that people verify the getting-started guide works prior to any cli change
         const { stdout } = await run(calm('--version'));
-        expect(stdout.trim()).toMatch('0.7.9'); // basic semver check
+        expect(stdout.trim()).toMatch('0.7.10'); // basic semver check
 
         //STEP 1: Generate Architecture From Pattern
         const inputPattern = path.resolve(

@@ -1,1 +1,1 @@
-export const CALM_META_SCHEMA_DIRECTORY = __dirname + '/calm/release';
+export const CALM_META_SCHEMA_DIRECTORY = __dirname + '/calm';
