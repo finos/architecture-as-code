@@ -92,7 +92,7 @@ public class MongoStandardStore implements StandardStore {
 
     @Override
     public List<String> getStandardVersions(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException {
-        Document result = retrieveStandardVersions(namespace, standardId);
+        Document result = retrieveStandardVersions(namespace);
 
         List<Document> standards = (List<Document>) result.get("standards");
         for (Document standardDoc : standards) {
@@ -114,7 +114,7 @@ public class MongoStandardStore implements StandardStore {
 
     }
 
-    private Document retrieveStandardVersions(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException {
+    private Document retrieveStandardVersions(String namespace) throws NamespaceNotFoundException, StandardNotFoundException {
         //FIXME there is a bug here where standardId is not used, which will be fine when one standard exists
 
         if(!namespaceStore.namespaceExists(namespace)) {
@@ -135,7 +135,7 @@ public class MongoStandardStore implements StandardStore {
 
     @Override
     public Standard getStandardForVersion(String namespace, Integer standardId, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionNotFoundException {
-        Document result = retrieveStandardVersions(namespace, standardId);
+        Document result = retrieveStandardVersions(namespace);
         List<Document> standards = (List<Document>) result.get("standards");
         Standard standard = new Standard();
         for (Document standardDoc : standards) {
@@ -169,7 +169,7 @@ public class MongoStandardStore implements StandardStore {
     }
 
     private Standard writeStandardToMongo(CreateStandardRequest createStandardRequest, String namespace, Integer standardId, String version) throws StandardNotFoundException, NamespaceNotFoundException {
-        retrieveStandardVersions(namespace, standardId);
+        retrieveStandardVersions(namespace);
 
         Document standardDocument = Document.parse(createStandardRequest.getStandardJson());
         Document filter = new Document("namespace", namespace)
