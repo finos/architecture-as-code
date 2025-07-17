@@ -224,7 +224,7 @@ describe('CLI Integration Tests', () => {
     });
 
     test('validate command validates an architecture only', async () => {
-        const apiGatewayArchPath = path.join(__dirname, '../../calm/samples/api-gateway-architecture.json');
+        const apiGatewayArchPath = path.join(__dirname, '../test_fixtures/api-gateway/api-gateway-architecture.json');
         const targetOutputFile = path.join(tempDir, 'validate-output.json');
 
         await run(calm(`validate -a ${apiGatewayArchPath} -o ${targetOutputFile}`));
