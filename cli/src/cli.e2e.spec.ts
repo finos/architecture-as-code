@@ -84,7 +84,7 @@ describe('CLI Integration Tests', () => {
     test('validate command outputs JSON to stdout', async () => {
         const apiGatewayPath = path.join(
             __dirname,
-            '../../calm/pattern/api-gateway.json'
+            '../test_fixtures/api-gateway/api-gateway.json'
         );
         const apiGatewayArchPath = path.join(
             __dirname,
@@ -108,7 +108,7 @@ describe('CLI Integration Tests', () => {
     test('validate command outputs JSON to file', async () => {
         const apiGatewayPath = path.join(
             __dirname,
-            '../../calm/pattern/api-gateway.json'
+            '../test_fixtures/api-gateway/api-gateway.json'
         );
         const apiGatewayArchPath = path.join(
             __dirname,
@@ -138,7 +138,7 @@ describe('CLI Integration Tests', () => {
     test('validate command outputs JUNIT to stdout', async () => {
         const apiGatewayPath = path.join(
             __dirname,
-            '../../calm/pattern/api-gateway.json'
+            '../test_fixtures/api-gateway/api-gateway.json'
         );
         const apiGatewayArchPath = path.join(
             __dirname,
