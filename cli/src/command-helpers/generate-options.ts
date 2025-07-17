@@ -51,7 +51,7 @@ export async function promptUserForOptions(pattern: object, debug: boolean = fal
     const logger = initLogger(debug, 'calm-generate-options');
 
     const patternOptions: CalmOption[] = extractOptions(pattern);
-    logger.debug('Pattern options extracted from pattern: ' + patternOptions);
+    logger.debug('Pattern options extracted from pattern: ' + JSON.stringify(patternOptions));
 
     const questions = createQuestionsFromPatternOptions(patternOptions);
     const answers: string[] = await getAnswersFromUser(questions);
