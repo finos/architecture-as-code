@@ -22,7 +22,7 @@ calm -V
 
 ## 🛠️ Step-by-Step Demo
 
-Assuming you're in the `calm/workshop` directory:
+Assuming you're in the `copnferences/ossf-ln-2025/workshop` directory:
 
 ### **Step 1: Generate an Architecture Instantiation**
 
