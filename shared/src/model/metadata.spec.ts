@@ -46,4 +46,15 @@ describe('CalmMetadata', () => {
             key1: 'value1'
         });
     });
+
+    it('should handle single metadata object', () => {
+        const singleMetadata: CalmMetadataSchema = { key1: 'value1', key2: 'value2' };
+        const metadata = CalmMetadata.fromJson(singleMetadata);
+
+        expect(metadata).toBeInstanceOf(CalmMetadata);
+        expect(metadata.data).toEqual({
+            key1: 'value1',
+            key2: 'value2'
+        });
+    });
 });
