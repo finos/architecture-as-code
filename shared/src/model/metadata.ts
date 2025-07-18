@@ -1,12 +1,12 @@
 import { CalmMetadataSchema } from '../types/metadata-types.js';
 
 export class CalmMetadata {
-    constructor(public data: Record<string, unknown>) {}
+    constructor(public data: Record<string, unknown>) { }
 
     static fromJson(data: CalmMetadataSchema): CalmMetadata {
-        if(!data) return new CalmMetadata({});
+        if (!data) return new CalmMetadata({});
 
-        var flattenedData: Record<string, unknown> = {};
+        let flattenedData: Record<string, unknown> = {};
         if (Array.isArray(data)) {
             flattenedData = data.reduce((acc, curr) => {
                 return { ...acc, ...curr };
