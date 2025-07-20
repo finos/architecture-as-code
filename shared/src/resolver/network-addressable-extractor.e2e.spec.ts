@@ -28,16 +28,16 @@ describe('extractNetworkAddressables E2E', () => {
 
     it('extracts control requirement URLs from node controls', () => {
         expect(entries).toContainEqual({
-            path: 'root.nodes[4].controls.security.requirements[0].control-requirement-url',
-            key: 'control-requirement-url',
+            path: 'root.nodes[4].controls.security.requirements[0].requirement-url',
+            key: 'requirement-url',
             value: 'https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json',
         });
     });
 
     it('extracts control config URLs from node controls', () => {
         expect(entries).toContainEqual({
-            path: 'root.nodes[4].controls.security.requirements[0].control-config-url',
-            key: 'control-config-url',
+            path: 'root.nodes[4].controls.security.requirements[0].config-url',
+            key: 'config-url',
             value: 'https://calm.finos.org/workshop/controls/micro-segmentation.config.json',
         });
     });
@@ -46,7 +46,7 @@ describe('extractNetworkAddressables E2E', () => {
         const relReqs = entries
             .filter(
                 (e) =>
-                    e.key === 'control-requirement-url' &&
+                    e.key === 'requirement-url' &&
                     e.path.startsWith('root.relationships')
             )
             .map((e) => e.value)
@@ -64,7 +64,7 @@ describe('extractNetworkAddressables E2E', () => {
         const relConfigs = entries
             .filter(
                 (e) =>
-                    e.key === 'control-config-url' &&
+                    e.key === 'config-url' &&
                     e.path.startsWith('root.relationships')
             )
             .map((e) => e.value)

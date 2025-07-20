@@ -31,12 +31,12 @@
 | Owner Type      | Name        | Email               | Description                        |
 |-----------------|-------------|---------------------|------------------------------------|
       {{#each requirements}}
-        {{#if controlConfigUrl}}
-          {{#with controlConfigUrl}}
+        {{#if configUrl}}
+          {{#with configUrl}}
 | {{owner-type}} | {{owner.name}} | {{owner.email}} | {{description}} |
           {{/with}}
         {{else}}
-          {{#with controlConfig}}
+          {{#with config}}
 | {{owner-type}} | {{owner.name}} | {{owner.email}} | {{description}} |
           {{/with}}
         {{/if}}

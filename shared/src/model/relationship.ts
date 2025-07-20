@@ -19,9 +19,7 @@ export class CalmRelationship {
         public metadata: CalmMetadata,
         public controls: CalmControl[],
         public description?: string,
-        public protocol?: string ,
-        public authentication?: string
-   
+        public protocol?: string
     ) {}
 
     static fromJson(data: CalmRelationshipSchema): CalmRelationship {
@@ -31,8 +29,7 @@ export class CalmRelationship {
             data.metadata ? CalmMetadata.fromJson(data.metadata) : new CalmMetadata({}),
             CalmControl.fromJson(data.controls),
             data.description,
-            data.protocol,
-            data.authentication
+            data.protocol
         );
     }
 

@@ -44,8 +44,8 @@
       "description": "Control requirement for flow SLA",
       "requirements": [
         {
-          "control-requirement-url": "https://calm.finos.org/traderx/control/flow-sla-control-requirement",
-          "control-config-url": "https://calm.finos.org/traderx/control/trade-processing-control-configuration"
+          "requirement-url": "https://calm.finos.org/traderx/control/flow-sla-control-requirement",
+          "config-url": "https://calm.finos.org/traderx/control/trade-processing-control-configuration"
         }
       ]
     }

@@ -76,7 +76,7 @@ describe('NetworkAddressableValidator E2E with InMemoryResolver', () => {
 
     it('control requirement URLs identified as schema definitions', () => {
         entries
-            .filter((e) => e.key === 'control-requirement-url')
+            .filter((e) => e.key === 'requirement-url')
             .forEach((e) => {
                 const r = results.find((r) => r.entry === e)!;
                 expect(r.reachable).toBe(true);
@@ -87,7 +87,7 @@ describe('NetworkAddressableValidator E2E with InMemoryResolver', () => {
 
     it('control config URLs identified as schema implementations', () => {
         entries
-            .filter((e) => e.key === 'control-config-url')
+            .filter((e) => e.key === 'config-url')
             .forEach((e) => {
                 const r = results.find((r) => r.entry === e)!;
                 expect(r.reachable).toBe(true);

@@ -17,12 +17,10 @@ const nodeData: CalmNodeSchema = {
     controls: {
         'control-001': {
             description: 'Test control',
-            requirements: [{ 'control-requirement-url': 'https://example.com/requirement', 'control-config-url': 'https://example.com/config' }]
+            requirements: [{ 'requirement-url': 'https://example.com/requirement', 'config-url': 'https://example.com/config' }]
         }
     },
-    metadata: [{ key: 'value' }],
-    'data-classification': 'Public',
-    'run-as': 'admin',
+    metadata: [{ key: 'value' }]
 };
 
 
@@ -52,8 +50,6 @@ describe('CalmNode', () => {
         expect(node.controls).toHaveLength(1);
         expect(node.controls[0].controlId).toBe('control-001');
         expect(node.metadata).toEqual({ data: { key: 'value' } });
-        expect(node.dataClassification).toBe('Public');
-        expect(node.runAs).toBe('admin');
     });
 
     it('should handle optional fields in CalmNode', () => {
@@ -67,7 +63,7 @@ describe('CalmNode', () => {
                 'required-pattern': 'https://example.com/pattern-2'
             },
             interfaces: [{ 'unique-id': 'interface-002', port: 8080 }],
-            controls: { 'control-002': { description: 'Another test control', requirements: [{ 'control-requirement-url': 'https://example.com/requirement2', 'control-config-url': 'https://example.com/config2' }] } },
+            controls: { 'control-002': { description: 'Another test control', requirements: [{ 'requirement-url': 'https://example.com/requirement2', 'config-url': 'https://example.com/config2' }] } },
             metadata: [{ key: 'value' }]
         };
 
@@ -75,7 +71,7 @@ describe('CalmNode', () => {
 
         expect(nodeWithoutOptionalFields).toBeInstanceOf(CalmNode);
         expect(nodeWithoutOptionalFields.uniqueId).toBe('node-002');
-        expect(nodeWithoutOptionalFields.runAs).toBeUndefined();
+        expect(nodeWithoutOptionalFields['run-as']).toBeUndefined();
     });
 
     it('should handle empty interfaces, controls, and metadata', () => {

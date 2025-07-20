@@ -32,7 +32,8 @@
       },
       "required": [
         "unique-id"
-      ]
+      ],
+      "additionalProperties": true
     },
     "node-interface": {
       "type": "object",

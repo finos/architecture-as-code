@@ -1,5 +1,5 @@
 {
-  "$schema": "https://calm.finos.org/release/1.0-rc1/meta/calm.json",
+  "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
   "$id": "https://calm.finos.org/workshop/conference-signup.pattern.json",
   "type": "object",
   "title": "Conference Signup Pattern",
@@ -11,7 +11,7 @@
       "maxItems": 5,
       "prefixItems": [
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -44,7 +44,7 @@
           }
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -77,7 +77,7 @@
           }
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -118,7 +118,7 @@
           }
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -159,7 +159,7 @@
           }
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -184,7 +184,7 @@
       "maxItems": 4,
       "prefixItems": [
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/relationship",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -214,7 +214,7 @@
           ]
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/relationship",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -244,7 +244,7 @@
           ]
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/relationship",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -274,7 +274,7 @@
           ]
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/relationship",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
           "properties": {
             "unique-id": {
               "const": "deployed-in-k8s-cluster"

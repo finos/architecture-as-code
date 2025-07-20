@@ -6,7 +6,7 @@ export type CalmFlowTransitionDirectionSchema =  'source-to-destination' | 'dest
 export type CalmFlowTransitionSchema = {
     'relationship-unique-id': string;
     'sequence-number': number;
-    summary: string;
+    description: string;
     direction?: CalmFlowTransitionDirectionSchema;
 };
 

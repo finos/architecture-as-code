@@ -33,7 +33,7 @@ export class CalmFlowTransition {
     constructor(
         public relationshipUniqueId: string,
         public sequenceNumber: number,
-        public summary: string,
+        public description: string,
         public direction: CalmFlowDirection = 'source-to-destination'
     ) {}
 
@@ -41,7 +41,7 @@ export class CalmFlowTransition {
         return new CalmFlowTransition(
             data['relationship-unique-id'],
             data['sequence-number'],
-            data.summary,
+            data.description,
             data.direction || 'source-to-destination'
         );
     }
