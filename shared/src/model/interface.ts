@@ -2,13 +2,14 @@ import {
     CalmNodeInterfaceSchema
 } from '../types/interface-types.js';
 import { CalmInterfaceDefinitionSchema, CalmInterfaceTypeSchema } from '../types/interface-types.js';
-import { CalmInterfaceSchema }           from '../types/core-types.js';
+import { CalmInterfaceSchema } from '../types/core-types.js';
 
 export class CalmInterface {
-    constructor(public uniqueId: string) {}
+    constructor(public uniqueId: string) { }
 
     static fromJson(data: CalmInterfaceSchema): CalmInterface {
-        if ('definition-url' in data && 'config' in data) {
+        if ('unique-id' in data && 'definition-url' in data && 'config' in data
+            && Object.keys(data).length === 3) {
             return CalmInterfaceDefinition.fromJson(data as CalmInterfaceDefinitionSchema);
         }
         return CalmInterfaceType.fromJson(data as CalmInterfaceTypeSchema);
@@ -48,7 +49,7 @@ export class CalmInterfaceType extends CalmInterface {
 }
 
 export class CalmNodeInterface {
-    constructor(public node: string, public interfaces: string[] = []) {}
+    constructor(public node: string, public interfaces: string[] = []) { }
 
     static fromJson(data: CalmNodeInterfaceSchema): CalmNodeInterface {
         return new CalmNodeInterface(data.node, data.interfaces ?? []);
