@@ -3,9 +3,7 @@ import {CalmControl} from './control.js';
 import {CalmMetadata} from './metadata.js';
 import {CalmNodeDetailsSchema, CalmNodeSchema} from '../types/core-types.js';
 
-export type CalmNodeType = 'actor' | 'ecosystem' | 'system' | 'service' | 'database' | 'network' | 'ldap' | 'webclient' | 'data-asset';
-
-export type CalmDataClassification = 'Public' | 'Confidential' | 'Highly Restricted' | 'MNPI' | 'PII';
+export type CalmNodeType = 'actor' | 'ecosystem' | 'system' | 'service' | 'database' | 'network' | 'ldap' | 'webclient' | 'data-asset' | string;
 
 export class CalmNodeDetails {
     constructor(
@@ -30,10 +28,7 @@ export class CalmNode {
         public details: CalmNodeDetails,
         public interfaces: CalmInterface[],
         public controls: CalmControl[],
-        public metadata: CalmMetadata,
-        public dataClassification?: CalmDataClassification,
-        public runAs?: string,
-
+        public metadata: CalmMetadata
     ) {}
 
     static fromJson(data: CalmNodeSchema): CalmNode {
@@ -45,9 +40,7 @@ export class CalmNode {
             data.details ? CalmNodeDetails.fromJson(data.details) : new CalmNodeDetails('', ''),
             data.interfaces ? data.interfaces.map(CalmInterface.fromJson) : [],
             data.controls ? CalmControl.fromJson(data.controls) : [],
-            data.metadata ? CalmMetadata.fromJson(data.metadata): new CalmMetadata({}),
-            data['data-classification'],
-            data['run-as'],
+            data.metadata ? CalmMetadata.fromJson(data.metadata): new CalmMetadata({})
         );
     }
 }

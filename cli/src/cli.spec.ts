@@ -5,8 +5,7 @@ let calmShared: typeof import('@finos/calm-shared');
 let validateModule: typeof import('./command-helpers/validate');
 let serverModule: typeof import('./server/cli-server');
 let templateModule: typeof import('./command-helpers/template');
-let fileReaderModule: typeof import('./command-helpers/file-input');
-let optionsModule: typeof import ('./command-helpers/generate-options');
+let optionsModule: typeof import('./command-helpers/generate-options');
 let fileSystemDocLoaderModule: typeof import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
 let setupCLI: typeof import('./cli').setupCLI;
 
@@ -16,11 +15,6 @@ describe('CLI Commands', () => {
     beforeEach(async () => {
         vi.resetModules();
         vi.clearAllMocks();
-
-        fileReaderModule = await import('./command-helpers/file-input');
-        const loadFileSpy = vi.spyOn(fileReaderModule, 'loadJsonFromFile');
-        loadFileSpy.mockReset();
-        loadFileSpy.mockImplementation(() => Promise.resolve({}));
 
         calmShared = await import('@finos/calm-shared');
         validateModule = await import('./command-helpers/validate');
@@ -42,6 +36,7 @@ describe('CLI Commands', () => {
         vi.spyOn(optionsModule, 'promptUserForOptions').mockResolvedValue([]);
 
         vi.spyOn(fileSystemDocLoaderModule, 'FileSystemDocumentLoader').mockImplementation(vi.fn());
+        vi.spyOn(fileSystemDocLoaderModule.FileSystemDocumentLoader.prototype, 'loadMissingDocument').mockResolvedValue({});
 
         const cliModule = await import('./cli');
         setupCLI = cliModule.setupCLI;
@@ -60,7 +55,7 @@ describe('CLI Commands', () => {
                 '--schemaDirectory', 'schemas',
             ]);
 
-            expect(fileReaderModule.loadJsonFromFile).toHaveBeenCalledWith('pattern.json', true);
+            expect(fileSystemDocLoaderModule.FileSystemDocumentLoader.prototype.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
             expect(optionsModule.promptUserForOptions).toHaveBeenCalled();
 
             expect(fileSystemDocLoaderModule.FileSystemDocumentLoader).toHaveBeenCalledWith([CALM_META_SCHEMA_DIRECTORY, 'schemas'], true);
@@ -81,8 +76,8 @@ describe('CLI Commands', () => {
 
             expect(validateModule.checkValidateOptions).toHaveBeenCalled();
             expect(validateModule.runValidate).toHaveBeenCalledWith(expect.objectContaining({
-                pattern: 'pattern.json',
-                architecture: 'arch.json',
+                patternPath: 'pattern.json',
+                architecturePath: 'arch.json',
             }));
         });
     });
@@ -102,7 +97,7 @@ describe('CLI Commands', () => {
                 true,
             );
         });
-    }); 
+    });
 
     describe('Template Command', () => {
         it('should instantiate TemplateProcessor and call processTemplate', async () => {

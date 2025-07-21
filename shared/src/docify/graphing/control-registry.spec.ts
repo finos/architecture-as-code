@@ -18,8 +18,8 @@ describe('ControlRegistry', () => {
                 description: 'Node Control',
                 requirements: [
                     {
-                        'control-requirement-url': '/controls/requirement1',
-                        'control-config': {
+                        'requirement-url': '/controls/requirement1',
+                        'config': {
                             'control-id': 'config1',
                             'name': 'Config 1',
                             '$schema': 'schema1',
@@ -32,8 +32,8 @@ describe('ControlRegistry', () => {
                 description: 'Relationship Control',
                 requirements: [
                     {
-                        'control-requirement-url': '/controls/requirement2',
-                        'control-config': {
+                        'requirement-url': '/controls/requirement2',
+                        'config': {
                             'control-id': 'config2',
                             'name': 'Config 2',
                             '$schema': 'schema2',
@@ -46,8 +46,8 @@ describe('ControlRegistry', () => {
                 description: 'Flow Control',
                 requirements: [
                     {
-                        'control-requirement-url': '/controls/requirement1',
-                        'control-config-url': {
+                        'requirement-url': '/controls/requirement1',
+                        'config-url': {
                             'control-id': 'config3',
                             'name': 'Config 3',
                             '$schema': 'schema3',

@@ -20,9 +20,8 @@ const relationshipData: CalmRelationshipSchema = {
         }
     },
     protocol: 'HTTP',
-    authentication: 'OAuth2',
     metadata: [{ key: 'value' }],
-    controls: { 'control-001': { description: 'Test control', requirements: [{ 'control-requirement-url': 'https://example.com/requirement', 'control-config-url': 'https://example.com/config' }] } }
+    controls: { 'control-001': { description: 'Test control', requirements: [{ 'requirement-url': 'https://example.com/requirement', 'config-url': 'https://example.com/config' }] } }
 };
 
 describe('CalmRelationship', () => {
@@ -33,7 +32,6 @@ describe('CalmRelationship', () => {
         expect(relationship.uniqueId).toBe('relationship-001');
         expect(relationship.description).toBe('Test Relationship');
         expect(relationship.protocol).toBe('HTTP');
-        expect(relationship.authentication).toBe('OAuth2');
         expect(relationship.metadata).toEqual({ data: { key: 'value' } });
         expect(relationship.controls).toHaveLength(1);
         expect(relationship.controls[0].controlId).toBe('control-001');
@@ -56,9 +54,8 @@ describe('CalmRelationship', () => {
                 }
             },
             protocol: 'TLS',
-            authentication: 'Basic',
             metadata: [{ key: 'value2' }],
-            controls: { 'control-002': { description: 'Another test control', requirements: [{ 'control-requirement-url': 'https://example.com/requirement2', 'control-config-url': 'https://example.com/config2' }] } }
+            controls: { 'control-002': { description: 'Another test control', requirements: [{ 'requirement-url': 'https://example.com/requirement2', 'config-url': 'https://example.com/config2' }] } }
         };
 
         const relationship = CalmRelationship.fromJson(connectsRelationshipData);
@@ -82,9 +79,8 @@ describe('CalmRelationship', () => {
                 }
             },
             protocol: 'AMQP',
-            authentication: 'Certificate',
             metadata: [{ key: 'value3' }],
-            controls: { 'control-003': { description: 'Test control 3', requirements: [{ 'control-requirement-url': 'https://example.com/requirement3', 'control-config-url': 'https://example.com/config3' }] } }
+            controls: { 'control-003': { description: 'Test control 3', requirements: [{ 'requirement-url': 'https://example.com/requirement3', 'config-url': 'https://example.com/config3' }] } }
         };
 
         const relationship = CalmRelationship.fromJson(deployedInRelationshipData);
@@ -108,9 +104,8 @@ describe('CalmRelationship', () => {
                 }
             },
             protocol: 'TCP',
-            authentication: 'OAuth2',
             metadata: [{ key: 'value4' }],
-            controls: { 'control-004': { description: 'Test control 4', requirements: [{ 'control-requirement-url': 'https://example.com/requirement4', 'control-config-url': 'https://example.com/config4' }] } }
+            controls: { 'control-004': { description: 'Test control 4', requirements: [{ 'requirement-url': 'https://example.com/requirement4', 'config-url': 'https://example.com/config4' }] } }
         };
 
         const relationship = CalmRelationship.fromJson(composedOfRelationshipData);
@@ -146,15 +141,14 @@ describe('CalmRelationship', () => {
                 ]
             },
             protocol: 'TCP',
-            authentication: 'OAuth2',
             metadata: [{ key: 'value4' }],
             controls: {
                 'control-004': {
                     description: 'Test control 4',
                     requirements: [
                         {
-                            'control-requirement-url': 'https://example.com/requirement4',
-                            'control-config-url': 'https://example.com/config4'
+                            'requirement-url': 'https://example.com/requirement4',
+                            'config-url': 'https://example.com/config4'
                         }
                     ]
                 }

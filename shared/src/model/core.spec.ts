@@ -21,15 +21,13 @@ const coreData: CalmCoreSchema = {
                     description: 'Test control',
                     requirements: [
                         {
-                            'control-requirement-url': 'https://example.com/requirement',
-                            'control-config-url': 'https://example.com/config'
+                            'requirement-url': 'https://example.com/requirement',
+                            'config-url': 'https://example.com/config'
                         }
                     ]
                 }
             },
-            metadata: [{ key: 'value' }],
-            'data-classification': 'Public',
-            'run-as': 'admin'
+            metadata: [{ key: 'value' }]
         }
     ],
     relationships: [
@@ -43,15 +41,14 @@ const coreData: CalmCoreSchema = {
                 }
             },
             protocol: 'HTTP',
-            authentication: 'OAuth2',
             metadata: [{ key: 'value' }],
             controls: {
                 'control-001': {
                     description: 'Test control',
                     requirements: [
                         {
-                            'control-requirement-url': 'https://example.com/requirement',
-                            'control-config-url': 'https://example.com/config'
+                            'requirement-url': 'https://example.com/requirement',
+                            'config-url': 'https://example.com/config'
                         }
                     ]
                 }
@@ -64,8 +61,8 @@ const coreData: CalmCoreSchema = {
             description: 'Test control',
             requirements: [
                 {
-                    'control-requirement-url': 'https://example.com/requirement',
-                    'control-config-url': 'https://example.com/config'
+                    'requirement-url': 'https://example.com/requirement',
+                    'config-url': 'https://example.com/config'
                 }
             ]
         }

@@ -6,6 +6,7 @@ export default defineConfig({
     ],
     format: ['esm'],
     clean: true,
+    keepNames: true,
     outDir: 'dist/template-bundles/docusaurus',
     target: 'node18',
     outExtension: () => ({ js: '.js' })

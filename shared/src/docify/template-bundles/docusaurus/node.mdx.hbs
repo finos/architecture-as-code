@@ -11,16 +11,13 @@ title: {{title}}
 | **Node Type**       | {{nodeType}}             |
 | **Name**            | {{name}}                 |
 | **Description**     | {{description}}          |
-| **Data Classification** | {{dataClassification}} |
-| **Run As**          | {{runAs}}                |
+
 </div>
 
 ## Interfaces
 {{#if interfaces.length}}
-    | Unique ID | Host | Port | Url |
-    |-----------|------|------|-----|
-    {{#each interfaces}}
-        | {{uniqueId}} | {{host}} | {{port}} | {{url}} |
+    {{#each interfaces as |iface|}}
+        {{> table-template.html data=iface}}
     {{/each}}
 {{else}}
     _No interfaces defined._
