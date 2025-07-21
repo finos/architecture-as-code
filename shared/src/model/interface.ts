@@ -4,12 +4,20 @@ import {
 import { CalmInterfaceDefinitionSchema, CalmInterfaceTypeSchema } from '../types/interface-types.js';
 import { CalmInterfaceSchema } from '../types/core-types.js';
 
+const calmInterfaceDefinitionRequiredProperties = [
+    'unique-id', 'definition-url', 'config'
+].sort();
+
+
 export class CalmInterface {
     constructor(public uniqueId: string) { }
 
     static fromJson(data: CalmInterfaceSchema): CalmInterface {
-        if ('unique-id' in data && 'definition-url' in data && 'config' in data
-            && Object.keys(data).length === 3) {
+        // Compare data property names with the required properties
+        // for CalmInterfaceDefinition
+        const dataKeys = Object.keys(data).sort();
+        if (dataKeys.length === calmInterfaceDefinitionRequiredProperties.length
+            && dataKeys.every((val, index) => val === calmInterfaceDefinitionRequiredProperties[index])) {
             return CalmInterfaceDefinition.fromJson(data as CalmInterfaceDefinitionSchema);
         }
         return CalmInterfaceType.fromJson(data as CalmInterfaceTypeSchema);
