@@ -11,7 +11,7 @@ const metadataDataAsObject: CalmMetadataSchema = {
     key1: 'value1',
     key2: 'value2',
     key3: 'value3'
-}
+};
 
 describe('CalmMetadata', () => {
     it('should create a CalmMetadata instance from JSON data', () => {
