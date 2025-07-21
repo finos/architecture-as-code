@@ -357,7 +357,7 @@ describe('CLI Integration Tests', () => {
 
         // This will enforce that people verify the getting-started guide works prior to any cli change
         const { stdout } = await run(calm('--version'));
-        expect(stdout.trim()).toMatch('0.7.11'); // basic semver check
+        expect(stdout.trim()).toMatch('0.7.12'); // basic semver check
 
         //STEP 1: Generate Architecture From Pattern
         const inputPattern = path.resolve(
@@ -398,7 +398,7 @@ describe('CLI Integration Tests', () => {
 
         /* eslint-disable quotes */
         writeJson(flowFile, {
-            $schema: 'https://calm.finos.org/release/1.0-rc1/meta/flow.json',
+            $schema: 'https://calm.finos.org/release/1.0-rc2/meta/flow.json',
             $id: flowUrl,
             'unique-id': 'flow-conference-signup',
             name: 'Conference Signup Flow',
@@ -409,19 +409,19 @@ describe('CLI Integration Tests', () => {
                     'relationship-unique-id':
                         'conference-website-load-balancer',
                     'sequence-number': 1,
-                    summary:
+                    description:
                         'User submits sign-up form via Conference Website to Load Balancer',
                 },
                 {
                     'relationship-unique-id': 'load-balancer-attendees',
                     'sequence-number': 2,
-                    summary:
+                    description:
                         'Load Balancer forwards request to Attendees Service',
                 },
                 {
                     'relationship-unique-id': 'attendees-attendees-store',
                     'sequence-number': 3,
-                    summary:
+                    description:
                         'Attendees Service stores attendee info in the Attendees Store',
                 },
             ],

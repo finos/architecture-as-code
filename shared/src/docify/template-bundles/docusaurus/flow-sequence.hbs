@@ -3,12 +3,12 @@ sequenceDiagram
 {{#each transitions}}
     {{#if direction}}
         {{#if (eq direction 'destination-to-source')}}
-            {{target}} -->> {{source}}: {{summary}}
+            {{target}} -->> {{source}}: {{description}}
         {{else}}
-            {{source}} ->> {{target}}: {{summary}}
+            {{source}} ->> {{target}}: {{description}}
         {{/if}}
     {{else}}
-        {{source}} ->> {{target}}: {{summary}}
+        {{source}} ->> {{target}}: {{description}}
     {{/if}}
 {{/each}}
 ```

@@ -46,7 +46,7 @@ describe('NetworkAddressableValidator E2E', () => {
     });
 
     it('validates a control-requirement URL as schema document', () => {
-        const entry = entries.find((e) => e.key === 'control-requirement-url');
+        const entry = entries.find((e) => e.key === 'requirement-url');
         const result = results.find((r) => r.entry === entry);
         expect(result).toBeDefined();
         expect(result?.reachable).toBe(true);
@@ -55,7 +55,7 @@ describe('NetworkAddressableValidator E2E', () => {
     });
 
     it('validates a control-config URL as schema document', () => {
-        const entry = entries.find((e) => e.key === 'control-config-url');
+        const entry = entries.find((e) => e.key === 'config-url');
         const result = results.find((r) => r.entry === entry);
         expect(result).toBeDefined();
         expect(result?.reachable).toBe(true);

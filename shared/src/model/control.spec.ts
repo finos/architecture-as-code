@@ -2,13 +2,13 @@ import { CalmControl, CalmControlDetail } from './control.js';
 import { CalmControlDetailSchema, CalmControlsSchema } from '../types/control-types.js';
 
 const controlDetailWithUrl: CalmControlDetailSchema = {
-    'control-requirement-url': 'https://example.com/requirement',
-    'control-config-url': 'https://example.com/config'
+    'requirement-url': 'https://example.com/requirement',
+    'config-url': 'https://example.com/config'
 };
 
 const controlDetailWithInlineControl: CalmControlDetailSchema = {
-    'control-requirement-url': 'https://example.com/requirement',
-    'control-config': { foo: 'bar', threshold: 10 }
+    'requirement-url': 'https://example.com/requirement',
+    'config': { foo: 'bar', threshold: 10 }
 };
 
 const controlData: CalmControlsSchema = {
@@ -27,16 +27,16 @@ describe('CalmControlDetail', () => {
         const controlDetail = CalmControlDetail.fromJson(controlDetailWithUrl);
 
         expect(controlDetail).toBeInstanceOf(CalmControlDetail);
-        expect(controlDetail.controlRequirementUrl).toBe('https://example.com/requirement');
-        expect(controlDetail.controlConfigUrl).toBe('https://example.com/config');
+        expect(controlDetail.requirementUrl).toBe('https://example.com/requirement');
+        expect(controlDetail.configUrl).toBe('https://example.com/config');
     });
 
     it('should create a CalmControlDetail from object-based JSON', () => {
         const d = CalmControlDetail.fromJson(controlDetailWithInlineControl);
         expect(d).toBeInstanceOf(CalmControlDetail);
-        expect(d.controlRequirementUrl).toBe('https://example.com/requirement');
-        expect(d.controlConfigUrl).toBeUndefined();
-        expect(d.controlConfig).toEqual({ foo: 'bar', threshold: 10 });
+        expect(d.requirementUrl).toBe('https://example.com/requirement');
+        expect(d.configUrl).toBeUndefined();
+        expect(d.config).toEqual({ foo: 'bar', threshold: 10 });
     });
 
 
@@ -52,8 +52,8 @@ describe('CalmControl', () => {
         expect(controls[0].description).toBe('Test Control 1');
         expect(controls[0].requirements).toHaveLength(1);
         expect(controls[0].requirements[0]).toBeInstanceOf(CalmControlDetail);
-        expect(controls[0].requirements[0].controlRequirementUrl).toBe('https://example.com/requirement');
-        expect(controls[0].requirements[0].controlConfigUrl).toBe('https://example.com/config');
+        expect(controls[0].requirements[0].requirementUrl).toBe('https://example.com/requirement');
+        expect(controls[0].requirements[0].configUrl).toBe('https://example.com/config');
     });
 
     it('should handle an empty ControlsSchema', () => {
@@ -82,8 +82,8 @@ describe('CalmControl', () => {
             'control-4': {
                 description: 'Control with multiple requirements',
                 requirements: [
-                    { 'control-requirement-url': 'https://example.com/requirement-1', 'control-config-url': 'https://example.com/config-1' },
-                    { 'control-requirement-url': 'https://example.com/requirement-2', 'control-config-url': 'https://example.com/config-2' }
+                    { 'requirement-url': 'https://example.com/requirement-1', 'config-url': 'https://example.com/config-1' },
+                    { 'requirement-url': 'https://example.com/requirement-2', 'config-url': 'https://example.com/config-2' }
                 ]
             }
         };
@@ -93,8 +93,8 @@ describe('CalmControl', () => {
         expect(controls).toHaveLength(1);
         expect(controls[0].controlId).toBe('control-4');
         expect(controls[0].requirements).toHaveLength(2);
-        expect(controls[0].requirements[0].controlRequirementUrl).toBe('https://example.com/requirement-1');
-        expect(controls[0].requirements[1].controlRequirementUrl).toBe('https://example.com/requirement-2');
+        expect(controls[0].requirements[0].requirementUrl).toBe('https://example.com/requirement-1');
+        expect(controls[0].requirements[1].requirementUrl).toBe('https://example.com/requirement-2');
     });
 
     it('should parse controls with mixed requirement types', () => {
@@ -113,13 +113,13 @@ describe('CalmControl', () => {
 
         const urlCtrl = arr.find(c => c.controlId === 'ctrl-url')!;
         expect(urlCtrl.description).toBe('URL control');
-        expect(urlCtrl.requirements[0].controlConfigUrl).toBe('https://example.com/config');
-        expect(urlCtrl.requirements[0].controlConfig).toBeUndefined();
+        expect(urlCtrl.requirements[0].configUrl).toBe('https://example.com/config');
+        expect(urlCtrl.requirements[0].config).toBeUndefined();
 
         const objCtrl = arr.find(c => c.controlId === 'ctrl-obj')!;
         expect(objCtrl.description).toBe('Object control');
-        expect(objCtrl.requirements[0].controlConfigUrl).toBeUndefined();
-        expect(objCtrl.requirements[0].controlConfig).toEqual({ foo: 'bar', threshold: 10 });
+        expect(objCtrl.requirements[0].configUrl).toBeUndefined();
+        expect(objCtrl.requirements[0].config).toEqual({ foo: 'bar', threshold: 10 });
     });
 
 

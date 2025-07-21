@@ -305,10 +305,10 @@ describe('TemplateProcessor E2E', () => {
 
         const mapping = new Map<string, string>([
             [
-                'https://calm.finos.org/release/1.0-rc1/meta/control-requirement.json',
+                'https://calm.finos.org/release/1.0-rc2/meta/control-requirement.json',
                 join(
                     WORKSHOP_DIR,
-                    '../release/1.0-rc1/meta/control-requirement.json'
+                    '../release/1.0-rc2/meta/control-requirement.json'
                 ),
             ],
             [
