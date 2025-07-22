@@ -20,8 +20,8 @@ export type CalmNodeTypeSchema =
     | string;
 
 export type CalmNodeDetailsSchema = {
-    'detailed-architecture': string;
-    'required-pattern': string;
+    'detailed-architecture'?: string;
+    'required-pattern'?: string;
 };
 
 export type CalmInterfaceSchema =
@@ -37,6 +37,7 @@ export type CalmNodeSchema = {
     interfaces?: CalmInterfaceSchema[];
     controls?: CalmControlsSchema;
     metadata?: CalmMetadataSchema;
+    [key: string]: unknown; // Additional properties can be added
 };
 
 export type CalmInteractsRelationshipSchema = {
@@ -100,6 +101,7 @@ export type CalmRelationshipSchema = {
     protocol?: CalmProtocolSchema;
     metadata?: CalmMetadataSchema;
     controls?: CalmControlsSchema;
+    [key: string]: unknown;
 };
 
 export type CalmCoreSchema = {
