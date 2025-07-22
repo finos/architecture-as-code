@@ -46,12 +46,12 @@ export class CalmNode {
         return new CalmNode(
             uniqueId,
             nodeType,
-            data.name,
-            data.description,
-            data.details ? CalmNodeDetails.fromJson(data.details) : new CalmNodeDetails('', ''),
-            data.interfaces ? data.interfaces.map(CalmInterface.fromJson) : [],
-            data.controls ? CalmControl.fromJson(data.controls) : [],
-            data.metadata ? CalmMetadata.fromJson(data.metadata) : new CalmMetadata({}),
+            name,
+            description,
+            details ? CalmNodeDetails.fromJson(details) : new CalmNodeDetails('', ''),
+            interfaces ? data.interfaces.map(CalmInterface.fromJson) : [],
+            controls ? CalmControl.fromJson(controls) : [],
+            metadata ? CalmMetadata.fromJson(metadata) : new CalmMetadata({}),
             additionalProperties
         );
     }
