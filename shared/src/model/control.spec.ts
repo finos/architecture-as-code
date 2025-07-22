@@ -29,6 +29,7 @@ describe('CalmControlDetail', () => {
         expect(controlDetail).toBeInstanceOf(CalmControlDetail);
         expect(controlDetail.requirementUrl).toBe('https://example.com/requirement');
         expect(controlDetail.configUrl).toBe('https://example.com/config');
+        expect(controlDetail.config).toBeUndefined();
     });
 
     it('should create a CalmControlDetail from object-based JSON', () => {
