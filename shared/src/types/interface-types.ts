@@ -9,6 +9,8 @@ export type CalmInterfaceTypeSchema = {
     [key: string]: unknown;
 }
 
+// Used by relationships. The interfaces property refers to unique-id(s) of
+// CalmInterfaceTypeSchema or CalmInterfaceDefinitionSchema
 export type CalmNodeInterfaceSchema = {
     node: string;
     interfaces?: string[];

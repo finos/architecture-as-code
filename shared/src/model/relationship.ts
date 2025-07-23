@@ -5,11 +5,10 @@ import {
     CalmConnectsRelationshipSchema, CalmDecisionSchema, CalmDeployedInRelationshipSchema,
     CalmInteractsRelationshipSchema,
     CalmOptionsRelationshipSchema,
-    CalmOptionTypeSchema,
     CalmRelationshipSchema,
     CalmRelationshipTypeSchema
 } from '../types/core-types.js';
-import {CalmNodeInterface} from './interface.js';
+import { CalmNodeInterface } from './interface.js';
 
 
 export class CalmRelationship {
@@ -18,18 +17,28 @@ export class CalmRelationship {
         public relationshipType: CalmRelationshipType,
         public metadata: CalmMetadata,
         public controls: CalmControl[],
+        public additionalProperties: Record<string, unknown>,
         public description?: string,
         public protocol?: string
-    ) {}
+    ) { }
 
     static fromJson(data: CalmRelationshipSchema): CalmRelationship {
+        const {
+            'unique-id': uniqueId,
+            'description': description,
+            'relationship-type': relationshipType,
+            'protocol': protocol,
+            'metadata': metadata,
+            'controls': controls,
+            ...additionalProperties } = data;
         return new CalmRelationship(
-            data['unique-id'],
-            CalmRelationship.deriveRelationshipType(data['relationship-type']),
-            data.metadata ? CalmMetadata.fromJson(data.metadata) : new CalmMetadata({}),
-            CalmControl.fromJson(data.controls),
-            data.description,
-            data.protocol
+            uniqueId,
+            CalmRelationship.deriveRelationshipType(relationshipType),
+            metadata ? CalmMetadata.fromJson(metadata) : new CalmMetadata({}),
+            CalmControl.fromJson(controls),
+            additionalProperties,
+            description,
+            protocol
         );
     }
 
@@ -50,7 +59,7 @@ export class CalmRelationship {
     }
 }
 
-export abstract class CalmRelationshipType {}
+export abstract class CalmRelationshipType { }
 
 export class CalmInteractsType extends CalmRelationshipType {
     constructor(public actor: string, public nodes: string[]) {
@@ -95,16 +104,8 @@ export class CalmComposedOfType extends CalmRelationshipType {
     }
 }
 
-export class CalmOptionType {
-    constructor(public decisions: CalmDecisionType[]) {}
-
-    static fromJson(data: CalmOptionTypeSchema) {
-        return new CalmOptionType(data);
-    }
-}
-
 export class CalmDecisionType {
-    constructor(public description: string, public nodes: string[], public relationships: string[], public controls?: string[], public metadata?: string[]) {}
+    constructor(public description: string, public nodes: string[], public relationships: string[], public controls?: string[], public metadata?: string[]) { }
 
     static fromJson(data: CalmDecisionSchema) {
         return new CalmDecisionType(data.description, data.nodes, data.relationships, data.controls, data.metadata);
@@ -112,11 +113,11 @@ export class CalmDecisionType {
 }
 
 export class CalmOptionsRelationshipType extends CalmRelationshipType {
-    constructor(public options: CalmOptionType[]) {
+    constructor(public decisions: CalmDecisionType[]) {
         super();
     }
 
     static fromJson(data: CalmOptionsRelationshipSchema): CalmOptionsRelationshipType {
-        return new CalmOptionsRelationshipType(data.map(calmOptionData => CalmOptionType.fromJson(calmOptionData)));
+        return new CalmOptionsRelationshipType(data.map(calmDecisionData => CalmDecisionType.fromJson(calmDecisionData)));
     }
 }

@@ -59,6 +59,31 @@ describe('CalmInterface.fromJson', () => {
         });
     });
 
+    describe('when both definition-url and config are present plus other properties', () => {
+        it('returns a CalmInterfaceType with the correct fields', () => {
+            const defData = {
+                'unique-id': 'def-123',
+                'definition-url': 'https://example.com/schema.json',
+                config: { alpha: true, threshold: 5 },
+                extraField: 'extraValue'
+            };
+
+            const iface = CalmInterface.fromJson(defData);
+            expect(iface).toBeInstanceOf(CalmInterfaceType);
+
+            // Narrow via instanceof so TypeScript recognizes the subclass
+            if (!(iface instanceof CalmInterfaceType)) {
+                throw new Error('Expected CalmInterfaceType');
+            }
+            expect(iface.uniqueId).toBe('def-123');
+            expect(iface.additionalProperties).toEqual({
+                'definition-url': 'https://example.com/schema.json',
+                config: { alpha: true, threshold: 5 },
+                extraField: 'extraValue'
+            });
+        });
+    });
+
     describe('when neither definition-url nor config is present', () => {
         it('returns a CalmInterfaceType with any extra properties', () => {
             const typeData = {
