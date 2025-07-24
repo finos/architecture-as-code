@@ -71,8 +71,10 @@ public class MongoArchitectureStore implements ArchitectureStore {
         }
 
         int id = counterStore.getNextArchitectureSequenceValue();
-        Document architectureDocument = new Document("architectureId", id).append("versions",
-                new Document("1-0-0", Document.parse(architecture.getArchitectureJson())));
+        Document architectureDocument = new Document("architectureId", id)
+                .append("name", architecture.getName())
+                .append("description", architecture.getDescription())
+                .append("versions", new Document("1-0-0", Document.parse(architecture.getArchitectureJson())));
 
         architectureCollection.updateOne(
                 Filters.eq("namespace", architecture.getNamespace()),
