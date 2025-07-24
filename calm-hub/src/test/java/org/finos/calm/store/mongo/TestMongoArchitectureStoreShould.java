@@ -173,9 +173,14 @@ public class TestMongoArchitectureStoreShould {
     void return_created_architecture_when_parameters_are_valid() throws NamespaceNotFoundException {
         String validNamespace = NAMESPACE;
         int sequenceNumber = 42;
+        String validName = "test-name";
+        String validDescription = "test description";
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(counterStore.getNextArchitectureSequenceValue()).thenReturn(sequenceNumber);
+
         Architecture architectureToCreate = new Architecture.ArchitectureBuilder().setArchitecture(validJson)
+                .setName(validName)
+                .setDescription(validDescription)
                 .setNamespace(validNamespace)
                 .build();
 
@@ -183,13 +188,17 @@ public class TestMongoArchitectureStoreShould {
 
         Architecture expectedArchitecture = new Architecture.ArchitectureBuilder().setArchitecture(validJson)
                 .setNamespace(validNamespace)
+                .setName(validName)
+                .setDescription(validDescription)
                 .setVersion("1.0.0")
                 .setId(sequenceNumber)
                 .build();
 
         assertThat(architecture, is(expectedArchitecture));
-        Document expectedDoc = new Document("architectureId", architecture.getId()).append("versions",
-                new Document("1-0-0", Document.parse(architecture.getArchitectureJson())));
+        Document expectedDoc = new Document("architectureId", architecture.getId())
+                .append("name", validName)
+                .append("description", validDescription)
+                .append("versions", new Document("1-0-0", Document.parse(architecture.getArchitectureJson())));
 
         verify(architectureCollection).updateOne(
                 eq(Filters.eq("namespace", validNamespace)),

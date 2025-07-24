@@ -9,6 +9,7 @@ import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.*;
+import org.finos.calm.domain.architecture.CreateArchitectureRequest;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
@@ -79,11 +80,15 @@ public class ArchitectureResource {
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
     public Response createArchitectureForNamespace(
-            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace, String architectureJson
+            @PathParam("namespace")
+            @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            CreateArchitectureRequest architectureRequest
     ) throws URISyntaxException {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
-                .setArchitecture(architectureJson)
+                .setDescription(architectureRequest.getDescription())
+                .setName(architectureRequest.getName())
+                .setArchitecture(architectureRequest.getArchitectureJson())
                 .build();
 
         try {
@@ -92,7 +97,7 @@ public class ArchitectureResource {
             logger.error("Invalid namespace [{}] when creating architecture", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (JsonParseException e) {
-            logger.error("Cannot parse Architecture JSON for namespace [{}]. Architecture JSON : [{}]", namespace, architectureJson, e);
+            logger.error("Cannot parse Architecture JSON for namespace [{}]. Architecture request : [{}]", namespace, architectureRequest, e);
             return invalidArchitectureJsonResponse(namespace);
         }
     }
