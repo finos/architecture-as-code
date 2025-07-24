@@ -21,17 +21,6 @@
     </properties>
 
     <dependencies>
-        <!--Security Patching -->
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.18.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jboss.resteasy</groupId>
-            <artifactId>resteasy-netty4</artifactId>
-            <version>4.7.10.Final</version>
-        </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-jsonb</artifactId>
