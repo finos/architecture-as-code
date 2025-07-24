@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -49,7 +51,7 @@ public class TestStandardResourceShould {
     }
 
     @Test
-    void return_a_404_when_an_invalid_namespace_is_provided_on_get_standards() throws NamespaceNotFoundException {
+    void return_a_404_when_a_namespace_is_provided_that_does_not_exist_on_get_standards() throws NamespaceNotFoundException {
         when(mockStandardStore.getStandardsForNamespace(anyString())).thenThrow(new NamespaceNotFoundException());
 
         given()
@@ -59,6 +61,16 @@ public class TestStandardResourceShould {
             .statusCode(404);
 
         verify(mockStandardStore).getStandardsForNamespace("invalid");
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_namespace_is_provided_on_get_standards() {
+        given()
+                .when()
+                .get("/calm/namespaces/$$$$$/standards")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
     }
 
     @Test
@@ -81,7 +93,7 @@ public class TestStandardResourceShould {
     }
 
     @Test
-    void return_a_404_when_invalid_namespace_is_provided_on_create_standards() throws NamespaceNotFoundException, JsonProcessingException {
+    void return_a_404_when_namespace_is_provided_that_does_not_exist_on_create_standards() throws NamespaceNotFoundException, JsonProcessingException {
         when(mockStandardStore.createStandardForNamespace(any(CreateStandardRequest.class), eq("invalid"))).thenThrow(new NamespaceNotFoundException());
         CreateStandardRequest createStandardRequest = new CreateStandardRequest();
         createStandardRequest.setName("nist");
@@ -97,6 +109,23 @@ public class TestStandardResourceShould {
                 .statusCode(404);
 
         verify(mockStandardStore).createStandardForNamespace(createStandardRequest, "invalid");
+    }
+
+    @Test
+    void return_a_400_when_invalid_namespace_is_provided_on_create_standards() throws JsonProcessingException {
+        CreateStandardRequest createStandardRequest = new CreateStandardRequest();
+        createStandardRequest.setName("nist");
+        createStandardRequest.setDescription("NIST Standard");
+        createStandardRequest.setStandardJson("{}");
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(objectMapper.writeValueAsString(createStandardRequest))
+                .when()
+                .post("/calm/namespaces/$$$$$/standards")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
     }
 
     @Test
@@ -118,6 +147,16 @@ public class TestStandardResourceShould {
                 .header("Location",  containsString(("/calm/namespaces/valid/standards/5/versions/1.0.0")));
 
         verify(mockStandardStore).createStandardForNamespace(createStandardRequest, "valid");
+    }
+
+    @Test
+    void return_400_when_invalid_namespace_provided_when_getting_versions_of_standard() {
+        given()
+                .when()
+                .get("/calm/namespaces/$$$$$/standards/5/versions")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForStandardVersionTests() {
@@ -155,6 +194,26 @@ public class TestStandardResourceShould {
         }
 
         verify(mockStandardStore).getStandardVersions(namespace, 5);
+    }
+
+    @Test
+    void return_400_when_invalid_namespace_provided_when_getting_version_of_standard() {
+        given()
+                .when()
+                .get("/calm/namespaces/$$$$/standards/5/versions/1.0.0")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_invalid_version_provided_when_getting_version_of_standard() {
+        given()
+                .when()
+                .get("/calm/namespaces/finos/standards/5/versions/invalid_version")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForGetStandardTests() {
@@ -195,6 +254,40 @@ public class TestStandardResourceShould {
                     .then()
                     .statusCode(expectedStatusCode);
         }
+    }
+
+    @Test
+    void return_400_when_invalid_namespace_provided_when_creating_new_version_of_standard() {
+        CreateStandardRequest createStandardRequest = new CreateStandardRequest();
+        createStandardRequest.setName("amazing-standard");
+        createStandardRequest.setDescription("An amazing standard");
+        createStandardRequest.setStandardJson("{}");
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(createStandardRequest)
+                .when()
+                .post("/calm/namespaces/$$$$/standards/5/versions/1.0.1")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_invalid_version_provided_when_creating_new_version_of_standard() {
+        CreateStandardRequest createStandardRequest = new CreateStandardRequest();
+        createStandardRequest.setName("amazing-standard");
+        createStandardRequest.setDescription("An amazing standard");
+        createStandardRequest.setStandardJson("{}");
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(createStandardRequest)
+                .when()
+                .post("/calm/namespaces/finos/standards/5/versions/invalid-version")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForCreateStandardTests() {
