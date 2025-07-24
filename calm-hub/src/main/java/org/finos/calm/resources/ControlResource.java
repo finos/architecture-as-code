@@ -3,10 +3,13 @@ package org.finos.calm.resources;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
+import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.store.ControlStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 
 /**
@@ -29,12 +32,11 @@ public class ControlResource {
     @Path("{domain}/controls")
     public Response getControlsForDomain(@PathParam("domain") String domain) {
         try {
-            store.getControlsForDomain(domain);
+            return Response.ok(store.getControlsForDomain(domain)).build();
         } catch (DomainNotFoundException domainNotFoundException) {
             logger.error("Invalid domain [{}] when retrieving controls", domain, domainNotFoundException);
             return Response.status(Response.Status.NOT_FOUND).entity("Invalid domain provided: " + domain).build();
         }
-        return null;
     }
 
 
