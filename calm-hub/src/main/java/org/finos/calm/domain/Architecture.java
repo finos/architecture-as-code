@@ -10,6 +10,8 @@ import java.util.Objects;
  */
 public class Architecture {
     private final String namespace;
+    private final String name;
+    private final String description;
     private final int id;
     private final String version;
     private final String architecture;
@@ -19,6 +21,8 @@ public class Architecture {
         this.id = builder.id;
         this.version = builder.version;
         this.architecture = builder.architecture;
+        this.name = builder.name;
+        this.description = builder.description;
     }
 
     /**
@@ -43,6 +47,14 @@ public class Architecture {
      */
     public String getDotVersion() {
         return version;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     /**
@@ -91,6 +103,28 @@ public class Architecture {
         private int id;
         private String version;
         private String architecture;
+        private String name;
+        private String description;
+
+        /**
+         * Sets the name of the architecture.
+         * @param name the name of the architecture
+         * @return the ArchitectureBuilder object
+         */
+        public ArchitectureBuilder setName(String name) {
+            this.name = name;
+            return this;
+        }
+
+        /**
+         * Sets the description of the architecture.
+         * @param description the description of the architecture
+         * @return the ArchitectureBuilder object
+         */
+        public ArchitectureBuilder setDescription(String description) {
+            this.description = description;
+            return this;
+        }
 
         /**
          * Sets the namespace of the architecture.

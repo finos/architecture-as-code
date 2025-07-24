@@ -1,5 +1,6 @@
 package integration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
@@ -64,8 +65,16 @@ public class MongoArchitectureIntegration {
     @Test
     @Order(2)
     void end_to_end_create_an_architecture() {
+        String payload = """
+                {
+                     "name": "name",
+                     "description": "description",
+                     "architectureJson": "{\\"name\\": \\"demo-pattern\\"}"
+                }
+                """;
+
         given()
-                .body(ARCHITECTURE)
+                .body(payload)
                 .header("Content-Type", "application/json")
                 .when().post("/calm/namespaces/finos/architectures")
                 .then()
