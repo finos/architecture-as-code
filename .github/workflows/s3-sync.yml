@@ -8,6 +8,7 @@ on:
         paths:
             - 'calm/draft/**'
             - 'calm/getting-started/**'
+            - 'calm/interfaces/**'
             - 'calm/release/**'
 
 jobs:
