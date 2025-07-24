@@ -1,5 +1,5 @@
 {
-  "$schema": "https://calm.finos.org/release/1.0-rc1/meta/calm.json",
+  "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
   "$id": "https://calm.finos.org/getting-started/conference-signup.pattern.json",
   "type": "object",
   "title": "Conference Signup Pattern",
@@ -44,7 +44,7 @@
           }
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -77,7 +77,7 @@
           }
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -118,7 +118,7 @@
           }
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -159,7 +159,7 @@
           }
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -175,7 +175,7 @@
               "const": "system"
             },
             "controls": {
-              "$ref": "https://calm.finos.org/release/1.0-rc1/meta/control.json#/defs/controls",
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/control.json#/defs/controls",
               "properties": {
                 "security": {
                   "type": "object",
@@ -189,12 +189,12 @@
                       "maxItems": 1,
                       "prefixItems": [
                         {
-                          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/control.json#/defs/control-detail",
+                          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/control.json#/defs/control-detail",
                           "properties": {
-                            "control-requirement-url": {
+                            "requirement-url": {
                               "const": "https://calm.finos.org/getting-started/controls/micro-segmentation.requirement.json"
                             },
-                            "control-config-url": {
+                            "config-url": {
                               "const": "https://calm.finos.org/getting-started/controls/micro-segmentation.config.json"
                             }
                           }
@@ -214,7 +214,7 @@
       "minItems": 1,
       "prefixItems": [
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/relationship",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -239,7 +239,7 @@
               }
             },
             "controls": {
-              "$ref": "https://calm.finos.org/release/1.0-rc1/meta/control.json#/defs/controls",
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/control.json#/defs/controls",
               "properties": {
                 "security": {
                   "type": "object",
@@ -253,12 +253,12 @@
                       "maxItems": 1,
                       "prefixItems": [
                         {
-                          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/control.json#/defs/control-detail",
+                          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/control.json#/defs/control-detail",
                           "properties": {
-                            "control-requirement-url": {
+                            "requirement-url": {
                               "const": "https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json"
                             },
-                            "control-config-url": {
+                            "config-url": {
                               "const": "https://calm.finos.org/getting-started/controls/permitted-connection-http.config.json"
                             }
                           }
@@ -275,7 +275,7 @@
           ]
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/relationship",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -300,7 +300,7 @@
               }
             },
             "controls": {
-              "$ref": "https://calm.finos.org/release/1.0-rc1/meta/control.json#/defs/controls",
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/control.json#/defs/controls",
               "properties": {
                 "security": {
                   "type": "object",
@@ -314,17 +314,17 @@
                       "maxItems": 1,
                       "prefixItems": [
                         {
-                          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/control.json#/defs/control-detail",
+                          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/control.json#/defs/control-detail",
                           "properties": {
-                            "control-requirement-url": {
+                            "requirement-url": {
                               "const": "https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json"
                             },
-                            "control-config-url": {
+                            "config-url": {
                               "const": "https://calm.finos.org/getting-started/controls/permitted-connection-http.config.json"
                             }
                           },
                           "required": [
-                            "control-config-url"
+                            "config-url"
                           ]
                         }
                       ]
@@ -339,7 +339,7 @@
           ]
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/relationship",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
           "type": "object",
           "properties": {
             "unique-id": {
@@ -364,7 +364,7 @@
               }
             },
             "controls": {
-              "$ref": "https://calm.finos.org/release/1.0-rc1/meta/control.json#/defs/controls",
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/control.json#/defs/controls",
               "properties": {
                 "security": {
                   "type": "object",
@@ -378,12 +378,12 @@
                       "maxItems": 1,
                       "prefixItems": [
                         {
-                          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/control.json#/defs/control-detail",
+                          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/control.json#/defs/control-detail",
                           "properties": {
-                            "control-requirement-url": {
+                            "requirement-url": {
                               "const": "https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json"
                             },
-                            "control-config-url": {
+                            "config-url": {
                               "const": "https://calm.finos.org/getting-started/controls/permitted-connection-jdbc.config.json"
                             }
                           }
@@ -401,7 +401,7 @@
           ]
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc1/meta/core.json#/defs/relationship",
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
           "properties": {
             "unique-id": {
               "const": "deployed-in-k8s-cluster"

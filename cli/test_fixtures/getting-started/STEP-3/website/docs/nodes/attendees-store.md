@@ -11,15 +11,104 @@ title: Attendees Store
 | **Node Type**       | database             |
 | **Name**            | Attendees Store                 |
 | **Description**     | Persistent storage for attendees          |
-| **Data Classification** |  |
-| **Run As**          |                 |
+
 </div>
 
 ## Interfaces
-    | Unique ID | Host | Port | Url |
-    |-----------|------|------|-----|
-        | database-image |  |  |  |
-        | database-port |  | -1 |  |
+        <div className="table-container">
+            <table>
+                <thead>
+                <tr>
+                    <th>Key</th>
+                    <th>Value</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>
+                        <b>UniqueId</b>
+                    </td>
+                    <td>
+                        database-image
+                            </td>
+                </tr>
+                <tr>
+                    <td>
+                        <b>AdditionalProperties</b>
+                    </td>
+                    <td>
+                        <div className="table-container">
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th>Key</th>
+                                    <th>Value</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td>
+                                        <b>Image</b>
+                                    </td>
+                                    <td>
+                                        [[ IMAGE ]]
+                                            </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div className="table-container">
+            <table>
+                <thead>
+                <tr>
+                    <th>Key</th>
+                    <th>Value</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>
+                        <b>UniqueId</b>
+                    </td>
+                    <td>
+                        database-port
+                            </td>
+                </tr>
+                <tr>
+                    <td>
+                        <b>AdditionalProperties</b>
+                    </td>
+                    <td>
+                        <div className="table-container">
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th>Key</th>
+                                    <th>Value</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td>
+                                        <b>Port</b>
+                                    </td>
+                                    <td>
+                                        -1
+                                            </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
 
 
 ## Related Nodes

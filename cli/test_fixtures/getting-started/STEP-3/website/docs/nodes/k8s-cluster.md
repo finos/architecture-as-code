@@ -11,8 +11,7 @@ title: Kubernetes Cluster
 | **Node Type**       | system             |
 | **Name**            | Kubernetes Cluster                 |
 | **Description**     | Kubernetes Cluster with network policy rules enabled          |
-| **Data Classification** |  |
-| **Run As**          |                 |
+
 </div>
 
 ## Interfaces

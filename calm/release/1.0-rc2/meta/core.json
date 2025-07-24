@@ -67,7 +67,7 @@
         "interfaces": {
           "type": "array",
           "items": {
-            "oneOf": [
+            "anyOf": [
               { "$ref": "interface.json#/defs/interface-definition" },
               { "$ref": "interface.json#/defs/interface-type" }
             ]

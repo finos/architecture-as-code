@@ -11,8 +11,8 @@ type InquirerQuestion = {
 
 function createQuestionsFromPatternOptions(patternOptions: CalmOption[]): InquirerQuestion[] {
     const questions: InquirerQuestion[] = [];
-    
-    for(const option of patternOptions) {
+
+    for (const option of patternOptions) {
         const choiceDescriptions = option.choices.map(choice => choice.description);
         questions.push(
             {
@@ -29,7 +29,7 @@ function createQuestionsFromPatternOptions(patternOptions: CalmOption[]): Inquir
 
 async function getAnswersFromUser(questions: InquirerQuestion[]): Promise<string[]> {
     const answers = [];
-    for(const question of questions) {
+    for (const question of questions) {
         if (question.type === 'list') {
             const answer = await select<string>({
                 message: question.message,
@@ -51,8 +51,8 @@ export async function promptUserForOptions(pattern: object, debug: boolean = fal
     const logger = initLogger(debug, 'calm-generate-options');
 
     const patternOptions: CalmOption[] = extractOptions(pattern);
-    logger.debug('Pattern options extracted from pattern: [%O]', patternOptions);
-            
+    logger.debug('Pattern options extracted from pattern: ' + JSON.stringify(patternOptions));
+
     const questions = createQuestionsFromPatternOptions(patternOptions);
     const answers: string[] = await getAnswersFromUser(questions);
 

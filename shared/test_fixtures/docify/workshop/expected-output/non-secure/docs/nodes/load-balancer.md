@@ -11,14 +11,65 @@ title: Load Balancer
 | **Node Type**       | network             |
 | **Name**            | Load Balancer                 |
 | **Description**     | The attendees service, or a placeholder for another application          |
-| **Data Classification** |  |
-| **Run As**          |                 |
+
 </div>
 
 ## Interfaces
-    | Unique ID | Host | Port | Url |
-    |-----------|------|------|-----|
-        | load-balancer-host-port | [[ HOST ]] | -1 |  |
+        <div className="table-container">
+            <table>
+                <thead>
+                <tr>
+                    <th>Key</th>
+                    <th>Value</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>
+                        <b>UniqueId</b>
+                    </td>
+                    <td>
+                        load-balancer-host-port
+                            </td>
+                </tr>
+                <tr>
+                    <td>
+                        <b>AdditionalProperties</b>
+                    </td>
+                    <td>
+                        <div className="table-container">
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th>Key</th>
+                                    <th>Value</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td>
+                                        <b>Host</b>
+                                    </td>
+                                    <td>
+                                        [[ HOST ]]
+                                            </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <b>Port</b>
+                                    </td>
+                                    <td>
+                                        -1
+                                            </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
 
 
 ## Related Nodes

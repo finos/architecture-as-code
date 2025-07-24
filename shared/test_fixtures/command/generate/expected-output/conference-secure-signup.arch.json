@@ -67,8 +67,8 @@
           "description": "Security requirements for the Kubernetes cluster",
           "requirements": [
             {
-              "control-requirement-url": "https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json",
-              "control-config-url": "https://calm.finos.org/workshop/controls/micro-segmentation.config.json"
+              "requirement-url": "https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json",
+              "config-url": "https://calm.finos.org/workshop/controls/micro-segmentation.config.json"
             }
           ]
         }
@@ -95,8 +95,8 @@
           "description": "Security Controls for the connection",
           "requirements": [
             {
-              "control-requirement-url": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json",
-              "control-config-url": "https://calm.finos.org/workshop/controls/permitted-connection-http.config.json"
+              "requirement-url": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json",
+              "config-url": "https://calm.finos.org/workshop/controls/permitted-connection-http.config.json"
             }
           ]
         }
@@ -121,8 +121,8 @@
           "description": "Security Controls for the connection",
           "requirements": [
             {
-              "control-requirement-url": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json",
-              "control-config-url": "https://calm.finos.org/workshop/controls/permitted-connection-http.config.json"
+              "requirement-url": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json",
+              "config-url": "https://calm.finos.org/workshop/controls/permitted-connection-http.config.json"
             }
           ]
         }
@@ -147,8 +147,8 @@
           "description": "Security Controls for the connection",
           "requirements": [
             {
-              "control-requirement-url": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json",
-              "control-config-url": "https://calm.finos.org/workshop/controls/permitted-connection-jdbc.config.json"
+              "requirement-url": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json",
+              "config-url": "https://calm.finos.org/workshop/controls/permitted-connection-jdbc.config.json"
             }
           ]
         }

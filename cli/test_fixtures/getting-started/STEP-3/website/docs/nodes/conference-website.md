@@ -11,14 +11,57 @@ title: Conference Website
 | **Node Type**       | webclient             |
 | **Name**            | Conference Website                 |
 | **Description**     | Website to sign up for a conference          |
-| **Data Classification** |  |
-| **Run As**          |                 |
+
 </div>
 
 ## Interfaces
-    | Unique ID | Host | Port | Url |
-    |-----------|------|------|-----|
-        | conference-website-url |  |  | [[ URL ]] |
+        <div className="table-container">
+            <table>
+                <thead>
+                <tr>
+                    <th>Key</th>
+                    <th>Value</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>
+                        <b>UniqueId</b>
+                    </td>
+                    <td>
+                        conference-website-url
+                            </td>
+                </tr>
+                <tr>
+                    <td>
+                        <b>AdditionalProperties</b>
+                    </td>
+                    <td>
+                        <div className="table-container">
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th>Key</th>
+                                    <th>Value</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td>
+                                        <b>Url</b>
+                                    </td>
+                                    <td>
+                                        [[ URL ]]
+                                            </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
 
 
 ## Related Nodes

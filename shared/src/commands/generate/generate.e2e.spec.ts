@@ -7,16 +7,17 @@ import { SchemaDirectory } from '../../schema-directory.js';
 
 const inputPatternPath = join(
     __dirname,
-    '../../../../calm/workshop/conference-signup.pattern.json'
+    '../../../../conferences/osff-ln-2025/workshop/conference-signup.pattern.json'
 );
 const inputSecurePatternPath = join(
     __dirname,
-    '../../../../calm/workshop/conference-secure-signup.pattern.json'
+    '../../../../conferences/osff-ln-2025/workshop/conference-secure-signup.pattern.json'
 );
 
 const expectedDir = join(__dirname, '../../../test_fixtures/command/generate/expected-output');
 const outputDir = join(__dirname, '../../../test_fixtures/command/generate/actual-output');
-const schemaDir = join(__dirname, '../../../../calm/release/1.0-rc1/meta');
+const schemaDir = join(__dirname, '../../../../calm/release/1.0-rc2/meta');
+const rc1SchemaDir = join(__dirname, '../../../../calm/release/1.0-rc1/meta');
 
 const outputPath = join(outputDir, 'conference-signup.arch.json');
 const outputSecurePath = join(outputDir, 'conference-secure-signup.arch.json');
@@ -31,7 +32,7 @@ describe('runGenerate E2E', () => {
             rmSync(outputDir, { recursive: true, force: true });
         }
         mkdirSync(outputDir, { recursive: true });
-        schemaDirectory = new SchemaDirectory(new FileSystemDocumentLoader([schemaDir], true));
+        schemaDirectory = new SchemaDirectory(new FileSystemDocumentLoader([schemaDir, rc1SchemaDir], true));
     });
 
     afterEach(() => {

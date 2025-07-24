@@ -1,12 +1,26 @@
-import fetchMock from 'fetch-mock';
 import { validate, sortSpectralIssueBySeverity, convertSpectralDiagnosticToValidationOutputs, convertJsonSchemaIssuesToValidationOutputs, stripRefs, exitBasedOffOfValidationOutcome } from './validate';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { ISpectralDiagnostic } from '@stoplight/spectral-core';
 import { ValidationOutcome, ValidationOutput } from './validation.output';
 import { ErrorObject } from 'ajv';
+import { SchemaDirectory } from '../../schema-directory';
 
-const mockRunFunction = vi.fn();
+let schemaDirectory: SchemaDirectory = {
+    getSchema: vi.fn(),
+    getAllSchemas: vi.fn(),
+} as unknown as SchemaDirectory;
+
+const mocks = vi.hoisted(() => ({
+    jsonSchemaValidate: vi.fn().mockReturnValue([]), // default: always valid
+    spectralRun: vi.fn(),
+    jsonSchemaValidatorConstructor: vi.fn().mockImplementation(() => {
+        return {
+            validate: mocks.jsonSchemaValidate,
+            initialize: vi.fn().mockResolvedValue(undefined), // Mock initialize to resolve immediately
+        };
+    })
+}));
 
 vi.mock('@stoplight/spectral-core', async () => {
     const spectralCore = await vi.importActual('@stoplight/spectral-core');
@@ -14,7 +28,7 @@ vi.mock('@stoplight/spectral-core', async () => {
         ...spectralCore,
         Spectral: vi.fn().mockImplementation(() => {
             return {
-                run: mockRunFunction,
+                run: mocks.spectralRun,
                 setRuleset: () => { },
             };
         })
@@ -34,7 +48,12 @@ vi.mock('../../logger.js', () => {
     };
 });
 
-const metaSchemaLocation = 'test_fixtures/calm';
+vi.mock('./json-schema-validator', () => {
+    return {
+        JsonSchemaValidator: mocks.jsonSchemaValidatorConstructor
+    };
+});
+
 const debugDisabled = false;
 
 describe('validation support functions', () => {
@@ -51,9 +70,6 @@ describe('validation support functions', () => {
                 });
         });
 
-        afterEach(() => {
-            fetchMock.mockGlobal().hardReset();
-        });
         it('exit based off of validation outcomes - non-zero outcome if error', () => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             mockExit = vi.spyOn(process, 'exit').mockImplementation((code?) => undefined as never);
@@ -244,34 +260,38 @@ describe('validation support functions', () => {
 
 describe('validate pattern and architecture', () => {
     beforeEach(() => {
-        mockRunFunction.mockReturnValue([]);
+        mocks.jsonSchemaValidate.mockReset().mockReturnValue([]); // default: always valid
+        mocks.spectralRun.mockReset();
         vi.useFakeTimers();
-    });
-
-    afterEach(() => {
-        fetchMock.mockGlobal().hardReset();
+        schemaDirectory = {
+            getSchema: vi.fn(),
+            getAllSchemas: vi.fn(),
+        } as unknown as SchemaDirectory;
     });
 
     it('throws error when the the Pattern and the Architecture are undefined', async () => {
-        await expect(validate(undefined, undefined, metaSchemaLocation, debugDisabled))
-            .rejects
-            .toThrow();
-    });
-
-
-    it('throws error when the meta schema location is not a directory', async () => {
-        await expect(validate({ not: 'json' }, {}, 'test_fixtures/api-gateway.json', debugDisabled))
+        await expect(validate(undefined, undefined, schemaDirectory, debugDisabled))
             .rejects
             .toThrow();
     });
 
     it('has error when the architecture does not match the json schema', async () => {
-        const apiGateway = JSON.parse(readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8'));
-        const apiGatewayArchitecture = JSON.parse(readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation-that-does-not-match-schema.json'), 'utf8'));
-        fetchMock.mockGlobal().route('http://exist/api-gateway.json', apiGateway);
-        fetchMock.mockGlobal().route('https://exist/api-gateway-implementation.json', apiGatewayArchitecture);
+        // Simulate invalid schema validation
+        mocks.jsonSchemaValidate.mockReturnValue([
+            {
+                instancePath: '/nodes/0/interfaces/0/port',
+                schemaPath: 'schema-path',
+                keyword: 'type',
+                params: { type: 'integer' },
+                message: 'must be integer'
+            }
+        ]);
+        // Use dummy objects
+        const dummyPattern = { dummy: 'pattern' };
+        const dummyArchitecture = { dummy: 'architecture' };
+        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
 
-        const response = await validate(apiGatewayArchitecture, apiGateway, metaSchemaLocation, debugDisabled);
+        const response = await validate(dummyArchitecture, dummyPattern, schemaDirectory, debugDisabled);
 
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
@@ -281,6 +301,8 @@ describe('validate pattern and architecture', () => {
     });
 
     it('has error when the architecture does not pass all the spectral validations', async () => {
+        // Simulate valid schema validation
+        mocks.jsonSchemaValidate.mockReturnValue([]);
         const expectedSpectralOutput: ISpectralDiagnostic[] = [
             {
                 code: 'no-empty-properties',
@@ -291,14 +313,15 @@ describe('validate pattern and architecture', () => {
             }
         ];
 
-        mockRunFunction.mockReturnValue(expectedSpectralOutput);
+        mocks.spectralRun.mockReturnValue(expectedSpectralOutput);
 
-        const apiGateway = JSON.parse(readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8'));
-        const apiGatewayArchitecture = JSON.parse(readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation-that-does-not-pass-the-spectral-validation.json'), 'utf8'));
-        fetchMock.mockGlobal().route('http://exist/api-gateway.json', apiGateway);
-        fetchMock.mockGlobal().route('https://exist/api-gateway-implementation.json', apiGatewayArchitecture);
+        // Use dummy objects
+        const dummyPattern = { dummy: 'pattern' };
+        const dummyArchitecture = { dummy: 'architecture' };
+        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
 
-        const response = await validate(apiGatewayArchitecture, apiGateway, metaSchemaLocation, debugDisabled);
+        const response = await validate(dummyArchitecture, dummyPattern, schemaDirectory, debugDisabled);
+
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).toBeTruthy();
@@ -307,6 +330,8 @@ describe('validate pattern and architecture', () => {
     });
 
     it('has error when the pattern does not pass all the spectral validations ', async () => {
+        // Simulate valid schema validation
+        mocks.jsonSchemaValidate.mockReturnValue([]);
         const expectedSpectralOutput: ISpectralDiagnostic[] = [
             {
                 code: 'no-empty-properties',
@@ -317,14 +342,14 @@ describe('validate pattern and architecture', () => {
             }
         ];
 
-        mockRunFunction.mockReturnValue(expectedSpectralOutput);
+        mocks.spectralRun.mockReturnValue(expectedSpectralOutput);
 
-        const apiGateway = JSON.parse(readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-with-no-relationships.json'), 'utf8'));
-        const apiGatewayArchitecture = JSON.parse(readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8'));
-        fetchMock.mockGlobal().route('http://exist/api-gateway.json', apiGateway);
-        fetchMock.mockGlobal().route('https://exist/api-gateway-implementation.json', apiGatewayArchitecture);
+        // Use dummy objects
+        const dummyPattern = { dummy: 'pattern' };
+        const dummyArchitecture = { dummy: 'architecture' };
+        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
 
-        const response = await validate(apiGatewayArchitecture, apiGateway, metaSchemaLocation, debugDisabled);
+        const response = await validate(dummyArchitecture, dummyPattern, schemaDirectory, debugDisabled);
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).toBeTruthy();
@@ -333,6 +358,8 @@ describe('validate pattern and architecture', () => {
     });
 
     it('completes successfully when the spectral validation returns warnings and errors', async () => {
+        // Simulate valid schema validation
+        mocks.jsonSchemaValidate.mockReturnValue([]);
         const expectedSpectralOutput: ISpectralDiagnostic[] = [
             {
                 code: 'warning-test',
@@ -343,12 +370,14 @@ describe('validate pattern and architecture', () => {
             }
         ];
 
-        mockRunFunction.mockReturnValue(expectedSpectralOutput);
+        mocks.spectralRun.mockReturnValue(expectedSpectralOutput);
 
-        const apiGateway = JSON.parse(readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8'));
-        const apiGatewayArchitecture = JSON.parse(readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8'));
+        // Use dummy objects
+        const dummyPattern = { dummy: 'pattern' };
+        const dummyArchitecture = { dummy: 'architecture' };
+        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
 
-        const response = await validate(apiGatewayArchitecture, apiGateway, metaSchemaLocation, debugDisabled);
+        const response = await validate(dummyArchitecture, dummyPattern, schemaDirectory, debugDisabled);
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).not.toBeTruthy();
@@ -361,11 +390,10 @@ describe('validate pattern and architecture', () => {
 
 describe('validate pattern only', () => {
     beforeEach(() => {
-        mockRunFunction.mockReturnValue([]);
-    });
-
-    afterEach(() => {
-        fetchMock.mockGlobal().hardReset();
+        schemaDirectory = {
+            getSchema: vi.fn(),
+            getAllSchemas: vi.fn(),
+        } as unknown as SchemaDirectory;
     });
 
     it('has errors when the pattern does not pass all the spectral validations ', async () => {
@@ -379,12 +407,13 @@ describe('validate pattern only', () => {
             }
         ];
 
-        mockRunFunction.mockReturnValue(expectedSpectralOutput);
+        mocks.spectralRun.mockReturnValue(expectedSpectralOutput);
 
-        const apiGateway = JSON.parse(readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway.json'), 'utf8'));
-        fetchMock.mockGlobal().route('http://exist/api-gateway.json', apiGateway);
+        // Use dummy object
+        const dummyPattern = { dummy: 'pattern' };
+        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
 
-        const response = await validate(undefined, apiGateway, metaSchemaLocation, debugDisabled);
+        const response = await validate(undefined, dummyPattern, schemaDirectory, debugDisabled);
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).toBeTruthy();
@@ -393,15 +422,17 @@ describe('validate pattern only', () => {
     });
 
     it('has errors when spectral returns no errors, but json schema is invalid', async () => {
-        const expectedSpectralOutput: ISpectralDiagnostic[] = [
-        ];
+        mocks.spectralRun.mockReturnValue([]);
 
-        mockRunFunction.mockReturnValue(expectedSpectralOutput);
+        // Mock JsonSchemaValidator constructor to throw when compiling the pattern
+        mocks.jsonSchemaValidatorConstructor.mockImplementation(() => {
+            throw new Error('Pattern schema is invalid');
+        });
 
-        const apiGateway = JSON.parse(readFileSync(path.resolve(__dirname, '../../../test_fixtures/bad-schema/bad-json-schema.json'), 'utf8'));
-        fetchMock.mockGlobal().route('http://exist/api-gateway.json', apiGateway);
+        // Use dummy object
+        const dummyPattern = { dummy: 'pattern' };
 
-        const response = await validate(undefined, apiGateway, metaSchemaLocation, debugDisabled);
+        const response = await validate(undefined, dummyPattern, schemaDirectory, debugDisabled);
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).toBeTruthy();
@@ -412,13 +443,11 @@ describe('validate pattern only', () => {
 
 describe('validate - architecture only', () => {
     beforeEach(() => {
-        mockRunFunction.mockReturnValue([]);
+        schemaDirectory = {
+            getSchema: vi.fn(),
+            getAllSchemas: vi.fn(),
+        } as unknown as SchemaDirectory;
     });
-
-    afterEach(() => {
-        fetchMock.mockGlobal().hardReset();
-    });
-
 
     it('return errors when the architecture does not pass all the spectral validations ', async () => {
         const expectedSpectralOutput: ISpectralDiagnostic[] = [
@@ -431,12 +460,13 @@ describe('validate - architecture only', () => {
             }
         ];
 
-        mockRunFunction.mockReturnValue(expectedSpectralOutput);
+        mocks.spectralRun.mockReturnValue(expectedSpectralOutput);
 
-        const apiGateway = JSON.parse(readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8'));
-        fetchMock.mockGlobal().route('http://exist/api-gateway-implementation.json', apiGateway);
+        // Use dummy object
+        const dummyPattern = { dummy: 'pattern' };
+        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
 
-        const response = await validate(apiGateway, undefined, metaSchemaLocation, debugDisabled);
+        const response = await validate(dummyPattern, undefined, schemaDirectory, debugDisabled);
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).toBeTruthy();
@@ -447,13 +477,14 @@ describe('validate - architecture only', () => {
     it('returns no errors when the architecture passes all the spectral validations with no errors', async () => {
         const expectedSpectralOutput: ISpectralDiagnostic[] = [];
 
-        mockRunFunction.mockReturnValue(expectedSpectralOutput);
+        mocks.spectralRun.mockReturnValue(expectedSpectralOutput);
 
-        const apiGateway = JSON.parse(readFileSync(path.resolve(__dirname, '../../../test_fixtures/api-gateway-implementation.json'), 'utf8'));
-        fetchMock.mockGlobal().route('http://exist/api-gateway-implementation.json', apiGateway);
+        // Use dummy object
+        const dummyPattern = { dummy: 'pattern' };
+        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
 
-        const response = await validate(apiGateway, undefined, metaSchemaLocation, debugDisabled);
-        
+        const response = await validate(dummyPattern, undefined, schemaDirectory, debugDisabled);
+
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).not.toBeTruthy();
@@ -464,7 +495,7 @@ describe('validate - architecture only', () => {
 
     it('validates architecture against schema specified in $schema property when no pattern provided', async () => {
         const expectedSpectralOutput: ISpectralDiagnostic[] = [];
-        mockRunFunction.mockReturnValue(expectedSpectralOutput);
+        mocks.spectralRun.mockReturnValue(expectedSpectralOutput);
 
         // Create a simple valid architecture with a CALM schema reference
         const validArchitecture = {
@@ -480,21 +511,19 @@ describe('validate - architecture only', () => {
             'relationships': []
         };
 
-        fetchMock.mockGlobal().route('http://exist/valid-architecture.json', JSON.stringify(validArchitecture));
-        
-        // Mock the CALM schema
         const calmSchema = readFileSync(path.resolve(__dirname, '../../../test_fixtures/calm/calm.json'), 'utf8');
-        fetchMock.mockGlobal().route('https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/calm.json', calmSchema);
-
-        // Mock the core schema
         const coreSchema = readFileSync(path.resolve(__dirname, '../../../test_fixtures/calm/core.json'), 'utf8');
-        fetchMock.mockGlobal().route('https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/core.json', coreSchema);
+        schemaDirectory.getSchema = vi.fn((id: string) => {
+            if (id.includes('calm.json')) return JSON.parse(calmSchema);
+            if (id.includes('core.json')) return JSON.parse(coreSchema);
+            return undefined;
+        });
 
-        const response = await validate('http://exist/valid-architecture.json', '', metaSchemaLocation, false);
-        
+        const response = await validate(validArchitecture, undefined, schemaDirectory, false);
+
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
-        
+
         // For a valid architecture, we should not have errors
         expect(response.hasErrors).toBeFalsy();
         expect(response.hasWarnings).toBeFalsy();

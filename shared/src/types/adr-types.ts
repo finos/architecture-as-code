@@ -1,3 +1,4 @@
+//TODO: Move this to calm-widgets? This is a view model and not a CALM Type
 export type CalmAdrMetaSchema = {
     namespace: string;
     id: number;
