@@ -1,6 +1,11 @@
 package org.finos.calm.resources;
 
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -9,6 +14,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.finos.calm.domain.NamespaceRequest;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.security.PermittedScopes;
@@ -46,21 +52,9 @@ public class NamespaceResource {
             description = "Create a new namespace in the Calm Hub"
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
-    public Response createNamespace(NamespaceRequest request) throws URISyntaxException {
-        if (request == null || request.getNamespace() == null || request.getNamespace().trim().isEmpty()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("{\"error\":\"Namespace name is required\"}")
-                    .build();
-        }
+    public Response createNamespace(@Valid @NotNull(message = "Request must not be null") NamespaceRequest request) throws URISyntaxException {
 
         String namespace = request.getNamespace().trim();
-        
-        // Validate namespace format (alphanumeric and hyphens only)
-        if (!namespace.matches("^[A-Za-z0-9-]+$")) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("{\"error\":\"Namespace must contain only alphanumeric characters and hyphens\"}")
-                    .build();
-        }
 
         if (namespaceStore.namespaceExists(namespace)) {
             return Response.status(Response.Status.CONFLICT)
@@ -72,16 +66,4 @@ public class NamespaceResource {
         return Response.created(new URI("/calm/namespaces/" + namespace)).build();
     }
 
-    // Inner class for request body
-    public static class NamespaceRequest {
-        private String namespace;
-
-        public String getNamespace() {
-            return namespace;
-        }
-
-        public void setNamespace(String namespace) {
-            this.namespace = namespace;
-        }
-    }
 }
