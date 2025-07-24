@@ -81,10 +81,6 @@ public class StandardResource {
     public Response getStandardForVersion(@PathParam("namespace") String namespace, @PathParam("standardId") Integer standardId,
                                           @PathParam("version") String version) {
         try {
-            Standard standard = new Standard();
-            standard.setNamespace(namespace);
-            standard.setId(standardId);
-            standard.setVersion(version);
             return Response.ok(standardStore.getStandardForVersion(namespace, standardId, version)).build();
         } catch (StandardNotFoundException e) {
             logger.error("Invalid standard [{}] when retrieving standard versions", standardId, e);

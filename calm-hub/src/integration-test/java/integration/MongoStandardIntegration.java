@@ -106,7 +106,7 @@ public class MongoStandardIntegration {
                 .when().get("/calm/namespaces/finos/standards/1/versions/1.0.0")
                 .then()
                 .statusCode(200)
-                .body(equalTo("{\"id\":1,\"namespace\":\"finos\",\"standardJson\":\"{}\",\"version\":\"1.0.0\"}"));
+                .body(equalTo("{}"));
     }
 
     @Test
@@ -132,10 +132,11 @@ public class MongoStandardIntegration {
                 .when().get("/calm/namespaces/finos/standards/1/versions/2.0.0")
                 .then()
                 .statusCode(200)
-                .body(equalTo("{\"id\":1,\"namespace\":\"finos\",\"standardJson\":\"{}\",\"version\":\"2.0.0\"}"));
+                .body(equalTo("{}"));
     }
 
     @Test
+    @Order(7)
     void end_to_end_verify_standard_details_and_if_they_are_updated() {
         setupTestStandardForPersistenceRetrieval();
 
