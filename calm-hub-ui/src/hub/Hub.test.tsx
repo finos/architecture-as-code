@@ -195,7 +195,7 @@ describe('Hub', () => {
         fireEvent.click(screen.getByText('adr1'));
 
         expect(screen.queryByTestId('adr-renderer')).not.toBeInTheDocument();
-        expect(screen.getByText('Please select an ADR to load')).toBeInTheDocument();
+        expect(screen.getByText('Please select an ADR to load.')).toBeInTheDocument();
     });
 
     it('breadcrumb is not shown until a namespace is clicked, then remains loaded', async () => {
