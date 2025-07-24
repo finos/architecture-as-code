@@ -178,7 +178,7 @@ public class TestStandardResourceShould {
             when(mockStandardStore.getStandardForVersion(namespace, 5, "1.0.0")).thenThrow(exceptionToThrow);
         } else {
             standard.setStandardJson(objectMapper.writeValueAsString(standard));
-            when(mockStandardStore.getStandardForVersion(namespace, 5, "1.0.0")).thenReturn(standard);
+            when(mockStandardStore.getStandardForVersion(namespace, 5, "1.0.0")).thenReturn("{}");
         }
 
         if(expectedStatusCode == 200) {
@@ -187,9 +187,7 @@ public class TestStandardResourceShould {
                     .get("/calm/namespaces/" + namespace + "/standards/5/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode)
-                    .body("namespace", equalTo(namespace))
-                    .body("id", equalTo(5))
-                    .body("standardJson", containsString("{}"));
+                    .body(equalTo("{}"));
         } else {
             given()
                     .when()

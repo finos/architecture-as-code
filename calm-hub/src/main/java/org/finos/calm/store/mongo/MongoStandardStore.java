@@ -134,10 +134,9 @@ public class MongoStandardStore implements StandardStore {
     }
 
     @Override
-    public Standard getStandardForVersion(String namespace, Integer standardId, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionNotFoundException {
+    public String getStandardForVersion(String namespace, Integer standardId, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionNotFoundException {
         Document result = retrieveStandardVersions(namespace);
         List<Document> standards = (List<Document>) result.get("standards");
-        Standard standard = new Standard();
         for (Document standardDoc : standards) {
             if (standardId.equals(standardDoc.getInteger("standardId"))) {
                 Document versions = (Document) standardDoc.get("versions");
@@ -145,11 +144,7 @@ public class MongoStandardStore implements StandardStore {
                 if(versionDoc == null) {
                     throw new StandardVersionNotFoundException();
                 }
-                standard.setNamespace(namespace);
-                standard.setVersion(version);
-                standard.setId(standardId);
-                standard.setStandardJson(versionDoc.toJson());
-                return standard;
+                return versionDoc.toJson();
             }
         }
         throw new StandardNotFoundException();
