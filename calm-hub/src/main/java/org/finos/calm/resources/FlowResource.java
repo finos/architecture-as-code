@@ -1,6 +1,7 @@
 package org.finos.calm.resources;
 
 import jakarta.inject.Inject;
+import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -21,6 +22,11 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
 @Path("/calm/namespaces")
 public class FlowResource {
@@ -45,7 +51,9 @@ public class FlowResource {
             description = "Flows stored in a given namespace"
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
-    public Response getFlowsForNamespace(@PathParam("namespace") String namespace) {
+    public Response getFlowsForNamespace(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
+    ) {
         try {
             return Response.ok(new ValueWrapper<>(store.getFlowsForNamespace(namespace))).build();
         } catch (NamespaceNotFoundException e) {
@@ -63,7 +71,10 @@ public class FlowResource {
             description = "Creates a flow for a given namespace with an allocated ID and version 1.0.0"
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
-    public Response createFlowForNamespace(@PathParam("namespace") String namespace, String flowJson) throws URISyntaxException {
+    public Response createFlowForNamespace(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            String flowJson
+    ) throws URISyntaxException {
         Flow flow = new Flow.FlowBuilder()
                 .setNamespace(namespace)
                 .setFlow(flowJson)
@@ -90,7 +101,10 @@ public class FlowResource {
             description = "Fetch the latest version of the flow by flowId"
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
-    public Response getLatestFlow(@PathParam("namespace") String namespace, @PathParam("flowId") int flowId) {
+    public Response getLatestFlow(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("flowId") int flowId
+    ) {
         Flow flow = new Flow.FlowBuilder()
                 .setNamespace(namespace)
                 .setId(flowId)
@@ -118,7 +132,10 @@ public class FlowResource {
             description = "Flow versions are not opinionated, outside of the first version created"
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
-    public Response getFlowVersions(@PathParam("namespace") String namespace, @PathParam("flowId") int flowId) {
+    public Response getFlowVersions(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("flowId") int flowId
+    ) {
         Flow flow = new Flow.FlowBuilder()
                 .setNamespace(namespace)
                 .setId(flowId)
@@ -143,7 +160,11 @@ public class FlowResource {
             description = "Retrieve flows at a specific version"
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
-    public Response getFlow(@PathParam("namespace") String namespace, @PathParam("flowId") int flowId, @PathParam("version") String version) {
+    public Response getFlow(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("flowId") int flowId,
+            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version
+    ) {
         return getFlowInternal(namespace, flowId, version);
     }
 
@@ -173,8 +194,12 @@ public class FlowResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
-    public Response createVersionedFlow(@PathParam("namespace") String namespace, @PathParam("flowId") int flowId,
-                                        @PathParam("version") String version, String flowJson) throws URISyntaxException {
+    public Response createVersionedFlow(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("flowId") int flowId,
+            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
+            String flowJson
+    ) throws URISyntaxException {
         Flow flow = new Flow.FlowBuilder()
                 .setNamespace(namespace)
                 .setId(flowId)
@@ -206,8 +231,12 @@ public class FlowResource {
             description = "In mutable version stores flow updates are supported by this endpoint, operation unavailable returned in repositories without configuration specified"
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
-    public Response updateVersionedFlow(@PathParam("namespace") String namespace, @PathParam("flowId") int flowId,
-                                        @PathParam("version") String version, String flowJson) throws URISyntaxException {
+    public Response updateVersionedFlow(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("flowId") int flowId,
+            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)  String version,
+            String flowJson
+    ) throws URISyntaxException {
         Flow flow = new Flow.FlowBuilder()
                 .setNamespace(namespace)
                 .setId(flowId)

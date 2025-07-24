@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import static io.restassured.RestAssured.given;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.*;
@@ -108,7 +109,7 @@ public class TestNamespaceResourceShould {
                 .post("/calm/namespaces")
                 .then()
                 .statusCode(400)
-                .body(containsString("Namespace must match pattern: ^[A-Za-z0-9-]+$"));
+                .body(containsString(NAMESPACE_MESSAGE));
 
         verify(namespaceStore, never()).namespaceExists(any());
         verify(namespaceStore, never()).createNamespace(any());
