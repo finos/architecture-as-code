@@ -198,6 +198,15 @@ describe('Hub', () => {
         expect(screen.getByText('Please select an ADR to load')).toBeInTheDocument();
     });
 
+    it('breadcrumb is not shown until a namespace is clicked, then remains loaded', async () => {
+        renderWithRouter(<Hub />);
+
+        expect(screen.queryByTestId('breadcrumb')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByText('namespace1'));
+        expect(screen.queryByTestId('breadcrumb')).toBeInTheDocument();
+    });
+
     it('shows breadcrumbs and resets when namespaces is clicked', async () => {
         renderWithRouter(<Hub />);
         fireEvent.click(screen.getByText('namespace1'));
@@ -231,5 +240,17 @@ describe('Hub', () => {
         expect(await screen.findByText('namespace1')).toBeInTheDocument();
         expect(screen.queryByText('pattern1')).toBeInTheDocument();
         expect(screen.queryByText('Calm Type')).not.toBeInTheDocument();
+    });
+
+    it('unselects resource once navigated away from', async () => {
+        renderWithRouter(<Hub />);
+        fireEvent.click(screen.getByText('namespace1'));
+        fireEvent.click(screen.getByText('Patterns'));
+        fireEvent.click(screen.getByText('pattern1'));
+        fireEvent.click(screen.getByText('1.0'));
+
+        expect(screen.queryByText('JSON')).toBeInTheDocument();
+        fireEvent.click(screen.getByText('namespace1'));
+        expect(screen.queryByText('JSON')).not.toBeInTheDocument();
     });
 });
