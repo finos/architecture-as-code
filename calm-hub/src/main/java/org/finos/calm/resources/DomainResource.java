@@ -15,8 +15,8 @@ import java.net.URISyntaxException;
 /**
  * REST resource for managing domains.
  */
-@Path("/calm/controls/domains")
-public class DomainSchemaResource {
+@Path("/calm/domains")
+public class DomainResource {
 
     private final DomainStore store;
 
@@ -26,7 +26,7 @@ public class DomainSchemaResource {
      * @param store the DomainStore instance
      */
     @Inject
-    public DomainSchemaResource(DomainStore store) {
+    public DomainResource(DomainStore store) {
         this.store = store;
     }
 
@@ -54,7 +54,7 @@ public class DomainSchemaResource {
         String domainName = domain.getName();
 
         try {
-            domain = store.createDomain(domainName);
+            store.createDomain(domainName);
         } catch (DomainAlreadyExistsException e) {
             return Response.status(Response.Status.CONFLICT).entity("{\"error\":\"Domain already exists\"}").build();
         }
