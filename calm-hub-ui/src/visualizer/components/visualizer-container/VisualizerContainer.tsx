@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react';
 import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { Sidebar } from '../sidebar/Sidebar.js';
 import { CytoscapeRenderer } from '../cytoscape/cytoscape-renderer/CytoscapeRenderer.js';
-import React from 'react';
 import { CytoscapeControlPanel } from '../cytoscape/cytoscape-control-panel/CytoscapeControlPanel.js';
 
 interface VisualizerContainerProps {
@@ -18,10 +17,10 @@ export function VisualizerContainer({
     edges = [],
     calmKey,
 }: VisualizerContainerProps) {
-    const [isRelationshipDescActive, setConDescActive] = React.useState(true);
-    const [isNodeDescActive, setNodeDescActive] = React.useState(true);
-    const toggleState = (setter: React.Dispatch<React.SetStateAction<boolean>>) => () =>
-        setter((prev) => !prev);
+    const [isRelationshipDescActive, setConDescActive] = useState(true);
+    const [isNodeDescActive, setNodeDescActive] = useState(true);
+    const toggleNodeDesc = () => setNodeDescActive((prev) => !prev);
+    const toggleConnectionDesc = () => setConDescActive((prev) => !prev);
     const [selectedItem, setSelectedItem] = useState<CytoscapeNode['data'] | Edge['data'] | null>(
         null
     );
@@ -38,8 +37,8 @@ export function VisualizerContainer({
                     title={title}
                     isNodeDescActive={isNodeDescActive}
                     isRelationshipDescActive={isRelationshipDescActive}
-                    toggleNodeDesc={toggleState(setNodeDescActive)}
-                    toggleConnectionDesc={toggleState(setConDescActive)}
+                    toggleNodeDesc={toggleNodeDesc}
+                    toggleConnectionDesc={toggleConnectionDesc}
                 />
             )}
             <CytoscapeRenderer
