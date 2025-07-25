@@ -6,8 +6,10 @@ on:
         branches:
             - main
         paths:
+            - 'calm/controls/**'
             - 'calm/draft/**'
             - 'calm/getting-started/**'
+            - 'calm/interfaces/**'
             - 'calm/release/**'
 
 jobs:

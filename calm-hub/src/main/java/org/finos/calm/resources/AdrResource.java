@@ -1,6 +1,7 @@
 package org.finos.calm.resources;
 
 import jakarta.inject.Inject;
+import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -36,6 +37,9 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.function.Function;
 
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
+
 /**
  * Resource for managing ADRs in a given namespace
  */
@@ -64,7 +68,9 @@ public class AdrResource {
             description = "ADRs stored in a given namespace"
     )
     @PermittedScopes({CalmHubScopes.ADRS_ALL, CalmHubScopes.ADRS_READ})
-    public Response getAdrsForNamespace(@PathParam("namespace") String namespace) {
+    public Response getAdrsForNamespace(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
+    ) {
         try {
             return Response.ok(new ValueWrapper<>(store.getAdrsForNamespace(namespace))).build();
         } catch(Exception e) {
@@ -88,7 +94,10 @@ public class AdrResource {
             description = "Creates an ADR for a given namespace with an allocated ID and revision 1"
     )
     @PermittedScopes({CalmHubScopes.ADRS_ALL})
-    public Response createAdrForNamespace(@PathParam("namespace") String namespace, NewAdrRequest newAdrRequest) {
+    public Response createAdrForNamespace(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            NewAdrRequest newAdrRequest
+    ) {
         Adr adr = new Adr.AdrBuilder(newAdrRequest)
                 .setStatus(Status.draft)
                 .setCreationDateTime(LocalDateTime.now())
@@ -125,7 +134,11 @@ public class AdrResource {
             description = "Updates an ADR for a given namespace. Creates a new revision."
     )
     @PermittedScopes({CalmHubScopes.ADRS_ALL})
-    public Response updateAdrForNamespace(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, NewAdrRequest newAdrRequest) {
+    public Response updateAdrForNamespace(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("adrId") int adrId,
+            NewAdrRequest newAdrRequest
+    ) {
         Adr adr = new Adr.AdrBuilder(newAdrRequest)
                 .setUpdateDateTime(LocalDateTime.now())
                 .build();
@@ -164,7 +177,10 @@ public class AdrResource {
             )
     })
     @PermittedScopes({CalmHubScopes.ADRS_ALL, CalmHubScopes.ADRS_READ})
-    public Response getAdr(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId) {
+    public Response getAdr(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("adrId") int adrId
+    ) {
         AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace(namespace)
                 .setId(adrId)
@@ -192,7 +208,10 @@ public class AdrResource {
             description = "The most recent revision is the canonical ADR, with others available for audit or exploring changes."
     )
     @PermittedScopes({CalmHubScopes.ADRS_ALL, CalmHubScopes.ADRS_READ})
-    public Response getAdrRevisions(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId) {
+    public Response getAdrRevisions(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("adrId") int adrId
+    ) {
         AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace(namespace)
                 .setId(adrId)
@@ -227,7 +246,11 @@ public class AdrResource {
             )
     })
     @PermittedScopes({CalmHubScopes.ADRS_ALL, CalmHubScopes.ADRS_READ})
-    public Response getAdrRevision(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, @PathParam("revision") int revision) {
+    public Response getAdrRevision(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("adrId") int adrId,
+            @PathParam("revision") int revision
+    ) {
         AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace(namespace)
                 .setId(adrId)
@@ -248,7 +271,6 @@ public class AdrResource {
      * @param adrId     the ID of the ADR
      * @param status the new status of the ADR
      * @return created with a Location header
-     * @throws URISyntaxException cannot produce Location header
      */
     @POST
     @Path("{namespace}/adrs/{adrId}/status/{status}")
@@ -258,7 +280,11 @@ public class AdrResource {
             description = "Updates the status of an ADR for a given namespace. Creates a new revision."
     )
     @PermittedScopes({CalmHubScopes.ADRS_ALL})
-    public Response updateAdrStatusForNamespace(@PathParam("namespace") String namespace, @PathParam("adrId") int adrId, @PathParam("status") Status status) throws URISyntaxException {
+    public Response updateAdrStatusForNamespace(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("adrId") int adrId,
+            @PathParam("status") Status status
+    ) {
 
         AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace(namespace)
