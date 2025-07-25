@@ -32,6 +32,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+
 @ExtendWith(MockitoExtension.class)
 public class TestNitriteArchitectureStoreShould {
 
@@ -53,6 +66,8 @@ public class TestNitriteArchitectureStoreShould {
     private static final int ARCHITECTURE_ID = 42;
     private static final String VERSION = "1.0.0";
     private static final String VALID_JSON = "{\"test\": \"test\"}";
+    private static final String ARCHITECTURE_NAME = "architecture-name";
+    private static final String ARCHITECTURE_DESCRIPTION = "architecture description";
 
     @BeforeEach
     public void setup() {
@@ -189,6 +204,8 @@ public class TestNitriteArchitectureStoreShould {
 
         Architecture architectureToCreate = new Architecture.ArchitectureBuilder()
                 .setNamespace(NAMESPACE)
+                .setName(ARCHITECTURE_NAME)
+                .setDescription(ARCHITECTURE_DESCRIPTION)
                 .setArchitecture(VALID_JSON)
                 .build();
 
@@ -203,6 +220,8 @@ public class TestNitriteArchitectureStoreShould {
         assertThat(result.getId(), is(ARCHITECTURE_ID));
         assertThat(result.getNamespace(), is(NAMESPACE));
         assertThat(result.getDotVersion(), is("1.0.0"));
+        assertThat(result.getName(), is(ARCHITECTURE_NAME));
+        assertThat(result.getDescription(), is(ARCHITECTURE_DESCRIPTION));
         assertThat(result.getArchitectureJson(), is(VALID_JSON));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
         verify(mockCounterStore).getNextArchitectureSequenceValue();
