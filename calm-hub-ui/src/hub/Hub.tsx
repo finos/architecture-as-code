@@ -35,6 +35,7 @@ function Hub() {
     const [adrData, setAdrData] = useState<Adr | undefined>();
     const adrService = new AdrService();
     const [currentResources, setCurrentResources] = useState<CurrentResources>({});
+    const [breadcrumbInitialised, setBreadcrumbInitialised] = useState<boolean>(false);
 
     useEffect(() => {
         fetchNamespaces(setValues);
@@ -42,6 +43,7 @@ function Hub() {
 
     function handleNamespaceSelection(namespace: Namespace) {
         setCurrentResources({ namespace: namespace });
+        setBreadcrumbInitialised(true);
     }
 
     function handleClick(data: Data) {
@@ -144,7 +146,7 @@ function Hub() {
                         header="Revisions"
                         values={values}
                         callback={handleRevisionSelection}
-                        currentValue={currentResources.resourceID}
+                        currentValue={currentResources.revision}
                     />
                 );
             }
@@ -180,10 +182,14 @@ function Hub() {
 
     function resetBreadcrumbToNamespace() {
         fetchNamespaces(setValues);
+        setData(undefined);
+        setAdrData(undefined);
         setCurrentResources({});
     }
 
     function resetBreadcrumbToCalmType() {
+        setData(undefined);
+        setAdrData(undefined);
         setValues(['Architectures', 'Patterns', 'Flows', 'ADRs']);
         setCurrentResources({ namespace: currentResources.namespace });
     }
@@ -199,28 +205,34 @@ function Hub() {
     return (
         <>
             <Navbar />
-            <div className="breadcrumbs ms-3 text-sm">
-                <ul>
-                    <li className="text-accent">
-                        <a onClick={resetBreadcrumbToNamespace}>Namespaces</a>
-                    </li>
-                    {currentResources.namespace && (
+            {breadcrumbInitialised && (
+                <div className="breadcrumbs ms-3 text-sm" data-testid="breadcrumb">
+                    <ul>
                         <li className="text-accent">
-                            <a onClick={resetBreadcrumbToCalmType}>{currentResources.namespace}</a>
+                            <a onClick={resetBreadcrumbToNamespace}>Namespaces</a>
                         </li>
-                    )}
-                    {currentResources.calmType && (
-                        <li className="text-accent">
-                            <a onClick={resetBreadcrumbToResourceIDs}>
-                                {currentResources.calmType}
-                            </a>
-                        </li>
-                    )}
-                    {currentResources.resourceID && <li>{currentResources.resourceID}</li>}
-                    {currentResources.version && <li> Version {currentResources.version} </li>}
-                    {currentResources.revision && <li> Revision {currentResources.revision} </li>}
-                </ul>
-            </div>
+                        {currentResources.namespace && (
+                            <li className="text-accent">
+                                <a onClick={resetBreadcrumbToCalmType}>
+                                    {currentResources.namespace}
+                                </a>
+                            </li>
+                        )}
+                        {currentResources.calmType && (
+                            <li className="text-accent">
+                                <a onClick={resetBreadcrumbToResourceIDs}>
+                                    {currentResources.calmType}
+                                </a>
+                            </li>
+                        )}
+                        {currentResources.resourceID && <li>{currentResources.resourceID}</li>}
+                        {currentResources.version && <li> Version {currentResources.version} </li>}
+                        {currentResources.revision && (
+                            <li> Revision {currentResources.revision} </li>
+                        )}
+                    </ul>
+                </div>
+            )}
 
             <div className="flex flex-row h-[90%] overflow-auto">
                 <div className="flex flex-row w-1/4">{displaySideBar()}</div>
@@ -240,7 +252,7 @@ function Hub() {
                     <AdrRenderer adrDetails={adrData} />
                 ) : (
                     <div className="p-5 flex-1  bg-[#eee] text-center">
-                        Please select an ADR to load
+                        Please select an ADR to load.
                     </div>
                 )}
             </div>
