@@ -1,15 +1,16 @@
 package org.finos.calm.resources;
 
-import jakarta.validation.constraints.Pattern;
 import jakarta.inject.Inject;
+import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.finos.calm.domain.*;
-import org.finos.calm.domain.architecture.CreateArchitectureRequest;
+import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.ValueWrapper;
+import org.finos.calm.domain.architecture.ArchitectureRequest;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
@@ -23,10 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
-import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.*;
 
 /**
  * Resource for managing architectures in a given namespace
@@ -48,6 +46,7 @@ public class ArchitectureResource {
 
     /**
      * Retrieve a list of architectures in a given namespace
+     *
      * @param namespace the namespace to retrieve architectures for
      * @return a list of architectures in the given namespace
      */
@@ -82,7 +81,7 @@ public class ArchitectureResource {
     public Response createArchitectureForNamespace(
             @PathParam("namespace")
             @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            CreateArchitectureRequest architectureRequest
+            ArchitectureRequest architectureRequest
     ) throws URISyntaxException {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
@@ -216,7 +215,7 @@ public class ArchitectureResource {
                 .setArchitecture(architectureJson)
                 .build();
 
-        if(!allowPutOperations) {
+        if (!allowPutOperations) {
             return Response.status(Response.Status.FORBIDDEN).entity("This Calm Hub does not support PUT operations on architectures").build();
         }
 
