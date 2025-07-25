@@ -1,5 +1,5 @@
 import { Sidebar } from '../sidebar/Sidebar.js';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
     CalmArchitectureSchema,
     CalmNodeSchema,
@@ -7,11 +7,10 @@ import {
 import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { VisualizerContainer } from '../visualizer-container/VisualizerContainer.js';
 import { Data } from '../../../model/calm.js';
+import { useDropzone } from 'react-dropzone';
 
 interface DrawerProps {
-    calmInstance?: CalmArchitectureSchema;
-    title: string;
-    data?: Data;
+    data?: Data; // Optional data prop passed in from CALM Hub if user navigates from there
 }
 
 function getComposedOfRelationships(calmInstance: CalmArchitectureSchema) {
@@ -61,8 +60,33 @@ function getDeployedInRelationships(calmInstance: CalmArchitectureSchema) {
     return deployedInRelationships;
 }
 
-export function Drawer({ calmInstance, title, data }: DrawerProps) {
+export function Drawer({ data }: DrawerProps) {
+    const [title, setTitle] = useState<string>('');
+    const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
+    const [fileInstance, setFileInstance] = useState<string | undefined>(undefined);
     const [selectedNode, setSelectedNode] = useState<CytoscapeNode | null>(null);
+
+    const onDrop = useCallback(async (acceptedFiles: File[]) => {
+        if (acceptedFiles[0]) {
+            setTitle(acceptedFiles[0].name);
+            const fileText = await acceptedFiles[0].text();
+            setFileInstance(JSON.parse(fileText));
+        }
+    }, []);
+
+    async function handleFile(instanceFile: any[]) {
+        if (instanceFile.length) {
+            setTitle(instanceFile[0].name);
+            const file = await instanceFile[0].text();
+            setFileInstance(JSON.parse(file));
+        }
+    }
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+
+    useEffect(() => {
+        setTitle(title ?? data?.name);
+        setCALMInstance((fileInstance as CalmArchitectureSchema) ?? data?.data);
+    }, [fileInstance, title, data]);
 
     function closeSidebar() {
         setSelectedNode(null);
@@ -169,8 +193,9 @@ export function Drawer({ calmInstance, title, data }: DrawerProps) {
     const nodes = getNodes();
 
     return (
-        <div className="flex-1 flex overflow-hidden">
-            <div className={`drawer drawer-end ${selectedNode ? 'drawer-open' : ''}`}>
+        <div {...getRootProps()} className="flex-1 flex overflow-hidden h-screen">
+            {!calmInstance && <input {...getInputProps()} />}
+            <div className={`drawer drawer-end ${selectedNode ? 'drawer-open' : ''} w-full`}>
                 <input
                     type="checkbox"
                     aria-label="drawer-toggle"
@@ -187,8 +212,17 @@ export function Drawer({ calmInstance, title, data }: DrawerProps) {
                             calmKey={createStorageKey(title, data)}
                         />
                     ) : (
-                        <div className="flex justify-center items-center h-full">
-                            No file selected
+                        <div className="flex justify-center items-center h-full w-full">
+                            {isDragActive ? (
+                                <p>Drop the files here ...</p>
+                            ) : (
+                                <p>
+                                    {'Drag and drop your files here or '}
+                                    <span className="border-b border-dotted border-black pb-1">
+                                        Browse
+                                    </span>
+                                </p>
+                            )}
                         </div>
                     )}
                 </div>
