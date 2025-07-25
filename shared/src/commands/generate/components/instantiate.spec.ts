@@ -231,7 +231,8 @@ describe('instantiate', () => {
                                 key: { type: 'string' }
                             },
                             required: ['key']
-                        }
+                        },
+                        { const: [ 'nested-array' ]},
                     ]
                 }
             }
@@ -248,7 +249,8 @@ describe('instantiate', () => {
             true,
             null,
             { nestedKey: 'nested-value' },
-            { key: '[[ KEY ]]' } // Non-const item should be instantiated with placeholder
+            { key: '[[ KEY ]]' }, // Non-const item should be instantiated with placeholder
+            ['nested-array' ]
         ]);
     });
 });
