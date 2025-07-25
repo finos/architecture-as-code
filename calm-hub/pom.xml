@@ -245,7 +245,7 @@
                         <exclude>**/*CalmResourceErrorResponses.*</exclude>
                         <exclude>**/*Constants.*</exclude>
                         <exclude>**/*NamespaceStandardSummary.*</exclude>
-                        <exclude>**/*CreateArchitectureRequest.*</exclude>
+                        <exclude>**/*ArchitectureRequest.*</exclude>
                     </excludes>
                 </configuration>
                 <executions>

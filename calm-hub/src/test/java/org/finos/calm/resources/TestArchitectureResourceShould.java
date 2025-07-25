@@ -6,7 +6,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Architecture;
-import org.finos.calm.domain.architecture.CreateArchitectureRequest;
+import org.finos.calm.domain.architecture.ArchitectureRequest;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
@@ -86,14 +86,14 @@ public class TestArchitectureResourceShould {
 
         String architectureJson = "{ \"test\": \"json\" }";
 
-        CreateArchitectureRequest createArchitectureRequest = new CreateArchitectureRequest();
-        createArchitectureRequest.setName(name);
-        createArchitectureRequest.setDescription(description);
-        createArchitectureRequest.setArchitectureJson(architectureJson);
+        ArchitectureRequest architectureRequest = new ArchitectureRequest();
+        architectureRequest.setName(name);
+        architectureRequest.setDescription(description);
+        architectureRequest.setArchitectureJson(architectureJson);
 
         given()
                 .header("Content-Type", "application/json")
-                .body(objectMapper.writeValueAsString(createArchitectureRequest))
+                .body(objectMapper.writeValueAsString(architectureRequest))
                 .when()
                 .post("/calm/namespaces/invalid/architectures")
                 .then()
@@ -155,16 +155,16 @@ public class TestArchitectureResourceShould {
                 .setNamespace(namespace)
                 .build();
 
-        CreateArchitectureRequest createArchitectureRequest = new CreateArchitectureRequest();
-        createArchitectureRequest.setName(name);
-        createArchitectureRequest.setDescription(description);
-        createArchitectureRequest.setArchitectureJson(architectureJson);
+        ArchitectureRequest architectureRequest = new ArchitectureRequest();
+        architectureRequest.setName(name);
+        architectureRequest.setDescription(description);
+        architectureRequest.setArchitectureJson(architectureJson);
 
         when(mockArchitectureStore.createArchitectureForNamespace(any(Architecture.class))).thenReturn(stubbedReturnArchitecture);
 
         given()
                 .header("Content-Type", "application/json")
-                .body(objectMapper.writeValueAsString(createArchitectureRequest))
+                .body(objectMapper.writeValueAsString(architectureRequest))
                 .when()
                 .post("/calm/namespaces/finos/architectures")
                 .then()

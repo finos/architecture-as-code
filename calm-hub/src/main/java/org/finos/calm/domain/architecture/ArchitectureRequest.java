@@ -2,13 +2,13 @@ package org.finos.calm.domain.architecture;
 
 import java.util.Objects;
 
-public class CreateArchitectureRequest {
+public class ArchitectureRequest {
 
     private String name;
     private String description;
     private String architectureJson;
 
-    public CreateArchitectureRequest() {
+    public ArchitectureRequest() {
         //Default constructor
     }
 
@@ -39,7 +39,7 @@ public class CreateArchitectureRequest {
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
-        CreateArchitectureRequest that = (CreateArchitectureRequest) o;
+        ArchitectureRequest that = (ArchitectureRequest) o;
         return Objects.equals(name, that.name) && Objects.equals(description, that.description) && Objects.equals(architectureJson, that.architectureJson);
     }
 
