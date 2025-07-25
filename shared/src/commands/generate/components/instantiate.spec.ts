@@ -210,4 +210,47 @@ describe('instantiate', () => {
         expect(result.nodes[0]['node-type']).toBe('[[ NODE_TYPE ]]');
         expect(result.nodes[0]['details']['arch']).toBe('[[ ARCH ]]');
     });
+
+    it('uses const values directly for array items', async () => {
+        // Define a pattern document with an array that contains items with const values
+        const patternWithConstArrayItems = {
+            $schema: 'schema#',
+            $id: 'test-pattern-const-array',
+            properties: {
+                simpleArray: {
+                    type: 'array',
+                    prefixItems: [
+                        { const: 'string-value' },
+                        { const: 42 },
+                        { const: true },
+                        { const: null },
+                        { const: { nestedKey: 'nested-value' } },
+                        {
+                            type: 'object',
+                            properties: {
+                                key: { type: 'string' }
+                            },
+                            required: ['key']
+                        },
+                        { const: [ 'nested-array' ]},
+                    ]
+                }
+            }
+        };
+
+        (fs.readFileSync as Mock).mockImplementation(() => JSON.stringify(patternWithConstArrayItems));
+
+        const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
+        const result = await instantiate(pattern, true, new SchemaDirectory(null));
+
+        expect(result['simpleArray']).toEqual([
+            'string-value',
+            42,
+            true,
+            null,
+            { nestedKey: 'nested-value' },
+            { key: '[[ KEY ]]' }, // Non-const item should be instantiated with placeholder
+            ['nested-array' ]
+        ]);
+    });
 });

@@ -4,5 +4,6 @@
   "https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json": "controls/micro-segmentation.requirement.json",
   "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json": "controls/permitted-connection.requirement.json",
   "https://calm.finos.org/workshop/controls/permitted-connection-http.config.json": "controls/permitted-connection-http.config.json",
-  "https://calm.finos.org/workshop/controls/permitted-connection-jdbc.config.json": "controls/permitted-connection-jdbc.config.json"
+  "https://calm.finos.org/workshop/controls/permitted-connection-jdbc.config.json": "controls/permitted-connection-jdbc.config.json",
+  "https://calm.finos.org/workshop/flows/conference-signup.flow.json": "flows/conference-signup.flow.json"
 }
