@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
@@ -238,6 +239,16 @@ public class TestFlowResourceShould {
         verify(mockFlowStore, times(1)).getFlowVersions(expectedFlowToRetrieve);
     }
 
+    @Test
+    void return_400_error_when_version_is_not_valid_when_getting_flow_version() {
+        given()
+                .when()
+                .get("/calm/namespaces/finos/flows/12/versions/invalid-version")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
+
     static Stream<Arguments> provideParametersForGetFlowTests() {
         return Stream.of(
                 Arguments.of("invalid", new NamespaceNotFoundException(), 404),
@@ -279,6 +290,20 @@ public class TestFlowResourceShould {
                 .build();
 
         verify(mockFlowStore, times(1)).getFlowForVersion(expectedFlowToRetrieve);
+    }
+
+    @Test
+    void return_400_error_when_version_is_not_valid_when_creating_new_flow_version() {
+        String flowJson = "{ \"test\": \"json\" }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(flowJson)
+                .when()
+                .post("/calm/namespaces/test/flows/20/versions/invalid-version")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForCreateFlowTests() {

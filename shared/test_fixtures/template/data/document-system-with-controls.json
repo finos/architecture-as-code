@@ -16,8 +16,8 @@
           "description": "Ownership Controls",
           "requirements": [
             {
-              "control-requirement-url": "https://calm.finos.org/controls/owner.requirement.json",
-              "control-config-url":  "https://calm.finos.org/controls/architect.configuration.json"
+              "requirement-url": "https://calm.finos.org/controls/owner.requirement.json",
+              "config-url":  "https://calm.finos.org/controls/architect.configuration.json"
             }
           ]
         }
@@ -102,16 +102,16 @@
       "description": "Ownership Controls",
       "requirements": [
         {
-          "control-requirement-url": "https://calm.finos.org/controls/owner.requirement.json",
-          "control-config-url":  "https://calm.finos.org/controls/business-owner.configuration.json"
+          "requirement-url": "https://calm.finos.org/controls/owner.requirement.json",
+          "config-url":  "https://calm.finos.org/controls/business-owner.configuration.json"
         },
         {
-          "control-requirement-url": "https://calm.finos.org/controls/owner.requirement.json",
-          "control-config-url":  "https://calm.finos.org/controls/system-owner.configuration.json"
+          "requirement-url": "https://calm.finos.org/controls/owner.requirement.json",
+          "config-url":  "https://calm.finos.org/controls/system-owner.configuration.json"
         },
         {
-          "control-requirement-url": "https://calm.finos.org/controls/owner.requirement.json",
-          "control-config": {
+          "requirement-url": "https://calm.finos.org/controls/owner.requirement.json",
+          "config": {
             "$schema": "https://calm.finos.org/controls/owner-responsibility.requirement.json",
             "$id": "https://calm.finos.org/controls/data-captain.configuration.json",
             "control-id": "ownership-003",

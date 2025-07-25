@@ -1,8 +1,7 @@
-/* eslint-disable  @typescript-eslint/no-explicit-any */
 import { Architecture } from '../../model/core';
 import { CalmControl } from '../../model/control';
 
-interface ControlRequirementGroup {
+export interface ControlRequirementGroup {
     id: string;
     content: string;
     domain: string;
@@ -10,7 +9,7 @@ interface ControlRequirementGroup {
     appliedTo: string;
 }
 
-interface ControlConfigurationGroup {
+export interface ControlConfigurationGroup {
     id: string;
     name: string;
     schema: string;
@@ -72,7 +71,7 @@ export class ControlRegistry {
     private addControlRequirementToTable(controls: CalmControl[], scope: string, appliedTo: string): void {
         controls.forEach(control => {
             control.requirements.forEach(detail => {
-                const requirement = detail.controlRequirementUrl;
+                const requirement = detail.requirementUrl;
                 const id = this.getRequirementId(requirement);
 
                 if (!id) return;
@@ -134,7 +133,7 @@ export class ControlRegistry {
     private addControlConfigurationToTable(controls: CalmControl[], scope: string, appliedTo: string): void {
         controls.forEach(control => {
             control.requirements.forEach(detail => {
-                const config = detail.controlConfig ?? detail.controlConfigUrl;
+                const config = detail.config ?? detail.configUrl;
 
                 if (config && typeof config['control-id'] === 'string') {
                     const id = config['control-id'];
@@ -158,7 +157,7 @@ export class ControlRegistry {
                             domain: control.controlId,
                             scope,
                             appliedTo,
-                            content: detail.controlConfigUrl
+                            content: detail.configUrl
                         };
                         this.controlConfigurations[id].push(controlConfiguration);
                     }

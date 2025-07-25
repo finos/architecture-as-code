@@ -1,17 +1,18 @@
-export type CalmControlDetailSchema = {
-    'control-requirement-url': string;
-    'control-config-url': string;
+export type CalmControlDetailSchema =
+    | {
+    'requirement-url': string
+    'config-url': string
 }
     | {
-    'control-requirement-url': string;
-    'control-config': Record<string, unknown>;
-};
+    'requirement-url': string
+    config: Record<string, unknown>
+}
 
 export type CalmControlSchema = {
-    description: string;
-    requirements: CalmControlDetailSchema[];
-};
+    description: string
+    requirements: CalmControlDetailSchema[]
+}
 
 export type CalmControlsSchema = {
-    [controlId: string]: CalmControlSchema;
-};
+    [controlId: string]: CalmControlSchema
+}

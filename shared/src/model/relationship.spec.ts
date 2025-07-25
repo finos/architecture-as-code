@@ -5,7 +5,7 @@ import {
     CalmDeployedInType,
     CalmComposedOfType,
     CalmOptionsRelationshipType,
-    CalmOptionType
+    CalmDecisionType
 } from './relationship.js';
 import { CalmRelationshipSchema } from '../types/core-types.js';
 import { CalmNodeInterface } from './interface.js';
@@ -20,9 +20,8 @@ const relationshipData: CalmRelationshipSchema = {
         }
     },
     protocol: 'HTTP',
-    authentication: 'OAuth2',
     metadata: [{ key: 'value' }],
-    controls: { 'control-001': { description: 'Test control', requirements: [{ 'control-requirement-url': 'https://example.com/requirement', 'control-config-url': 'https://example.com/config' }] } }
+    controls: { 'control-001': { description: 'Test control', requirements: [{ 'requirement-url': 'https://example.com/requirement', 'config-url': 'https://example.com/config' }] } }
 };
 
 describe('CalmRelationship', () => {
@@ -33,7 +32,6 @@ describe('CalmRelationship', () => {
         expect(relationship.uniqueId).toBe('relationship-001');
         expect(relationship.description).toBe('Test Relationship');
         expect(relationship.protocol).toBe('HTTP');
-        expect(relationship.authentication).toBe('OAuth2');
         expect(relationship.metadata).toEqual({ data: { key: 'value' } });
         expect(relationship.controls).toHaveLength(1);
         expect(relationship.controls[0].controlId).toBe('control-001');
@@ -56,9 +54,8 @@ describe('CalmRelationship', () => {
                 }
             },
             protocol: 'TLS',
-            authentication: 'Basic',
             metadata: [{ key: 'value2' }],
-            controls: { 'control-002': { description: 'Another test control', requirements: [{ 'control-requirement-url': 'https://example.com/requirement2', 'control-config-url': 'https://example.com/config2' }] } }
+            controls: { 'control-002': { description: 'Another test control', requirements: [{ 'requirement-url': 'https://example.com/requirement2', 'config-url': 'https://example.com/config2' }] } }
         };
 
         const relationship = CalmRelationship.fromJson(connectsRelationshipData);
@@ -82,9 +79,8 @@ describe('CalmRelationship', () => {
                 }
             },
             protocol: 'AMQP',
-            authentication: 'Certificate',
             metadata: [{ key: 'value3' }],
-            controls: { 'control-003': { description: 'Test control 3', requirements: [{ 'control-requirement-url': 'https://example.com/requirement3', 'control-config-url': 'https://example.com/config3' }] } }
+            controls: { 'control-003': { description: 'Test control 3', requirements: [{ 'requirement-url': 'https://example.com/requirement3', 'config-url': 'https://example.com/config3' }] } }
         };
 
         const relationship = CalmRelationship.fromJson(deployedInRelationshipData);
@@ -108,9 +104,8 @@ describe('CalmRelationship', () => {
                 }
             },
             protocol: 'TCP',
-            authentication: 'OAuth2',
             metadata: [{ key: 'value4' }],
-            controls: { 'control-004': { description: 'Test control 4', requirements: [{ 'control-requirement-url': 'https://example.com/requirement4', 'control-config-url': 'https://example.com/config4' }] } }
+            controls: { 'control-004': { description: 'Test control 4', requirements: [{ 'requirement-url': 'https://example.com/requirement4', 'config-url': 'https://example.com/config4' }] } }
         };
 
         const relationship = CalmRelationship.fromJson(composedOfRelationshipData);
@@ -129,32 +124,27 @@ describe('CalmRelationship', () => {
             description: 'A choice between which nodes will be in the architecture',
             'relationship-type': {
                 options: [
-                    [
-                        {
-                            description: 'This is option 1',
-                            nodes: ['node-1'],
-                            relationships: ['relationship-1-x']
-                        }
-                    ],
-                    [
-                        {
-                            description: 'This is option 2',
-                            nodes: ['node-2'],
-                            relationships: ['relationship-2-x']
-                        }
-                    ]
+                    {
+                        description: 'This is option 1',
+                        nodes: ['node-1'],
+                        relationships: ['relationship-1-x']
+                    },
+                    {
+                        description: 'This is option 2',
+                        nodes: ['node-2'],
+                        relationships: ['relationship-2-x']
+                    }
                 ]
             },
             protocol: 'TCP',
-            authentication: 'OAuth2',
             metadata: [{ key: 'value4' }],
             controls: {
                 'control-004': {
                     description: 'Test control 4',
                     requirements: [
                         {
-                            'control-requirement-url': 'https://example.com/requirement4',
-                            'control-config-url': 'https://example.com/config4'
+                            'requirement-url': 'https://example.com/requirement4',
+                            'config-url': 'https://example.com/config4'
                         }
                     ]
                 }
@@ -168,24 +158,20 @@ describe('CalmRelationship', () => {
         );
 
         const optionsRt = relationship.relationshipType as CalmOptionsRelationshipType;
-        expect(optionsRt.options).toHaveLength(2);
-        expect(optionsRt.options[0]).toBeInstanceOf(CalmOptionType);
-        expect(optionsRt.options[1]).toBeInstanceOf(CalmOptionType);
+        expect(optionsRt.decisions).toHaveLength(2);
+        expect(optionsRt.decisions[0]).toBeInstanceOf(CalmDecisionType);
+        expect(optionsRt.decisions[1]).toBeInstanceOf(CalmDecisionType);
 
-        expect(optionsRt.options[0].decisions).toEqual([
-            {
-                description: 'This is option 1',
-                nodes: ['node-1'],
-                relationships: ['relationship-1-x']
-            }
-        ]);
-        expect(optionsRt.options[1].decisions).toEqual([
-            {
-                description: 'This is option 2',
-                nodes: ['node-2'],
-                relationships: ['relationship-2-x']
-            }
-        ]);
+        expect(optionsRt.decisions[0]).toEqual({
+            description: 'This is option 1',
+            nodes: ['node-1'],
+            relationships: ['relationship-1-x']
+        });
+        expect(optionsRt.decisions[1]).toEqual({
+            description: 'This is option 2',
+            nodes: ['node-2'],
+            relationships: ['relationship-2-x']
+        });
     });
 
 });

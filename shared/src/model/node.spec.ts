@@ -1,5 +1,5 @@
 import { CalmNode, CalmNodeDetails } from './node.js';
-import {CalmNodeSchema} from '../types/core-types.js';
+import { CalmNodeSchema, CalmNodeDetailsSchema } from '../types/core-types.js';
 
 const nodeData: CalmNodeSchema = {
     'unique-id': 'node-001',
@@ -17,12 +17,10 @@ const nodeData: CalmNodeSchema = {
     controls: {
         'control-001': {
             description: 'Test control',
-            requirements: [{ 'control-requirement-url': 'https://example.com/requirement', 'control-config-url': 'https://example.com/config' }]
+            requirements: [{ 'requirement-url': 'https://example.com/requirement', 'config-url': 'https://example.com/config' }]
         }
     },
-    metadata: [{ key: 'value' }],
-    'data-classification': 'Public',
-    'run-as': 'admin',
+    metadata: [{ key: 'value' }]
 };
 
 
@@ -32,6 +30,28 @@ describe('CalmNodeDetails', () => {
 
         expect(nodeDetails).toBeInstanceOf(CalmNodeDetails);
         expect(nodeDetails.detailedArchitecture).toBe('https://example.com/architecture');
+        expect(nodeDetails.requiredPattern).toBe('https://example.com/pattern');
+    });
+
+    it('should create a CalmNodeDetails instance from JSON data with no pattern', () => {
+        const nodeDetailsSchema: CalmNodeDetailsSchema = {
+            'detailed-architecture': 'https://example.com/architecture',
+        };
+        const nodeDetails = CalmNodeDetails.fromJson(nodeDetailsSchema);
+
+        expect(nodeDetails).toBeInstanceOf(CalmNodeDetails);
+        expect(nodeDetails.detailedArchitecture).toBe('https://example.com/architecture');
+        expect(nodeDetails.requiredPattern).toBeUndefined();
+    });
+
+    it('should create a CalmNodeDetails instance from JSON data with no architecture', () => {
+        const nodeDetailsSchema: CalmNodeDetailsSchema = {
+            'required-pattern': 'https://example.com/pattern',
+        };
+        const nodeDetails = CalmNodeDetails.fromJson(nodeDetailsSchema);
+
+        expect(nodeDetails).toBeInstanceOf(CalmNodeDetails);
+        expect(nodeDetails.detailedArchitecture).toBeUndefined();
         expect(nodeDetails.requiredPattern).toBe('https://example.com/pattern');
     });
 });
@@ -52,8 +72,6 @@ describe('CalmNode', () => {
         expect(node.controls).toHaveLength(1);
         expect(node.controls[0].controlId).toBe('control-001');
         expect(node.metadata).toEqual({ data: { key: 'value' } });
-        expect(node.dataClassification).toBe('Public');
-        expect(node.runAs).toBe('admin');
     });
 
     it('should handle optional fields in CalmNode', () => {
@@ -61,21 +79,34 @@ describe('CalmNode', () => {
             'unique-id': 'node-002',
             'node-type': 'service',
             name: 'Another Test Node',
-            description: 'Another test node description',
-            details: {
-                'detailed-architecture': 'https://example.com/architecture-2',
-                'required-pattern': 'https://example.com/pattern-2'
-            },
-            interfaces: [{ 'unique-id': 'interface-002', port: 8080 }],
-            controls: { 'control-002': { description: 'Another test control', requirements: [{ 'control-requirement-url': 'https://example.com/requirement2', 'control-config-url': 'https://example.com/config2' }] } },
-            metadata: [{ key: 'value' }]
+            description: 'Another test node description'
         };
 
         const nodeWithoutOptionalFields = CalmNode.fromJson(nodeDataWithoutOptionalFields);
 
         expect(nodeWithoutOptionalFields).toBeInstanceOf(CalmNode);
         expect(nodeWithoutOptionalFields.uniqueId).toBe('node-002');
-        expect(nodeWithoutOptionalFields.runAs).toBeUndefined();
+        expect(nodeWithoutOptionalFields.details.detailedArchitecture).toEqual('');
+        expect(nodeWithoutOptionalFields.details.requiredPattern).toEqual('');
+        expect(nodeWithoutOptionalFields.interfaces).toEqual([]);
+        expect(nodeWithoutOptionalFields.controls).toEqual([]);
+        expect(nodeWithoutOptionalFields.metadata.data).toEqual({});
+    });
+
+    it('should handle adduitional properties', () => {
+        const nodeDataWithAdditionalFields: CalmNodeSchema = {
+            'unique-id': 'node-002',
+            'node-type': 'service',
+            name: 'Another Test Node',
+            description: 'Another test node description',
+            'another-property': 'some value'
+        };
+
+        const nodeWithAdditionalFields = CalmNode.fromJson(nodeDataWithAdditionalFields);
+
+        expect(nodeWithAdditionalFields).toBeInstanceOf(CalmNode);
+        expect(nodeWithAdditionalFields.uniqueId).toBe('node-002');
+        expect(nodeWithAdditionalFields.additionalProperties['another-property']).toBe('some value');
     });
 
     it('should handle empty interfaces, controls, and metadata', () => {
@@ -98,6 +129,6 @@ describe('CalmNode', () => {
         expect(nodeWithEmptyFields).toBeInstanceOf(CalmNode);
         expect(nodeWithEmptyFields.interfaces).toHaveLength(0);
         expect(nodeWithEmptyFields.controls).toHaveLength(0);
-        expect(nodeWithEmptyFields.metadata).toEqual({ data: {}});
+        expect(nodeWithEmptyFields.metadata).toEqual({ data: {} });
     });
 });

@@ -7,6 +7,7 @@ import org.finos.calm.domain.Flow;
 import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.FlowStore;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -16,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.when;
 
@@ -26,6 +28,20 @@ public class TestFlowResourcePutEnabledShould {
 
     @InjectMock
     FlowStore mockFlowStore;
+
+    @Test
+    void return_400_error_when_version_is_not_valid_when_updating_flow_version() {
+        String flowJson = "{ \"test\": \"json\" }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(flowJson)
+                .when()
+                .put("/calm/namespaces/test/flows/20/versions/invalid-version")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
 
     static Stream<Arguments> provideParametersForPutFlowTests() {
         return Stream.of(

@@ -8,6 +8,7 @@ import io.quarkus.test.junit.TestProfile;
 import org.bson.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.finos.calm.domain.Standard;
+import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +30,7 @@ public class MongoStandardIntegration {
     private static final Logger logger = LoggerFactory.getLogger(MongoStandardIntegration.class);
 
     Standard testStandard;
+    CreateStandardRequest createStandardRequest;
 
     private static final String NAMESPACE = "finos";
     private static final String NAME = "Test Standard";
@@ -58,10 +60,10 @@ public class MongoStandardIntegration {
             namespaceSetup(database);
         }
 
-        testStandard = new Standard();
+        createStandardRequest = new CreateStandardRequest(NAME, DESCRIPTION, "{}");
+
+        testStandard = new Standard(createStandardRequest);
         testStandard.setNamespace("finos");
-        testStandard.setName("Test Standard");
-        testStandard.setDescription("Test Standard Description");
     }
 
     @Test
@@ -77,9 +79,8 @@ public class MongoStandardIntegration {
     @Test
     @Order(2)
     void end_to_end_create_a_standard() {
-        testStandard.setStandardJson("{}");
         given()
-                .body(testStandard)
+                .body(createStandardRequest)
                 .header("Content-Type", "application/json")
                 .when().post("/calm/namespaces/finos/standards")
                 .then()
@@ -114,7 +115,7 @@ public class MongoStandardIntegration {
         setupTestStandardForPersistenceRetrieval();
 
         given()
-                .body(testStandard)
+                .body(createStandardRequest)
                 .header("Content-Type", "application/json")
                 .when().post("/calm/namespaces/finos/standards/1/versions/2.0.0")
                 .then()
@@ -131,10 +132,11 @@ public class MongoStandardIntegration {
                 .when().get("/calm/namespaces/finos/standards/1/versions/2.0.0")
                 .then()
                 .statusCode(200)
-                .body(equalTo(testStandard.getStandardJson()));
+                .body(equalTo("{}"));
     }
 
     @Test
+    @Order(7)
     void end_to_end_verify_standard_details_and_if_they_are_updated() {
         setupTestStandardForPersistenceRetrieval();
 
@@ -151,10 +153,8 @@ public class MongoStandardIntegration {
     }
 
     private void setupTestStandardForPersistenceRetrieval() {
-        testStandard.setStandardJson("{}");
-        testStandard.setName("New Name");
-        testStandard.setDescription("New Description");
-        testStandard.setVersion("2.0.0");
-        testStandard.setId(1);
+        createStandardRequest.setStandardJson("{}");
+        createStandardRequest.setName("New Name");
+        createStandardRequest.setDescription("New Description");
     }
 }

@@ -1,18 +1,14 @@
-import {SchemaDirectory, initLogger, validate} from '@finos/calm-shared';
+import { SchemaDirectory, validate } from '@finos/calm-shared';
 import { Router, Request, Response } from 'express';
-import { promises as fs } from 'fs';
-import path from 'path';
-import os from 'os';
-import { v4 as uuidv4 } from 'uuid';
-import winston from 'winston';
 import { ValidationOutcome } from '@finos/calm-shared';
 import rateLimit from 'express-rate-limit';
+import { initLogger, Logger } from '@finos/calm-shared/dist/logger';
 
 export class ValidationRouter {
 
     private schemaDirectoryPath: string;
     private schemaDirectory: SchemaDirectory;
-    private logger: winston.Logger;
+    private logger: Logger;
 
     constructor(router: Router, schemaDirectoryPath: string, schemaDirectory: SchemaDirectory, debug: boolean = false) {
         const limiter = rateLimit({
@@ -38,12 +34,12 @@ export class ValidationRouter {
             this.logger.error('Invalid JSON format for architecture ' + error);
             return res.status(400).type('json').send(new ErrorResponse('Invalid JSON format for architecture'));
         }
-        
+
         const schema = architecture['$schema'];
         if (!schema) {
             return res.status(400).type('json').send(new ErrorResponse('The "$schema" field is missing from the request body'));
         }
-        
+
         try {
             await this.schemaDirectory.loadSchemas();
         } catch (error) {
@@ -57,36 +53,19 @@ export class ValidationRouter {
                 this.logger.error('Schema with $id ' + schema + ' not found');
                 return res.status(400).type('json').send(new ErrorResponse('The "$schema" field referenced is not available to the server'));
             }
-        } catch(err) {
+        } catch (err) {
             this.logger.error('Failed to load schema: ' + err);
             return res.status(500).type('json').send(new ErrorResponse('Failed to load schema: ' + err));
         }
-        const tempInstantiation = await createTemporaryFile();
-        const tempPattern = await createTemporaryFile();
         try {
 
-            await fs.writeFile(tempInstantiation, JSON.stringify(architecture, null, 4), { mode: 0o600 });
-            await fs.writeFile(tempPattern, JSON.stringify(foundSchema, null, 4), { mode: 0o600 });
-            const outcome = await validate(tempInstantiation, tempPattern, this.schemaDirectoryPath, true);
+            const outcome = await validate(architecture, foundSchema, this.schemaDirectory, true);
             return res.status(201).type('json').send(outcome);
         } catch (error) {
             return res.status(500).type('json').send(new ErrorResponse(error.message));
-        } finally {
-            [tempInstantiation, tempPattern].forEach(element => {
-                fs.unlink(element).catch((reason) => {
-                    this.logger.warn('Failed to delete temporary file ' + element + ' with error: ' + reason);
-                });
-            });
         }
     };
 }
-
-async function createTemporaryFile(): Promise<string> {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'calm-'));
-    const tempFilePath = path.join(tempDir, `calm-instantiation-${uuidv4()}.json`);
-    return tempFilePath;
-}
-
 
 class ErrorResponse {
     error: string;
