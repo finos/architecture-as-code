@@ -3,14 +3,7 @@ import { useState } from 'react';
 import {
     CalmArchitectureSchema,
     CalmNodeSchema,
-    CalmRelationshipSchema,
 } from '../../../../../shared/src/types/core-types.js';
-import {
-    CALMDeployedInRelationship,
-    CALMComposedOfRelationship,
-    CALMConnectsRelationship,
-    CALMInteractsRelationship,
-} from '../../../../../shared/src/types.js';
 import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { VisualizerContainer } from '../visualizer-container/VisualizerContainer.js';
 import { Data } from '../../../model/calm.js';
@@ -19,30 +12,6 @@ interface DrawerProps {
     calmInstance?: CalmArchitectureSchema;
     title: string;
     data?: Data;
-}
-
-function isComposedOf(
-    relationship: CalmRelationshipSchema
-): relationship is CALMComposedOfRelationship {
-    return 'composed-of' in relationship['relationship-type'];
-}
-
-function isDeployedIn(
-    relationship: CalmRelationshipSchema
-): relationship is CALMDeployedInRelationship {
-    return 'deployed-in' in relationship['relationship-type'];
-}
-
-function isInteracts(
-    relationship: CalmRelationshipSchema
-): relationship is CALMInteractsRelationship {
-    return 'interacts' in relationship['relationship-type'];
-}
-
-function isConnects(
-    relationship: CalmRelationshipSchema
-): relationship is CALMConnectsRelationship {
-    return 'connects' in relationship['relationship-type'];
 }
 
 function getComposedOfRelationships(calmInstance: CalmArchitectureSchema) {
@@ -54,8 +23,8 @@ function getComposedOfRelationships(calmInstance: CalmArchitectureSchema) {
     } = {};
 
     calmInstance.relationships?.forEach((relationship) => {
-        if (isComposedOf(relationship)) {
-            const rel = relationship['relationship-type']['composed-of'];
+        const rel = relationship['relationship-type']['composed-of'];
+        if (rel) {
             composedOfRelationships[rel!['container']] = { type: 'parent' };
             rel!['nodes'].forEach((node) => {
                 composedOfRelationships[node] = {
@@ -77,8 +46,8 @@ function getDeployedInRelationships(calmInstance: CalmArchitectureSchema) {
         };
     } = {};
     calmInstance.relationships?.forEach((relationship) => {
-        if (isDeployedIn(relationship)) {
-            const rel = relationship['relationship-type']['deployed-in'];
+        const rel = relationship['relationship-type']['deployed-in'];
+        if (rel) {
             deployedInRelationships[rel['container']] = { type: 'parent' };
             rel['nodes'].forEach((node) => {
                 deployedInRelationships[node] = {
@@ -157,9 +126,13 @@ export function Drawer({ calmInstance, title, data }: DrawerProps) {
         if (!calmInstance || !calmInstance.relationships) return [];
 
         return calmInstance.relationships
-            .filter((relationship) => !isComposedOf(relationship) && !isDeployedIn(relationship))
+            .filter(
+                (relationship) =>
+                    !relationship['relationship-type']['composed-of'] &&
+                    !relationship['relationship-type']['deployed-in']
+            )
             .map((relationship) => {
-                if (isInteracts(relationship)) {
+                if (relationship['relationship-type'].interacts) {
                     return {
                         data: {
                             id: relationship['unique-id'],
@@ -169,7 +142,7 @@ export function Drawer({ calmInstance, title, data }: DrawerProps) {
                         },
                     };
                 }
-                if (isConnects(relationship)) {
+                if (relationship['relationship-type'].connects) {
                     const source = relationship['relationship-type'].connects.source.node;
                     const target = relationship['relationship-type'].connects.destination.node;
                     return {
