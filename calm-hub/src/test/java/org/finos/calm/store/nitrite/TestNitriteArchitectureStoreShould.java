@@ -628,6 +628,8 @@ public class TestNitriteArchitectureStoreShould {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(NAMESPACE)
                 .setId(ARCHITECTURE_ID)
+                .setName(ARCHITECTURE_NAME)
+                .setDescription(ARCHITECTURE_DESCRIPTION)
                 .setVersion(VERSION)
                 .setArchitecture(VALID_JSON)
                 .build();

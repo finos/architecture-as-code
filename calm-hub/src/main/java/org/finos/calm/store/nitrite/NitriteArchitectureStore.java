@@ -262,6 +262,11 @@ public class NitriteArchitectureStore implements ArchitectureStore {
                             // Found the architecture, update its version
                             Document versions = architectureDoc.get(VERSIONS_FIELD, Document.class);
                             versions.put(architecture.getMongoVersion(), architecture.getArchitectureJson());
+                            //name and description are not null only when updating an architecture and not when creating one with a specific version
+                            if (architecture.getName() != null && architecture.getDescription() != null) {
+                                versions.put(NAME_FIELD, architecture.getName());
+                                versions.put(DESCRIPTION_FIELD, architecture.getDescription());
+                            }
                             architectureDoc.put(VERSIONS_FIELD, versions);
                             architectures.set(i, architectureDoc);
                             found = true;

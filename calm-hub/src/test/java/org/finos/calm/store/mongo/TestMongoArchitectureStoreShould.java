@@ -294,7 +294,7 @@ public class TestMongoArchitectureStoreShould {
     }
 
     @Test
-    void throw_an_exception_when_architecture_for_given_version_does_not_exist()  {
+    void throw_an_exception_when_architecture_for_given_version_does_not_exist() {
         mockSetupArchitectureDocumentWithVersions();
 
         Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE)
@@ -352,8 +352,12 @@ public class TestMongoArchitectureStoreShould {
     @Test
     void accept_the_creation_or_update_of_a_valid_version() throws ArchitectureNotFoundException, NamespaceNotFoundException, ArchitectureVersionExistsException {
         mockSetupArchitectureDocumentWithVersions();
-        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE)
-                .setId(50).setVersion("1.0.1")
+        Architecture architecture = new Architecture.ArchitectureBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(50)
+                .setName("architecture-name")
+                .setDescription("architecture-description")
+                .setVersion("1.0.1")
                 .setArchitecture(validJson).build();
 
         mongoArchitectureStore.updateArchitectureForVersion(architecture);
