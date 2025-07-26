@@ -35,6 +35,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class TestArchitectureResourceShould {
 
+    public static final String TEST_NAME = "test-name";
+    public static final String TEST_DESCRIPTION = "test description";
     @InjectMock
     ArchitectureStore mockArchitectureStore;
 
@@ -79,16 +81,14 @@ public class TestArchitectureResourceShould {
 
     @Test
     void return_a_404_when_invalid_namespace_is_provided_on_create_architecture() throws NamespaceNotFoundException, JsonProcessingException {
-        String name = "test-name";
-        String description = "test description";
         when(mockArchitectureStore.createArchitectureForNamespace(any(Architecture.class)))
                 .thenThrow(new NamespaceNotFoundException());
 
         String architectureJson = "{ \"test\": \"json\" }";
 
         ArchitectureRequest architectureRequest = new ArchitectureRequest();
-        architectureRequest.setName(name);
-        architectureRequest.setDescription(description);
+        architectureRequest.setName(TEST_NAME);
+        architectureRequest.setDescription(TEST_DESCRIPTION);
         architectureRequest.setArchitectureJson(architectureJson);
 
         given()
@@ -101,8 +101,8 @@ public class TestArchitectureResourceShould {
 
         Architecture expectedArchitecture = new Architecture.ArchitectureBuilder()
                 .setArchitecture(architectureJson)
-                .setName(name)
-                .setDescription(description)
+                .setName(TEST_NAME)
+                .setDescription(TEST_DESCRIPTION)
                 .setNamespace("invalid")
                 .build();
 
@@ -142,22 +142,19 @@ public class TestArchitectureResourceShould {
     void return_a_created_with_location_of_architecture_when_creating_architecture() throws NamespaceNotFoundException, JsonProcessingException {
         String architectureJson = "{ \"test\": \"json\" }";
         String namespace = "finos";
-        String name = "test-name";
-        String description = "test description";
-
 
         Architecture stubbedReturnArchitecture = new Architecture.ArchitectureBuilder()
                 .setArchitecture(architectureJson)
                 .setVersion("1.0.0")
                 .setId(12)
-                .setName(name)
-                .setDescription(description)
+                .setName(TEST_NAME)
+                .setDescription(TEST_DESCRIPTION)
                 .setNamespace(namespace)
                 .build();
 
         ArchitectureRequest architectureRequest = new ArchitectureRequest();
-        architectureRequest.setName(name);
-        architectureRequest.setDescription(description);
+        architectureRequest.setName(TEST_NAME);
+        architectureRequest.setDescription(TEST_DESCRIPTION);
         architectureRequest.setArchitectureJson(architectureJson);
 
         when(mockArchitectureStore.createArchitectureForNamespace(any(Architecture.class))).thenReturn(stubbedReturnArchitecture);
@@ -175,8 +172,8 @@ public class TestArchitectureResourceShould {
         Architecture expectedArchitectureToCreate = new Architecture.ArchitectureBuilder()
                 .setArchitecture(architectureJson)
                 .setNamespace(namespace)
-                .setName(name)
-                .setDescription(description)
+                .setName(TEST_NAME)
+                .setDescription(TEST_DESCRIPTION)
                 .build();
 
         verify(mockArchitectureStore, times(1)).createArchitectureForNamespace(expectedArchitectureToCreate);
@@ -340,7 +337,7 @@ public class TestArchitectureResourceShould {
 
     @ParameterizedTest
     @MethodSource("provideParametersForCreateArchitectureTests")
-    void respond_correctly_to_create_architecture(Throwable exceptionToThrow, int expectedStatusCode) throws ArchitectureNotFoundException, ArchitectureVersionExistsException, NamespaceNotFoundException {
+    void respond_correctly_to_create_architecture(Throwable exceptionToThrow, int expectedStatusCode) throws ArchitectureNotFoundException, ArchitectureVersionExistsException, NamespaceNotFoundException, JsonProcessingException {
         Architecture expectedArchitecture = new Architecture.ArchitectureBuilder()
                 .setNamespace("test")
                 .setVersion("1.0.1")
