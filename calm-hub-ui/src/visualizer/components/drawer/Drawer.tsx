@@ -74,13 +74,6 @@ export function Drawer({ data }: DrawerProps) {
         }
     }, []);
 
-    async function handleFile(instanceFile: any[]) {
-        if (instanceFile.length) {
-            setTitle(instanceFile[0].name);
-            const file = await instanceFile[0].text();
-            setFileInstance(JSON.parse(file));
-        }
-    }
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
     useEffect(() => {
@@ -214,10 +207,10 @@ export function Drawer({ data }: DrawerProps) {
                     ) : (
                         <div className="flex justify-center items-center h-full w-full">
                             {isDragActive ? (
-                                <p>Drop the files here ...</p>
+                                <p>Drop your file here ...</p>
                             ) : (
                                 <p>
-                                    {'Drag and drop your files here or '}
+                                    {'Drag and drop your file here or '}
                                     <span className="border-b border-dotted border-black pb-1">
                                         Browse
                                     </span>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import './Visualizer.css';
 import { Drawer } from './components/drawer/Drawer.js';
 import { Navbar } from '../components/navbar/Navbar.js';

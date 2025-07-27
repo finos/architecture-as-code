@@ -1,5 +1,4 @@
 import './index.css';
-import 'filepond/dist/filepond.min.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import ProtectedRoute from './ProtectedRoute.js';

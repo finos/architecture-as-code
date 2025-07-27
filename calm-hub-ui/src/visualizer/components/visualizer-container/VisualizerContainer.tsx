@@ -4,7 +4,7 @@ import { Sidebar } from '../sidebar/Sidebar.js';
 import { CytoscapeRenderer } from '../cytoscape/cytoscape-renderer/CytoscapeRenderer.js';
 import { CytoscapeControlPanel } from '../cytoscape/cytoscape-control-panel/CytoscapeControlPanel.js';
 
-interface VisualizerContainerProps {
+export interface VisualizerContainerProps {
     title?: string;
     nodes: CytoscapeNode[];
     edges: Edge[];
