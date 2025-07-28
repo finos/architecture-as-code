@@ -8,6 +8,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.bson.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.finos.calm.domain.Pattern;
+import org.finos.calm.domain.patterns.CreatePatternRequest;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +27,13 @@ import static org.hamcrest.Matchers.*;
 public class MongoPatternIntegration {
 
     private static final Logger logger = LoggerFactory.getLogger(MongoPatternIntegration.class);
-    public static final String PATTERN = "{\"name\": \"demo-pattern\"}";
+    
+    Pattern testPattern;
+    CreatePatternRequest createPatternRequest;
+
+    private static final String NAMESPACE = "finos";
+    private static final String NAME = "Test Pattern";
+    private static final String DESCRIPTION = "Test Pattern Description";
 
     @BeforeEach
     public void setupPatterns() {
@@ -50,6 +58,11 @@ public class MongoPatternIntegration {
             counterSetup(database);
             namespaceSetup(database);
         }
+
+        createPatternRequest = new CreatePatternRequest(NAME, DESCRIPTION, "{}");
+
+        testPattern = new Pattern(createPatternRequest);
+        testPattern.setNamespace("finos");
     }
 
     @Test
@@ -66,7 +79,7 @@ public class MongoPatternIntegration {
     @Order(2)
     void end_to_end_create_a_pattern() {
         given()
-                .body(PATTERN)
+                .body(createPatternRequest)
                 .header("Content-Type", "application/json")
                 .when().post("/calm/namespaces/finos/patterns")
                 .then()
@@ -92,6 +105,21 @@ public class MongoPatternIntegration {
                 .when().get("/calm/namespaces/finos/patterns/1/versions/1.0.0")
                 .then()
                 .statusCode(200)
-                .body(equalTo(PATTERN));
+                .body(equalTo("{\"id\":1,\"namespace\":\"finos\",\"patternJson\":\"{}\",\"version\":\"2.0.0\"}"));
+    }
+
+    @Test
+    @Order(5)
+    void end_to_end_create_a_new_pattern_version_for_pattern() {
+        setupTestpatternForPersistenceRetrieval();
+
+        given()
+                .body(testPattern)
+                .body(createPatternRequest)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/patterns/1/versions/2.0.0")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("calm/namespaces/finos/patterns/1/versions/2.0.0"));
     }
 }
