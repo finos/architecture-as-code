@@ -4,6 +4,7 @@ import { Drawer } from './Drawer.js';
 import { Data } from '../../../model/calm.js';
 import { VisualizerContainerProps } from '../visualizer-container/VisualizerContainer.js';
 import { SidebarProps } from '../sidebar/Sidebar.js';
+import { DropzoneOptions } from 'react-dropzone';
 
 // Mock dependencies
 vi.mock('../sidebar/Sidebar.js', () => ({
@@ -28,7 +29,7 @@ vi.mock('react-dropzone', async () => {
     const actual = await vi.importActual('react-dropzone');
     return {
         ...actual,
-        useDropzone: ({ onDrop }: any) => ({
+        useDropzone: ({ onDrop }: DropzoneOptions) => ({
             getRootProps: () => ({}),
             getInputProps: () => ({}),
             isDragActive: false,
