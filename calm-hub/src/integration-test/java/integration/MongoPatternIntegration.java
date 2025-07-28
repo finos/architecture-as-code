@@ -114,12 +114,28 @@ public class MongoPatternIntegration {
         setupTestpatternForPersistenceRetrieval();
 
         given()
-                .body(testPattern)
                 .body(createPatternRequest)
                 .header("Content-Type", "application/json")
                 .when().post("/calm/namespaces/finos/patterns/1/versions/2.0.0")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/patterns/1/versions/2.0.0"));
+    }
+
+    @Test
+    @Order(6)
+    void end_to_end_verify_retrieval_of_pattern_json() {
+        setupTestPatternForPersistenceRetrieval();
+        given()
+                .when().get("/calm/namespaces/finos/patterns/1/versions/2.0.0")
+                .then()
+                .statusCode(200)
+                .body(equalTo("{\"id\":1,\"namespace\":\"finos\",\"patternJson\":\"{}\",\"version\":\"2.0.0\"}"));
+    }
+
+    private void setupTestPatternForPersistenceRetrieval() {
+        createPatternRequest.setPatternJson("{}");
+        createPatternRequest.setName("New Name");
+        createPatternRequest.setDescription("New Description");
     }
 }
