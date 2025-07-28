@@ -12,6 +12,7 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
+import org.finos.calm.domain.patterns.CreatePatternRequest;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.PatternStore;
@@ -72,21 +73,17 @@ public class PatternResource {
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
     public Response createPatternForNamespace(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            String patternJson
+            CreatePatternRequest pattern
     ) throws URISyntaxException {
-        Pattern pattern = new Pattern.PatternBuilder()
-                .setNamespace(namespace)
-                .setPattern(patternJson)
-                .build();
-
         try {
-            return patternWithLocationResponse(store.createPatternForNamespace(pattern));
+            Pattern createdPattern = patternStore.createPatternForNamespace(pattern, namespace)
+            return patternWithLocationResponse(createdPattern);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating pattern", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (JsonParseException e) {
             logger.error("Cannot parse Pattern JSON for namespace [{}]. Pattern JSON : [{}]", namespace, STRICT_SANITIZATION_POLICY.sanitize(patternJson), e);
-            return invalidPatternJsonResponse(STRICT_SANITIZATION_POLICY.sanitize(patternJson));
+            return invalidPatternJsonResponse(STRICT_SANITIZATION_POLICY.sanitize(pattern.getPatternJson()));
         }
     }
 
@@ -102,13 +99,8 @@ public class PatternResource {
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("patternId") int patternId
     ) {
-        Pattern pattern = new Pattern.PatternBuilder()
-                .setNamespace(namespace)
-                .setId(patternId)
-                .build();
-
         try {
-            return Response.ok(new ValueWrapper<>(store.getPatternVersions(pattern))).build();
+            return Response.ok(new ValueWrapper<>(patternStore.getPatternVersions(namespace, patternId))).build();
         } catch (NamespaceNotFoundException e) {
 
             logger.error("Invalid namespace [{}] when getting versions of pattern", namespace, e);
@@ -132,14 +124,8 @@ public class PatternResource {
             @PathParam("patternId") int patternId,
             @PathParam("version") @jakarta.validation.constraints.Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version
     ) {
-        Pattern pattern = new Pattern.PatternBuilder()
-                .setNamespace(namespace)
-                .setId(patternId)
-                .setVersion(version)
-                .build();
-
         try {
-            return Response.ok(store.getPatternForVersion(pattern)).build();
+            return Response.ok(patternStore.getPatternForVersion(namespace, patternId, version)).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting a pattern", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -157,30 +143,23 @@ public class PatternResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
-    public Response createVersionedPattern(
+    public Response createPatternForVersion(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("patternId") int patternId,
             @PathParam("version") @jakarta.validation.constraints.Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
-            String patternJson
+            CreatePatternRequest createPatternRequest
     ) throws URISyntaxException {
-        Pattern pattern = new Pattern.PatternBuilder()
-                .setNamespace(namespace)
-                .setId(patternId)
-                .setVersion(version)
-                .setPattern(patternJson)
-                .build();
-
         try {
-            store.createPatternForVersion(pattern);
-            return patternWithLocationResponse(pattern);
+            createdPattern = patternStore.createPatternForVersion(createPatternRequest, namespace, patternId, version);
+            return patternWithLocationResponse(createdPattern);
         } catch (PatternVersionExistsException e) {
-            logger.error("Pattern version already exists [{}] when trying to create new pattern", pattern, e);
+            logger.error("Pattern version already exists [{}] when trying to create new pattern", createdPattern, e);
             return Response.status(Response.Status.CONFLICT).entity("Version already exists: " + version).build();
         } catch (PatternNotFoundException e) {
-            logger.error("Invalid pattern [{}] when getting a pattern", pattern, e);
+            logger.error("Invalid pattern [{}] when getting a pattern", createdPattern, e);
             return invalidPatternResponse(patternId);
         } catch (NamespaceNotFoundException e) {
-            logger.error("Invalid namespace [{}] when getting a pattern", pattern, e);
+            logger.error("Invalid namespace [{}] when getting a pattern", createdPattern, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         }
     }
@@ -198,35 +177,28 @@ public class PatternResource {
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("patternId") int patternId,
             @PathParam("version") @jakarta.validation.constraints.Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
-            String patternJson
+            CreatePatternRequest createPatternRequest
     ) throws URISyntaxException {
-        Pattern pattern = new Pattern.PatternBuilder()
-                .setNamespace(namespace)
-                .setId(patternId)
-                .setVersion(version)
-                .setPattern(patternJson)
-                .build();
-
         if (!allowPutOperations) {
             return Response.status(Response.Status.FORBIDDEN).entity("This Calm Hub does not support PUT operations").build();
         }
 
         try {
-            store.updatePatternForVersion(pattern);
-            return patternWithLocationResponse(pattern);
+            updatedPattern = patternStore.updatePatternForVersion(createPatternRequest, namespace, patternId, version);
+            return patternWithLocationResponse(updatedPattern);
         } catch (NamespaceNotFoundException e) {
-            logger.error("Invalid namespace [{}] when trying to put pattern", pattern, e);
+            logger.error("Invalid namespace [{}] when trying to put pattern", updatedPattern, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (PatternNotFoundException e) {
-            logger.error("Invalid pattern [{}] when trying to put pattern", pattern, e);
+            logger.error("Invalid pattern [{}] when trying to put pattern", updatedPattern, e);
             return invalidPatternResponse(patternId);
         }
 
 
     }
 
-    private Response patternWithLocationResponse(Pattern pattern) throws URISyntaxException {
-        return Response.created(new URI("/calm/namespaces/" + pattern.getNamespace() + "/patterns/" + pattern.getId() + "/versions/" + pattern.getDotVersion())).build();
+    private Response patternWithLocationResponse(String namespace, CreatePatternRequest pattern) throws URISyntaxException {
+        return Response.created(new URI("/calm/namespaces/" + namespace + "/patterns/" + pattern.getId() + "/versions/" + pattern.getVersion())).build();
     }
     private Response invalidPatternJsonResponse(String patternJson) {
         return Response.status(Response.Status.BAD_REQUEST).entity("The pattern JSON could not be parsed: " + patternJson).build();

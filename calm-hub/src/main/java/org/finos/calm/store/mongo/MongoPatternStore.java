@@ -66,6 +66,7 @@ public class MongoPatternStore implements PatternStore {
 
     @Override
     public Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace) throws NamespaceNotFoundException {
+        Pattern createdPattern = new Pattern(patternRequest);
         if (!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
@@ -82,23 +83,19 @@ public class MongoPatternStore implements PatternStore {
                 Updates.push("patterns", patternDocument),
                 new UpdateOptions().upsert(true));
 
-        Pattern persistedPattern = new Pattern.PatternBuilder()
-                .setId(id)
-                .setVersion("1.0.0")
-                .setNamespace(namespace)
-                .setPattern(patternRequest.getPatternJson())
-                .build();
+        createdPattern.setId(id);
+        createdPattern.setVersion("1.0.0");
 
-        return persistedPattern;
+        return createdPattern;
     }
 
     @Override
-    public List<String> getPatternVersions(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException {
-        Document result = retrievePatternVersions(pattern);
+    public List<String> getPatternVersions(String namespace, Integer patternId) throws NamespaceNotFoundException, PatternNotFoundException {
+        Document result = retrievePatternVersions(namespace);
 
         List<Document> patterns = (List<Document>) result.get("patterns");
         for (Document patternDoc : patterns) {
-            if (pattern.getId() == patternDoc.getInteger("patternId")) {
+            if (patternId == patternDoc.getInteger("patternId")) {
                 // Extract the versions map from the matching pattern
                 Document versions = (Document) patternDoc.get("versions");
                 Set<String> versionKeys = versions.keySet();
@@ -115,12 +112,12 @@ public class MongoPatternStore implements PatternStore {
         throw new PatternNotFoundException();
     }
 
-    private Document retrievePatternVersions(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException {
-        if (!namespaceStore.namespaceExists(pattern.getNamespace())) {
+    private Document retrievePatternVersions(String namespace) throws NamespaceNotFoundException, PatternNotFoundException {
+        if (!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
 
-        Bson filter = new Document("namespace", pattern.getNamespace());
+        Bson filter = new Document("namespace", namespace);
         Bson projection = Projections.fields(Projections.include("patterns"));
 
         Document result = patternCollection.find(filter).projection(projection).first();
@@ -133,22 +130,27 @@ public class MongoPatternStore implements PatternStore {
     }
 
     @Override
-    public String getPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException {
-        Document result = retrievePatternVersions(pattern);
+    public String getPatternForVersion(String namespace, Integer patternId, String version) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException {
+        Document result = retrievePatternVersions(namespace);
 
         List<Document> patterns = (List<Document>) result.get("patterns");
+        Pattern pattern = new Pattern();
         for (Document patternDoc : patterns) {
-            if (pattern.getId() == patternDoc.getInteger("patternId")) {
+            if (patternId == patternDoc.getInteger("patternId")) {
                 // Retrieve the versions map from the matching pattern
                 Document versions = (Document) patternDoc.get("versions");
 
                 // Return the pattern JSON blob for the specified version
-                Document versionDoc = (Document) versions.get(pattern.getMongoVersion());
+                Document versionDoc = (Document) versions.get(version.replace('.', '-'));
                 log.info("VersionDoc: [{}], Mongo Version: [{}]", patternDoc.get("versions"), pattern.getMongoVersion());
                 if (versionDoc == null) {
                     throw new PatternVersionNotFoundException();
                 }
-                return versionDoc.toJson();
+                pattern.setNamespace(namespace);
+                pattern.setVersion(version);
+                pattern.setId(patternId);
+                pattern.setPatternJson(versionDoc.toJson());
+                return pattern;
             }
         }
         //Patterns is empty, no version to find
@@ -156,36 +158,36 @@ public class MongoPatternStore implements PatternStore {
     }
 
     @Override
-    public Pattern createPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionExistsException {
-        if (!namespaceStore.namespaceExists(pattern.getNamespace())) {
+    public Pattern createPatternForVersion(CreatePatternRequest patternRequest, String namespace, Integer patternId, String version) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionExistsException {
+        if (!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
 
-        if (versionExists(pattern)) {
+        if (versionExists(namespace, patternId, version)) {
             throw new PatternVersionExistsException();
         }
 
-        writePatternToMongo(pattern);
-        return pattern;
+        return writePatternToMongo(patternRequest, namespace, patternId, version);
     }
 
     @Override
-    public Pattern updatePatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException {
-        if (!namespaceStore.namespaceExists(pattern.getNamespace())) {
+    public Pattern updatePatternForVersion(CreatePatternRequest patternRequest, String namespace, Integer patternId, String version) throws NamespaceNotFoundException, PatternNotFoundException {
+        if (!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
-        writePatternToMongo(pattern);
-        return pattern;
+        return writePatternToMongo(patternRequest, namespace, patternId, version);
     }
 
-    private void writePatternToMongo(Pattern pattern) throws PatternNotFoundException, NamespaceNotFoundException {
-        retrievePatternVersions(pattern);
+    private Pattern writePatternToMongo(CreatePatternRequest createPatternRequest, String namespace, Integer patternId, String version) throws PatternNotFoundException, NamespaceNotFoundException {
+        retrievePatternVersions(namespace);
 
-        Document patternDocument = Document.parse(pattern.getPatternJson());
-        Document filter = new Document("namespace", pattern.getNamespace())
-                .append("patterns.patternId", pattern.getId());
-        Document update = new Document("$set",
-                new Document("patterns.$.versions." + pattern.getMongoVersion(), patternDocument));
+        Document patternDocument = Document.parse(createPatternRequest.getPatternJson());
+        Document filter = new Document("namespace", namespace)
+                .append("patterns.patternId", patternId);
+        Document update = new Document("$set", new Document()
+                .append("pattern.$.name", createPatternRequest.getName())
+                .append("pattern.$.description", createPatternRequest.getDescription())
+                .append("patterns.$.versions." + version.replace('.', '-'), patternDocument));
 
         try {
             patternCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
@@ -193,18 +195,22 @@ public class MongoPatternStore implements PatternStore {
             log.error("Failed to write pattern to mongo [{}]", pattern, ex);
             throw new PatternNotFoundException();
         }
+        Pattern pattern = new Pattern(createPatternRequest);
+        pattern.setId(patternId);
+        pattern.setVersion(version);
+        return pattern;
     }
 
-    private boolean versionExists(String namespace, int patternId, String version) {
+    private boolean versionExists(String namespace, Integer patternId, String version) {
         Document filter = new Document("namespace", namespace).append("patterns.patternId", patternId);
-        Bson projection = Projections.fields(Projections.include("patterns.versions." + pattern.getMongoVersion()));
+        Bson projection = Projections.fields(Projections.include("patterns.versions." + patternId));
         Document result = patternCollection.find(filter).projection(projection).first();
 
         if (result != null) {
             List<Document> patterns = (List<Document>) result.get("patterns");
             for (Document patternDoc : patterns) {
                 Document versions = (Document) patternDoc.get("versions");
-                if (versions != null && versions.containsKey(pattern.getMongoVersion())) {
+                if (versions != null && versions.containsKey(version.replace('.', '-'))) {
                     return true;  // The version already exists
                 }
             }

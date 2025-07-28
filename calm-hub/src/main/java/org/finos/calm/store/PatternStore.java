@@ -15,9 +15,9 @@ public interface PatternStore {
 
     Pattern createPatternForNamespace(CreatePatternRequest createPatternRequest, String namespace) throws NamespaceNotFoundException, JsonParseException;
 
-    List<String> getPatternVersions(String namespace, int patternId) throws NamespaceNotFoundException, PatternNotFoundException;
+    List<String> getPatternVersions(String namespace, Integer  patternId) throws NamespaceNotFoundException, PatternNotFoundException;
 
-    String getPatternForVersion(String namespace, int patternId, String version) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException;
+    String getPatternForVersion(String namespace, Integer patternId, String version) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException;
 
     Pattern createPatternForVersion(CreatePatternRequest createPatternRequest, String namespace, Integer patternId, String version) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionExistsException;
 
