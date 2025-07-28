@@ -31,6 +31,9 @@ import static org.mockito.Mockito.when;
 @TestProfile(AllowPutProfile.class)
 public class TestArchitectureResourcePutEnabledShould {
 
+    private static final String ARCHITECTURE_NAME = "architecture-name";
+    private static final String ARCHITECTURE_DESCRIPTION = "architecture description";
+    private static final String ARCHITECTURE_JSON = "{ \"test\": \"json\" }";
     private final ObjectMapper objectMapper = new ObjectMapper();
     @InjectMock
     ArchitectureStore mockArchitectureStore;
@@ -40,7 +43,7 @@ public class TestArchitectureResourcePutEnabledShould {
         given()
                 .when()
                 .header("Content-Type", "application/json")
-                .body("{ \"test\": \"json\" }")
+                .body(ARCHITECTURE_JSON)
                 .put("/calm/namespaces/fin_os/architectures/20/versions/1.0.1")
                 .then()
                 .statusCode(400)
@@ -52,7 +55,7 @@ public class TestArchitectureResourcePutEnabledShould {
         given()
                 .when()
                 .header("Content-Type", "application/json")
-                .body("{ \"test\": \"json\" }")
+                .body(ARCHITECTURE_JSON)
                 .put("/calm/namespaces/finos/architectures/20/versions/1.0invalid.1")
                 .then()
                 .statusCode(400)
@@ -74,16 +77,16 @@ public class TestArchitectureResourcePutEnabledShould {
         Architecture expectedArchitecture = new Architecture.ArchitectureBuilder()
                 .setNamespace("test")
                 .setVersion("1.0.1")
-                .setArchitecture("{ \"test\": \"json\" }")
+                .setArchitecture(ARCHITECTURE_JSON)
                 .setId(20)
-                .setName("architecture-name")
-                .setDescription("architecture description")
+                .setName(ARCHITECTURE_NAME)
+                .setDescription(ARCHITECTURE_DESCRIPTION)
                 .build();
 
         ArchitectureRequest architectureRequest = new ArchitectureRequest();
-        architectureRequest.setArchitectureJson("{ \"test\": \"json\" }");
-        architectureRequest.setName("architecture-name");
-        architectureRequest.setDescription("architecture description");
+        architectureRequest.setArchitectureJson(ARCHITECTURE_JSON);
+        architectureRequest.setName(ARCHITECTURE_NAME);
+        architectureRequest.setDescription(ARCHITECTURE_DESCRIPTION);
 
         if (exceptionToThrow != null) {
             when(mockArchitectureStore.updateArchitectureForVersion(expectedArchitecture)).thenThrow(exceptionToThrow);

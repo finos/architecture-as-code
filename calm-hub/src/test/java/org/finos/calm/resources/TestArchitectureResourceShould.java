@@ -35,8 +35,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class TestArchitectureResourceShould {
 
-    public static final String TEST_NAME = "test-name";
-    public static final String TEST_DESCRIPTION = "test description";
+    private static final String TEST_NAME = "test-name";
+    private static final String TEST_DESCRIPTION = "test description";
     @InjectMock
     ArchitectureStore mockArchitectureStore;
 
