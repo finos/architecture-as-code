@@ -176,5 +176,8 @@
       }
     }
   ],
+  "flows": [
+    "https://calm.finos.org/workshop/flows/conference-signup.flow.json"
+  ],
   "$schema": "https://calm.finos.org/release/1.0-rc1/meta/calm.json"
 }
