@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 import { CytoscapeRenderer, CytoscapeRendererProps } from './CytoscapeRenderer.js';
 import cytoscape from 'cytoscape';
-import * as nodePositionService from '../../services/node-position-service.js';
+import * as nodePositionService from '../../../services/node-position-service.js';
 
 const mocks = vi.hoisted(() => ({
     nodes: vi.fn(),
@@ -31,11 +31,11 @@ vi.mock('cytoscape', () => {
 });
 
 // Mock services
-vi.mock('../../services/node-position-service.js', () => ({
+vi.mock('../../../services/node-position-service.js', () => ({
     loadStoredNodePositions: vi.fn(() => undefined),
     saveNodePositions: vi.fn(),
 }));
-vi.mock('../../services/layout-correction-service.js', () => ({
+vi.mock('../../../services/layout-correction-service.js', () => ({
     LayoutCorrectionService: vi.fn().mockImplementation(() => ({
         calculateAndUpdateNodePositions: vi.fn(),
     })),

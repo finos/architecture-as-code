@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
+import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_NAME_MESSAGE;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.*;
 
@@ -77,7 +79,7 @@ public class TestDomainSchemaResourceShould {
             .when().post("calm/controls/domains")
             .then()
             .statusCode(400)
-            .body(is("{\"error\":\"Invalid domain name\"}"));
+            .body(containsString(DOMAIN_NAME_MESSAGE));
 
         verify(mockControlStore, never()).createDomain("invalid-domain");
     }

@@ -43,7 +43,7 @@ export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
                 </div>
                 {isCALMNode && (
                     <>
-                        <div className="text-xl font-bold mb-2">Node Details</div>
+                        <div className="text-sm font-semibold mb-2 text-primary">Node Details</div>
                         <div className="max-w-full overflow-y-auto overflow-x-auto">
                             <JsonRenderer json={selectedData} />
                         </div>
@@ -51,7 +51,7 @@ export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
                 )}
                 {isCALMEdge && (
                     <>
-                        <div className="text-xl font-bold mb-2">Edge Details</div>
+                        <div className="text-sm font-semibold mb-2 text-primary">Edge Details</div>
                         <div className="max-w-full overflow-y-auto overflow-x-auto">
                             <JsonRenderer json={selectedData} />
                         </div>

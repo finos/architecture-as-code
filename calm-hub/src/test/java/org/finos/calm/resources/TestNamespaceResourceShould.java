@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import static io.restassured.RestAssured.given;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.*;
@@ -78,7 +79,7 @@ public class TestNamespaceResourceShould {
                 .post("/calm/namespaces")
                 .then()
                 .statusCode(400)
-                .body(containsString("Namespace name is required"));
+                .body(containsString("Namespace must not be null"));
 
         verify(namespaceStore, never()).namespaceExists(any());
         verify(namespaceStore, never()).createNamespace(any());
@@ -93,7 +94,7 @@ public class TestNamespaceResourceShould {
                 .post("/calm/namespaces")
                 .then()
                 .statusCode(400)
-                .body(containsString("Namespace name is required"));
+                .body(containsString("Namespace must not be blank"));
 
         verify(namespaceStore, never()).namespaceExists(any());
         verify(namespaceStore, never()).createNamespace(any());
@@ -108,7 +109,7 @@ public class TestNamespaceResourceShould {
                 .post("/calm/namespaces")
                 .then()
                 .statusCode(400)
-                .body(containsString("Namespace must contain only alphanumeric characters and hyphens"));
+                .body(containsString(NAMESPACE_MESSAGE));
 
         verify(namespaceStore, never()).namespaceExists(any());
         verify(namespaceStore, never()).createNamespace(any());
@@ -139,26 +140,9 @@ public class TestNamespaceResourceShould {
                 .post("/calm/namespaces")
                 .then()
                 .statusCode(400)
-                .body(containsString("Namespace name is required"));
+                .body(containsString("Request must not be null"));
 
         verify(namespaceStore, never()).namespaceExists(any());
         verify(namespaceStore, never()).createNamespace(any());
-    }
-
-    @Test
-    void trim_whitespace_from_namespace_name() {
-        when(namespaceStore.namespaceExists("trimmed-namespace")).thenReturn(false);
-
-        given()
-                .contentType("application/json")
-                .body("{\"namespace\":\"  trimmed-namespace  \"}")
-                .when()
-                .post("/calm/namespaces")
-                .then()
-                .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/trimmed-namespace"));
-
-        verify(namespaceStore).namespaceExists("trimmed-namespace");
-        verify(namespaceStore).createNamespace("trimmed-namespace");
     }
 }

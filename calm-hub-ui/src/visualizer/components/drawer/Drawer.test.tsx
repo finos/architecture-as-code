@@ -4,26 +4,12 @@ import { Drawer } from './Drawer.js';
 
 describe('Drawer', () => {
     it('should render Drawer', () => {
-        render(
-            <Drawer
-                calmInstance={undefined}
-                title={undefined}
-                isConDescActive={true}
-                isNodeDescActive={true}
-            />
-        );
+        render(<Drawer calmInstance={undefined} title={'No file selected'} />);
         expect(screen.getByText('No file selected')).toBeInTheDocument();
     });
 
     it('should render Drawer', () => {
-        render(
-            <Drawer
-                calmInstance={undefined}
-                title={undefined}
-                isConDescActive={false}
-                isNodeDescActive={false}
-            />
-        );
+        render(<Drawer calmInstance={undefined} title={'No file selected'} />);
         expect(screen.getByText('No file selected')).toBeInTheDocument();
         expect(screen.getByRole('checkbox', { name: 'drawer-toggle' })).not.toBeChecked();
     });

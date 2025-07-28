@@ -18,8 +18,6 @@ import { Data } from '../../../model/calm.js';
 interface DrawerProps {
     calmInstance?: CalmArchitectureSchema;
     title: string;
-    isNodeDescActive: boolean;
-    isConDescActive: boolean;
     data?: Data;
 }
 
@@ -94,13 +92,7 @@ function getDeployedInRelationships(calmInstance: CalmArchitectureSchema) {
     return deployedInRelationships;
 }
 
-export function Drawer({
-    calmInstance,
-    title,
-    isConDescActive,
-    isNodeDescActive,
-    data,
-}: DrawerProps) {
+export function Drawer({ calmInstance, title, data }: DrawerProps) {
     const [selectedNode, setSelectedNode] = useState<CytoscapeNode | null>(null);
 
     function closeSidebar() {
@@ -216,8 +208,6 @@ export function Drawer({
                 <div className="drawer-content">
                     {calmInstance ? (
                         <VisualizerContainer
-                            isRelationshipDescActive={isConDescActive}
-                            isNodeDescActive={isNodeDescActive}
                             title={title}
                             nodes={nodes}
                             edges={edges}

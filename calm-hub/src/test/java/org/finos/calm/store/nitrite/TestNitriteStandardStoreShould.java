@@ -327,8 +327,6 @@ public class TestNitriteStandardStoreShould {
         Document standardDoc = mock(Document.class);
         when(standardDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
         when(standardDoc.get("standardId", Integer.class)).thenReturn(STANDARD_ID);
-        when(standardDoc.get("name", String.class)).thenReturn(expectedStandard.getName());
-        when(standardDoc.get("description", String.class)).thenReturn(expectedStandard.getDescription());
 
         // Create the namespace document with the standard
         Document namespaceDoc = mock(Document.class);
@@ -340,10 +338,10 @@ public class TestNitriteStandardStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        Standard standard = standardStore.getStandardForVersion(NAMESPACE, STANDARD_ID, expectedStandard.getVersion());
+        String standard = standardStore.getStandardForVersion(NAMESPACE, STANDARD_ID, expectedStandard.getVersion());
 
         // Assert
-        assertThat(standard, equalTo(expectedStandard));
+        assertThat(standard, equalTo("{}"));
     }
 
     @Test

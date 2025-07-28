@@ -1,12 +1,12 @@
 import './cytoscape.css';
 import { useEffect, useRef } from 'react';
 import cytoscape, { EdgeSingular, NodeSingular } from 'cytoscape';
-import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
-import { LayoutCorrectionService } from '../../services/layout-correction-service.js';
+import { CytoscapeNode, Edge } from '../../../contracts/contracts.js';
+import { LayoutCorrectionService } from '../../../services/layout-correction-service.js';
 import {
     saveNodePositions,
     loadStoredNodePositions,
-} from '../../services/node-position-service.js';
+} from '../../../services/node-position-service.js';
 
 // Layout configuration
 const breadthFirstLayout = {
@@ -69,9 +69,15 @@ function getNodeStyle(showDescription: boolean): cytoscape.Css.Node {
 
 const layoutCorrectionService = new LayoutCorrectionService();
 
-const accentLightColor = getComputedStyle(document.documentElement).getPropertyValue('--color-accent-light').trim();
-const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim();
-const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim();
+const accentLightColor = getComputedStyle(document.documentElement)
+    .getPropertyValue('--color-accent-light')
+    .trim();
+const accentColor = getComputedStyle(document.documentElement)
+    .getPropertyValue('--color-accent')
+    .trim();
+const primaryColor = getComputedStyle(document.documentElement)
+    .getPropertyValue('--color-primary')
+    .trim();
 
 export function CytoscapeRenderer({
     nodes = [],
@@ -106,14 +112,14 @@ export function CytoscapeRenderer({
                     selector: 'node:selected',
                     style: {
                         backgroundColor: accentLightColor,
-                    }
+                    },
                 },
                 {
                     selector: 'edge:selected',
                     style: {
                         'line-color': primaryColor,
                         'target-arrow-color': primaryColor,
-                    }
+                    },
                 },
                 {
                     selector: ':parent',
