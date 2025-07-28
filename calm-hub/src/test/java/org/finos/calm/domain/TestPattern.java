@@ -12,33 +12,33 @@ public class TestPattern {
     @Test
     void pattern_should_return_built_values() {
         int expectedId = 1;
+        String expectedName = "pattern-name";
+        String expectedDescription = "pattern description";
         String expectedPatternJson = "{\"test\":\"test\"}";
         String expectedVersion = VERSION;
         String expectedNamespace = "finos";
 
-        Pattern pattern = new Pattern.PatternBuilder()
-                .setId(expectedId)
-                .setPattern(expectedPatternJson)
-                .setVersion(expectedVersion)
-                .setNamespace(expectedNamespace)
-                .build();
+        Pattern pattern = new Pattern();
+        pattern.setId(expectedId)
+        pattern.setName(expectedName);
+        pattern.setDescription(expectedDescription);
+        pattern.setPatternJson(expectedPatternJson);
+        pattern.setVersion(expectedVersion);
+        pattern.setNamespace(expectedNamespace);
 
         assertThat(pattern.getId(), equalTo(expectedId));
+        assertThat(pattern.getName(), equalTo(expectedName));
+        assertThat(pattern.getDescription(), equalTo(expectedDescription));
         assertThat(pattern.getPatternJson(), equalTo(expectedPatternJson));
-        assertThat(pattern.getDotVersion(), equalTo(expectedVersion));
+        assertThat(pattern.getVersion(), equalTo(expectedVersion));
         assertThat(pattern.getNamespace(), equalTo(expectedNamespace));
-    }
-
-    @Test
-    void pattern_versions_replaced_with_dash_for_mongo_persist() {
-        Pattern pattern = new Pattern.PatternBuilder().setVersion(VERSION).build();
-        assertThat(pattern.getMongoVersion(), equalTo("1-0-0"));
     }
 
     @Test
     void pattern_with_no_versions_not_impacted_by_replacement() {
         String expectedVersion = "1";
-        Pattern pattern = new Pattern.PatternBuilder().setVersion(expectedVersion).build();
-        assertThat(pattern.getMongoVersion(), equalTo(expectedVersion));
+        Pattern pattern = new Pattern();
+        pattern.setVersion(expectedVersion);
+        assertThat(pattern.getVersion(), equalTo(expectedVersion));
     }
 }

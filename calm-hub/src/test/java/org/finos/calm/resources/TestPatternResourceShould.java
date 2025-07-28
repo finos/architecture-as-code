@@ -103,32 +103,33 @@ public class TestPatternResourceShould {
         when(mockPatternStore.createPatternForNamespace(any(Pattern.class)))
                 .thenThrow(new JsonParseException());
 
-        String pattern = "{ \"test\": this is invalid json";
+        CreatePatternRequest createPatternRequest = new CreatePatternRequest();
+        createPatternRequest.setName("test-name");
+        createPatternRequest.setDescription("test description");
+        createPatternRequest.setPatternJson("{ \"test\": this is invalid json");
 
         given()
                 .header("Content-Type", "application/json")
-                .body(pattern)
+                .body(objectMapper.writeValueAsString(createPatternRequest))
                 .when()
                 .post("/calm/namespaces/invalid/patterns")
                 .then()
                 .statusCode(400);
 
-        Pattern expectedPattern = new Pattern.PatternBuilder()
-                .setPattern(pattern)
-                .setNamespace("invalid")
-                .build();
-
-        verify(mockPatternStore, times(1)).createPatternForNamespace(expectedPattern);
+        verify(mockPatternStore, times(1)).createPatternForNamespace(createPatternRequest, "invalid");
     }
 
     @Test
     void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_create_pattern() throws NamespaceNotFoundException {
 
-        String pattern = "{ \"test\": this is invalid json";
+        CreatePatternRequest createPatternRequest = new CreatePatternRequest();
+        createPatternRequest.setName("test-name");
+        createPatternRequest.setDescription("test description");
+        createPatternRequest.setPatternJson("{ \"test\": this is invalid json");
 
         given()
                 .header("Content-Type", "application/json")
-                .body(pattern)
+                .body(objectMapper.writeValueAsString(createPatternRequest))
                 .when()
                 .post("/calm/namespaces/invalid_/patterns")
                 .then()
@@ -138,21 +139,17 @@ public class TestPatternResourceShould {
 
     @Test
     void return_a_created_with_location_of_pattern_when_creating_pattern() throws NamespaceNotFoundException {
-        String patternJson = "{ \"test\": \"json\" }";
-        String namespace = "finos";
+        String storedPattern = new Pattern("test-name", "test description", "{ \"test\": \"json\" }", 12, "1.0.0");
 
-        Pattern stubbedReturnPattern = new Pattern.PatternBuilder()
-                .setPattern(patternJson)
-                .setVersion("1.0.0")
-                .setId(12)
-                .setNamespace(namespace)
-                .build();
-
-        when(mockPatternStore.createPatternForNamespace(any(Pattern.class))).thenReturn(stubbedReturnPattern);
+        CreatePatternRequest createPatternRequest = new CreatePatternRequest();
+        createPatternRequest.setName("test-name");
+        createPatternRequest.setDescription("test description");
+        createPatternRequest.setPatternJson("{ \"test\": \"json\" }");
+        when(mockPatternStore.createPatternForNamespace(createPatternRequest, "valid")).thenReturn(storedPattern);
 
         given()
                 .header("Content-Type", "application/json")
-                .body(patternJson)
+                .body(objectMapper.writeValueAsString(createPatternRequest))
                 .when()
                 .post("/calm/namespaces/finos/patterns")
                 .then()
@@ -160,12 +157,7 @@ public class TestPatternResourceShould {
                 //Derived from stubbed pattern in resource
                 .header("Location", containsString("/calm/namespaces/finos/patterns/12/versions/1.0.0"));
 
-        Pattern expectedPatternToCreate = new Pattern.PatternBuilder()
-                .setPattern(patternJson)
-                .setNamespace(namespace)
-                .build();
-
-        verify(mockPatternStore, times(1)).createPatternForNamespace(expectedPatternToCreate);
+        verify(mockPatternStore, times(1)).createPatternForNamespace(createPatternRequest, "finos");
     }
 
     @Test
@@ -178,13 +170,8 @@ public class TestPatternResourceShould {
                 .body(containsString(NAMESPACE_MESSAGE));
     }
 
-    private void verifyExpectedPatternForVersions(String namespace) throws PatternNotFoundException, NamespaceNotFoundException {
-        Pattern expectedPatternToRetrieve = new Pattern.PatternBuilder()
-                .setNamespace(namespace)
-                .setId(12)
-                .build();
-
-        verify(mockPatternStore, times(1)).getPatternVersions(expectedPatternToRetrieve);
+    private void verifyExpectedPatternForVersions(String namespace, Integer patternId) throws PatternNotFoundException, NamespaceNotFoundException {
+        verify(mockPatternStore, times(1)).getPatternVersions(namespace, patternId);
     }
 
     static Stream<Arguments> provideParametersForPatternVersionTests() {
@@ -200,9 +187,9 @@ public class TestPatternResourceShould {
     void respond_correctly_to_get_pattern_versions_query(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws PatternNotFoundException, NamespaceNotFoundException {
         var versions = List.of("1.0.0", "1.0.1");
         if (exceptionToThrow != null) {
-            when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenThrow(exceptionToThrow);
+            when(mockPatternStore.getPatternVersions(namespace, 12)).thenThrow(exceptionToThrow);
         } else {
-            when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(versions);
+            when(mockPatternStore.getPatternVersions(namespace, 12)).thenReturn(versions);
         }
 
         if (expectedStatusCode == 200) {
@@ -221,7 +208,7 @@ public class TestPatternResourceShould {
                     .statusCode(expectedStatusCode);
         }
 
-        verifyExpectedPatternForVersions(namespace);
+        verifyExpectedPatternForVersions(namespace, patternId);
     }
 
     @Test
@@ -244,14 +231,8 @@ public class TestPatternResourceShould {
                 .body(containsString(VERSION_MESSAGE));
     }
 
-    private void verifyExpectedGetPattern(String namespace) throws PatternNotFoundException, NamespaceNotFoundException, PatternVersionNotFoundException {
-        Pattern expectedPatternToRetrieve = new Pattern.PatternBuilder()
-                .setNamespace(namespace)
-                .setId(12)
-                .setVersion("1.0.0")
-                .build();
-
-        verify(mockPatternStore, times(1)).getPatternForVersion(expectedPatternToRetrieve);
+    private void verifyExpectedGetPattern(String namespace, Integer patternId, String version) throws PatternNotFoundException, NamespaceNotFoundException, PatternVersionNotFoundException {
+        verify(mockPatternStore, times(1)).getPatternForVersion(namespace, patternId, version);
     }
 
     static Stream<Arguments> provideParametersForGetPatternTests() {
@@ -266,11 +247,15 @@ public class TestPatternResourceShould {
     @ParameterizedTest
     @MethodSource("provideParametersForGetPatternTests")
     void respond_to_get_pattern_for_a_specific_version_correctly(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws PatternNotFoundException, NamespaceNotFoundException, PatternVersionNotFoundException {
+        Pattern pattern = new Pattern();
+        pattern.setNamespace(namespace);
+        pattern.setId(12);
+        pattern.setPatternJson("{ \"test\": \"json\" }");
+
         if (exceptionToThrow != null) {
-            when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenThrow(exceptionToThrow);
+            when(mockPatternStore.getPatternForVersion(namespace, 12, "1.0.0")).thenThrow(exceptionToThrow);
         } else {
-            String pattern = "{ \"test\": \"json\" }";
-            when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenReturn(pattern);
+            when(mockPatternStore.getPatternForVersion(namespace, 12, "1.0.0")).thenReturn(pattern);
         }
 
         if (expectedStatusCode == 200) {
@@ -279,7 +264,9 @@ public class TestPatternResourceShould {
                     .get("/calm/namespaces/" + namespace + "/patterns/12/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode)
-                    .body(equalTo("{ \"test\": \"json\" }"));
+                    .body("namespace", equalTo(namespace))
+                    .body("id", equalTo(12))
+                    .body("standardJson", containsString("{ \"test\": \"json\" }"));
         } else {
             given()
                     .when()
@@ -288,7 +275,7 @@ public class TestPatternResourceShould {
                     .statusCode(expectedStatusCode);
         }
 
-        verifyExpectedGetPattern(namespace);
+        verifyExpectedGetPattern(namespace, 12, "1.0.0");
     }
 
     @Test
@@ -326,48 +313,55 @@ public class TestPatternResourceShould {
 
     @ParameterizedTest
     @MethodSource("provideParametersForCreatePatternTests")
-    void respond_correctly_to_create_new_pattern_version(Throwable exceptionToThrow, int expectedStatusCode) throws PatternNotFoundException, PatternVersionExistsException, NamespaceNotFoundException {
-        Pattern expectedPattern = new Pattern.PatternBuilder()
-                .setNamespace("test")
-                .setVersion("1.0.1")
-                .setPattern("{ \"test\": \"json\" }")
-                .setId(20)
-                .build();
+    void respond_correctly_to_create_new_pattern_version(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws PatternNotFoundException, PatternVersionExistsException, NamespaceNotFoundException {
+        CreatePatternRequest createPatternRequest = new CreatePatternRequest();
+        createPatternRequest.setName("technicolour-pattern");
+        createPatternRequest.setDescription("A pattern of many colours");
+        createPatternRequest.setPatternJson("{ \"test\": \"json\" }");
 
         if (exceptionToThrow != null) {
-            when(mockPatternStore.createPatternForVersion(expectedPattern)).thenThrow(exceptionToThrow);
+            when(mockPatternStore.createPatternForVersion(createPatternRequest, namespace, 20, "1.0.1")).thenThrow(exceptionToThrow);
         } else {
-            when(mockPatternStore.createPatternForVersion(expectedPattern)).thenReturn(expectedPattern);
+            Pattern createdPattern = new Pattern(createPatternRequest);
+            createdPattern.setId(20);
+            createdPattern.setNamespace(namespace);
+            createdPattern.setVersion("1.0.1");
+            when(mockPatternStore.createPatternForVersion(createdPattern, namespace, 20, "1.0.1")).thenReturn(createdPattern);
         }
 
         if (expectedStatusCode == 201) {
             given()
                     .header("Content-Type", "application/json")
-                    .body(expectedPattern.getPatternJson())
+                    .body(createPatternRequest)
                     .when()
-                    .post("/calm/namespaces/test/patterns/20/versions/1.0.1")
+                    .post("/calm/namespaces/" + namespace + "/patterns/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
                     //Derived from stubbed pattern in resource
-                    .header("Location", containsString("/calm/namespaces/test/patterns/20/versions/1.0.1"));
+                    .header("Location", containsString("/calm/namespaces/valid/patterns/20/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
-                    .body(expectedPattern.getPatternJson())
+                    .body(createPatternRequest)
                     .when()
-                    .post("/calm/namespaces/test/patterns/20/versions/1.0.1")
+                    .post("/calm/namespaces/" + namespace + "/patterns/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }
 
-        verify(mockPatternStore, times(1)).createPatternForVersion(expectedPattern);
+        verify(mockPatternStore, times(1)).createPatternForVersion(createPatternRequest, namespace, 20, "1.0.1");
     }
 
     @Test
     void return_forbidden_for_put_operations_on_patterns_by_default_and_when_configured() {
+        CreatePatternRequest createPatternRequest = new CreatePatternRequest();
+        createPatternRequest.setName("test-pattern");
+        createPatternRequest.setDescription("Test Pattern");
+        createPatternRequest.setPatternJson("{ \"test\": \"json\" }");
+
         given()
                 .header("Content-Type", "application/json")
-                .body("{ \"test\": \"json\" }")
+                .body(createPatternRequest)
                 .when()
                 .put("/calm/namespaces/test/patterns/20/versions/1.0.1")
                 .then()

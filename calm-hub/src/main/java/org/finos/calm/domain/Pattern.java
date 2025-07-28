@@ -15,7 +15,7 @@ public class Pattern {
     private String version;
 
     public Pattern(String name, String description, String patternJson, Integer id, String version) {
-         this.name = name;
+        this.name = name;
         this.description = description;
         this.standardJson = patternJson;
         this.id = id;

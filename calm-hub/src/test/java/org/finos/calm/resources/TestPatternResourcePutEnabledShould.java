@@ -65,19 +65,23 @@ public class TestPatternResourcePutEnabledShould {
     @MethodSource("provideParametersForPutPatternTests")
     void respond_correctly_to_put_pattern_correctly(Throwable exceptionToThrow, int expectedStatusCode) throws PatternNotFoundException, NamespaceNotFoundException {
 
-        Pattern expectedPattern = new Pattern.PatternBuilder()
-                .setNamespace("test")
-                .setVersion("1.0.1")
-                .setPattern("{ \"test\": \"json\" }")
-                .setId(20)
-                .build();
+
+        CreatePatternRequest expectedCreatePatternRequest = new CreatePatternRequest();
+        expectedCreatePatternRequest.setName("test-name");
+        expectedCreatePatternRequest.setDescription("test description");
+        expectedCreatePatternRequest.setPatternJson("{ \"test\": \"json\" }");
+
+        expectedNamespace = "test";
+        expectedId = 20;
+        expectedVersion = "1.0.1";
+        
 
         System.out.println("TestPatterResourcePutEnabled mock: " + mockPatternStore);
 
         if (exceptionToThrow != null) {
-            when(mockPatternStore.updatePatternForVersion(expectedPattern)).thenThrow(exceptionToThrow);
+            when(mockPatternStore.updatePatternForVersion(expectedCreatePatternRequest, expectedNamespace, expectedId, expectedVersion)).thenThrow(exceptionToThrow);
         } else {
-            when(mockPatternStore.updatePatternForVersion(expectedPattern)).thenReturn(expectedPattern);
+            when(mockPatternStore.updatePatternForVersion(expectedCreatePatternRequest, expectedNamespace, expectedId, expectedVersion)).thenReturn(expectedCreatePatternRequest, expectedNamespace, expectedId, expectedVersion);
         }
 
         if (expectedStatusCode == 201) {

@@ -146,7 +146,7 @@ public class TestNitritePatternStoreShould {
         assertThat(result.getId(), is(PATTERN_ID));
         assertThat(result.getNamespace(), is(NAMESPACE));
         assertThat(result.getPatternJson(), is(PATTERN_JSON));
-        assertThat(result.getMongoVersion(), is("1-0-0"));
+        assertThat(result.getVersion(), is("1.0.0"));
 
         verify(mockCollection).insert(any(Document.class));
     }
@@ -291,38 +291,30 @@ public class TestNitritePatternStoreShould {
 
         // Act
         String result = patternStore.getPatternForVersion(pattern);
-        Pattern pattern = patternStore.getPatternForVersion(NAMESPACE, STANDARD_ID, expectedPattern.getVersion());
+        Pattern pattern = patternStore.getPatternForVersion(NAMESPACE, PATTERN_ID, expectedPattern.getVersion());
 
         // Assert
         assertThat(pattern, equalTo(expectedPattern));
     }
 
+    private CreatePatternRequest getPatternToPersist() {
+        return new CreatePatternRequest("Test", "Test Description", PATTERN_JSON)
+    }
+
     @Test
     public void testCreatePatternForVersion_whenNamespaceDoesNotExist_throwsNamespaceNotFoundException() {
         // Arrange
-        Pattern pattern = new Pattern.PatternBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(PATTERN_ID)
-                .setVersion("1-0-0")
-                .setPattern(PATTERN_JSON)
-                .build();
+        CreatePatternRequest pattern = getPatternToPersist();
 
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 
         // Act & Assert
-        assertThrows(NamespaceNotFoundException.class, () -> patternStore.createPatternForVersion(pattern));
+        assertThrows(NamespaceNotFoundException.class, () -> patternStore.createPatternForVersion(pattern, NAMESPACE, null, null));
     }
 
     @Test
     public void testCreatePatternForVersion_whenNamespaceDocumentDoesNotExist_throwsPatternNotFoundException() {
         // Arrange
-        Pattern pattern = new Pattern.PatternBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(PATTERN_ID)
-                .setVersion("1-0-0")
-                .setPattern(PATTERN_JSON)
-                .build();
-
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
         // Create a mock cursor that returns null for firstOrNull()
@@ -331,18 +323,13 @@ public class TestNitritePatternStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
 
         // Act & Assert
-        assertThrows(PatternNotFoundException.class, () -> patternStore.createPatternForVersion(pattern));
+        assertThrows(PatternNotFoundException.class, () -> patternStore.createPatternForVersion(getPatternToPersist(), NAMESPACE, null, null));
     }
 
     @Test
     public void testCreatePatternForVersion_whenPatternDoesNotExist_throwsPatternNotFoundException() {
         // Arrange
-        Pattern pattern = new Pattern.PatternBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(PATTERN_ID)
-                .setVersion("1-0-0")
-                .setPattern(PATTERN_JSON)
-                .build();
+        CreatePatternRequest pattern = getPatternToPersist();
 
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
@@ -361,19 +348,12 @@ public class TestNitritePatternStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(namespaceCursor, patternCursor);
 
         // Act & Assert
-        assertThrows(PatternNotFoundException.class, () -> patternStore.createPatternForVersion(pattern));
+        assertThrows(PatternNotFoundException.class, () -> patternStore.createPatternForVersion(pattern, NAMESPACE, PATTERN_ID, null));
     }
 
     @Test
     public void testCreatePatternForVersion_whenVersionAlreadyExists_throwsPatternVersionExistsException() {
         // Arrange
-        Pattern pattern = new Pattern.PatternBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(PATTERN_ID)
-                .setVersion("1-0-0")
-                .setPattern(PATTERN_JSON)
-                .build();
-
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
         // Mock the versionsDoc with the fields we need
@@ -398,18 +378,13 @@ public class TestNitritePatternStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act & Assert
-        assertThrows(PatternVersionExistsException.class, () -> patternStore.createPatternForVersion(pattern));
+        assertThrows(PatternVersionExistsException.class, () -> patternStore.createPatternForVersion(pattern, NAMESPACE, PATTERN_ID, "1.0.0"));
     }
 
     @Test
     public void testCreatePatternForVersion_whenSuccess_returnsPattern() throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionExistsException {
         // Arrange
-        Pattern pattern = new Pattern.PatternBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(PATTERN_ID)
-                .setVersion("1-0-0")
-                .setPattern(PATTERN_JSON)
-                .build();
+        CreatePatternRequest createPatternRequest = getPatternToPersist();
 
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
@@ -436,13 +411,13 @@ public class TestNitritePatternStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        Pattern result = patternStore.createPatternForVersion(pattern);
+        Pattern result = patternStore.createPatternForVersion(createPatternRequest, NAMESPACE, PATTERN_ID, "1.0.0");
 
         // Assert
         assertThat(result, is(notNullValue()));
         assertThat(result.getId(), is(PATTERN_ID));
         assertThat(result.getNamespace(), is(NAMESPACE));
-        assertThat(result.getMongoVersion(), is("1-0-0"));
+        assertThat(result.getVersion(), is("1.0.0"));
     }
 
     @Test
