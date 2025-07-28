@@ -22,6 +22,7 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
+import org.finos.calm.domain.patterns.CreatePatternRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -126,10 +127,10 @@ public class TestMongoPatternStoreShould {
     void return_a_namespace_exception_when_namespace_does_not_exist() {
         when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
         String namespace = "does-not-exist";
-        Pattern pattern = new Pattern.PatternBuilder().setNamespace(namespace).build();
+        CreatePatternRequest createPatternRequest = new CreatePatternRequest();
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> mongoPatternStore.createPatternForNamespace(pattern));
+                () -> mongoPatternStore.createPatternForNamespace(createPatternRequest, namespace));
 
         verify(namespaceStore).namespaceExists(namespace);
     }

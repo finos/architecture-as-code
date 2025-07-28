@@ -1,13 +1,16 @@
 package org.finos.calm.resources;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.bson.json.JsonParseException;
-import org.finos.calm.domain.*;
+import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
+import org.finos.calm.domain.patterns.CreatePatternRequest;
 import org.finos.calm.store.PatternStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,6 +38,8 @@ public class TestPatternResourceShould {
     @InjectMock
     PatternStore mockPatternStore;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @Test
     void return_a_404_when_an_invalid_namespace_is_provided_on_get_patterns() throws NamespaceNotFoundException {
         when(mockPatternStore.getPatternsForNamespace(anyString())).thenThrow(new NamespaceNotFoundException());
@@ -60,7 +65,7 @@ public class TestPatternResourceShould {
 
     @Test
     void return_list_of_pattern_ids_when_valid_namespace_provided_on_get_patterns() throws NamespaceNotFoundException {
-        when(mockPatternStore.getPatternsForNamespace(anyString())).thenReturn(Arrays.asList(12345,54321));
+        when(mockPatternStore.getPatternsForNamespace(anyString())).thenReturn(Arrays.asList(12345, 54321));
 
         given()
                 .when()
@@ -73,26 +78,24 @@ public class TestPatternResourceShould {
     }
 
     @Test
-    void return_a_404_when_invalid_namespace_is_provided_on_create_pattern() throws NamespaceNotFoundException {
-        when(mockPatternStore.createPatternForNamespace(any(Pattern.class)))
+    void return_a_404_when_invalid_namespace_is_provided_on_create_pattern() throws NamespaceNotFoundException, JsonProcessingException {
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("invalid")))
                 .thenThrow(new NamespaceNotFoundException());
 
-        String pattern = "{ \"test\": \"json\" }";
+        CreatePatternRequest createPatternRequest = new CreatePatternRequest();
+        createPatternRequest.setName("test-name");
+        createPatternRequest.setDescription("test description");
+        createPatternRequest.setPatternJson("{ \"test\": \"json\" }");
 
         given()
                 .header("Content-Type", "application/json")
-                .body(pattern)
+                .body(objectMapper.writeValueAsString(createPatternRequest))
                 .when()
                 .post("/calm/namespaces/invalid/patterns")
                 .then()
                 .statusCode(404);
 
-        Pattern expectedPattern = new Pattern.PatternBuilder()
-                .setPattern(pattern)
-                .setNamespace("invalid")
-                .build();
-
-        verify(mockPatternStore, times(1)).createPatternForNamespace(expectedPattern);
+        verify(mockPatternStore, times(1)).createPatternForNamespace(createPatternRequest, "invalid");
     }
 
     @Test
@@ -202,7 +205,7 @@ public class TestPatternResourceShould {
             when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(versions);
         }
 
-        if (expectedStatusCode == 200 ) {
+        if (expectedStatusCode == 200) {
             String expectedBody = "{\"values\":[\"1.0.0\",\"1.0.1\"]}";
             given()
                     .when()
@@ -314,8 +317,8 @@ public class TestPatternResourceShould {
 
     static Stream<Arguments> provideParametersForCreatePatternTests() {
         return Stream.of(
-                Arguments.of( new NamespaceNotFoundException(), 404),
-                Arguments.of( new PatternNotFoundException(), 404),
+                Arguments.of(new NamespaceNotFoundException(), 404),
+                Arguments.of(new PatternNotFoundException(), 404),
                 Arguments.of(new PatternVersionExistsException(), 409),
                 Arguments.of(null, 201)
         );
@@ -337,7 +340,7 @@ public class TestPatternResourceShould {
             when(mockPatternStore.createPatternForVersion(expectedPattern)).thenReturn(expectedPattern);
         }
 
-        if(expectedStatusCode == 201) {
+        if (expectedStatusCode == 201) {
             given()
                     .header("Content-Type", "application/json")
                     .body(expectedPattern.getPatternJson())
