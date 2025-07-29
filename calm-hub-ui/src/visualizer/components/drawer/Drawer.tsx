@@ -1,48 +1,16 @@
 import { Sidebar } from '../sidebar/Sidebar.js';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
     CalmArchitectureSchema,
     CalmNodeSchema,
-    CalmRelationshipSchema,
 } from '../../../../../shared/src/types/core-types.js';
-import {
-    CALMDeployedInRelationship,
-    CALMComposedOfRelationship,
-    CALMConnectsRelationship,
-    CALMInteractsRelationship,
-} from '../../../../../shared/src/types.js';
 import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { VisualizerContainer } from '../visualizer-container/VisualizerContainer.js';
 import { Data } from '../../../model/calm.js';
+import { useDropzone } from 'react-dropzone';
 
 interface DrawerProps {
-    calmInstance?: CalmArchitectureSchema;
-    title: string;
-    data?: Data;
-}
-
-function isComposedOf(
-    relationship: CalmRelationshipSchema
-): relationship is CALMComposedOfRelationship {
-    return 'composed-of' in relationship['relationship-type'];
-}
-
-function isDeployedIn(
-    relationship: CalmRelationshipSchema
-): relationship is CALMDeployedInRelationship {
-    return 'deployed-in' in relationship['relationship-type'];
-}
-
-function isInteracts(
-    relationship: CalmRelationshipSchema
-): relationship is CALMInteractsRelationship {
-    return 'interacts' in relationship['relationship-type'];
-}
-
-function isConnects(
-    relationship: CalmRelationshipSchema
-): relationship is CALMConnectsRelationship {
-    return 'connects' in relationship['relationship-type'];
+    data?: Data; // Optional data prop passed in from CALM Hub if user navigates from there
 }
 
 function getComposedOfRelationships(calmInstance: CalmArchitectureSchema) {
@@ -54,8 +22,8 @@ function getComposedOfRelationships(calmInstance: CalmArchitectureSchema) {
     } = {};
 
     calmInstance.relationships?.forEach((relationship) => {
-        if (isComposedOf(relationship)) {
-            const rel = relationship['relationship-type']['composed-of'];
+        const rel = relationship['relationship-type']['composed-of'];
+        if (rel) {
             composedOfRelationships[rel!['container']] = { type: 'parent' };
             rel!['nodes'].forEach((node) => {
                 composedOfRelationships[node] = {
@@ -77,8 +45,8 @@ function getDeployedInRelationships(calmInstance: CalmArchitectureSchema) {
         };
     } = {};
     calmInstance.relationships?.forEach((relationship) => {
-        if (isDeployedIn(relationship)) {
-            const rel = relationship['relationship-type']['deployed-in'];
+        const rel = relationship['relationship-type']['deployed-in'];
+        if (rel) {
             deployedInRelationships[rel['container']] = { type: 'parent' };
             rel['nodes'].forEach((node) => {
                 deployedInRelationships[node] = {
@@ -92,8 +60,26 @@ function getDeployedInRelationships(calmInstance: CalmArchitectureSchema) {
     return deployedInRelationships;
 }
 
-export function Drawer({ calmInstance, title, data }: DrawerProps) {
+export function Drawer({ data }: DrawerProps) {
+    const [title, setTitle] = useState<string>('');
+    const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
+    const [fileInstance, setFileInstance] = useState<string | undefined>(undefined);
     const [selectedNode, setSelectedNode] = useState<CytoscapeNode | null>(null);
+
+    const onDrop = useCallback(async (acceptedFiles: File[]) => {
+        if (acceptedFiles[0]) {
+            setTitle(acceptedFiles[0].name);
+            const fileText = await acceptedFiles[0].text();
+            setFileInstance(JSON.parse(fileText));
+        }
+    }, []);
+
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+
+    useEffect(() => {
+        setTitle(title ?? data?.name);
+        setCALMInstance((fileInstance as CalmArchitectureSchema) ?? data?.data);
+    }, [fileInstance, title, data]);
 
     function closeSidebar() {
         setSelectedNode(null);
@@ -157,9 +143,13 @@ export function Drawer({ calmInstance, title, data }: DrawerProps) {
         if (!calmInstance || !calmInstance.relationships) return [];
 
         return calmInstance.relationships
-            .filter((relationship) => !isComposedOf(relationship) && !isDeployedIn(relationship))
+            .filter(
+                (relationship) =>
+                    !relationship['relationship-type']['composed-of'] &&
+                    !relationship['relationship-type']['deployed-in']
+            )
             .map((relationship) => {
-                if (isInteracts(relationship)) {
+                if (relationship['relationship-type'].interacts) {
                     return {
                         data: {
                             id: relationship['unique-id'],
@@ -169,7 +159,7 @@ export function Drawer({ calmInstance, title, data }: DrawerProps) {
                         },
                     };
                 }
-                if (isConnects(relationship)) {
+                if (relationship['relationship-type'].connects) {
                     const source = relationship['relationship-type'].connects.source.node;
                     const target = relationship['relationship-type'].connects.destination.node;
                     return {
@@ -196,8 +186,9 @@ export function Drawer({ calmInstance, title, data }: DrawerProps) {
     const nodes = getNodes();
 
     return (
-        <div className="flex-1 flex overflow-hidden">
-            <div className={`drawer drawer-end ${selectedNode ? 'drawer-open' : ''}`}>
+        <div {...getRootProps()} className="flex-1 flex overflow-hidden h-screen">
+            {!calmInstance && <input {...getInputProps()} />}
+            <div className={`drawer drawer-end ${selectedNode ? 'drawer-open' : ''} w-full`}>
                 <input
                     type="checkbox"
                     aria-label="drawer-toggle"
@@ -214,8 +205,17 @@ export function Drawer({ calmInstance, title, data }: DrawerProps) {
                             calmKey={createStorageKey(title, data)}
                         />
                     ) : (
-                        <div className="flex justify-center items-center h-full">
-                            No file selected
+                        <div className="flex justify-center items-center h-full w-full">
+                            {isDragActive ? (
+                                <p>Drop your file here ...</p>
+                            ) : (
+                                <p>
+                                    {'Drag and drop your file here or '}
+                                    <span className="border-b border-dotted border-black pb-1">
+                                        Browse
+                                    </span>
+                                </p>
+                            )}
                         </div>
                     )}
                 </div>
