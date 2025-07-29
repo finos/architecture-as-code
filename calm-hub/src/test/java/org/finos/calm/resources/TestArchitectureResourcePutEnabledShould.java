@@ -26,6 +26,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+
 @QuarkusTest
 @ExtendWith(MockitoExtension.class)
 @TestProfile(AllowPutProfile.class)

@@ -2,7 +2,13 @@ package org.finos.calm.resources;
 
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.Pattern;
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
@@ -24,7 +30,11 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import static org.finos.calm.resources.ResourceValidationConstants.*;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
+
 
 /**
  * Resource for managing architectures in a given namespace
