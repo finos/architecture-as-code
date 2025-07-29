@@ -237,6 +237,8 @@ public class TestNitriteArchitectureStoreShould {
         Architecture architectureToCreate = new Architecture.ArchitectureBuilder()
                 .setNamespace(NAMESPACE)
                 .setArchitecture(VALID_JSON)
+                .setName(ARCHITECTURE_NAME)
+                .setDescription(ARCHITECTURE_DESCRIPTION)
                 .build();
 
         List<Document> existingArchitectures = new ArrayList<>();
@@ -257,6 +259,8 @@ public class TestNitriteArchitectureStoreShould {
         assertThat(result.getId(), is(ARCHITECTURE_ID));
         assertThat(result.getNamespace(), is(NAMESPACE));
         assertThat(result.getDotVersion(), is("1.0.0"));
+        assertThat(result.getName(), is(ARCHITECTURE_NAME));
+        assertThat(result.getDescription(), is(ARCHITECTURE_DESCRIPTION));
         assertThat(result.getArchitectureJson(), is(VALID_JSON));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
         verify(mockCounterStore).getNextArchitectureSequenceValue();
@@ -612,6 +616,8 @@ public class TestNitriteArchitectureStoreShould {
 
         Document architectureDoc = Document.createDocument()
                 .put("architectureId", ARCHITECTURE_ID)
+                .put("name", ARCHITECTURE_NAME)
+                .put("description", ARCHITECTURE_DESCRIPTION)
                 .put("versions", versions);
 
         List<Document> architectures = new ArrayList<>();
