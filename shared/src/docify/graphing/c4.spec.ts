@@ -16,7 +16,8 @@ describe('buildParentChildMappings', () => {
             'rel1',
             new CalmComposedOfType('parent1', ['child1', 'child2']),
             new CalmMetadata({}),
-            []
+            [],
+            {}
         );
         const { parentLookup, childrenLookup } = buildParentChildMappings([composedOfRel]);
         expect(parentLookup).toEqual({ child1: 'parent1', child2: 'parent1' });
@@ -28,7 +29,8 @@ describe('buildParentChildMappings', () => {
             'rel2',
             new CalmDeployedInType('env1', ['service1']),
             new CalmMetadata({}),
-            []
+            [],
+            {}
         );
         const { parentLookup, childrenLookup } = buildParentChildMappings([deployedInRel]);
         expect(parentLookup).toEqual({ service1: 'env1' });
@@ -48,6 +50,7 @@ describe('C4Model', () => {
             new CalmComposedOfType('system1', ['service1', 'service2']),
             new CalmMetadata({}),
             [],
+            {},
             'system1 is composed of service1 & service2'
         );
         const interactsRel = new CalmRelationship(
@@ -55,13 +58,15 @@ describe('C4Model', () => {
             new CalmInteractsType('actor1', ['service1']),
             new CalmMetadata({}),
             [],
+            {},
             'actor1 interacts with service1'
         );
         const connectsRel = new CalmRelationship(
             'rel3',
-            new CalmConnectsType({ node: 'service2', interfaces: [] }, { node: 'actor1', interfaces: []  }),
+            new CalmConnectsType({ node: 'service2', interfaces: [] }, { node: 'actor1', interfaces: [] }),
             new CalmMetadata({}),
             [],
+            {},
             'service2 connects to actor1'
         );
 
@@ -110,7 +115,8 @@ describe('C4Model', () => {
             new CalmNodeDetails('', ''),
             [],
             [],
-            new CalmMetadata({})
+            new CalmMetadata({}),
+            {}
         );
     }
 });
