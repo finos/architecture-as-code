@@ -1,5 +1,12 @@
-import { CALM_META_SCHEMA_DIRECTORY } from '@finos/calm-shared';
-import { Command } from 'commander';
+import {
+    CALM_META_SCHEMA_DIRECTORY,
+    Docifier,
+    DocifyMode,
+    TemplateProcessingMode,
+    TemplateProcessor
+} from '@finos/calm-shared';
+import {Command} from 'commander';
+import {MockInstance} from 'vitest';
 
 let calmShared: typeof import('@finos/calm-shared');
 let validateModule: typeof import('./command-helpers/validate');
@@ -100,7 +107,19 @@ describe('CLI Commands', () => {
     });
 
     describe('Template Command', () => {
-        it('should instantiate TemplateProcessor and call processTemplate', async () => {
+        let processorConstructorSpy: MockInstance<(this: TemplateProcessor, inputPath: string, templateBundlePath: string, outputPath: string, urlToLocalPathMapping: Map<string, string>, mode?: TemplateProcessingMode) => TemplateProcessor>;
+
+        beforeEach(() => {
+            processorConstructorSpy = vi
+                .spyOn(calmShared, 'TemplateProcessor')
+                .mockImplementation(() => {
+                    return {
+                        processTemplate: vi.fn().mockResolvedValue(undefined),
+                    } as unknown as TemplateProcessor; //This works to get round any but prob not spying properly (used in other tests)
+                });
+        });
+
+        it('should handle --bundle mode correctly', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'template',
                 '--input', 'model.json',
@@ -109,21 +128,165 @@ describe('CLI Commands', () => {
                 '--verbose',
             ]);
 
-            expect(calmShared.TemplateProcessor.prototype.processTemplate).toHaveBeenCalled();
+            expect(processorConstructorSpy).toHaveBeenCalledWith(
+                'model.json',
+                'templateDir',
+                'outDir',
+                expect.any(Map),
+                'bundle'
+            );
+        });
+
+        it('should handle --template mode correctly', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'template',
+                '--input', 'model.json',
+                '--template', 'template.hbs',
+                '--output', 'outDir',
+            ]);
+
+            expect(processorConstructorSpy).toHaveBeenCalledWith(
+                'model.json',
+                'template.hbs',
+                'outDir',
+                expect.any(Map),
+                'template'
+            );
+        });
+
+        it('should handle --template-dir mode correctly', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'template',
+                '--input', 'model.json',
+                '--template-dir', 'templates/',
+                '--output', 'outDir',
+            ]);
+
+            expect(processorConstructorSpy).toHaveBeenCalledWith(
+                'model.json',
+                'templates/',
+                'outDir',
+                expect.any(Map),
+                'template-directory'
+            );
+        });
+
+        it('should exit if multiple template flags are provided', async () => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(() => {
+                throw new Error('process.exit called');
+            });
+
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'template',
+                '--input', 'model.json',
+                '--template', 't1.hbs',
+                '--bundle', 'bundle',
+                '--output', 'outDir'
+            ])).rejects.toThrow('process.exit called');
+
+            expect(errorSpy).toHaveBeenCalledWith('❌ Please specify exactly one of --template, --template-dir, or --bundle');
+            expect(exitSpy).toHaveBeenCalledWith(1);
+
+            exitSpy.mockRestore();
+            errorSpy.mockRestore();
         });
     });
 
+
     describe('Docify Command', () => {
-        it('should instantiate Docifier and call docify', async () => {
+        let docifierConstructorSpy: MockInstance<
+            (this: Docifier,
+             mode: DocifyMode,
+             inputPath: string,
+             outputPath: string,
+             urlToLocalPathMapping: Map<string, string>,
+             templateProcessingMode?: TemplateProcessingMode,
+             templatePath?: string) => Docifier
+        >;
+
+        beforeEach(() => {
+            docifierConstructorSpy = vi
+                .spyOn(calmShared, 'Docifier')
+                .mockImplementation(() => ({
+                    docify: vi.fn().mockResolvedValue(undefined),
+                } as unknown as Docifier));
+        });
+
+        it('should default to WEBSITE mode with bundle', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'docify',
                 '--input', 'model.json',
                 '--output', 'outDir',
-                '--url-to-local-file-mapping', 'url-to-file-directory.json',
-                '--verbose',
             ]);
 
-            expect(calmShared.Docifier.prototype.docify).toHaveBeenCalled();
+            expect(docifierConstructorSpy).toHaveBeenCalledWith(
+                'WEBSITE',
+                'model.json',
+                'outDir',
+                expect.any(Map),
+                'bundle',
+                undefined
+            );
+        });
+
+        it('should use template mode if --template is specified', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--input', 'model.json',
+                '--output', 'outDir',
+                '--template', 'template.hbs',
+            ]);
+
+            expect(docifierConstructorSpy).toHaveBeenCalledWith(
+                'USER_PROVIDED',
+                'model.json',
+                'outDir',
+                expect.any(Map),
+                'template',
+                'template.hbs'
+            );
+        });
+
+        it('should use template-directory mode if --template-dir is specified', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--input', 'model.json',
+                '--output', 'outDir',
+                '--template-dir', 'templateDir',
+            ]);
+
+            expect(docifierConstructorSpy).toHaveBeenCalledWith(
+                'USER_PROVIDED',
+                'model.json',
+                'outDir',
+                expect.any(Map),
+                'template-directory',
+                'templateDir'
+            );
+        });
+
+        it('should exit if both --template and --template-dir are specified', async () => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(() => {
+                throw new Error('process.exit called');
+            });
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--input', 'model.json',
+                '--output', 'outDir',
+                '--template', 't1.hbs',
+                '--template-dir', 'templateDir'
+            ])).rejects.toThrow('process.exit called');
+
+            expect(errorSpy).toHaveBeenCalledWith('❌ Please specify only one of --template or --template-dir');
+            expect(exitSpy).toHaveBeenCalledWith(1);
+
+            exitSpy.mockRestore();
+            errorSpy.mockRestore();
         });
     });
+
 });

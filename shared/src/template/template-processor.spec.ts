@@ -25,7 +25,9 @@ const mockTemplateLoader = {
 };
 
 vi.mock('./template-bundle-file-loader', () => ({
-    TemplateBundleFileLoader: vi.fn().mockImplementation(() => mockTemplateLoader)
+    TemplateBundleFileLoader: vi.fn().mockImplementation(() => mockTemplateLoader),
+    SelfProvidedTemplateLoader: vi.fn().mockImplementation(() => mockTemplateLoader),
+    SelfProvidedDirectoryTemplateLoader: vi.fn().mockImplementation(() => mockTemplateLoader)
 }));
 
 const mockTemplateEngine = {
@@ -71,6 +73,7 @@ describe('TemplateProcessor', () => {
         });
         (fs.rmSync as Mock).mockImplementation(() => {});
         (fs.mkdirSync as Mock).mockImplementation(() => {});
+        mockDereferencer.dereferenceCalmDoc.mockReset().mockResolvedValue('{"some": "dereferencedData"}');
     });
 
     it('should successfully process a template', async () => {
@@ -121,4 +124,28 @@ describe('TemplateProcessor', () => {
         await expect(processor.processTemplate()).rejects.toThrow('Dereference failed');
         expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Dereference failed'));
     });
+
+    it('should process using SelfProvidedTemplateLoader when mode is "template"', async () => {
+        const { SelfProvidedTemplateLoader } = await vi.importMock('./template-bundle-file-loader');
+        const processor = new TemplateProcessor('simple-nodes.json', 'some-template.md', 'output', new Map(), 'template');
+        await processor.processTemplate();
+        expect(SelfProvidedTemplateLoader).toHaveBeenCalledWith('some-template.md', 'output');
+        expect(mockTemplateEngine.generate).toHaveBeenCalled();
+    });
+
+    it('should process using SelfProvidedDirectoryTemplateLoader when mode is "template-directory"', async () => {
+        const { SelfProvidedDirectoryTemplateLoader } = await vi.importMock('./template-bundle-file-loader');
+        const processor = new TemplateProcessor('simple-nodes.json', 'templates/', 'output', new Map(), 'template-directory');
+        await processor.processTemplate();
+        expect(SelfProvidedDirectoryTemplateLoader).toHaveBeenCalledWith('templates/');
+        expect(mockTemplateEngine.generate).toHaveBeenCalled();
+    });
+
+    it('should fallback to TemplateBundleFileLoader in "bundle" mode', async () => {
+        const { TemplateBundleFileLoader } = await vi.importMock('./template-bundle-file-loader');
+        const processor = new TemplateProcessor('simple-nodes.json', 'bundle-dir', 'output', new Map(), 'bundle');
+        await processor.processTemplate();
+        expect(TemplateBundleFileLoader).toHaveBeenCalledWith('bundle-dir');
+    });
+
 });

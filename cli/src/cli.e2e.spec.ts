@@ -317,6 +317,47 @@ describe('CLI Integration Tests', () => {
         expect(actualContent).toEqual(expectedContent);
     });
 
+
+    test('template command works with --template mode', async () => {
+        const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
+        const testModelPath = path.join(fixtureDir, 'model/document-system.json');
+        const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
+        const templatePath = path.join(fixtureDir, 'self-provided/single-template.hbs');
+        const expectedOutputPath = path.join(fixtureDir, 'expected-output/single-template-output.md');
+        const outputDir = path.join(tempDir, 'output-single-template');
+        const outputFile = path.join(outputDir, 'simple-template-output.md');
+
+        await run(
+            calm(
+                `template --input ${testModelPath} --template ${templatePath} --output ${outputFile} --url-to-local-file-mapping ${localDirectory}`
+            )
+        );
+
+        expect(fs.existsSync(outputFile)).toBe(true);
+        const actual = fs.readFileSync(outputFile, 'utf8').trim();
+        const expected = fs.readFileSync(expectedOutputPath, 'utf8').trim();
+        expect(actual).toEqual(expected);
+    });
+
+    test('template command works with --template-dir mode', async () => {
+        const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
+        const testModelPath = path.join(fixtureDir, 'model/document-system.json');
+        const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
+        const templateDirPath = path.join(fixtureDir, 'self-provided/template-dir');
+        const expectedOutputDir = path.join(fixtureDir, 'expected-output/template-dir');
+        const actualOutputDir = path.join(tempDir, 'output-template-dir');
+
+        await run(
+            calm(
+                `template --input ${testModelPath} --template-dir ${templateDirPath} --output ${actualOutputDir} --url-to-local-file-mapping ${localDirectory}`
+            )
+        );
+
+        await expectDirectoryMatch(expectedOutputDir, actualOutputDir);
+    });
+
+
+
     test('docify command generates expected files', async () => {
         const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
         const testModelPath = path.join(
@@ -344,6 +385,46 @@ describe('CLI Integration Tests', () => {
             expect(fs.existsSync(path.join(outputDir, f))).toBeTruthy()
         );
     });
+
+
+    test('docify command works with --template mode', async () => {
+        const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
+        const testModelPath = path.join(fixtureDir, 'model/document-system.json');
+        const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
+        const templatePath = path.join(fixtureDir, 'self-provided/single-template.hbs');
+        const expectedOutputPath = path.join(fixtureDir, 'expected-output/single-template-output.md');
+        const outputDir = path.join(tempDir, 'output-single-template');
+        const outputFile = path.join(outputDir, 'simple-template-output.md');
+
+        await run(
+            calm(
+                `docify --input ${testModelPath} --template ${templatePath} --output ${outputFile} --url-to-local-file-mapping ${localDirectory}`
+            )
+        );
+
+        expect(fs.existsSync(outputFile)).toBe(true);
+        const actual = fs.readFileSync(outputFile, 'utf8').trim();
+        const expected = fs.readFileSync(expectedOutputPath, 'utf8').trim();
+        expect(actual).toEqual(expected);
+    });
+
+    test('docify command works with --template-dir mode', async () => {
+        const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
+        const testModelPath = path.join(fixtureDir, 'model/document-system.json');
+        const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
+        const templateDirPath = path.join(fixtureDir, 'self-provided/template-dir');
+        const expectedOutputDir = path.join(fixtureDir, 'expected-output/template-dir');
+        const actualOutputDir = path.join(tempDir, 'output-template-dir');
+
+        await run(
+            calm(
+                `docify --input ${testModelPath} --template-dir ${templateDirPath} --output ${actualOutputDir} --url-to-local-file-mapping ${localDirectory}`
+            )
+        );
+
+        await expectDirectoryMatch(expectedOutputDir, actualOutputDir);
+    });
+
 
     test('Getting Started Verification - CLI Steps', async () => {
         const GETTING_STARTED_DIR = join(

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { TemplateBundleFileLoader } from './template-bundle-file-loader';
+import { TemplateBundleFileLoader, SelfProvidedTemplateLoader, SelfProvidedDirectoryTemplateLoader} from './template-bundle-file-loader';
 import { IndexFile } from './types';
 import { Mock } from 'vitest';
 
@@ -87,5 +87,100 @@ describe('TemplateBundleFileLoader', () => {
 
         const loader = new TemplateBundleFileLoader(mockBundlePath);
         expect(loader.getTemplateFiles()).toEqual({});
+    });
+});
+
+
+describe('SelfProvidedTemplateLoader', () => {
+    const templatePath = '/mock/single/template.md';
+    const templateContent = '# Hello {{name}}';
+    const outputPath = '/mock/output/output.md';
+
+    beforeEach(() => {
+        vi.resetAllMocks();
+        (fs.readFileSync as Mock).mockReturnValue(templateContent);
+        (fs.existsSync as Mock).mockReturnValue(true);
+        (fs.statSync as Mock).mockReturnValue({ isDirectory: () => false });
+    });
+
+    it('should load a single template and default output file correctly', () => {
+        const loader = new SelfProvidedTemplateLoader(templatePath, outputPath);
+
+        expect(loader.getTemplateFiles()).toEqual({
+            'template.md': templateContent,
+        });
+
+        expect(loader.getConfig()).toEqual({
+            name: 'Self Provided Template',
+            templates: [{
+                template: 'template.md',
+                from: 'document',
+                output: 'output.md',
+                'output-type': 'single'
+            }]
+        });
+    });
+
+    it('should default output file to "output.md" if output path is a directory', () => {
+        (fs.statSync as Mock).mockReturnValue({ isDirectory: () => true });
+
+        const loader = new SelfProvidedTemplateLoader(templatePath, '/mock/output/');
+        expect(loader.getConfig().templates[0].output).toBe('output.md');
+    });
+});
+
+describe('SelfProvidedDirectoryTemplateLoader', () => {
+    const templateDir = '/mock/templates';
+    const files = ['doc1.md', 'doc2.hbs', 'readme.txt'];
+    const fileContents = {
+        'doc1.md': '# Markdown template',
+        'doc2.hbs': '{{data}} handlebars template',
+        'readme.txt': ''
+    };
+
+    beforeEach(() => {
+        vi.resetAllMocks();
+
+        (fs.readdirSync as Mock).mockReturnValue(files);
+        (fs.readFileSync as Mock).mockImplementation((filePath: string) => {
+            const fileName = path.basename(filePath);
+            return fileContents[fileName] || '';
+        });
+        (fs.existsSync as Mock).mockReturnValue(true);
+        (fs.statSync as Mock).mockReturnValue({ isDirectory: () => true });
+    });
+
+    it('should load all .md and .hbs files and build config entries', () => {
+        const loader = new SelfProvidedDirectoryTemplateLoader(templateDir);
+
+        expect(loader.getTemplateFiles()).toEqual({
+            'doc1.md': '# Markdown template',
+            'doc2.hbs': '{{data}} handlebars template',
+            'readme.txt': ''
+        });
+
+        expect(loader.getConfig()).toEqual({
+            name: 'Self Provided Template Directory',
+            templates: [
+                {
+                    template: 'doc1.md',
+                    from: 'document',
+                    output: 'doc1.md',
+                    'output-type': 'single'
+                },
+                {
+                    template: 'doc2.hbs',
+                    from: 'document',
+                    output: 'doc2.hbs',
+                    'output-type': 'single'
+                },
+                {
+                    template: 'readme.txt',
+                    from: 'document',
+                    output: 'readme.txt',
+                    'output-type': 'single'
+                }
+            ]
+        });
     });
 });
