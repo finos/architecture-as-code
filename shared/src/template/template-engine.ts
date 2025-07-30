@@ -1,7 +1,7 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 import Handlebars from 'handlebars';
 import { IndexFile, TemplateEntry, CalmTemplateTransformer } from './types.js';
-import { TemplateBundleFileLoader } from './template-bundle-file-loader.js';
+import {ITemplateBundleLoader} from './template-bundle-file-loader.js';
 import { initLogger } from '../logger.js';
 import fs from 'fs';
 import path from 'path';
@@ -13,7 +13,7 @@ export class TemplateEngine {
     private transformer: CalmTemplateTransformer;
     private static logger = initLogger(process.env.DEBUG === 'true', TemplateEngine.name);
 
-    constructor(fileLoader: TemplateBundleFileLoader, transformer: CalmTemplateTransformer) {
+    constructor(fileLoader: ITemplateBundleLoader, transformer: CalmTemplateTransformer) {
         this.config = fileLoader.getConfig();
         this.transformer = transformer;
         this.templates = this.compileTemplates(fileLoader.getTemplateFiles());

@@ -1,10 +1,90 @@
 import fs from 'fs';
 import path from 'path';
-import { IndexFile } from './types.js';
+import {IndexFile, TemplateEntry} from './types.js';
 import { initLogger } from '../logger.js';
 
 
-export class TemplateBundleFileLoader {
+export interface ITemplateBundleLoader {
+    getConfig(): IndexFile;
+    getTemplateFiles(): Record<string, string>;
+}
+
+export class SelfProvidedTemplateLoader implements ITemplateBundleLoader {
+    private readonly config: IndexFile;
+    private readonly templateFiles: Record<string, string>;
+
+    constructor(templatePath: string, outputPath: string) {
+        const templateName = path.basename(templatePath);
+
+        const isDir = !path.extname(outputPath) || (
+            fs.existsSync(outputPath) && fs.statSync(outputPath).isDirectory()
+        );
+
+        const outputFile = isDir
+            ? 'output.md'
+            : path.basename(outputPath);
+
+        this.templateFiles = {
+            [templateName]: fs.readFileSync(templatePath, 'utf8')
+        };
+
+        this.config = {
+            name: 'Self Provided Template',
+            templates: [{
+                template: templateName,
+                from: 'document',
+                output: outputFile,
+                'output-type': 'single'
+            }]
+        };
+    }
+
+    getConfig(): IndexFile {
+        return this.config;
+    }
+
+    getTemplateFiles(): Record<string, string> {
+        return this.templateFiles;
+    }
+}
+
+export class SelfProvidedDirectoryTemplateLoader implements ITemplateBundleLoader {
+    private readonly config: IndexFile;
+    private readonly templateFiles: Record<string, string> = {};
+
+    constructor(templateDir: string) {
+
+        const entries: TemplateEntry[] = [];
+
+        const allFiles = fs.readdirSync(templateDir);
+
+        for (const file of allFiles) {
+            this.templateFiles[file] = fs.readFileSync(path.join(templateDir, file), 'utf8');
+
+            entries.push({
+                template: file,
+                from: 'document',
+                output: file, // output file = template file
+                'output-type': 'single'
+            });
+        }
+
+        this.config = {
+            name: 'Self Provided Template Directory',
+            templates: entries
+        };
+    }
+
+    getConfig(): IndexFile {
+        return this.config;
+    }
+
+    getTemplateFiles(): Record<string, string> {
+        return this.templateFiles;
+    }
+}
+
+export class TemplateBundleFileLoader implements ITemplateBundleLoader {
     private readonly templateBundlePath: string;
     private readonly config: IndexFile;
     private readonly templateFiles: Record<string, string>;
