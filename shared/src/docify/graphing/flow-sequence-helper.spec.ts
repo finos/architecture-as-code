@@ -15,10 +15,10 @@ describe('FlowSequenceHelper', () => {
 
         // Create test nodes
         const nodes = [
-            new CalmNode('document-system', 'system', 'DocuFlow', 'Main document management system', undefined, undefined, undefined, new CalmMetadata({})),
-            new CalmNode('svc-upload', 'service', 'Upload Service', 'Handles user document uploads', undefined, undefined, undefined, new CalmMetadata({})),
-            new CalmNode('svc-storage', 'service', 'Storage Service', 'Stores and retrieves documents securely', undefined, undefined, undefined, new CalmMetadata({})),
-            new CalmNode('db-docs', 'database', 'Document Database', 'Stores metadata and document references', undefined, undefined, undefined, new CalmMetadata({}))
+            new CalmNode('document-system', 'system', 'DocuFlow', 'Main document management system', undefined, undefined, undefined, new CalmMetadata({}), {}),
+            new CalmNode('svc-upload', 'service', 'Upload Service', 'Handles user document uploads', undefined, undefined, undefined, new CalmMetadata({}), {}),
+            new CalmNode('svc-storage', 'service', 'Storage Service', 'Stores and retrieves documents securely', undefined, undefined, undefined, new CalmMetadata({}), {}),
+            new CalmNode('db-docs', 'database', 'Document Database', 'Stores metadata and document references', undefined, undefined, undefined, new CalmMetadata({}), {})
         ];
 
         // Create test relationships

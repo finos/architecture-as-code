@@ -6,7 +6,7 @@ import { CalmNode } from '../../model/node';
 import { CalmRelationship, CalmConnectsType } from '../../model/relationship';
 import { CalmNodeInterface } from '../../model/interface';
 import { CalmFlow, CalmFlowTransition } from '../../model/flow';
-import {CalmControlsSchema} from '../../types/control-types';
+import { CalmControlsSchema } from '../../types/control-types';
 
 describe('ControlRegistry', () => {
     let controlRegistry: ControlRegistry;
@@ -73,7 +73,8 @@ describe('ControlRegistry', () => {
                 undefined,
                 undefined,
                 [nodeControl],
-                new CalmMetadata({})
+                new CalmMetadata({}),
+                {}
             )
         ];
 
@@ -86,6 +87,7 @@ describe('ControlRegistry', () => {
                 ),
                 new CalmMetadata({}),
                 [relationshipControl],
+                {},
                 'Test relationship'
             )
         ];
