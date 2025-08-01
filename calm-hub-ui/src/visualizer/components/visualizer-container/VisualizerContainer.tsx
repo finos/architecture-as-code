@@ -31,7 +31,7 @@ export function VisualizerContainer({
     );
 
     return (
-        <div className="relative flex m-auto border" data-testid="visualizer-container">
+        <div className="relative flex m-auto" data-testid="visualizer-container">
             {title && (
                 <CytoscapeControlPanel
                     title={title}
