@@ -101,3 +101,25 @@ export class CompositeReferenceResolver implements CalmReferenceResolver {
         throw new Error(`Composite resolver: Unable to resolve reference ${ref}`);
     }
 }
+
+
+export class MappedReferenceResolver implements CalmReferenceResolver {
+    constructor(
+        private mapping: Map<string, string>,
+        private delegate: CalmReferenceResolver
+    ) {}
+
+    canResolve(ref: string): boolean {
+        const effective = this.getEffectiveRef(ref);
+        return this.delegate.canResolve(effective);
+    }
+
+    async resolve(ref: string): Promise<unknown> {
+        const effective = this.getEffectiveRef(ref);
+        return this.delegate.resolve(effective);
+    }
+
+    private getEffectiveRef(ref: string): string {
+        return this.mapping.get(ref) ?? ref;
+    }
+}

@@ -1,7 +1,7 @@
 # All Relationships
 
 {{#each relationships}}
-## Relationship: {{uniqueId}}
+## Relationship: {{unique-id}}
 
 - **Description**: {{description}}
 

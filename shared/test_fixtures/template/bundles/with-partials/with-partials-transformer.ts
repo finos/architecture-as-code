@@ -1,5 +1,6 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
-import {CalmTemplateTransformer} from '@finos/calm-shared';
+import {CalmTemplateTransformer} from '../../../../src/template/types';
+import {CalmCore} from '../../../../src/model/core.js';
 
 export class CalmTransformer implements CalmTemplateTransformer {
     registerTemplateHelpers(): Record<string, (...args: any[]) => any> {
@@ -11,22 +12,19 @@ export class CalmTransformer implements CalmTemplateTransformer {
         };
     }
 
-    getTransformedModel(inputJson: string): any {
-        try {
-            const parsed = JSON.parse(inputJson);
+    getTransformedModel(architecture: CalmCore): any {
 
-            return {
-                document: {
-                    id: parsed.name,
-                    name: parsed.name,
-                    description: parsed.description,
-                    nodes: parsed.nodes || [],
-                    relationships: parsed.relationships || []
-                }
-            };
-        } catch (error) {
-            throw new Error(`Error parsing CALM JSON: ${error.message}`);
-        }
+        const parsed = architecture.toCanonicalSchema();
+
+        return {
+            document: {
+                id: parsed.metadata['id'],
+                name: parsed['name'],
+                description: parsed.metadata['description'],
+                nodes: parsed.nodes || [],
+                relationships: parsed.relationships || []
+            }
+        };
     }
 }
 

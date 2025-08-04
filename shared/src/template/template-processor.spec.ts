@@ -47,6 +47,26 @@ vi.mock('./template-calm-file-dereferencer', () => ({
     FileReferenceResolver: vi.fn()
 }));
 
+const mappedResolverSpy = vi.fn();
+vi.mock('../resolver/calm-reference-resolver', async () => {
+    return {
+        MappedReferenceResolver: vi.fn().mockImplementation((map, _resolver) => {
+            mappedResolverSpy(map);
+            return {}; // stub implementation
+        }),
+        CompositeReferenceResolver: vi.fn()
+    };
+});
+
+const dereferenceVisitMock = vi.fn();
+vi.mock('../model-visitor/dereference-visitor', async () => {
+    return {
+        DereferencingVisitor: vi.fn().mockImplementation(() => ({
+            visit: dereferenceVisitMock
+        }))
+    };
+});
+
 describe('TemplateProcessor', () => {
     let mockTransformer: ReturnType<typeof vi.mocked<CalmTemplateTransformer>>;
     let loggerInfoSpy: ReturnType<typeof vi.spyOn>;
@@ -74,6 +94,7 @@ describe('TemplateProcessor', () => {
         (fs.rmSync as Mock).mockImplementation(() => {});
         (fs.mkdirSync as Mock).mockImplementation(() => {});
         mockDereferencer.dereferenceCalmDoc.mockReset().mockResolvedValue('{"some": "dereferencedData"}');
+        dereferenceVisitMock.mockReset().mockResolvedValue(undefined);
     });
 
     it('should successfully process a template', async () => {
@@ -82,7 +103,14 @@ describe('TemplateProcessor', () => {
         expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining('🗑️ Cleaning up previous generation...'));
         expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining('✅ Template Generation Completed!'));
         expect(mockTemplateEngine.generate).toHaveBeenCalled();
-        expect(mockTransformer.getTransformedModel).toHaveBeenCalledWith('{"some": "dereferencedData"}');
+        expect(mockTransformer.getTransformedModel).toHaveBeenCalledWith(
+            expect.objectContaining({
+                originalJson: expect.objectContaining({
+                    some: 'data'
+                })
+            })
+        );
+
     });
 
     it('should throw an error if the input file is missing', async () => {
@@ -110,19 +138,18 @@ describe('TemplateProcessor', () => {
         expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ Error generating template: TransformerClass is undefined.'));
     });
 
-    it('should pass the urlToLocalPathMapping to the TemplateCalmFileRefResolver', async () => {
-        const mapping = new Map<string, string>([['http://example.com/file', '/local/path/file']]);
-        const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', mapping);
-        await processor.processTemplate();
-        const { TemplateCalmFileDereferencer } = await vi.importMock('./template-calm-file-dereferencer');
-        expect(TemplateCalmFileDereferencer).toHaveBeenCalledWith(mapping, expect.anything());
-    });
-
-    it('should throw an error if dereferencing the CALM doc fails', async () => {
-        (mockDereferencer.dereferenceCalmDoc as Mock).mockRejectedValue(new Error('Dereference failed'));
+    it('should throw an error if dereferencing the CALM doc fails (via DereferencingVisitor)', async () => {
+        dereferenceVisitMock.mockRejectedValueOnce(new Error('Dereference failed'));
         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map<string, string>());
         await expect(processor.processTemplate()).rejects.toThrow('Dereference failed');
         expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Dereference failed'));
+    });
+
+    it('should pass the urlToLocalPathMapping to MappedReferenceResolver and use it in DereferencingVisitor', async () => {
+        const mapping = new Map<string, string>([['http://example.com/file', '/local/path/file']]);
+        const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', mapping);
+        await processor.processTemplate();
+        expect(mappedResolverSpy).toHaveBeenCalledWith(mapping);
     });
 
     it('should process using SelfProvidedTemplateLoader when mode is "template"', async () => {

@@ -3,7 +3,7 @@
 | ID            | Name           | Type     | Description                          |
 |---------------|----------------|----------|--------------------------------------|
 {{#each nodes}}
-| {{uniqueId}} | {{name}}       | {{nodeType}} | {{description}} |
+| {{unique-id}} | {{name}}       | {{node-type}} | {{description}} |
 {{/each}}
 
 ## Relationships
@@ -11,41 +11,36 @@
 | ID               | Type         | Source       | Destination / Parts | Description |
 |------------------|--------------|---------------|----------------------|-------------|
 {{#each relationships}}
-  {{#if (instanceOf relationshipType "CalmConnectsType")}}
-| {{uniqueId}} | connects      | {{relationshipType.source.node}} | {{relationshipType.destination.node}} | {{description}} |
+  {{#if relationship-type.connects}}
+| {{unique-id}} | connects      | {{relationship-type.connects.source.node}} | {{relationship-type.connects.destination.node}} | {{description}} |
   {{/if}}
-  {{#if (instanceOf relationshipType "CalmInteractsType")}}
-| {{uniqueId}} | interacts     | {{relationshipType.actor}} | {{join relationshipType.nodes ", "}} | {{description}} |
+  {{#if relationship-type.interacts}}
+| {{unique-id}} | interacts     | {{relationship-type.interacts.actor}} | {{join relationship-type.interacts.nodes ", "}} | {{description}} |
   {{/if}}
-  {{#if (instanceOf relationshipType "CalmComposedOfType")}}
-| {{uniqueId}} | composed-of   | {{relationshipType.container}} | {{join relationshipType.nodes ", "}} | |
+  {{#if (lookup relationship-type "composed-of")}}
+    {{#with (lookup relationship-type "composed-of") as |composed|}}
+| {{../unique-id}} | composed-of   | {{composed.container}} | {{join composed.nodes ", "}} | {{../description}} |
+    {{/with}}
+  {{/if}}
+  {{#if (lookup relationship-type "deployed-in")}}
+    {{#with (lookup relationship-type "deployed-in") as |deploy|}}
+| {{../unique-id}} | deployed-in   | {{deploy.container}} | {{join deploy.nodes ", "}} | {{../description}} |
+    {{/with}}
   {{/if}}
 {{/each}}
 
 
 ## Ownership Controls
 
-{{#each controls}}
-  {{#if (eq controlId "ownership")}}
-    {{#if requirements}}
+{{#if controls.ownership.requirements}}
 | Owner Type      | Name        | Email               | Description                        |
 |-----------------|-------------|---------------------|------------------------------------|
-      {{#each requirements}}
-        {{#if configUrl}}
-          {{#with configUrl}}
+  {{#each controls.ownership.requirements}}
 | {{owner-type}} | {{owner.name}} | {{owner.email}} | {{description}} |
-          {{/with}}
-        {{else}}
-          {{#with config}}
-| {{owner-type}} | {{owner.name}} | {{owner.email}} | {{description}} |
-          {{/with}}
-        {{/if}}
-      {{/each}}
-    {{else}}
+  {{/each}}
+{{else}}
 _No ownership requirements defined._
-    {{/if}}
-  {{/if}}
-{{/each}}
+{{/if}}
 
 ## Metadata
 ```

@@ -451,17 +451,6 @@
           "kubernetes"
         ]
       }]
-
-    },
-    "flows": {
-      "type": "array",
-      "minItems": 1,
-      "maxItems": 1,
-      "prefixItems": [
-        {
-          "const": "https://calm.finos.org/workshop/flows/conference-signup.flow.json"
-        }
-      ]
     }
   },
   "required": [

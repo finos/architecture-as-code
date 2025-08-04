@@ -321,7 +321,6 @@ describe('CLI Integration Tests', () => {
     test('template command works with --template mode', async () => {
         const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
         const testModelPath = path.join(fixtureDir, 'model/document-system.json');
-        const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
         const templatePath = path.join(fixtureDir, 'self-provided/single-template.hbs');
         const expectedOutputPath = path.join(fixtureDir, 'expected-output/single-template-output.md');
         const outputDir = path.join(tempDir, 'output-single-template');
@@ -329,7 +328,7 @@ describe('CLI Integration Tests', () => {
 
         await run(
             calm(
-                `template --input ${testModelPath} --template ${templatePath} --output ${outputFile} --url-to-local-file-mapping ${localDirectory}`
+                `template --input ${testModelPath} --template ${templatePath} --output ${outputFile}`
             )
         );
 
@@ -342,14 +341,13 @@ describe('CLI Integration Tests', () => {
     test('template command works with --template-dir mode', async () => {
         const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
         const testModelPath = path.join(fixtureDir, 'model/document-system.json');
-        const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
         const templateDirPath = path.join(fixtureDir, 'self-provided/template-dir');
         const expectedOutputDir = path.join(fixtureDir, 'expected-output/template-dir');
         const actualOutputDir = path.join(tempDir, 'output-template-dir');
 
         await run(
             calm(
-                `template --input ${testModelPath} --template-dir ${templateDirPath} --output ${actualOutputDir} --url-to-local-file-mapping ${localDirectory}`
+                `template --input ${testModelPath} --template-dir ${templateDirPath} --output ${actualOutputDir}`
             )
         );
 
@@ -472,76 +470,43 @@ describe('CLI Integration Tests', () => {
         await expectDirectoryMatch(expectedOutputDocifyWebsite, outputWebsite);
 
         //STEP 3: Add flow to architecture-document
-        const flowsDir = path.resolve(tempDir, 'flows');
-        const flowFile = path.resolve(flowsDir, 'conference-signup.flow.json');
         const flowUrl = 'https://calm.finos.org/getting-started/flows/conference-signup.flow.json';
-        fs.mkdirSync(flowsDir, { recursive: true });
 
-        /* eslint-disable quotes */
-        writeJson(flowFile, {
-            $schema: 'https://calm.finos.org/release/1.0-rc2/meta/flow.json',
-            $id: flowUrl,
-            'unique-id': 'flow-conference-signup',
-            name: 'Conference Signup Flow',
-            description:
-                'Flow for registering a user through the conference website and storing their details in the attendee database.',
-            transitions: [
-                {
-                    'relationship-unique-id':
-                        'conference-website-load-balancer',
-                    'sequence-number': 1,
-                    description:
-                        'User submits sign-up form via Conference Website to Load Balancer',
-                },
-                {
-                    'relationship-unique-id': 'load-balancer-attendees',
-                    'sequence-number': 2,
-                    description:
-                        'Load Balancer forwards request to Attendees Service',
-                },
-                {
-                    'relationship-unique-id': 'attendees-attendees-store',
-                    'sequence-number': 3,
-                    description:
-                        'Attendees Service stores attendee info in the Attendees Store',
-                },
-            ],
-        });
-
-        await expectFilesMatch(
-            path.resolve(
-                GETTING_STARTED_TEST_FIXTURES_DIR,
-                'STEP-3/flows/conference-signup.flow.json'
-            ),
-            flowFile
-        );
-
-        const directory = path.resolve(tempDir, 'directory.json');
-        writeJson(directory, {
-            'https://calm.finos.org/getting-started/flows/conference-signup.flow.json':
-                'flows/conference-signup-with-flow.arch.json',
-        }); //since the flow document is not published
 
         patchJson(outputArchitecture, (arch) => {
-            arch['flows'] = arch['flows'] || [];
-            if (!arch['flows'].includes(flowUrl)) arch['flows'].push(flowUrl);
+            arch['flows'] = [
+                {
+                    $schema: 'https://calm.finos.org/release/1.0-rc2/meta/flow.json',
+                    $id: flowUrl,
+                    'unique-id': 'flow-conference-signup',
+                    name: 'Conference Signup Flow',
+                    description: 'Flow for registering a user through the conference website and storing their details in the attendee database.',
+                    transitions: [
+                        {
+                            'relationship-unique-id': 'conference-website-load-balancer',
+                            'sequence-number': 1,
+                            description: 'User submits sign-up form via Conference Website to Load Balancer',
+                        },
+                        {
+                            'relationship-unique-id': 'load-balancer-attendees',
+                            'sequence-number': 2,
+                            description: 'Load Balancer forwards request to Attendees Service',
+                        },
+                        {
+                            'relationship-unique-id': 'attendees-attendees-store',
+                            'sequence-number': 3,
+                            description: 'Attendees Service stores attendee info in the Attendees Store',
+                        },
+                    ],
+                },
+            ];
         });
+
         await expectFilesMatch(
             path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR, 'STEP-3/conference-signup-with-flow.arch.json'),
             outputArchitecture
         );
 
-        // Patch directory.json to map the URL → local path
-        patchJson(directory, (dir) => {
-            dir[flowUrl] = 'flows/conference-signup.flow.json';
-        });
-        await expectFilesMatch(
-            path.resolve(
-                GETTING_STARTED_TEST_FIXTURES_DIR,
-                'STEP-3/directory.json'
-            ),
-            directory
-        );
 
         const outputWebsiteWithFlow = path.resolve(
             tempDir,
@@ -549,7 +514,7 @@ describe('CLI Integration Tests', () => {
         );
         await run(
             calm(
-                `docify --input ${outputArchitecture} --output ${outputWebsiteWithFlow} --url-to-local-file-mapping ${directory}`
+                `docify --input ${outputArchitecture} --output ${outputWebsiteWithFlow}`
             )
         );
 

@@ -1,19 +1,27 @@
 import { CalmMetadataSchema } from '../types/metadata-types.js';
+import { CalmAdaptable } from './adaptable.js';
+import {CalmMetadataCanonicalModel} from '../template/template-models';
 
-export class CalmMetadata {
-    constructor(public data: Record<string, unknown>) {}
+export class CalmMetadata implements CalmAdaptable<CalmMetadataSchema,CalmMetadataCanonicalModel> {
+    constructor(
+        public originalJson: CalmMetadataSchema,
+        public data: Record<string, unknown>
+    ) {}
 
-    static fromJson(data: CalmMetadataSchema): CalmMetadata {
-        if (!data) return new CalmMetadata({});
-
-        if (Array.isArray(data)) {
-            const flattenedData = data.reduce(
-                (acc, curr) => ({ ...acc, ...curr }),
-                {} as Record<string, unknown>
-            );
-            return new CalmMetadata(flattenedData);
-        } else {
-            return new CalmMetadata(data);
-        }
+    toSchema(): CalmMetadataSchema {
+        return this.originalJson;
     }
+
+    static fromSchema(schema: CalmMetadataSchema): CalmMetadata {
+        const flattened: Record<string, unknown> = Array.isArray(schema)
+            ? Object.assign({}, ...schema)
+            : schema;
+
+        return new CalmMetadata(schema, flattened);
+    }
+
+    toCanonicalSchema(): CalmMetadataCanonicalModel {
+        return this.data;
+    }
+
 }

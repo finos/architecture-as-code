@@ -10,10 +10,11 @@ import {
     TemplateBundleFileLoader
 } from './template-bundle-file-loader.js';
 import { initLogger } from '../logger.js';
-import { TemplateCalmFileDereferencer } from './template-calm-file-dereferencer.js';
-import { CompositeReferenceResolver } from '../resolver/calm-reference-resolver.js';
+import {CompositeReferenceResolver, MappedReferenceResolver} from '../resolver/calm-reference-resolver.js';
 import {pathToFileURL} from 'node:url';
 import TemplateDefaultTransformer from './template-default-transformer';
+import {CalmCore} from '../model/core';
+import {DereferencingVisitor} from '../model-visitor/dereference-visitor';
 
 export type TemplateProcessingMode = 'template' | 'template-directory' | 'bundle';
 
@@ -42,8 +43,6 @@ export class TemplateProcessor {
             ? path.dirname(path.resolve(this.outputPath))
             : path.resolve(this.outputPath);
 
-
-        const calmResolver =  new TemplateCalmFileDereferencer(this.urlToLocalPathMapping, new CompositeReferenceResolver());
         let loader: ITemplateBundleLoader;
 
         switch (this.mode) {
@@ -71,11 +70,13 @@ export class TemplateProcessor {
 
             this.validateConfig(config);
 
+
+            const mappedResolver = new MappedReferenceResolver(this.urlToLocalPathMapping, new CompositeReferenceResolver());
             const transformer = await this.loadTransformer(config.transformer, resolvedBundlePath);
-
-            const calmJsonDereferenced = await calmResolver.dereferenceCalmDoc(calmJson);
-            const transformedModel = transformer.getTransformedModel(calmJsonDereferenced);
-
+            const coreModel = CalmCore.fromSchema(JSON.parse(calmJson));
+            const dereference = new DereferencingVisitor(mappedResolver);
+            await dereference.visit(coreModel);
+            const transformedModel = transformer.getTransformedModel(coreModel);
             const engine = new TemplateEngine(loader, transformer);
             engine.generate(transformedModel, resolvedOutputPath);
 

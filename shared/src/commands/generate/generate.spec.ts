@@ -2,7 +2,7 @@ import { runGenerate } from './generate';
 import { tmpdir } from 'node:os';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import { SchemaDirectory } from '../../../dist';
+import { SchemaDirectory } from '../../schema-directory.js';
 
 vi.mock('../../logger', () => {
     return {

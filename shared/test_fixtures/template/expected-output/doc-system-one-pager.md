@@ -13,7 +13,7 @@
 |------------------|--------------|---------------|----------------------|-------------|
 | rel-upload-to-storage | connects      | svc-upload | svc-storage | Upload Service sends documents to Storage Service for long-term storage |
 | rel-storage-to-db | connects      | svc-storage | db-docs | Storage Service stores document metadata in the Document Database |
-| document-system-system-is-composed-of | composed-of   | document-system | svc-upload, svc-storage, db-docs | |
+| document-system-system-is-composed-of | composed-of   | document-system | svc-upload, svc-storage, db-docs |  |
 
 
 ## Ownership Controls
@@ -27,8 +27,9 @@
 ## Metadata
 ```
 {
-  "data": {
-    "arch-health": "BUY"
-  }
+  "arch-health": "BUY",
+  "$id": "docuflow-architecture",
+  "title": "DocuFlow System",
+  "description": "DocuFlow is a document management system that allows users to upload, process, and store documents securely."
 }
 ```

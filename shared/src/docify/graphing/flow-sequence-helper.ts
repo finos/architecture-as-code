@@ -1,9 +1,15 @@
 import { Architecture } from '../../model/core';
 import { CalmFlowTransition } from '../../model/flow';
-import { CalmRelationship, CalmInteractsType, CalmConnectsType, CalmComposedOfType } from '../../model/relationship';
+import {
+    CalmRelationship,
+    CalmInteractsType,
+    CalmConnectsType,
+    CalmComposedOfType
+} from '../../model/relationship';
 
 export class FlowSequenceHelper {
     public static readonly UNKNOWN_NODE = 'unknown';
+
     /**
      * Transforms flow transitions by adding source and target information
      * @param transitions The flow transitions to transform
@@ -21,34 +27,49 @@ export class FlowSequenceHelper {
 
     public getSourceFromRelationship(relationshipId: string, architecture: Architecture): string {
         const relationship = this.findRelationshipById(relationshipId, architecture);
+        if (!relationship) return FlowSequenceHelper.UNKNOWN_NODE;
 
-        if (relationship.relationshipType instanceof CalmInteractsType) {
-            const nodeId = relationship.relationshipType.actor;
-            return this.getNodeNameById(nodeId, architecture) || nodeId;
-        } else if (relationship.relationshipType instanceof CalmConnectsType) {
-            const nodeId = relationship.relationshipType.source.node;
-            return this.getNodeNameById(nodeId, architecture) || nodeId;
-        } else if (relationship.relationshipType instanceof CalmComposedOfType) {
-            const nodeId = relationship.relationshipType.container;
-            return this.getNodeNameById(nodeId, architecture) || nodeId;
-        } else {
+        const type = relationship.relationshipType;
+
+        switch (type.kind) {
+        case 'interacts': {
+            const typed = type as CalmInteractsType;
+            return this.getNodeNameById(typed.actor, architecture) || typed.actor;
+        }
+        case 'connects': {
+            const typed = type as CalmConnectsType;
+            return this.getNodeNameById(typed.source.node, architecture) || typed.source.node;
+        }
+        case 'composed-of': {
+            const typed = type as CalmComposedOfType;
+            return this.getNodeNameById(typed.container, architecture) || typed.container;
+        }
+        default:
             return FlowSequenceHelper.UNKNOWN_NODE;
         }
     }
 
     public getTargetFromRelationship(relationshipId: string, architecture: Architecture): string {
         const relationship = this.findRelationshipById(relationshipId, architecture);
+        if (!relationship) return FlowSequenceHelper.UNKNOWN_NODE;
 
-        if (relationship.relationshipType instanceof CalmInteractsType) {
-            const nodeId = relationship.relationshipType.nodes[0] || '';
+        const type = relationship.relationshipType;
+
+        switch (type.kind) {
+        case 'interacts': {
+            const typed = type as CalmInteractsType;
+            const nodeId = typed.nodes[0] || '';
             return this.getNodeNameById(nodeId, architecture) || nodeId;
-        } else if (relationship.relationshipType instanceof CalmConnectsType) {
-            const nodeId = relationship.relationshipType.destination.node;
-            return this.getNodeNameById(nodeId, architecture) || nodeId;
-        } else if (relationship.relationshipType instanceof CalmComposedOfType) {
-            const nodeId = relationship.relationshipType.nodes[0] || '';
-            return nodeId;
-        } else {
+        }
+        case 'connects': {
+            const typed = type as CalmConnectsType;
+            return this.getNodeNameById(typed.destination.node, architecture) || typed.destination.node;
+        }
+        case 'composed-of': {
+            const typed = type as CalmComposedOfType;
+            return typed.nodes[0] || '';
+        }
+        default:
             return FlowSequenceHelper.UNKNOWN_NODE;
         }
     }

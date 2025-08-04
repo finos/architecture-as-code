@@ -1,11 +1,12 @@
 import {
     CalmComposedOfType,
-    CalmConnectsType, CalmDeployedInType,
+    CalmConnectsType,
+    CalmDeployedInType,
     CalmInteractsType,
     CalmRelationship,
 } from '../../model/relationship';
-import {CalmCore} from '../../model/core.js';
-import {CalmRelationshipGraph} from './relationship-graph.js';
+import { CalmCore } from '../../model/core.js';
+import { CalmRelationshipGraph } from './relationship-graph.js';
 
 export type C4ElementType = 'System' | 'Container' | 'Component' | 'Person';
 
@@ -28,7 +29,9 @@ export class C4Relationship {
     ) {}
 }
 
-export function buildParentChildMappings(relationships: CalmRelationship[]): {
+export function buildParentChildMappings(
+    relationships: CalmRelationship[]
+): {
     parentLookup: Record<string, string>,
     childrenLookup: Record<string, string[]>
 } {
@@ -36,31 +39,25 @@ export function buildParentChildMappings(relationships: CalmRelationship[]): {
     const childrenLookup: Record<string, string[]> = {};
 
     relationships.forEach(rel => {
-        if (
-            rel.relationshipType instanceof CalmComposedOfType ||
-            rel.relationshipType instanceof CalmDeployedInType
-        ) {
-            const relationship = rel.relationshipType as {
-                    container: string;
-                    nodes: string[];
-                }
-            ;
-            const { container, nodes } = relationship;
-
-            if (!childrenLookup[container]) {
-                childrenLookup[container] = [];
+        const relType = rel.relationshipType;
+        switch (relType.kind) {
+        case 'composed-of':
+        case 'deployed-in': {
+            const t = relType as CalmComposedOfType | CalmDeployedInType;
+            if (!childrenLookup[t.container]) {
+                childrenLookup[t.container] = [];
             }
-            childrenLookup[container].push(...nodes);
-
-            nodes.forEach(nodeId => {
-                parentLookup[nodeId] = container;
+            childrenLookup[t.container].push(...t.nodes);
+            t.nodes.forEach(nodeId => {
+                parentLookup[nodeId] = t.container;
             });
+            break;
+        }
         }
     });
 
     return { parentLookup, childrenLookup };
 }
-
 
 export class C4Model {
     public elements: Record<string, C4Element> = {};
@@ -77,9 +74,11 @@ export class C4Model {
             'system': 'System',
             'service': 'Container',
             'actor': 'Person',
-            'network': 'Container'
+            'network': 'Container',
         };
+
         const { parentLookup, childrenLookup } = buildParentChildMappings(calmCore.relationships);
+
         calmCore.nodes.forEach(node => {
             const elementType = nodeTypeMapping[node.nodeType] || 'Container';
             const parentId = parentLookup[node.uniqueId];
@@ -95,7 +94,6 @@ export class C4Model {
             );
         });
 
-
         Object.values(this.elements).forEach(node => {
             if (node.parentId && this.elements[node.parentId]) {
                 this.elements[node.parentId].children.push(node.uniqueId);
@@ -103,28 +101,33 @@ export class C4Model {
         });
 
         calmCore.relationships.forEach(rel => {
-            if (rel.relationshipType instanceof CalmComposedOfType) {
-                return;
-            }
-            else if (rel.relationshipType instanceof CalmInteractsType) {
-                const interactsRelationship = rel.relationshipType as CalmInteractsType;
+            const relType = rel.relationshipType;
 
-                interactsRelationship.nodes.forEach(nodeId => {
+            switch (relType.kind) {
+            case 'composed-of':
+                return; // skip
+
+            case 'interacts': {
+                const t = relType as CalmInteractsType;
+                t.nodes.forEach(nodeId => {
                     this.relationships.push(new C4Relationship(
-                        interactsRelationship.actor,
+                        t.actor,
                         nodeId,
                         'Interacts With'
                     ));
                 });
+                break;
             }
-            else if (rel.relationshipType instanceof CalmConnectsType) {
-                const connectsRelationship = rel.relationshipType as CalmConnectsType;
 
+            case 'connects': {
+                const t = relType as CalmConnectsType;
                 this.relationships.push(new C4Relationship(
-                    connectsRelationship.source.node,
-                    connectsRelationship.destination.node,
+                    t.source.node,
+                    t.destination.node,
                     'Connects To'
                 ));
+                break;
+            }
             }
         });
     }

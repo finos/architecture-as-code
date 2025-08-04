@@ -10,7 +10,8 @@ export default class InfrastructureTransformer {
    * @returns {{ document: { namespaceName?: string; databaseName?: string; databasePort?: number; appName?: string; applicationPort?: number; applicationImage?: string; lbHost?: string; lbPort?: number; secure?: boolean } }}
    */
   getTransformedModel(calmJson) {
-    const data = JSON.parse(calmJson);
+    const data = calmJson['originalJson'];
+
     let namespaceName;
     let databaseName;
     let databasePort;
