@@ -178,6 +178,29 @@
   ],
   "$schema": "https://calm.finos.org/getting-started/conference-signup.pattern.json",
   "flows": [
-    "https://calm.finos.org/getting-started/flows/conference-signup.flow.json"
+    {
+      "$schema": "https://calm.finos.org/release/1.0-rc2/meta/flow.json",
+      "$id": "https://calm.finos.org/getting-started/flows/conference-signup.flow.json",
+      "unique-id": "flow-conference-signup",
+      "name": "Conference Signup Flow",
+      "description": "Flow for registering a user through the conference website and storing their details in the attendee database.",
+      "transitions": [
+        {
+          "relationship-unique-id": "conference-website-load-balancer",
+          "sequence-number": 1,
+          "description": "User submits sign-up form via Conference Website to Load Balancer"
+        },
+        {
+          "relationship-unique-id": "load-balancer-attendees",
+          "sequence-number": 2,
+          "description": "Load Balancer forwards request to Attendees Service"
+        },
+        {
+          "relationship-unique-id": "attendees-attendees-store",
+          "sequence-number": 3,
+          "description": "Attendees Service stores attendee info in the Attendees Store"
+        }
+      ]
+    }
   ]
 }

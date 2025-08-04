@@ -1,14 +1,11 @@
 import {CalmTemplateTransformer} from './types';
-import {CalmCoreSchema} from '../types/core-types';
-import {Architecture, CalmCore} from '../model/core';
+import {CalmCore} from '../model/core';
 
 export default class TemplateDefaultTransformer implements CalmTemplateTransformer {
 
-    getTransformedModel(calmJson: string) {
-        const calmSchema: CalmCoreSchema = JSON.parse(calmJson);
-        const architecture: Architecture = CalmCore.fromJson(calmSchema);
+    getTransformedModel(calmCore: CalmCore) {
         return {
-            'document': architecture
+            'document': calmCore.toCanonicalSchema(),
         };
 
     }

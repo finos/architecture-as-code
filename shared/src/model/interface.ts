@@ -1,65 +1,111 @@
+import { Resolvable } from './resolvable.js';
 import {
+    CalmInterfaceDefinitionSchema,
+    CalmInterfaceTypeSchema,
     CalmNodeInterfaceSchema
 } from '../types/interface-types.js';
-import { CalmInterfaceDefinitionSchema, CalmInterfaceTypeSchema } from '../types/interface-types.js';
-import { CalmInterfaceSchema } from '../types/core-types.js';
 
-const calmInterfaceDefinitionRequiredProperties = [
-    'unique-id', 'definition-url', 'config'
-].sort();
+import { CalmAdaptable } from './adaptable.js';
+import {CalmInterfaceSchema} from '../types/core-types';
+import {CalmInterfaceCanonicalModel, CalmNodeInterfaceCanonicalModel} from '../template/template-models';
 
+export abstract class CalmInterface {
+    protected constructor(public uniqueId: string) {}
 
-export class CalmInterface {
-    constructor(public uniqueId: string) { }
+    static fromSchema(schema: CalmInterfaceSchema): CalmInterface {
+        const keys = Object.keys(schema).sort();
+        const isDefinition = ['config', 'definition-url', 'unique-id'].every(k => keys.includes(k));
 
-    static fromJson(data: CalmInterfaceSchema): CalmInterface {
-        // Compare data property names with the required properties
-        // for CalmInterfaceDefinition
-        const dataKeys = Object.keys(data).sort();
-        if (dataKeys.length === calmInterfaceDefinitionRequiredProperties.length
-            && dataKeys.every((val, index) => val === calmInterfaceDefinitionRequiredProperties[index])) {
-            return CalmInterfaceDefinition.fromJson(data as CalmInterfaceDefinitionSchema);
-        }
-        return CalmInterfaceType.fromJson(data as CalmInterfaceTypeSchema);
+        return isDefinition
+            ? CalmInterfaceDefinition.fromSchema(schema as CalmInterfaceDefinitionSchema)
+            : CalmInterfaceType.fromSchema(schema as CalmInterfaceTypeSchema);
     }
+
+    abstract toCanonicalSchema(): CalmInterfaceCanonicalModel;
+
+
 }
 
-export class CalmInterfaceDefinition extends CalmInterface {
+export class CalmInterfaceDefinition
+    extends CalmInterface
+    implements CalmAdaptable<CalmInterfaceDefinitionSchema, CalmInterfaceCanonicalModel> {
+
     constructor(
+        public originalJson: CalmInterfaceDefinitionSchema,
         public uniqueId: string,
-        public interfaceDefinitionUrl: string,
-        public configuration: Record<string, unknown>
+        public definitionUrl: Resolvable<string>,
+        public config: Record<string, unknown>
     ) {
         super(uniqueId);
     }
 
-    static fromJson(data: CalmInterfaceDefinitionSchema): CalmInterfaceDefinition {
+    toCanonicalSchema(): CalmInterfaceCanonicalModel {
+        return {
+            'unique-id': this.uniqueId,
+            'definition-url': this.definitionUrl.reference,
+            ...this.config
+        };
+    }
+
+    static fromSchema(schema: CalmInterfaceDefinitionSchema): CalmInterfaceDefinition {
         return new CalmInterfaceDefinition(
-            data['unique-id'],
-            data['definition-url'],
-            data.config
+            schema,
+            schema['unique-id'],
+            new Resolvable<string>(schema['definition-url']),
+            schema.config
         );
+    }
+
+    toSchema(): CalmInterfaceDefinitionSchema {
+        return this.originalJson;
     }
 }
 
-export class CalmInterfaceType extends CalmInterface {
+export class CalmInterfaceType
+    extends CalmInterface
+    implements CalmAdaptable<CalmInterfaceTypeSchema, CalmInterfaceCanonicalModel> {
+
     constructor(
+        public originalJson: CalmInterfaceTypeSchema,
         public uniqueId: string,
         public additionalProperties: Record<string, unknown>
     ) {
         super(uniqueId);
     }
 
-    static fromJson(data: CalmInterfaceTypeSchema): CalmInterfaceType {
-        const { 'unique-id': uniqueId, ...additionalProperties } = data;
-        return new CalmInterfaceType(uniqueId, additionalProperties);
+    static fromSchema(schema: CalmInterfaceTypeSchema): CalmInterfaceType {
+        const { 'unique-id': uniqueId, ...additionalProperties } = schema;
+        return new CalmInterfaceType(schema, uniqueId, additionalProperties);
+    }
+
+    toSchema(): CalmInterfaceTypeSchema {
+        return this.originalJson;
+    }
+
+    toCanonicalSchema(): CalmInterfaceCanonicalModel {
+        return this.originalJson;
     }
 }
 
-export class CalmNodeInterface {
-    constructor(public node: string, public interfaces: string[] = []) { }
+export class CalmNodeInterface
+implements CalmAdaptable<CalmNodeInterfaceSchema, CalmNodeInterfaceCanonicalModel> {
 
-    static fromJson(data: CalmNodeInterfaceSchema): CalmNodeInterface {
-        return new CalmNodeInterface(data.node, data.interfaces ?? []);
+    constructor(
+        public originalJson: CalmNodeInterfaceSchema,
+        public node: string,
+        public interfaces?: string[]
+    ) {}
+
+    static fromSchema(schema: CalmNodeInterfaceSchema): CalmNodeInterface {
+        return new CalmNodeInterface(schema, schema.node, schema.interfaces);
     }
+
+    toSchema(): CalmNodeInterfaceSchema {
+        return this.originalJson;
+    }
+
+    toCanonicalSchema(): CalmNodeInterfaceCanonicalModel {
+        return this.originalJson; // These are currently matching schemas
+    }
+
 }

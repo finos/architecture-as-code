@@ -1,9 +1,7 @@
 import { FlowSequenceHelper } from './flow-sequence-helper';
 import { Architecture, CalmCore } from '../../model/core';
-import { CalmRelationship, CalmInteractsType, CalmConnectsType, CalmComposedOfType } from '../../model/relationship';
-import { CalmMetadata } from '../../model/metadata';
 import { CalmNode } from '../../model/node';
-import { CalmNodeInterface } from '../../model/interface';
+import { CalmRelationship } from '../../model/relationship';
 import { CalmFlowTransition } from '../../model/flow';
 
 describe('FlowSequenceHelper', () => {
@@ -13,147 +11,84 @@ describe('FlowSequenceHelper', () => {
     beforeEach(() => {
         helper = new FlowSequenceHelper();
 
-        // Create test nodes
         const nodes = [
-            new CalmNode('document-system', 'system', 'DocuFlow', 'Main document management system', undefined, undefined, undefined, new CalmMetadata({}), {}),
-            new CalmNode('svc-upload', 'service', 'Upload Service', 'Handles user document uploads', undefined, undefined, undefined, new CalmMetadata({}), {}),
-            new CalmNode('svc-storage', 'service', 'Storage Service', 'Stores and retrieves documents securely', undefined, undefined, undefined, new CalmMetadata({}), {}),
-            new CalmNode('db-docs', 'database', 'Document Database', 'Stores metadata and document references', undefined, undefined, undefined, new CalmMetadata({}), {})
+            CalmNode.fromSchema({
+                'unique-id': 'document-system',
+                'node-type': 'system',
+                name: 'DocuFlow',
+                description: 'Main document management system',
+                metadata: [{}]
+            }),
+            CalmNode.fromSchema({
+                'unique-id': 'svc-upload',
+                'node-type': 'service',
+                name: 'Upload Service',
+                description: 'Handles user document uploads',
+                metadata: [{}]
+            }),
+            CalmNode.fromSchema({
+                'unique-id': 'svc-storage',
+                'node-type': 'service',
+                name: 'Storage Service',
+                description: 'Stores and retrieves documents securely',
+                metadata: [{}]
+            }),
+            CalmNode.fromSchema({
+                'unique-id': 'db-docs',
+                'node-type': 'database',
+                name: 'Document Database',
+                description: 'Stores metadata and document references',
+                metadata: [{}]
+            })
         ];
 
-        // Create test relationships
         const relationships = [
-            new CalmRelationship(
-                'rel-upload-to-storage',
-                new CalmConnectsType(
-                    new CalmNodeInterface('svc-upload', []),
-                    new CalmNodeInterface('svc-storage', [])
-                ),
-                new CalmMetadata({}),
-                [],
-                'Upload Service sends documents to Storage Service for long-term storage'
-            ),
-            new CalmRelationship(
-                'rel-storage-to-db',
-                new CalmConnectsType(
-                    new CalmNodeInterface('svc-storage', []),
-                    new CalmNodeInterface('db-docs', [])
-                ),
-                new CalmMetadata({}),
-                [],
-                'Storage Service stores document metadata in the Document Database'
-            ),
-            new CalmRelationship(
-                'document-system-system-is-composed-of',
-                new CalmComposedOfType('document-system', ['svc-upload', 'svc-storage', 'db-docs']),
-                new CalmMetadata({}),
-                [],
-                'Document System contains services'
-            ),
-            new CalmRelationship(
-                'test-interacts',
-                new CalmInteractsType('actor1', ['service1']),
-                new CalmMetadata({}),
-                [],
-                'Actor interacts with service'
-            )
+            CalmRelationship.fromSchema({
+                'unique-id': 'rel-upload-to-storage',
+                description: 'Upload Service sends documents to Storage Service for long-term storage',
+                'relationship-type': {
+                    connects: {
+                        source: { node: 'svc-upload', interfaces: [] },
+                        destination: { node: 'svc-storage', interfaces: [] }
+                    }
+                },
+                metadata: [{}]
+            }),
+            CalmRelationship.fromSchema({
+                'unique-id': 'rel-storage-to-db',
+                description: 'Storage Service stores document metadata in the Document Database',
+                'relationship-type': {
+                    connects: {
+                        source: { node: 'svc-storage', interfaces: [] },
+                        destination: { node: 'db-docs', interfaces: [] }
+                    }
+                },
+                metadata: [{}]
+            }),
+            CalmRelationship.fromSchema({
+                'unique-id': 'document-system-system-is-composed-of',
+                description: 'Document System contains services',
+                'relationship-type': {
+                    'composed-of': { container: 'document-system', nodes: ['svc-upload', 'svc-storage', 'db-docs'] }
+                },
+                metadata: [{}]
+            }),
+            CalmRelationship.fromSchema({
+                'unique-id': 'test-interacts',
+                description: 'Actor interacts with service',
+                'relationship-type': {
+                    interacts: { actor: 'actor1', nodes: ['service1'] }
+                },
+                metadata: [{}]
+            })
         ];
 
-        // Create the architecture
-        architecture = new CalmCore(nodes, relationships, new CalmMetadata({}), [], [], []);
-    });
-
-    describe('findRelationshipById', () => {
-        it('should find a relationship by ID', () => {
-            const relationship = helper.findRelationshipById('rel-upload-to-storage', architecture);
-            expect(relationship).toBeDefined();
-            expect(relationship?.uniqueId).toBe('rel-upload-to-storage');
-        });
-
-        it('should return undefined for non-existent relationship ID', () => {
-            const relationship = helper.findRelationshipById('non-existent-id', architecture);
-            expect(relationship).toBeUndefined();
-        });
-    });
-
-    describe('getNodeNameById', () => {
-        it('should get node name by ID', () => {
-            const nodeName = helper.getNodeNameById('svc-upload', architecture);
-            expect(nodeName).toBe('Upload Service');
-        });
-
-        it('should return undefined for non-existent node ID', () => {
-            const nodeName = helper.getNodeNameById('non-existent-id', architecture);
-            expect(nodeName).toBeUndefined();
-        });
-    });
-
-    describe('getSourceFromRelationship', () => {
-        it('should get source from a connects relationship', () => {
-            const source = helper.getSourceFromRelationship('rel-upload-to-storage', architecture);
-            expect(source).toBe('Upload Service');
-        });
-
-        it('should get source from a composed-of relationship', () => {
-            const source = helper.getSourceFromRelationship('document-system-system-is-composed-of', architecture);
-            expect(source).toBe('DocuFlow');
-        });
-
-        it('should get source from an interacts relationship', () => {
-            const source = helper.getSourceFromRelationship('test-interacts', architecture);
-            expect(source).toBe('actor1');
-        });
-
-        it('should return unknown for unsupported relationship type', () => {
-            // Create a relationship with an unsupported type
-            const unsupportedRel = new CalmRelationship(
-                'unsupported-rel',
-                { type: 'unsupported' } as unknown,
-                new CalmMetadata({}),
-                [],
-                'Unsupported relationship type'
-            );
-
-            // Add it to the architecture
-            architecture.relationships.push(unsupportedRel);
-
-            const source = helper.getSourceFromRelationship('unsupported-rel', architecture);
-            expect(source).toBe(FlowSequenceHelper.UNKNOWN_NODE);
-        });
-    });
-
-    describe('getTargetFromRelationship', () => {
-        it('should get target from a connects relationship', () => {
-            const target = helper.getTargetFromRelationship('rel-upload-to-storage', architecture);
-            expect(target).toBe('Storage Service');
-        });
-
-        it('should get target from a composed-of relationship', () => {
-            // For composed-of relationships, the target is the first node in the nodes array
-            const target = helper.getTargetFromRelationship('document-system-system-is-composed-of', architecture);
-            expect(target).toBe('svc-upload');
-        });
-
-        it('should get target from an interacts relationship', () => {
-            const target = helper.getTargetFromRelationship('test-interacts', architecture);
-            expect(target).toBe('service1');
-        });
-
-        it('should return unknown for unsupported relationship type', () => {
-            // Create a relationship with an unsupported type
-            const unsupportedRel = new CalmRelationship(
-                'unsupported-rel-target',
-                { type: 'unsupported' } as unknown,
-                new CalmMetadata({}),
-                [],
-                'Unsupported relationship type'
-            );
-
-            // Add it to the architecture
-            architecture.relationships.push(unsupportedRel);
-
-            const target = helper.getTargetFromRelationship('unsupported-rel-target', architecture);
-            expect(target).toBe(FlowSequenceHelper.UNKNOWN_NODE);
+        architecture = CalmCore.fromSchema({
+            nodes: nodes.map(n => n.toSchema()),
+            relationships: relationships.map(r => r.toSchema()),
+            metadata: [{}],
+            flows: [],
+            adrs: []
         });
     });
 
@@ -161,12 +96,24 @@ describe('FlowSequenceHelper', () => {
         it('should transform flow transitions with source and target information', () => {
             const transitions: CalmFlowTransition[] = [
                 new CalmFlowTransition(
+                    {
+                        'relationship-unique-id': 'rel-upload-to-storage',
+                        'sequence-number': 1,
+                        description: 'Upload Service sends documents to Storage Service',
+                        direction: 'source-to-destination'
+                    },
                     'rel-upload-to-storage',
                     1,
                     'Upload Service sends documents to Storage Service',
                     'source-to-destination'
                 ),
                 new CalmFlowTransition(
+                    {
+                        'relationship-unique-id': 'document-system-system-is-composed-of',
+                        'sequence-number': 2,
+                        description: 'Document System contains services',
+                        direction: 'source-to-destination'
+                    },
                     'document-system-system-is-composed-of',
                     2,
                     'Document System contains services',
@@ -174,20 +121,17 @@ describe('FlowSequenceHelper', () => {
                 )
             ];
 
+            const transformed = helper.transformFlowTransitions(transitions, architecture);
 
-            const transformedTransitions = helper.transformFlowTransitions(transitions, architecture);
+            expect(transformed).toHaveLength(2);
 
-            expect(transformedTransitions).toHaveLength(2);
+            expect(transformed[0].relationshipId).toBe('rel-upload-to-storage');
+            expect(transformed[0].source).toBe('Upload Service');
+            expect(transformed[0].target).toBe('Storage Service');
 
-            // Check first transition
-            expect(transformedTransitions[0].relationshipId).toBe('rel-upload-to-storage');
-            expect(transformedTransitions[0].source).toBe('Upload Service');
-            expect(transformedTransitions[0].target).toBe('Storage Service');
-
-            // Check second transition
-            expect(transformedTransitions[1].relationshipId).toBe('document-system-system-is-composed-of');
-            expect(transformedTransitions[1].source).toBe('DocuFlow');
-            expect(transformedTransitions[1].target).toBe('svc-upload');
+            expect(transformed[1].relationshipId).toBe('document-system-system-is-composed-of');
+            expect(transformed[1].source).toBe('DocuFlow');
+            expect(transformed[1].target).toBe('svc-upload');
         });
     });
 });

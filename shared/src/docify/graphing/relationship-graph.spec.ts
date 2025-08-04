@@ -1,39 +1,36 @@
 import { CalmRelationshipGraph } from './relationship-graph.js';
-import { CalmRelationship, CalmInteractsType, CalmConnectsType, CalmDeployedInType, CalmComposedOfType } from '../../model/relationship';
-import { CalmMetadata } from '../../model/metadata';
+import { CalmRelationship } from '../../model/relationship';
+
 
 describe('CalmRelationshipGraph', () => {
-    const interactsRel = new CalmRelationship(
-        'rel1',
-        new CalmInteractsType('actor1', ['service1']),
-        new CalmMetadata({}),
-        [],
-        'actor1 interacts with service1'
-    );
+    // Use CalmRelationshipSchema and .fromSchema for model consistency
+    const interactsRel = CalmRelationship.fromSchema({
+        'unique-id': 'rel1',
+        description: 'actor1 interacts with service1',
+        'relationship-type': { interacts: { actor: 'actor1', nodes: ['service1'] } },
+        metadata: {},
+    });
 
-    const connectsRel = new CalmRelationship(
-        'rel2',
-        new CalmConnectsType({ node: 'service2', interfaces: [] }, { node: 'actor2', interfaces: [] }),
-        new CalmMetadata({}),
-        [],
-        'service2 connects to actor2'
-    );
+    const connectsRel = CalmRelationship.fromSchema({
+        'unique-id': 'rel2',
+        description: 'service2 connects to actor2',
+        'relationship-type': { connects: { source: { node: 'service2', interfaces: [] }, destination: { node: 'actor2', interfaces: [] } } },
+        metadata: {},
+    });
 
-    const deployedInRel = new CalmRelationship(
-        'rel3',
-        new CalmDeployedInType('container1', ['node1', 'node2']),
-        new CalmMetadata({}),
-        [],
-        'container1 deployed in node1 and node2'
-    );
+    const deployedInRel = CalmRelationship.fromSchema({
+        'unique-id': 'rel3',
+        description: 'container1 deployed in node1 and node2',
+        'relationship-type': { 'deployed-in': { container: 'container1', nodes: ['node1', 'node2'] } },
+        metadata: {},
+    });
 
-    const composedOfRel = new CalmRelationship(
-        'rel4',
-        new CalmComposedOfType('composed1', ['nodeA', 'nodeB']),
-        new CalmMetadata({}),
-        [],
-        'composed1 is composed of nodeA and nodeB'
-    );
+    const composedOfRel = CalmRelationship.fromSchema({
+        'unique-id': 'rel4',
+        description: 'composed1 is composed of nodeA and nodeB',
+        'relationship-type': { 'composed-of': { container: 'composed1', nodes: ['nodeA', 'nodeB'] } },
+        metadata: {},
+    });
 
     const relationships = [interactsRel, connectsRel, deployedInRel, composedOfRel];
     const graph = new CalmRelationshipGraph(relationships);

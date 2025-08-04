@@ -1,7 +1,4 @@
 {
-  "$id": "docuflow-architecture",
-  "title": "DocuFlow System",
-  "description": "DocuFlow is a document management system that allows users to upload, process, and store documents securely.",
   "nodes": [
     {
       "unique-id": "document-system",
@@ -72,6 +69,29 @@
     }
   ],
   "flows": [
-    "https://calm.finos.org/docuflow/flow/document-upload"
-  ]
+    {
+      "$schema": "https://calm.finos.org/draft/2024-12/meta/flow.json",
+      "$id": "https://calm.finos.org/docuflow/flow/document-upload",
+      "unique-id": "flow-document-upload",
+      "name": "Document Upload Flow",
+      "description": "Flow for uploading a document and storing metadata securely in the DocuFlow system.",
+      "transitions": [
+        {
+          "relationship-unique-id": "rel-upload-to-storage",
+          "sequence-number": 1,
+          "description": "Upload Service sends document to Storage Service"
+        },
+        {
+          "relationship-unique-id": "rel-storage-to-db",
+          "sequence-number": 2,
+          "description": "Storage Service stores document metadata in Document Database"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "id": "docuflow-architecture",
+    "title": "DocuFlow System",
+    "description": "DocuFlow is a document management system that allows users to upload, process, and store documents securely."
+  }
 }

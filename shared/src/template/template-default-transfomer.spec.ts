@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import TemplateDefaultTransformer from './template-default-transformer';
+import {CalmCore} from '../model/core';
 
 describe('TemplateDefaultTransformer', () => {
     const transformer = new TemplateDefaultTransformer();
@@ -40,7 +41,7 @@ describe('TemplateDefaultTransformer', () => {
     );
 
     it('should transform a Payment Gateway CALM document with two nodes and one relationship', () => {
-        const result = transformer.getTransformedModel(paymentGatewayJson);
+        const result = transformer.getTransformedModel(CalmCore.fromSchema(JSON.parse(paymentGatewayJson)));
 
         expect(result).toHaveProperty('document');
         const doc = result.document;
@@ -72,6 +73,6 @@ describe('TemplateDefaultTransformer', () => {
 
     it('should throw for invalid JSON input', () => {
         const invalidJson = '{ invalid json }';
-        expect(() => transformer.getTransformedModel(invalidJson)).toThrow();
+        expect(() => transformer.getTransformedModel(CalmCore.fromSchema(JSON.parse(invalidJson)))).toThrow();
     });
 });

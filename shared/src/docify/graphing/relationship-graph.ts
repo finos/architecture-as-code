@@ -6,7 +6,6 @@ import {
     CalmRelationship
 } from '../../model/relationship.js';
 
-
 export class CalmRelationshipGraph {
     private adjacencyList: Map<string, Set<string>> = new Map();
     private relationships: CalmRelationship[];
@@ -18,14 +17,29 @@ export class CalmRelationshipGraph {
 
     private buildGraph(relationships: CalmRelationship[]) {
         relationships.forEach(rel => {
-            if (rel.relationshipType instanceof CalmInteractsType) {
-                this.addEdge(rel.relationshipType.actor, rel.relationshipType.nodes);
-            } else if (rel.relationshipType instanceof CalmConnectsType) {
-                this.addEdge(rel.relationshipType.source.node, [rel.relationshipType.destination.node]);
-            } else if (rel.relationshipType instanceof CalmDeployedInType) {
-                this.addEdge(rel.relationshipType.container, rel.relationshipType.nodes);
-            } else if (rel.relationshipType instanceof CalmComposedOfType) {
-                this.addEdge(rel.relationshipType.container, rel.relationshipType.nodes);
+            const relType = rel.relationshipType;
+
+            switch (relType.kind) {
+            case 'interacts': {
+                const t = relType as CalmInteractsType;
+                this.addEdge(t.actor, t.nodes);
+                break;
+            }
+            case 'connects': {
+                const t = relType as CalmConnectsType;
+                this.addEdge(t.source.node, [t.destination.node]);
+                break;
+            }
+            case 'deployed-in': {
+                const t = relType as CalmDeployedInType;
+                this.addEdge(t.container, t.nodes);
+                break;
+            }
+            case 'composed-of': {
+                const t = relType as CalmComposedOfType;
+                this.addEdge(t.container, t.nodes);
+                break;
+            }
             }
         });
     }
@@ -39,7 +53,7 @@ export class CalmRelationshipGraph {
             if (!this.adjacencyList.has(dest)) {
                 this.adjacencyList.set(dest, new Set());
             }
-            this.adjacencyList.get(dest)!.add(source); // Making the graph bidirectional
+            this.adjacencyList.get(dest)!.add(source); // bidirectional
         });
     }
 
@@ -78,16 +92,25 @@ export class CalmRelationshipGraph {
 
     public getRelatedRelationships(node: string): CalmRelationship[] {
         return this.relationships.filter(rel => {
-            if (rel.relationshipType instanceof CalmInteractsType) {
-                return rel.relationshipType.actor === node || rel.relationshipType.nodes.includes(node);
-            } else if (rel.relationshipType instanceof CalmConnectsType) {
-                return rel.relationshipType.source.node === node || rel.relationshipType.destination.node === node;
-            } else if (rel.relationshipType instanceof CalmDeployedInType) {
-                return rel.relationshipType.container === node || rel.relationshipType.nodes.includes(node);
-            } else if (rel.relationshipType instanceof CalmComposedOfType) {
-                return rel.relationshipType.container === node || rel.relationshipType.nodes.includes(node);
+            const relType = rel.relationshipType;
+
+            switch (relType.kind) {
+            case 'interacts': {
+                const t = relType as CalmInteractsType;
+                return t.actor === node || t.nodes.includes(node);
             }
-            return false;
+            case 'connects': {
+                const t = relType as CalmConnectsType;
+                return t.source.node === node || t.destination.node === node;
+            }
+            case 'deployed-in':
+            case 'composed-of': {
+                const t = relType as CalmDeployedInType | CalmComposedOfType;
+                return t.container === node || t.nodes.includes(node);
+            }
+            default:
+                return false;
+            }
         });
     }
 }
