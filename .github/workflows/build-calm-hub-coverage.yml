@@ -1,4 +1,6 @@
 name: Build Calm Hub For Unit Test Coverage
+permissions:
+  contents: read
 
 on:
   pull_request:
