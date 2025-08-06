@@ -15,15 +15,15 @@ const integrationTestPrefix = 'calm-consumer-test';
 let tempDir: string;
 const repoRoot = path.resolve(__dirname);
 
-function run(command: string) {
-    const cp = execa(command, { cwd: tempDir, shell: true });
+function run(file: string, args: string[]) {
+    const cp = execa(file, args, { cwd: tempDir });
     cp.stdout?.pipe(process.stdout);
     cp.stderr?.pipe(process.stderr);
     return cp;
 }
 
-function calm(cmd: string): string {
-    return `${path.join(tempDir, 'node_modules/.bin/calm')} ${cmd}`;
+function calm(): string {
+    return path.join(tempDir, 'node_modules/.bin/calm');
 }
 
 describe('CLI Integration Tests', () => {
@@ -306,9 +306,14 @@ describe('CLI Integration Tests', () => {
         const outputFile = path.join(outputDir, 'cli-e2e-output.html');
 
         await run(
-            calm(
-                `template --input ${testModelPath} --bundle ${templateBundlePath} --output ${outputDir} --url-to-local-file-mapping ${localDirectory}`
-            )
+            calm(),
+            [
+                'template',
+                '--input', testModelPath,
+                '--bundle', templateBundlePath,
+                '--output', outputDir,
+                '--url-to-local-file-mapping', localDirectory
+            ]
         );
 
         expect(fs.existsSync(outputFile)).toBe(true);
