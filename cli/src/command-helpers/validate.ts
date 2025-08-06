@@ -1,4 +1,4 @@
-import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome } from '@finos/calm-shared';
+import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, SchemaDirectory } from '@finos/calm-shared';
 import { initLogger } from '@finos/calm-shared';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
@@ -31,9 +31,9 @@ export async function runValidate(options: ValidateOptions) {
             options.architecturePath,
             options.patternPath,
             docLoader,
+            schemaDirectory,
             logger
         );
-
         const outcome = await validate(architecture, pattern, schemaDirectory, options.verbose);
         const content = getFormattedOutput(outcome, options.outputFormat);
         writeOutputFile(options.outputPath, content);
@@ -47,7 +47,7 @@ export async function runValidate(options: ValidateOptions) {
 }
 
 // Update loadArchitectureAndPattern and helpers to use DocumentLoader type
-async function loadArchitectureAndPattern(architecturePath: string, patternPath: string, docLoader: DocumentLoader, logger: Logger): Promise<{ architecture: object, pattern: object }> {
+async function loadArchitectureAndPattern(architecturePath: string, patternPath: string, docLoader: DocumentLoader, schemaDirectory: SchemaDirectory, logger: Logger): Promise<{ architecture: object, pattern: object }> {
     const architecture = await loadArchitecture(architecturePath, docLoader, logger);
     if (!architecture) {
         // we have already validated that at least one of the options is provided, so pattern must be set
@@ -60,12 +60,20 @@ async function loadArchitectureAndPattern(architecturePath: string, patternPath:
         return { architecture, pattern };
     }
     // architecture is set, but pattern is not; try to load pattern from architecture if present 
-    return { architecture, pattern: await loadPatternFromArchitectureIfPresent(architecture, docLoader, logger) };
+    return { architecture, pattern: await loadPatternFromArchitectureIfPresent(architecture, docLoader, schemaDirectory, logger) };
 }
 
-async function loadPatternFromArchitectureIfPresent(architecture: object, docLoader: DocumentLoader, logger: Logger): Promise<object> {
+async function loadPatternFromArchitectureIfPresent(architecture: object, docLoader: DocumentLoader, schemaDirectory: SchemaDirectory, logger: Logger): Promise<object> {
     if (!architecture || !architecture['$schema']) {
         return;
+    }
+    try {
+        const schema = schemaDirectory.getSchema(architecture['$schema']);
+        logger.debug(`Loaded schema from architecture: ${architecture['$schema']}`);
+        return schema;
+    }
+    catch (err) {
+        logger.debug(`Trying to load pattern from architecture schema: ${architecture['$schema']}`);
     }
     const pattern = docLoader.loadMissingDocument(architecture['$schema'], 'pattern');
     logger.debug(`Loaded pattern from architecture schema: ${architecture['$schema']}`);
