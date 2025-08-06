@@ -1,31 +1,34 @@
 name: Build Docs
 
+permissions:
+    contents: read
+
 on:
-  pull_request:
-    branches:
-      - "main"
-  push:
-    branches:
-      - "main"
+    pull_request:
+        branches:
+            - 'main'
+    push:
+        branches:
+            - 'main'
 
 jobs:
-  docs:
-    name: Build Docs Module
-    runs-on: ubuntu-latest
+    docs:
+        name: Build Docs Module
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout PR Branch
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout PR Branch
+              uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: v22
-          cache: npm
-          cache-dependency-path: package-lock.json
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: v22
+                  cache: npm
+                  cache-dependency-path: package-lock.json
 
-      - name: Install workspace
-        run: npm ci
+            - name: Install workspace
+              run: npm ci
 
-      - name: Build Docs
-        run: npm run build:docs
+            - name: Build Docs
+              run: npm run build:docs
