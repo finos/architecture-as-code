@@ -1,4 +1,6 @@
 name: Validation of CALM Samples
+permissions:
+  contents: read
 
 on:
   pull_request:
