@@ -12,7 +12,7 @@
         "build": "npm run build --workspaces --if-present",
         "build:cli": "npm run build --workspace shared --workspace cli",
         "build:shared": "npm run build --workspace shared",
-        "build:docs": "npm run build --workspace docs",
+        "build:docs": "npm run build:cli && npm run build --workspace docs",
         "test": "npm run test --workspaces --if-present",
         "test:cli": "npm run build:cli && npm run test --workspace cli",
         "test:shared": "npm run build:shared && npm run test --workspace shared",

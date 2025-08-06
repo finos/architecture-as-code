@@ -69,6 +69,14 @@ const config = {
                 routeBasePath: 'quick-start',
             }
         ],
+        [
+            '@docusaurus/plugin-content-docs',
+            {
+                id: 'calm-as-calm',
+                path: 'build-arch/calm-as-calm/docs',
+                routeBasePath: 'calm-as-calm',
+            }
+        ],
     ],
 
     themeConfig:
