@@ -35,7 +35,8 @@ describe('Docifier', () => {
             expect.stringContaining('template-bundles/docusaurus'),
             outputPath,
             urlToLocalPathMapping,
-            'bundle'
+            'bundle',
+            false
         );
         expect(processTemplateMock).toHaveBeenCalled();
     });
@@ -69,7 +70,8 @@ describe('Docifier', () => {
             customTemplatePath,
             outputPath,
             urlToLocalPathMapping,
-            'template-directory'
+            'template-directory',
+            true
         );
 
         expect(processTemplateMock).toHaveBeenCalled();
@@ -88,5 +90,66 @@ describe('Docifier', () => {
 
         expect(calledInput).toBe(inputPath);
         expect(calledTemplatePath).toMatch(/template-bundles\/docusaurus/);
+    });
+
+    describe('widget engine support', () => {
+        it('should enable widget engine for all modes except WEBSITE', async () => {
+            const processTemplateMock = vi.fn().mockResolvedValue(undefined);
+            MockedTemplateProcessor.mockImplementation(() => ({
+                processTemplate: processTemplateMock,
+            }));
+
+            // Test WEBSITE mode - should disable widget engine (supportWidgetEngine = false)
+            const docifierWebsite = new Docifier('WEBSITE', inputPath, outputPath, urlToLocalPathMapping);
+            await docifierWebsite.docify();
+
+            expect(MockedTemplateProcessor).toHaveBeenCalledWith(
+                inputPath,
+                expect.stringContaining('template-bundles/docusaurus'),
+                outputPath,
+                urlToLocalPathMapping,
+                'bundle',
+                false // supportWidgetEngine should be false for WEBSITE mode
+            );
+
+            vi.clearAllMocks();
+
+            // Test USER_PROVIDED mode - should enable widget engine (supportWidgetEngine = true)
+            // Need to provide templatePath for USER_PROVIDED mode
+            const customTemplatePath = '/custom/template/path';
+            const docifierUserProvided = new Docifier('USER_PROVIDED', inputPath, outputPath, urlToLocalPathMapping, 'bundle', customTemplatePath);
+            await docifierUserProvided.docify();
+
+            expect(MockedTemplateProcessor).toHaveBeenCalledWith(
+                inputPath,
+                customTemplatePath,
+                outputPath,
+                urlToLocalPathMapping,
+                'bundle',
+                true // supportWidgetEngine should be true for USER_PROVIDED mode
+            );
+        });
+
+        it('should include TODO comment logic for widget engine decision', async () => {
+            const processTemplateMock = vi.fn().mockResolvedValue(undefined);
+            MockedTemplateProcessor.mockImplementation(() => ({
+                processTemplate: processTemplateMock,
+            }));
+
+            // This test verifies the logic: supportWidgetEngine = mode !== 'WEBSITE'
+            const docifier = new Docifier('WEBSITE', inputPath, outputPath, urlToLocalPathMapping);
+            await docifier.docify();
+
+            // For WEBSITE mode, supportWidgetEngine should be false due to the comment:
+            // "TODO: need to move docifier and graphing package to widget framework. Until then widgets will clash"
+            expect(MockedTemplateProcessor).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.any(String),
+                expect.any(String),
+                expect.any(Map),
+                expect.any(String),
+                false // This reflects the TODO comment about widget clashing
+            );
+        });
     });
 });

@@ -1,0 +1,29 @@
+{
+  "architecture": {
+    "services": {
+      "frontend": {
+        "type": "web-app",
+        "framework": "React",
+        "dependencies": ["auth-service", "api-gateway"]
+      },
+      "backend": {
+        "type": "api",
+        "framework": "Spring Boot",
+        "database": {
+          "type": "PostgreSQL",
+          "version": "13.0",
+          "replicas": 2
+        }
+      }
+    },
+    "deployment": {
+      "platform": "Kubernetes",
+      "replicas": 3,
+      "resources": {
+        "cpu": "500m",
+        "memory": "1Gi"
+      }
+    }
+  }
+}
+

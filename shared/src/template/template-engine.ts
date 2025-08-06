@@ -5,7 +5,8 @@ import {ITemplateBundleLoader} from './template-bundle-file-loader.js';
 import { initLogger } from '../logger.js';
 import fs from 'fs';
 import path from 'path';
-
+import {TemplatePathExtractor} from './template-path-extractor.js';
+import {TemplatePreprocessor} from './template-preprocessor.js';
 
 export class TemplateEngine {
     private readonly templates: Record<string, Handlebars.TemplateDelegate>;
@@ -25,7 +26,9 @@ export class TemplateEngine {
         const compiledTemplates: Record<string, Handlebars.TemplateDelegate> = {};
 
         for (const [fileName, content] of Object.entries(templateFiles)) {
-            compiledTemplates[fileName] = Handlebars.compile(content);
+            const preprocessed = TemplatePreprocessor.preprocessTemplate(content);
+            logger.info(preprocessed);
+            compiledTemplates[fileName] = Handlebars.compile(preprocessed);
         }
 
         logger.info(`✅ Compiled ${Object.keys(compiledTemplates).length} Templates`);
@@ -37,6 +40,15 @@ export class TemplateEngine {
         logger.info('🔧 Registering Handlebars Helpers...');
 
         const helperFunctions = this.transformer.registerTemplateHelpers();
+
+        Handlebars.registerHelper('convertFromDotNotation', (context: unknown, path: string, options?: any) => {
+            try {
+                return TemplatePathExtractor.convertFromDotNotation(context, path, options?.hash || {});
+            } catch (err) {
+                logger.warn(`Failed to convert from DotNotation path "${path}": ${(err as Error).message}`);
+                return [];
+            }
+        });
 
         Object.entries(helperFunctions).forEach(([name, fn]) => {
             Handlebars.registerHelper(name, fn);

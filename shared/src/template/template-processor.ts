@@ -15,6 +15,8 @@ import {pathToFileURL} from 'node:url';
 import TemplateDefaultTransformer from './template-default-transformer';
 import {CalmCore} from '../model/core';
 import {DereferencingVisitor} from '../model-visitor/dereference-visitor';
+import { WidgetEngine, WidgetRegistry } from '@finos/calm-widgets';
+import Handlebars from 'handlebars';
 
 export type TemplateProcessingMode = 'template' | 'template-directory' | 'bundle';
 
@@ -25,13 +27,15 @@ export class TemplateProcessor {
     private readonly urlToLocalPathMapping:Map<string, string>;
     private readonly mode: TemplateProcessingMode;
     private static logger = initLogger(process.env.DEBUG === 'true', TemplateProcessor.name);
+    private readonly supportWidgetEngine: boolean;
 
-    constructor(inputPath: string, templateBundlePath: string, outputPath: string, urlToLocalPathMapping:Map<string,string>, mode: TemplateProcessingMode = 'bundle') {
+    constructor(inputPath: string, templateBundlePath: string, outputPath: string, urlToLocalPathMapping:Map<string,string>, mode: TemplateProcessingMode = 'bundle', supportWidgetEngine: boolean = false) {
         this.inputPath = inputPath;
         this.templateBundlePath = templateBundlePath;
         this.outputPath = outputPath;
         this.urlToLocalPathMapping = urlToLocalPathMapping;
         this.mode = mode;
+        this.supportWidgetEngine = supportWidgetEngine;
     }
 
     public async processTemplate(): Promise<void> {
@@ -62,6 +66,12 @@ export class TemplateProcessor {
         }
 
         const config = loader.getConfig();
+
+        if(this.supportWidgetEngine === true) {
+            //TODO: Handlebars supports local instance. Ideally to make testable we should use a local instance of Handlebars and inject dependency.
+            const widgetEngine = new WidgetEngine(Handlebars, new WidgetRegistry(Handlebars));
+            widgetEngine.registerDefaultWidgets();
+        }
 
         try {
             this.cleanOutputDirectory(resolvedOutputPath);

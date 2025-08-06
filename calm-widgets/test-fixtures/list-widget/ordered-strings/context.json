@@ -1,0 +1,9 @@
+{
+  "steps": [
+    "Initialize the application",
+    "Load configuration",
+    "Connect to database",
+    "Start web server"
+  ]
+}
+

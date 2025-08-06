@@ -40,7 +40,6 @@ describe('CLI Integration Tests', () => {
         const targetTarball = path.join(tempDir, tgzName);
         fs.renameSync(sourceTarball, targetTarball);
 
-        // Create clean test consumer
         execSync('npm init -y', { cwd: tempDir, stdio: 'inherit' });
         execSync(`npm install ${targetTarball}`, {
             cwd: tempDir,
@@ -50,7 +49,7 @@ describe('CLI Integration Tests', () => {
 
     afterAll(() => {
         if (tempDir) {
-            fs.rmSync(tempDir, { recursive: true, force: true });
+            //rs.rmSync(tempDir, { recursive: true, force: true });
         }
     });
 
@@ -409,6 +408,47 @@ describe('CLI Integration Tests', () => {
         );
 
         await expectDirectoryMatch(expectedOutputDir, actualOutputDir);
+    });
+
+
+    describe('calm docify command - widget rendering', () => {
+        function runTemplateWidgetTest(templateName: string, outputName: string) {
+            return async () => {
+
+                const GETTING_STARTED_TEST_FIXTURES_DIR = join(
+                    __dirname,
+                    '../../cli/test_fixtures/getting-started'
+                );
+
+                const testModelPath = path.resolve(
+                    GETTING_STARTED_TEST_FIXTURES_DIR,
+                    'STEP-3/conference-signup-with-flow.arch.json'
+                );
+
+                const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
+                const templatePath = path.join(fixtureDir, `widget-tests/${templateName}`);
+                const expectedOutputPath = path.join(fixtureDir, `expected-output/widget-tests/${outputName}`);
+                const outputDir = path.join(tempDir, 'widget-tests');
+                const outputFile = path.join(outputDir, outputName);
+
+                await run(
+                    calm(), ['docify', '--input', testModelPath, '--template', templatePath, '--output', outputFile]
+                );
+
+                expect(fs.existsSync(outputFile)).toBe(true);
+                const actual = fs.readFileSync(outputFile, 'utf8').trim();
+                const expected = fs.readFileSync(expectedOutputPath, 'utf8').trim();
+                expect(actual).toEqual(expected);
+            };
+        }
+
+        test('template command works with table widget', runTemplateWidgetTest('table-test.hbs', 'table-test.md'));
+
+        test('template command works with list widget', runTemplateWidgetTest('list-test.hbs', 'list-test.md'));
+
+        test('A user can render a json view their document or parts of their document', runTemplateWidgetTest('json-viewer-test.hbs', 'json-viewer-test.md'));
+
+        test('A user can render a SAD document', runTemplateWidgetTest('sad-test.hbs', 'sad-test.md'));
     });
 
 
