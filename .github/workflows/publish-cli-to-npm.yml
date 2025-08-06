@@ -1,35 +1,37 @@
 name: Publish CLI to NPM
 
+permissions:
+    contents: read
+
 on:
-  release:
-    types: [published]
+    release:
+        types: [published]
 
 jobs:
-  publish-cli:
-    runs-on: ubuntu-latest
-    steps:
+    publish-cli:
+        runs-on: ubuntu-latest
+        steps:
+            # Checkout the code
+            - name: Checkout code
+              uses: actions/checkout@v4
 
-      # Checkout the code
-      - name: Checkout code
-        uses: actions/checkout@v4
+            # Set up Node.js
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: v22
+                  registry-url: 'https://registry.npmjs.org'
 
-      # Set up Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: v22
-          registry-url: "https://registry.npmjs.org"
+            # Install the workspace
+            - name: Install workspace
+              run: npm ci
 
-      # Install the workspace
-      - name: Install workspace
-        run: npm ci
+            # Build the entire workspace
+            - name: Build workspace
+              run: npm run build
 
-      # Build the entire workspace
-      - name: Build workspace
-        run: npm run build
-
-      # Publish the CLI module
-      - name: Publish CLI module
-        run: npm publish --workspace cli
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+            # Publish the CLI module
+            - name: Publish CLI module
+              run: npm publish --workspace cli
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

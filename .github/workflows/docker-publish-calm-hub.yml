@@ -1,77 +1,80 @@
 name: Docker Publish Calm Hub
 
+permissions:
+    contents: read
+
 on:
-  # Only manual trigger from GitHub UI
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Image tag (default: latest)'
-        required: false
-        default: 'latest'
+    # Only manual trigger from GitHub UI
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: 'Image tag (default: latest)'
+                required: false
+                default: 'latest'
 
 jobs:
-  build-and-push:
-    name: Build and Push Multi-Arch Docker Image
-    runs-on: ubuntu-latest
-    
-    steps:
-      # Step 1: Checkout the repository
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-      # Step 2: Set up JDK
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-      
-      # Step 3: Cache Maven Dependencies
-      - name: Cache Maven Dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('calm-hub/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-m2-
-      
-      # Step 4: Build the application with Maven
-      - name: Build with Maven
-        working-directory: calm-hub
-        run: mvn -P integration clean package
-      
-      # Step 5: Set up Docker Buildx for multi-architecture builds
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      
-      # Step 6: Login to Docker Hub
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      
-      # Step 7: Extract metadata for Docker
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ secrets.DOCKER_USERNAME }}/calm-hub
-          tags: |
-            type=raw,value=${{ github.event.inputs.tag || 'latest' }}
-            type=sha,format=short
-            type=ref,event=branch
-            type=ref,event=tag
-      
-      # Step 8: Build and push Docker image
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: calm-hub
-          file: calm-hub/src/main/docker/Dockerfile.jvm
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+    build-and-push:
+        name: Build and Push Multi-Arch Docker Image
+        runs-on: ubuntu-latest
+
+        steps:
+            # Step 1: Checkout the repository
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            # Step 2: Set up JDK
+            - name: Set up JDK
+              uses: actions/setup-java@v4
+              with:
+                  distribution: 'temurin'
+                  java-version: '21'
+
+            # Step 3: Cache Maven Dependencies
+            - name: Cache Maven Dependencies
+              uses: actions/cache@v4
+              with:
+                  path: ~/.m2
+                  key: ${{ runner.os }}-m2-${{ hashFiles('calm-hub/pom.xml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-m2-
+
+            # Step 4: Build the application with Maven
+            - name: Build with Maven
+              working-directory: calm-hub
+              run: mvn -P integration clean package
+
+            # Step 5: Set up Docker Buildx for multi-architecture builds
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            # Step 6: Login to Docker Hub
+            - name: Login to Docker Hub
+              uses: docker/login-action@v3
+              with:
+                  username: ${{ secrets.DOCKER_USERNAME }}
+                  password: ${{ secrets.DOCKER_PASSWORD }}
+
+            # Step 7: Extract metadata for Docker
+            - name: Extract Docker metadata
+              id: meta
+              uses: docker/metadata-action@v5
+              with:
+                  images: ${{ secrets.DOCKER_USERNAME }}/calm-hub
+                  tags: |
+                      type=raw,value=${{ github.event.inputs.tag || 'latest' }}
+                      type=sha,format=short
+                      type=ref,event=branch
+                      type=ref,event=tag
+
+            # Step 8: Build and push Docker image
+            - name: Build and push
+              uses: docker/build-push-action@v6
+              with:
+                  context: calm-hub
+                  file: calm-hub/src/main/docker/Dockerfile.jvm
+                  platforms: linux/amd64,linux/arm64
+                  push: true
+                  tags: ${{ steps.meta.outputs.tags }}
+                  labels: ${{ steps.meta.outputs.labels }}
+                  cache-from: type=gha
+                  cache-to: type=gha,mode=max

@@ -1,35 +1,38 @@
 name: Build Shared
 
+permissions:
+    contents: read
+
 on:
-  pull_request:
-    branches:
-      - "main"
-  push:
-    branches:
-      - "main"
+    pull_request:
+        branches:
+            - 'main'
+    push:
+        branches:
+            - 'main'
 
 jobs:
-  shared:
-    name: Build, Test, and Lint Shared Module
-    runs-on: ubuntu-latest
+    shared:
+        name: Build, Test, and Lint Shared Module
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout PR Branch
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout PR Branch
+              uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: v22
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: v22
 
-      - name: Install workspace
-        run: npm ci
+            - name: Install workspace
+              run: npm ci
 
-      - name: Lint Shared Module
-        run: npm run lint --workspace=shared
+            - name: Lint Shared Module
+              run: npm run lint --workspace=shared
 
-      - name: Build workspace
-        run: npm run build --workspace=shared
+            - name: Build workspace
+              run: npm run build --workspace=shared
 
-      - name: Run tests with coverage for Shared
-        run: npm run test --workspace=shared
+            - name: Run tests with coverage for Shared
+              run: npm run test --workspace=shared

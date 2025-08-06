@@ -1,18 +1,22 @@
 name: PR Labeler
 
+permissions:
+    contents: read
+    pull-requests: write
+
 on:
-  pull_request_target:
-    types: [opened, synchronize]
+    pull_request_target:
+        types: [opened, synchronize]
 
 jobs:
-  label:
-    runs-on: ubuntu-latest
+    label:
+        runs-on: ubuntu-latest
 
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-    - name: Label PR based on changes
-      uses: actions/labeler@v4
-      with:
-        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+            - name: Label PR based on changes
+              uses: actions/labeler@v4
+              with:
+                  repo-token: '${{ secrets.GITHUB_TOKEN }}'
