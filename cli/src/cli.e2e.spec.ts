@@ -15,15 +15,15 @@ const integrationTestPrefix = 'calm-consumer-test';
 let tempDir: string;
 const repoRoot = path.resolve(__dirname);
 
-function run(command: string) {
-    const cp = execa(command, { cwd: tempDir, shell: true });
+function run(file: string, args: string[]) {
+    const cp = execa(file, args, { cwd: tempDir });
     cp.stdout?.pipe(process.stdout);
     cp.stderr?.pipe(process.stderr);
     return cp;
 }
 
-function calm(cmd: string): string {
-    return `${path.join(tempDir, 'node_modules/.bin/calm')} ${cmd}`;
+function calm(): string {
+    return path.join(tempDir, 'node_modules/.bin/calm');
 }
 
 describe('CLI Integration Tests', () => {
@@ -55,19 +55,19 @@ describe('CLI Integration Tests', () => {
     });
 
     test('calm --version works', async () => {
-        const { stdout } = await run(calm('--version'));
+        const { stdout } = await run(calm(), ['--version']);
         expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
     });
 
     test('shows help if no arguments provided', async () => {
-        await expect(run(calm(''))).rejects.toHaveProperty(
+        await expect(run(calm(), [])).rejects.toHaveProperty(
             'stderr',
             expect.stringContaining('Usage:')
         );
     });
 
     test('calm -h shows help', async () => {
-        const { stdout } = await run(calm('-h'));
+        const { stdout } = await run(calm(), ['-h']);
         expect(stdout).toContain(
             'A set of tools for interacting with the Common Architecture Language Model'
         );
@@ -75,7 +75,7 @@ describe('CLI Integration Tests', () => {
     });
 
     test('calm --help shows help', async () => {
-        const { stdout } = await run(calm('--help'));
+        const { stdout } = await run(calm(), ['--help']);
         expect(stdout).toContain(
             'A set of tools for interacting with the Common Architecture Language Model'
         );
@@ -92,7 +92,7 @@ describe('CLI Integration Tests', () => {
             '../test_fixtures/api-gateway/api-gateway-architecture.json'
         );
         const { stdout } = await run(
-            calm(`validate -p ${apiGatewayPath} -a ${apiGatewayArchPath}`)
+            calm(), ['validate', '-p', apiGatewayPath, '-a', apiGatewayArchPath]
         );
         const expected = JSON.parse(
             fs.readFileSync(
@@ -117,9 +117,7 @@ describe('CLI Integration Tests', () => {
         );
         const targetOutputFile = path.join(tempDir, 'validate-output.json');
         await run(
-            calm(
-                `validate -p ${apiGatewayPath} -a ${apiGatewayArchPath} -o ${targetOutputFile}`
-            )
+            calm(), ['validate', '-p', apiGatewayPath, '-a', apiGatewayArchPath, '-o', targetOutputFile]
         );
         expect(fs.existsSync(targetOutputFile)).toBe(true);
         const expectedJson = JSON.parse(
@@ -146,9 +144,7 @@ describe('CLI Integration Tests', () => {
             '../test_fixtures/api-gateway/api-gateway-architecture.json'
         );
         const { stdout } = await run(
-            calm(
-                `validate -p ${apiGatewayPath} -a ${apiGatewayArchPath} -f junit`
-            )
+            calm(), ['validate', '-p', apiGatewayPath, '-a', apiGatewayArchPath, '-f', 'junit']
         );
         const actual = await parseStringPromise(stdout);
         const expected = await parseStringPromise(
@@ -174,9 +170,7 @@ describe('CLI Integration Tests', () => {
         );
         const targetOutputFile = path.join(tempDir, 'validate-output.xml');
         await run(
-            calm(
-                `validate -p ${apiGatewayPath} -a ${apiGatewayArchPath} -f junit -o ${targetOutputFile}`
-            )
+            calm(), ['validate', '-p', apiGatewayPath, '-a', apiGatewayArchPath, '-f', 'junit', '-o', targetOutputFile]
         );
         expect(fs.existsSync(targetOutputFile)).toBe(true);
         const actual = await parseStringPromise(
@@ -204,7 +198,7 @@ describe('CLI Integration Tests', () => {
             '../test_fixtures/api-gateway/api-gateway-architecture.json'
         );
         const { stdout } = await run(
-            calm(`validate -p ${p} -a ${a} -f pretty`)
+            calm(), ['validate', '-p', p, '-a', a, '-f', 'pretty']
         );
         const expected = fs.readFileSync(
             path.join(__dirname, '../test_fixtures/validate_output_pretty.txt'),
@@ -216,7 +210,7 @@ describe('CLI Integration Tests', () => {
     });
 
     test('validate command fails when neither architecture nor pattern is provided', async () => {
-        await expect(run(calm('validate'))).rejects.toMatchObject({
+        await expect(run(calm(), ['validate'])).rejects.toMatchObject({
             stderr: expect.stringContaining(
                 'error: one of the required options \'-p, --pattern <file>\' or \'-a, --architecture <file>\' was not specified'
             )
@@ -227,7 +221,7 @@ describe('CLI Integration Tests', () => {
         const apiGatewayArchPath = path.join(__dirname, '../test_fixtures/api-gateway/api-gateway-architecture.json');
         const targetOutputFile = path.join(tempDir, 'validate-output.json');
 
-        await run(calm(`validate -a ${apiGatewayArchPath} -o ${targetOutputFile}`));
+        await run(calm(), ['validate', '-a', apiGatewayArchPath, '-o', targetOutputFile]);
         const outputFile = fs.readFileSync(targetOutputFile, 'utf-8');
 
         const parsedOutput = JSON.parse(outputFile);
@@ -249,7 +243,7 @@ describe('CLI Integration Tests', () => {
         );
         const s = path.join(__dirname, '../../calm/release');
         const out = path.join(tempDir, 'generate-output.json');
-        await run(calm(`generate -p ${p} -o ${out} -s ${s}`));
+        await run(calm(), ['generate', '-p', p, '-o', out, '-s', s]);
         const actual = JSON.parse(fs.readFileSync(out, 'utf8'));
         const expected = JSON.parse(
             fs.readFileSync(
@@ -266,10 +260,9 @@ describe('CLI Integration Tests', () => {
             data: { status: 'ok' },
         });
         const serverProcess = spawn(
-            calm('server -p 3002 --schemaDirectory ../../dist/calm/'),
+            calm(), ['server', '-p', '3002', '--schemaDirectory', '../../dist/calm/'],
             {
                 cwd: tempDir,
-                shell: true,
                 stdio: 'inherit',
                 detached: true,
             }
@@ -306,9 +299,14 @@ describe('CLI Integration Tests', () => {
         const outputFile = path.join(outputDir, 'cli-e2e-output.html');
 
         await run(
-            calm(
-                `template --input ${testModelPath} --bundle ${templateBundlePath} --output ${outputDir} --url-to-local-file-mapping ${localDirectory}`
-            )
+            calm(),
+            [
+                'template',
+                '--input', testModelPath,
+                '--bundle', templateBundlePath,
+                '--output', outputDir,
+                '--url-to-local-file-mapping', localDirectory
+            ]
         );
 
         expect(fs.existsSync(outputFile)).toBe(true);
@@ -327,9 +325,7 @@ describe('CLI Integration Tests', () => {
         const outputFile = path.join(outputDir, 'simple-template-output.md');
 
         await run(
-            calm(
-                `template --input ${testModelPath} --template ${templatePath} --output ${outputFile}`
-            )
+            calm(), ['template', '--input', testModelPath, '--template', templatePath, '--output', outputFile]
         );
 
         expect(fs.existsSync(outputFile)).toBe(true);
@@ -346,9 +342,7 @@ describe('CLI Integration Tests', () => {
         const actualOutputDir = path.join(tempDir, 'output-template-dir');
 
         await run(
-            calm(
-                `template --input ${testModelPath} --template-dir ${templateDirPath} --output ${actualOutputDir}`
-            )
+            calm(), ['template', '--input', testModelPath, '--template-dir', templateDirPath, '--output', actualOutputDir]
         );
 
         await expectDirectoryMatch(expectedOutputDir, actualOutputDir);
@@ -368,9 +362,7 @@ describe('CLI Integration Tests', () => {
         );
         const outputDir = path.join(tempDir, 'output/documentation');
         await run(
-            calm(
-                `docify --input ${testModelPath} --output ${outputDir} --url-to-local-file-mapping ${localDirectory}`
-            )
+            calm(), ['docify', '--input', testModelPath, '--output', outputDir, '--url-to-local-file-mapping', localDirectory]
         );
         [
             'docs/index.md',
@@ -395,9 +387,7 @@ describe('CLI Integration Tests', () => {
         const outputFile = path.join(outputDir, 'simple-template-output.md');
 
         await run(
-            calm(
-                `docify --input ${testModelPath} --template ${templatePath} --output ${outputFile} --url-to-local-file-mapping ${localDirectory}`
-            )
+            calm(), ['docify', '--input', testModelPath, '--template', templatePath, '--output', outputFile, '--url-to-local-file-mapping', localDirectory]
         );
 
         expect(fs.existsSync(outputFile)).toBe(true);
@@ -415,9 +405,7 @@ describe('CLI Integration Tests', () => {
         const actualOutputDir = path.join(tempDir, 'output-template-dir');
 
         await run(
-            calm(
-                `docify --input ${testModelPath} --template-dir ${templateDirPath} --output ${actualOutputDir} --url-to-local-file-mapping ${localDirectory}`
-            )
+            calm(), ['docify', '--input', testModelPath, '--template-dir', templateDirPath, '--output', actualOutputDir, '--url-to-local-file-mapping', localDirectory]
         );
 
         await expectDirectoryMatch(expectedOutputDir, actualOutputDir);
@@ -435,7 +423,7 @@ describe('CLI Integration Tests', () => {
         );
 
         // This will enforce that people verify the getting-started guide works prior to any cli change
-        const { stdout } = await run(calm('--version'));
+        const { stdout } = await run(calm(), ['--version']);
         expect(stdout.trim()).toMatch('0.7.12'); // basic semver check
 
         //STEP 1: Generate Architecture From Pattern
@@ -447,7 +435,7 @@ describe('CLI Integration Tests', () => {
             tempDir,
             'conference-signup.arch.json'
         );
-        await run(calm(`generate -p ${inputPattern} -o ${outputArchitecture}`));
+        await run(calm(), ['generate', '-p', inputPattern, '-o', outputArchitecture]);
 
         const expectedOutputArchitecture = path.resolve(
             GETTING_STARTED_TEST_FIXTURES_DIR,
@@ -458,9 +446,7 @@ describe('CLI Integration Tests', () => {
         //STEP 2: Generate Docify Website From Architecture
         const outputWebsite = path.resolve(tempDir, 'website');
         await run(
-            calm(
-                `docify --input ${outputArchitecture} --output ${outputWebsite}`
-            )
+            calm(), ['docify', '--input', outputArchitecture, '--output', outputWebsite]
         );
 
         const expectedOutputDocifyWebsite = path.resolve(
@@ -513,9 +499,7 @@ describe('CLI Integration Tests', () => {
             'website-with-flow'
         );
         await run(
-            calm(
-                `docify --input ${outputArchitecture} --output ${outputWebsiteWithFlow}`
-            )
+            calm(), ['docify', '--input', outputArchitecture, '--output', outputWebsiteWithFlow]
         );
 
         const expectedOutputDocifyWebsiteWithFLow = path.resolve(
