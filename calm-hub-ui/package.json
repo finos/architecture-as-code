@@ -25,6 +25,7 @@
         "axios": "^1.9.0",
         "axios-mock-adapter": "^2.1.0",
         "copyfiles": "^2.4.1",
+        "css-what": "6.2.2"
         "cytoscape": "^3.30.3",
         "cytoscape-cola": "^2.5.1",
         "cytoscape-dagre": "^2.5.0",
