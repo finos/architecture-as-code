@@ -9,6 +9,9 @@ import { runValidate, writeOutputFile, checkValidateOptions, ValidateOptions } f
 
 const dummyArch = { dummy: 'arch' };
 const dummyPattern = { dummy: 'pattern' };
+const dummyArchOfAPattern = { '$schema': 'pattern.json', dummy: 'arch' };
+const dummyArchOfCalmSchema = { '$schema': 'calm-schema.json', dummy: 'arch' };
+const dummyCalmSchema = { '$id': 'calm-schema.json', dummy: 'calm schema' };
 
 const mocks = vi.hoisted(() => ({
     validate: vi.fn(),
@@ -23,6 +26,7 @@ const mocks = vi.hoisted(() => ({
         loadMissingDocument: mocks.loadMissingDocument
     })),
     loadSchemas: vi.fn(),
+    getSchema: vi.fn(),
     loadMissingDocument: vi.fn()
 }));
 
@@ -48,7 +52,8 @@ vi.mock('../cli', async () => ({
     ...(await vi.importActual('../cli')),
     parseDocumentLoaderConfig: mocks.parseDocumentLoaderConfig,
     buildSchemaDirectory: vi.fn(() => ({
-        loadSchemas: mocks.loadSchemas
+        loadSchemas: mocks.loadSchemas,
+        getSchema: mocks.getSchema
     })),
 }));
 
@@ -69,8 +74,14 @@ describe('runValidate', () => {
         // Inline mock for loadMissingDocument
         mocks.loadMissingDocument.mockImplementation((filePath: string, _: string) => {
             if (filePath === 'arch.json') return Promise.resolve(dummyArch);
+            if (filePath === 'arch-of-pattern.json') return Promise.resolve(dummyArchOfAPattern);
+            if (filePath === 'arch-of-calm.json') return Promise.resolve(dummyArchOfCalmSchema);
             if (filePath === 'pattern.json') return Promise.resolve(dummyPattern);
             return Promise.resolve();
+        });
+        mocks.getSchema.mockImplementation((schemaId: string) => {
+            if (schemaId === 'calm-schema.json') return dummyCalmSchema;
+            throw new Error(`Schema ${schemaId} not found`);
         });
         (validate as Mock).mockResolvedValue(fakeOutcome);
         (getFormattedOutput as Mock).mockReturnValue('formatted output');
@@ -118,6 +129,58 @@ describe('runValidate', () => {
         expect(mocks.loadSchemas).toHaveBeenCalled();
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch.json', 'architecture');
         expect(validate).toHaveBeenCalledWith(dummyArch, undefined, expect.anything(), true);
+        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json');
+        expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
+
+        expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
+        expect(writeFileSync).toHaveBeenCalledWith('out.json', 'formatted output');
+    });
+
+    it('should process validation successfully with architecture only and architecture has a pattern', async () => {
+        const options: ValidateOptions = {
+            architecturePath: 'arch-of-pattern.json',
+            patternPath: undefined,
+            metaSchemaPath: 'schemas',
+            verbose: true,
+            outputFormat: 'json',
+            outputPath: 'out.json',
+            strict: false,
+        };
+
+
+        await runValidate(options);
+
+        expect(mocks.loadSchemas).toHaveBeenCalled();
+        expect(mocks.getSchema).toHaveBeenCalledWith('pattern.json');
+        expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch-of-pattern.json', 'architecture');
+        expect(mocks.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
+        expect(validate).toHaveBeenCalledWith(dummyArchOfAPattern, dummyPattern, expect.anything(), true);
+        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json');
+        expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
+
+        expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
+        expect(writeFileSync).toHaveBeenCalledWith('out.json', 'formatted output');
+    });
+
+    it('should process validation successfully with architecture only and architecture references CALM schema', async () => {
+        const options: ValidateOptions = {
+            architecturePath: 'arch-of-calm.json',
+            patternPath: undefined,
+            metaSchemaPath: 'schemas',
+            verbose: true,
+            outputFormat: 'json',
+            outputPath: 'out.json',
+            strict: false,
+        };
+
+
+        await runValidate(options);
+
+        expect(mocks.loadSchemas).toHaveBeenCalled();
+        expect(mocks.getSchema).toHaveBeenCalledWith('calm-schema.json');
+        expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch-of-calm.json', 'architecture');
+        expect(mocks.loadMissingDocument).toHaveBeenCalledOnce();
+        expect(validate).toHaveBeenCalledWith(dummyArchOfCalmSchema, dummyCalmSchema, expect.anything(), true);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json');
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
