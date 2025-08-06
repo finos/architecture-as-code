@@ -1,5 +1,8 @@
 name: Sync CALM to S3
 
+permissions:
+    contents: read
+
 on:
     workflow_dispatch: {}
     push:
