@@ -72,7 +72,7 @@ async function loadPatternFromArchitectureIfPresent(architecture: object, docLoa
         logger.debug(`Loaded schema from architecture: ${architecture['$schema']}`);
         return schema;
     }
-    catch (err) {
+    catch (_) {
         logger.debug(`Trying to load pattern from architecture schema: ${architecture['$schema']}`);
     }
     const pattern = docLoader.loadMissingDocument(architecture['$schema'], 'pattern');

@@ -9,9 +9,9 @@ import { runValidate, writeOutputFile, checkValidateOptions, ValidateOptions } f
 
 const dummyArch = { dummy: 'arch' };
 const dummyPattern = { dummy: 'pattern' };
-const dummyArchOfAPattern = { "$schema": "pattern.json", dummy: 'arch' };
-const dummyArchOfCalmSchema = { "$schema": "calm-schema.json", dummy: 'arch' };
-const dummyCalmSchema = { "$id": "calm-schema.json", dummy: 'calm schema' };
+const dummyArchOfAPattern = { '$schema': 'pattern.json', dummy: 'arch' };
+const dummyArchOfCalmSchema = { '$schema': 'calm-schema.json', dummy: 'arch' };
+const dummyCalmSchema = { '$id': 'calm-schema.json', dummy: 'calm schema' };
 
 const mocks = vi.hoisted(() => ({
     validate: vi.fn(),
