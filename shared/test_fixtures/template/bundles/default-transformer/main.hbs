@@ -19,12 +19,12 @@
   {{/if}}
   {{#if (lookup relationship-type "composed-of")}}
     {{#with (lookup relationship-type "composed-of") as |composed|}}
-| {{../unique-id}} | composed-of   | {{composed.container}} | {{join composed.nodes ", "}} | {{../description}} |
+| {{../unique-id}} | composed-of   | {{container}} | {{join nodes ", "}} | {{../description}} |
     {{/with}}
   {{/if}}
   {{#if (lookup relationship-type "deployed-in")}}
     {{#with (lookup relationship-type "deployed-in") as |deploy|}}
-| {{../unique-id}} | deployed-in   | {{deploy.container}} | {{join deploy.nodes ", "}} | {{../description}} |
+| {{../unique-id}} | deployed-in   | {{container}} | {{join nodes ", "}} | {{../description}} |
     {{/with}}
   {{/if}}
 {{/each}}

@@ -3,6 +3,7 @@
     "version": "0.0.0",
     "private": true,
     "workspaces": [
+        "calm-widgets",
         "shared",
         "cli",
         "docs",
@@ -10,17 +11,19 @@
     ],
     "scripts": {
         "build": "npm run build --workspaces --if-present",
-        "build:cli": "npm run build --workspace shared --workspace cli",
-        "build:shared": "npm run build --workspace shared",
+        "build:cli": "npm run build --workspace calm-widgets --workspace shared --workspace cli",
+        "build:shared": "npm run build --workspace calm-widgets --workspace shared",
         "build:docs": "npm run build:cli && npm run build --workspace docs",
         "test": "npm run test --workspaces --if-present",
         "test:cli": "npm run build:cli && npm run test --workspace cli",
         "test:shared": "npm run build:shared && npm run test --workspace shared",
+        "test:calm-widgets": "npm run build:calm-widgets && npm run test --workspace calm-widgets",
         "lint": "npm run lint --workspaces --if-present",
         "lint-fix": "npm run lint-fix --workspaces --if-present",
         "watch": "run-p watch:cli watch:shared",
         "watch:cli": "npm run watch --workspace cli",
         "watch:shared": "npm run watch --workspace shared",
+        "watch:calm-widgets": "npm run watch --workspace calm-widgets",
         "link:cli": "npm link --workspace cli",
         "calm-hub-ui:run": "npm run start --workspace calm-hub-ui"
     },
@@ -35,6 +38,7 @@
         "on-headers": "^1.1.0"
     },
     "dependencies": {
-        "@finos/calm-shared": "^0.2.2"
+        "@finos/calm-shared": "^0.2.2",
+        "@finos/calm-widgets": "^1.0.0"
     }
 }

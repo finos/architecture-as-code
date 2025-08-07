@@ -1,0 +1,59 @@
+{
+  "name": "@finos/calm-widgets",
+  "version": "1.0.0",
+  "description": "Reusable Handlebars widgets for generating human-readable CALM architecture documentation",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup && tsc",
+    "watch": "tsup --watch",
+    "test": "vitest run",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src",
+    "lint-fix": "eslint src --fix"
+  },
+  "keywords": [
+    "calm",
+    "architecture",
+    "documentation",
+    "templates",
+    "handlebars",
+    "widgets"
+  ],
+  "author": "FINOS",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "handlebars": "^4.7.8",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "@types/handlebars": "^4.1.0",
+    "@stoplight/types": "^14.1.1",
+    "@types/js-yaml": "^4.0.9",
+    "@types/json-pointer": "^1.0.34",
+    "@types/junit-report-builder": "^3.0.2",
+    "@types/lodash": "^4.17.16",
+    "@types/node": "^22.15.0",
+    "@typescript-eslint/eslint-plugin": "^8.29.1",
+    "@typescript-eslint/parser": "^8.29.1",
+    "axios-mock-adapter": "^2.1.0",
+    "eslint": "^9.24.0",
+    "fetch-mock": "^12.5.2",
+    "globals": "^16.0.0",
+    "memfs": "^4.17.0",
+    "msw": "^2.7.3",
+    "typescript": "^5.8.3"
+  },
+  "files": [
+    "dist/**/*",
+    "widgets/**/*"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./widgets": "./widgets"
+  }
+}

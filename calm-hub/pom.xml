@@ -265,19 +265,19 @@
                 <dependency>
                     <groupId>org.testcontainers</groupId>
                     <artifactId>testcontainers</artifactId>
-                    <version>1.21.0</version>
+                    <version>1.21.3</version>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>org.testcontainers</groupId>
                     <artifactId>mongodb</artifactId>
-                    <version>1.21.0</version>
+                    <version>1.21.3</version>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>org.testcontainers</groupId>
                     <artifactId>junit-jupiter</artifactId>
-                    <version>1.21.0</version>
+                    <version>1.21.3</version>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
@@ -292,7 +292,7 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>build-helper-maven-plugin</artifactId>
-                        <version>3.6.0</version>
+                        <version>3.6.1</version>
                         <executions>
                             <execution>
                                 <id>add-integration-test-source</id>
