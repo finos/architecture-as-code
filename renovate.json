@@ -8,8 +8,7 @@
     ":combinePatchMinorReleases",
     ":ignoreUnstable",
     ":prImmediately",
-    ":updateNotScheduled",
-    "helpers:pinGitHubActionsByDigest"
+    ":updateNotScheduled"
   ],
   "timezone": "UTC",
   "schedule": ["before 7am on monday"],
