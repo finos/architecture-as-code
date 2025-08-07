@@ -3,7 +3,7 @@ import path from 'path';
 import { TemplateProcessor } from './template-processor';
 import { CalmTemplateTransformer, IndexFile } from './types';
 import { Mock } from 'vitest';
-import {WidgetEngine, WidgetRegistry} from '@finos/calm-widgets';
+import { WidgetEngine, WidgetRegistry } from '@finos/calm-widgets';
 
 vi.mock('fs');
 vi.mock('@finos/calm-widgets');
@@ -72,15 +72,20 @@ vi.mock('../model-visitor/dereference-visitor', async () => {
 describe('TemplateProcessor', () => {
     let mockTransformer: ReturnType<typeof vi.mocked<CalmTemplateTransformer>>;
     let loggerInfoSpy: ReturnType<typeof vi.spyOn>;
+    let loggerWarnSpy: ReturnType<typeof vi.spyOn>;
     let loggerErrorSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
+        // Reset all mocks before each test to ensure call counts are correct.
+        vi.clearAllMocks();
+
         mockTransformer = {
             registerTemplateHelpers: vi.fn().mockReturnValue({}),
             getTransformedModel: vi.fn().mockReturnValue({ transformed: true }),
         } as unknown as ReturnType<typeof vi.mocked<CalmTemplateTransformer>>;
 
         loggerInfoSpy = vi.spyOn(TemplateProcessor['logger'], 'info').mockImplementation(vi.fn());
+        loggerWarnSpy = vi.spyOn(TemplateProcessor['logger'], 'warn').mockImplementation(vi.fn());
         loggerErrorSpy = vi.spyOn(TemplateProcessor['logger'], 'error').mockImplementation(vi.fn());
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -89,14 +94,15 @@ describe('TemplateProcessor', () => {
         (fs.existsSync as Mock).mockImplementation((filePath: string) => {
             return !filePath.includes('missing');
         });
+        (fs.readdirSync as Mock).mockReturnValue([]);
         (fs.readFileSync as Mock).mockImplementation((filePath: string) => {
             if (filePath.includes('simple-nodes.json')) return '{"some": "data"}';
             if (filePath.includes('./input')) return '{"test": "data"}';
             // Return valid JSON for any other file reads
             return '{"mock": "data"}';
         });
-        (fs.rmSync as Mock).mockImplementation(() => {});
-        (fs.mkdirSync as Mock).mockImplementation(() => {});
+        (fs.rmSync as Mock).mockImplementation(() => { });
+        (fs.mkdirSync as Mock).mockImplementation(() => { });
         mockDereferencer.dereferenceCalmDoc.mockReset().mockResolvedValue('{"some": "dereferencedData"}');
         dereferenceVisitMock.mockReset().mockResolvedValue(undefined);
     });
@@ -104,7 +110,7 @@ describe('TemplateProcessor', () => {
     it('should successfully process a template', async () => {
         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map<string, string>());
         await processor.processTemplate();
-        expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining('🗑️ Cleaning up previous generation...'));
+        expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining('✅ Output directory exists'));
         expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining('✅ Template Generation Completed!'));
         expect(mockTemplateEngine.generate).toHaveBeenCalled();
         expect(mockTransformer.getTransformedModel).toHaveBeenCalledWith(
@@ -177,6 +183,52 @@ describe('TemplateProcessor', () => {
         const processor = new TemplateProcessor('simple-nodes.json', 'bundle-dir', 'output', new Map(), 'bundle');
         await processor.processTemplate();
         expect(TemplateBundleFileLoader).toHaveBeenCalledWith('bundle-dir');
+    });
+
+    it('should create output directory if it does not exist', async () => {
+        (fs.existsSync as Mock).mockImplementation((filePath: string) => {
+            return !filePath.includes('output');
+        });
+        const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map());
+        await processor.processTemplate();
+        expect(fs.mkdirSync).toHaveBeenCalledWith(expect.stringMatching('output$'), { recursive: true });
+        expect(fs.rmSync).not.toHaveBeenCalled();
+    });
+
+    it('should not create output directory if it exists', async () => {
+        (fs.existsSync as Mock).mockImplementation((filePath: string) => {
+            return true;
+        });
+        (fs.readdirSync as Mock).mockReturnValue([]);
+        const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map());
+        await processor.processTemplate();
+        expect(fs.mkdirSync).not.toHaveBeenCalled();
+        expect(fs.rmSync).not.toHaveBeenCalled();
+        expect(fs.readdirSync).toHaveBeenCalledWith(expect.stringMatching('output$'));
+    });
+
+    it('should have warned about non-empty output directory if it exists and is non-empty', async () => {
+        (fs.existsSync as Mock).mockImplementation((filePath: string) => {
+            return true;
+        });
+        (fs.readdirSync as Mock).mockReturnValue(['existing-file.txt']);
+        const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map());
+        await processor.processTemplate();
+        expect(fs.mkdirSync).not.toHaveBeenCalled();
+        expect(fs.rmSync).not.toHaveBeenCalled();
+        expect(fs.readdirSync).toHaveBeenCalledWith(expect.stringMatching('output$'));
+        expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining('⚠️ Output directory is not empty.'));
+    });
+
+    it('should have cleared output directory if told to', async () => {
+        (fs.existsSync as Mock).mockImplementation((filePath: string) => {
+            return true;
+        });
+        const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map(), 'bundle', false, true);
+        await processor.processTemplate();
+        expect(fs.rmSync).toHaveBeenCalledWith(expect.stringMatching('output$'), { recursive: true, force: true });
+        expect(fs.mkdirSync).toHaveBeenCalledWith(expect.stringMatching('output$'), { recursive: true });
+        expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining('🗑️ Clearing output directory'));
     });
 
     describe('widget engine support', () => {

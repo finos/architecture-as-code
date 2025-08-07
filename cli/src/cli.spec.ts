@@ -5,8 +5,8 @@ import {
     TemplateProcessingMode,
     TemplateProcessor
 } from '@finos/calm-shared';
-import {Command} from 'commander';
-import {MockInstance} from 'vitest';
+import { Command } from 'commander';
+import { MockInstance } from 'vitest';
 
 let calmShared: typeof import('@finos/calm-shared');
 let validateModule: typeof import('./command-helpers/validate');
@@ -133,7 +133,9 @@ describe('CLI Commands', () => {
                 'templateDir',
                 'outDir',
                 expect.any(Map),
-                'bundle'
+                'bundle',
+                false,
+                false
             );
         });
 
@@ -150,7 +152,9 @@ describe('CLI Commands', () => {
                 'template.hbs',
                 'outDir',
                 expect.any(Map),
-                'template'
+                'template',
+                false,
+                false
             );
         });
 
@@ -167,7 +171,29 @@ describe('CLI Commands', () => {
                 'templates/',
                 'outDir',
                 expect.any(Map),
-                'template-directory'
+                'template-directory',
+                false,
+                false
+            );
+        });
+
+        it('should honour --clear-output-directory', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'template',
+                '--input', 'model.json',
+                '--template-dir', 'templates/',
+                '--output', 'outDir',
+                '--clear-output-directory'
+            ]);
+
+            expect(processorConstructorSpy).toHaveBeenCalledWith(
+                'model.json',
+                'templates/',
+                'outDir',
+                expect.any(Map),
+                'template-directory',
+                false,
+                true
             );
         });
 
@@ -176,7 +202,7 @@ describe('CLI Commands', () => {
                 throw new Error('process.exit called');
             });
 
-            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
             await expect(program.parseAsync([
                 'node', 'cli.js', 'template',
@@ -198,12 +224,12 @@ describe('CLI Commands', () => {
     describe('Docify Command', () => {
         let docifierConstructorSpy: MockInstance<
             (this: Docifier,
-             mode: DocifyMode,
-             inputPath: string,
-             outputPath: string,
-             urlToLocalPathMapping: Map<string, string>,
-             templateProcessingMode?: TemplateProcessingMode,
-             templatePath?: string) => Docifier
+                mode: DocifyMode,
+                inputPath: string,
+                outputPath: string,
+                urlToLocalPathMapping: Map<string, string>,
+                templateProcessingMode?: TemplateProcessingMode,
+                templatePath?: string) => Docifier
         >;
 
         beforeEach(() => {
@@ -227,7 +253,27 @@ describe('CLI Commands', () => {
                 'outDir',
                 expect.any(Map),
                 'bundle',
-                undefined
+                undefined,
+                false
+            );
+        });
+
+        it('should honor --clear-output-directory', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--input', 'model.json',
+                '--output', 'outDir',
+                '--clear-output-directory'
+            ]);
+
+            expect(docifierConstructorSpy).toHaveBeenCalledWith(
+                'WEBSITE',
+                'model.json',
+                'outDir',
+                expect.any(Map),
+                'bundle',
+                undefined,
+                true
             );
         });
 
@@ -245,7 +291,8 @@ describe('CLI Commands', () => {
                 'outDir',
                 expect.any(Map),
                 'template',
-                'template.hbs'
+                'template.hbs',
+                false
             );
         });
 
@@ -263,7 +310,8 @@ describe('CLI Commands', () => {
                 'outDir',
                 expect.any(Map),
                 'template-directory',
-                'templateDir'
+                'templateDir',
+                false
             );
         });
 
@@ -271,7 +319,7 @@ describe('CLI Commands', () => {
             const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(() => {
                 throw new Error('process.exit called');
             });
-            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
             await expect(program.parseAsync([
                 'node', 'cli.js', 'docify',

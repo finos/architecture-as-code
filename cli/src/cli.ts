@@ -1,11 +1,11 @@
-import {CALM_META_SCHEMA_DIRECTORY, DocifyMode, initLogger, runGenerate, SchemaDirectory} from '@finos/calm-shared';
+import { CALM_META_SCHEMA_DIRECTORY, DocifyMode, initLogger, runGenerate, SchemaDirectory } from '@finos/calm-shared';
 import { Option, Command } from 'commander';
 import { version } from '../package.json';
 import { promptUserForOptions } from './command-helpers/generate-options';
 import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components/options';
 import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { loadCliConfig } from './cli-config';
-import {TemplateProcessingMode} from '@finos/calm-shared/dist/template/template-processor';
+import { TemplateProcessingMode } from '@finos/calm-shared/dist/template/template-processor';
 
 const FORMAT_OPTION = '-f, --format <format>';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -15,6 +15,7 @@ const SCHEMAS_OPTION = '-s, --schemaDirectory <path>';
 const STRICT_OPTION = '--strict';
 const VERBOSE_OPTION = '-v, --verbose';
 const CALMHUB_URL_OPTION = '-c, --calmHubUrl <url>';
+const CLEAR_OUTPUT_DIRECTORY_OPTION = '--clear-output-directory';
 
 export function setupCLI(program: Command) {
     program
@@ -93,6 +94,7 @@ export function setupCLI(program: Command) {
         .option('--template-dir <path>', 'Path to a directory of .hbs/.md templates')
         .option('--url-to-local-file-mapping <path>', 'Path to mapping file which maps URLs to local paths')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+        .option(CLEAR_OUTPUT_DIRECTORY_OPTION, 'Clear the output directory before processing', false)
         .action(async (options) => {
             const { getUrlToLocalFileMap } = await import('./command-helpers/template');
             const { TemplateProcessor } = await import('@finos/calm-shared');
@@ -126,7 +128,9 @@ export function setupCLI(program: Command) {
                 templatePath,
                 options.output,
                 localDirectory,
-                mode
+                mode,
+                false,
+                options.clearOutputDirectory
             );
 
             await processor.processTemplate();
@@ -141,6 +145,7 @@ export function setupCLI(program: Command) {
         .option('--template-dir <path>', 'Path to a directory of .hbs/.md templates')
         .option('--url-to-local-file-mapping <path>', 'Path to mapping file which maps URLs to local paths')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+        .option(CLEAR_OUTPUT_DIRECTORY_OPTION, 'Clear the output directory before processing', false)
         .action(async (options) => {
             const { getUrlToLocalFileMap } = await import('./command-helpers/template');
             const { Docifier } = await import('@finos/calm-shared');
@@ -177,7 +182,8 @@ export function setupCLI(program: Command) {
                 options.output,
                 localDirectory,
                 templateProcessingMode,
-                templatePath
+                templatePath,
+                options.clearOutputDirectory
             );
 
             await docifier.docify();
