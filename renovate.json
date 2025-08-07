@@ -105,7 +105,6 @@
       "matchUpdateTypes": ["minor"],
       "groupName": "minor updates",
       "automerge": false,
-      "separateMultipleMajor": true,
       "minimumReleaseAge": "7 days"
     },
     {
