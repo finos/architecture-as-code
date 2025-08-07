@@ -1,4 +1,4 @@
-name: Build Shared
+name: Build Calm Widgets
 
 permissions:
     contents: read
@@ -13,7 +13,7 @@ on:
 
 jobs:
     shared:
-        name: Build, Test, and Lint Shared Module
+        name: Build, Test, and Lint Calm Widgets Module
         runs-on: ubuntu-latest
 
         steps:
@@ -29,10 +29,10 @@ jobs:
               run: npm ci
 
             - name: Lint Shared Module
-              run: npm run lint --workspace=shared
+              run: npm run lint --workspace=calm-widgets
 
             - name: Build workspace
-              run: npm run build:shared
+              run: npm run build --workspace=calm-widgets
 
-            - name: Run tests with coverage for Shared
-              run: npm run test --workspace=shared
+            - name: Run tests with coverage for Calm Widgets
+              run: npm run test --workspace=calm-widgets
