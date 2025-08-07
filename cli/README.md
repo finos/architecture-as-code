@@ -48,7 +48,7 @@ Generate an architecture from a CALM pattern file.
 Options:
   -p, --pattern <file>          Path to the pattern file to use. May be a file path or a URL.
   -o, --output <file>           Path location at which to output the generated file. (default: "architecture.json")
-  -s, --schemaDirectory <path>  Path to the directory containing the meta schemas to use. (default: "../calm/release")
+  -s, --schema-directory <path>  Path to the directory containing the meta schemas to use. (default: "../calm/release")
   -v, --verbose                 Enable verbose logging. (default: false)
   -h, --help                    display help for command
 ```
@@ -73,8 +73,8 @@ Validate that an architecture conforms to a given CALM pattern.
 Options:
   -p, --pattern <file>          Path to the pattern file to use. May be a file path or a URL.
   -a, --architecture <file>     Path to the pattern architecture file to use. May be a file path or a URL.
-  -s, --schemaDirectory <path>  Path to the directory containing the meta schemas to use. (default: "../calm/release")
-  --strict                      When run in strict mode, the CLI will fail if any warnings are reported. (default: false)
+  -s, --schema-directory <path>  Path to the directory containing the meta schemas to use. (default: "../calm/release")
+  -S, --strict                      When run in strict mode, the CLI will fail if any warnings are reported. (default: false)
   -f, --format <format>         The format of the output (choices: "json", "junit", default: "json")
   -o, --output <file>           Path location at which to output the generated file.
   -v, --verbose                 Enable verbose logging. (default: false)
@@ -169,7 +169,7 @@ It may be required to have the operations of the CALM CLI available over rest.
 The `validate` command has been made available over an API
 
 ```shell
-calm server --schemaDirectory calm
+calm server --schema-directory calm
 ```
 
 ```shell
@@ -198,12 +198,12 @@ Usage: calm template [options]
 Generate files from a CALM model using a Handlebars template bundle.
 
 Options:
-  --input <path>                      Path to the CALM model JSON file.
-  --bundle <path>                     Path to the template bundle directory.
-  --output <path>                     Path to output directory.
-  --url-to-local-file-mapping <path>  Path to mapping file which maps URLs to local paths.
-  -v, --verbose                       Enable verbose logging. (default: false)
-  -h, --help                          display help for command
+  -i, --architecture <path>                      Path to the CALM model JSON file.
+  -b, --bundle <path>                     Path to the template bundle directory.
+  -o, --output <path>                     Path to output directory.
+  -u, --url-to-local-file-mapping <path>  Path to mapping file which maps URLs to local paths.
+  -v, --verbose                           Enable verbose logging. (default: false)
+  -h, --help                              display help for command
 ```
 
 ### Creating a Template Bundle
@@ -227,7 +227,7 @@ A template bundle consists of:
   Sample usage would be as follows (assuming at root of project)
 
 ```shell
-calm template --input ./cli/test_fixtures/template/model/document-system.json   --bundle cli/test_fixtures/template/template-bundles/doc-system   --output one_pager   --url-to-local-file-mapping cli/test_fixtures/template/model/url-to-file-directory.json -v
+calm template -a ./cli/test_fixtures/template/model/document-system.json   -b cli/test_fixtures/template/template-bundles/doc-system   -o one_pager   -u cli/test_fixtures/template/model/url-to-file-directory.json -v
 ```
 
 ## CALM Docify
@@ -241,15 +241,15 @@ Usage: calm docify [options]
 Generate a documentation website off your CALM model.
 
 Options:
-  --input <path>                      Path to the CALM model JSON file.
-  --output <path>                     Path to output directory.
-  --url-to-local-file-mapping <path>  Path to mapping file which maps URLs to local paths.
-  -v, --verbose                       Enable verbose logging. (default: false)
-  -h, --help                          display help for command
+  -i, --architecture <path>                      Path to the CALM model JSON file.
+  -o, --output <path>                     Path to output directory.
+  -u, --url-to-local-file-mapping <path>  Path to mapping file which maps URLs to local paths.
+  -v, --verbose                           Enable verbose logging. (default: false)
+  -h, --help                              display help for command
 ```
 
 Sample usage for you to try is as follows (assuming at root of project)
 
 ```shell
-calm docify --input ./cli/test_fixtures/template/model/document-system.json --output ./output/documentation --url-to-local-file-mapping ./cli/test_fixtures/template/model/url-to-file-directory.json
+calm docify -a ./cli/test_fixtures/template/model/document-system.json -o ./output/documentation -u ./cli/test_fixtures/template/model/url-to-file-directory.json
 ```

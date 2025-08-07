@@ -45,7 +45,7 @@ Note you should fill in some attributes from previous generated files but the fo
 
 ```bash
 calm template \
-  --input architecture/conference-secure-signup.arch.json \
+  --architecture architecture/conference-secure-signup.arch.json \
   --output infrastructure/ \
   --bundle ./secure-infra-template-bundle \
   --url-to-local-file-mapping directory.json

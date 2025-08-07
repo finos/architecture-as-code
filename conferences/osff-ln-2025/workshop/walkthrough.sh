@@ -132,13 +132,13 @@ read
 
 heading "Creating a Kubernetes Deployment"
 command "calm template \
-           --input architecture/conference-secure-signup-amended.arch.json \
+           --architecture architecture/conference-secure-signup-amended.arch.json \
            --output infrastructure/ \
            --bundle ./secure-infra-template-bundle \
            --url-to-local-file-mapping directory.json"
 
 calm template \
-           --input architecture/conference-secure-signup-amended.arch.json \
+           --architecture architecture/conference-secure-signup-amended.arch.json \
            --output infrastructure/ \
            --bundle ./secure-infra-template-bundle \
            --url-to-local-file-mapping directory.json
@@ -180,7 +180,7 @@ read
 
 #Show Docify (pre-canned)
 heading "CALM Docify Demo"
-command "calm docify --input architecture/conference-secure-signup-amended.arch.json --output website --url-to-local-file-mapping directory.json"
+command "calm docify --architecture architecture/conference-secure-signup-amended.arch.json --output website --url-to-local-file-mapping directory.json"
 command "cd website"
 command "npm install"
 command "npm run start"
