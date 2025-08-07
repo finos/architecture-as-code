@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import Handlebars from 'handlebars';
-import { CalmWidget} from './types';
+import { CalmWidget } from './types';
 
 /**
  * Registers a widget and its associated Handlebars partial(s).

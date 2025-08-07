@@ -49,7 +49,7 @@ describe('CLI Integration Tests', () => {
 
     afterAll(() => {
         if (tempDir) {
-            //rs.rmSync(tempDir, { recursive: true, force: true });
+            fs.rmSync(tempDir, { recursive: true, force: true });
         }
     });
 
