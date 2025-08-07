@@ -14,9 +14,9 @@ jobs:
 
         steps:
             - name: Checkout repository
-              uses: actions/checkout@v4
+              uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
             - name: Label PR based on changes
-              uses: actions/labeler@v4
+              uses: actions/labeler@ac9175f8a1f3625fd0d4fb234536d26811351594 # v4
               with:
                   repo-token: '${{ secrets.GITHUB_TOKEN }}'
