@@ -1,0 +1,119 @@
+<div class="container">
+    <div class="table-container">
+    <table>
+        <thead>
+        <tr>
+            <th>Key</th>
+            <th>Value</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><b>Service A</b></td>
+            <td>
+                <div class="table-container">
+                    <table>
+                        <tbody>
+                        <tr>
+                            <td><b>Type</b></td>
+                            <td>
+                                API
+                                    </td>
+                        </tr>
+                        <tr>
+                            <td><b>Version</b></td>
+                            <td>
+                                1.0.0
+                                    </td>
+                        </tr>
+                        <tr>
+                            <td><b>Status</b></td>
+                            <td>
+                                active
+                                    </td>
+                        </tr>
+                        <tr>
+                            <td><b>Unique Id</b></td>
+                            <td>
+                                service-a
+                                    </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td><b>Service B</b></td>
+            <td>
+                <div class="table-container">
+                    <table>
+                        <tbody>
+                        <tr>
+                            <td><b>Type</b></td>
+                            <td>
+                                Database
+                                    </td>
+                        </tr>
+                        <tr>
+                            <td><b>Version</b></td>
+                            <td>
+                                2.1.0
+                                    </td>
+                        </tr>
+                        <tr>
+                            <td><b>Status</b></td>
+                            <td>
+                                deprecated
+                                    </td>
+                        </tr>
+                        <tr>
+                            <td><b>Unique Id</b></td>
+                            <td>
+                                service-b
+                                    </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td><b>Service C</b></td>
+            <td>
+                <div class="table-container">
+                    <table>
+                        <tbody>
+                        <tr>
+                            <td><b>Type</b></td>
+                            <td>
+                                Queue
+                                    </td>
+                        </tr>
+                        <tr>
+                            <td><b>Version</b></td>
+                            <td>
+                                1.5.0
+                                    </td>
+                        </tr>
+                        <tr>
+                            <td><b>Status</b></td>
+                            <td>
+                                active
+                                    </td>
+                        </tr>
+                        <tr>
+                            <td><b>Unique Id</b></td>
+                            <td>
+                                service-c
+                                    </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</div>

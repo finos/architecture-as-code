@@ -3,8 +3,10 @@ import path from 'path';
 import { TemplateProcessor } from './template-processor';
 import { CalmTemplateTransformer, IndexFile } from './types';
 import { Mock } from 'vitest';
+import {WidgetEngine, WidgetRegistry} from '@finos/calm-widgets';
 
 vi.mock('fs');
+vi.mock('@finos/calm-widgets');
 
 const fakeConfig: IndexFile = {
     name: 'Test Bundle',
@@ -89,7 +91,9 @@ describe('TemplateProcessor', () => {
         });
         (fs.readFileSync as Mock).mockImplementation((filePath: string) => {
             if (filePath.includes('simple-nodes.json')) return '{"some": "data"}';
-            return '';
+            if (filePath.includes('./input')) return '{"test": "data"}';
+            // Return valid JSON for any other file reads
+            return '{"mock": "data"}';
         });
         (fs.rmSync as Mock).mockImplementation(() => {});
         (fs.mkdirSync as Mock).mockImplementation(() => {});
@@ -175,4 +179,77 @@ describe('TemplateProcessor', () => {
         expect(TemplateBundleFileLoader).toHaveBeenCalledWith('bundle-dir');
     });
 
+    describe('widget engine support', () => {
+        it('should initialize widget engine when supportWidgetEngine is true', async () => {
+            const mockWidgetEngine = {
+                registerDefaultWidgets: vi.fn()
+            } as unknown as WidgetEngine;
+
+            const mockWidgetRegistry = {
+                register: vi.fn(),
+                getWidget: vi.fn(),
+                getAllWidgets: vi.fn()
+            } as unknown as WidgetRegistry;
+
+            const { WidgetEngine, WidgetRegistry } = await import('@finos/calm-widgets');
+            vi.mocked(WidgetEngine).mockImplementation(() => mockWidgetEngine);
+            vi.mocked(WidgetRegistry).mockImplementation(() => mockWidgetRegistry);
+
+            const processor = new TemplateProcessor(
+                './input',
+                './template',
+                './output',
+                new Map(),
+                'bundle',
+                true
+            );
+
+            await processor.processTemplate();
+
+            expect(WidgetEngine).toHaveBeenCalledWith(expect.anything(), expect.anything());
+            expect(WidgetRegistry).toHaveBeenCalledWith(expect.anything());
+            expect(mockWidgetEngine.registerDefaultWidgets).toHaveBeenCalled();
+        });
+
+        it('should not initialize widget engine when supportWidgetEngine is false', async () => {
+            const { WidgetEngine, WidgetRegistry } = await import('@finos/calm-widgets');
+
+            // Clear any previous calls
+            vi.clearAllMocks();
+
+            const processor = new TemplateProcessor(
+                './input',
+                './template',
+                './output',
+                new Map(),
+                'bundle',
+                false
+            );
+
+            await processor.processTemplate();
+
+            expect(WidgetEngine).not.toHaveBeenCalled();
+            expect(WidgetRegistry).not.toHaveBeenCalled();
+        });
+
+        it('should default supportWidgetEngine to false when not provided', async () => {
+            const { WidgetEngine, WidgetRegistry } = await import('@finos/calm-widgets');
+
+            // Clear any previous calls
+            vi.clearAllMocks();
+
+            const processor = new TemplateProcessor(
+                './input',
+                './template',
+                './output',
+                new Map(),
+                'bundle'
+            );
+
+            await processor.processTemplate();
+
+            expect(WidgetEngine).not.toHaveBeenCalled();
+            expect(WidgetRegistry).not.toHaveBeenCalled();
+        });
+    });
 });

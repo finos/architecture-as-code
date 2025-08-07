@@ -30,12 +30,16 @@ export class Docifier {
         const finalTemplatePath =
             templatePath ?? Docifier.TEMPLATE_BUNDLE_PATHS[mode];
 
+        //TODO: need to move docifier and graphing package to widget framework. Until then widgets will clash
+        const supportWidgetEngine = mode !== 'WEBSITE';
+
         this.templateProcessor = new TemplateProcessor(
             inputPath,
             finalTemplatePath,
             outputPath,
             urlToLocalPathMapping,
-            templateProcessingMode
+            templateProcessingMode,
+            supportWidgetEngine
         );
     }
 

@@ -4,13 +4,17 @@ import {CalmCore} from '../model/core';
 export default class TemplateDefaultTransformer implements CalmTemplateTransformer {
 
     getTransformedModel(calmCore: CalmCore) {
+        const canonicalModel = calmCore.toCanonicalSchema();
         return {
-            'document': calmCore.toCanonicalSchema(),
+            'document': canonicalModel
         };
 
     }
 
     registerTemplateHelpers(): Record<string, (...args: unknown[]) => unknown> {
+        // TODO: if this is the default transformer even used by docify then this will clash with widget helpers.
+        // Move these out in subsequent PR
+
         return {
             eq: (a, b) => a === b,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

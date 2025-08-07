@@ -32,7 +32,7 @@ jobs:
               run: npm run lint --workspace=shared
 
             - name: Build workspace
-              run: npm run build --workspace=shared
+              run: npm run build:shared
 
             - name: Run tests with coverage for Shared
               run: npm run test --workspace=shared

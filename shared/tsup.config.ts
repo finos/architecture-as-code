@@ -7,6 +7,7 @@ export default defineConfig({
     format: ['esm'],
     clean: true,
     keepNames: true,
+    noExternal: ['@finos/calm-widgets', /tsup/],
     outDir: 'dist/template-bundles/docusaurus',
     target: 'node18',
     outExtension: () => ({ js: '.js' })
