@@ -6,7 +6,8 @@
     "scripts": {
         "docusaurus": "docusaurus",
         "start": "docusaurus start",
-        "build": "docusaurus build",
+        "build": "npm run build:calm-arch && docusaurus build",
+        "build:calm-arch": "node ../cli/dist/index.js validate --architecture architecture/calm.calm && node ../cli/dist/index.js docify --input architecture/calm.calm --output build-arch/calm-as-calm/",
         "swizzle": "docusaurus swizzle",
         "deploy": "docusaurus deploy",
         "clear": "docusaurus clear",
