@@ -2,28 +2,139 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    ":dependencyDashboard"
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":separateMajorReleases",
+    ":combinePatchMinorReleases",
+    ":ignoreUnstable",
+    ":prImmediately",
+    ":updateNotScheduled",
+    "helpers:pinGitHubActionsByDigest"
   ],
+  "timezone": "UTC",
+  "schedule": ["before 7am on monday"],
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 2,
   "lockFileMaintenance": {
-    "enabled": false,
-    "schedule": ["before 7am on monday"]
+    "enabled": true,
+    "schedule": ["before 6am on monday"]
   },
   "packageRules": [
     {
+      "description": "Lockfile maintenance",
       "matchUpdateTypes": ["lockFileMaintenance"],
       "automerge": true,
       "automergeType": "pr",
-      "groupName": "lockfile-maintenance"
+      "groupName": "lockfile maintenance"
     },
     {
-      "groupName": "minor-dependencies",
-      "matchUpdateTypes": ["minor"],
-      "automerge": true,
-      "automergeType": "pr"
+      "description": "Group Java dependencies",
+      "matchManagers": ["maven"],
+      "groupName": "Java dependencies",
+      "separateMultipleMajor": true,
+      "separateMinorPatch": false
     },
     {
+      "description": "Group JavaScript/TypeScript dependencies by ecosystem",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies", "devDependencies", "peerDependencies"],
+      "separateMultipleMajor": true,
+      "separateMinorPatch": false,
+      "groupName": "npm dependencies"
+    },
+    {
+      "description": "Separate framework updates",
+      "matchPackageNames": [
+        "react",
+        "react-dom",
+        "@types/react",
+        "@types/react-dom",
+        "vue",
+        "@vue/cli-*",
+        "angular",
+        "@angular/*",
+        "next",
+        "nuxt",
+        "svelte",
+        "@sveltejs/*"
+      ],
+      "groupName": "framework updates",
+      "separateMultipleMajor": true
+    },
+    {
+      "description": "Separate build tool updates",
+      "matchPackageNames": [
+        "webpack",
+        "vite",
+        "rollup",
+        "esbuild",
+        "@vitejs/*",
+        "@rollup/*",
+        "typescript",
+        "@typescript-eslint/*"
+      ],
+      "groupName": "build tools",
+      "separateMultipleMajor": true
+    },
+    {
+      "description": "Separate testing framework updates",
+      "matchPackageNames": [
+        "jest",
+        "vitest",
+        "@vitest/*",
+        "playwright",
+        "@playwright/*",
+        "cypress",
+        "mocha",
+        "chai",
+        "@testing-library/*"
+      ],
+      "groupName": "testing frameworks",
+      "separateMultipleMajor": true
+    },
+    {
+      "description": "Group patch updates with limit",
       "matchUpdateTypes": ["patch"],
-      "enabled": false
+      "groupName": "patch updates",
+      "automerge": true,
+      "automergeType": "pr",
+      "minimumReleaseAge": "3 days"
+    },
+    {
+      "description": "Limit minor updates group size",
+      "matchUpdateTypes": ["minor"],
+      "groupName": "minor updates",
+      "automerge": false,
+      "separateMultipleMajor": true,
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "Major updates get individual PRs",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "groupName": null,
+      "minimumReleaseAge": "14 days"
+    },
+    {
+      "description": "Security updates",
+      "matchDepTypes": ["dependencies"],
+      "matchCurrentVersion": "!/^0\\./",
+      "vulnerabilityAlerts": {
+        "enabled": true
+      },
+      "automerge": true,
+      "automergeType": "pr",
+      "groupName": "security updates"
+    },
+    {
+      "description": "Pin GitHub Actions by digest",
+      "matchManagers": ["github-actions"],
+      "pinDigests": true
+    },
+    {
+      "description": "Ignore pre-release versions",
+      "matchCurrentVersion": "/^0\\./",
+      "automerge": false
     }
   ]
 }
