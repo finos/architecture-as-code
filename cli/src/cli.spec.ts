@@ -180,7 +180,7 @@ describe('CLI Commands', () => {
         it('should honour --clear-output-directory', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'template',
-                '--input', 'model.json',
+                '--architecture', 'model.json',
                 '--template-dir', 'templates/',
                 '--output', 'outDir',
                 '--clear-output-directory'
@@ -261,7 +261,7 @@ describe('CLI Commands', () => {
         it('should honour --clear-output-directory', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'docify',
-                '--input', 'model.json',
+                '--architecture', 'model.json',
                 '--output', 'outDir',
                 '--clear-output-directory'
             ]);
