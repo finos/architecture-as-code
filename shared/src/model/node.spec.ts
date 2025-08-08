@@ -1,134 +1,299 @@
 import { CalmNode, CalmNodeDetails } from './node.js';
-import { CalmNodeSchema, CalmNodeDetailsSchema } from '../types/core-types.js';
-
-const nodeData: CalmNodeSchema = {
-    'unique-id': 'node-001',
-    'node-type': 'system',
-    name: 'Test Node',
-    description: 'This is a test node',
-    details: {
-        'detailed-architecture': 'https://example.com/architecture',
-        'required-pattern': 'https://example.com/pattern'
-    },
-    interfaces: [
-        { 'unique-id': 'interface-001', host: 'localhost', port: 8080 },
-        { 'unique-id': 'interface-002', port: 8080 }
-    ],
-    controls: {
-        'control-001': {
-            description: 'Test control',
-            requirements: [{ 'requirement-url': 'https://example.com/requirement', 'config-url': 'https://example.com/config' }]
-        }
-    },
-    metadata: [{ key: 'value' }]
-};
-
+import {CalmNodeSchema, CalmNodeDetailsSchema} from '../types/core-types.js';
+import {ResolvableAndAdaptable} from './resolvable';
+import {CalmCore} from './core';
 
 describe('CalmNodeDetails', () => {
-    it('should create a CalmNodeDetails instance from JSON data', () => {
-        const nodeDetails = CalmNodeDetails.fromJson(nodeData.details);
-
-        expect(nodeDetails).toBeInstanceOf(CalmNodeDetails);
-        expect(nodeDetails.detailedArchitecture).toBe('https://example.com/architecture');
-        expect(nodeDetails.requiredPattern).toBe('https://example.com/pattern');
+    it('should create from schema with both fields', () => {
+        const schema: CalmNodeDetailsSchema = {
+            'required-pattern': 'pattern-1',
+            'detailed-architecture': 'arch-1'
+        };
+        const details = CalmNodeDetails.fromSchema(schema);
+        expect(details).toBeInstanceOf(CalmNodeDetails);
+        expect(details.requiredPattern?.reference).toBe('pattern-1');
+        expect(details.detailedArchitecture?.reference).toBe('arch-1');
     });
 
-    it('should create a CalmNodeDetails instance from JSON data with no pattern', () => {
-        const nodeDetailsSchema: CalmNodeDetailsSchema = {
-            'detailed-architecture': 'https://example.com/architecture',
+    it('should create from schema with only required-pattern', () => {
+        const schema: CalmNodeDetailsSchema = {
+            'required-pattern': 'pattern-2'
         };
-        const nodeDetails = CalmNodeDetails.fromJson(nodeDetailsSchema);
-
-        expect(nodeDetails).toBeInstanceOf(CalmNodeDetails);
-        expect(nodeDetails.detailedArchitecture).toBe('https://example.com/architecture');
-        expect(nodeDetails.requiredPattern).toBeUndefined();
+        const details = CalmNodeDetails.fromSchema(schema);
+        expect(details.requiredPattern?.reference).toBe('pattern-2');
+        expect(details.detailedArchitecture).toBeUndefined();
     });
 
-    it('should create a CalmNodeDetails instance from JSON data with no architecture', () => {
-        const nodeDetailsSchema: CalmNodeDetailsSchema = {
-            'required-pattern': 'https://example.com/pattern',
+    it('should create from schema with only detailed-architecture', () => {
+        const schema: CalmNodeDetailsSchema = {
+            'detailed-architecture': 'arch-2'
         };
-        const nodeDetails = CalmNodeDetails.fromJson(nodeDetailsSchema);
+        const details = CalmNodeDetails.fromSchema(schema);
+        expect(details.requiredPattern).toBeUndefined();
+        expect(details.detailedArchitecture?.reference).toBe('arch-2');
+    });
 
-        expect(nodeDetails).toBeInstanceOf(CalmNodeDetails);
-        expect(nodeDetails.detailedArchitecture).toBeUndefined();
-        expect(nodeDetails.requiredPattern).toBe('https://example.com/pattern');
+    it('should return the original schema with toSchema()', () => {
+        const schema: CalmNodeDetailsSchema = {
+            'required-pattern': 'pattern-3',
+            'detailed-architecture': 'arch-3'
+        };
+        const details = CalmNodeDetails.fromSchema(schema);
+        expect(details.toSchema()).toEqual(schema);
+    });
+
+    it('should throw on toCanonicalSchema()', () => {
+        const schema: CalmNodeDetailsSchema = {
+            'required-pattern': 'pattern-4'
+        };
+        const details = CalmNodeDetails.fromSchema(schema);
+        expect(() => details.toCanonicalSchema()).toThrow();
     });
 });
 
 describe('CalmNode', () => {
-    it('should create a CalmNode instance from JSON data', () => {
-        const node = CalmNode.fromJson(nodeData);
+    const minimalSchema: CalmNodeSchema = {
+        'unique-id': 'node-1',
+        'node-type': 'service',
+        name: 'Node 1',
+        description: 'A minimal node'
+    };
 
+    it('should create from minimal schema', () => {
+        const node = CalmNode.fromSchema(minimalSchema);
         expect(node).toBeInstanceOf(CalmNode);
-        expect(node.uniqueId).toBe('node-001');
-        expect(node.nodeType).toBe('system');
-        expect(node.name).toBe('Test Node');
-        expect(node.description).toBe('This is a test node');
-        expect(node.details).toBeInstanceOf(CalmNodeDetails);
-        expect(node.details.detailedArchitecture).toBe('https://example.com/architecture');
-        expect(node.details.requiredPattern).toBe('https://example.com/pattern');
-        expect(node.interfaces).toHaveLength(2);
-        expect(node.controls).toHaveLength(1);
-        expect(node.controls[0].controlId).toBe('control-001');
-        expect(node.metadata).toEqual({ data: { key: 'value' } });
+        expect(node.uniqueId).toBe('node-1');
+        expect(node.nodeType).toBe('service');
+        expect(node.name).toBe('Node 1');
+        expect(node.description).toBe('A minimal node');
+        expect(node.details).toBeUndefined();
+        expect(node.interfaces).toBeUndefined();
+        expect(node.controls).toBeUndefined();
+        expect(node.metadata).toBeUndefined();
+        expect(node.additionalProperties).toBeUndefined();
     });
 
-    it('should handle optional fields in CalmNode', () => {
-        const nodeDataWithoutOptionalFields: CalmNodeSchema = {
-            'unique-id': 'node-002',
-            'node-type': 'service',
-            name: 'Another Test Node',
-            description: 'Another test node description'
-        };
-
-        const nodeWithoutOptionalFields = CalmNode.fromJson(nodeDataWithoutOptionalFields);
-
-        expect(nodeWithoutOptionalFields).toBeInstanceOf(CalmNode);
-        expect(nodeWithoutOptionalFields.uniqueId).toBe('node-002');
-        expect(nodeWithoutOptionalFields.details.detailedArchitecture).toEqual('');
-        expect(nodeWithoutOptionalFields.details.requiredPattern).toEqual('');
-        expect(nodeWithoutOptionalFields.interfaces).toEqual([]);
-        expect(nodeWithoutOptionalFields.controls).toEqual([]);
-        expect(nodeWithoutOptionalFields.metadata.data).toEqual({});
-    });
-
-    it('should handle adduitional properties', () => {
-        const nodeDataWithAdditionalFields: CalmNodeSchema = {
-            'unique-id': 'node-002',
-            'node-type': 'service',
-            name: 'Another Test Node',
-            description: 'Another test node description',
-            'another-property': 'some value'
-        };
-
-        const nodeWithAdditionalFields = CalmNode.fromJson(nodeDataWithAdditionalFields);
-
-        expect(nodeWithAdditionalFields).toBeInstanceOf(CalmNode);
-        expect(nodeWithAdditionalFields.uniqueId).toBe('node-002');
-        expect(nodeWithAdditionalFields.additionalProperties['another-property']).toBe('some value');
-    });
-
-    it('should handle empty interfaces, controls, and metadata', () => {
-        const nodeDataWithEmptyFields: CalmNodeSchema = {
-            'unique-id': 'node-003',
+    it('should create from schema with all fields', () => {
+        const schema: CalmNodeSchema = {
+            'unique-id': 'node-2',
             'node-type': 'database',
-            name: 'Database Node',
-            description: 'Node with empty fields',
+            name: 'Node 2',
+            description: 'A full node',
             details: {
-                'detailed-architecture': 'https://example.com/architecture-3',
-                'required-pattern': 'https://example.com/pattern-3'
+                'required-pattern': 'pattern-x',
+                'detailed-architecture': 'arch-x'
             },
-            interfaces: [],
-            controls: {},
-            metadata: []
+            interfaces: [
+                { 'unique-id': 'iface-1', 'definition-url': 'url', config: {} }
+            ],
+            controls: {
+                security: {
+                    description: 'desc',
+                    requirements: [
+                        { 'requirement-url': 'url', 'config-url': 'cfg' }
+                    ]
+                }
+            },
+            metadata: [{ foo: 'bar' }],
+            extra: 'extra-value'
+        };
+        const node = CalmNode.fromSchema(schema);
+        expect(node.details).toBeInstanceOf(CalmNodeDetails);
+        expect(node.interfaces?.[0].uniqueId).toBe('iface-1');
+        expect(node.controls).toBeDefined();
+        expect(node.metadata).toBeDefined();
+        expect(node.additionalProperties?.extra).toBe('extra-value');
+    });
+
+    it('should produce the correct canonical model (minimal)', () => {
+        const node = CalmNode.fromSchema(minimalSchema);
+        expect(node.toCanonicalSchema()).toEqual({
+            'unique-id': 'node-1',
+            'node-type': 'service',
+            name: 'Node 1',
+            description: 'A minimal node',
+            details: undefined,
+            interfaces: undefined,
+            controls: undefined,
+            metadata: undefined,
+            additionalProperties: undefined
+        });
+    });
+
+    it('should produce the correct canonical model (all fields, unresolved details)', () => {
+        const schema: CalmNodeSchema = {
+            'unique-id': 'node-3',
+            'node-type': 'system',
+            name: 'Node 3',
+            description: 'Node with details',
+            details: {
+                'required-pattern': 'pattern-y',
+                'detailed-architecture': 'arch-y'
+            },
+            interfaces: [
+                { 'unique-id': 'iface-2', 'definition-url': 'url', config: {} }
+            ],
+            controls: {
+                security: {
+                    description: 'desc',
+                    requirements: [
+                        { 'requirement-url': 'url', 'config-url': 'cfg' }
+                    ]
+                }
+            },
+            metadata: [{ foo: 'baz' }],
+            extra: 'extra-x'
+        };
+        const node = CalmNode.fromSchema(schema);
+        expect(node.toCanonicalSchema()).toEqual({
+            'unique-id': 'node-3',
+            'node-type': 'system',
+            name: 'Node 3',
+            description: 'Node with details',
+            details: undefined,
+            interfaces: node.interfaces?.map(i => i.toCanonicalSchema()),
+            controls: node.controls?.toCanonicalSchema(),
+            metadata: node.metadata?.toCanonicalSchema(),
+            additionalProperties: { extra: 'extra-x' }
+        });
+    });
+
+    it('should include canonicalized details if detailedArchitecture is resolved', () => {
+        const schema: CalmNodeSchema = {
+            'unique-id': 'node-4',
+            'node-type': 'system',
+            name: 'Node 4',
+            description: 'Node with resolved details',
+            details: {
+                'required-pattern': 'pattern-z',
+                'detailed-architecture': 'arch-z'
+            }
+        };
+        const node = CalmNode.fromSchema(schema);
+        // Fake resolved detailedArchitecture
+        if (node.details && node.details.detailedArchitecture) {
+            node.details.detailedArchitecture = new ResolvableAndAdaptable(
+                'fake-url',
+                CalmCore.fromSchema,
+                CalmCore.fromSchema({
+                    nodes: [
+                        { 'unique-id': 'inner-node', 'node-type': 'service', 'name': 'Inner', 'description': 'Inner node' }
+                    ],
+                    relationships: []
+                })
+            );
+        }
+        const expected = {
+            'unique-id': 'node-4',
+            'node-type': 'system',
+            name: 'Node 4',
+            description: 'Node with resolved details',
+            details: {
+                nodes: [
+                    {
+                        'unique-id': 'inner-node',
+                        'node-type': 'service',
+                        name: 'Inner',
+                        description: 'Inner node'
+                    }
+                ],
+                relationships: []
+            }
         };
 
-        const nodeWithEmptyFields = CalmNode.fromJson(nodeDataWithEmptyFields);
+        expect(JSON.stringify(node.toCanonicalSchema())).toEqual(JSON.stringify(expected));
 
-        expect(nodeWithEmptyFields).toBeInstanceOf(CalmNode);
-        expect(nodeWithEmptyFields.interfaces).toHaveLength(0);
-        expect(nodeWithEmptyFields.controls).toHaveLength(0);
-        expect(nodeWithEmptyFields.metadata).toEqual({ data: {} });
+
+        // stringify both sides to avoid issues with undefined properties
+        expect(JSON.stringify(node.toCanonicalSchema())).toEqual(JSON.stringify(expected));
+
+    });
+
+    it('should support nested detailed-architecture resolved to an inner CalmCore', () => {
+        const schema: CalmNodeSchema = {
+            'unique-id': 'node-nested',
+            'node-type': 'system',
+            name: 'Node Nested',
+            description: 'Node with nested architecture',
+            details: {
+                'required-pattern': 'pattern-nested',
+                'detailed-architecture': 'arch-nested'
+            }
+        };
+        const node = CalmNode.fromSchema(schema);
+        // Simulate resolved detailedArchitecture with an inner CalmCore
+        if (node.details && node.details.detailedArchitecture) {
+            node.details.detailedArchitecture = new ResolvableAndAdaptable(
+                'fake-url',
+                CalmCore.fromSchema,
+                CalmCore.fromSchema({
+                    nodes: [
+                        { 'unique-id': 'inner-node', 'node-type': 'service', 'name': 'Inner', 'description': 'Inner node' }
+                    ],
+                    relationships: []
+                })
+            );
+        }
+        const canonical = JSON.parse(JSON.stringify(node.toCanonicalSchema()));
+        expect(canonical).toEqual({
+            'unique-id': 'node-nested',
+            'node-type': 'system',
+            name: 'Node Nested',
+            description: 'Node with nested architecture',
+            details: {
+                nodes: [
+                    { 'unique-id': 'inner-node', 'node-type': 'service', name: 'Inner', description: 'Inner node' }
+                ],
+                relationships: []
+            }
+        });
+
+    });
+
+    it('should return the original schema with toSchema()', () => {
+        const node = CalmNode.fromSchema(minimalSchema);
+        expect(node.toSchema()).toEqual(minimalSchema);
+    });
+
+    it('should handle empty interfaces array', () => {
+        const schema: CalmNodeSchema = {
+            'unique-id': 'node-5',
+            'node-type': 'service',
+            name: 'Node 5',
+            description: 'Node with empty interfaces',
+            interfaces: []
+        };
+        const node = CalmNode.fromSchema(schema);
+        expect(node.interfaces).toEqual([]);
+        expect(node.toCanonicalSchema().interfaces).toEqual([]);
+    });
+
+    it('should handle missing interfaces, controls, metadata, details', () => {
+        const schema: CalmNodeSchema = {
+            'unique-id': 'node-6',
+            'node-type': 'service',
+            name: 'Node 6',
+            description: 'Node with missing optionals'
+        };
+        const node = CalmNode.fromSchema(schema);
+        expect(node.interfaces).toBeUndefined();
+        expect(node.controls).toBeUndefined();
+        expect(node.metadata).toBeUndefined();
+        expect(node.details).toBeUndefined();
+        expect(node.toCanonicalSchema().interfaces).toBeUndefined();
+    });
+
+    it('should include additional properties in canonical model', () => {
+        const schema: CalmNodeSchema = {
+            'unique-id': 'node-7',
+            'node-type': 'service',
+            name: 'Node 7',
+            description: 'Node with additional',
+            foo: 'bar',
+            bar: 42
+        };
+        const node = CalmNode.fromSchema(schema);
+        expect(node.additionalProperties).toEqual({ foo: 'bar', bar: 42 });
+        expect(node.toCanonicalSchema().additionalProperties).toEqual({ foo: 'bar', bar: 42 });
     });
 });

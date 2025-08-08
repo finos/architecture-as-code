@@ -1,5 +1,5 @@
-<h1>{{title}}</h1>
-<p>{{description}}</p>
+<h1>{{metadata.title}}</h1>
+<p>{{metadata.description}}</p>
 
 <h2>Nodes</h2>
 <ul>
@@ -24,7 +24,7 @@
     <h4>Transitions</h4>
     <ul>
     {{#each transitions}}
-        <li>Sequence {{sequence-number}}: {{summary}} (Relationship: {{relationship-unique-id}})</li>
+        <li>Sequence {{sequence-number}}: {{description}} (Relationship: {{relationship-unique-id}})</li>
     {{/each}}
     </ul>
 </div>

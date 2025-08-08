@@ -262,8 +262,8 @@ public class TestMongoStandardStoreShould {
     void return_a_standard_for_a_given_version() throws StandardNotFoundException, StandardVersionNotFoundException, NamespaceNotFoundException {
         mockSetupStandardDocumentWithVersions();
 
-        Standard standardForVersion = mongoStandardStore.getStandardForVersion("finos", 42, "1.0.0");
-        assertThat(standardForVersion.getStandardJson(), is("{}"));
+        String standardForVersion = mongoStandardStore.getStandardForVersion("finos", 42, "1.0.0");
+        assertThat(standardForVersion, is("{}"));
     }
 
 

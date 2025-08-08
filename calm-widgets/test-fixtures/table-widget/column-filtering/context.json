@@ -1,0 +1,32 @@
+{
+  "services": [
+    {
+      "id": "svc1",
+      "name": "auth",
+      "port": 8080,
+      "internal": true,
+      "secret": "hidden",
+      "version": "1.0.0",
+      "status": "active"
+    },
+    {
+      "id": "svc2",
+      "name": "user",
+      "port": 8081,
+      "internal": false,
+      "secret": "also-hidden",
+      "version": "2.1.0",
+      "status": "running"
+    },
+    {
+      "id": "svc3",
+      "name": "notification",
+      "port": 8082,
+      "internal": true,
+      "secret": "very-secret",
+      "version": "1.5.0",
+      "status": "stopped"
+    }
+  ]
+}
+

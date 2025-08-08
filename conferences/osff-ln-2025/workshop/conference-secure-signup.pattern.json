@@ -451,12 +451,12 @@
           "kubernetes"
         ]
       }]
-
     }
   },
   "required": [
     "nodes",
     "relationships",
-    "metadata"
+    "metadata",
+    "flows"
   ]
 }

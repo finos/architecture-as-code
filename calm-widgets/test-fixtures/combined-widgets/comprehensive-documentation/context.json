@@ -1,0 +1,31 @@
+{
+  "system": {
+    "project-name": "E-Commerce Platform",
+    "version": "3.0.0",
+    "architecture": "Microservices",
+    "deployment": "Kubernetes"
+  },
+  "services": [
+    {
+      "name": "Product Service",
+      "port": 8080,
+      "database": "products-db",
+      "features": ["Product Catalog", "Inventory Management", "Price Calculation"],
+      "config": {
+        "cacheEnabled": true,
+        "maxConnections": 50
+      }
+    },
+    {
+      "name": "Order Service",
+      "port": 8081,
+      "database": "orders-db",
+      "features": ["Order Processing", "Payment Integration", "Order Tracking"],
+      "config": {
+        "paymentTimeout": 30000,
+        "retryAttempts": 3
+      }
+    }
+  ]
+}
+

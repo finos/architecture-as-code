@@ -26,5 +26,12 @@ module.exports = {
                 'relationships/deployed-in-k8s-cluster'
             ],
         },
+        {
+            type: 'category',
+            label: 'Flows',
+            items: [
+                'flows/flow-conference-signup'
+            ],
+        }
     ]
 };

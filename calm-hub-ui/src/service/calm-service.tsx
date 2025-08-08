@@ -1,10 +1,10 @@
-import { Namespace, PatternID, Version, FlowID, ArchitectureID, Data } from '../model/calm.js';
+import { Data } from '../model/calm.js';
 import { getToken } from '../authService.js';
 
 /**
  * Fetch namespaces and set them using the provided setter function.
  */
-export async function fetchNamespaces(setNamespaces: (namespaces: Namespace[]) => void) {
+export async function fetchNamespaces(setNamespaces: (namespaces: string[]) => void) {
     try {
         const accessToken = await getToken();
         const res = await fetch('/calm/namespaces', {
@@ -23,7 +23,7 @@ export async function fetchNamespaces(setNamespaces: (namespaces: Namespace[]) =
  */
 export async function fetchPatternIDs(
     namespace: string,
-    setPatternIDs: (patternIDs: PatternID[]) => void
+    setPatternIDs: (patternIDs: string[]) => void
 ) {
     try {
         const accessToken = await getToken();
@@ -41,7 +41,7 @@ export async function fetchPatternIDs(
 /**
  * Fetch flow IDs for a given namespace and set them using the provided setter function.
  */
-export async function fetchFlowIDs(namespace: string, setFlowIDs: (flowIDs: FlowID[]) => void) {
+export async function fetchFlowIDs(namespace: string, setFlowIDs: (flowIDs: string[]) => void) {
     try {
         const accessToken = await getToken();
         const res = await fetch(`/calm/namespaces/${namespace}/flows`, {
@@ -61,7 +61,7 @@ export async function fetchFlowIDs(namespace: string, setFlowIDs: (flowIDs: Flow
 export async function fetchPatternVersions(
     namespace: string,
     patternID: string,
-    setVersions: (versions: Version[]) => void
+    setVersions: (versions: string[]) => void
 ) {
     try {
         const accessToken = await getToken();
@@ -82,7 +82,7 @@ export async function fetchPatternVersions(
 export async function fetchFlowVersions(
     namespace: string,
     flowID: string,
-    setFlowVersions: (flowVersions: Version[]) => void
+    setFlowVersions: (flowVersions: string[]) => void
 ) {
     try {
         const accessToken = await getToken();
@@ -116,7 +116,13 @@ export async function fetchPattern(
             }
         );
         const response = await res.json();
-        const data: Data = { id: patternID, version: version, calmType: 'Patterns', name: namespace, data: response };
+        const data: Data = {
+            id: patternID,
+            version: version,
+            calmType: 'Patterns',
+            name: namespace,
+            data: response,
+        };
         setPattern(data);
     } catch (error) {
         console.error(
@@ -145,7 +151,13 @@ export async function fetchFlow(
             }
         );
         const response = await res.json();
-        const data: Data = { id: flowID, version: version, calmType: 'Flows', name: namespace, data: response };
+        const data: Data = {
+            id: flowID,
+            version: version,
+            calmType: 'Flows',
+            name: namespace,
+            data: response,
+        };
         setFlow(data);
     } catch (error) {
         console.error(
@@ -160,7 +172,7 @@ export async function fetchFlow(
  */
 export async function fetchArchitectureIDs(
     namespace: string,
-    setArchitectureIDs: (architectureIDs: ArchitectureID[]) => void
+    setArchitectureIDs: (architectureIDs: string[]) => void
 ) {
     try {
         const accessToken = await getToken();
@@ -181,7 +193,7 @@ export async function fetchArchitectureIDs(
 export async function fetchArchitectureVersions(
     namespace: string,
     architectureID: string,
-    setVersions: (versions: Version[]) => void
+    setVersions: (versions: string[]) => void
 ) {
     try {
         const accessToken = await getToken();
@@ -218,7 +230,13 @@ export async function fetchArchitecture(
             }
         );
         const response = await res.json();
-        const data: Data = { id: architectureID, version: version, calmType: 'Architectures', name: namespace, data: response };
+        const data: Data = {
+            id: architectureID,
+            version: version,
+            calmType: 'Architectures',
+            name: namespace,
+            data: response,
+        };
         setArchitecture(data);
     } catch (error) {
         console.error(

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/interfaces/example/tcp-port",
+  "title": "TCP Port Interface",
+  "description": "This interface defines a TCP port configuration for a service or application. It specifies the port number on which the service will accept connections.",
+  "type": "object",
+  "properties": {
+    "port": {
+      "type": "integer",
+      "description": "The port on which connections are accepted",
+      "minimum": 1,
+      "maximum": 65535
+    }
+  },
+  "required": ["port"],
+  "examples": [
+    {
+      "port": 8080
+    },
+    {
+      "port": 443
+    }
+  ]
+}

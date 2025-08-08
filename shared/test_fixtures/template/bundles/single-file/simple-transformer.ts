@@ -1,5 +1,6 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
-import {CalmTemplateTransformer} from '@finos/calm-shared';
+import {CalmTemplateTransformer} from '../../../../src/template/types';
+import {CalmCore} from '../../../../src/model/core.js';
 
 export default class SimpleTransformer implements CalmTemplateTransformer {
 
@@ -10,9 +11,10 @@ export default class SimpleTransformer implements CalmTemplateTransformer {
         };
     }
 
-    getTransformedModel(inputJson: string): any {
+    getTransformedModel(architecture: CalmCore): any {
+
         return {
-            document: JSON.parse(inputJson)
+            document: architecture.toSchema()
         };
 
     }

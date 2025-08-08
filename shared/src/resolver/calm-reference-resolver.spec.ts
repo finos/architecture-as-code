@@ -5,18 +5,21 @@ import {
     CompositeReferenceResolver,
     FileReferenceResolver,
     HttpReferenceResolver,
-    InMemoryResolver
+    InMemoryResolver,
+    MappedReferenceResolver
 } from './calm-reference-resolver';
 
 describe('FileReferenceResolver', () => {
     let existsSyncSpy: ReturnType<typeof vi.spyOn>;
     let readFileSyncSpy: ReturnType<typeof vi.spyOn>;
+    let loggerInfoSpy: ReturnType<typeof vi.spyOn>;
     let resolver: FileReferenceResolver;
 
     beforeEach(() => {
         resolver = new FileReferenceResolver();
         existsSyncSpy = vi.spyOn(fs, 'existsSync');
         readFileSyncSpy = vi.spyOn(fs, 'readFileSync');
+        loggerInfoSpy = vi.spyOn(FileReferenceResolver['logger'], 'info');
     });
 
     afterEach(() => {
@@ -38,6 +41,19 @@ describe('FileReferenceResolver', () => {
     it('throws error if file does not exist', async () => {
         existsSyncSpy.mockReturnValue(false);
         await expect(resolver.resolve('nonexistent.json')).rejects.toThrow('File not found: nonexistent.json');
+    });
+
+    it('throws error if file contains invalid JSON', async () => {
+        existsSyncSpy.mockReturnValue(true);
+        readFileSyncSpy.mockReturnValue('not-json');
+        await expect(resolver.resolve('bad.json')).rejects.toThrow();
+    });
+
+    it('logs info when resolving a file', async () => {
+        existsSyncSpy.mockReturnValue(true);
+        readFileSyncSpy.mockReturnValue('{"key": "value"}');
+        await resolver.resolve('test.json');
+        expect(loggerInfoSpy).toHaveBeenCalledWith('Resolving reference: test.json');
     });
 });
 
@@ -65,15 +81,31 @@ describe('InMemoryResolver', () => {
     it('throws error if key does not exist', async () => {
         await expect(resolver.resolve('nonexistent')).rejects.toThrow('Mocked reference not found: nonexistent');
     });
+
+    it('handles non-string keys', async () => {
+        const dataStore = { 123: 'number-key', symbol: 'symbol-key' };
+        const resolver = new InMemoryResolver(dataStore);
+        expect(resolver.canResolve('123')).toBe(true);
+        expect(await resolver.resolve('123')).toBe('number-key');
+    });
+
+    it('resolves complex objects as values', async () => {
+        const dataStore = { obj: { a: 1, b: 2 } };
+        const resolver = new InMemoryResolver(dataStore);
+        expect(resolver.canResolve('obj')).toBe(true);
+        expect(await resolver.resolve('obj')).toEqual({ a: 1, b: 2 });
+    });
 });
 
 describe('HttpReferenceResolver', () => {
     let resolver: HttpReferenceResolver;
     let axiosGetSpy: ReturnType<typeof vi.spyOn>;
+    let loggerInfoSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
         resolver = new HttpReferenceResolver();
         axiosGetSpy = vi.spyOn(axios, 'get');
+        loggerInfoSpy = vi.spyOn(HttpReferenceResolver['logger'], 'info');
     });
 
     afterEach(() => {
@@ -111,6 +143,31 @@ describe('HttpReferenceResolver', () => {
         await expect(resolver.resolve('http://example.com/test.json'))
             .rejects.toThrow('HTTP request failed for http://example.com/test.json: Network error');
     });
+
+    it('handles non-JSON responses gracefully', async () => {
+        axiosGetSpy.mockResolvedValue({ data: 'plain text' });
+        const result = await resolver.resolve('http://example.com/text');
+        expect(result).toBe('plain text');
+    });
+
+    it('logs info when fetching a reference', async () => {
+        axiosGetSpy.mockResolvedValue({ data: { key: 'value' } });
+        await resolver.resolve('http://example.com/test.json');
+        expect(loggerInfoSpy).toHaveBeenCalledWith('Fetching reference via HTTP: http://example.com/test.json');
+    });
+
+    it('handles network timeouts or other axios errors', async () => {
+        const error: AxiosError = {
+            name: 'AxiosError',
+            message: 'Timeout',
+            isAxiosError: true,
+            toJSON: () => ({}),
+            code: 'ETIMEDOUT',
+            response: undefined
+        };
+        axiosGetSpy.mockRejectedValue(error);
+        await expect(resolver.resolve('http://example.com/test.json')).rejects.toThrow('HTTP request failed for http://example.com/test.json: Timeout');
+    });
 });
 
 describe('CompositeReferenceResolver', () => {
@@ -118,12 +175,16 @@ describe('CompositeReferenceResolver', () => {
     let axiosGetSpy: ReturnType<typeof vi.spyOn>;
     let existsSyncSpy: ReturnType<typeof vi.spyOn>;
     let readFileSyncSpy: ReturnType<typeof vi.spyOn>;
+    let loggerDebugSpy: ReturnType<typeof vi.spyOn>;
+    let loggerInfoSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
         resolver = new CompositeReferenceResolver();
         axiosGetSpy = vi.spyOn(axios, 'get');
         existsSyncSpy = vi.spyOn(fs, 'existsSync');
         readFileSyncSpy = vi.spyOn(fs, 'readFileSync');
+        loggerInfoSpy = vi.spyOn(CompositeReferenceResolver['logger'], 'info');
+        loggerDebugSpy = vi.spyOn(CompositeReferenceResolver['logger'], 'debug');
     });
 
     afterEach(() => {
@@ -192,5 +253,75 @@ describe('CompositeReferenceResolver', () => {
         expect(existsSyncSpy).toHaveBeenCalledWith('file:///test.json');
         expect(readFileSyncSpy).toHaveBeenCalledWith('file:///test.json', 'utf-8');
         expect(axiosGetSpy).not.toHaveBeenCalled();
+    });
+
+    it('logs debug on file fallback', async () => {
+        // Simulate file exists but fails to read
+        existsSyncSpy.mockReturnValue(true);
+        readFileSyncSpy.mockImplementation(() => {
+            throw new Error('bad file');
+        });
+
+        // Simulate fallback to HTTP
+        axiosGetSpy.mockResolvedValue({ data: { key: 'http-value' } });
+
+        const result = await resolver.resolve('http://example.com/file.json'); // must be resolvable by HTTP
+        expect(result).toEqual({ key: 'http-value' });
+
+        expect(loggerDebugSpy).toHaveBeenCalledWith(
+            expect.stringContaining('File resolution failed for http://example.com/file.json')
+        );
+    });
+
+
+
+    it('logs info on HTTP fallback', async () => {
+        existsSyncSpy.mockReturnValue(false);
+        axiosGetSpy.mockImplementation(() => { throw new Error('bad http'); });
+        await expect(resolver.resolve('http://bad.com')).rejects.toThrow();
+        expect(loggerInfoSpy).toHaveBeenCalled();
+    });
+
+    it('handles both resolvers failing with different error types', async () => {
+        existsSyncSpy.mockReturnValue(true);
+        readFileSyncSpy.mockImplementation(() => { throw new Error('bad file'); });
+        axiosGetSpy.mockImplementation(() => { throw new Error('bad http'); });
+        await expect(resolver.resolve('file.json')).rejects.toThrow('Composite resolver: Unable to resolve reference file.json');
+    });
+});
+
+describe('MappedReferenceResolver', () => {
+    let delegate: InMemoryResolver;
+    let mapping: Map<string, string>;
+    let resolver: MappedReferenceResolver;
+
+    beforeEach(() => {
+        mapping = new Map([
+            ['alias', 'real-key']
+        ]);
+        delegate = new InMemoryResolver({ 'real-key': 'resolved-value', 'other': 'other-value' });
+        resolver = new MappedReferenceResolver(mapping, delegate);
+    });
+
+    it('returns true if mapping exists and delegate can resolve', () => {
+        expect(resolver.canResolve('alias')).toBe(true);
+    });
+
+    it('returns false if mapping does not exist and delegate cannot resolve', () => {
+        expect(resolver.canResolve('missing')).toBe(false);
+    });
+
+    it('resolves mapped reference correctly', async () => {
+        const result = await resolver.resolve('alias');
+        expect(result).toBe('resolved-value');
+    });
+
+    it('resolves original reference if not mapped', async () => {
+        const result = await resolver.resolve('other');
+        expect(result).toBe('other-value');
+    });
+
+    it('throws error if delegate cannot resolve mapped reference', async () => {
+        await expect(resolver.resolve('missing')).rejects.toThrow('Mocked reference not found: missing');
     });
 });

@@ -1,19 +1,20 @@
 import {CalmTemplateTransformer} from './types';
-import {CalmCoreSchema} from '../types/core-types';
-import {Architecture, CalmCore} from '../model/core';
+import {CalmCore} from '../model/core';
 
 export default class TemplateDefaultTransformer implements CalmTemplateTransformer {
 
-    getTransformedModel(calmJson: string) {
-        const calmSchema: CalmCoreSchema = JSON.parse(calmJson);
-        const architecture: Architecture = CalmCore.fromJson(calmSchema);
+    getTransformedModel(calmCore: CalmCore) {
+        const canonicalModel = calmCore.toCanonicalSchema();
         return {
-            'document': architecture
+            'document': canonicalModel
         };
 
     }
 
     registerTemplateHelpers(): Record<string, (...args: unknown[]) => unknown> {
+        // TODO: if this is the default transformer even used by docify then this will clash with widget helpers.
+        // Move these out in subsequent PR
+
         return {
             eq: (a, b) => a === b,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

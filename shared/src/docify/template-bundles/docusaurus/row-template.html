@@ -1,3 +1,4 @@
+{{#unless (eq @key "originalJson")}}
 <tr>
     <td>
         <b>{{kebabToTitleCase @key}}</b>
@@ -16,3 +17,4 @@
         {{/if}}
     </td>
 </tr>
+{{/unless}}

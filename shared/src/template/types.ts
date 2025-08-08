@@ -1,4 +1,6 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
+import {CalmCore} from '../model/core';
+
 export interface IndexFile {
     name: string;
     transformer?: string;
@@ -14,6 +16,6 @@ export interface TemplateEntry {
 }
 
 export interface CalmTemplateTransformer {
-    getTransformedModel(calmJson: string): any;
+    getTransformedModel(architecture: CalmCore): any;
     registerTemplateHelpers(): Record<string, (...args: any[]) => any>;
 }

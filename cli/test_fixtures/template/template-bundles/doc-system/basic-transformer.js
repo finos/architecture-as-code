@@ -4,7 +4,7 @@ module.exports = class BasicTransformer {
     }
 
     getTransformedModel(rawJson) {
-        const document = JSON.parse(rawJson);
+        const document = rawJson['originalJson'];
         return {
             document: document
         };

@@ -4,26 +4,38 @@ import { register } from 'ts-node';
 import 'source-map-support/register';
 import { TemplateEngine } from './template-engine.js';
 import { CalmTemplateTransformer, IndexFile } from './types.js';
-import { TemplateBundleFileLoader } from './template-bundle-file-loader.js';
+import {
+    ITemplateBundleLoader, SelfProvidedDirectoryTemplateLoader,
+    SelfProvidedTemplateLoader,
+    TemplateBundleFileLoader
+} from './template-bundle-file-loader.js';
 import { initLogger } from '../logger.js';
-import { TemplateCalmFileDereferencer } from './template-calm-file-dereferencer.js';
-import { CompositeReferenceResolver } from '../resolver/calm-reference-resolver.js';
+import {CompositeReferenceResolver, MappedReferenceResolver} from '../resolver/calm-reference-resolver.js';
 import {pathToFileURL} from 'node:url';
 import TemplateDefaultTransformer from './template-default-transformer';
+import {CalmCore} from '../model/core';
+import {DereferencingVisitor} from '../model-visitor/dereference-visitor';
+import { WidgetEngine, WidgetRegistry } from '@finos/calm-widgets';
+import Handlebars from 'handlebars';
 
+export type TemplateProcessingMode = 'template' | 'template-directory' | 'bundle';
 
 export class TemplateProcessor {
     private readonly inputPath: string;
     private readonly templateBundlePath: string;
     private readonly outputPath: string;
     private readonly urlToLocalPathMapping:Map<string, string>;
+    private readonly mode: TemplateProcessingMode;
     private static logger = initLogger(process.env.DEBUG === 'true', TemplateProcessor.name);
+    private readonly supportWidgetEngine: boolean;
 
-    constructor(inputPath: string, templateBundlePath: string, outputPath: string, urlToLocalPathMapping:Map<string,string>) {
+    constructor(inputPath: string, templateBundlePath: string, outputPath: string, urlToLocalPathMapping:Map<string,string>, mode: TemplateProcessingMode = 'bundle', supportWidgetEngine: boolean = false) {
         this.inputPath = inputPath;
         this.templateBundlePath = templateBundlePath;
         this.outputPath = outputPath;
         this.urlToLocalPathMapping = urlToLocalPathMapping;
+        this.mode = mode;
+        this.supportWidgetEngine = supportWidgetEngine;
     }
 
     public async processTemplate(): Promise<void> {
@@ -31,10 +43,35 @@ export class TemplateProcessor {
 
         const resolvedInputPath = path.resolve(this.inputPath);
         const resolvedBundlePath = path.resolve(this.templateBundlePath);
-        const resolvedOutputPath = path.resolve(this.outputPath);
-        const calmResolver =  new TemplateCalmFileDereferencer(this.urlToLocalPathMapping, new CompositeReferenceResolver());
+        const resolvedOutputPath = path.extname(this.outputPath)
+            ? path.dirname(path.resolve(this.outputPath))
+            : path.resolve(this.outputPath);
 
-        const config = new TemplateBundleFileLoader(this.templateBundlePath).getConfig();
+        let loader: ITemplateBundleLoader;
+
+        switch (this.mode) {
+        case 'template':
+            logger.info('Using SelfProvidedTemplateLoader for single template file');
+            loader = new SelfProvidedTemplateLoader(this.templateBundlePath, this.outputPath);
+            break;
+        case 'template-directory':
+            logger.info('Using SelfProvidedDirectoryTemplateLoader for template directory');
+            loader = new SelfProvidedDirectoryTemplateLoader(this.templateBundlePath);
+            break;
+        case 'bundle':
+        default:
+            logger.info('Using TemplateBundleFileLoader for bundle');
+            loader = new TemplateBundleFileLoader(this.templateBundlePath);
+            break;
+        }
+
+        const config = loader.getConfig();
+
+        if(this.supportWidgetEngine === true) {
+            //TODO: Handlebars supports local instance. Ideally to make testable we should use a local instance of Handlebars and inject dependency.
+            const widgetEngine = new WidgetEngine(Handlebars, new WidgetRegistry(Handlebars));
+            widgetEngine.registerDefaultWidgets();
+        }
 
         try {
             this.cleanOutputDirectory(resolvedOutputPath);
@@ -43,13 +80,14 @@ export class TemplateProcessor {
 
             this.validateConfig(config);
 
+
+            const mappedResolver = new MappedReferenceResolver(this.urlToLocalPathMapping, new CompositeReferenceResolver());
             const transformer = await this.loadTransformer(config.transformer, resolvedBundlePath);
-
-            const calmJsonDereferenced = await calmResolver.dereferenceCalmDoc(calmJson);
-            const transformedModel = transformer.getTransformedModel(calmJsonDereferenced);
-
-            const templateLoader = new TemplateBundleFileLoader(this.templateBundlePath);
-            const engine = new TemplateEngine(templateLoader, transformer);
+            const coreModel = CalmCore.fromSchema(JSON.parse(calmJson));
+            const dereference = new DereferencingVisitor(mappedResolver);
+            await dereference.visit(coreModel);
+            const transformedModel = transformer.getTransformedModel(coreModel);
+            const engine = new TemplateEngine(loader, transformer);
             engine.generate(transformedModel, resolvedOutputPath);
 
             logger.info('\n✅ Template Generation Completed!');

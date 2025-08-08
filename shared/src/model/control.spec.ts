@@ -1,126 +1,291 @@
 import { CalmControl, CalmControlDetail } from './control.js';
-import { CalmControlDetailSchema, CalmControlsSchema } from '../types/control-types.js';
+import { CalmControls } from './control';
+import {CalmControlsSchema} from '../types/control-types';
+import {Resolvable} from './resolvable';
 
-const controlDetailWithUrl: CalmControlDetailSchema = {
-    'requirement-url': 'https://example.com/requirement',
-    'config-url': 'https://example.com/config'
-};
+describe('CalmControls', () => {
+    const controlsSchema:CalmControlsSchema = {
+        authentication: {
+            description: 'Authentication control',
+            requirements: [
+                {
+                    'requirement-url': 'https://example.com/auth',
+                    'config-url': 'https://example.com/auth-config.json'
+                }
+            ]
+        },
+        authorization: {
+            description: 'Authorization control',
+            requirements: [
+                {
+                    'requirement-url': 'https://example.com/authz',
+                    'config-url': 'https://example.com/authz-config.json'
 
-const controlDetailWithInlineControl: CalmControlDetailSchema = {
-    'requirement-url': 'https://example.com/requirement',
-    'config': { foo: 'bar', threshold: 10 }
-};
+                }
+            ]
+        }
+    };
 
-const controlData: CalmControlsSchema = {
-    'control-1': {
-        description: 'Test Control 1',
-        requirements: [controlDetailWithUrl]
-    },
-    'control-2': {
-        description: 'Test Control 2',
-        requirements: [controlDetailWithUrl]
-    }
-};
-
-describe('CalmControlDetail', () => {
-    it('should create a CalmControlDetail instance from JSON data', () => {
-        const controlDetail = CalmControlDetail.fromJson(controlDetailWithUrl);
-
-        expect(controlDetail).toBeInstanceOf(CalmControlDetail);
-        expect(controlDetail.requirementUrl).toBe('https://example.com/requirement');
-        expect(controlDetail.configUrl).toBe('https://example.com/config');
-        expect(controlDetail.config).toBeUndefined();
-    });
-
-    it('should create a CalmControlDetail from object-based JSON', () => {
-        const d = CalmControlDetail.fromJson(controlDetailWithInlineControl);
-        expect(d).toBeInstanceOf(CalmControlDetail);
-        expect(d.requirementUrl).toBe('https://example.com/requirement');
-        expect(d.configUrl).toBeUndefined();
-        expect(d.config).toEqual({ foo: 'bar', threshold: 10 });
-    });
-
-
-});
-
-describe('CalmControl', () => {
-    it('should create a CalmControl instance from JSON data', () => {
-        const controls = CalmControl.fromJson(controlData);
-
-        expect(controls).toHaveLength(2);
-        expect(controls[0]).toBeInstanceOf(CalmControl);
-        expect(controls[0].controlId).toBe('control-1');
-        expect(controls[0].description).toBe('Test Control 1');
-        expect(controls[0].requirements).toHaveLength(1);
-        expect(controls[0].requirements[0]).toBeInstanceOf(CalmControlDetail);
-        expect(controls[0].requirements[0].requirementUrl).toBe('https://example.com/requirement');
-        expect(controls[0].requirements[0].configUrl).toBe('https://example.com/config');
-    });
-
-    it('should handle an empty ControlsSchema', () => {
-        const emptyControls: CalmControlsSchema = {};
-        const controls = CalmControl.fromJson(emptyControls);
-        expect(controls).toHaveLength(0);
-    });
-
-
-
-    it('should handle missing requirements in Control', () => {
-        const controlWithNoRequirements: CalmControlsSchema = {
-            'control-3': {
-                description: 'Control with no requirements',
-                requirements: []
-            }
-        };
-        const controls = CalmControl.fromJson(controlWithNoRequirements);
-
-        expect(controls).toHaveLength(1);
-        expect(controls[0].requirements).toHaveLength(0);
-    });
-
-    it('should handle multiple controls and requirements', () => {
-        const controlWithMultipleRequirements: CalmControlsSchema = {
-            'control-4': {
-                description: 'Control with multiple requirements',
+    it('should return the canonical model with toCanonicalSchema()', () => {
+        const controls = CalmControls.fromSchema(controlsSchema);
+        expect(controls.toCanonicalSchema()).toEqual({
+            authentication: {
+                description: 'Authentication control',
                 requirements: [
-                    { 'requirement-url': 'https://example.com/requirement-1', 'config-url': 'https://example.com/config-1' },
-                    { 'requirement-url': 'https://example.com/requirement-2', 'config-url': 'https://example.com/config-2' }
+                    { 'requirement-url': 'https://example.com/auth' }
+                ]
+            },
+            authorization: {
+                description: 'Authorization control',
+                requirements: [
+                    { 'requirement-url': 'https://example.com/authz' }
+                ]
+            }
+        });
+    });
+
+    it('should handle control with config-url', () => {
+        const controlsSchemaWithConfig = {
+            authentication: {
+                description: 'Authentication control',
+                requirements: [
+                    {
+                        'requirement-url': 'https://calm.finos.org/release/1.0-rc2/prototype/authentication-control-requirement.json',
+                        'config-url': 'https://calm.finos.org/release/1.0-rc2/prototype/authentication-control-config.json'
+                    }
                 ]
             }
         };
-
-        const controls = CalmControl.fromJson(controlWithMultipleRequirements);
-
-        expect(controls).toHaveLength(1);
-        expect(controls[0].controlId).toBe('control-4');
-        expect(controls[0].requirements).toHaveLength(2);
-        expect(controls[0].requirements[0].requirementUrl).toBe('https://example.com/requirement-1');
-        expect(controls[0].requirements[1].requirementUrl).toBe('https://example.com/requirement-2');
+        const controls = CalmControls.fromSchema(controlsSchemaWithConfig);
+        expect(controls.toCanonicalSchema()).toEqual({
+            authentication: {
+                description: 'Authentication control',
+                requirements: [
+                    {
+                        'requirement-url': 'https://calm.finos.org/release/1.0-rc2/prototype/authentication-control-requirement.json'
+                        // config is not resolved, so not included in canonical
+                    }
+                ]
+            }
+        });
     });
 
-    it('should parse controls with mixed requirement types', () => {
-        const mixControls: CalmControlsSchema = {
-            'ctrl-url': {
-                description: 'URL control',
-                requirements: [controlDetailWithUrl]
-            },
-            'ctrl-obj': {
-                description: 'Object control',
-                requirements: [controlDetailWithInlineControl]
+    it('should handle control with config', () => {
+        const controlsSchemaWithConfig = {
+            authentication: {
+                description: 'Authentication control',
+                requirements: [
+                    {
+                        'requirement-url': 'https://calm.finos.org/release/1.0-rc2/prototype/authentication-control-requirement.json',
+                        config: { foo: 'bar', enabled: true }
+                    }
+                ]
             }
         };
-        const arr = CalmControl.fromJson(mixControls);
-        expect(arr).toHaveLength(2);
+        const controls = CalmControls.fromSchema(controlsSchemaWithConfig);
+        expect(controls.toCanonicalSchema()).toEqual({
+            authentication: {
+                description: 'Authentication control',
+                requirements: [
+                    {
+                        'requirement-url': 'https://calm.finos.org/release/1.0-rc2/prototype/authentication-control-requirement.json',
+                        foo: 'bar',
+                        enabled: true
+                    }
+                ]
+            }
+        });
+    });
 
-        const urlCtrl = arr.find(c => c.controlId === 'ctrl-url')!;
-        expect(urlCtrl.description).toBe('URL control');
-        expect(urlCtrl.requirements[0].configUrl).toBe('https://example.com/config');
-        expect(urlCtrl.requirements[0].config).toBeUndefined();
+    it('should handle multiple controls with mixed requirements', () => {
+        const controlsSchemaMixed = {
+            authentication: {
+                description: 'Authentication control',
+                requirements: [
+                    {
+                        'requirement-url': 'https://example.com/auth',
+                        'config-url': 'https://example.com/auth-config.json'
+                    }
+                ]
+            },
+            authorization: {
+                description: 'Authorization control',
+                requirements: [
+                    {
+                        'requirement-url': 'https://calm.finos.org/release/1.0-rc2/prototype/authz-control-requirement.json',
+                        config: { level: 'admin' }
+                    }
+                ]
+            }
+        };
+        const controls = CalmControls.fromSchema(controlsSchemaMixed);
+        expect(controls.toCanonicalSchema()).toEqual({
+            authentication: {
+                description: 'Authentication control',
+                requirements: [
+                    {
+                        'requirement-url': 'https://example.com/auth'
+                    }
+                ]
+            },
+            authorization: {
+                description: 'Authorization control',
+                requirements: [
+                    {
+                        'requirement-url': 'https://calm.finos.org/release/1.0-rc2/prototype/authz-control-requirement.json',
+                        level: 'admin'
+                    }
+                ]
+            }
+        });
+    });
 
-        const objCtrl = arr.find(c => c.controlId === 'ctrl-obj')!;
-        expect(objCtrl.description).toBe('Object control');
-        expect(objCtrl.requirements[0].configUrl).toBeUndefined();
-        expect(objCtrl.requirements[0].config).toEqual({ foo: 'bar', threshold: 10 });
+    it('should throw or ignore if both config-url and config are present (invalid)', () => {
+        const controlsSchemaInvalid = {
+            authentication: {
+                description: 'Authentication control',
+                requirements: [
+                    {
+                        'requirement-url': 'https://calm.finos.org/release/1.0-rc2/prototype/authentication-control-requirement.json',
+                        'config-url': 'https://calm.finos.org/release/1.0-rc2/prototype/authentication-control-config.json',
+                        config: { foo: 'bar' }
+                    }
+                ]
+            }
+        };
+        const controls = CalmControls.fromSchema(controlsSchemaInvalid);
+        // Should prefer config-url and ignore config, so config is not spread
+        expect(controls.toCanonicalSchema()).toEqual({
+            authentication: {
+                description: 'Authentication control',
+                requirements: [
+                    {
+                        'requirement-url': 'https://calm.finos.org/release/1.0-rc2/prototype/authentication-control-requirement.json'
+                    }
+                ]
+            }
+        });
+    });
+
+    it('should handle control with no requirements', () => {
+        const controlsSchemaNoReq = {
+            authentication: {
+                description: 'Authentication control',
+                requirements: []
+            }
+        };
+        const controls = CalmControls.fromSchema(controlsSchemaNoReq);
+        expect(controls.toCanonicalSchema()).toEqual({
+            authentication: {
+                description: 'Authentication control',
+                requirements: []
+            }
+        });
+    });
+
+    it('should return the original schema with toSchema()', () => {
+        const controlsSchema: CalmControlsSchema = {
+            authentication: {
+                description: 'Authentication control',
+                requirements: [
+                    {
+                        'requirement-url': 'https://example.com/auth',
+                        'config-url': 'https://example.com/auth-config.json'
+                    }
+                ]
+            }
+        };
+        const controls = CalmControls.fromSchema(controlsSchema);
+        expect(controls.toSchema()).toEqual(controlsSchema);
+    });
+
+    it('should support fromSchema → toCanonicalSchema roundtrip', () => {
+        const controlsSchema = {
+            authentication: {
+                description: 'Authentication control',
+                requirements: [
+                    {
+                        'requirement-url': 'https://example.com/auth',
+                        'config-url': 'https://example.com/auth-config.json'
+                    }
+                ]
+            }
+        };
+        const controls = CalmControls.fromSchema(controlsSchema);
+        expect(controls.toCanonicalSchema()).toEqual({
+            authentication: {
+                description: 'Authentication control',
+                requirements: [
+                    { 'requirement-url': 'https://example.com/auth' }
+                ]
+            }
+        });
+    });
+});
+
+describe('CalmControl', () => {
+    const controlSchema = {
+        description: 'Test Control',
+        requirements: [
+            {
+                'requirement-url': 'https://calm.finos.org/release/1.0-rc2/prototype/authentication-control-requirement.json',
+                'config-url': 'https://calm.finos.org/release/1.0-rc2/prototype/authentication-control-config.json'
+            }
+        ]
+    };
+
+    it('should create an instance from JSON schema', () => {
+        const control = CalmControl.fromSchema(controlSchema);
+        expect(control).toBeInstanceOf(CalmControl);
+        expect(control.description).toBe('Test Control');
+        expect(control.requirements).toHaveLength(1);
+        expect(control.requirements[0]).toBeInstanceOf(CalmControlDetail);
+        expect(control.requirements[0].requirement.reference).toBe('https://calm.finos.org/release/1.0-rc2/prototype/authentication-control-requirement.json');
+        expect(control.requirements[0].configUrl.reference).toBe('https://calm.finos.org/release/1.0-rc2/prototype/authentication-control-config.json');
+    });
+
+    it('should return the canonical model with toCanonicalSchema()', () => {
+        const control = CalmControl.fromSchema(controlSchema);
+        expect(control.toCanonicalSchema()).toEqual({
+            description: 'Test Control',
+            requirements: [
+                {
+                    'requirement-url': 'https://calm.finos.org/release/1.0-rc2/prototype/authentication-control-requirement.json',
+                }
+            ]
+        });
+    });
+
+    it('should return the original schema with toSchema()', () => {
+        const control = CalmControl.fromSchema(controlSchema);
+        expect(control.toSchema()).toEqual(controlSchema);
+    });
+
+    it('should use resolved configUrl value in toCanonicalSchema()', () => {
+        const control = CalmControl.fromSchema(controlSchema);
+
+        const mockConfigUrl = {
+            get isResolved() {
+                return true;
+            },
+            get value() {
+                return { foo: 'bar', enabled: true };
+            }
+        } as unknown as Resolvable<Record<string, unknown>>;
+
+        // Override the requirement's configUrl with our mock
+        control.requirements[0].configUrl = mockConfigUrl;
+
+        expect(control.toCanonicalSchema()).toEqual({
+            description: 'Test Control',
+            requirements: [
+                {
+                    'requirement-url': 'https://calm.finos.org/release/1.0-rc2/prototype/authentication-control-requirement.json',
+                    foo: 'bar',
+                    enabled: true
+                }
+            ]
+        });
     });
 
 

@@ -1,0 +1,23 @@
+### Table of Nodes (Flat)
+
+{{table nodes columns="node-type, description" }}
+
+### Table of Nodes (Nested)
+
+{{table nodes key="unique-id"}}
+
+### Table of Relationships
+
+{{table relationships key="unique-id" header="false"}}
+
+### Table of `Nodes of Type Service`
+
+{{table nodes[node-type=="service"]}}
+
+### Table of Controls off of node with unique-id "k8s-cluster"
+
+{{table nodes["k8s-cluster"].controls.security.requirements columns="control-id,name,description"}}
+
+### Table with post filtering
+
+{{table nodes key="unique-id" columns="node-type, description" filter="node-type=='database'"}}

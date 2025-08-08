@@ -1,0 +1,17 @@
+{
+  "config": {
+    "database": {
+      "host": "localhost",
+      "port": 5432,
+      "credentials": {
+        "username": "admin",
+        "password": "secret"
+      }
+    },
+    "api": {
+      "timeout": 30000,
+      "retries": 3
+    }
+  }
+}
+

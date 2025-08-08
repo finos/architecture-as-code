@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/interfaces/example/container-image",
+  "title": "Container Image Interface",
+  "type": "object",
+  "properties": {
+    "image": {
+      "type": "string",
+      "description": "Location of the container image, for example in the format 'registry/repository:tag'."
+    }
+  },
+  "required": ["image"],
+  "examples": [
+    {
+      "image": "docker.io/library/nginx:latest"
+    },
+    {
+      "image": "calm.finos.org/images/repository:version"
+    }
+  ]
+}

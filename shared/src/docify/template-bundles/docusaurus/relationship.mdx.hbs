@@ -14,17 +14,17 @@ title: {{kebabToTitleCase id}}
 ## Related Nodes
 ```mermaid
 graph TD;
-{{#if (instanceOf relationshipType "CalmInteractsType")}}
+{{#if (eq relationshipType.kind "interacts")}}
 {{#each relationshipType.nodes}}
 {{../relationshipType.actor}} -- Interacts --> {{this}};
 {{/each}}
-{{else if (instanceOf relationshipType "CalmConnectsType")}}
+{{else if (eq relationshipType.kind "connects")}}
 {{relationshipType.source.node}} -- Connects --> {{relationshipType.destination.node}};
-{{else if (instanceOf relationshipType "CalmComposedOfType")}}
+{{else if (eq relationshipType.kind "composed-of")}}
 {{#each relationshipType.nodes}}
 {{../relationshipType.container}} -- Composed Of --> {{this}};
 {{/each}}
-{{else if (instanceOf relationshipType "CalmDeployedInType")}}
+{{else if (eq relationshipType.kind "deployed-in")}}
 {{#each relationshipType.nodes}}
 {{../relationshipType.container}} -- Deployed In --> {{this}};
 {{/each}}

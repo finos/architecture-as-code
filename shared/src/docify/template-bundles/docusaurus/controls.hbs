@@ -1,15 +1,15 @@
-{{#if controls.length}}
-    {{#each controls}}
+{{#if (notEmpty controls.data)}}
+    {{#eachInMap controls.data}}
 
-        ### {{kebabToTitleCase controlId}}
+        ### {{kebabToTitleCase key}}
 
         {{description}}
 
         {{#each requirements}}
-            {{> table-template.html data=configUrl}}
+            {{> table-template.html data=configUrl._value }}
         {{/each}}
 
-    {{/each}}
+    {{/eachInMap}}
 {{else}}
     _No controls defined._
 {{/if}}

@@ -10,7 +10,7 @@ const INPUT_DIR = join(
 );
 const WORKSHOP_DIR = join(
     __dirname,
-    '../../../conferences/osff-ln-2025/workshop/controls'
+    '../../../conferences/osff-ln-2025/workshop'
 );
 
 const OUTPUT_DIR = join(
@@ -46,10 +46,8 @@ describe('Docifier E2E - Real Model and Template', () => {
 
     it('generates documentation from the conference-secure-signup.arch.json model with explicit local mapping', async () => {
         const mapping = new Map<string, string>([
-            [
-                'https://calm.finos.org/workshop/controls/micro-segmentation.config.json',
-                join(WORKSHOP_DIR, 'micro-segmentation.config.json'),
-            ],
+            ['https://calm.finos.org/workshop/controls/micro-segmentation.config.json', join(WORKSHOP_DIR, 'controls/micro-segmentation.config.json')],
+            ['https://calm.finos.org/workshop/flows/conference-signup.flow.json', join(WORKSHOP_DIR, 'flows/conference-signup.flow.json')],
         ]);
 
         const docifier = new Docifier(
@@ -67,11 +65,16 @@ describe('Docifier E2E - Real Model and Template', () => {
     });
 
     it('generates documentation from the conference-secure-signup.arch.json model with no mapping as workshop documents are available', async () => {
+        const mapping = new Map<string, string>([
+            ['https://calm.finos.org/workshop/flows/conference-signup.flow.json', join(WORKSHOP_DIR, 'flows/conference-signup.flow.json')],
+        ]);
+
+
         const docifier = new Docifier(
             'WEBSITE',
             join(INPUT_DIR, 'conference-secure-signup-amended.arch.json'),
             SECURE_VERSION_DOC_WEBSITE,
-            new Map<string, string>()
+            mapping
         );
         await docifier.docify();
         await expectDirectoryMatch(

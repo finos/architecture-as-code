@@ -1,28 +1,54 @@
 import { CalmMetadata } from './metadata.js';
-import { CalmControl } from './control.js';
+import { CalmControls} from './control.js';
+import { CalmNodeInterface } from './interface.js';
 import {
     CalmComposedOfRelationshipSchema,
-    CalmConnectsRelationshipSchema, CalmDecisionSchema, CalmDeployedInRelationshipSchema,
+    CalmConnectsRelationshipSchema,
+    CalmDecisionSchema,
+    CalmDeployedInRelationshipSchema,
     CalmInteractsRelationshipSchema,
     CalmOptionsRelationshipSchema,
     CalmRelationshipSchema,
     CalmRelationshipTypeSchema
 } from '../types/core-types.js';
-import { CalmNodeInterface } from './interface.js';
+import { CalmAdaptable } from './adaptable.js';
+import {
+    CalmDecisionCanonicalModel,
+    CalmRelationshipCanonicalModel,
+    CalmRelationshipTypeCanonicalModel
+} from '../template/template-models';
 
+export class CalmRelationship
+implements CalmAdaptable<CalmRelationshipSchema, CalmRelationshipCanonicalModel> {
 
-export class CalmRelationship {
     constructor(
+        public originalJson: CalmRelationshipSchema,
         public uniqueId: string,
         public relationshipType: CalmRelationshipType,
-        public metadata: CalmMetadata,
-        public controls: CalmControl[],
-        public additionalProperties: Record<string, unknown>,
+        public metadata?: CalmMetadata,
+        public controls?: CalmControls,
+        public additionalProperties?: Record<string, unknown>,
         public description?: string,
         public protocol?: string
-    ) { }
+    ) {}
 
-    static fromJson(data: CalmRelationshipSchema): CalmRelationship {
+    toCanonicalSchema(): CalmRelationshipCanonicalModel {
+        return {
+            'unique-id': this.uniqueId,
+            'relationship-type': this.relationshipType.toCanonicalSchema(),
+            'metadata': this.metadata ? this.metadata.toCanonicalSchema() : undefined,
+            'controls': this.controls ? this.controls.toCanonicalSchema() : undefined,
+            'description': this.description,
+            'protocol': this.protocol,
+            ...this.additionalProperties
+        };
+    }
+
+    toSchema(): CalmRelationshipSchema {
+        return this.originalJson;
+    }
+
+    static fromSchema(schema: CalmRelationshipSchema): CalmRelationship {
         const {
             'unique-id': uniqueId,
             'description': description,
@@ -30,94 +56,202 @@ export class CalmRelationship {
             'protocol': protocol,
             'metadata': metadata,
             'controls': controls,
-            ...additionalProperties } = data;
+            ...additionalProps
+        } = schema;
+
         return new CalmRelationship(
+            schema,
             uniqueId,
-            CalmRelationship.deriveRelationshipType(relationshipType),
-            metadata ? CalmMetadata.fromJson(metadata) : new CalmMetadata({}),
-            CalmControl.fromJson(controls),
-            additionalProperties,
+            CalmRelationshipType.deriveSchema(relationshipType),
+            metadata ? CalmMetadata.fromSchema(metadata) : undefined,
+            controls ? CalmControls.fromSchema(controls) : undefined,
+            additionalProps,
             description,
             protocol
         );
     }
 
-    static deriveRelationshipType(data: CalmRelationshipTypeSchema): CalmRelationshipType {
-        if (data.interacts) {
-            return CalmInteractsType.fromJson(data.interacts);
-        } else if (data.connects) {
-            return CalmConnectsType.fromJson(data.connects);
-        } else if (data['deployed-in']) {
-            return CalmDeployedInType.fromJson(data['deployed-in']);
-        } else if (data['composed-of']) {
-            return CalmComposedOfType.fromJson(data['composed-of']);
-        } else if (data.options) {
-            return CalmOptionsRelationshipType.fromJson(data.options);
-        } else {
-            throw new Error('Invalid relationship type data');
-        }
-    }
 }
 
-export abstract class CalmRelationshipType { }
+export abstract class CalmRelationshipType {
+    public abstract readonly kind: string;
+    static deriveSchema(schema: CalmRelationshipTypeSchema): CalmRelationshipType {
+        if (schema.interacts) return CalmInteractsType.fromSchema(schema.interacts);
+        if (schema.connects) return CalmConnectsType.fromSchema(schema.connects);
+        if (schema['deployed-in']) return CalmDeployedInType.fromSchema(schema['deployed-in']);
+        if (schema['composed-of']) return CalmComposedOfType.fromSchema(schema['composed-of']);
+        if (schema.options) return CalmOptionsRelationshipType.fromSchema(schema.options);
+        throw new Error('Unknown relationship-type schema');
+    }
 
-export class CalmInteractsType extends CalmRelationshipType {
-    constructor(public actor: string, public nodes: string[]) {
+    abstract toCanonicalSchema(): CalmRelationshipTypeCanonicalModel;
+
+}
+
+export class CalmInteractsType extends CalmRelationshipType
+    implements CalmAdaptable<CalmInteractsRelationshipSchema, CalmRelationshipTypeCanonicalModel> {
+    public readonly kind = 'interacts';
+
+    constructor(
+        public originalJson: CalmInteractsRelationshipSchema,
+        public actor: string,
+        public nodes: string[]
+    ) {
         super();
     }
 
-    static fromJson(data: CalmInteractsRelationshipSchema): CalmInteractsType {
-        return new CalmInteractsType(data.actor, data.nodes);
+    toCanonicalSchema(): CalmRelationshipTypeCanonicalModel {
+        return { interacts: { actor: this.actor, nodes: this.nodes }};
+    }
+
+    static fromSchema(schema: CalmInteractsRelationshipSchema): CalmInteractsType {
+        return new CalmInteractsType(schema, schema.actor, schema.nodes);
+    }
+
+    toSchema(): CalmInteractsRelationshipSchema {
+        return this.originalJson;
     }
 }
 
-export class CalmConnectsType extends CalmRelationshipType {
-    constructor(public source: CalmNodeInterface, public destination: CalmNodeInterface) {
+export class CalmConnectsType extends CalmRelationshipType
+    implements CalmAdaptable<CalmConnectsRelationshipSchema, CalmRelationshipTypeCanonicalModel> {
+
+    public readonly kind = 'connects';
+
+    constructor(
+        public originalJson: CalmConnectsRelationshipSchema,
+        public source: CalmNodeInterface,
+        public destination: CalmNodeInterface
+    ) {
         super();
     }
 
-    static fromJson(data: CalmConnectsRelationshipSchema): CalmConnectsType {
+    toCanonicalSchema(): CalmRelationshipTypeCanonicalModel {
+        return { connects: { source: this.source.toCanonicalSchema(), destination: this.destination.toCanonicalSchema() }};
+    }
+
+    static fromSchema(schema: CalmConnectsRelationshipSchema): CalmConnectsType {
         return new CalmConnectsType(
-            CalmNodeInterface.fromJson(data.source),
-            CalmNodeInterface.fromJson(data.destination)
+            schema,
+            CalmNodeInterface.fromSchema(schema.source),
+            CalmNodeInterface.fromSchema(schema.destination)
         );
     }
+
+    toSchema(): CalmConnectsRelationshipSchema {
+        return this.originalJson;
+    }
 }
 
-export class CalmDeployedInType extends CalmRelationshipType {
-    constructor(public container: string, public nodes: string[]) {
+export class CalmDeployedInType extends CalmRelationshipType
+    implements CalmAdaptable<CalmDeployedInRelationshipSchema, CalmRelationshipTypeCanonicalModel>{
+    public readonly kind = 'deployed-in';
+
+    constructor(
+        public originalJson: CalmDeployedInRelationshipSchema,
+        public container: string,
+        public nodes: string[]
+    ) {
         super();
     }
 
-    static fromJson(data: CalmDeployedInRelationshipSchema): CalmDeployedInType {
-        return new CalmDeployedInType(data.container, data.nodes);
+    toCanonicalSchema(): CalmRelationshipTypeCanonicalModel {
+        return { 'deployed-in': { container: this.container, nodes: this.nodes }};
+    }
+
+    static fromSchema(schema: CalmDeployedInRelationshipSchema): CalmDeployedInType {
+        return new CalmDeployedInType(schema, schema.container, schema.nodes);
+    }
+
+    toSchema(): CalmDeployedInRelationshipSchema {
+        return this.originalJson;
     }
 }
 
-export class CalmComposedOfType extends CalmRelationshipType {
-    constructor(public container: string, public nodes: string[]) {
+export class CalmComposedOfType extends CalmRelationshipType
+    implements CalmAdaptable<CalmComposedOfRelationshipSchema, CalmRelationshipTypeCanonicalModel>{
+    public readonly kind = 'composed-of';
+    constructor(
+        public originalJson: CalmComposedOfRelationshipSchema,
+        public container: string,
+        public nodes: string[]
+    ) {
         super();
     }
 
-    static fromJson(data: CalmComposedOfRelationshipSchema): CalmComposedOfType {
-        return new CalmComposedOfType(data.container, data.nodes);
+    toCanonicalSchema(): CalmRelationshipTypeCanonicalModel {
+        return { 'composed-of': { container: this.container, nodes: this.nodes }};
+    }
+
+    static fromSchema(schema: CalmComposedOfRelationshipSchema): CalmComposedOfType {
+        return new CalmComposedOfType(schema, schema.container, schema.nodes);
+    }
+
+    toSchema(): CalmComposedOfRelationshipSchema {
+        return this.originalJson;
     }
 }
 
-export class CalmDecisionType {
-    constructor(public description: string, public nodes: string[], public relationships: string[], public controls?: string[], public metadata?: string[]) { }
+export class CalmDecisionType
+implements CalmAdaptable<CalmDecisionSchema, CalmDecisionCanonicalModel> {
+    constructor(
+        public originalJson: CalmDecisionSchema,
+        public description: string,
+        public nodes: string[],
+        public relationships: string[],
+        public controls?: string[],
+        public metadata?: string[]
+    ) {}
 
-    static fromJson(data: CalmDecisionSchema) {
-        return new CalmDecisionType(data.description, data.nodes, data.relationships, data.controls, data.metadata);
+    toCanonicalSchema(): CalmDecisionCanonicalModel {
+        return {
+            'description': this.description,
+            'nodes': this.nodes,
+            'relationships': this.relationships,
+            'controls': this.controls ?? [],
+            'metadata': this.metadata ?? []
+        };
+    }
+
+    static fromSchema(schema: CalmDecisionSchema): CalmDecisionType {
+        return new CalmDecisionType(
+            schema,
+            schema.description,
+            schema.nodes,
+            schema.relationships,
+            schema.controls,
+            schema.metadata
+        );
+    }
+
+    toSchema(): CalmDecisionSchema {
+        return this.originalJson;
     }
 }
 
-export class CalmOptionsRelationshipType extends CalmRelationshipType {
-    constructor(public decisions: CalmDecisionType[]) {
+export class CalmOptionsRelationshipType extends CalmRelationshipType
+    implements CalmAdaptable<CalmOptionsRelationshipSchema, CalmRelationshipTypeCanonicalModel> {
+    public readonly kind = 'options';
+
+    constructor(
+        public originalJson: CalmOptionsRelationshipSchema,
+        public options: CalmDecisionType[]
+    ) {
         super();
     }
 
-    static fromJson(data: CalmOptionsRelationshipSchema): CalmOptionsRelationshipType {
-        return new CalmOptionsRelationshipType(data.map(calmDecisionData => CalmDecisionType.fromJson(calmDecisionData)));
+    toCanonicalSchema(): CalmRelationshipTypeCanonicalModel {
+        return {
+            'options': this.options.map(option => option.toCanonicalSchema())
+        };
+    }
+
+    static fromSchema(schema: CalmOptionsRelationshipSchema): CalmOptionsRelationshipType {
+        const decisions = schema.map(CalmDecisionType.fromSchema);
+        return new CalmOptionsRelationshipType(schema, decisions);
+    }
+
+    toSchema(): CalmOptionsRelationshipSchema {
+        return this.originalJson;
     }
 }

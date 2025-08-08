@@ -7,12 +7,12 @@ module.exports = class JsTransformer {
     }
 
     getTransformedModel(rawJson) {
-        const document = JSON.parse(rawJson);
+        const document = rawJson['originalJson'];
         return {
             document: {
-                id: document.id,
-                name: document.title,
-                description: document.description,
+                id: document.metadata['id'],
+                name: document.metadata['title'],
+                description: document.metadata['description'],
                 nodes: document.nodes || [],
                 relationships: document.relationships || []
             }

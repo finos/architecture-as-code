@@ -1,31 +1,49 @@
+import { CalmAdaptable } from './adaptable.js';
+import { CalmMetadata } from './metadata.js';
 import { CalmNode } from './node.js';
 import { CalmRelationship } from './relationship.js';
+import { CalmControls } from './control.js';
 import { CalmFlow } from './flow.js';
-import { CalmControl } from './control.js';
-import { CalmMetadata } from './metadata.js';
 import { CalmCoreSchema } from '../types/core-types.js';
+import {CalmCoreCanonicalModel} from '../template/template-models';
 
-export class CalmCore {
+export type Architecture = CalmCore
+
+export class CalmCore implements CalmAdaptable<CalmCoreSchema, CalmCoreCanonicalModel> {
     constructor(
-        public nodes: CalmNode[],
-        public relationships: CalmRelationship[],
-        public metadata: CalmMetadata,
-        public controls: CalmControl[],
-        public flows: CalmFlow[],
-        public adrs: string[]
+        public originalJson: CalmCoreSchema,
+        public nodes: CalmNode[] = [],
+        public relationships: CalmRelationship[] = [],
+        public controls?: CalmControls,
+        public flows?: CalmFlow[],
+        public metadata?: CalmMetadata,
+        public adrs?: string[]
     ) {}
 
-    static fromJson(data: CalmCoreSchema): CalmCore {
+    toCanonicalSchema(): CalmCoreCanonicalModel {
+        return {
+            nodes: this.nodes.map(node => node.toCanonicalSchema()),
+            relationships: this.relationships.map(relationship => relationship.toCanonicalSchema()),
+            controls: this.controls ? this.controls.toCanonicalSchema() : undefined,
+            flows: this.flows ? this.flows.map(flow => flow.toCanonicalSchema()) : undefined,
+            metadata: this.metadata ? this.metadata.toCanonicalSchema() : undefined,
+            adrs: this.adrs ? this.adrs : undefined
+        };
+    }
+
+    static fromSchema(schema: CalmCoreSchema): CalmCore {
         return new CalmCore(
-            data.nodes? data.nodes.map(CalmNode.fromJson) : [],
-            data.relationships?  data.relationships.map(CalmRelationship.fromJson) : [],
-            data.metadata? CalmMetadata.fromJson(data.metadata) : new CalmMetadata({}),
-            data.controls? CalmControl.fromJson(data.controls) : [],
-            data.flows? data.flows.map(CalmFlow.fromJson) : [],
-            data.adrs ? data.adrs : []
+            schema,
+            (schema.nodes ?? []).map(CalmNode.fromSchema),
+            (schema.relationships ?? []).map(CalmRelationship.fromSchema),
+            schema.controls ? CalmControls.fromSchema(schema.controls) : undefined,
+            schema.flows ? schema.flows.map(CalmFlow.fromSchema) : undefined,
+            schema.metadata ? CalmMetadata.fromSchema(schema.metadata) : undefined,
+            schema.adrs
         );
     }
-}
 
-export { CalmCore as Architecture };
-export { CalmCore as Pattern };
+    toSchema(): CalmCoreSchema {
+        return this.originalJson;
+    }
+}

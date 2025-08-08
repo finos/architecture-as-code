@@ -1,0 +1,28 @@
+{{#if ../flatTable}}
+<tr>
+    <td>{{id}}</td>
+    {{#each ../columnNames}}
+    <td>{{lookup ../data this}}</td>
+    {{/each}}
+</tr>
+{{else}}
+<tr>
+    <td><b>{{kebabToTitleCase id}}</b></td>
+    <td>
+        {{#if (isObject data)}}
+        {{> table-template.html rows=(objectEntries data) headers=false }}
+
+        {{else if (isArray data)}}
+        {{#each data}}
+        {{#if (isObject this)}}
+        {{> table-template.html rows=(objectEntries this) headers=false }}
+        {{else}}
+        {{this}}
+        {{/if}}
+        {{/each}}
+        {{else}}
+        {{data}}
+        {{/if}}
+    </td>
+</tr>
+{{/if}}

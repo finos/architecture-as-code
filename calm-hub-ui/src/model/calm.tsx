@@ -1,4 +1,4 @@
-import { CalmAdrMeta } from "@finos/calm-shared/src/model/adr.js";
+import { CalmAdrMeta } from "shared/src/view-model/adr.js";
 
 export type Namespace = string;
 export type PatternID = string;

@@ -1,0 +1,29 @@
+{{#if ordered}}
+<ol>
+    {{#each items}}
+        <li>
+            {{#if (isObject this)}}
+                {{#each this}}
+                    <b>{{@key}}:</b> {{this}} {{#unless @last}}, {{/unless}}
+                {{/each}}
+            {{else}}
+                {{this}}
+            {{/if}}
+        </li>
+    {{/each}}
+</ol>
+{{else}}
+<ul>
+    {{#each items}}
+        <li>
+            {{#if (isObject this)}}
+                {{#each this}}
+                    <b>{{@key}}:</b> {{this}} {{#unless @last}}, {{/unless}}
+                {{/each}}
+            {{else}}
+                {{this}}
+            {{/if}}
+        </li>
+    {{/each}}
+</ul>
+{{/if}}

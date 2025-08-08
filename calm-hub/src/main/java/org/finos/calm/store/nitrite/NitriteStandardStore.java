@@ -172,7 +172,7 @@ public class NitriteStandardStore implements StandardStore {
     }
 
     @Override
-    public Standard getStandardForVersion(String namespace, Integer standardId, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionNotFoundException {
+    public String getStandardForVersion(String namespace, Integer standardId, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionNotFoundException {
         if(!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
@@ -196,14 +196,7 @@ public class NitriteStandardStore implements StandardStore {
         LOG.debug("Retrieved version '{}' for standard {} in namespace '{}'",
                 mongoVersion, standardId, namespace);
 
-        Standard standard = new Standard();
-        standard.setId(standardId);
-        standard.setVersion(version);
-        standard.setNamespace(namespace);
-        standard.setDescription(standardDocument.get(DESCRIPTION_FIELD, String.class));
-        standard.setName(standardDocument.get(NAME_FIELD, String.class));
-        standard.setStandardJson(storedStandard.get(JSON_FIELD, String.class));
-        return standard;
+        return storedStandard.get(JSON_FIELD, String.class);
     }
 
     @Override

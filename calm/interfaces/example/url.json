@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/interfaces/example/url",
+  "title": "URL Interface",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "format": "hostname",
+      "description": "The URL"
+    }
+  },
+  "required": ["url"],
+  "examples": [
+    {
+      "url": "https://example.com"
+    },
+    {
+      "url": "http://localhost:8080/api/v1/resource"
+    }
+  ]
+}

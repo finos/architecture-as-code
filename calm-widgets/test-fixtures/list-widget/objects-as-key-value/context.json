@@ -1,0 +1,15 @@
+{
+  "services": [
+    {
+      "name": "auth-service",
+      "version": "1.0",
+      "status": "running"
+    },
+    {
+      "name": "user-service",
+      "version": "2.1",
+      "status": "stopped"
+    }
+  ]
+}
+

@@ -15,15 +15,15 @@ const integrationTestPrefix = 'calm-consumer-test';
 let tempDir: string;
 const repoRoot = path.resolve(__dirname);
 
-function run(command: string) {
-    const cp = execa(command, { cwd: tempDir, shell: true });
+function run(file: string, args: string[]) {
+    const cp = execa(file, args, { cwd: tempDir });
     cp.stdout?.pipe(process.stdout);
     cp.stderr?.pipe(process.stderr);
     return cp;
 }
 
-function calm(cmd: string): string {
-    return `${path.join(tempDir, 'node_modules/.bin/calm')} ${cmd}`;
+function calm(): string {
+    return path.join(tempDir, 'node_modules/.bin/calm');
 }
 
 describe('CLI Integration Tests', () => {
@@ -40,7 +40,6 @@ describe('CLI Integration Tests', () => {
         const targetTarball = path.join(tempDir, tgzName);
         fs.renameSync(sourceTarball, targetTarball);
 
-        // Create clean test consumer
         execSync('npm init -y', { cwd: tempDir, stdio: 'inherit' });
         execSync(`npm install ${targetTarball}`, {
             cwd: tempDir,
@@ -55,19 +54,19 @@ describe('CLI Integration Tests', () => {
     });
 
     test('calm --version works', async () => {
-        const { stdout } = await run(calm('--version'));
+        const { stdout } = await run(calm(), ['--version']);
         expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
     });
 
     test('shows help if no arguments provided', async () => {
-        await expect(run(calm(''))).rejects.toHaveProperty(
+        await expect(run(calm(), [])).rejects.toHaveProperty(
             'stderr',
             expect.stringContaining('Usage:')
         );
     });
 
     test('calm -h shows help', async () => {
-        const { stdout } = await run(calm('-h'));
+        const { stdout } = await run(calm(), ['-h']);
         expect(stdout).toContain(
             'A set of tools for interacting with the Common Architecture Language Model'
         );
@@ -75,7 +74,7 @@ describe('CLI Integration Tests', () => {
     });
 
     test('calm --help shows help', async () => {
-        const { stdout } = await run(calm('--help'));
+        const { stdout } = await run(calm(), ['--help']);
         expect(stdout).toContain(
             'A set of tools for interacting with the Common Architecture Language Model'
         );
@@ -92,7 +91,7 @@ describe('CLI Integration Tests', () => {
             '../test_fixtures/api-gateway/api-gateway-architecture.json'
         );
         const { stdout } = await run(
-            calm(`validate -p ${apiGatewayPath} -a ${apiGatewayArchPath}`)
+            calm(), ['validate', '-p', apiGatewayPath, '-a', apiGatewayArchPath]
         );
         const expected = JSON.parse(
             fs.readFileSync(
@@ -117,9 +116,7 @@ describe('CLI Integration Tests', () => {
         );
         const targetOutputFile = path.join(tempDir, 'validate-output.json');
         await run(
-            calm(
-                `validate -p ${apiGatewayPath} -a ${apiGatewayArchPath} -o ${targetOutputFile}`
-            )
+            calm(), ['validate', '-p', apiGatewayPath, '-a', apiGatewayArchPath, '-o', targetOutputFile]
         );
         expect(fs.existsSync(targetOutputFile)).toBe(true);
         const expectedJson = JSON.parse(
@@ -146,9 +143,7 @@ describe('CLI Integration Tests', () => {
             '../test_fixtures/api-gateway/api-gateway-architecture.json'
         );
         const { stdout } = await run(
-            calm(
-                `validate -p ${apiGatewayPath} -a ${apiGatewayArchPath} -f junit`
-            )
+            calm(), ['validate', '-p', apiGatewayPath, '-a', apiGatewayArchPath, '-f', 'junit']
         );
         const actual = await parseStringPromise(stdout);
         const expected = await parseStringPromise(
@@ -174,9 +169,7 @@ describe('CLI Integration Tests', () => {
         );
         const targetOutputFile = path.join(tempDir, 'validate-output.xml');
         await run(
-            calm(
-                `validate -p ${apiGatewayPath} -a ${apiGatewayArchPath} -f junit -o ${targetOutputFile}`
-            )
+            calm(), ['validate', '-p', apiGatewayPath, '-a', apiGatewayArchPath, '-f', 'junit', '-o', targetOutputFile]
         );
         expect(fs.existsSync(targetOutputFile)).toBe(true);
         const actual = await parseStringPromise(
@@ -204,7 +197,7 @@ describe('CLI Integration Tests', () => {
             '../test_fixtures/api-gateway/api-gateway-architecture.json'
         );
         const { stdout } = await run(
-            calm(`validate -p ${p} -a ${a} -f pretty`)
+            calm(), ['validate', '-p', p, '-a', a, '-f', 'pretty']
         );
         const expected = fs.readFileSync(
             path.join(__dirname, '../test_fixtures/validate_output_pretty.txt'),
@@ -216,7 +209,7 @@ describe('CLI Integration Tests', () => {
     });
 
     test('validate command fails when neither architecture nor pattern is provided', async () => {
-        await expect(run(calm('validate'))).rejects.toMatchObject({
+        await expect(run(calm(), ['validate'])).rejects.toMatchObject({
             stderr: expect.stringContaining(
                 'error: one of the required options \'-p, --pattern <file>\' or \'-a, --architecture <file>\' was not specified'
             )
@@ -227,7 +220,7 @@ describe('CLI Integration Tests', () => {
         const apiGatewayArchPath = path.join(__dirname, '../test_fixtures/api-gateway/api-gateway-architecture.json');
         const targetOutputFile = path.join(tempDir, 'validate-output.json');
 
-        await run(calm(`validate -a ${apiGatewayArchPath} -o ${targetOutputFile}`));
+        await run(calm(), ['validate', '-a', apiGatewayArchPath, '-o', targetOutputFile]);
         const outputFile = fs.readFileSync(targetOutputFile, 'utf-8');
 
         const parsedOutput = JSON.parse(outputFile);
@@ -249,7 +242,7 @@ describe('CLI Integration Tests', () => {
         );
         const s = path.join(__dirname, '../../calm/release');
         const out = path.join(tempDir, 'generate-output.json');
-        await run(calm(`generate -p ${p} -o ${out} -s ${s}`));
+        await run(calm(), ['generate', '-p', p, '-o', out, '-s', s]);
         const actual = JSON.parse(fs.readFileSync(out, 'utf8'));
         const expected = JSON.parse(
             fs.readFileSync(
@@ -266,10 +259,9 @@ describe('CLI Integration Tests', () => {
             data: { status: 'ok' },
         });
         const serverProcess = spawn(
-            calm('server -p 3002 --schemaDirectory ../../dist/calm/'),
+            calm(), ['server', '-p', '3002', '--schemaDirectory', '../../dist/calm/'],
             {
                 cwd: tempDir,
-                shell: true,
                 stdio: 'inherit',
                 detached: true,
             }
@@ -306,9 +298,14 @@ describe('CLI Integration Tests', () => {
         const outputFile = path.join(outputDir, 'cli-e2e-output.html');
 
         await run(
-            calm(
-                `template --input ${testModelPath} --bundle ${templateBundlePath} --output ${outputDir} --url-to-local-file-mapping ${localDirectory}`
-            )
+            calm(),
+            [
+                'template',
+                '--input', testModelPath,
+                '--bundle', templateBundlePath,
+                '--output', outputDir,
+                '--url-to-local-file-mapping', localDirectory
+            ]
         );
 
         expect(fs.existsSync(outputFile)).toBe(true);
@@ -316,6 +313,41 @@ describe('CLI Integration Tests', () => {
         const expectedContent = fs.readFileSync(expectedOutput, 'utf8').trim();
         expect(actualContent).toEqual(expectedContent);
     });
+
+
+    test('template command works with --template mode', async () => {
+        const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
+        const testModelPath = path.join(fixtureDir, 'model/document-system.json');
+        const templatePath = path.join(fixtureDir, 'self-provided/single-template.hbs');
+        const expectedOutputPath = path.join(fixtureDir, 'expected-output/single-template-output.md');
+        const outputDir = path.join(tempDir, 'output-single-template');
+        const outputFile = path.join(outputDir, 'simple-template-output.md');
+
+        await run(
+            calm(), ['template', '--input', testModelPath, '--template', templatePath, '--output', outputFile]
+        );
+
+        expect(fs.existsSync(outputFile)).toBe(true);
+        const actual = fs.readFileSync(outputFile, 'utf8').trim();
+        const expected = fs.readFileSync(expectedOutputPath, 'utf8').trim();
+        expect(actual).toEqual(expected);
+    });
+
+    test('template command works with --template-dir mode', async () => {
+        const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
+        const testModelPath = path.join(fixtureDir, 'model/document-system.json');
+        const templateDirPath = path.join(fixtureDir, 'self-provided/template-dir');
+        const expectedOutputDir = path.join(fixtureDir, 'expected-output/template-dir');
+        const actualOutputDir = path.join(tempDir, 'output-template-dir');
+
+        await run(
+            calm(), ['template', '--input', testModelPath, '--template-dir', templateDirPath, '--output', actualOutputDir]
+        );
+
+        await expectDirectoryMatch(expectedOutputDir, actualOutputDir);
+    });
+
+
 
     test('docify command generates expected files', async () => {
         const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
@@ -329,9 +361,7 @@ describe('CLI Integration Tests', () => {
         );
         const outputDir = path.join(tempDir, 'output/documentation');
         await run(
-            calm(
-                `docify --input ${testModelPath} --output ${outputDir} --url-to-local-file-mapping ${localDirectory}`
-            )
+            calm(), ['docify', '--input', testModelPath, '--output', outputDir, '--url-to-local-file-mapping', localDirectory]
         );
         [
             'docs/index.md',
@@ -345,6 +375,83 @@ describe('CLI Integration Tests', () => {
         );
     });
 
+
+    test('docify command works with --template mode', async () => {
+        const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
+        const testModelPath = path.join(fixtureDir, 'model/document-system.json');
+        const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
+        const templatePath = path.join(fixtureDir, 'self-provided/single-template.hbs');
+        const expectedOutputPath = path.join(fixtureDir, 'expected-output/single-template-output.md');
+        const outputDir = path.join(tempDir, 'output-single-template');
+        const outputFile = path.join(outputDir, 'simple-template-output.md');
+
+        await run(
+            calm(), ['docify', '--input', testModelPath, '--template', templatePath, '--output', outputFile, '--url-to-local-file-mapping', localDirectory]
+        );
+
+        expect(fs.existsSync(outputFile)).toBe(true);
+        const actual = fs.readFileSync(outputFile, 'utf8').trim();
+        const expected = fs.readFileSync(expectedOutputPath, 'utf8').trim();
+        expect(actual).toEqual(expected);
+    });
+
+    test('docify command works with --template-dir mode', async () => {
+        const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
+        const testModelPath = path.join(fixtureDir, 'model/document-system.json');
+        const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
+        const templateDirPath = path.join(fixtureDir, 'self-provided/template-dir');
+        const expectedOutputDir = path.join(fixtureDir, 'expected-output/template-dir');
+        const actualOutputDir = path.join(tempDir, 'output-template-dir');
+
+        await run(
+            calm(), ['docify', '--input', testModelPath, '--template-dir', templateDirPath, '--output', actualOutputDir, '--url-to-local-file-mapping', localDirectory]
+        );
+
+        await expectDirectoryMatch(expectedOutputDir, actualOutputDir);
+    });
+
+
+    describe('calm docify command - widget rendering', () => {
+        function runTemplateWidgetTest(templateName: string, outputName: string) {
+            return async () => {
+
+                const GETTING_STARTED_TEST_FIXTURES_DIR = join(
+                    __dirname,
+                    '../../cli/test_fixtures/getting-started'
+                );
+
+                const testModelPath = path.resolve(
+                    GETTING_STARTED_TEST_FIXTURES_DIR,
+                    'STEP-3/conference-signup-with-flow.arch.json'
+                );
+
+                const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
+                const templatePath = path.join(fixtureDir, `widget-tests/${templateName}`);
+                const expectedOutputPath = path.join(fixtureDir, `expected-output/widget-tests/${outputName}`);
+                const outputDir = path.join(tempDir, 'widget-tests');
+                const outputFile = path.join(outputDir, outputName);
+
+                await run(
+                    calm(), ['docify', '--input', testModelPath, '--template', templatePath, '--output', outputFile]
+                );
+
+                expect(fs.existsSync(outputFile)).toBe(true);
+                const actual = fs.readFileSync(outputFile, 'utf8').trim();
+                const expected = fs.readFileSync(expectedOutputPath, 'utf8').trim();
+                expect(actual).toEqual(expected);
+            };
+        }
+
+        test('template command works with table widget', runTemplateWidgetTest('table-test.hbs', 'table-test.md'));
+
+        test('template command works with list widget', runTemplateWidgetTest('list-test.hbs', 'list-test.md'));
+
+        test('A user can render a json view their document or parts of their document', runTemplateWidgetTest('json-viewer-test.hbs', 'json-viewer-test.md'));
+
+        test('A user can render a SAD document', runTemplateWidgetTest('sad-test.hbs', 'sad-test.md'));
+    });
+
+
     test('Getting Started Verification - CLI Steps', async () => {
         const GETTING_STARTED_DIR = join(
             __dirname,
@@ -356,8 +463,8 @@ describe('CLI Integration Tests', () => {
         );
 
         // This will enforce that people verify the getting-started guide works prior to any cli change
-        const { stdout } = await run(calm('--version'));
-        expect(stdout.trim()).toMatch('0.7.12'); // basic semver check
+        const { stdout } = await run(calm(), ['--version']);
+        expect(stdout.trim()).toMatch('0.8.0'); // basic semver check
 
         //STEP 1: Generate Architecture From Pattern
         const inputPattern = path.resolve(
@@ -368,7 +475,7 @@ describe('CLI Integration Tests', () => {
             tempDir,
             'conference-signup.arch.json'
         );
-        await run(calm(`generate -p ${inputPattern} -o ${outputArchitecture}`));
+        await run(calm(), ['generate', '-p', inputPattern, '-o', outputArchitecture]);
 
         const expectedOutputArchitecture = path.resolve(
             GETTING_STARTED_TEST_FIXTURES_DIR,
@@ -379,9 +486,7 @@ describe('CLI Integration Tests', () => {
         //STEP 2: Generate Docify Website From Architecture
         const outputWebsite = path.resolve(tempDir, 'website');
         await run(
-            calm(
-                `docify --input ${outputArchitecture} --output ${outputWebsite}`
-            )
+            calm(), ['docify', '--input', outputArchitecture, '--output', outputWebsite]
         );
 
         const expectedOutputDocifyWebsite = path.resolve(
@@ -391,85 +496,50 @@ describe('CLI Integration Tests', () => {
         await expectDirectoryMatch(expectedOutputDocifyWebsite, outputWebsite);
 
         //STEP 3: Add flow to architecture-document
-        const flowsDir = path.resolve(tempDir, 'flows');
-        const flowFile = path.resolve(flowsDir, 'conference-signup.flow.json');
         const flowUrl = 'https://calm.finos.org/getting-started/flows/conference-signup.flow.json';
-        fs.mkdirSync(flowsDir, { recursive: true });
 
-        /* eslint-disable quotes */
-        writeJson(flowFile, {
-            $schema: 'https://calm.finos.org/release/1.0-rc2/meta/flow.json',
-            $id: flowUrl,
-            'unique-id': 'flow-conference-signup',
-            name: 'Conference Signup Flow',
-            description:
-                'Flow for registering a user through the conference website and storing their details in the attendee database.',
-            transitions: [
-                {
-                    'relationship-unique-id':
-                        'conference-website-load-balancer',
-                    'sequence-number': 1,
-                    description:
-                        'User submits sign-up form via Conference Website to Load Balancer',
-                },
-                {
-                    'relationship-unique-id': 'load-balancer-attendees',
-                    'sequence-number': 2,
-                    description:
-                        'Load Balancer forwards request to Attendees Service',
-                },
-                {
-                    'relationship-unique-id': 'attendees-attendees-store',
-                    'sequence-number': 3,
-                    description:
-                        'Attendees Service stores attendee info in the Attendees Store',
-                },
-            ],
-        });
-
-        await expectFilesMatch(
-            path.resolve(
-                GETTING_STARTED_TEST_FIXTURES_DIR,
-                'STEP-3/flows/conference-signup.flow.json'
-            ),
-            flowFile
-        );
-
-        const directory = path.resolve(tempDir, 'directory.json');
-        writeJson(directory, {
-            'https://calm.finos.org/getting-started/flows/conference-signup.flow.json':
-                'flows/conference-signup-with-flow.arch.json',
-        }); //since the flow document is not published
 
         patchJson(outputArchitecture, (arch) => {
-            arch['flows'] = arch['flows'] || [];
-            if (!arch['flows'].includes(flowUrl)) arch['flows'].push(flowUrl);
+            arch['flows'] = [
+                {
+                    $schema: 'https://calm.finos.org/release/1.0-rc2/meta/flow.json',
+                    $id: flowUrl,
+                    'unique-id': 'flow-conference-signup',
+                    name: 'Conference Signup Flow',
+                    description: 'Flow for registering a user through the conference website and storing their details in the attendee database.',
+                    transitions: [
+                        {
+                            'relationship-unique-id': 'conference-website-load-balancer',
+                            'sequence-number': 1,
+                            description: 'User submits sign-up form via Conference Website to Load Balancer',
+                        },
+                        {
+                            'relationship-unique-id': 'load-balancer-attendees',
+                            'sequence-number': 2,
+                            description: 'Load Balancer forwards request to Attendees Service',
+                        },
+                        {
+                            'relationship-unique-id': 'attendees-attendees-store',
+                            'sequence-number': 3,
+                            description: 'Attendees Service stores attendee info in the Attendees Store',
+                        },
+                    ],
+                },
+            ];
         });
+
         await expectFilesMatch(
             path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR, 'STEP-3/conference-signup-with-flow.arch.json'),
             outputArchitecture
         );
 
-        // Patch directory.json to map the URL → local path
-        patchJson(directory, (dir) => {
-            dir[flowUrl] = 'flows/conference-signup.flow.json';
-        });
-        await expectFilesMatch(
-            path.resolve(
-                GETTING_STARTED_TEST_FIXTURES_DIR,
-                'STEP-3/directory.json'
-            ),
-            directory
-        );
 
         const outputWebsiteWithFlow = path.resolve(
             tempDir,
             'website-with-flow'
         );
         await run(
-            calm(
-                `docify --input ${outputArchitecture} --output ${outputWebsiteWithFlow} --url-to-local-file-mapping ${directory}`
-            )
+            calm(), ['docify', '--input', outputArchitecture, '--output', outputWebsiteWithFlow]
         );
 
         const expectedOutputDocifyWebsiteWithFLow = path.resolve(

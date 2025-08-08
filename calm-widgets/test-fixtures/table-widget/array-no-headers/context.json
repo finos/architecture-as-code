@@ -1,0 +1,20 @@
+{
+  "services": [
+    {
+      "name": "auth-service",
+      "port": 8080,
+      "language": "Java"
+    },
+    {
+      "name": "user-service",
+      "port": 8081,
+      "language": "Python"
+    },
+    {
+      "name": "notification-service",
+      "port": 8082,
+      "language": "Node.js"
+    }
+  ]
+}
+
