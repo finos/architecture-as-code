@@ -23,18 +23,6 @@
             {
                 "command": "calm.openPreview",
                 "title": "CALM: Open Preview"
-            },
-            {
-                "command": "calm.validateModel",
-                "title": "CALM: Validate Model"
-            },
-            {
-                "command": "calm.generateDocs",
-                "title": "CALM: Generate Docs"
-            },
-            {
-                "command": "calm.revealInTree",
-                "title": "CALM: Reveal In Tree"
             }
         ],
         "viewsContainers": {

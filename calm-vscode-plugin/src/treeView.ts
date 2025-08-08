@@ -45,7 +45,7 @@ export class CalmItem extends vscode.TreeItem {
     static leaf(id: string, label: string, contextValue: string) {
         const item = new CalmItem(label, vscode.TreeItemCollapsibleState.None, id)
         item.contextValue = contextValue
-        item.command = { command: 'calm.revealInTree', title: 'Reveal', arguments: [id] } as vscode.Command
+    // No command; selection navigation is handled from the preview
         return item
     }
 }

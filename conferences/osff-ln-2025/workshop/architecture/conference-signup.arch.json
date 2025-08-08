@@ -14,7 +14,7 @@
     },
     {
       "unique-id": "load-balancer",
-      "name": "Load ",
+      "name": "Load Balancer",
       "description": "The  service, or a placeholder for another application",
       "node-type": "network",
       "interfaces": [

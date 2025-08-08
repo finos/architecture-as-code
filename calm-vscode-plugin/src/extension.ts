@@ -43,62 +43,7 @@ export function activate(context: vscode.ExtensionContext) {
         await refreshForDocument(doc)
     })
 
-    const validateModel = vscode.commands.registerCommand('calm.validateModel', async () => {
-        const editor = vscode.window.activeTextEditor
-        if (!editor) return
-        const doc = editor.document
-        const folder = vscode.workspace.getWorkspaceFolder(doc.uri)
-        diagnostics.clear(doc.uri)
-        try {
-            const cliPath = config().get<string>('cli.path') || './cli'
-            const result = await runCliValidate(cliPath, doc.uri, folder?.uri.fsPath, output)
-            diagnostics.apply(doc.uri, result.diagnostics)
-            if (result.ok) vscode.window.showInformationMessage('CALM validation passed')
-            else vscode.window.showWarningMessage('CALM validation reported issues')
-        } catch (e: any) {
-            // Fallback basic validation
-            const text = doc.getText()
-            const model = loadCalmModel(text)
-            const diags = DiagnosticsManager.basicValidate(model)
-            diagnostics.apply(doc.uri, diags)
-            vscode.window.showWarningMessage('CLI validation unavailable. Ran basic validation instead.')
-        }
-    })
-
-    const generateDocs = vscode.commands.registerCommand('calm.generateDocs', async () => {
-        const editor = vscode.window.activeTextEditor
-        if (!editor) return
-        const doc = editor.document
-        const folder = vscode.workspace.getWorkspaceFolder(doc.uri)
-        const cliPath = config().get<string>('cli.path') || './cli'
-        try {
-            const res = await runCliDocify(cliPath, doc.uri, folder?.uri.fsPath, output)
-            if (res.ok) {
-                const open = 'Open Folder'
-                const pick = await vscode.window.showInformationMessage(`Docs generated at ${res.outputDir}`, open)
-                if (pick === open && res.outputDir) {
-                    vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(res.outputDir), { forceNewWindow: false })
-                }
-            } else {
-                vscode.window.showWarningMessage('Doc generation reported issues')
-            }
-        } catch (e: any) {
-            vscode.window.showErrorMessage(`Doc generation failed: ${e?.message || e}`)
-        }
-    })
-
-    const revealInTree = vscode.commands.registerCommand('calm.revealInTree', async (id?: string) => {
-        const editor = vscode.window.activeTextEditor
-        if (!editor || !currentModelIndex) return
-        const doc = editor.document
-        const pickId = id || currentModelIndex.idAt(doc, editor.selection.active)
-        if (pickId) {
-            await revealById(doc, pickId)
-            currentPreview?.postSelect(pickId)
-        }
-    })
-
-    context.subscriptions.push(openPreview, validateModel, generateDocs, revealInTree)
+    context.subscriptions.push(openPreview)
 
     // Language features
     context.subscriptions.push(
