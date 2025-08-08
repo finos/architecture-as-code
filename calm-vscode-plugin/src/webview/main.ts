@@ -94,12 +94,14 @@ function init() {
         applyTheme()
         // Avoid re-layout if user has positioned nodes
         if (nodePositions.size === 0) safeLayout(currentLayout)
+        try { vscode.postMessage({ type: 'saveToggles', toggles: { showLabels: currentShowLabels, showDescriptions } }) } catch {}
     })
     document.getElementById('descriptions')!.addEventListener('change', (e) => {
         showDescriptions = (e.target as HTMLInputElement).checked
         applyTheme() // recompose label fields
         // Avoid re-layout if user has positioned nodes
         if (nodePositions.size === 0) safeLayout(currentLayout)
+        try { vscode.postMessage({ type: 'saveToggles', toggles: { showLabels: currentShowLabels, showDescriptions } }) } catch {}
     })
 
     window.addEventListener('message', (event) => {
@@ -491,11 +493,17 @@ function applySettings(s: any) {
     }
     if (typeof s.showLabels === 'boolean') {
         currentShowLabels = s.showLabels
+        const cb = document.getElementById('labels') as HTMLInputElement | null
+        if (cb) cb.checked = currentShowLabels
         applyTheme()
-        // Only (re)layout if we don't have user-defined positions
-        if (nodePositions.size === 0) {
-            safeLayout(currentLayout)
-        }
+        if (nodePositions.size === 0) safeLayout(currentLayout)
+    }
+    if (typeof s.showDescriptions === 'boolean') {
+        showDescriptions = s.showDescriptions
+        const cb = document.getElementById('descriptions') as HTMLInputElement | null
+        if (cb) cb.checked = showDescriptions
+        applyTheme()
+        if (nodePositions.size === 0) safeLayout(currentLayout)
     }
 }
 
@@ -580,11 +588,25 @@ function getThemeStyles(): any[] {
         edge: '#aaaaaa',
         selection: '#f28e2b'
     }
-    const nodeLabelField = showDescriptions ? 'data(labelWithDescription)' : 'data(labelWithoutDescription)'
+    // Choose node/edge label field based on toggles
+    const nodeLabelField = (currentShowLabels && showDescriptions)
+        ? 'data(labelComposed)'
+        : currentShowLabels
+            ? 'data(labelTitle)'
+            : showDescriptions
+                ? 'data(labelDesc)'
+                : ''
+    const edgeLabelField = (currentShowLabels && showDescriptions)
+        ? 'data(labelComposed)'
+        : currentShowLabels
+            ? 'data(labelTitle)'
+            : showDescriptions
+                ? 'data(labelDesc)'
+                : ''
     return [
         {
             selector: 'node', style: {
-                'label': currentShowLabels ? nodeLabelField : '',
+                'label': nodeLabelField,
                 'text-opacity': 1,
                 'background-color': '#f5f5f5',
                 'color': palette.text,
@@ -627,7 +649,7 @@ function getThemeStyles(): any[] {
                 'width': 2,
                 'line-color': palette.edge,
                 'target-arrow-color': palette.edge,
-                'label': currentShowLabels ? (showDescriptions ? 'data(labelWithDescription)' : 'data(label)') : '',
+                'label': edgeLabelField,
                 'color': palette.text,
                 'font-size': 14,
                 'text-wrap': 'ellipsis',
@@ -648,8 +670,9 @@ function applyTheme() {
             const data = n.data()
             const title = data.label || data.id
             const desc = data.description || ''
-            n.data('labelWithoutDescription', title)
-            n.data('labelWithDescription', desc ? `${title}\n${desc}` : title)
+            n.data('labelTitle', title)
+            n.data('labelDesc', desc)
+            n.data('labelComposed', desc ? `${title}\n${desc}` : title)
         })
         cy.edges().forEach(e => {
             const data = e.data()
@@ -660,7 +683,9 @@ function applyTheme() {
                 : (desc && desc !== lbl && !lbl.includes(desc))
                     ? `${lbl}${lbl ? ' — ' : ''}${desc}`
                     : lbl
-            e.data('labelWithDescription', composed)
+            e.data('labelTitle', lbl)
+            e.data('labelDesc', desc)
+            e.data('labelComposed', composed)
         })
         const styles = getThemeStyles()
         cy.style(styles as any)

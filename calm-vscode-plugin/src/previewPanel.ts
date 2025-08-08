@@ -62,6 +62,9 @@ export class CalmPreviewPanel {
                     (this.context as any).workspaceState?.update?.(this.positionsKey(this.currentUri), undefined)
                     ; (this.context as any).workspaceState?.update?.(this.viewportKey(this.currentUri), undefined)
                 } catch {}
+            } else if (msg.type === 'saveToggles' && msg.toggles && this.currentUri) {
+                const key = this.togglesKey(this.currentUri)
+                try { (this.context as any).workspaceState?.update?.(key, msg.toggles) } catch {}
             } else if (msg.type === 'log' && msg.message) {
                 this.output.appendLine(`[webview] ${msg.message}`)
             } else if (msg.type === 'error' && msg.message) {
@@ -97,7 +100,12 @@ export class CalmPreviewPanel {
         const viewport = (this.currentUri && (this.context as any).workspaceState?.get)
             ? (((this.context as any).workspaceState.get(this.viewportKey(this.currentUri)) as any) || undefined)
             : undefined
-        this.lastData = { ...payload, positions, viewport }
+        const toggles = (this.currentUri && (this.context as any).workspaceState?.get)
+            ? (((this.context as any).workspaceState.get(this.togglesKey(this.currentUri)) as any) || undefined)
+            : undefined
+        // Merge persisted toggles into settings (without mutating caller input)
+        const settings = { ...(payload.settings || {}), ...(toggles || {}) }
+        this.lastData = { ...payload, settings, positions, viewport }
         if (this.ready) {
             this.panel.webview.postMessage({ type: 'setData', ...this.lastData })
         } else {
@@ -162,5 +170,9 @@ export class CalmPreviewPanel {
 
     private viewportKey(uri: vscode.Uri) {
         return `calm.viewport:${uri.toString()}`
+    }
+
+    private togglesKey(uri: vscode.Uri) {
+        return `calm.toggles:${uri.toString()}`
     }
 }
