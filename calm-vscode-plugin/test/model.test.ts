@@ -34,6 +34,47 @@ describe('model utils', () => {
         // other edges remain
         expect(g.edges.find(e => e.id === 'r1')).toBeDefined()
     })
+
+        it('treats composed-of like deployed-in (parent mapping, no edge)', () => {
+            const text = JSON.stringify({
+                nodes: [
+                    { id: 'a' },
+                    { id: 'b' }
+                ],
+                relationships: [
+                    { id: 'c1', type: 'composed-of', source: 'a', target: 'b' }
+                ]
+            })
+            const model = loadCalmModel(text)
+            const g = toGraph(model, {} as any)
+            const a = g.nodes.find(n => n.id === 'a')!
+            expect(a.parent).toBe('b')
+            expect(g.edges.find(e => e.id === 'c1')).toBeUndefined()
+        })
+
+    it('supports nested composed-of containment and synthesizes missing containers', () => {
+        const text = JSON.stringify({
+            nodes: [
+                { id: 'leaf' }
+            ],
+            relationships: [
+                { id: 'c1', type: 'composed-of', source: 'leaf', target: 'mid' },
+                { id: 'c2', type: 'composed-of', source: 'mid', target: 'root' }
+            ]
+        })
+        const model = loadCalmModel(text)
+        const g = toGraph(model, {} as any)
+        // synthesized containers should exist
+        const leaf = g.nodes.find(n => n.id === 'leaf')!
+        const mid = g.nodes.find(n => n.id === 'mid')!
+        const root = g.nodes.find(n => n.id === 'root')!
+        expect(leaf.parent).toBe('mid')
+        expect(mid.parent).toBe('root')
+        expect(root.parent).toBeUndefined()
+        // no composed-of edges
+        expect(g.edges.find(e => e.id === 'c1')).toBeUndefined()
+        expect(g.edges.find(e => e.id === 'c2')).toBeUndefined()
+    })
 })
 
 describe('label composition', () => {

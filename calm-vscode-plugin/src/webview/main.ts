@@ -215,10 +215,52 @@ function render(graph: any) {
     const existingNodeIds = new Set<string>()
     cy.nodes().forEach(n => { existingNodeIds.add(String(n.data('id'))) })
 
-        // Add/update nodes, ensuring parents first on empty canvas
-        const orderedNodes = wasEmpty
-            ? [...nodes.filter((n: any) => !n.parent), ...nodes.filter((n: any) => !!n.parent)]
-            : nodes
+        // Add/update nodes. Ensure parents are added before children for compound hierarchy stability.
+        const orderedNodes = (() => {
+            const ns: any[] = nodes as any[]
+            // Build adjacency: child -> parent
+            const pmap = new Map<string, string | undefined>()
+            ns.forEach((n: any) => pmap.set(String(n.id), (n as any).parent))
+            const indeg = new Map<string, number>()
+            ns.forEach((n: any) => indeg.set(String(n.id), 0))
+            for (const [child, parent] of pmap) {
+                if (parent && indeg.has(child)) indeg.set(child, (indeg.get(child) || 0) + 1)
+            }
+            // Kahn-ish: repeatedly emit nodes with no parent or whose parent not in set
+            const emitted = new Set<string>()
+            const result: any[] = []
+            const byId = new Map(ns.map((n: any) => [String(n.id), n]))
+            const queue: string[] = []
+            // seed with roots
+            for (const n of ns) {
+                const id = String((n as any).id)
+                const p = (n as any).parent
+                if (!p || !byId.has(String(p))) queue.push(id)
+            }
+            while (queue.length) {
+                const id = queue.shift()!
+                if (emitted.has(id)) continue
+                const n = byId.get(id)
+                if (!n) continue
+                // ensure parent is already emitted if it exists in set
+                const p = (n as any).parent
+                if (p && byId.has(String(p)) && !emitted.has(String(p))) {
+                    // push parent first, then child again
+                    queue.unshift(id)
+                    queue.unshift(String(p))
+                    continue
+                }
+                result.push(n)
+                emitted.add(id)
+                // enqueue children of this node
+                for (const [cid, cp] of pmap) {
+                    if (cp === id && !emitted.has(cid)) queue.push(cid)
+                }
+            }
+            // Fallback: if something wasn't emitted (cycle?), append remaining
+            for (const n of ns) if (!emitted.has(String((n as any).id))) result.push(n as any)
+            return result
+        })()
         for (const n of orderedNodes) {
             const id = String(n.id)
             if (existingNodeIds.has(id)) {

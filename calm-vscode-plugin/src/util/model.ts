@@ -74,17 +74,28 @@ export function toGraph(model: CalmModel, _cfg?: any) {
     // Build parent mapping from 'deployed-in' relationships (node -> container)
     const parentMap = new Map<string, string>()
     for (const r of (model.relationships || []) as any[]) {
-        if (r && r.type === 'deployed-in' && r.source && r.target) {
+    if (r && (r.type === 'deployed-in' || r.type === 'composed-of') && r.source && r.target) {
             parentMap.set(r.source, r.target)
         }
     }
 
+    // Start with declared nodes
     const nodes = (model.nodes || [])
         .filter(n => !!n.id)
         .map((n: any) => ({ id: n.id, label: n.label || n.name || n.id, type: n.type, description: n.description, parent: parentMap.get(n.id), raw: n.raw }))
 
+    // Ensure container nodes referenced by containment relationships exist as compound parents too
+    const knownIds = new Set(nodes.map(n => String(n.id)))
+    for (const containerId of parentMap.values()) {
+        const id = String(containerId)
+        if (!knownIds.has(id)) {
+            nodes.push({ id, label: id, type: undefined, description: undefined, parent: parentMap.get(id), raw: { synthesized: true } })
+            knownIds.add(id)
+        }
+    }
+
     const relEdges = (model.relationships || [])
-        .filter((r: any) => !!r.source && !!r.target && r.type !== 'deployed-in')
+        .filter((r: any) => !!r.source && !!r.target && r.type !== 'deployed-in' && r.type !== 'composed-of')
         .map((r: any) => ({ id: r.id || `${r.source}->${r.target}`, source: r.source, target: r.target, label: r.label, type: r.type, description: r.description, raw: r.raw }))
     const flowEdges = (model.flows || [])
         .filter(f => !!f.source && !!f.target)
@@ -124,6 +135,14 @@ function normalizeModel(input: any): CalmModel {
                 // direction: node -> container (deployed in)
                 const id = relId ? `${relId}:${n}` : `${n}->${container}`
                 if (n && container) relationships!.push({ id, source: n, target: container, label: 'deployed-in', type: 'deployed-in', description: r.description, raw: r })
+            }
+        } else if (rt && typeof rt === 'object' && rt['composed-of']) {
+            const container = rt['composed-of']?.container
+            const ns: string[] = Array.isArray(rt['composed-of']?.nodes) ? rt['composed-of'].nodes : []
+            for (const n of ns) {
+                // Treat composed-of the same as deployed-in for containment
+                const id = relId ? `${relId}:${n}` : `${n}->${container}`
+                if (n && container) relationships!.push({ id, source: n, target: container, label: 'composed-of', type: 'composed-of', description: r.description, raw: r })
             }
         } else if (r.source && r.target) {
             relationships!.push({ id: relId ?? `${r.source}->${r.target}`, source: r.source, target: r.target, label, type: typeof rt === 'string' ? rt : undefined, description: r.description, raw: r })
