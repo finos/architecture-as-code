@@ -4,8 +4,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // Mock cytoscape and layouts before importing the webview script
 const addCalls: any[] = []
 const layoutRuns: any[] = []
+let elementsLen = 0
 const fakeCy = {
-    elements: () => ({ length: 0, remove: vi.fn(), unselect: vi.fn(), filter: () => ({ length: 0, select: vi.fn() }) }),
+    elements: () => ({ length: elementsLen, remove: vi.fn(), unselect: vi.fn(), filter: () => ({ length: 0, select: vi.fn() }) }),
     add: vi.fn((eles: any) => addCalls.push(eles)),
     layout: vi.fn((opts: any) => ({ run: vi.fn(() => layoutRuns.push(opts)) })),
     fit: vi.fn(),
@@ -32,6 +33,7 @@ describe('webview render pipeline', () => {
     beforeEach(() => {
         addCalls.length = 0
         layoutRuns.length = 0
+    elementsLen = 0
         document.body.innerHTML = `
       <div id="toolbar">
         <input type="checkbox" id="labels" checked>
@@ -54,5 +56,39 @@ describe('webview render pipeline', () => {
         const data = { type: 'setData', graph: { nodes: [{ id: 'n1', label: 'N1' }], edges: [] }, settings: { layout: 'dagre', showLabels: true } }
         window.dispatchEvent(new MessageEvent('message', { data }))
         expect(layoutRuns.length).toBeGreaterThan(0)
+    })
+
+    it('does not center on selection passed with setData', async () => {
+        await import('../src/webview/main')
+        const data = { type: 'setData', graph: { nodes: [{ id: 'a', label: 'A' }], edges: [] }, selectedId: 'a', settings: { layout: 'dagre', showLabels: true } }
+        window.dispatchEvent(new MessageEvent('message', { data }))
+        // center should not be called for setData selection
+        expect((fakeCy.center as any).mock.calls.length).toBe(0)
+    })
+
+    it('does not center on subsequent select messages', async () => {
+        await import('../src/webview/main')
+        const first = { type: 'setData', graph: { nodes: [{ id: 'a', label: 'A' }], edges: [] }, settings: { layout: 'dagre', showLabels: true } }
+        window.dispatchEvent(new MessageEvent('message', { data: first }))
+        ;(fakeCy.center as any).mockClear()
+        // send select message
+        window.dispatchEvent(new MessageEvent('message', { data: { type: 'select', id: 'a' } }))
+        // allow debounce to fire
+        await new Promise(r => setTimeout(r, 50))
+        expect((fakeCy.center as any).mock.calls.length).toBe(0)
+    })
+
+    it('does not fit again on subsequent setData updates', async () => {
+        await import('../src/webview/main')
+        const first = { type: 'setData', graph: { nodes: [{ id: 'a', label: 'A' }], edges: [] }, settings: { layout: 'dagre', showLabels: true } }
+        window.dispatchEvent(new MessageEvent('message', { data: first }))
+        const fitCallsAfterFirst = (fakeCy.fit as any).mock.calls.length
+        // Update with a label change; settings may be resent by host
+        const second = { type: 'setData', graph: { nodes: [{ id: 'a', label: 'A2' }], edges: [] }, settings: { layout: 'dagre', showLabels: true } }
+    // Simulate that the canvas already has elements after the first render
+    elementsLen = 1
+        window.dispatchEvent(new MessageEvent('message', { data: second }))
+        const fitCallsAfterSecond = (fakeCy.fit as any).mock.calls.length
+        expect(fitCallsAfterSecond).toBe(fitCallsAfterFirst)
     })
 })

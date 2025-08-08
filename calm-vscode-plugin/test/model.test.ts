@@ -13,6 +13,27 @@ describe('model utils', () => {
         expect(g.nodes.length).toBe(1)
         expect(g.edges.length).toBe(1)
     })
+
+    it('maps deployed-in to parent containers and excludes deployed-in edges', () => {
+        const text = JSON.stringify({
+            nodes: [
+                { id: 'svc' },
+                { id: 'cluster' }
+            ],
+            relationships: [
+                { id: 'd1', type: 'deployed-in', source: 'svc', target: 'cluster' },
+                { id: 'r1', type: 'connects', source: 'svc', target: 'svc' }
+            ]
+        })
+        const model = loadCalmModel(text)
+        const g = toGraph(model, {} as any)
+        const svc = g.nodes.find(n => n.id === 'svc')!
+        expect(svc.parent).toBe('cluster')
+        // deployed-in edges should not appear in edges list
+        expect(g.edges.find(e => e.id === 'd1')).toBeUndefined()
+        // other edges remain
+        expect(g.edges.find(e => e.id === 'r1')).toBeDefined()
+    })
 })
 
 describe('label composition', () => {

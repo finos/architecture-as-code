@@ -135,7 +135,7 @@ function render(graph: any) {
     const edges = Array.isArray(currentData.edges) ? currentData.edges : []
     const c = cy as cytoscape.Core
 
-        const newNodeIds = new Set(nodes.map((n: any) => String(n.id)))
+    const newNodeIds = new Set(nodes.map((n: any) => String(n.id)))
         const newEdgeIds = new Set(edges.map((e: any) => String(e.id)))
 
         const wasEmpty = cy.elements().length === 0
@@ -174,7 +174,11 @@ function render(graph: any) {
     const existingNodeIds = new Set<string>()
     cy.nodes().forEach(n => { existingNodeIds.add(String(n.data('id'))) })
 
-        for (const n of nodes) {
+        // Add/update nodes, ensuring parents first on empty canvas
+        const orderedNodes = wasEmpty
+            ? [...nodes.filter((n: any) => !n.parent), ...nodes.filter((n: any) => !!n.parent)]
+            : nodes
+        for (const n of orderedNodes) {
             const id = String(n.id)
             if (existingNodeIds.has(id)) {
                 const ele = cy.$id(id)
