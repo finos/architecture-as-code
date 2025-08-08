@@ -74,7 +74,7 @@
                         "cose",
                         "dagre"
                     ],
-                    "default": "fcose",
+                    "default": "dagre",
                     "description": "Graph layout algorithm for the preview."
                 },
                 "calm.preview.showLabels": {

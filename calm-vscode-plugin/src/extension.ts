@@ -164,7 +164,7 @@ export function activate(context: vscode.ExtensionContext) {
     function getPreviewSettings() {
         const cfg = config()
         return {
-            layout: cfg.get('preview.layout', 'fcose'),
+            layout: cfg.get('preview.layout', 'dagre'),
             showLabels: cfg.get('preview.showLabels', true)
         }
     }

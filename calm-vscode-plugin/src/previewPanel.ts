@@ -37,10 +37,10 @@ export class CalmPreviewPanel {
     }
 
     constructor(panel: vscode.WebviewPanel, private context: vscode.ExtensionContext, private cfg: vscode.WorkspaceConfiguration, private output: vscode.OutputChannel) {
-        this.panel = panel
-        this.panel.webview.html = this.getHtml()
+    this.panel = panel
 
-        this.panel.webview.onDidReceiveMessage((msg: any) => {
+    // Attach message listener BEFORE setting HTML so early webview posts aren't missed
+    this.panel.webview.onDidReceiveMessage((msg: any) => {
             if (msg.type === 'revealInEditor' && typeof msg.id === 'string') {
                 this.revealInEditorHandlers.forEach(h => h(msg.id))
             } else if (msg.type === 'ready') {
@@ -55,6 +55,9 @@ export class CalmPreviewPanel {
                 if (msg.stack) this.output.appendLine(String(msg.stack))
             }
         }, undefined, this.disposables)
+
+    // Now set HTML after listener registration
+    this.panel.webview.html = this.getHtml()
 
         this.panel.onDidDispose(() => this.dispose(), null, this.disposables)
     }
@@ -75,6 +78,8 @@ export class CalmPreviewPanel {
         this.lastData = payload
         if (this.ready) {
             this.panel.webview.postMessage({ type: 'setData', ...payload })
+        } else {
+            this.output.appendLine('[preview] Webview not ready yet; queued graph payload')
         }
     }
 
@@ -105,13 +110,9 @@ export class CalmPreviewPanel {
 <title>CALM Preview</title>
 </head>
 <body>
-  <div id="toolbar">
-    <select id="layout">
-      <option value="fcose">fcose</option>
-      <option value="cose">cose</option>
-      <option value="dagre">dagre</option>
-    </select>
+    <div id="toolbar">
     <label><input type="checkbox" id="labels" checked /> Labels</label>
+        <label><input type="checkbox" id="descriptions" /> Descriptions</label>
     <button id="fit">Fit</button>
     <button id="refresh">Refresh</button>
   </div>
@@ -119,6 +120,14 @@ export class CalmPreviewPanel {
     <div id="cy"></div>
     <div id="details"><pre id="detailsPre"></pre><button id="goto">Go to source</button></div>
   </div>
+        <script nonce="${nonce}">(function(){
+            function post(msg){ try{ if(typeof acquireVsCodeApi==='function'){ acquireVsCodeApi().postMessage(msg); } }catch(_){} }
+            if(document.readyState==='loading'){
+                document.addEventListener('DOMContentLoaded', function(){ post({type:'log',message:'webview boot (domready)'}); });
+            } else {
+                post({type:'log',message:'webview boot'});
+            }
+        })();</script>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`
