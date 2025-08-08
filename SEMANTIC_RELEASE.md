@@ -66,11 +66,33 @@ npm run commit
 
 This will prompt you through creating a conventional commit message.
 
+## PR Validation
+
+Every pull request automatically validates that all commit messages follow the conventional commit format:
+
+- **Automatic Checks**: When you open or update a PR, all commit messages are validated
+- **Status Checks**: PRs with invalid commit messages will fail the validation check
+- **Helpful Feedback**: The bot will comment on your PR with specific guidance if commits need fixing
+- **Examples Provided**: Get clear examples of proper commit message format
+- **Scope Validation**: Ensures you're using valid scopes for this project
+
+### If Validation Fails
+
+If your commit messages don't follow the conventional format:
+1. The PR check will fail
+2. A bot will comment with detailed guidance
+3. You can fix commits using `git rebase -i` to edit messages
+4. Or squash and create new commits with proper formatting
+5. Use `npm run commit` for guided commit creation
+
 ## Workflow
 
 1. Make your changes
 2. Use `npm run commit` or write a conventional commit message manually
 3. Push to a feature branch and create a PR
+   - **Automatic Validation**: The PR will automatically validate all commit messages
+   - **Status Checks**: The PR validation must pass before merging
+   - **Helpful Comments**: Get feedback if commit messages need fixing
 4. When you're ready to release:
    - Go to the GitHub Actions tab in the repository
    - Run the "Release and Publish CLI" workflow manually
