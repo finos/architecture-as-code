@@ -1,0 +1,182 @@
+{
+  "nodes": [
+    {
+      "unique-id": "banking-system",
+      "node-type": "system",
+      "name": "Digital Banking Platform",
+      "description": "Modern digital banking system",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "auth-service",
+      "node-type": "service",
+      "name": "Authentication Service",
+      "description": "Handles user authentication and authorization",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "account-service",
+      "node-type": "service",
+      "name": "Account Service",
+      "description": "Manages customer accounts and balances",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "transaction-service",
+      "node-type": "service",
+      "name": "Transaction Service",
+      "description": "Processes financial transactions",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "notification-service",
+      "node-type": "service",
+      "name": "Notification Service",
+      "description": "Sends alerts and notifications to customers",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "bank-customer",
+      "node-type": "actor",
+      "name": "Bank Customer",
+      "description": "Digital banking customer",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "bank-teller",
+      "node-type": "actor",
+      "name": "Bank Teller",
+      "description": "Bank employee assisting customers",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "banking-composition",
+      "relationship-type": {
+        "composed-of": {
+          "container": "banking-system",
+          "nodes": [
+            "auth-service",
+            "account-service",
+            "transaction-service",
+            "notification-service"
+          ]
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Banking Platform contains core services"
+    },
+    {
+      "unique-id": "customer-auth",
+      "relationship-type": {
+        "interacts": {
+          "actor": "bank-customer",
+          "nodes": [
+            "auth-service"
+          ]
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Customer authenticates with system"
+    },
+    {
+      "unique-id": "teller-access",
+      "relationship-type": {
+        "interacts": {
+          "actor": "bank-teller",
+          "nodes": [
+            "account-service"
+          ]
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Teller accesses account information"
+    },
+    {
+      "unique-id": "auth-account",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "auth-service",
+            "interfaces": []
+          },
+          "destination": {
+            "node": "account-service",
+            "interfaces": []
+          }
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Auth Service validates access to Account Service"
+    },
+    {
+      "unique-id": "account-transaction",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "account-service",
+            "interfaces": []
+          },
+          "destination": {
+            "node": "transaction-service",
+            "interfaces": []
+          }
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Account Service initiates transactions"
+    },
+    {
+      "unique-id": "transaction-notification",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "transaction-service",
+            "interfaces": []
+          },
+          "destination": {
+            "node": "notification-service",
+            "interfaces": []
+          }
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Transaction Service triggers notifications"
+    }
+  ],
+  "metadata": [{"scenario": "simple-banking"}]
+}

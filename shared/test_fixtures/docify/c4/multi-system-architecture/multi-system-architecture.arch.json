@@ -1,0 +1,262 @@
+{
+  "nodes": [
+    {
+      "unique-id": "frontend-system",
+      "node-type": "system",
+      "name": "Frontend System",
+      "description": "User-facing web and mobile applications",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "web-app",
+      "node-type": "service",
+      "name": "Web Application",
+      "description": "React-based web application for desktop users",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "mobile-app",
+      "node-type": "service",
+      "name": "Mobile Application",
+      "description": "Native mobile app for iOS and Android",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "bff",
+      "node-type": "service",
+      "name": "Backend for Frontend",
+      "description": "API aggregation layer for frontend applications",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "business-system",
+      "node-type": "system",
+      "name": "Core Business System",
+      "description": "Main business logic and data processing services",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "user-service",
+      "node-type": "service",
+      "name": "User Management Service",
+      "description": "Handles user authentication, authorization, and profiles",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "order-service",
+      "node-type": "service",
+      "name": "Order Processing Service",
+      "description": "Manages order lifecycle and business rules",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "inventory-service",
+      "node-type": "service",
+      "name": "Inventory Service",
+      "description": "Tracks product availability and stock levels",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "infra-system",
+      "node-type": "system",
+      "name": "Infrastructure System",
+      "description": "Shared infrastructure and platform services",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "message-broker",
+      "node-type": "service",
+      "name": "Message Broker",
+      "description": "Event-driven communication hub using Apache Kafka",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "config-service",
+      "node-type": "service",
+      "name": "Configuration Service",
+      "description": "Centralized configuration management",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "monitoring-service",
+      "node-type": "service",
+      "name": "Monitoring Service",
+      "description": "Application performance monitoring and alerting",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "customer",
+      "node-type": "actor",
+      "name": "Customer",
+      "description": "End user purchasing products",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "admin",
+      "node-type": "actor",
+      "name": "System Administrator",
+      "description": "Operations team managing the platform",
+      "metadata": [{}],
+      "interfaces": []
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "frontend-composition",
+      "relationship-type": {
+        "composed-of": {
+          "container": "frontend-system",
+          "nodes": ["web-app", "mobile-app", "bff"]
+        }
+      },
+      "metadata": [{}],
+      "description": "Frontend System contains user interface components"
+    },
+    {
+      "unique-id": "business-composition",
+      "relationship-type": {
+        "composed-of": {
+          "container": "business-system",
+          "nodes": ["user-service", "order-service", "inventory-service"]
+        }
+      },
+      "metadata": [{}],
+      "description": "Core Business System contains business services"
+    },
+    {
+      "unique-id": "infra-composition",
+      "relationship-type": {
+        "composed-of": {
+          "container": "infra-system",
+          "nodes": ["message-broker", "config-service", "monitoring-service"]
+        }
+      },
+      "metadata": [{}],
+      "description": "Infrastructure System contains platform services"
+    },
+    {
+      "unique-id": "customer-web",
+      "relationship-type": {
+        "interacts": {
+          "actor": "customer",
+          "nodes": ["web-app"]
+        }
+      },
+      "metadata": [{}],
+      "description": "Customer uses web application"
+    },
+    {
+      "unique-id": "customer-mobile",
+      "relationship-type": {
+        "interacts": {
+          "actor": "customer",
+          "nodes": ["mobile-app"]
+        }
+      },
+      "metadata": [{}],
+      "description": "Customer uses mobile application"
+    },
+    {
+      "unique-id": "admin-monitoring",
+      "relationship-type": {
+        "interacts": {
+          "actor": "admin",
+          "nodes": ["monitoring-service"]
+        }
+      },
+      "metadata": [{}],
+      "description": "Administrator monitors system health"
+    },
+    {
+      "unique-id": "bff-user-service",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "bff", "interfaces": [] },
+          "destination": { "node": "user-service", "interfaces": [] }
+        }
+      },
+      "metadata": [{}],
+      "description": "BFF calls User Service for authentication"
+    },
+    {
+      "unique-id": "bff-order-service",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "bff", "interfaces": [] },
+          "destination": { "node": "order-service", "interfaces": [] }
+        }
+      },
+      "metadata": [{}],
+      "description": "BFF calls Order Service for order operations"
+    },
+    {
+      "unique-id": "order-inventory",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "order-service", "interfaces": [] },
+          "destination": { "node": "inventory-service", "interfaces": [] }
+        }
+      },
+      "metadata": [{}],
+      "description": "Order Service checks inventory availability"
+    },
+    {
+      "unique-id": "order-events",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "order-service", "interfaces": [] },
+          "destination": { "node": "message-broker", "interfaces": [] }
+        }
+      },
+      "metadata": [{}],
+      "description": "Order Service publishes order events"
+    },
+    {
+      "unique-id": "inventory-events",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "inventory-service", "interfaces": [] },
+          "destination": { "node": "message-broker", "interfaces": [] }
+        }
+      },
+      "metadata": [{}],
+      "description": "Inventory Service publishes stock events"
+    },
+    {
+      "unique-id": "user-config",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "user-service", "interfaces": [] },
+          "destination": { "node": "config-service", "interfaces": [] }
+        }
+      },
+      "metadata": [{}],
+      "description": "User Service gets configuration"
+    },
+    {
+      "unique-id": "order-config",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "order-service", "interfaces": [] },
+          "destination": { "node": "config-service", "interfaces": [] }
+        }
+      },
+      "metadata": [{}],
+      "description": "Order Service gets configuration"
+    }
+  ],
+  "metadata": [{"scenario": "multi-system-architecture"}]
+}
