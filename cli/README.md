@@ -73,8 +73,8 @@ Validate that an architecture conforms to a given CALM pattern.
 Options:
   -p, --pattern <file>          Path to the pattern file to use. May be a file path or a URL.
   -a, --architecture <file>     Path to the pattern architecture file to use. May be a file path or a URL.
-  -s, --schema-directory <path>  Path to the directory containing the meta schemas to use. (default: "../calm/release")
-  -S, --strict                      When run in strict mode, the CLI will fail if any warnings are reported. (default: false)
+  -s, --schema-directory <path> Path to the directory containing the meta schemas to use. (default: "../calm/release")
+  --strict                      When run in strict mode, the CLI will fail if any warnings are reported. (default: false)
   -f, --format <format>         The format of the output (choices: "json", "junit", default: "json")
   -o, --output <file>           Path location at which to output the generated file.
   -v, --verbose                 Enable verbose logging. (default: false)
@@ -198,7 +198,7 @@ Usage: calm template [options]
 Generate files from a CALM model using a Handlebars template bundle.
 
 Options:
-  -i, --architecture <path>                      Path to the CALM model JSON file.
+  -a, --architecture <path>                      Path to the CALM model JSON file.
   -b, --bundle <path>                     Path to the template bundle directory.
   -o, --output <path>                     Path to output directory.
   -u, --url-to-local-file-mapping <path>  Path to mapping file which maps URLs to local paths.
@@ -241,7 +241,7 @@ Usage: calm docify [options]
 Generate a documentation website off your CALM model.
 
 Options:
-  -i, --architecture <path>                      Path to the CALM model JSON file.
+  -a, --architecture <path>                      Path to the CALM model JSON file.
   -o, --output <path>                     Path to output directory.
   -u, --url-to-local-file-mapping <path>  Path to mapping file which maps URLs to local paths.
   -v, --verbose                           Enable verbose logging. (default: false)
