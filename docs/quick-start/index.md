@@ -256,7 +256,7 @@ To generate documentation from your architecture, run the following command:
 
 ```shell
 calm docify \
-  --input ./calm/getting-started/conference-signup.arch.json \
+  --architecture ./calm/getting-started/conference-signup.arch.json \
   --output ./calm/getting-started/website
 ```
 
@@ -418,7 +418,7 @@ Save the file and then run the `docify` command again to regenerate the document
 
 ```shell
 calm docify \
-  --input ./calm/getting-started/conference-signup.arch.json \
+  --architecture ./calm/getting-started/conference-signup.arch.json \
   --output ./calm/getting-started/website
 ```
 ![CALM Docify Website with Flows](/img/docify-with-flow.png)

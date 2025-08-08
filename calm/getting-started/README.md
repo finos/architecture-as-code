@@ -239,7 +239,7 @@ can share with others. For this, we can use the `docify` command from the CALM C
 To generate documentation from your architecture, run the following command:
 ```shell
 calm docify \
-  --input ./conference-signup.arch.json \
+  --architecture ./conference-signup.arch.json \
   --output ./website
 ```
 
@@ -399,7 +399,7 @@ Save the file and then run the `docify` command again to regenerate the document
 
 ```shell
 calm docify \
-  --input ./conference-signup.arch.json \
+  --architecture ./conference-signup.arch.json \
   --output ./website
 ```
 ![CALM Docify Website with Flows](./img/docify-with-flow.png)

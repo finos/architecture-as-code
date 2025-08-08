@@ -259,7 +259,7 @@ describe('CLI Integration Tests', () => {
             data: { status: 'ok' },
         });
         const serverProcess = spawn(
-            calm(), ['server', '-p', '3002', '--schemaDirectory', '../../dist/calm/'],
+            calm(), ['server', '--port', '3002', '--schema-directory', '../../dist/calm/'],
             {
                 cwd: tempDir,
                 stdio: 'inherit',
@@ -301,7 +301,7 @@ describe('CLI Integration Tests', () => {
             calm(),
             [
                 'template',
-                '--input', testModelPath,
+                '--architecture', testModelPath,
                 '--bundle', templateBundlePath,
                 '--output', outputDir,
                 '--url-to-local-file-mapping', localDirectory
@@ -324,7 +324,7 @@ describe('CLI Integration Tests', () => {
         const outputFile = path.join(outputDir, 'simple-template-output.md');
 
         await run(
-            calm(), ['template', '--input', testModelPath, '--template', templatePath, '--output', outputFile]
+            calm(), ['template', '--architecture', testModelPath, '--template', templatePath, '--output', outputFile]
         );
 
         expect(fs.existsSync(outputFile)).toBe(true);
@@ -341,7 +341,7 @@ describe('CLI Integration Tests', () => {
         const actualOutputDir = path.join(tempDir, 'output-template-dir');
 
         await run(
-            calm(), ['template', '--input', testModelPath, '--template-dir', templateDirPath, '--output', actualOutputDir]
+            calm(), ['template', '--architecture', testModelPath, '--template-dir', templateDirPath, '--output', actualOutputDir]
         );
 
         await expectDirectoryMatch(expectedOutputDir, actualOutputDir);
@@ -361,7 +361,7 @@ describe('CLI Integration Tests', () => {
         );
         const outputDir = path.join(tempDir, 'output/documentation');
         await run(
-            calm(), ['docify', '--input', testModelPath, '--output', outputDir, '--url-to-local-file-mapping', localDirectory]
+            calm(), ['docify', '--architecture', testModelPath, '--output', outputDir, '--url-to-local-file-mapping', localDirectory]
         );
         [
             'docs/index.md',
@@ -386,7 +386,7 @@ describe('CLI Integration Tests', () => {
         const outputFile = path.join(outputDir, 'simple-template-output.md');
 
         await run(
-            calm(), ['docify', '--input', testModelPath, '--template', templatePath, '--output', outputFile, '--url-to-local-file-mapping', localDirectory]
+            calm(), ['docify', '--architecture', testModelPath, '--template', templatePath, '--output', outputFile, '--url-to-local-file-mapping', localDirectory]
         );
 
         expect(fs.existsSync(outputFile)).toBe(true);
@@ -404,7 +404,7 @@ describe('CLI Integration Tests', () => {
         const actualOutputDir = path.join(tempDir, 'output-template-dir');
 
         await run(
-            calm(), ['docify', '--input', testModelPath, '--template-dir', templateDirPath, '--output', actualOutputDir, '--url-to-local-file-mapping', localDirectory]
+            calm(), ['docify', '--architecture', testModelPath, '--template-dir', templateDirPath, '--output', actualOutputDir, '--url-to-local-file-mapping', localDirectory]
         );
 
         await expectDirectoryMatch(expectedOutputDir, actualOutputDir);
@@ -432,7 +432,7 @@ describe('CLI Integration Tests', () => {
                 const outputFile = path.join(outputDir, outputName);
 
                 await run(
-                    calm(), ['docify', '--input', testModelPath, '--template', templatePath, '--output', outputFile]
+                    calm(), ['docify', '--architecture', testModelPath, '--template', templatePath, '--output', outputFile]
                 );
 
                 expect(fs.existsSync(outputFile)).toBe(true);
@@ -486,7 +486,7 @@ describe('CLI Integration Tests', () => {
         //STEP 2: Generate Docify Website From Architecture
         const outputWebsite = path.resolve(tempDir, 'website');
         await run(
-            calm(), ['docify', '--input', outputArchitecture, '--output', outputWebsite]
+            calm(), ['docify', '--architecture', outputArchitecture, '--output', outputWebsite]
         );
 
         const expectedOutputDocifyWebsite = path.resolve(
@@ -539,7 +539,7 @@ describe('CLI Integration Tests', () => {
             'website-with-flow'
         );
         await run(
-            calm(), ['docify', '--input', outputArchitecture, '--output', outputWebsiteWithFlow]
+            calm(), ['docify', '--architecture', outputArchitecture, '--output', outputWebsiteWithFlow]
         );
 
         const expectedOutputDocifyWebsiteWithFLow = path.resolve(

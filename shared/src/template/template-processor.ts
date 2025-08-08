@@ -10,11 +10,11 @@ import {
     TemplateBundleFileLoader
 } from './template-bundle-file-loader.js';
 import { initLogger } from '../logger.js';
-import {CompositeReferenceResolver, MappedReferenceResolver} from '../resolver/calm-reference-resolver.js';
-import {pathToFileURL} from 'node:url';
+import { CompositeReferenceResolver, MappedReferenceResolver } from '../resolver/calm-reference-resolver.js';
+import { pathToFileURL } from 'node:url';
 import TemplateDefaultTransformer from './template-default-transformer';
-import {CalmCore} from '../model/core';
-import {DereferencingVisitor} from '../model-visitor/dereference-visitor';
+import { CalmCore } from '../model/core';
+import { DereferencingVisitor } from '../model-visitor/dereference-visitor';
 import { WidgetEngine, WidgetRegistry } from '@finos/calm-widgets';
 import Handlebars from 'handlebars';
 
@@ -24,12 +24,12 @@ export class TemplateProcessor {
     private readonly inputPath: string;
     private readonly templateBundlePath: string;
     private readonly outputPath: string;
-    private readonly urlToLocalPathMapping:Map<string, string>;
+    private readonly urlToLocalPathMapping: Map<string, string>;
     private readonly mode: TemplateProcessingMode;
     private static logger = initLogger(process.env.DEBUG === 'true', TemplateProcessor.name);
     private readonly supportWidgetEngine: boolean;
 
-    constructor(inputPath: string, templateBundlePath: string, outputPath: string, urlToLocalPathMapping:Map<string,string>, mode: TemplateProcessingMode = 'bundle', supportWidgetEngine: boolean = false) {
+    constructor(inputPath: string, templateBundlePath: string, outputPath: string, urlToLocalPathMapping: Map<string, string>, mode: TemplateProcessingMode = 'bundle', supportWidgetEngine: boolean = false) {
         this.inputPath = inputPath;
         this.templateBundlePath = templateBundlePath;
         this.outputPath = outputPath;
@@ -67,7 +67,7 @@ export class TemplateProcessor {
 
         const config = loader.getConfig();
 
-        if(this.supportWidgetEngine === true) {
+        if (this.supportWidgetEngine === true) {
             //TODO: Handlebars supports local instance. Ideally to make testable we should use a local instance of Handlebars and inject dependency.
             const widgetEngine = new WidgetEngine(Handlebars, new WidgetRegistry(Handlebars));
             widgetEngine.registerDefaultWidgets();
