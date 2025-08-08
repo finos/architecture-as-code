@@ -133,7 +133,9 @@ describe('CLI Commands', () => {
                 'templateDir',
                 'outDir',
                 expect.any(Map),
-                'bundle'
+                'bundle',
+                false,
+                false
             );
         });
 
@@ -150,7 +152,9 @@ describe('CLI Commands', () => {
                 'template.hbs',
                 'outDir',
                 expect.any(Map),
-                'template'
+                'template',
+                false,
+                false
             );
         });
 
@@ -167,7 +171,29 @@ describe('CLI Commands', () => {
                 'templates/',
                 'outDir',
                 expect.any(Map),
-                'template-directory'
+                'template-directory',
+                false,
+                false
+            );
+        });
+
+        it('should honour --clear-output-directory', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'template',
+                '--architecture', 'model.json',
+                '--template-dir', 'templates/',
+                '--output', 'outDir',
+                '--clear-output-directory'
+            ]);
+
+            expect(processorConstructorSpy).toHaveBeenCalledWith(
+                'model.json',
+                'templates/',
+                'outDir',
+                expect.any(Map),
+                'template-directory',
+                false,
+                true
             );
         });
 
@@ -227,7 +253,27 @@ describe('CLI Commands', () => {
                 'outDir',
                 expect.any(Map),
                 'bundle',
-                undefined
+                undefined,
+                false
+            );
+        });
+
+        it('should honour --clear-output-directory', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+                '--clear-output-directory'
+            ]);
+
+            expect(docifierConstructorSpy).toHaveBeenCalledWith(
+                'WEBSITE',
+                'model.json',
+                'outDir',
+                expect.any(Map),
+                'bundle',
+                undefined,
+                true
             );
         });
 
@@ -245,7 +291,8 @@ describe('CLI Commands', () => {
                 'outDir',
                 expect.any(Map),
                 'template',
-                'template.hbs'
+                'template.hbs',
+                false
             );
         });
 
@@ -263,7 +310,8 @@ describe('CLI Commands', () => {
                 'outDir',
                 expect.any(Map),
                 'template-directory',
-                'templateDir'
+                'templateDir',
+                false
             );
         });
 
