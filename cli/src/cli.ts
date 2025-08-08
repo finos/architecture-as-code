@@ -102,12 +102,12 @@ export function setupCLI(program: Command) {
         .description('Generate files from a CALM model using a template bundle, a single file, or a directory of templates')
         .requiredOption(ARCHITECTURE_OPTION, 'Path to the CALM architecture JSON file')
         .requiredOption(OUTPUT_OPTION, 'Path to output directory or file')
+        .option(CLEAR_OUTPUT_DIRECTORY_OPTION, 'Clear the output directory before processing', false)
         .option(BUNDLE_OPTION, 'Path to the template bundle directory')
         .option(TEMPLATE_OPTION, 'Path to a single .hbs or .md template file')
         .option(TEMPLATE_DIR_OPTION, 'Path to a directory of .hbs/.md templates')
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
-        .option(CLEAR_OUTPUT_DIRECTORY_OPTION, 'Clear the output directory before processing', false)
         .action(async (options) => {
             const { getUrlToLocalFileMap } = await import('./command-helpers/template');
             const { TemplateProcessor } = await import('@finos/calm-shared');
@@ -154,11 +154,11 @@ export function setupCLI(program: Command) {
         .description('Generate a documentation website from your CALM model using a template or template directory')
         .requiredOption(ARCHITECTURE_OPTION, 'Path to the CALM architecture JSON file')
         .requiredOption(OUTPUT_OPTION, 'Path to output directory')
+        .option(CLEAR_OUTPUT_DIRECTORY_OPTION, 'Clear the output directory before processing', false)
         .option(TEMPLATE_OPTION, 'Path to a single .hbs or .md template file')
         .option(TEMPLATE_DIR_OPTION, 'Path to a directory of .hbs/.md templates')
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
-        .option(CLEAR_OUTPUT_DIRECTORY_OPTION, 'Clear the output directory before processing', false)
         .action(async (options) => {
             const { getUrlToLocalFileMap } = await import('./command-helpers/template');
             const { Docifier } = await import('@finos/calm-shared');
