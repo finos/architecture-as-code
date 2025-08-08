@@ -14,6 +14,29 @@ body {
     padding: 6px 8px;
     border-bottom: 1px solid #ddd;
 }
+/* Make toolbar buttons match VS Code themed button styles */
+#toolbar button {
+    appearance: none;
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: 1px solid var(--vscode-button-border, transparent);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 12px;
+    line-height: 1.4;
+    cursor: pointer;
+}
+#toolbar button:hover {
+    background-color: var(--vscode-button-hoverBackground);
+}
+#toolbar button:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: 2px;
+}
+#toolbar button:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
 #container {
     display: grid;
     grid-template-columns: 1fr 4px 280px;
