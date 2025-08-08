@@ -23,7 +23,8 @@
         "test": "vitest run",
         "lint": "eslint src",
         "lint-fix": "eslint src --fix",
-        "dependency-check": "dependency-check --project 'calm-cli' --scan . --out ./dependency-check-report --format ALL --suppression ../.github/node-cve-ignore-list.xml"
+        "dependency-check": "dependency-check --project 'calm-cli' --scan . --out ./dependency-check-report --format ALL --suppression ../.github/node-cve-ignore-list.xml",
+        "semantic-release": "semantic-release"
     },
     "publishConfig": {
         "access": "public"
@@ -45,6 +46,8 @@
         "ts-node": "10.9.2"
     },
     "devDependencies": {
+        "@semantic-release/changelog": "^6.0.3",
+        "@semantic-release/git": "^10.0.1",
         "@types/json-pointer": "^1.0.34",
         "@types/junit-report-builder": "^3.0.2",
         "@types/lodash": "^4.17.16",
@@ -58,6 +61,7 @@
         "eslint": "^9.24.0",
         "globals": "^16.0.0",
         "link": "^2.1.1",
+        "semantic-release": "^24.0.0",
         "supertest": "^7.1.0",
         "tsup": "^8.4.0",
         "typescript": "^5.8.3",

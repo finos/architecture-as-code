@@ -1,19 +1,22 @@
-name: Publish CLI to NPM
+name: Release and Publish CLI
 
 permissions:
-    contents: read
+    contents: write
+    issues: write
+    pull-requests: write
 
 on:
-    release:
-        types: [published]
+    workflow_dispatch:
 
 jobs:
-    publish-cli:
+    release:
         runs-on: ubuntu-latest
         steps:
-            # Checkout the code
+            # Checkout the code with full history for semantic-release
             - name: Checkout code
               uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+              with:
+                  fetch-depth: 0
 
             # Set up Node.js
             - name: Setup Node.js
@@ -30,8 +33,9 @@ jobs:
             - name: Build workspace
               run: npm run build
 
-            # Publish the CLI module
-            - name: Publish CLI module
-              run: npm publish --workspace cli
+            # Run semantic-release for CLI
+            - name: Release CLI
+              run: npm run semantic-release --workspace cli
               env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
