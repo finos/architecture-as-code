@@ -66,7 +66,21 @@ export class ModelIndex {
         return this.idToRange.get(id)
     }
     get nodes() { return (this.model.nodes || []).map(n => ({ id: n.id, label: n.label || n.name || n.id })) }
-    get relationships() { return (this.model.relationships || []).map(r => ({ id: r.id, label: r.label })) }
+    get relationships() {
+        const rels: any[] = Array.isArray(this.model.relationships) ? (this.model.relationships as any[]) : []
+        const grouped = new Map<string, { id: string; label: string }>()
+        for (const r of rels) {
+            const raw = r.raw || {}
+            const rt = raw['relationship-type'] ?? r.type
+            const isContainment = rt && typeof rt === 'object' && (rt['deployed-in'] || rt['composed-of'])
+            const rawId = raw['unique-id'] ?? raw.id
+            const groupId = (isContainment && rawId) ? String(rawId) : String(r.id)
+            if (grouped.has(groupId)) continue
+            const label = (raw.label ?? raw.description ?? r.label ?? groupId) as string
+            grouped.set(groupId, { id: groupId, label })
+        }
+        return Array.from(grouped.values())
+    }
     get flows() { return (this.model.flows || []).map(f => ({ id: f.id, label: f.label })) }
 }
 
