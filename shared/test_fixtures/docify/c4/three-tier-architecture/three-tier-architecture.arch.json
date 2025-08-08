@@ -1,0 +1,166 @@
+{
+  "nodes": [
+    {
+      "unique-id": "web-tier",
+      "name": "Web Tier",
+      "description": "The logical web tier, containing web server VMs.",
+      "node-type": "compute"
+    },
+    {
+      "unique-id": "app-tier",
+      "name": "Application Tier",
+      "description": "The logical application tier, containing application server VMs.",
+      "node-type": "compute"
+    },
+    {
+      "unique-id": "db-tier",
+      "name": "Database Tier",
+      "description": "The logical database tier, containing the database instance.",
+      "node-type": "database"
+    },
+    {
+      "unique-id": "web-server-vms",
+      "name": "Web Server VMs",
+      "description": "The virtual machines in the web tier.",
+      "node-type": "compute"
+    },
+    {
+      "unique-id": "app-server-vms",
+      "name": "Application Server VMs",
+      "description": "The virtual machines in the application tier.",
+      "node-type": "compute"
+    },
+    {
+      "unique-id": "database-instance",
+      "name": "Database Instance",
+      "description": "The database instance for data persistence.",
+      "node-type": "database"
+    },
+    {
+      "unique-id": "external-lb",
+      "name": "External Load Balancer",
+      "description": "The external load balancer, distributing traffic to the web tier.",
+      "node-type": "network"
+    },
+    {
+      "unique-id": "internal-lb",
+      "name": "Internal Load Balancer",
+      "description": "The internal load balancer, distributing traffic from the web tier to the app tier.",
+      "node-type": "network"
+    },
+    {
+      "unique-id": "vpc",
+      "name": "Virtual Private Cloud",
+      "description": "The virtual private cloud providing an isolated network environment.",
+      "node-type": "network"
+    },
+    {
+      "unique-id": "object-storage",
+      "name": "Object Storage",
+      "description": "Object storage for storing application assets.",
+      "node-type": "storage"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "web-tier-composed-of-vms",
+      "relationship-type": {
+        "composed-of": {
+          "container": "web-tier",
+          "nodes": [
+            "web-server-vms"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "app-tier-composed-of-vms",
+      "relationship-type": {
+        "composed-of": {
+          "container": "app-tier",
+          "nodes": [
+            "app-server-vms"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "db-tier-composed-of-instance",
+      "relationship-type": {
+        "composed-of": {
+          "container": "db-tier",
+          "nodes": [
+            "database-instance"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "external-lb-to-web-tier",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "external-lb"
+          },
+          "destination": {
+            "node": "web-tier"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "web-tier-to-internal-lb",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "web-tier"
+          },
+          "destination": {
+            "node": "internal-lb"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "internal-lb-to-app-tier",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "internal-lb"
+          },
+          "destination": {
+            "node": "app-tier"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "app-tier-to-db-tier",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "app-tier"
+          },
+          "destination": {
+            "node": "db-tier"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "components-in-vpc",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "vpc",
+          "nodes": [
+            "web-tier",
+            "app-tier",
+            "db-tier",
+            "internal-lb"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": [{"scenario": "three-tier-architecture"}]
+}
