@@ -118,7 +118,8 @@ export class CalmPreviewPanel {
   </div>
   <div id="container">
     <div id="cy"></div>
-    <div id="details"><pre id="detailsPre"></pre><button id="goto">Go to source</button></div>
+    <div id="divider" title="Drag to resize"></div>
+    <div id="details"><pre id="detailsPre"></pre></div>
   </div>
         <script nonce="${nonce}">(function(){
             function post(msg){ try{ if(typeof acquireVsCodeApi==='function'){ acquireVsCodeApi().postMessage(msg); } }catch(_){} }

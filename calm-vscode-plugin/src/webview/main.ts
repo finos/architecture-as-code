@@ -17,6 +17,8 @@ let currentLayout: string = 'dagre'
 
 function init() {
     const container = document.getElementById('cy')!
+    const grid = document.getElementById('container') as HTMLDivElement
+    const divider = document.getElementById('divider') as HTMLDivElement
     try {
         cy = cytoscape({
             container,
@@ -44,7 +46,29 @@ function init() {
 
     document.getElementById('fit')!.addEventListener('click', () => cy?.fit())
     document.getElementById('refresh')!.addEventListener('click', () => render(currentData))
-    document.getElementById('goto')!.addEventListener('click', () => { if (selectedId) vscode.postMessage({ type: 'revealInEditor', id: selectedId }) })
+    // Draggable divider logic
+    if (grid && divider) {
+        let dragging = false
+        const minRight = 200 // px
+        const minLeft = 200 // px
+        divider.addEventListener('mousedown', (e) => {
+            dragging = true
+            e.preventDefault()
+        })
+        window.addEventListener('mousemove', (e) => {
+            if (!dragging) return
+            const rect = grid.getBoundingClientRect()
+            let left = e.clientX - rect.left
+            // clamp
+            if (left < minLeft) left = minLeft
+            if (left > rect.width - minRight) left = rect.width - minRight
+            const right = rect.width - left
+            // grid has three columns: left | divider | right
+            grid.style.gridTemplateColumns = `${left}px 4px ${right - 4}px`
+            cy?.resize()
+        })
+        window.addEventListener('mouseup', () => { dragging = false })
+    }
     document.getElementById('labels')!.addEventListener('change', (e) => {
         const show = (e.target as HTMLInputElement).checked
         currentShowLabels = show

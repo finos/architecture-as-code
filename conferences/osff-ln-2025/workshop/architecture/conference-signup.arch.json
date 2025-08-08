@@ -27,7 +27,7 @@
     },
     {
       "unique-id": "attendees",
-      "name": "Attendees Service",
+      "name": "Attendees",
       "description": "The attendees service, or a placeholder for another application",
       "node-type": "service",
       "interfaces": [

@@ -16,12 +16,18 @@ body {
 }
 #container {
     display: grid;
-    grid-template-columns: 1fr 280px;
+    grid-template-columns: 1fr 4px 280px;
     height: calc(100% - 36px);
 }
 #cy {
     width: 100%;
     height: 100%;
+}
+#divider {
+    cursor: col-resize;
+    background: #eee;
+    border-left: 1px solid #ddd;
+    border-right: 1px solid #ddd;
 }
 #details {
     border-left: 1px solid #ddd;
