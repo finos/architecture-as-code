@@ -2,6 +2,7 @@
 import cytoscape from 'cytoscape'
 import fcose from 'cytoscape-fcose'
 import dagre from 'cytoscape-dagre'
+// Compose labels safely (duplicated here by logic to avoid bundling node module path issues)
 
 cytoscape.use(fcose)
 cytoscape.use(dagre)
@@ -14,6 +15,7 @@ let selectedId: string | undefined
 let currentShowLabels = true
 let showDescriptions = false
 let currentLayout: string = 'dagre'
+let suppressCenterForId: string | undefined
 
 function init() {
     const container = document.getElementById('cy')!
@@ -41,7 +43,11 @@ function init() {
     // Double tap: jump to source
     cy?.on('dbltap', 'node,edge', (e) => {
         const id = e.target.data('id')
-        if (id) vscode.postMessage({ type: 'revealInEditor', id })
+        if (id) {
+            // The reveal will cause an editor selection -> preview 'select' message; avoid recentering for that one
+            suppressCenterForId = id
+            vscode.postMessage({ type: 'revealInEditor', id })
+        }
     })
 
     document.getElementById('fit')!.addEventListener('click', () => cy?.fit())
@@ -88,7 +94,9 @@ function init() {
             if (msg.selectedId) selectById(msg.selectedId)
             if (msg.settings) applySettings(msg.settings)
         } else if (msg.type === 'select') {
-            selectById(msg.id)
+            const noCenter = suppressCenterForId === msg.id
+            suppressCenterForId = undefined
+            selectById(msg.id, !noCenter)
         }
     })
     // notify ready
@@ -125,12 +133,14 @@ function render(graph: any) {
     }
 }
 
-function selectById(id: string) {
+function selectById(id: string, center: boolean = true) {
     const ele = cy?.elements().filter((e) => e.data('id') === id)
     if (ele && ele.length > 0) {
         cy?.elements().unselect()
         ele.select()
-        cy?.center(ele)
+        if (center) {
+            cy?.center(ele)
+        }
         updateDetails(id)
     }
 }
@@ -290,9 +300,14 @@ function applyTheme() {
         })
         cy.edges().forEach(e => {
             const data = e.data()
-            const lbl = data.label || ''
-            const desc = data.description || ''
-            e.data('labelWithDescription', desc ? `${lbl ? lbl + ' — ' : ''}${desc}` : lbl)
+            const lbl = (data.label || '').trim()
+            const desc = (data.description || '').trim()
+            const composed = (!lbl && desc)
+                ? desc
+                : (desc && desc !== lbl && !lbl.includes(desc))
+                    ? `${lbl}${lbl ? ' — ' : ''}${desc}`
+                    : lbl
+            e.data('labelWithDescription', composed)
         })
         const styles = getThemeStyles()
         cy.style(styles as any)
