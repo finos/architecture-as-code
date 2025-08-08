@@ -11,6 +11,7 @@ const vscode = (typeof window !== 'undefined' && (window as any).acquireVsCodeAp
 let cy: cytoscape.Core | undefined
 let currentData: any
 let selectedId: string | undefined
+let currentShowLabels = true
 
 function init() {
     const container = document.getElementById('cy')!
@@ -19,11 +20,7 @@ function init() {
             container,
             elements: [],
             layout: { name: 'fcose' },
-            style: [
-                { selector: 'node', style: { 'label': 'data(label)', 'text-opacity': 0.9, 'background-color': '#4e79a7', 'color': '#222', 'font-size': 10 } },
-                { selector: 'edge', style: { 'curve-style': 'bezier', 'target-arrow-shape': 'triangle', 'width': 1.5, 'line-color': '#aaa', 'target-arrow-color': '#aaa', 'label': 'data(label)', 'font-size': 8 } },
-                { selector: '.selected', style: { 'border-width': 3, 'border-color': '#f28e2b' } }
-            ]
+            style: getThemeStyles()
         })
     } catch (e: any) {
         postError('Cytoscape init failed', e)
@@ -47,8 +44,8 @@ function init() {
     })
     document.getElementById('labels')!.addEventListener('change', (e) => {
         const show = (e.target as HTMLInputElement).checked
-        cy?.style().selector('node').style('label', show ? 'data(label)' : '').update()
-        cy?.style().selector('edge').style('label', show ? 'data(label)' : '').update()
+        currentShowLabels = show
+        applyLabelVisibility(show)
     })
 
     window.addEventListener('message', (event) => {
@@ -63,6 +60,11 @@ function init() {
     })
     // notify ready
     vscode.postMessage({ type: 'ready' })
+
+    // Apply theme and listen for changes (VS Code toggles body classes)
+    applyTheme()
+    const mo = new MutationObserver(() => applyTheme())
+    mo.observe(document.body, { attributes: true, attributeFilter: ['class'] })
 }
 
 function render(graph: any) {
@@ -102,8 +104,8 @@ function applySettings(s: any) {
     if (!cy) return
     if (s.layout) safeLayout(s.layout)
     if (typeof s.showLabels === 'boolean') {
-        cy.style().selector('node').style('label', s.showLabels ? 'data(label)' : '').update()
-        cy.style().selector('edge').style('label', s.showLabels ? 'data(label)' : '').update()
+    currentShowLabels = s.showLabels
+    applyLabelVisibility(s.showLabels)
     }
 }
 
@@ -146,4 +148,57 @@ function safeLayout(preferred?: string) {
         }
     }
     vscode.postMessage({ type: 'error', message: 'No usable layout found (fcose/dagre/cose)' })
+}
+
+// Theme helpers
+function isDarkTheme(): boolean {
+    const c = document.body.classList
+    return c.contains('vscode-dark') || c.contains('vscode-high-contrast')
+}
+
+function getThemeStyles(): any[] {
+    const dark = isDarkTheme()
+    const palette = dark ? {
+        nodeBg: '#3b82f6',
+        text: '#e5e7eb',
+        edge: '#9ca3af',
+        selection: '#f59e0b'
+    } : {
+        nodeBg: '#4e79a7',
+        text: '#222222',
+        edge: '#aaaaaa',
+        selection: '#f28e2b'
+    }
+    return [
+        { selector: 'node', style: { 'label': currentShowLabels ? 'data(label)' : '', 'text-opacity': 0.95, 'background-color': palette.nodeBg, 'color': palette.text, 'font-size': 10 } },
+        { selector: 'edge', style: { 'curve-style': 'bezier', 'target-arrow-shape': 'triangle', 'width': 1.5, 'line-color': palette.edge, 'target-arrow-color': palette.edge, 'label': currentShowLabels ? 'data(label)' : '', 'color': palette.text, 'font-size': 8 } },
+        { selector: '.selected', style: { 'border-width': 3, 'border-color': palette.selection } }
+    ]
+}
+
+function applyTheme() {
+    if (!cy) return
+    try {
+        const styles = getThemeStyles()
+        // Overwrite key styles based on theme
+        const node = styles[0].style as any
+        const edge = styles[1].style as any
+        const st = cy.style()
+        st.selector('node').style(node)
+        st.selector('edge').style(edge)
+        st.selector('.selected').style((styles[2].style as any))
+        st.update()
+    } catch (e) {
+        postError('applyTheme failed', e)
+    }
+}
+
+function applyLabelVisibility(show: boolean) {
+    if (!cy) return
+    try {
+        cy.style().selector('node').style('label', show ? 'data(label)' : '').update()
+        cy.style().selector('edge').style('label', show ? 'data(label)' : '').update()
+    } catch (e) {
+        // ignore
+    }
 }
