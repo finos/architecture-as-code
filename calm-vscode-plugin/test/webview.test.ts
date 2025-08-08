@@ -1,0 +1,58 @@
+/* @vitest-environment jsdom */
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+// Mock cytoscape and layouts before importing the webview script
+const addCalls: any[] = []
+const layoutRuns: any[] = []
+const fakeCy = {
+    elements: () => ({ length: 0, remove: vi.fn(), unselect: vi.fn(), filter: () => ({ length: 0, select: vi.fn() }) }),
+    add: vi.fn((eles: any) => addCalls.push(eles)),
+    layout: vi.fn((opts: any) => ({ run: vi.fn(() => layoutRuns.push(opts)) })),
+    fit: vi.fn(),
+    center: vi.fn(),
+    resize: vi.fn(),
+    style: vi.fn(),
+    nodes: vi.fn(() => []),
+    on: vi.fn(),
+    pan: undefined,
+    zoom: undefined,
+}
+vi.mock('cytoscape', () => {
+    const fn = (opts: any) => fakeCy
+        ; (fn as any).use = vi.fn()
+    return { __esModule: true, default: fn }
+})
+vi.mock('cytoscape-fcose', () => ({ __esModule: true, default: {} }))
+vi.mock('cytoscape-dagre', () => ({ __esModule: true, default: {} }))
+
+    // Minimal VS Code API shim
+    ; (global as any).acquireVsCodeApi = () => ({ postMessage: vi.fn() })
+
+describe('webview render pipeline', () => {
+    beforeEach(() => {
+        addCalls.length = 0
+        layoutRuns.length = 0
+        document.body.innerHTML = `
+      <div id="toolbar">
+        <input type="checkbox" id="labels" checked>
+        <input type="checkbox" id="descriptions">
+        <button id="fit"></button>
+        <button id="refresh"></button>
+      </div>
+      <div id="container">
+        <div id="cy"></div>
+        <div id="divider"></div>
+        <div id="details"><pre id="detailsPre"></pre></div>
+      </div>
+    `
+        // Import fresh module each test
+        vi.resetModules()
+    })
+
+    it('renders elements after setData', async () => {
+        await import('../src/webview/main')
+        const data = { type: 'setData', graph: { nodes: [{ id: 'n1', label: 'N1' }], edges: [] }, settings: { layout: 'dagre', showLabels: true } }
+        window.dispatchEvent(new MessageEvent('message', { data }))
+        expect(layoutRuns.length).toBeGreaterThan(0)
+    })
+})

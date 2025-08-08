@@ -14,7 +14,7 @@
     },
     {
       "unique-id": "load-balancer",
-      "name": "Load balancer",
+      "name": "Load Balancer",
       "description": "The  service, or a placeholder for another application",
       "node-type": "network",
       "interfaces": [
@@ -27,7 +27,7 @@
     },
     {
       "unique-id": "attendees",
-      "name": "Attendees",
+      "name": "Attendees Service",
       "description": "The attendees service, or a placeholder for another application",
       "node-type": "service",
       "interfaces": [

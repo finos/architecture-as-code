@@ -15,7 +15,9 @@ let selectedId: string | undefined
 let currentShowLabels = true
 let showDescriptions = false
 let currentLayout: string = 'dagre'
-let suppressCenterForId: string | undefined
+const nodePositions: Map<string, { x: number; y: number }> = new Map()
+let pendingSelect: string | undefined
+let pendingSelectTimer: any
 
 function init() {
     const container = document.getElementById('cy')!
@@ -44,14 +46,16 @@ function init() {
     cy?.on('dbltap', 'node,edge', (e) => {
         const id = e.target.data('id')
         if (id) {
-            // The reveal will cause an editor selection -> preview 'select' message; avoid recentering for that one
-            suppressCenterForId = id
             vscode.postMessage({ type: 'revealInEditor', id })
         }
     })
 
     document.getElementById('fit')!.addEventListener('click', () => cy?.fit())
-    document.getElementById('refresh')!.addEventListener('click', () => render(currentData))
+    document.getElementById('refresh')!.addEventListener('click', () => {
+        // Clear saved positions to allow a fresh layout on refresh
+        nodePositions.clear()
+        render(currentData)
+    })
     // Draggable divider logic
     if (grid && divider) {
         let dragging = false
@@ -79,24 +83,31 @@ function init() {
         const show = (e.target as HTMLInputElement).checked
         currentShowLabels = show
         applyTheme()
-        safeLayout(currentLayout)
+        // Avoid re-layout if user has positioned nodes
+        if (nodePositions.size === 0) safeLayout(currentLayout)
     })
     document.getElementById('descriptions')!.addEventListener('change', (e) => {
         showDescriptions = (e.target as HTMLInputElement).checked
         applyTheme() // recompose label fields
-        safeLayout(currentLayout)
+        // Avoid re-layout if user has positioned nodes
+        if (nodePositions.size === 0) safeLayout(currentLayout)
     })
 
     window.addEventListener('message', (event) => {
         const msg = event.data
         if (msg.type === 'setData') {
             render(msg.graph)
-            if (msg.selectedId) selectById(msg.selectedId)
+            // Do not center on selection during data updates to avoid viewport jumps
+            if (msg.selectedId) selectById(msg.selectedId, false)
             if (msg.settings) applySettings(msg.settings)
         } else if (msg.type === 'select') {
-            const noCenter = suppressCenterForId === msg.id
-            suppressCenterForId = undefined
-            selectById(msg.id, !noCenter)
+            // Debounce selection so it happens after render/pan-restore, without re-centering
+            pendingSelect = msg.id
+            if (pendingSelectTimer) clearTimeout(pendingSelectTimer)
+            pendingSelectTimer = setTimeout(() => {
+                if (pendingSelect) selectById(pendingSelect, false)
+                pendingSelect = undefined
+            }, 30)
         }
     })
     // notify ready
@@ -112,22 +123,150 @@ function render(graph: any) {
     try {
         currentData = graph || { nodes: [], edges: [] }
         if (!cy) return
-        const nodes = Array.isArray(currentData.nodes) ? currentData.nodes : []
-        const edges = Array.isArray(currentData.edges) ? currentData.edges : []
-        const elements = [
-            ...nodes.map((n: any) => ({ data: n })),
-            ...edges.map((e: any) => ({ data: e }))
-        ]
-        cy.elements().remove()
-        if (elements.length === 0) {
-            vscode.postMessage({ type: 'log', message: 'No elements to render' })
+        // Snapshot current viewport to restore later
+        let prevPan: any | undefined
+        let prevZoom: number | undefined
+        try {
+            prevPan = cy.pan ? cy.pan() : undefined
+            prevZoom = cy.zoom ? cy.zoom() : undefined
+        } catch { /* noop */ }
+
+    const nodes = Array.isArray(currentData.nodes) ? currentData.nodes : []
+    const edges = Array.isArray(currentData.edges) ? currentData.edges : []
+    const c = cy as cytoscape.Core
+
+        const newNodeIds = new Set(nodes.map((n: any) => String(n.id)))
+        const newEdgeIds = new Set(edges.map((e: any) => String(e.id)))
+
+        const wasEmpty = cy.elements().length === 0
+
+        ;(cy as any).startBatch?.()
+        // Persist existing positions
+        try {
+            cy.nodes().forEach(n => {
+                const id = n.data('id')
+                if (id) nodePositions.set(id, { ...n.position() })
+            })
+        } catch { /* noop */ }
+
+        // Remove edges not present anymore (do edges first to avoid orphan inconsistencies)
+        try {
+            if (typeof (cy as any).edges === 'function') {
+                (cy as any).edges().forEach((e: any) => {
+                    const id = e.data('id')
+                    if (id && !newEdgeIds.has(String(id))) {
+                        e.remove()
+                    }
+                })
+            }
+        } catch { /* noop */ }
+            // Remove nodes not present anymore
+            try {
+                cy.nodes().forEach(n => {
+                    const id = n.data('id')
+                    if (id && !newNodeIds.has(String(id))) {
+                        n.remove()
+                    }
+                })
+            } catch { /* noop */ }
+
+        // Update existing nodes' data minimally and collect which are missing
+    const existingNodeIds = new Set<string>()
+    cy.nodes().forEach(n => { existingNodeIds.add(String(n.data('id'))) })
+
+        for (const n of nodes) {
+            const id = String(n.id)
+            if (existingNodeIds.has(id)) {
+                const ele = cy.$id(id)
+                if (ele && ele.length) {
+                    // Only update fields that can change without recreating
+                    const cur = ele.data()
+                    if (cur.label !== n.label) ele.data('label', n.label)
+                    if (cur.description !== n.description) ele.data('description', n.description)
+                    if (cur['node-type'] !== n['node-type']) ele.data('node-type', n['node-type'])
+                    // Parent changes must use move()
+                    const curParent = (ele as any).parent()?.id() || undefined
+                    const nextParent = n.parent
+                    if (curParent !== nextParent) {
+                        try { (ele as any).move({ parent: nextParent }) } catch { /* noop */ }
+                    }
+                }
+            } else {
+                // Add new node
+                cy.add({ data: n })
+                // Position new node near a neighbor if possible after we add edges below
+            }
         }
-        cy.add(elements)
-        // Ensure composed labels/styles before layout for correct sizing
+
+        // Update existing edges or add new ones
+    const existingEdgeIds = new Set<string>()
+        try { cy.edges().forEach(e => { existingEdgeIds.add(String(e.data('id'))) }) } catch { /* noop */ }
+        for (const e of edges) {
+            const id = String(e.id)
+            if (existingEdgeIds.has(id)) {
+                const ele = cy.$id(id)
+                if (ele && ele.length) {
+                    const cur = ele.data()
+                    if (cur.label !== e.label) ele.data('label', e.label)
+                    if (cur.description !== e.description) ele.data('description', e.description)
+                }
+            } else {
+                cy.add({ data: e })
+            }
+        }
+
+        // Ensure composed labels/styles before any layout for sizing
         applyTheme()
-        safeLayout(currentLayout)
-        cy.fit()
+
+        // Place any newly-added nodes near a positioned neighbor
+    const toPlace: cytoscape.NodeCollection = cy.nodes().filter(n => !nodePositions.has(String(n.data('id'))))
+        toPlace.forEach((node) => {
+            const id = String(node.data('id'))
+            let placed = false
+            try {
+        const connected = c.edges().filter(e => e.data('source') === id || e.data('target') === id)
+                for (const e of connected) {
+                    const otherId = e.data('source') === id ? e.data('target') : e.data('source')
+                    const op = nodePositions.get(String(otherId))
+                    if (op) {
+                        node.position({ x: op.x + 60, y: op.y + 40 })
+                        placed = true
+                        break
+                    }
+                }
+            } catch { /* noop */ }
+            if (!placed) {
+                node.position({ x: 50, y: 50 })
+            }
+        })
+
+        // Restore known positions explicitly (in case any changed via compound reparenting)
+        cy.nodes().forEach(n => {
+            const id = String(n.data('id'))
+            const pos = nodePositions.get(id)
+            if (pos) n.position(pos)
+        })
+
+        // Decide if we should run an initial layout
+        if (wasEmpty && nodes.length > 0) {
+            safeLayout(currentLayout)
+            if (!prevPan || typeof prevZoom !== 'number') {
+                cy.fit()
+            }
+        }
+
+        // Always restore previous viewport to avoid any subtle camera drift
+        try {
+            if (prevPan && typeof cy.pan === 'function') cy.pan(prevPan)
+            if (typeof prevZoom === 'number' && typeof cy.zoom === 'function') cy.zoom(prevZoom)
+        } catch { /* noop */ }
+
+        ;(cy as any).endBatch?.()
+        cy.resize()
+
         vscode.postMessage({ type: 'log', message: `Rendered ${nodes.length} nodes and ${edges.length} edges` })
+        // Apply any pending selection after viewport restore
+        if (pendingSelect) selectById(pendingSelect, false)
     } catch (e: any) {
         postError('Render failed', e)
     }
@@ -149,12 +288,18 @@ function applySettings(s: any) {
     if (!cy) return
     if (s.layout) {
         currentLayout = s.layout
-        safeLayout(currentLayout)
+        // Only (re)layout if we don't have user-defined positions
+        if (nodePositions.size === 0) {
+            safeLayout(currentLayout)
+        }
     }
     if (typeof s.showLabels === 'boolean') {
         currentShowLabels = s.showLabels
         applyTheme()
-        safeLayout(currentLayout)
+        // Only (re)layout if we don't have user-defined positions
+        if (nodePositions.size === 0) {
+            safeLayout(currentLayout)
+        }
     }
 }
 
@@ -200,6 +345,14 @@ function safeLayout(preferred?: string) {
             cy.layout({ name }).run()
             vscode.postMessage({ type: 'log', message: `Applied layout: ${name}` })
             currentLayout = name
+            // Update cached positions after layout so we preserve them on next render
+            try {
+                nodePositions.clear()
+                cy.nodes().forEach(n => {
+                    const id = n.data('id')
+                    if (id) nodePositions.set(id, { ...n.position() })
+                })
+            } catch { /* noop */ }
             return
         } catch (e) {
             // try next
