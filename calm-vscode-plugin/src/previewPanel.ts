@@ -136,7 +136,6 @@ export class CalmPreviewPanel {
     <label><input type="checkbox" id="labels" checked /> Labels</label>
         <label><input type="checkbox" id="descriptions" /> Descriptions</label>
     <button id="fit">Fit</button>
-    <button id="refresh">Refresh</button>
         <button id="reset">Reset</button>
   </div>
   <div id="container">

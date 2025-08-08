@@ -53,13 +53,6 @@ function init() {
     })
 
     document.getElementById('fit')!.addEventListener('click', () => cy?.fit())
-    document.getElementById('refresh')!.addEventListener('click', () => {
-        // Clear saved positions to allow a fresh layout on refresh
-        nodePositions.clear()
-    forceLayoutNextRender = true
-        render(currentData)
-        // Persist new positions after layout will run inside render/safeLayout
-    })
     document.getElementById('reset')!.addEventListener('click', () => {
         try {
             nodePositions.clear()
