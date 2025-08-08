@@ -1,0 +1,139 @@
+{
+    "name": "calm-vscode-plugin",
+    "displayName": "CALM Preview & Tools",
+    "description": "Live-visualize CALM architecture models, validate, and generate docs.",
+    "version": "0.1.0",
+    "publisher": "local",
+    "engines": {
+        "vscode": "^1.88.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "icon": "media/icon.png",
+    "main": "dist/extension.js",
+    "activationEvents": [
+        "onStartupFinished",
+        "onLanguage:json",
+        "onLanguage:yaml",
+        "onLanguage:yml"
+    ],
+    "contributes": {
+        "commands": [
+            {
+                "command": "calm.openPreview",
+                "title": "CALM: Open Preview"
+            },
+            {
+                "command": "calm.validateModel",
+                "title": "CALM: Validate Model"
+            },
+            {
+                "command": "calm.generateDocs",
+                "title": "CALM: Generate Docs"
+            },
+            {
+                "command": "calm.revealInTree",
+                "title": "CALM: Reveal In Tree"
+            }
+        ],
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "calm",
+                    "title": "CALM",
+                    "icon": "media/icon.png"
+                }
+            ]
+        },
+        "views": {
+            "calm": [
+                {
+                    "id": "calmSidebar",
+                    "name": "Model Elements"
+                }
+            ]
+        },
+        "configuration": {
+            "title": "CALM",
+            "properties": {
+                "calm.cli.path": {
+                    "type": "string",
+                    "default": "./cli",
+                    "markdownDescription": "Path to the CALM CLI entry. If not available, the extension will fall back to internal validation."
+                },
+                "calm.preview.autoOpen": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Automatically open CALM Preview when a CALM file is opened."
+                },
+                "calm.preview.layout": {
+                    "type": "string",
+                    "enum": [
+                        "fcose",
+                        "cose",
+                        "dagre"
+                    ],
+                    "default": "fcose",
+                    "description": "Graph layout algorithm for the preview."
+                },
+                "calm.preview.showLabels": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show labels for nodes and edges in the preview."
+                },
+                "calm.files.globs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        "calm/**/*.json",
+                        "calm/**/*.y?(a)ml"
+                    ],
+                    "markdownDescription": "Glob patterns for CALM model files in the workspace."
+                }
+            }
+        },
+        "keybindings": [
+            {
+                "command": "calm.openPreview",
+                "key": "ctrl+shift+c",
+                "mac": "cmd+shift+c",
+                "when": "editorTextFocus"
+            }
+        ],
+        "menus": {
+            "editor/context": [
+                {
+                    "command": "calm.openPreview",
+                    "when": "resourceLangId == json || resourceLangId == yaml || resourceLangId == yml",
+                    "group": "navigation@9"
+                }
+            ]
+        }
+    },
+    "scripts": {
+        "build": "tsup",
+        "watch": "tsup --watch",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "package": "vsce package --no-dependencies",
+        "vscode:prepublish": "tsup"
+    },
+    "devDependencies": {
+        "@types/cytoscape-fcose": "^2.2.4",
+        "@types/node": "^20.11.30",
+        "@types/vscode": "^1.88.0",
+        "tsup": "^8.2.4",
+        "typescript": "^5.6.2",
+        "vitest": "^2.0.5",
+        "vsce": "^2.15.0"
+    },
+    "dependencies": {
+        "cytoscape": "^3.28.1",
+        "cytoscape-dagre": "^2.5.0",
+        "cytoscape-fcose": "^2.2.0",
+        "yaml": "^2.5.1"
+    }
+}

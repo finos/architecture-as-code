@@ -1,0 +1,35 @@
+* {
+    box-sizing: border-box;
+}
+html,
+body {
+    height: 100%;
+    padding: 0;
+    margin: 0;
+}
+#toolbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 6px 8px;
+    border-bottom: 1px solid #ddd;
+}
+#container {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    height: calc(100% - 36px);
+}
+#cy {
+    width: 100%;
+    height: 100%;
+}
+#details {
+    border-left: 1px solid #ddd;
+    padding: 8px;
+    overflow: auto;
+}
+#details pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 11px;
+}
