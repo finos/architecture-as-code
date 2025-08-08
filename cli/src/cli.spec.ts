@@ -258,7 +258,7 @@ describe('CLI Commands', () => {
             );
         });
 
-        it('should honor --clear-output-directory', async () => {
+        it('should honour --clear-output-directory', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'docify',
                 '--input', 'model.json',
