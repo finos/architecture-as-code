@@ -91,4 +91,15 @@ describe('webview render pipeline', () => {
         const fitCallsAfterSecond = (fakeCy.fit as any).mock.calls.length
         expect(fitCallsAfterSecond).toBe(fitCallsAfterFirst)
     })
+
+    it('skips initial layout when positions are provided', async () => {
+        await import('../src/webview/main')
+        // Reset layout tracking
+        ;(layoutRuns as any).length = 0
+        elementsLen = 0
+        const data = { type: 'setData', graph: { nodes: [{ id: 'n1', label: 'N1' }], edges: [] }, positions: { n1: { x: 100, y: 200 } }, settings: { layout: 'dagre', showLabels: true } }
+        window.dispatchEvent(new MessageEvent('message', { data }))
+        // No layout run because we had a saved position for n1
+        expect(layoutRuns.length).toBe(0)
+    })
 })

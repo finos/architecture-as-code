@@ -55,6 +55,11 @@ function init() {
         // Clear saved positions to allow a fresh layout on refresh
         nodePositions.clear()
         render(currentData)
+        // Persist new positions after layout will run inside render/safeLayout
+    })
+    // Persist positions when user finishes dragging a node
+    cy?.on('dragfree', 'node', () => {
+        try { persistPositions() } catch { /* noop */ }
     })
     // Draggable divider logic
     if (grid && divider) {
@@ -96,6 +101,26 @@ function init() {
     window.addEventListener('message', (event) => {
         const msg = event.data
         if (msg.type === 'setData') {
+            // Seed cached positions from host persistence on first set
+            if (msg.positions && typeof msg.positions === 'object' && nodePositions.size === 0) {
+                try {
+                    nodePositions.clear()
+                    for (const [id, pos] of Object.entries(msg.positions)) {
+                        if (pos && typeof (pos as any).x === 'number' && typeof (pos as any).y === 'number') {
+                            nodePositions.set(String(id), { x: (pos as any).x, y: (pos as any).y })
+                        }
+                    }
+                } catch { /* noop */ }
+            }
+            // Apply saved viewport if provided and we don't yet have a prior pan/zoom
+            if (msg.viewport && typeof msg.viewport === 'object' && cy) {
+                try {
+                    if (typeof msg.viewport.zoom === 'number') cy.zoom(msg.viewport.zoom)
+                    if (msg.viewport.pan && typeof msg.viewport.pan.x === 'number' && typeof msg.viewport.pan.y === 'number') {
+                        cy.pan({ x: msg.viewport.pan.x, y: msg.viewport.pan.y })
+                    }
+                } catch { /* noop */ }
+            }
             render(msg.graph)
             // Do not center on selection during data updates to avoid viewport jumps
             if (msg.selectedId) selectById(msg.selectedId, false)
@@ -117,6 +142,12 @@ function init() {
     applyTheme()
     const mo = new MutationObserver(() => applyTheme())
     mo.observe(document.body, { attributes: true, attributeFilter: ['class'] })
+
+    // Persist positions on unload as a safety net
+    window.addEventListener('beforeunload', () => {
+        try { persistPositions() } catch { /* noop */ }
+    try { persistViewport() } catch { /* noop */ }
+    })
 }
 
 function render(graph: any) {
@@ -136,9 +167,10 @@ function render(graph: any) {
     const c = cy as cytoscape.Core
 
     const newNodeIds = new Set(nodes.map((n: any) => String(n.id)))
-        const newEdgeIds = new Set(edges.map((e: any) => String(e.id)))
+    const newEdgeIds = new Set(edges.map((e: any) => String(e.id)))
 
-        const wasEmpty = cy.elements().length === 0
+    const wasEmpty = cy.elements().length === 0
+    const hasAnySavedPositions = nodes.some((n: any) => nodePositions.has(String(n.id)))
 
         ;(cy as any).startBatch?.()
         // Persist existing positions
@@ -222,9 +254,10 @@ function render(graph: any) {
         // Ensure composed labels/styles before any layout for sizing
         applyTheme()
 
-        // Place any newly-added nodes near a positioned neighbor
+    // Place any newly-added nodes near a positioned neighbor
     const toPlace: cytoscape.NodeCollection = cy.nodes().filter(n => !nodePositions.has(String(n.data('id'))))
-        toPlace.forEach((node) => {
+    let fallbackCount = 0
+    toPlace.forEach((node) => {
             const id = String(node.data('id'))
             let placed = false
             try {
@@ -240,9 +273,36 @@ function render(graph: any) {
                 }
             } catch { /* noop */ }
             if (!placed) {
-                node.position({ x: 50, y: 50 })
+                // Fallback: place at current viewport center to ensure visibility
+                try {
+                    const ext = c.extent?.()
+                    if (ext) {
+                        const cx = (ext.x1 + ext.x2) / 2
+                        const cyv = (ext.y1 + ext.y2) / 2
+                        // Spread multiple new nodes around center to avoid overlap/zero-length edges
+                        const col = fallbackCount % 3
+                        const row = Math.floor(fallbackCount / 3)
+                        const dx = (col - 1) * 90 // -90, 0, +90
+                        const dy = (row - 1) * 70 // -70, 0, +70
+                        node.position({ x: cx + dx, y: cyv + dy })
+                        fallbackCount += 1
+                    } else {
+                        node.position({ x: 50, y: 50 })
+                    }
+                } catch {
+                    node.position({ x: 50, y: 50 })
+                }
             }
         })
+
+        // If this is the first render with saved positions, tidy up only the new nodes within the viewport
+        if (wasEmpty && hasAnySavedPositions && toPlace.length > 0) {
+            try {
+                const ext = c.extent?.()
+                const bbox = ext ? { x1: ext.x1, y1: ext.y1, w: ext.x2 - ext.x1, h: ext.y2 - ext.y1 } : undefined
+                toPlace.layout({ name: 'grid', boundingBox: bbox, avoidOverlap: true } as any).run()
+            } catch { /* noop */ }
+        }
 
         // Restore known positions explicitly (in case any changed via compound reparenting)
         cy.nodes().forEach(n => {
@@ -253,20 +313,42 @@ function render(graph: any) {
 
         // Decide if we should run an initial layout
         if (wasEmpty && nodes.length > 0) {
-            safeLayout(currentLayout)
-            if (!prevPan || typeof prevZoom !== 'number') {
-                cy.fit()
+            if (!hasAnySavedPositions) {
+                safeLayout(currentLayout)
+                if (!prevPan || typeof prevZoom !== 'number') {
+                    cy.fit()
+                }
+            } else {
+                vscode.postMessage({ type: 'log', message: 'Skipped initial layout due to saved positions' })
             }
         }
 
         // Always restore previous viewport to avoid any subtle camera drift
-        try {
+            try {
             if (prevPan && typeof cy.pan === 'function') cy.pan(prevPan)
             if (typeof prevZoom === 'number' && typeof cy.zoom === 'function') cy.zoom(prevZoom)
         } catch { /* noop */ }
 
         ;(cy as any).endBatch?.()
         cy.resize()
+        // If first render with saved positions, ensure any newly placed nodes are visible
+        if (wasEmpty && hasAnySavedPositions && toPlace.length > 0) {
+            try {
+                const ext = c.extent?.()
+                if (ext) {
+                    let outside = false
+                    toPlace.forEach((n) => {
+                        const p = (n as any).position()
+                        if (p.x < ext.x1 || p.x > ext.x2 || p.y < ext.y1 || p.y > ext.y2) outside = true
+                    })
+                    if (outside && typeof c.center === 'function') {
+                        c.center(toPlace)
+                    }
+                }
+            } catch { /* noop */ }
+        }
+        // Persist viewport after render settles (and after any visibility adjustment)
+        try { persistViewport() } catch { /* noop */ }
 
         vscode.postMessage({ type: 'log', message: `Rendered ${nodes.length} nodes and ${edges.length} edges` })
         // Apply any pending selection after viewport restore
@@ -356,6 +438,10 @@ function safeLayout(preferred?: string) {
                     const id = n.data('id')
                     if (id) nodePositions.set(id, { ...n.position() })
                 })
+                // Persist positions after layout
+                persistPositions()
+                // Persist viewport too
+                persistViewport()
             } catch { /* noop */ }
             return
         } catch (e) {
@@ -474,3 +560,30 @@ function applyTheme() {
 }
 
 // label visibility is handled via getThemeStyles + applyTheme
+
+function persistPositions() {
+    if (!cy) return
+    try {
+        const map: Record<string, { x: number; y: number }> = {}
+        cy.nodes().forEach(n => {
+            // Only persist leaf nodes; parents are computed from children
+            if ((n as any).isParent && (n as any).isParent()) return
+            const id = n.data('id')
+            if (!id) return
+            const p = n.position()
+            map[String(id)] = { x: p.x, y: p.y }
+        })
+        vscode.postMessage({ type: 'savePositions', positions: map })
+    } catch { /* noop */ }
+}
+
+function persistViewport() {
+    if (!cy) return
+    try {
+        const pan = cy.pan ? cy.pan() : undefined
+        const zoom = cy.zoom ? cy.zoom() : undefined
+        if (pan && typeof zoom === 'number') {
+            vscode.postMessage({ type: 'saveViewport', viewport: { pan, zoom } })
+        }
+    } catch { /* noop */ }
+}

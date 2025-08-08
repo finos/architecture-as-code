@@ -12,7 +12,8 @@ export class CalmPreviewPanel {
     private disposables: vscode.Disposable[] = []
     private revealInEditorHandlers: Array<(id: string) => void> = []
     private ready = false
-    private lastData: { graph: GraphData; selectedId?: string; settings?: any } | undefined
+    private lastData: { graph: GraphData; selectedId?: string; settings?: any; positions?: Record<string, { x: number; y: number }>; viewport?: { pan: { x: number; y: number }, zoom: number } } | undefined
+    private currentUri: vscode.Uri | undefined
 
     static createOrShow(context: vscode.ExtensionContext, uri: vscode.Uri, config: vscode.WorkspaceConfiguration, output: vscode.OutputChannel) {
         const column = vscode.ViewColumn.Beside
@@ -32,7 +33,8 @@ export class CalmPreviewPanel {
             }
         )
 
-        CalmPreviewPanel.currentPanel = new CalmPreviewPanel(panel, context, config, output)
+    CalmPreviewPanel.currentPanel = new CalmPreviewPanel(panel, context, config, output)
+    CalmPreviewPanel.currentPanel.currentUri = uri
         return CalmPreviewPanel.currentPanel
     }
 
@@ -41,13 +43,20 @@ export class CalmPreviewPanel {
 
         // Attach message listener BEFORE setting HTML so early webview posts aren't missed
         this.panel.webview.onDidReceiveMessage((msg: any) => {
-            if (msg.type === 'revealInEditor' && typeof msg.id === 'string') {
+        if (msg.type === 'revealInEditor' && typeof msg.id === 'string') {
                 this.revealInEditorHandlers.forEach(h => h(msg.id))
             } else if (msg.type === 'ready') {
                 this.ready = true
                 if (this.lastData) {
-                    this.panel.webview.postMessage({ type: 'setData', ...this.lastData })
+            this.panel.webview.postMessage({ type: 'setData', ...this.lastData })
                 }
+            } else if (msg.type === 'savePositions' && msg.positions && this.currentUri) {
+                // Persist per-document positions (if workspaceState available)
+                const key = this.positionsKey(this.currentUri)
+                try { (this.context as any).workspaceState?.update?.(key, msg.positions) } catch {}
+            } else if (msg.type === 'saveViewport' && msg.viewport && this.currentUri) {
+                const key = this.viewportKey(this.currentUri)
+                try { (this.context as any).workspaceState?.update?.(key, msg.viewport) } catch {}
             } else if (msg.type === 'log' && msg.message) {
                 this.output.appendLine(`[webview] ${msg.message}`)
             } else if (msg.type === 'error' && msg.message) {
@@ -63,6 +72,7 @@ export class CalmPreviewPanel {
     }
 
     reveal(uri: vscode.Uri) {
+        this.currentUri = uri
         this.panel.reveal(vscode.ViewColumn.Beside)
     }
 
@@ -75,9 +85,16 @@ export class CalmPreviewPanel {
     }
 
     setData(payload: { graph: GraphData; selectedId?: string; settings?: any }) {
-        this.lastData = payload
+        // Attach persisted positions for this document, if any
+        const positions = (this.currentUri && (this.context as any).workspaceState?.get)
+            ? (((this.context as any).workspaceState.get(this.positionsKey(this.currentUri)) as any) || undefined)
+            : undefined
+        const viewport = (this.currentUri && (this.context as any).workspaceState?.get)
+            ? (((this.context as any).workspaceState.get(this.viewportKey(this.currentUri)) as any) || undefined)
+            : undefined
+        this.lastData = { ...payload, positions, viewport }
         if (this.ready) {
-            this.panel.webview.postMessage({ type: 'setData', ...payload })
+            this.panel.webview.postMessage({ type: 'setData', ...this.lastData })
         } else {
             this.output.appendLine('[preview] Webview not ready yet; queued graph payload')
         }
@@ -132,5 +149,13 @@ export class CalmPreviewPanel {
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`
+    }
+
+    private positionsKey(uri: vscode.Uri) {
+        return `calm.positions:${uri.toString()}`
+    }
+
+    private viewportKey(uri: vscode.Uri) {
+        return `calm.viewport:${uri.toString()}`
     }
 }
