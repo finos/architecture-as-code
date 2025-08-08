@@ -52,19 +52,19 @@ export class TemplateProcessor {
         let loader: ITemplateBundleLoader;
 
         switch (this.mode) {
-            case 'template':
-                logger.info('Using SelfProvidedTemplateLoader for single template file');
-                loader = new SelfProvidedTemplateLoader(this.templateBundlePath, this.outputPath);
-                break;
-            case 'template-directory':
-                logger.info('Using SelfProvidedDirectoryTemplateLoader for template directory');
-                loader = new SelfProvidedDirectoryTemplateLoader(this.templateBundlePath);
-                break;
-            case 'bundle':
-            default:
-                logger.info('Using TemplateBundleFileLoader for bundle');
-                loader = new TemplateBundleFileLoader(this.templateBundlePath);
-                break;
+        case 'template':
+            logger.info('Using SelfProvidedTemplateLoader for single template file');
+            loader = new SelfProvidedTemplateLoader(this.templateBundlePath, this.outputPath);
+            break;
+        case 'template-directory':
+            logger.info('Using SelfProvidedDirectoryTemplateLoader for template directory');
+            loader = new SelfProvidedDirectoryTemplateLoader(this.templateBundlePath);
+            break;
+        case 'bundle':
+        default:
+            logger.info('Using TemplateBundleFileLoader for bundle');
+            loader = new TemplateBundleFileLoader(this.templateBundlePath);
+            break;
         }
 
         const config = loader.getConfig();
@@ -111,7 +111,7 @@ export class TemplateProcessor {
             else {
                 const directoryContents = fs.readdirSync(outputPath);
                 if (directoryContents && directoryContents.length > 0) {
-                    logger.warn(`⚠️ Output directory is not empty. Any files not overwritten will remain untouched.`);
+                    logger.warn('⚠️ Output directory is not empty. Any files not overwritten will remain untouched.');
                 }
             }
         }

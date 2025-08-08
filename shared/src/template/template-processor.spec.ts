@@ -196,7 +196,7 @@ describe('TemplateProcessor', () => {
     });
 
     it('should not create output directory if it exists', async () => {
-        (fs.existsSync as Mock).mockImplementation((filePath: string) => {
+        (fs.existsSync as Mock).mockImplementation((_: string) => {
             return true;
         });
         (fs.readdirSync as Mock).mockReturnValue([]);
@@ -208,7 +208,7 @@ describe('TemplateProcessor', () => {
     });
 
     it('should have warned about non-empty output directory if it exists and is non-empty', async () => {
-        (fs.existsSync as Mock).mockImplementation((filePath: string) => {
+        (fs.existsSync as Mock).mockImplementation((_: string) => {
             return true;
         });
         (fs.readdirSync as Mock).mockReturnValue(['existing-file.txt']);
@@ -221,7 +221,7 @@ describe('TemplateProcessor', () => {
     });
 
     it('should have cleared output directory if told to', async () => {
-        (fs.existsSync as Mock).mockImplementation((filePath: string) => {
+        (fs.existsSync as Mock).mockImplementation((_: string) => {
             return true;
         });
         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map(), 'bundle', false, true);
