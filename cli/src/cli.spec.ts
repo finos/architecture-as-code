@@ -59,7 +59,7 @@ describe('CLI Commands', () => {
                 '-p', 'pattern.json',
                 '-o', 'output.json',
                 '--verbose',
-                '--schemaDirectory', 'schemas',
+                '--schema-directory', 'schemas',
             ]);
 
             expect(fileSystemDocLoaderModule.FileSystemDocumentLoader.prototype.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
@@ -94,7 +94,7 @@ describe('CLI Commands', () => {
             await program.parseAsync([
                 'node', 'cli.js', 'server',
                 '--port', '4000',
-                '--schemaDirectory', 'mySchemas',
+                '--schema-directory', 'mySchemas',
                 '--verbose',
             ]);
 
@@ -122,7 +122,7 @@ describe('CLI Commands', () => {
         it('should handle --bundle mode correctly', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'template',
-                '--input', 'model.json',
+                '--architecture', 'model.json',
                 '--bundle', 'templateDir',
                 '--output', 'outDir',
                 '--verbose',
@@ -142,7 +142,7 @@ describe('CLI Commands', () => {
         it('should handle --template mode correctly', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'template',
-                '--input', 'model.json',
+                '--architecture', 'model.json',
                 '--template', 'template.hbs',
                 '--output', 'outDir',
             ]);
@@ -161,7 +161,7 @@ describe('CLI Commands', () => {
         it('should handle --template-dir mode correctly', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'template',
-                '--input', 'model.json',
+                '--architecture', 'model.json',
                 '--template-dir', 'templates/',
                 '--output', 'outDir',
             ]);
@@ -206,7 +206,7 @@ describe('CLI Commands', () => {
 
             await expect(program.parseAsync([
                 'node', 'cli.js', 'template',
-                '--input', 'model.json',
+                '--architecture', 'model.json',
                 '--template', 't1.hbs',
                 '--bundle', 'bundle',
                 '--output', 'outDir'
@@ -243,7 +243,7 @@ describe('CLI Commands', () => {
         it('should default to WEBSITE mode with bundle', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'docify',
-                '--input', 'model.json',
+                '--architecture', 'model.json',
                 '--output', 'outDir',
             ]);
 
@@ -280,7 +280,7 @@ describe('CLI Commands', () => {
         it('should use template mode if --template is specified', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'docify',
-                '--input', 'model.json',
+                '--architecture', 'model.json',
                 '--output', 'outDir',
                 '--template', 'template.hbs',
             ]);
@@ -299,7 +299,7 @@ describe('CLI Commands', () => {
         it('should use template-directory mode if --template-dir is specified', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'docify',
-                '--input', 'model.json',
+                '--architecture', 'model.json',
                 '--output', 'outDir',
                 '--template-dir', 'templateDir',
             ]);
@@ -323,7 +323,7 @@ describe('CLI Commands', () => {
 
             await expect(program.parseAsync([
                 'node', 'cli.js', 'docify',
-                '--input', 'model.json',
+                '--architecture', 'model.json',
                 '--output', 'outDir',
                 '--template', 't1.hbs',
                 '--template-dir', 'templateDir'

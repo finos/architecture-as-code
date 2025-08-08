@@ -1,0 +1,129 @@
+{
+  "nodes": [
+    {
+      "unique-id": "web-system",
+      "node-type": "system",
+      "name": "E-Commerce Platform",
+      "description": "Complete e-commerce solution for online retail",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "api-gateway",
+      "node-type": "service",
+      "name": "API Gateway",
+      "description": "Central entry point for all API requests",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "user-service",
+      "node-type": "service",
+      "name": "User Service",
+      "description": "Manages user authentication and profiles",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "product-service",
+      "node-type": "service",
+      "name": "Product Service",
+      "description": "Manages product catalog and inventory",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "order-service",
+      "node-type": "service",
+      "name": "Order Service",
+      "description": "Processes orders and payments",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "customer",
+      "node-type": "actor",
+      "name": "Customer",
+      "description": "Online shopper using the platform",
+      "metadata": [{}],
+      "interfaces": []
+    },
+    {
+      "unique-id": "admin",
+      "node-type": "actor",
+      "name": "Administrator",
+      "description": "System administrator managing the platform",
+      "metadata": [{}],
+      "interfaces": []
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "system-composition",
+      "relationship-type": {
+        "composed-of": {
+          "container": "web-system",
+          "nodes": ["api-gateway", "user-service", "product-service", "order-service"]
+        }
+      },
+      "metadata": [{}],
+      "description": "E-Commerce Platform contains core services"
+    },
+    {
+      "unique-id": "customer-interaction",
+      "relationship-type": {
+        "interacts": {
+          "actor": "customer",
+          "nodes": ["api-gateway"]
+        }
+      },
+      "metadata": [{}],
+      "description": "Customer interacts with API Gateway"
+    },
+    {
+      "unique-id": "admin-interaction",
+      "relationship-type": {
+        "interacts": {
+          "actor": "admin",
+          "nodes": ["api-gateway"]
+        }
+      },
+      "metadata": [{}],
+      "description": "Administrator manages system through API Gateway"
+    },
+    {
+      "unique-id": "gateway-user",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "api-gateway", "interfaces": [] },
+          "destination": { "node": "user-service", "interfaces": [] }
+        }
+      },
+      "metadata": [{}],
+      "description": "API Gateway connects to User Service"
+    },
+    {
+      "unique-id": "gateway-product",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "api-gateway", "interfaces": [] },
+          "destination": { "node": "product-service", "interfaces": [] }
+        }
+      },
+      "metadata": [{}],
+      "description": "API Gateway connects to Product Service"
+    },
+    {
+      "unique-id": "gateway-order",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "api-gateway", "interfaces": [] },
+          "destination": { "node": "order-service", "interfaces": [] }
+        }
+      },
+      "metadata": [{}],
+      "description": "API Gateway connects to Order Service"
+    }
+  ],
+  "metadata": [{"scenario": "ecommerce-architecture"}]
+}

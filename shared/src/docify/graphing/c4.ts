@@ -7,8 +7,9 @@ import {
 } from '../../model/relationship';
 import { CalmCore } from '../../model/core.js';
 import { CalmRelationshipGraph } from './relationship-graph.js';
+import { CalmNode } from '../../model/node.js';
 
-export type C4ElementType = 'System' | 'Container' | 'Component' | 'Person';
+export type C4ElementType = 'Enterprise' | 'System' | 'Container' | 'Component' | 'Person';
 
 export class C4Element {
     constructor(
@@ -59,6 +60,35 @@ export function buildParentChildMappings(
     return { parentLookup, childrenLookup };
 }
 
+function sortNodesByHierarchy(
+    nodes: CalmNode[],
+    parentLookup: Record<string, string>
+): CalmNode[] {
+    const nodeMap = new Map(nodes.map(node => [node.uniqueId, node]));
+    const visited = new Set<string>();
+    const sorted: CalmNode[] = [];
+
+    function visit(nodeId: string) {
+        if (visited.has(nodeId)) return;
+
+        const node = nodeMap.get(nodeId);
+        if (!node) return;
+
+        visited.add(nodeId);
+
+        const parentId = parentLookup[nodeId];
+        if (parentId && nodeMap.has(parentId)) {
+            visit(parentId);
+        }
+
+        sorted.push(node);
+    }
+
+    nodes.forEach(node => visit(node.uniqueId));
+
+    return sorted;
+}
+
 export class C4Model {
     public elements: Record<string, C4Element> = {};
     public relationships: C4Relationship[] = [];
@@ -70,34 +100,32 @@ export class C4Model {
     }
 
     private buildFromCalm(calmCore: CalmCore) {
-        const nodeTypeMapping: Record<string, C4ElementType> = {
-            'system': 'System',
-            'service': 'Container',
-            'actor': 'Person',
-            'network': 'Container',
-        };
-
         const { parentLookup, childrenLookup } = buildParentChildMappings(calmCore.relationships);
 
-        calmCore.nodes.forEach(node => {
-            const elementType = nodeTypeMapping[node.nodeType] || 'Container';
+        const sortedNodes = sortNodesByHierarchy(calmCore.nodes, parentLookup);
+
+        sortedNodes.forEach(node => {
             const parentId = parentLookup[node.uniqueId];
             const children = childrenLookup[node.uniqueId] || [];
 
+            let finalElementType: C4ElementType;
+
+            if (node.nodeType === 'actor') {
+                finalElementType = 'Person';
+            } else if (children.length > 0) {
+                finalElementType = 'System';
+            } else {
+                finalElementType = 'Container';
+            }
+
             this.elements[node.uniqueId] = new C4Element(
-                elementType,
+                finalElementType,
                 node.uniqueId,
                 node.name,
                 node.description,
                 parentId,
-                children
+                [...children]
             );
-        });
-
-        Object.values(this.elements).forEach(node => {
-            if (node.parentId && this.elements[node.parentId]) {
-                this.elements[node.parentId].children.push(node.uniqueId);
-            }
         });
 
         calmCore.relationships.forEach(rel => {
@@ -105,11 +133,23 @@ export class C4Model {
 
             switch (relType.kind) {
             case 'composed-of':
-                return; // skip
+            case 'deployed-in':
+                return;
 
             case 'interacts': {
                 const t = relType as CalmInteractsType;
+
+                if (!this.elements[t.actor]) {
+                    console.warn(`Actor ${t.actor} not found in relationship ${rel.uniqueId}`);
+                    return;
+                }
+
                 t.nodes.forEach(nodeId => {
+                    if (!this.elements[nodeId]) {
+                        console.warn(`Target node ${nodeId} not found in relationship ${rel.uniqueId}`);
+                        return;
+                    }
+
                     this.relationships.push(new C4Relationship(
                         t.actor,
                         nodeId,
@@ -121,6 +161,23 @@ export class C4Model {
 
             case 'connects': {
                 const t = relType as CalmConnectsType;
+
+                if (!this.elements[t.source.node]) {
+                    console.warn(`Source node ${t.source.node} not found in relationship ${rel.uniqueId}`);
+                    return;
+                }
+                if (!this.elements[t.destination.node]) {
+                    console.warn(`Destination node ${t.destination.node} not found in relationship ${rel.uniqueId}`);
+                    return;
+                }
+
+                const sourceElement = this.elements[t.source.node];
+                const destinationElement = this.elements[t.destination.node];
+
+                if (sourceElement.children.length > 0 || destinationElement.children.length > 0) {
+                    return;
+                }
+
                 this.relationships.push(new C4Relationship(
                     t.source.node,
                     t.destination.node,
