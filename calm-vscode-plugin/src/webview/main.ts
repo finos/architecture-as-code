@@ -18,6 +18,8 @@ let currentLayout: string = 'dagre'
 const nodePositions: Map<string, { x: number; y: number }> = new Map()
 let pendingSelect: string | undefined
 let pendingSelectTimer: any
+let forceLayoutNextRender = false
+let viewportAppliedFromHost = false
 
 function init() {
     const container = document.getElementById('cy')!
@@ -54,8 +56,17 @@ function init() {
     document.getElementById('refresh')!.addEventListener('click', () => {
         // Clear saved positions to allow a fresh layout on refresh
         nodePositions.clear()
+    forceLayoutNextRender = true
         render(currentData)
         // Persist new positions after layout will run inside render/safeLayout
+    })
+    document.getElementById('reset')!.addEventListener('click', () => {
+        try {
+            nodePositions.clear()
+            vscode.postMessage({ type: 'clearPositions' })
+            forceLayoutNextRender = true
+            render(currentData)
+        } catch { /* noop */ }
     })
     // Persist positions when user finishes dragging a node
     cy?.on('dragfree', 'node', () => {
@@ -113,12 +124,13 @@ function init() {
                 } catch { /* noop */ }
             }
             // Apply saved viewport if provided and we don't yet have a prior pan/zoom
-            if (msg.viewport && typeof msg.viewport === 'object' && cy) {
+        if (msg.viewport && typeof msg.viewport === 'object' && cy) {
                 try {
                     if (typeof msg.viewport.zoom === 'number') cy.zoom(msg.viewport.zoom)
                     if (msg.viewport.pan && typeof msg.viewport.pan.x === 'number' && typeof msg.viewport.pan.y === 'number') {
                         cy.pan({ x: msg.viewport.pan.x, y: msg.viewport.pan.y })
                     }
+            viewportAppliedFromHost = true
                 } catch { /* noop */ }
             }
             render(msg.graph)
@@ -157,6 +169,8 @@ function render(graph: any) {
         // Snapshot current viewport to restore later
         let prevPan: any | undefined
         let prevZoom: number | undefined
+    // Track whether we intentionally adjusted the viewport this render
+    let skipViewportRestore = false
         try {
             prevPan = cy.pan ? cy.pan() : undefined
             prevZoom = cy.zoom ? cy.zoom() : undefined
@@ -251,6 +265,41 @@ function render(graph: any) {
             }
         }
 
+        // Safety: synthesize placeholder nodes for any edge endpoints missing from the graph
+
+            // Final sanity: ensure all nodes from data exist
+            try {
+                let addedCount = 0
+                const seen = new Set<string>()
+                cy.nodes().forEach(n => { const i = String(n.data('id')); if (i) seen.add(i) })
+                for (const n of nodes) {
+                    const id = String(n.id)
+                    if (!seen.has(id)) {
+                        c.add({ data: n })
+                        addedCount++
+                    }
+                }
+                if (addedCount > 0) {
+                    vscode.postMessage({ type: 'log', message: `Sanity-added ${addedCount} missing nodes` })
+                }
+            } catch { /* noop */ }
+    try {
+        const presentIds = new Set<string>()
+        cy.nodes().forEach(n => { presentIds.add(String(n.data('id'))) })
+        edges.forEach((e: any) => {
+                const src = String(e.source)
+                const dst = String(e.target)
+                if (src && !presentIds.has(src)) {
+            c.add({ data: { id: src, label: src } })
+                    presentIds.add(src)
+                }
+                if (dst && !presentIds.has(dst)) {
+            c.add({ data: { id: dst, label: dst } })
+                    presentIds.add(dst)
+                }
+        })
+        } catch { /* noop */ }
+
         // Ensure composed labels/styles before any layout for sizing
         applyTheme()
 
@@ -272,6 +321,19 @@ function render(graph: any) {
                     }
                 }
             } catch { /* noop */ }
+            // Fallback 2: if the node has a compound parent, place near the parent
+            if (!placed) {
+                try {
+                    const pId = (node as any).data('parent')
+                    if (pId) {
+                        const pp = nodePositions.get(String(pId)) || ((c.$id(String(pId)) as any).position?.() as any)
+                        if (pp && typeof pp.x === 'number' && typeof pp.y === 'number') {
+                            node.position({ x: pp.x + 60, y: pp.y + 40 })
+                            placed = true
+                        }
+                    }
+                } catch { /* noop */ }
+            }
             if (!placed) {
                 // Fallback: place at current viewport center to ensure visibility
                 try {
@@ -295,7 +357,7 @@ function render(graph: any) {
             }
         })
 
-        // If this is the first render with saved positions, tidy up only the new nodes within the viewport
+    // If this is the first render with saved positions, tidy up only the new nodes within the viewport
         if (wasEmpty && hasAnySavedPositions && toPlace.length > 0) {
             try {
                 const ext = c.extent?.()
@@ -311,23 +373,78 @@ function render(graph: any) {
             if (pos) n.position(pos)
         })
 
-        // Decide if we should run an initial layout
-        if (wasEmpty && nodes.length > 0) {
+        // Decide if we should run an initial or forced layout
+    if (forceLayoutNextRender && nodes.length > 0) {
+            safeLayout(currentLayout)
+            cy.fit()
+            forceLayoutNextRender = false
+        skipViewportRestore = true
+        } else if (wasEmpty && nodes.length > 0) {
             if (!hasAnySavedPositions) {
                 safeLayout(currentLayout)
                 if (!prevPan || typeof prevZoom !== 'number') {
                     cy.fit()
+            skipViewportRestore = true
                 }
             } else {
-                vscode.postMessage({ type: 'log', message: 'Skipped initial layout due to saved positions' })
+                // If we have saved positions but no host-provided viewport, fit once to ensure visibility
+                if (!viewportAppliedFromHost) {
+            cy.fit()
+            skipViewportRestore = true
+                } else {
+                    vscode.postMessage({ type: 'log', message: 'Skipped initial layout due to saved positions' })
+                }
             }
+        }
+
+        // Safety net: on very first render, if the current viewport shows little to no content, do a single fit
+        if (wasEmpty && nodes.length > 0 && !skipViewportRestore) {
+            try {
+                const ext = c.extent?.()
+                if (ext) {
+                    let inside = 0
+                    cy.nodes().forEach(n => {
+                        const p = (n as any).position()
+                        if (p.x >= ext.x1 && p.x <= ext.x2 && p.y >= ext.y1 && p.y <= ext.y2) inside += 1
+                    })
+                    const total = Math.max(1, cy.nodes().length)
+                    const ratio = inside / total
+                    if (inside === 0 || ratio < 0.25) {
+                        cy.fit()
+                        skipViewportRestore = true
+                    }
+                }
+            } catch { /* noop */ }
+        }
+
+        // Non-empty canvas: ensure any genuinely new nodes are visible if they landed outside the current viewport
+        if (!wasEmpty && toPlace.length > 0) {
+            try {
+                const ext = c.extent?.()
+                if (ext) {
+                    let outside = false
+                    toPlace.forEach((n) => {
+                        const p = (n as any).position()
+                        if (p.x < ext.x1 || p.x > ext.x2 || p.y < ext.y1 || p.y > ext.y2) outside = true
+                    })
+                    if (outside) {
+                        if (typeof c.center === 'function') {
+                            c.center(toPlace)
+                            skipViewportRestore = true
+                        }
+                    }
+                }
+            } catch { /* noop */ }
         }
 
         // Always restore previous viewport to avoid any subtle camera drift
             try {
-            if (prevPan && typeof cy.pan === 'function') cy.pan(prevPan)
-            if (typeof prevZoom === 'number' && typeof cy.zoom === 'function') cy.zoom(prevZoom)
-        } catch { /* noop */ }
+                // Skip restoring viewport if we intentionally adjusted it this frame
+                if (!forceLayoutNextRender && !skipViewportRestore) {
+                    if (prevPan && typeof cy.pan === 'function') cy.pan(prevPan)
+                    if (typeof prevZoom === 'number' && typeof cy.zoom === 'function') cy.zoom(prevZoom)
+                }
+            } catch { /* noop */ }
 
         ;(cy as any).endBatch?.()
         cy.resize()

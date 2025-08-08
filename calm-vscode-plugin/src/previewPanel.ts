@@ -57,6 +57,11 @@ export class CalmPreviewPanel {
             } else if (msg.type === 'saveViewport' && msg.viewport && this.currentUri) {
                 const key = this.viewportKey(this.currentUri)
                 try { (this.context as any).workspaceState?.update?.(key, msg.viewport) } catch {}
+            } else if (msg.type === 'clearPositions' && this.currentUri) {
+                try {
+                    (this.context as any).workspaceState?.update?.(this.positionsKey(this.currentUri), undefined)
+                    ; (this.context as any).workspaceState?.update?.(this.viewportKey(this.currentUri), undefined)
+                } catch {}
             } else if (msg.type === 'log' && msg.message) {
                 this.output.appendLine(`[webview] ${msg.message}`)
             } else if (msg.type === 'error' && msg.message) {
@@ -132,6 +137,7 @@ export class CalmPreviewPanel {
         <label><input type="checkbox" id="descriptions" /> Descriptions</label>
     <button id="fit">Fit</button>
     <button id="refresh">Refresh</button>
+        <button id="reset">Reset</button>
   </div>
   <div id="container">
     <div id="cy"></div>

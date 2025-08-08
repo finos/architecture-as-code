@@ -40,6 +40,7 @@ describe('webview render pipeline', () => {
         <input type="checkbox" id="descriptions">
         <button id="fit"></button>
         <button id="refresh"></button>
+    <button id="reset"></button>
       </div>
       <div id="container">
         <div id="cy"></div>

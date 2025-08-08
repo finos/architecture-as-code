@@ -102,4 +102,21 @@ describe('CalmPreviewPanel readiness', () => {
         expect(posts.find(m => m?.type === 'setData')).toBeTruthy()
         spyCreate.mockRestore()
     })
+
+    it('clears persisted positions and viewport on clearPositions', async () => {
+        const { panel, listeners } = createMockPanel()
+        const spyCreate = vi.spyOn(vscode.window, 'createWebviewPanel' as any).mockReturnValue(panel)
+        const state: any = { store: {}, update: vi.fn((k: string, v: any) => { state.store[k] = v }) , get: (k: string) => state.store[k] }
+        ctx = { extensionUri: (vscode as any).Uri.file('/tmp/ext'), workspaceState: state }
+        const uri = (vscode as any).Uri.file('/tmp/doc.yml')
+        const p = CalmPreviewPanel.createOrShow(ctx as any, uri, cfg as any, out as any)
+        // Seed some state
+        state.update(`calm.positions:${uri.toString()}`, { a: { x: 1, y: 2 } })
+        state.update(`calm.viewport:${uri.toString()}`, { pan: { x: 0, y: 0 }, zoom: 1 })
+        // Simulate webview message to clear
+        listeners.forEach(l => l({ type: 'clearPositions' }))
+        expect(state.store[`calm.positions:${uri.toString()}`]).toBeUndefined()
+        expect(state.store[`calm.viewport:${uri.toString()}`]).toBeUndefined()
+        spyCreate.mockRestore()
+    })
 })
