@@ -2,7 +2,7 @@
   "nodes": [
     {
       "unique-id": "conference-website",
-      "name": "Conference Website",
+      "name": "Conference",
       "description": "Website to sign up for a conference",
       "node-type": "webclient",
       "interfaces": [

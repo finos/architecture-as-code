@@ -37,10 +37,10 @@ export class CalmPreviewPanel {
     }
 
     constructor(panel: vscode.WebviewPanel, private context: vscode.ExtensionContext, private cfg: vscode.WorkspaceConfiguration, private output: vscode.OutputChannel) {
-    this.panel = panel
+        this.panel = panel
 
-    // Attach message listener BEFORE setting HTML so early webview posts aren't missed
-    this.panel.webview.onDidReceiveMessage((msg: any) => {
+        // Attach message listener BEFORE setting HTML so early webview posts aren't missed
+        this.panel.webview.onDidReceiveMessage((msg: any) => {
             if (msg.type === 'revealInEditor' && typeof msg.id === 'string') {
                 this.revealInEditorHandlers.forEach(h => h(msg.id))
             } else if (msg.type === 'ready') {
@@ -56,8 +56,8 @@ export class CalmPreviewPanel {
             }
         }, undefined, this.disposables)
 
-    // Now set HTML after listener registration
-    this.panel.webview.html = this.getHtml()
+        // Now set HTML after listener registration
+        this.panel.webview.html = this.getHtml()
 
         this.panel.onDidDispose(() => this.dispose(), null, this.disposables)
     }

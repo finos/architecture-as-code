@@ -173,7 +173,31 @@ export function activate(context: vscode.ExtensionContext) {
         if (!currentModelIndex) return
         const range = (currentModelIndex as any).rangeOf(id)
         if (!range) return
-        const editor = await vscode.window.showTextDocument(doc)
+        // Prefer an already-open tab/editor for this document (visible or background)
+        const byVisible = vscode.window.visibleTextEditors.find(e => e.document.uri.fsPath === doc.uri.fsPath)
+        // Search background tabs as well
+        let targetColumn: vscode.ViewColumn | undefined = byVisible?.viewColumn
+        if (!targetColumn) {
+            try {
+                for (const group of vscode.window.tabGroups.all) {
+                    // A group may not have a viewColumn in older VS Code, but 1.88+ does
+                    const col = (group as any).viewColumn as vscode.ViewColumn | undefined
+                    if (!col) continue
+                    for (const tab of group.tabs) {
+                        const input: any = (tab as any).input
+                        const uri: vscode.Uri | undefined = input?.uri || input?.primary || input?.original
+                        if (uri && uri.fsPath === doc.uri.fsPath) {
+                            targetColumn = col
+                            break
+                        }
+                    }
+                    if (targetColumn) break
+                }
+            } catch {
+                // best-effort; fall back below
+            }
+        }
+        const editor = await vscode.window.showTextDocument(doc, targetColumn ? { viewColumn: targetColumn, preserveFocus: false } : { preserveFocus: false })
         editor.selection = new vscode.Selection(range.start, range.end)
         editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport)
     }
