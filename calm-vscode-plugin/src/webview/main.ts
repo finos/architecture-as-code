@@ -43,6 +43,7 @@ function init() {
         updateDetails(id)
         cy?.elements().removeClass('selected')
         e.target.addClass('selected')
+        try { vscode.postMessage({ type: 'selected', id }) } catch { /* noop */ }
     })
     // Double tap: jump to source
     cy?.on('dbltap', 'node,edge', (e) => {
@@ -515,8 +516,11 @@ function render(graph: any) {
 function selectById(id: string, center: boolean = true) {
     const ele = cy?.elements().filter((e) => e.data('id') === id)
     if (ele && ele.length > 0) {
-        cy?.elements().unselect()
-        ele.select()
+    // Mirror click behavior: clear previous visual selection and apply to target
+    cy?.elements().unselect()
+    cy?.elements().removeClass('selected')
+    ele.select()
+    ele.addClass('selected')
         if (center) {
             cy?.center(ele)
         }

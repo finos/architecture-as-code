@@ -11,7 +11,18 @@ export function activate(context: vscode.ExtensionContext) {
     const diagnostics = new DiagnosticsManager('calm')
 
     const treeProvider = new CalmTreeProvider(() => currentModelIndex)
-    vscode.window.registerTreeDataProvider('calmSidebar', treeProvider)
+    const treeView = vscode.window.createTreeView('calmSidebar', { treeDataProvider: treeProvider })
+    treeProvider.attach(treeView)
+    context.subscriptions.push(treeView)
+    treeView.onDidChangeSelection(async (ev) => {
+        const id = ev.selection?.[0]?.id
+        if (!id) return
+        if (currentPreview) currentPreview.postSelect(id)
+        const uri = currentPreview?.getCurrentUri()
+        const fallbackDoc = vscode.window.activeTextEditor?.document
+        const selDoc = uri ? (vscode.workspace.textDocuments.find(d => d.uri.fsPath === uri.fsPath) || fallbackDoc) : fallbackDoc
+        if (selDoc) revealById(selDoc, id)
+    })
 
     let currentPreview: CalmPreviewPanel | undefined
     let currentModelIndex: ModelIndex | undefined
@@ -35,7 +46,18 @@ export function activate(context: vscode.ExtensionContext) {
         if (!currentPreview) {
             currentPreview = CalmPreviewPanel.createOrShow(context, doc.uri, config(), output)
             currentPreview.onDidDispose(() => { currentPreview = undefined })
-            currentPreview.onRevealInEditor((id) => revealById(doc, id))
+            currentPreview.onRevealInEditor((id) => {
+                const uri = currentPreview?.getCurrentUri()
+                const targetDoc = uri ? (vscode.workspace.textDocuments.find(d => d.uri.fsPath === uri.fsPath) || doc) : doc
+                revealById(targetDoc, id)
+            })
+            currentPreview.onDidSelect(async (id) => {
+                try { await treeProvider.revealById(id) } catch {}
+                // also highlight in editor
+                const uri = currentPreview?.getCurrentUri()
+                const targetDoc = uri ? (vscode.workspace.textDocuments.find(d => d.uri.fsPath === uri.fsPath) || doc) : doc
+                revealById(targetDoc, id)
+            })
         } else {
             currentPreview.reveal(doc.uri)
         }

@@ -11,6 +11,7 @@ export class CalmPreviewPanel {
     private readonly panel: vscode.WebviewPanel
     private disposables: vscode.Disposable[] = []
     private revealInEditorHandlers: Array<(id: string) => void> = []
+    private selectHandlers: Array<(id: string) => void> = []
     private ready = false
     private lastData: { graph: GraphData; selectedId?: string; settings?: any; positions?: Record<string, { x: number; y: number }>; viewport?: { pan: { x: number; y: number }, zoom: number } } | undefined
     private currentUri: vscode.Uri | undefined
@@ -45,6 +46,8 @@ export class CalmPreviewPanel {
         this.panel.webview.onDidReceiveMessage((msg: any) => {
         if (msg.type === 'revealInEditor' && typeof msg.id === 'string') {
                 this.revealInEditorHandlers.forEach(h => h(msg.id))
+            } else if (msg.type === 'selected' && typeof msg.id === 'string') {
+                this.selectHandlers.forEach(h => h(msg.id))
             } else if (msg.type === 'ready') {
                 this.ready = true
                 if (this.lastData) {
@@ -84,12 +87,18 @@ export class CalmPreviewPanel {
         this.panel.reveal(vscode.ViewColumn.Beside)
     }
 
+    getCurrentUri(): vscode.Uri | undefined { return this.currentUri }
+
     onDidDispose(handler: () => void) {
         this.panel.onDidDispose(handler)
     }
 
     onRevealInEditor(handler: (id: string) => void) {
         this.revealInEditorHandlers.push(handler)
+    }
+
+    onDidSelect(handler: (id: string) => void) {
+        this.selectHandlers.push(handler)
     }
 
     setData(payload: { graph: GraphData; selectedId?: string; settings?: any }) {
