@@ -11,6 +11,10 @@ export class LoggingVisitor implements CalmModelVisitor {
         }
         return this._logger;
     }
+    // Setter for testing purposes
+    private static set logger(value: Logger) {
+        this._logger = value;
+    }
 
     async visit(obj: unknown, path: string[] = []): Promise<void> {
         const logger = LoggingVisitor.logger;
