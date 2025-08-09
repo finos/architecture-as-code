@@ -28,14 +28,16 @@ export class TemplateProcessor {
     private readonly mode: TemplateProcessingMode;
     private static logger = initLogger(process.env.DEBUG === 'true', TemplateProcessor.name);
     private readonly supportWidgetEngine: boolean;
+    private readonly clearOutputDirectory: boolean = false;
 
-    constructor(inputPath: string, templateBundlePath: string, outputPath: string, urlToLocalPathMapping: Map<string, string>, mode: TemplateProcessingMode = 'bundle', supportWidgetEngine: boolean = false) {
+    constructor(inputPath: string, templateBundlePath: string, outputPath: string, urlToLocalPathMapping: Map<string, string>, mode: TemplateProcessingMode = 'bundle', supportWidgetEngine: boolean = false, clearOutputDirectory: boolean = false) {
         this.inputPath = inputPath;
         this.templateBundlePath = templateBundlePath;
         this.outputPath = outputPath;
         this.urlToLocalPathMapping = urlToLocalPathMapping;
         this.mode = mode;
         this.supportWidgetEngine = supportWidgetEngine;
+        this.clearOutputDirectory = clearOutputDirectory;
     }
 
     public async processTemplate(): Promise<void> {
@@ -74,7 +76,7 @@ export class TemplateProcessor {
         }
 
         try {
-            this.cleanOutputDirectory(resolvedOutputPath);
+            this.createOutputDirectory(resolvedOutputPath);
 
             const calmJson = this.readInputFile(resolvedInputPath);
 
@@ -97,13 +99,26 @@ export class TemplateProcessor {
         }
     }
 
-    private cleanOutputDirectory(outputPath: string): void {
+    private createOutputDirectory(outputPath: string): void {
         const logger = TemplateProcessor.logger;
         if (fs.existsSync(outputPath)) {
-            logger.info('🗑️ Cleaning up previous generation...');
-            fs.rmSync(outputPath, { recursive: true, force: true });
+            logger.info(`✅ Output directory exists: ${outputPath}`);
+            if (this.clearOutputDirectory) {
+                logger.info(`🗑️ Clearing output directory: ${outputPath}`);
+                fs.rmSync(outputPath, { recursive: true, force: true });
+                fs.mkdirSync(outputPath, { recursive: true });
+            }
+            else {
+                const directoryContents = fs.readdirSync(outputPath);
+                if (directoryContents && directoryContents.length > 0) {
+                    logger.warn('⚠️ Output directory is not empty. Any files not overwritten will remain untouched.');
+                }
+            }
         }
-        fs.mkdirSync(outputPath, { recursive: true });
+        else {
+            logger.info(`📂 Creating output directory: ${outputPath}`);
+            fs.mkdirSync(outputPath, { recursive: true });
+        }
     }
 
     private readInputFile(inputPath: string): string {
