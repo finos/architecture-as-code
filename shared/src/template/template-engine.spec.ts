@@ -14,6 +14,7 @@ vi.mock('./template-path-extractor.js');
 describe('TemplateEngine', () => {
     let mockFileLoader: ReturnType<typeof vi.mocked<TemplateBundleFileLoader>>;
     let mockTransformer: ReturnType<typeof vi.mocked<CalmTemplateTransformer>>;
+    let loggerDebugSpy: ReturnType<typeof vi.spyOn>;
     let loggerInfoSpy: ReturnType<typeof vi.spyOn>;
     let loggerWarnSpy: ReturnType<typeof vi.spyOn>;
     const testOutputDir = './test-output';
@@ -29,6 +30,7 @@ describe('TemplateEngine', () => {
             getTransformedModel: vi.fn(),
         } as unknown as ReturnType<typeof vi.mocked<CalmTemplateTransformer>>;
 
+        loggerDebugSpy = vi.spyOn(TemplateEngine['logger'], 'debug').mockImplementation(vi.fn());
         loggerInfoSpy = vi.spyOn(TemplateEngine['logger'], 'info').mockImplementation(vi.fn());
         loggerWarnSpy = vi.spyOn(TemplateEngine['logger'], 'warn').mockImplementation(vi.fn());
 
@@ -119,7 +121,7 @@ describe('TemplateEngine', () => {
 
         vi.spyOn(fs, 'existsSync').mockReturnValue(false);
         const mkdirSyncSpy = vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
-        const writeFileSyncSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
+        const writeFileSyncSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => { });
 
         const engine = new TemplateEngine(mockFileLoader, mockTransformer);
 
@@ -156,7 +158,7 @@ describe('TemplateEngine', () => {
 
         vi.spyOn(fs, 'existsSync').mockReturnValue(false);
         const mkdirSyncSpy = vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
-        const writeFileSyncSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
+        const writeFileSyncSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => { });
 
         const engine = new TemplateEngine(mockFileLoader, mockTransformer);
 
@@ -276,7 +278,7 @@ describe('TemplateEngine', () => {
             new TemplateEngine(mockFileLoader, mockTransformer);
 
             expect(TemplatePreprocessor.preprocessTemplate).toHaveBeenCalledWith(originalTemplate);
-            expect(loggerInfoSpy).toHaveBeenCalledWith(preprocessedTemplate);
+            expect(loggerDebugSpy).toHaveBeenCalledWith(preprocessedTemplate);
         });
     });
 

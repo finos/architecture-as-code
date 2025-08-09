@@ -1,18 +1,25 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 import Handlebars from 'handlebars';
 import { IndexFile, TemplateEntry, CalmTemplateTransformer } from './types.js';
-import {ITemplateBundleLoader} from './template-bundle-file-loader.js';
-import { initLogger } from '../logger.js';
+import { ITemplateBundleLoader } from './template-bundle-file-loader.js';
+import { initLogger, Logger } from '../logger.js';
 import fs from 'fs';
 import path from 'path';
-import {TemplatePathExtractor} from './template-path-extractor.js';
-import {TemplatePreprocessor} from './template-preprocessor.js';
+import { TemplatePathExtractor } from './template-path-extractor.js';
+import { TemplatePreprocessor } from './template-preprocessor.js';
 
 export class TemplateEngine {
     private readonly templates: Record<string, Handlebars.TemplateDelegate>;
     private readonly config: IndexFile;
     private transformer: CalmTemplateTransformer;
-    private static logger = initLogger(process.env.DEBUG === 'true', TemplateEngine.name);
+    private static _logger: Logger | undefined;
+
+    private static get logger(): Logger {
+        if (!this._logger) {
+            this._logger = initLogger(process.env.DEBUG === 'true', TemplateEngine.name);
+        }
+        return this._logger;
+    }
 
     constructor(fileLoader: ITemplateBundleLoader, transformer: CalmTemplateTransformer) {
         this.config = fileLoader.getConfig();
@@ -27,7 +34,7 @@ export class TemplateEngine {
 
         for (const [fileName, content] of Object.entries(templateFiles)) {
             const preprocessed = TemplatePreprocessor.preprocessTemplate(content);
-            logger.info(preprocessed);
+            logger.debug(preprocessed);
             compiledTemplates[fileName] = Handlebars.compile(preprocessed);
         }
 

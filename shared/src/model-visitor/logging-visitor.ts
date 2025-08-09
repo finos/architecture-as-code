@@ -1,9 +1,20 @@
-import {Resolvable, ResolvableAndAdaptable} from '../model/resolvable';
-import {CalmModelVisitor} from './calm-model-visitor';
-import { initLogger } from '../logger.js';
+import { Resolvable, ResolvableAndAdaptable } from '../model/resolvable';
+import { CalmModelVisitor } from './calm-model-visitor';
+import { initLogger, Logger } from '../logger.js';
 
 export class LoggingVisitor implements CalmModelVisitor {
-    private static logger = initLogger(process.env.DEBUG === 'true', LoggingVisitor.name);
+    private static _logger: Logger | undefined;
+
+    private static get logger(): Logger {
+        if (!this._logger) {
+            this._logger = initLogger(process.env.DEBUG === 'true', LoggingVisitor.name);
+        }
+        return this._logger;
+    }
+    // Setter for testing purposes
+    private static set logger(value: Logger) {
+        this._logger = value;
+    }
 
     async visit(obj: unknown, path: string[] = []): Promise<void> {
         const logger = LoggingVisitor.logger;

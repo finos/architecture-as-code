@@ -1,6 +1,6 @@
 import { JSONPath } from 'jsonpath-plus';
 import _ from 'lodash';
-import { initLogger } from '../logger.js';
+import { initLogger, Logger } from '../logger.js';
 
 export interface PathExtractionOptions {
     filter?: Record<string, JsonFragment>;
@@ -15,17 +15,24 @@ export type JsonFragment = string | number | boolean | null | JsonFragment[] | {
  * It translates custom dotted path syntax into JSONPath internally.
  */
 export class TemplatePathExtractor {
-    private static logger = initLogger(process.env.DEBUG === 'true', TemplatePathExtractor.name);
+    private static _logger: Logger | undefined;
+
+    private static get logger(): Logger {
+        if (!this._logger) {
+            this._logger = initLogger(process.env.DEBUG === 'true', TemplatePathExtractor.name);
+        }
+        return this._logger;
+    }
 
     static convertFromDotNotation(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         document: any,
         path: string,
         options: PathExtractionOptions = {}
-    ): JsonFragment  {
+    ): JsonFragment {
         const logger = TemplatePathExtractor.logger;
 
-        logger.info(`Extracting path "${path}" from document with options: ${JSON.stringify(options, null, 2)}`);
+        logger.debug(`Extracting path "${path}" from document with options: ${JSON.stringify(options, null, 2)}`);
 
         try {
             // Check if we have options that need processing
@@ -35,16 +42,16 @@ export class TemplatePathExtractor {
 
             // Optimization: if it's a simple property name (no dots, brackets) AND no options need processing
             if (this.isSimpleProperty(path) && !hasOptions) {
-                logger.info(`PATH: ${path}`);
-                logger.info('Direct property access (no JSONPath needed, no options to process)');
+                logger.debug(`PATH: ${path}`);
+                logger.debug('Direct property access (no JSONPath needed, no options to process)');
                 const result = document[path];
                 return result;
             }
 
             // For complex paths or when options need processing, use JSONPath
             const jsonPath = this.toJsonPath(path);
-            logger.info(`PATH: ${path}`);
-            logger.info(`Converted to JSONPath: ${jsonPath}`);
+            logger.debug(`PATH: ${path}`);
+            logger.debug(`Converted to JSONPath: ${jsonPath}`);
 
             let result = JSONPath({
                 path: jsonPath,
@@ -52,11 +59,11 @@ export class TemplatePathExtractor {
                 flatten: false
             });
 
-            logger.info(`Raw JSONPath result: ${JSON.stringify(result, null, 2)}`);
+            logger.debug(`Raw JSONPath result: ${JSON.stringify(result, null, 2)}`);
 
             // Ensure result is always an array for consistent processing
             result = Array.isArray(result) ? result : [result];
-            logger.info(`After array normalization: ${JSON.stringify(result, null, 2)}`);
+            logger.debug(`After array normalization: ${JSON.stringify(result, null, 2)}`);
 
             // Handle empty results early
             if (result.length === 0) {
@@ -68,17 +75,17 @@ export class TemplatePathExtractor {
             const shouldReturnArrayFromPath = this.shouldReturnArray(path);
             const shouldReturnArrayFromContent = result.length === 1 && Array.isArray(result[0]);
 
-            logger.info(`shouldReturnArrayFromPath: ${shouldReturnArrayFromPath}`);
-            logger.info(`shouldReturnArrayFromContent: ${shouldReturnArrayFromContent}`);
+            logger.debug(`shouldReturnArrayFromPath: ${shouldReturnArrayFromPath}`);
+            logger.debug(`shouldReturnArrayFromContent: ${shouldReturnArrayFromContent}`);
 
             // If we have a single result that is an array, apply options to its contents
             if (shouldReturnArrayFromContent) {
                 let arrayContents = result[0];
-                logger.info(`Processing array contents (length: ${arrayContents.length})`);
+                logger.debug(`Processing array contents (length: ${arrayContents.length})`);
 
                 // Apply filtering to array contents
                 if (options.filter) {
-                    logger.info(`Applying filter: ${JSON.stringify(options.filter)}`);
+                    logger.debug(`Applying filter: ${JSON.stringify(options.filter)}`);
                     const beforeFilter = arrayContents.length;
 
                     // If filter is a string, parse it; otherwise, use as-is
@@ -87,63 +94,63 @@ export class TemplatePathExtractor {
                         : options.filter;
 
                     arrayContents = arrayContents.filter(item => this.matchesFilter(item, filterObj!));
-                    logger.info(`After filtering: ${beforeFilter} -> ${arrayContents.length} items`);
+                    logger.debug(`After filtering: ${beforeFilter} -> ${arrayContents.length} items`);
                 }
 
                 // Apply sorting to array contents
                 if (options.sort) {
                     const sortKeys = Array.isArray(options.sort) ? options.sort : [options.sort];
-                    logger.info(`Applying sort by: ${JSON.stringify(sortKeys)}`);
+                    logger.debug(`Applying sort by: ${JSON.stringify(sortKeys)}`);
                     arrayContents = _.orderBy(arrayContents, sortKeys);
                 }
 
                 // Apply limiting to array contents
                 if (options.limit && options.limit > 0) {
-                    logger.info(`Applying limit: ${options.limit}`);
+                    logger.debug(`Applying limit: ${options.limit}`);
                     const beforeLimit = arrayContents.length;
                     arrayContents = arrayContents.slice(0, options.limit);
-                    logger.info(`After limiting: ${beforeLimit} -> ${arrayContents.length} items`);
+                    logger.debug(`After limiting: ${beforeLimit} -> ${arrayContents.length} items`);
                 }
 
-                logger.info(`Final array contents result: ${JSON.stringify(arrayContents, null, 2)}`);
+                logger.debug(`Final array contents result: ${JSON.stringify(arrayContents, null, 2)}`);
                 return arrayContents;
             }
 
             // For non-array content, apply filtering, sorting, and limiting normally
-            logger.info(`Processing non-array content (${result.length} items)`);
+            logger.debug(`Processing non-array content (${result.length} items)`);
 
             if (options.filter) {
-                logger.info(`Applying filter: ${JSON.stringify(options.filter)}`);
+                logger.debug(`Applying filter: ${JSON.stringify(options.filter)}`);
                 const beforeFilter = result.length;
                 const filterObj = typeof options.filter === 'string'
                     ? this.parseFilter(options.filter)
                     : options.filter;
                 result = result.filter(item => this.matchesFilter(item, filterObj!));
-                logger.info(`After filtering: ${beforeFilter} -> ${result.length} items`);
+                logger.debug(`After filtering: ${beforeFilter} -> ${result.length} items`);
             }
 
             if (options.sort) {
                 const sortKeys = Array.isArray(options.sort) ? options.sort : [options.sort];
-                logger.info(`Applying sort by: ${JSON.stringify(sortKeys)}`);
+                logger.debug(`Applying sort by: ${JSON.stringify(sortKeys)}`);
                 result = _.orderBy(result, sortKeys);
             }
 
             if (options.limit && options.limit > 0) {
-                logger.info(`Applying limit: ${options.limit}`);
+                logger.debug(`Applying limit: ${options.limit}`);
                 const beforeLimit = result.length;
                 result = result.slice(0, options.limit);
-                logger.info(`After limiting: ${beforeLimit} -> ${result.length} items`);
+                logger.debug(`After limiting: ${beforeLimit} -> ${result.length} items`);
             }
 
             // Decide whether to return single object or array based on the path type
             if (shouldReturnArrayFromPath || result.length !== 1) {
-                logger.info(`Returning array result (length: ${result.length})`);
-                logger.info(`Final result: ${JSON.stringify(result, null, 2)}`);
+                logger.debug(`Returning array result (length: ${result.length})`);
+                logger.debug(`Final result: ${JSON.stringify(result, null, 2)}`);
                 return result;
             }
 
-            logger.info('Returning single result');
-            logger.info(`Final result: ${JSON.stringify(result[0], null, 2)}`);
+            logger.debug('Returning single result');
+            logger.debug(`Final result: ${JSON.stringify(result[0], null, 2)}`);
             return result[0];
         } catch (err) {
             logger.warn(`Failed to extract path "${path}": ${err.message}`);
