@@ -1,4 +1,4 @@
-import {TemplateProcessingMode, TemplateProcessor} from '../template/template-processor.js';
+import { TemplateProcessingMode, TemplateProcessor } from '../template/template-processor.js';
 
 export type DocifyMode = 'SAD' | 'WEBSITE' | 'USER_PROVIDED';
 
@@ -17,7 +17,8 @@ export class Docifier {
         outputPath: string,
         urlToLocalPathMapping: Map<string, string>,
         templateProcessingMode: TemplateProcessingMode = 'bundle',
-        templatePath?: string
+        templatePath?: string,
+        clearOutputDirectory: boolean = false
     ) {
         if (mode === 'SAD') {
             throw new Error('Mode "SAD" is not supported.');
@@ -39,7 +40,8 @@ export class Docifier {
             outputPath,
             urlToLocalPathMapping,
             templateProcessingMode,
-            supportWidgetEngine
+            supportWidgetEngine,
+            clearOutputDirectory
         );
     }
 
