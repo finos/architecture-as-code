@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { initLogger } from '../logger.js';
+import { initLogger, Logger } from '../logger.js';
 import axios from 'axios';
 
 export interface CalmReferenceResolver {
@@ -8,8 +8,14 @@ export interface CalmReferenceResolver {
 }
 
 export class FileReferenceResolver implements CalmReferenceResolver {
+    private static _logger: Logger | undefined;
 
-    private static logger = initLogger(process.env.DEBUG === 'true', FileReferenceResolver.name);
+    private static get logger(): Logger {
+        if (!this._logger) {
+            this._logger = initLogger(process.env.DEBUG === 'true', FileReferenceResolver.name);
+        }
+        return this._logger;
+    }
 
     canResolve(ref: string): boolean {
         return fs.existsSync(ref);
@@ -48,7 +54,14 @@ export class InMemoryResolver implements CalmReferenceResolver {
 
 
 export class HttpReferenceResolver implements CalmReferenceResolver {
-    private static logger = initLogger(process.env.DEBUG === 'true', HttpReferenceResolver.name);
+    private static _logger: Logger | undefined;
+
+    private static get logger(): Logger {
+        if (!this._logger) {
+            this._logger = initLogger(process.env.DEBUG === 'true', HttpReferenceResolver.name);
+        }
+        return this._logger;
+    }
 
     canResolve(ref: string): boolean {
         return ref.startsWith('http://') || ref.startsWith('https://');
@@ -70,7 +83,15 @@ export class HttpReferenceResolver implements CalmReferenceResolver {
 }
 
 export class CompositeReferenceResolver implements CalmReferenceResolver {
-    private static logger = initLogger(process.env.DEBUG === 'true', CompositeReferenceResolver.name);
+    private static _logger: Logger | undefined;
+
+    private static get logger(): Logger {
+        if (!this._logger) {
+            this._logger = initLogger(process.env.DEBUG === 'true', CompositeReferenceResolver.name);
+        }
+        return this._logger;
+    }
+
     private httpResolver: HttpReferenceResolver;
     private fileResolver: FileReferenceResolver;
 
@@ -107,7 +128,7 @@ export class MappedReferenceResolver implements CalmReferenceResolver {
     constructor(
         private mapping: Map<string, string>,
         private delegate: CalmReferenceResolver
-    ) {}
+    ) { }
 
     canResolve(ref: string): boolean {
         const effective = this.getEffectiveRef(ref);

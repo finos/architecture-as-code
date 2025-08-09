@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import {IndexFile, TemplateEntry} from './types.js';
-import { initLogger } from '../logger.js';
+import { IndexFile, TemplateEntry } from './types.js';
+import { initLogger, Logger } from '../logger.js';
 
 
 export interface ITemplateBundleLoader {
@@ -88,7 +88,14 @@ export class TemplateBundleFileLoader implements ITemplateBundleLoader {
     private readonly templateBundlePath: string;
     private readonly config: IndexFile;
     private readonly templateFiles: Record<string, string>;
-    private static logger = initLogger(process.env.DEBUG === 'true', TemplateBundleFileLoader.name);
+    private static _logger: Logger | undefined;
+
+    private static get logger(): Logger {
+        if (!this._logger) {
+            this._logger = initLogger(process.env.DEBUG === 'true', TemplateBundleFileLoader.name);
+        }
+        return this._logger;
+    }
 
     constructor(templateBundlePath: string) {
         this.templateBundlePath = templateBundlePath;

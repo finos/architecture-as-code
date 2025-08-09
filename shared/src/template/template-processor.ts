@@ -9,7 +9,7 @@ import {
     SelfProvidedTemplateLoader,
     TemplateBundleFileLoader
 } from './template-bundle-file-loader.js';
-import { initLogger } from '../logger.js';
+import { initLogger, Logger } from '../logger.js';
 import { CompositeReferenceResolver, MappedReferenceResolver } from '../resolver/calm-reference-resolver.js';
 import { pathToFileURL } from 'node:url';
 import TemplateDefaultTransformer from './template-default-transformer';
@@ -26,8 +26,16 @@ export class TemplateProcessor {
     private readonly outputPath: string;
     private readonly urlToLocalPathMapping: Map<string, string>;
     private readonly mode: TemplateProcessingMode;
-    private static logger = initLogger(process.env.DEBUG === 'true', TemplateProcessor.name);
     private readonly supportWidgetEngine: boolean;
+
+    private static _logger: Logger | undefined;
+
+    private static get logger(): Logger {
+        if (!this._logger) {
+            this._logger = initLogger(process.env.DEBUG === 'true', TemplateProcessor.name);
+        }
+        return this._logger;
+    }
 
     constructor(inputPath: string, templateBundlePath: string, outputPath: string, urlToLocalPathMapping: Map<string, string>, mode: TemplateProcessingMode = 'bundle', supportWidgetEngine: boolean = false) {
         this.inputPath = inputPath;
