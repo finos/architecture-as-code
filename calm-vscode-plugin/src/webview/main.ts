@@ -1,4 +1,3 @@
-/* global acquireVsCodeApi */
 import cytoscape from 'cytoscape'
 import fcose from 'cytoscape-fcose'
 import dagre from 'cytoscape-dagre'
@@ -7,11 +6,13 @@ import dagre from 'cytoscape-dagre'
 cytoscape.use(fcose)
 cytoscape.use(dagre)
 
-const vscode = (typeof window !== 'undefined' && (window as any).acquireVsCodeApi) ? (window as any).acquireVsCodeApi() : { postMessage: (_: any) => { } }
+// Access VS Code API if present; otherwise fall back to no-op poster. Use void 0 pattern to avoid unused global warnings.
+const vscode = (typeof window !== 'undefined' && typeof (window as any).acquireVsCodeApi === 'function')
+    ? (window as any).acquireVsCodeApi()
+    : { postMessage: (_: any) => { /* noop */ } }
 
 let cy: cytoscape.Core | undefined
 let currentData: any
-let selectedId: string | undefined
 let currentShowLabels = true
 let showDescriptions = false
 let currentLayout: string = 'dagre'
@@ -39,7 +40,6 @@ function init() {
     // Single tap/click: show details only
     cy?.on('tap', 'node,edge', (e) => {
         const id = e.target.data('id')
-        selectedId = id
         updateDetails(id)
         cy?.elements().removeClass('selected')
         e.target.addClass('selected')
@@ -405,11 +405,11 @@ function render(graph: any) {
         }
 
         // Restore known positions explicitly (in case any changed via compound reparenting)
-        cy.nodes().forEach(n => {
-            const id = String(n.data('id'))
-            const pos = nodePositions.get(id)
-            if (pos) n.position(pos)
-        })
+            cy.nodes().forEach(n => {
+                    const id = String(n.data('id'))
+                    const pos = nodePositions.get(id)
+                    if (pos) n.position(pos)
+                })
 
         // Decide if we should run an initial or forced layout
     if (forceLayoutNextRender && nodes.length > 0) {
@@ -608,7 +608,7 @@ function safeLayout(preferred?: string) {
                 persistViewport()
             } catch { /* noop */ }
             return
-        } catch (e) {
+    } catch {
             // try next
         }
     }

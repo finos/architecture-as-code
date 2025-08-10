@@ -2,13 +2,10 @@ import * as vscode from 'vscode'
 import { CalmPreviewPanel } from './previewPanel'
 import { CalmTreeProvider } from './treeView'
 import { ModelIndex, detectCalmModel, loadCalmModel, toGraph } from './util/model'
-import { runCliValidate, runCliDocify } from './util/cli'
 import { provideHovers, provideCodeLens } from './util/language'
-import { DiagnosticsManager } from './util/diagnostics'
 
 export function activate(context: vscode.ExtensionContext) {
     const output = vscode.window.createOutputChannel('CALM')
-    const diagnostics = new DiagnosticsManager('calm')
 
     const treeProvider = new CalmTreeProvider(() => currentModelIndex)
     const treeView = vscode.window.createTreeView('calmSidebar', { treeDataProvider: treeProvider })
