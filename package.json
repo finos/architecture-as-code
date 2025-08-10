@@ -7,7 +7,8 @@
         "shared",
         "cli",
         "docs",
-        "calm-hub-ui"
+        "calm-hub-ui",
+        "calm-plugins/vscode"
     ],
     "scripts": {
         "build": "npm run build --workspaces --if-present",

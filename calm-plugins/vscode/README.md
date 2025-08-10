@@ -67,7 +67,7 @@ Notes:
 Option A — Run from source (recommended for development):
 1) Prereqs: VS Code (1.88+), Node.js 18+
 
-2) In this folder (`calm-vscode-plugin`), install deps and start the watcher:
+2) In this folder (`calm-plugins/vscode`), install deps and start the watcher:
 	- npm install
 	- npm run watch
 
