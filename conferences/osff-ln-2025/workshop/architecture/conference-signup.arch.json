@@ -2,7 +2,7 @@
   "nodes": [
     {
       "unique-id": "conference-website",
-      "name": "Conference",
+      "name": "Conference Website",
       "description": "Website to sign up for a conference",
       "node-type": "webclient",
       "interfaces": [
@@ -15,7 +15,7 @@
     {
       "unique-id": "load-balancer",
       "name": "Load Balancer",
-      "description": "The  service, or a placeholder for another application",
+      "description": "The attendees service, or a placeholder for another application",
       "node-type": "network",
       "interfaces": [
         {
