@@ -113,7 +113,7 @@
     },
     "devDependencies": {
         "@types/cytoscape-fcose": "^2.2.4",
-        "@types/node": "^20.11.30",
+        "@types/node": "^22.0.0",
         "@types/vscode": "^1.88.0",
         "@typescript-eslint/eslint-plugin": "^8.29.1",
         "@typescript-eslint/parser": "^8.29.1",
