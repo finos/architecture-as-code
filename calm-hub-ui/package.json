@@ -74,7 +74,7 @@
         "css-what": "7.0.0",
         "express": "4.21.2",
         "nth-check": "2.1.1",
-        "postcss": "8.5.3",
+        "postcss": "8.5.6",
         "rollup": "4.46.2"
     },
     "proxy": "http://127.0.0.1:8080/",
