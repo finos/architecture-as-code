@@ -61,7 +61,11 @@ public class NitriteCoreSchemaStore implements CoreSchemaStore {
         TypeSafeNitriteDocument<Object> document = new TypeSafeNitriteDocument<>(schemaCollection.find(filter).firstOrNull(), Object.class);
 
         Map<String, Object> schemas = document.getMap(SCHEMAS_FIELD);
-        LOG.debug("Retrieved schemas for version '{}'", version);
+        if (schemas == null) {
+            LOG.debug("No schemas found for version '{}'", version);
+        } else {
+            LOG.debug("Retrieved schemas for version '{}'", version);
+        }
         return schemas;
     }
 
