@@ -9,6 +9,7 @@ import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.store.CoreSchemaStore;
+import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,16 +58,11 @@ public class NitriteCoreSchemaStore implements CoreSchemaStore {
     @Override
     public Map<String, Object> getSchemasForVersion(String version) {
         Filter filter = where(VERSION_FIELD).eq(version);
-        Document document = schemaCollection.find(filter).firstOrNull();
+        TypeSafeNitriteDocument<Object> document = new TypeSafeNitriteDocument<>(schemaCollection.find(filter).firstOrNull(), Object.class);
 
-        if (document != null) {
-            Map<String, Object> schemas = document.get(SCHEMAS_FIELD, Map.class);
-            LOG.debug("Retrieved schemas for version '{}'", version);
-            return schemas;
-        }
-
-        LOG.debug("No schemas found for version '{}'", version);
-        return null;
+        Map<String, Object> schemas = document.getMap(SCHEMAS_FIELD);
+        LOG.debug("Retrieved schemas for version '{}'", version);
+        return schemas;
     }
 
     @Override
