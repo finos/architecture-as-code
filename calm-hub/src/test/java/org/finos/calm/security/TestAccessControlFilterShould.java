@@ -1,11 +1,14 @@
 package org.finos.calm.security;
 
-import io.quarkus.test.junit.QuarkusTest;
-import jakarta.ws.rs.container.ContainerRequestContext;
-import jakarta.ws.rs.container.ResourceInfo;
-import jakarta.ws.rs.core.MultivaluedHashMap;
-import jakarta.ws.rs.core.MultivaluedMap;
-import jakarta.ws.rs.core.UriInfo;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.lang.reflect.Method;
+
 import org.apache.http.HttpStatus;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,12 +16,12 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.lang.reflect.Method;
-import java.util.List;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.*;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.container.ResourceInfo;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.UriInfo;
 
 @QuarkusTest
 public class TestAccessControlFilterShould {
@@ -110,10 +113,6 @@ public class TestAccessControlFilterShould {
     }
 
     private static class TestNamespaceResource {
-        public List<String> getNamespacesUnsecured() {
-            return List.of("test", "dev");
-        }
-
         @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
         public void createNamespace() {
         }
