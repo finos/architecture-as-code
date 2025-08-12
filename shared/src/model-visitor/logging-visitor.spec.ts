@@ -82,11 +82,10 @@ describe('LoggingVisitor', () => {
         };
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (LoggingVisitor as any).logger = logger;
         const json = JSON.stringify(testArch, null, 2);
         const architecture: CalmCoreSchema = JSON.parse(json);
         const core = CalmCore.fromSchema(architecture);
-        const visitor = new LoggingVisitor(logger);
+        const visitor = new LoggingVisitor((logger as Logger));
         await visitor.visit(core);
 
         const logLines = logger.info.mock.calls.map(args => args[0]);
