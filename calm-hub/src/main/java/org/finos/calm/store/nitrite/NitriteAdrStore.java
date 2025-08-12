@@ -16,6 +16,7 @@ import org.finos.calm.domain.adr.AdrMeta;
 import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.exception.*;
 import org.finos.calm.store.AdrStore;
+import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,14 +63,8 @@ public class NitriteAdrStore implements AdrStore {
             throw new NamespaceNotFoundException();
         }
 
-        Document namespaceDocument = adrCollection.find(where(NAMESPACE_FIELD).eq(namespace)).firstOrNull();
-
-        // Protects from an unpopulated collection
-        if (namespaceDocument == null) {
-            return List.of();
-        }
-
-        List<Document> adrs = namespaceDocument.get(ADRS_FIELD, List.class);
+        TypeSafeNitriteDocument<Document> namespaceDocument = new TypeSafeNitriteDocument<>(adrCollection.find(where(NAMESPACE_FIELD).eq(namespace)).firstOrNull(), Document.class);
+        List<Document> adrs = namespaceDocument.getList(ADRS_FIELD);
         if (adrs == null || adrs.isEmpty()) {
             return List.of();
         }
@@ -120,7 +115,8 @@ public class NitriteAdrStore implements AdrStore {
             adrCollection.insert(namespaceDoc);
         } else {
             // Add the ADR to the existing namespace document
-            List<Document> adrs = namespaceDoc.get(ADRS_FIELD, List.class);
+            TypeSafeNitriteDocument<Document> tsNamespaceDoc = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class);
+            List<Document> adrs = tsNamespaceDoc.getList(ADRS_FIELD);
             if (adrs == null) {
                 adrs = new ArrayList<>();
             } else {
@@ -225,14 +221,9 @@ public class NitriteAdrStore implements AdrStore {
         }
 
         Filter filter = where(NAMESPACE_FIELD).eq(namespace);
-        Document result = adrCollection.find(filter).firstOrNull();
+        TypeSafeNitriteDocument<Document> result = new TypeSafeNitriteDocument<>(adrCollection.find(filter).firstOrNull(), Document.class);
 
-        if (result == null) {
-            LOG.warn("No ADRs found for namespace '{}'", namespace);
-            throw new AdrNotFoundException();
-        }
-
-        List<Document> adrs = result.get(ADRS_FIELD, List.class);
+        List<Document> adrs = result.getList(ADRS_FIELD);
         if (adrs == null || adrs.isEmpty()) {
             LOG.warn("Empty ADRs list for namespace '{}'", namespace);
             throw new AdrNotFoundException();
@@ -304,7 +295,7 @@ public class NitriteAdrStore implements AdrStore {
             Document namespaceDoc = adrCollection.find(filter).firstOrNull();
 
             if (namespaceDoc != null) {
-                List<Document> adrs = namespaceDoc.get(ADRS_FIELD, List.class);
+                List<Document> adrs = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class).getList(ADRS_FIELD);
                 if (adrs != null) {
                     // Create a mutable copy of the list
                     adrs = new ArrayList<>(adrs);

@@ -15,6 +15,7 @@ import org.finos.calm.domain.exception.FlowVersionExistsException;
 import org.finos.calm.domain.exception.FlowVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.FlowStore;
+import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +67,7 @@ public class NitriteFlowStore implements FlowStore {
             return List.of();
         }
 
-        List<Document> flows = namespaceDoc.get(FLOWS_FIELD, List.class);
+        List<Document> flows = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class).getList(FLOWS_FIELD);
         if (flows == null || flows.isEmpty()) {
             return List.of();
         }
@@ -112,7 +113,7 @@ public class NitriteFlowStore implements FlowStore {
             flowCollection.insert(namespaceDoc);
         } else {
             // Add the flow to the existing namespace document
-            List<Document> flows = namespaceDoc.get(FLOWS_FIELD, List.class);
+            List<Document> flows = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class).getList(FLOWS_FIELD);
             if (flows == null) {
                 flows = new ArrayList<>();
             } else {
@@ -137,7 +138,7 @@ public class NitriteFlowStore implements FlowStore {
     public List<String> getFlowVersions(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException {
         Document result = retrieveFlowVersions(flow);
 
-        List<Document> flows = result.get(FLOWS_FIELD, List.class);
+        List<Document> flows = new TypeSafeNitriteDocument<>(result, Document.class).getList(FLOWS_FIELD);
         for (Document flowDoc : flows) {
             if (flow.getId() == flowDoc.get(FLOW_ID_FIELD, Integer.class)) {
                 // Extract the versions map from the matching flow
@@ -179,7 +180,7 @@ public class NitriteFlowStore implements FlowStore {
     public String getFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException {
         Document result = retrieveFlowVersions(flow);
 
-        List<Document> flows = result.get(FLOWS_FIELD, List.class);
+        List<Document> flows = new TypeSafeNitriteDocument<>(result, Document.class).getList(FLOWS_FIELD);
         for (Document flowDoc : flows) {
             if (flow.getId() == flowDoc.get(FLOW_ID_FIELD, Integer.class)) {
                 // Retrieve the versions map from the matching flow
@@ -246,7 +247,7 @@ public class NitriteFlowStore implements FlowStore {
         Document namespaceDoc = flowCollection.find(filter).firstOrNull();
 
         if (namespaceDoc != null) {
-            List<Document> flows = namespaceDoc.get(FLOWS_FIELD, List.class);
+            List<Document> flows = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class).getList(FLOWS_FIELD);
             if (flows != null) {
                 // Create a mutable copy of the list
                 flows = new ArrayList<>(flows);
@@ -280,7 +281,7 @@ public class NitriteFlowStore implements FlowStore {
         try {
             Document result = retrieveFlowVersions(flow);
 
-            List<Document> flows = result.get(FLOWS_FIELD, List.class);
+            List<Document> flows = new TypeSafeNitriteDocument<>(result, Document.class).getList(FLOWS_FIELD);
             for (Document flowDoc : flows) {
                 if (flow.getId() == flowDoc.get(FLOW_ID_FIELD, Integer.class)) {
                     Document versions = flowDoc.get(VERSIONS_FIELD, Document.class);

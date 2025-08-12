@@ -52,10 +52,11 @@ public class TestMongoArchitectureStoreShould {
     private final String NAMESPACE = "finos";
 
     private final String validJson = "{\"test\": \"test\"}";
+
     @BeforeEach
     void setup() {
         MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
-        architectureCollection = Mockito.mock(MongoCollection.class);
+        architectureCollection = Mockito.mock(DocumentMongoCollection.class);
 
         when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
         when(mongoDatabase.getCollection("architectures")).thenReturn(architectureCollection);
@@ -63,20 +64,8 @@ public class TestMongoArchitectureStoreShould {
     }
 
     @Test
-    void get_architecture_for_namespace_that_doesnt_exist_throws_exception() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        String namespace = "does-not-exist";
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoArchitectureStore.getArchitecturesForNamespace(namespace));
-
-        verify(namespaceStore).namespaceExists(namespace);
-    }
-
-
-    @Test
     void get_architectures_for_namespace_returns_empty_list_when_none_exist() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(architectureCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
                 .thenReturn(findIterable);
@@ -91,7 +80,7 @@ public class TestMongoArchitectureStoreShould {
 
     @Test
     void get_architectures_for_namespace_returns_empty_list_when_mongo_collection_not_created() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(architectureCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
                 .thenReturn(findIterable);
@@ -102,8 +91,19 @@ public class TestMongoArchitectureStoreShould {
     }
 
     @Test
+    void get_architecture_for_namespace_that_doesnt_exist_throws_exception() {
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
+        String namespace = "does-not-exist";
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> mongoArchitectureStore.getArchitecturesForNamespace(namespace));
+
+        verify(namespaceStore).namespaceExists(namespace);
+    }
+
+    @Test
     void get_architecture_for_namespace_returns_values() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(architectureCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
                 .thenReturn(findIterable);
@@ -120,6 +120,29 @@ public class TestMongoArchitectureStoreShould {
 
         assertThat(architectureIds, is(Arrays.asList(1001, 1002)));
         verify(namespaceStore).namespaceExists(NAMESPACE);
+    }
+
+    private FindIterable<Document> setupInvalidArchitecture() {
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        //Return the same find iterable as the projection unboxes, then return null
+        when(architectureCollection.find(any(Bson.class)))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(null);
+
+
+        return findIterable;
+    }
+
+    private void mockSetupArchitectureDocumentWithVersions() {
+        Document mainDocument = setupArchitectureVersionDocument();
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(architectureCollection.find(any(Bson.class)))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(mainDocument);
     }
 
     @Test
@@ -185,17 +208,7 @@ public class TestMongoArchitectureStoreShould {
         verify(namespaceStore).namespaceExists(architecture.getNamespace());
     }
 
-    private FindIterable<Document> setupInvalidArchitecture() {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        //Return the same find iterable as the projection unboxes, then return null
-        when(architectureCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-
-        return findIterable;
+    private interface DocumentFindIterable extends FindIterable<Document> {
     }
 
     @Test
@@ -268,14 +281,7 @@ public class TestMongoArchitectureStoreShould {
                 .append("architectures", Arrays.asList(paddingArchitecture, targetStoredArchitecture));
     }
 
-    private void mockSetupArchitectureDocumentWithVersions() {
-        Document mainDocument = setupArchitectureVersionDocument();
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(architectureCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(mainDocument);
+    private interface DocumentMongoCollection extends MongoCollection<Document> {
     }
 
     @Test

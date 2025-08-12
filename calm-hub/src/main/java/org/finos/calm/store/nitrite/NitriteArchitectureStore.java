@@ -15,6 +15,7 @@ import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.ArchitectureStore;
+import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,14 +59,8 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             throw new NamespaceNotFoundException();
         }
 
-        Document namespaceDocument = architectureCollection.find(where(NAMESPACE_FIELD).eq(namespace)).firstOrNull();
-
-        // Protects from an unpopulated collection
-        if (namespaceDocument == null) {
-            return List.of();
-        }
-
-        List<Document> architectures = namespaceDocument.get(ARCHITECTURES_FIELD, List.class);
+        TypeSafeNitriteDocument<Document> namespaceDocument = new TypeSafeNitriteDocument<>(architectureCollection.find(where(NAMESPACE_FIELD).eq(namespace)).firstOrNull(), Document.class);
+        List<Document> architectures = namespaceDocument.getList(ARCHITECTURES_FIELD);
         if (architectures == null || architectures.isEmpty()) {
             return List.of();
         }
@@ -113,7 +108,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             architectureCollection.insert(namespaceDoc);
         } else {
             // Add the architecture to the existing namespace document
-            List<Document> architectures = namespaceDoc.get(ARCHITECTURES_FIELD, List.class);
+            List<Document> architectures = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class).getList(ARCHITECTURES_FIELD);
             if (architectures == null) {
                 architectures = new ArrayList<>();
             } else {
@@ -137,7 +132,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
     public List<String> getArchitectureVersions(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException {
         Document result = retrieveArchitectureVersions(architecture);
 
-        List<Document> architectures = result.get(ARCHITECTURES_FIELD, List.class);
+        List<Document> architectures = new TypeSafeNitriteDocument<>(result, Document.class).getList(ARCHITECTURES_FIELD);
         for (Document architectureDoc : architectures) {
             if (architecture.getId() == architectureDoc.get(ARCHITECTURE_ID_FIELD, Integer.class)) {
                 // Extract the versions map from the matching architecture
@@ -180,7 +175,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
     public String getArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionNotFoundException {
         Document result = retrieveArchitectureVersions(architecture);
 
-        List<Document> architectures = result.get(ARCHITECTURES_FIELD, List.class);
+        List<Document> architectures = new TypeSafeNitriteDocument<>(result, Document.class).getList(ARCHITECTURES_FIELD);
         for (Document architectureDoc : architectures) {
             if (architecture.getId() == architectureDoc.get(ARCHITECTURE_ID_FIELD, Integer.class)) {
                 // Retrieve the versions map from the matching architecture
@@ -250,7 +245,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
 
             if (namespaceDoc != null) {
                 // Find the architecture document
-                List<Document> architectures = namespaceDoc.get(ARCHITECTURES_FIELD, List.class);
+                List<Document> architectures = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class).getList(ARCHITECTURES_FIELD);
                 if (architectures != null) {
                     // Create a mutable copy of the list
                     architectures = new ArrayList<>(architectures);
@@ -291,7 +286,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
         try {
             Document result = retrieveArchitectureVersions(architecture);
 
-            List<Document> architectures = result.get(ARCHITECTURES_FIELD, List.class);
+            List<Document> architectures = new TypeSafeNitriteDocument<>(result, Document.class).getList(ARCHITECTURES_FIELD);
             for (Document architectureDoc : architectures) {
                 if (architecture.getId() == architectureDoc.get(ARCHITECTURE_ID_FIELD, Integer.class)) {
                     Document versions = architectureDoc.get(VERSIONS_FIELD, Document.class);
