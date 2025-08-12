@@ -11,6 +11,7 @@ import org.bson.conversions.Bson;
 import org.finos.calm.store.CoreSchemaStore;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,7 +41,21 @@ public class MongoCoreSchemaStore implements CoreSchemaStore {
         Document document = schemaCollection.find(filter).first();
 
         if (document != null) {
-            return document.get("schemas", Map.class);  // Get the 'schemas' field as a map
+            Map<?, ?> rawMap = document.get("schemas", Map.class);
+            Map<String, Object> typedMap = new HashMap<>();
+            if (rawMap != null) {
+                // Convert entries ensuring keys are Strings. Values can be any Object (schemas themselves
+                // are typically nested Maps representing JSON Schema documents). Previous implementation
+                // incorrectly iterated over entrySet and attempted to cast Map.Entry to Map, producing
+                // an always-empty result. This corrected logic simply copies the mapping.
+                for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+                    Object key = entry.getKey();
+                    if (key instanceof String) {
+                        typedMap.put((String) key, entry.getValue());
+                    }
+                }
+            }
+            return typedMap;
         }
 
         return null;

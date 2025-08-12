@@ -17,6 +17,7 @@ import org.finos.calm.domain.exception.StandardVersionNotFoundException;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.domain.standards.NamespaceStandardSummary;
 import org.finos.calm.store.StandardStore;
+import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +74,7 @@ public class NitriteStandardStore implements StandardStore {
             return List.of();
         }
 
-        List<Document> standards = namespaceDocument.get(STANDARDS_FIELD, List.class);
+        List<Document> standards = new TypeSafeNitriteDocument<>(namespaceDocument, Document.class).getList(STANDARDS_FIELD);
         if (standards == null || standards.isEmpty()) {
             LOG.debug("No standards found for namespace '{}'", namespace);
             return List.of();
@@ -130,7 +131,7 @@ public class NitriteStandardStore implements StandardStore {
             standardCollection.insert(newNamespaceDoc);
         } else {
             // Update existing namespace document
-            List<Document> standards = namespaceDocument.get(STANDARDS_FIELD, List.class);
+            List<Document> standards = new TypeSafeNitriteDocument<>(namespaceDocument, Document.class).getList(STANDARDS_FIELD);
             if (standards == null) {
                 standards = new ArrayList<>();
             } else {
@@ -235,7 +236,7 @@ public class NitriteStandardStore implements StandardStore {
         standardDoc.put(DESCRIPTION_FIELD, standardRequest.getDescription());
 
         // Update the standard in the namespace document
-        List<Document> standards = namespaceDocument.get(STANDARDS_FIELD, List.class);
+        List<Document> standards = new TypeSafeNitriteDocument<>(namespaceDocument, Document.class).getList(STANDARDS_FIELD);
         // Create a mutable copy of the list
         standards = new ArrayList<>(standards);
         for (int i = 0; i < standards.size(); i++) {
@@ -268,7 +269,7 @@ public class NitriteStandardStore implements StandardStore {
             return null;
         }
 
-        List<Document> standards = namespaceDocument.get(STANDARDS_FIELD, List.class);
+        List<Document> standards = new TypeSafeNitriteDocument<>(namespaceDocument, Document.class).getList(STANDARDS_FIELD);
         if (standards == null) {
             return null;
         }

@@ -93,7 +93,7 @@ public class MongoArchitectureStore implements ArchitectureStore {
     public List<String> getArchitectureVersions(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException {
         Document result = retrieveArchitectureVersions(architecture);
 
-        List<Document> architectures = (List<Document>) result.get("architectures");
+        List<Document> architectures = result.getList("architectures", Document.class);
         for (Document architectureDoc : architectures) {
             if (architecture.getId() == architectureDoc.getInteger("architectureId")) {
                 // Extract the versions map from the matching pattern
@@ -133,7 +133,7 @@ public class MongoArchitectureStore implements ArchitectureStore {
     public String getArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionNotFoundException {
         Document result = retrieveArchitectureVersions(architecture);
 
-        List<Document> architectures = (List<Document>) result.get("architectures");
+        List<Document> architectures = result.getList("architectures", Document.class);
         for (Document architectureDoc : architectures) {
             if (architecture.getId() == architectureDoc.getInteger("architectureId")) {
                 // Retrieve the versions map from the matching pattern
@@ -198,7 +198,7 @@ public class MongoArchitectureStore implements ArchitectureStore {
         Document result = architectureCollection.find(filter).projection(projection).first();
 
         if (result != null) {
-            List<Document> architectures = (List<Document>) result.get("architectures");
+            List<Document> architectures = result.getList("architectures", Document.class);
             for (Document architectureDoc : architectures) {
                 Document versions = (Document) architectureDoc.get("versions");
                 if (versions != null && versions.containsKey(architecture.getMongoVersion())) {
