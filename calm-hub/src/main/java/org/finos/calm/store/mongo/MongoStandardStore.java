@@ -94,7 +94,7 @@ public class MongoStandardStore implements StandardStore {
     public List<String> getStandardVersions(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException {
         Document result = retrieveStandardVersions(namespace);
 
-        List<Document> standards = (List<Document>) result.get("standards");
+        List<Document> standards = result.getList("standards", Document.class);
         for (Document standardDoc : standards) {
             if (standardId.equals(standardDoc.getInteger("standardId"))) {
                 // Extract the versions map from the matching standard
@@ -136,7 +136,7 @@ public class MongoStandardStore implements StandardStore {
     @Override
     public String getStandardForVersion(String namespace, Integer standardId, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionNotFoundException {
         Document result = retrieveStandardVersions(namespace);
-        List<Document> standards = (List<Document>) result.get("standards");
+        List<Document> standards = result.getList("standards", Document.class);
         for (Document standardDoc : standards) {
             if (standardId.equals(standardDoc.getInteger("standardId"))) {
                 Document versions = (Document) standardDoc.get("versions");
@@ -192,7 +192,7 @@ public class MongoStandardStore implements StandardStore {
         Document result = standardCollection.find(filter).projection(projection).first();
 
         if(result != null) {
-            List<Document> standards = (List<Document>) result.get("standards");
+            List<Document> standards = result.getList("standards", Document.class);
             for (Document standardDoc : standards) {
                 Document versions = (Document) standardDoc.get("versions");
                 if (versions != null && versions.containsKey(version.replace('.', '-'))) {

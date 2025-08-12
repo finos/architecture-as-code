@@ -84,9 +84,6 @@ public class NitriteDBConfig {
      * @throws JsonParseException
      */
     private void initializeDatabase() throws IOException, JsonParseException {
-        boolean scriptExists = false;
-        String scriptContent = null;
-
         // Create collections - just getting the collection creates it if it doesn't exist
         db.getCollection("architectures");
         db.getCollection("patterns");

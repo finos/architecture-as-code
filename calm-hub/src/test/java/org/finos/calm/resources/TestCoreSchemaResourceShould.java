@@ -5,15 +5,15 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.finos.calm.store.CoreSchemaStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.*;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
 
 @QuarkusTest
 @ExtendWith(MockitoExtension.class)
@@ -132,11 +132,6 @@ public class TestCoreSchemaResourceShould {
     @Test
     void create_schema_version_successfully() {
         when(mockCoreSchemaStore.getSchemasForVersion("2024-10")).thenReturn(null);
-
-        Map<String, Object> schemas = new HashMap<>();
-        schemas.put("calm.json", new HashMap<>());
-        schemas.put("core.json", new HashMap<>());
-
         given()
                 .contentType("application/json")
                 .body("{\"version\":\"2024-10\",\"schemas\":{\"calm.json\":{},\"core.json\":{}}}")
@@ -145,9 +140,8 @@ public class TestCoreSchemaResourceShould {
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("/calm/schemas/2024-10/meta"));
-
         verify(mockCoreSchemaStore).getSchemasForVersion("2024-10");
-        verify(mockCoreSchemaStore).createSchemaVersion(eq("2024-10"), any(Map.class));
+        verify(mockCoreSchemaStore).createSchemaVersion(eq("2024-10"), ArgumentMatchers.any());
     }
 
     @Test
@@ -257,7 +251,7 @@ public class TestCoreSchemaResourceShould {
                 .header("Location", containsString("/calm/schemas/2024-10/meta"));
 
         verify(mockCoreSchemaStore).getSchemasForVersion("2024-10");
-        verify(mockCoreSchemaStore).createSchemaVersion(eq("2024-10"), any(Map.class));
+        verify(mockCoreSchemaStore).createSchemaVersion(eq("2024-10"), ArgumentMatchers.any());
     }
 
     private void setupMockSchemasForVersion() {

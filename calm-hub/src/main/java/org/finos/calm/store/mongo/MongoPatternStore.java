@@ -92,7 +92,7 @@ public class MongoPatternStore implements PatternStore {
     public List<String> getPatternVersions(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException {
         Document result = retrievePatternVersions(pattern);
 
-        List<Document> patterns = (List<Document>) result.get("patterns");
+        List<Document> patterns = result.getList("patterns", Document.class);
         for (Document patternDoc : patterns) {
             if (pattern.getId() == patternDoc.getInteger("patternId")) {
                 // Extract the versions map from the matching pattern
@@ -132,7 +132,7 @@ public class MongoPatternStore implements PatternStore {
     public String getPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException {
         Document result = retrievePatternVersions(pattern);
 
-        List<Document> patterns = (List<Document>) result.get("patterns");
+        List<Document> patterns = result.getList("patterns", Document.class);
         for (Document patternDoc : patterns) {
             if (pattern.getId() == patternDoc.getInteger("patternId")) {
                 // Retrieve the versions map from the matching pattern
@@ -197,7 +197,7 @@ public class MongoPatternStore implements PatternStore {
         Document result = patternCollection.find(filter).projection(projection).first();
 
         if (result != null) {
-            List<Document> patterns = (List<Document>) result.get("patterns");
+            List<Document> patterns = result.getList("patterns", Document.class );
             for (Document patternDoc : patterns) {
                 Document versions = (Document) patternDoc.get("versions");
                 if (versions != null && versions.containsKey(pattern.getMongoVersion())) {

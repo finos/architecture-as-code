@@ -52,10 +52,11 @@ public class TestMongoFlowStoreShould {
     private final String NAMESPACE = "finos";
 
     private final String validJson = "{\"test\": \"test\"}";
+
     @BeforeEach
     void setup() {
         MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
-        flowCollection = Mockito.mock(MongoCollection.class);
+        flowCollection = Mockito.mock(DocumentMongoCollection.class);
 
         when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
         when(mongoDatabase.getCollection("flows")).thenReturn(flowCollection);
@@ -63,20 +64,8 @@ public class TestMongoFlowStoreShould {
     }
 
     @Test
-    void get_flow_for_namespace_that_doesnt_exist_throws_exception() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        String namespace = "does-not-exist";
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoFlowStore.getFlowsForNamespace(namespace));
-
-        verify(namespaceStore).namespaceExists(namespace);
-    }
-
-
-    @Test
     void get_flows_for_namespace_returns_empty_list_when_none_exist() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(flowCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
                 .thenReturn(findIterable);
@@ -91,7 +80,7 @@ public class TestMongoFlowStoreShould {
 
     @Test
     void get_flows_for_namespace_returns_empty_list_when_mongo_collection_not_created() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(flowCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
                 .thenReturn(findIterable);
@@ -101,11 +90,20 @@ public class TestMongoFlowStoreShould {
         verify(namespaceStore).namespaceExists(NAMESPACE);
     }
 
+    @Test
+    void get_flow_for_namespace_that_doesnt_exist_throws_exception() {
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
+        String namespace = "does-not-exist";
 
+        assertThrows(NamespaceNotFoundException.class,
+                () -> mongoFlowStore.getFlowsForNamespace(namespace));
+
+        verify(namespaceStore).namespaceExists(namespace);
+    }
 
     @Test
     void get_flow_for_namespace_returns_values() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(flowCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
                 .thenReturn(findIterable);
@@ -122,6 +120,29 @@ public class TestMongoFlowStoreShould {
 
         assertThat(flowIds, is(Arrays.asList(1001, 1002)));
         verify(namespaceStore).namespaceExists(NAMESPACE);
+    }
+
+    private FindIterable<Document> setupInvalidFlow() {
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        //Return the same find iterable as the projection unboxes, then return null
+        when(flowCollection.find(any(Bson.class)))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(null);
+
+
+        return findIterable;
+    }
+
+    private void mockSetupFlowDocumentWithVersions() {
+        Document mainDocument = setupFlowVersionDocument();
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(flowCollection.find(any(Bson.class)))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(mainDocument);
     }
 
     @Test
@@ -187,17 +208,7 @@ public class TestMongoFlowStoreShould {
         verify(namespaceStore).namespaceExists(flow.getNamespace());
     }
 
-    private FindIterable<Document> setupInvalidFlow() {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        //Return the same find iterable as the projection unboxes, then return null
-        when(flowCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-
-        return findIterable;
+    private interface DocumentFindIterable extends FindIterable<Document> {
     }
 
     @Test
@@ -270,14 +281,7 @@ public class TestMongoFlowStoreShould {
                 .append("flows", Arrays.asList(paddingFlow, targetStoredFlow));
     }
 
-    private void mockSetupFlowDocumentWithVersions() {
-        Document mainDocument = setupFlowVersionDocument();
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(flowCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(mainDocument);
+    private interface DocumentMongoCollection extends MongoCollection<Document> {
     }
 
     @Test
