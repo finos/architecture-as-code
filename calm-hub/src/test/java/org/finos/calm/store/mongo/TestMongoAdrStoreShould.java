@@ -217,7 +217,6 @@ public class TestMongoAdrStoreShould {
         Document mainDocument = setupAdrWithNoRevisions();
         FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(adrCollection.find(any(Bson.class)))
                 .thenReturn(findIterable);
         when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
