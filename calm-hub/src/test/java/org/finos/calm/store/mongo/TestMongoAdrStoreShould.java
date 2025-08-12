@@ -83,7 +83,6 @@ public class TestMongoAdrStoreShould {
     void get_adrs_for_namespace_returns_empty_list_when_none_exist() throws NamespaceNotFoundException {
         FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(adrCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
                 .thenReturn(findIterable);
         Document documentMock = Mockito.mock(Document.class);
