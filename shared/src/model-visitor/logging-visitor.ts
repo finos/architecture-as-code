@@ -4,6 +4,11 @@ import { initLogger, Logger } from '../logger.js';
 
 export class LoggingVisitor implements CalmModelVisitor {
     private static _logger: Logger | undefined;
+    private readonly _loggerInstance?: Logger;
+
+    constructor(logger?: Logger) {
+        this._loggerInstance = logger;
+    }
 
     private static get logger(): Logger {
         if (!this._logger) {
@@ -11,13 +16,9 @@ export class LoggingVisitor implements CalmModelVisitor {
         }
         return this._logger;
     }
-    // Setter for testing purposes
-    private static set logger(value: Logger) {
-        this._logger = value;
-    }
 
     async visit(obj: unknown, path: string[] = []): Promise<void> {
-        const logger = LoggingVisitor.logger;
+        const logger = this._loggerInstance ?? LoggingVisitor.logger;
         if (!obj || typeof obj !== 'object') return;
         const keys = Object.keys(obj);
         for (const key of keys) {
