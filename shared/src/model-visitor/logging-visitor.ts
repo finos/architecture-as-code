@@ -1,12 +1,24 @@
-import {Resolvable, ResolvableAndAdaptable} from '../model/resolvable';
-import {CalmModelVisitor} from './calm-model-visitor';
-import { initLogger } from '../logger.js';
+import { Resolvable, ResolvableAndAdaptable } from '../model/resolvable';
+import { CalmModelVisitor } from './calm-model-visitor';
+import { initLogger, Logger } from '../logger.js';
 
 export class LoggingVisitor implements CalmModelVisitor {
-    private static logger = initLogger(process.env.DEBUG === 'true', LoggingVisitor.name);
+    private static _logger: Logger | undefined;
+    private readonly _loggerInstance?: Logger;
+
+    constructor(logger?: Logger) {
+        this._loggerInstance = logger;
+    }
+
+    private static get logger(): Logger {
+        if (!this._logger) {
+            this._logger = initLogger(process.env.DEBUG === 'true', LoggingVisitor.name);
+        }
+        return this._logger;
+    }
 
     async visit(obj: unknown, path: string[] = []): Promise<void> {
-        const logger = LoggingVisitor.logger;
+        const logger = this._loggerInstance ?? LoggingVisitor.logger;
         if (!obj || typeof obj !== 'object') return;
         const keys = Object.keys(obj);
         for (const key of keys) {
