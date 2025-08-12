@@ -38,4 +38,4 @@ Here you can find talks that our members have given.
 
 #### James Gough, Morgan Stanley, Open Source in Finance Forum, London 2025
 
-<iframe width="640px" height="480ox" src="https://www.youtube.com/embed/Xvnr2Cyt-Sk?si=fWtziGN_PS9J0u29" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="640px" height="480px" src="https://www.youtube.com/embed/Xvnr2Cyt-Sk?si=fWtziGN_PS9J0u29" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
