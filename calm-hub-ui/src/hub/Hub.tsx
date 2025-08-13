@@ -43,16 +43,29 @@ export default function Hub() {
 
 function ArchitectureSection({ data }: { data: Data }) {
     return (
-        <div className="tabs tabs-box w-full overflow-auto">
-            <input type="radio" name="view-tabs" className="tab" aria-label="JSON" defaultChecked />
-            <div className="tab-content">
-                <div className="p-5 bg-[#eee]">
-                    <JsonRenderer json={data} />
+        <div className="relative w-full h-full overflow-auto">
+            <div className="tabs tabs-box w-full h-full">
+                <input
+                    type="radio"
+                    name="view-tabs"
+                    className="tab absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-sm shadow-lg rounded-lg px-4 py-2 border border-gray-200"
+                    aria-label="JSON"
+                    defaultChecked
+                />
+                <div className="tab-content h-full">
+                    <div className="h-full bg-[#eee]">
+                        <JsonRenderer json={data} />
+                    </div>
                 </div>
-            </div>
-            <input type="radio" name="view-tabs" className="tab" aria-label="Diagram" />
-            <div className="tab-content">
-                <Drawer calmInstance={data?.data} title={''} data={data} />
+                <input
+                    type="radio"
+                    name="view-tabs"
+                    className="tab absolute top-4 left-20 z-10 bg-white/90 backdrop-blur-sm shadow-lg rounded-lg px-4 py-2 border border-gray-200"
+                    aria-label="Diagram"
+                />
+                <div className="tab-content h-full">
+                    <Drawer calmInstance={data?.data} title={''} data={data} />
+                </div>
             </div>
         </div>
     );
