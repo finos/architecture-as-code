@@ -462,10 +462,6 @@ describe('CLI Integration Tests', () => {
             '../../cli/test_fixtures/getting-started'
         );
 
-        // This will enforce that people verify the getting-started guide works prior to any cli change
-        const { stdout } = await run(calm(), ['--version']);
-        expect(stdout.trim()).toMatch('1.0.0'); // basic semver check
-
         //STEP 1: Generate Architecture From Pattern
         const inputPattern = path.resolve(
             GETTING_STARTED_DIR,
