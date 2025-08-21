@@ -40,6 +40,8 @@ module.exports = {
         'style',
         'test'
       ]
-    ]
+    ],
+    // Disable body line length enforcement - we only care about type and description
+    'body-max-line-length': [0, 'always']
   }
 };
