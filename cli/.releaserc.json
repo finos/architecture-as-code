@@ -1,0 +1,77 @@
+{
+  "branches": [
+    "main"
+  ],
+  "repositoryUrl": "https://github.com/finos/architecture-as-code",
+  "tagFormat": "cli-v${version}",
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          { "type": "feat", "scope": "cli", "release": "minor" },
+          { "type": "fix", "scope": "cli", "release": "patch" },
+          { "type": "perf", "scope": "cli", "release": "patch" },
+          { "type": "revert", "scope": "cli", "release": "patch" },
+          { "type": "docs", "scope": "cli", "release": "patch" },
+          { "type": "chore", "scope": "cli", "release": false },
+          { "type": "refactor", "scope": "cli", "release": "patch" },
+          { "type": "test", "scope": "cli", "release": false },
+          { "type": "style", "scope": "cli", "release": false },
+          { "type": "ci", "scope": "cli", "release": false },
+          { "scope": "!cli", "release": false }
+        ]
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "conventionalcommits",
+        "presetConfig": {
+          "types": [
+            { "type": "feat", "section": "🚀 Features" },
+            { "type": "fix", "section": "🐛 Bug Fixes" },
+            { "type": "perf", "section": "⚡ Performance Improvements" },
+            { "type": "revert", "section": "⏪ Reverts" },
+            { "type": "docs", "section": "📚 Documentation" },
+            { "type": "refactor", "section": "♻️ Code Refactoring" },
+            { "type": "test", "section": "✅ Tests", "hidden": true },
+            { "type": "style", "section": "🎨 Styles", "hidden": true },
+            { "type": "chore", "section": "🔧 Chores", "hidden": true },
+            { "type": "ci", "section": "🤖 CI/CD", "hidden": true }
+          ]
+        }
+      }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md",
+        "changelogTitle": "# Changelog\n\nAll notable changes to the CALM CLI will be documented in this file.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)."
+      }
+    ],
+    "@semantic-release/npm",
+    [
+      "@semantic-release/git",
+      {
+        "assets": [
+          "package.json",
+          "CHANGELOG.md"
+        ],
+        "message": "chore(cli): release ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          {
+            "path": "dist/**/*",
+            "label": "CLI Distribution"
+          }
+        ]
+      }
+    ]
+  ]
+}

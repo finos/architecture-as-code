@@ -1,7 +1,9 @@
 name: Publish CLI to NPM
 
 permissions:
-    contents: read
+    contents: write # needed for semantic-release to create releases and update files
+    issues: write # needed for semantic-release to comment on issues
+    pull-requests: write # needed for semantic-release to comment on PRs
 
 on:
     release:
@@ -14,6 +16,8 @@ jobs:
             # Checkout the code
             - name: Checkout code
               uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+              with:
+                  fetch-depth: 0 # semantic-release needs full git history
 
             # Set up Node.js
             - name: Setup Node.js
@@ -30,7 +34,14 @@ jobs:
             - name: Build workspace
               run: npm run build
 
-            # Publish the CLI module
+            # Update CLI version using semantic-release
+            - name: Update CLI version with semantic-release
+              run: npm run semantic-release --workspace cli
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+            # Publish the CLI module (semantic-release will handle this, but keeping as fallback)
             - name: Publish CLI module
               run: npm publish --workspace cli
               env:
