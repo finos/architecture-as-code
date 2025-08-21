@@ -34,27 +34,27 @@ All commands in this guide are run from the `root` directory of the clone.
 
 To start lets build all the projects in the repository.
 
-```
+```shell
 ./mvnw clean install
 ```
 
 Assuming all went well, you will see a message like this:
 
 ```
- ------------------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
 [INFO] Reactor Summary:
 [INFO] 
-[INFO] parent 1.0.0-SNAPSHOT .............................. SUCCESS [  0.086 s]
-[INFO] calm-hub 0.7.5 ..................................... SUCCESS [ 56.260 s]
-[INFO] cli 1.0.0-SNAPSHOT ................................. SUCCESS [  0.005 s]
-[INFO] calm 1.0.0-SNAPSHOT ................................ SUCCESS [  0.004 s]
-[INFO] docs 1.0.0-SNAPSHOT ................................ SUCCESS [  0.004 s]
-[INFO] shared 1.0.0-SNAPSHOT .............................. SUCCESS [  0.003 s]
+[INFO] parent 1.0.0-SNAPSHOT .............................. SUCCESS [  0.278 s]
+[INFO] calm-hub 0.7.5 ..................................... SUCCESS [02:37 min]
+[INFO] cli 1.0.0-SNAPSHOT ................................. SUCCESS [  0.021 s]
+[INFO] calm 1.0.0-SNAPSHOT ................................ SUCCESS [  0.016 s]
+[INFO] docs 1.0.0-SNAPSHOT ................................ SUCCESS [  0.016 s]
+[INFO] shared 1.0.0-SNAPSHOT .............................. SUCCESS [  0.019 s]
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time:  57.015 s
-[INFO] Finished at: 2025-06-21T16:20:54+01:00
+[INFO] Total time:  02:40 min
+[INFO] Finished at: 2025-08-21T13:24:41+01:00
 [INFO] ------------------------------------------------------------------------
 ```
 
@@ -70,13 +70,13 @@ You should see output indicating that the application has started successfully, 
 
 ```
 Listening for transport dt_socket at address: 5005
-__  ____  __  _____   ___  __ ____  ______ 
- --/ __ \/ / / / _ | / _ \/ //_/ / / / __/ 
- -/ /_/ / /_/ / __ |/ , _/ ,< / /_/ /\ \   
---\___\_\____/_/ |_/_/|_/_/|_|\____/___/   
-2025-06-21 16:26:09,029 INFO  [io.quarkus] (Quarkus Main Thread) calm-hub 0.7.5 on JVM (powered by Quarkus 3.23.0) started in 1.690s. Listening on: http://localhost:8080
-2025-06-21 16:26:09,031 INFO  [io.quarkus] (Quarkus Main Thread) Profile dev activated. Live Coding activated.
-2025-06-21 16:26:09,032 INFO  [io.quarkus] (Quarkus Main Thread) Installed features: [cdi, compose, hibernate-validator, mongodb-client, oidc, resteasy, resteasy-jsonb, security, smallrye-context-propagation, smallrye-openapi, swagger-ui, vertx]
+__  ____  __  _____   ___  __ ____  ______
+ --/ __ \/ / / / _ | / _ \/ //_/ / / / __/
+ -/ /_/ / /_/ / __ |/ , _/ ,< / /_/ /\ \
+--\___\_\____/_/ |_/_/|_/_/|_|\____/___/
+2025-08-21 14:19:52,408 INFO  [io.quarkus] (Quarkus Main Thread) calm-hub 0.7.5 on JVM (powered by Quarkus 3.23.0) started in 1.690s. Listening on: http://localhost:8080
+2025-08-21 14:19:52,411 INFO  [io.quarkus] (Quarkus Main Thread) Profile dev activated. Live Coding activated.
+2025-08-21 14:19:52,411 INFO  [io.quarkus] (Quarkus Main Thread) Installed features: [cdi, compose, hibernate-validator, mongodb-client, oidc, resteasy, resteasy-jsonb, security, smallrye-context-propagation, smallrye-openapi, swagger-ui, vertx]
 
 --
 Tests paused
@@ -103,7 +103,7 @@ Verify the installation.
 calm --version
 ```
 
-This getting started has been verified to work against 0.7.10 of the cli.
+This getting started has been verified to work against 1.0.0 of the cli.
 
 ---
 
@@ -120,14 +120,11 @@ calm generate \
 This step expands the reusable pattern into a concrete architecture model. You should see output like this:
 
 ```
-warn [_TemplateEngine]:     Warning, no schema loading mechanism was defined. Only the bundled core schemas will be available; you may see empty definitions or errors.
-info [_TemplateEngine]:     Loading json from file: ./calm/getting-started/conference-signup.pattern.json
-info [_TemplateEngine]:     Generating a CALM architecture...
-info [_TemplateEngine]:     Successfully generated architecture to [./calm/getting-started/conference-signup.arch.json]
+info [file-system-document-loader]:     ./calm/getting-started/conference-signup.pattern.json exists, loading as file...
+info [calm-generate]:     Generating a CALM architecture...
+info [calm-generate]:     Successfully generated architecture to [./calm/getting-started/conference-signup.arch.json]
 ---
 ```
-
-You can ignore the warning about schema loading for now, as it is not important for this demo.
 
 Now that we have an architecture, we can vaidate it against the pattern schema to ensure it is valid. Run the following
 command:
@@ -141,10 +138,9 @@ calm validate \
 You should see output like this:
 
 ```
-info [_TemplateEngine]:     Loading meta schema(s) from /opt/homebrew/lib/node_modules/@finos/calm-cli/dist/calm/release
-info [_TemplateEngine]:     Loading pattern from : ./calm/getting-started/conference-signup.pattern.json
-info [_TemplateEngine]:     Loading architecture from : ./calm/getting-started/conference-signup.arch.json
-info [_TemplateEngine]:     Formatting output as json
+info [file-system-document-loader]:     ./calm/getting-started/conference-signup.arch.json exists, loading as file...
+info [file-system-document-loader]:     ./calm/getting-started/conference-signup.pattern.json exists, loading as file...
+info [calm-validate]:     Formatting output as json
 {
     "jsonSchemaValidationOutputs": [],
     "spectralSchemaValidationOutputs": [
@@ -154,10 +150,10 @@ info [_TemplateEngine]:     Formatting output as json
             "message": "String placeholder detected in architecture.",
             "path": "/nodes/0/interfaces/0/url",
             "schemaPath": "",
-            "line_start": 10,
-            "line_end": 10,
-            "character_start": 17,
-            "character_end": 28
+            "line_start": 0,
+            "line_end": 0,
+            "character_start": 206,
+            "character_end": 217
         },
         {
             "code": "architecture-has-no-placeholder-properties-string",
@@ -165,10 +161,10 @@ info [_TemplateEngine]:     Formatting output as json
             "message": "String placeholder detected in architecture.",
             "path": "/nodes/1/interfaces/0/host",
             "schemaPath": "",
-            "line_start": 22,
-            "line_end": 22,
-            "character_start": 18,
-            "character_end": 30
+            "line_start": 0,
+            "line_end": 0,
+            "character_start": 435,
+            "character_end": 447
         },
         {
             "code": "architecture-has-no-placeholder-properties-numerical",
@@ -176,10 +172,10 @@ info [_TemplateEngine]:     Formatting output as json
             "message": "Numerical placeholder (-1) detected in architecture.",
             "path": "/nodes/1/interfaces/0/port",
             "schemaPath": "",
-            "line_start": 23,
-            "line_end": 23,
-            "character_start": 18,
-            "character_end": 20
+            "line_start": 0,
+            "line_end": 0,
+            "character_start": 455,
+            "character_end": 457
         },
         {
             "code": "architecture-has-no-placeholder-properties-string",
@@ -187,10 +183,10 @@ info [_TemplateEngine]:     Formatting output as json
             "message": "String placeholder detected in architecture.",
             "path": "/nodes/2/interfaces/0/image",
             "schemaPath": "",
-            "line_start": 35,
-            "line_end": 35,
-            "character_start": 19,
-            "character_end": 32
+            "line_start": 0,
+            "line_end": 0,
+            "character_start": 668,
+            "character_end": 681
         },
         {
             "code": "architecture-has-no-placeholder-properties-numerical",
@@ -198,10 +194,10 @@ info [_TemplateEngine]:     Formatting output as json
             "message": "Numerical placeholder (-1) detected in architecture.",
             "path": "/nodes/2/interfaces/1/port",
             "schemaPath": "",
-            "line_start": 39,
-            "line_end": 39,
-            "character_start": 18,
-            "character_end": 20
+            "line_start": 0,
+            "line_end": 0,
+            "character_start": 720,
+            "character_end": 722
         },
         {
             "code": "architecture-has-no-placeholder-properties-string",
@@ -209,10 +205,10 @@ info [_TemplateEngine]:     Formatting output as json
             "message": "String placeholder detected in architecture.",
             "path": "/nodes/3/interfaces/0/image",
             "schemaPath": "",
-            "line_start": 51,
-            "line_end": 51,
-            "character_start": 19,
-            "character_end": 32
+            "line_start": 0,
+            "line_end": 0,
+            "character_start": 906,
+            "character_end": 919
         },
         {
             "code": "architecture-has-no-placeholder-properties-numerical",
@@ -220,15 +216,15 @@ info [_TemplateEngine]:     Formatting output as json
             "message": "Numerical placeholder (-1) detected in architecture.",
             "path": "/nodes/3/interfaces/1/port",
             "schemaPath": "",
-            "line_start": 55,
-            "line_end": 55,
-            "character_start": 18,
-            "character_end": 20
+            "line_start": 0,
+            "line_end": 0,
+            "character_start": 957,
+            "character_end": 959
         }
     ],
     "hasErrors": false,
     "hasWarnings": true
-}%  
+}
 ```
 
 In this case the warnings are related to placeholder values in the architecture, which is expected since we used a
@@ -263,31 +259,21 @@ calm docify \
 You'll see output like this:
 
 ```
-info [_TemplateEngine]:     📥 Loading index.json from /opt/homebrew/lib/node_modules/@finos/calm-cli/dist/template-bundles/docusaurus/index.json
-info [_TemplateEngine]:     ✅ Successfully loaded template bundle: docusaurus-docs
-info [_TemplateEngine]:     📂 Loading template files from: /opt/homebrew/lib/node_modules/@finos/calm-cli/dist/template-bundles/docusaurus
-info [_TemplateEngine]:     🎯 Total Templates Loaded: 21
-info [_TemplateEngine]:     🔍 Loading transformer as JavaScript: /opt/homebrew/lib/node_modules/@finos/calm-cli/dist/template-bundles/docusaurus/docusaurus-transformer.js
-info [_TemplateEngine]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/micro-segmentation.requirement.json
-info [_TemplateEngine]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/micro-segmentation.config.json
-info [_TemplateEngine]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json
-info [_TemplateEngine]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/permitted-connection-http.config.json
-info [_TemplateEngine]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json
-info [_TemplateEngine]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/permitted-connection-http.config.json
-info [_TemplateEngine]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json
-info [_TemplateEngine]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/permitted-connection-jdbc.config.json
-info [_TemplateEngine]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/conference-signup.pattern.json
-info [_TemplateEngine]:     Will not attempt to dereference URL: https://calm.finos.org/getting-started/controls/micro-segmentation.requirement.json
-info [_TemplateEngine]:     Will not attempt to dereference URL: https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json
-info [_TemplateEngine]:     Will not attempt to dereference URL: https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json
-info [_TemplateEngine]:     Will not attempt to dereference URL: https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json
-info [_TemplateEngine]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/micro-segmentation.config.json
-info [_TemplateEngine]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/permitted-connection-http.config.json
-info [_TemplateEngine]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/permitted-connection-jdbc.config.json
-info [_TemplateEngine]:     📥 Loading index.json from /opt/homebrew/lib/node_modules/@finos/calm-cli/dist/template-bundles/docusaurus/index.json
-info [_TemplateEngine]:     ✅ Successfully loaded template bundle: docusaurus-docs
-info [_TemplateEngine]:     📂 Loading template files from: /opt/homebrew/lib/node_modules/@finos/calm-cli/dist/template-bundles/docusaurus
-info [_TemplateEngine]:     🎯 Total Templates Loaded: 21
+info [_TemplateProcessor]:     Using TemplateBundleFileLoader for bundle
+info [_TemplateBundleFileLoader]:     📥 Loading index.json from /home/mark/.nvm/versions/node/v22.17.0/lib/node_modules/@finos/calm-cli/dist/template-bundles/docusaurus/index.json
+info [_TemplateBundleFileLoader]:     ✅ Successfully loaded template bundle: docusaurus-docs
+info [_TemplateBundleFileLoader]:     📂 Loading template files from: /home/mark/.nvm/versions/node/v22.17.0/lib/node_modules/@finos/calm-cli/dist/template-bundles/docusaurus
+info [_TemplateBundleFileLoader]:     🎯 Total Templates Loaded: 21
+info [_TemplateProcessor]:     📂 Creating output directory: /home/mark/architecture-as-code/calm/getting-started/website
+info [_TemplateProcessor]:     🔍 Loading transformer as JavaScript: /home/mark/.nvm/versions/node/v22.17.0/lib/node_modules/@finos/calm-cli/dist/template-bundles/docusaurus/docusaurus-transformer.js
+info [_HttpReferenceResolver]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/micro-segmentation.requirement.json
+info [_HttpReferenceResolver]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/micro-segmentation.config.json
+info [_HttpReferenceResolver]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json
+info [_HttpReferenceResolver]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json
+info [_HttpReferenceResolver]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json
+info [_HttpReferenceResolver]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/permitted-connection-http.config.json
+info [_HttpReferenceResolver]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/permitted-connection-http.config.json
+info [_HttpReferenceResolver]:     Fetching reference via HTTP: https://calm.finos.org/getting-started/controls/permitted-connection-jdbc.config.json
 info [_TemplateEngine]:     ✅ Compiled 21 Templates
 info [_TemplateEngine]:     🔧 Registering Handlebars Helpers...
 info [_TemplateEngine]:     ✅ Registered helper: eq
@@ -300,6 +286,7 @@ info [_TemplateEngine]:     ✅ Registered helper: isObject
 info [_TemplateEngine]:     ✅ Registered helper: isArray
 info [_TemplateEngine]:     ✅ Registered helper: notEmpty
 info [_TemplateEngine]:     ✅ Registered helper: or
+info [_TemplateEngine]:     ✅ Registered helper: eachInMap
 info [_TemplateEngine]:     
 🔹 Starting Template Generation...
 info [_TemplateEngine]:     ✅ Registering partial template: controls.hbs
@@ -307,52 +294,53 @@ info [_TemplateEngine]:     ✅ Registering partial template: relationships.hbs
 info [_TemplateEngine]:     ✅ Registering partial template: table-template.html
 info [_TemplateEngine]:     ✅ Registering partial template: row-template.html
 info [_TemplateEngine]:     ✅ Registering partial template: metadata.hbs
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docs/nodes/conference-website.md
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docs/nodes/load-balancer.md
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docs/nodes/attendees.md
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docs/nodes/attendees-store.md
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docs/nodes/k8s-cluster.md
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docs/nodes/conference-website.md
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docs/nodes/load-balancer.md
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docs/nodes/attendees.md
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docs/nodes/attendees-store.md
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docs/nodes/k8s-cluster.md
 info [_TemplateEngine]:     ✅ Registering partial template: controls.hbs
 info [_TemplateEngine]:     ✅ Registering partial template: relationships.hbs
 info [_TemplateEngine]:     ✅ Registering partial template: table-template.html
 info [_TemplateEngine]:     ✅ Registering partial template: row-template.html
 info [_TemplateEngine]:     ✅ Registering partial template: metadata.hbs
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docs/relationships/conference-website-load-balancer.md
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docs/relationships/load-balancer-attendees.md
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docs/relationships/attendees-attendees-store.md
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docs/relationships/deployed-in-k8s-cluster.md
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/sidebars.js
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docusaurus.config.js
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/static/img/2025_CALM_Icon.svg
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/src/remark/remark-replace-links.js
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/static/css/custom.css
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docs/relationships/conference-website-load-balancer.md
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docs/relationships/load-balancer-attendees.md
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docs/relationships/attendees-attendees-store.md
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docs/relationships/deployed-in-k8s-cluster.md
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/sidebars.js
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docusaurus.config.js
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/static/img/2025_CALM_Icon.svg
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/src/remark/remark-replace-links.js
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/static/css/custom.css
 info [_TemplateEngine]:     ✅ Registering partial template: c4-container.hbs
 info [_TemplateEngine]:     ✅ Registering partial template: table-template.html
 info [_TemplateEngine]:     ✅ Registering partial template: metadata.hbs
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docs/index.md
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/package.json
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docs/controls/security-001.md
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docs/controls/security-002.md
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docs/controls/security-002.md
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docs/controls/security-003.md
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docs/control-requirements/micro-segmentation.requirement.json.md
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docs/control-requirements/permitted-connection.requirement.json.md
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docs/control-requirements/permitted-connection.requirement.json.md
-info [_TemplateEngine]:     ✅ Generated: ~/github/architecture-as-code/calm/getting-started/website/docs/control-requirements/permitted-connection.requirement.json.md
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docs/index.md
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/package.json
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docs/controls/security-001.md
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docs/controls/security-002.md
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docs/controls/security-002.md
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docs/controls/security-003.md
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docs/control-requirements/micro-segmentation.requirement.json.md
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docs/control-requirements/permitted-connection.requirement.json.md
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docs/control-requirements/permitted-connection.requirement.json.md
+info [_TemplateEngine]:     ✅ Generated: /home/mark/architecture-as-code/calm/getting-started/website/docs/control-requirements/permitted-connection.requirement.json.md
 info [_TemplateEngine]:     ✅ Registering partial template: controls.hbs
 info [_TemplateEngine]:     ✅ Registering partial template: flow-sequence.hbs
 info [_TemplateEngine]:     ✅ Registering partial template: table-template.html
 info [_TemplateEngine]:     ✅ Registering partial template: row-template.html
+warn [_TemplateEngine]:     ⚠️ Expected array for repeated output, but found non-array for flow.mdx.hbs
 info [_TemplateEngine]:     
 ✅ Template Generation Completed!
-info [_TemplateEngine]:     
+info [_TemplateProcessor]:     
 ✅ Template Generation Completed!
 ```
 
 Now let's run up our documentation website.
 
 ```shell
-npm install ./calm/getting-started/website 
+npm install --prefix ./calm/getting-started/website 
 npm start --prefix ./calm/getting-started/website
 ```
 
