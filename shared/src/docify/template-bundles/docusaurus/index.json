@@ -47,9 +47,9 @@
       "output-type": "single"
     },
     {
-      "template": "remark-replace-links.js",
+      "template": "remark-replace-links.mjs",
       "from": "docs",
-      "output": "src/remark/remark-replace-links.js",
+      "output": "src/remark/remark-replace-links.mjs",
       "output-type": "single"
     },
     {
