@@ -1,5 +1,5 @@
 import {CalmTemplateTransformer} from './types';
-import {CalmCore} from '../model/core';
+import {CalmCore} from '@finos/calm-models/model';
 
 export default class TemplateDefaultTransformer implements CalmTemplateTransformer {
 

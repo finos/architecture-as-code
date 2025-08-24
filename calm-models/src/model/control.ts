@@ -5,7 +5,7 @@ import {
     CalmControlCanonicalModel,
     CalmControlDetailCanonicalModel,
     CalmControlsCanonicalModel
-} from '../template/template-models';
+} from '../canonical/template-models.js';
 
 export class CalmControlDetail implements CalmAdaptable<CalmControlDetailSchema, CalmControlDetailCanonicalModel> {
     constructor(

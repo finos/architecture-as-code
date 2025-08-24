@@ -1,10 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { DereferencingVisitor } from './dereference-visitor';
-import { CalmCore } from '../model/core';
+import { CalmCore, Resolvable, ResolvableAndAdaptable} from '@finos/calm-models/model';
 import { InMemoryResolver } from '../resolver/calm-reference-resolver';
-import {Resolvable, ResolvableAndAdaptable} from '../model/resolvable';
-import {CalmCoreSchema} from '../types/core-types';
-import {CalmCoreCanonicalModel} from '../template/template-models';
+import {CalmCoreSchema} from '@finos/calm-models/types';
+import {CalmCoreCanonicalModel} from '@finos/calm-models/canonical';
 
 // Use the same architecture as in the LoggingVisitor test
 const testArch = {

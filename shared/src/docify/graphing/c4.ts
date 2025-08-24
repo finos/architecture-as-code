@@ -1,13 +1,15 @@
 import {
-    CalmComposedOfType,
-    CalmConnectsType,
-    CalmDeployedInType,
-    CalmInteractsType,
     CalmRelationship,
-} from '../../model/relationship';
-import { CalmCore } from '../../model/core.js';
+    CalmCore,
+    CalmNode
+} from '@finos/calm-models/model';
+import {
+    CalmConnectsType,
+    CalmInteractsType,
+    CalmComposedOfType,
+    CalmDeployedInType
+} from '@finos/calm-models/types';
 import { CalmRelationshipGraph } from './relationship-graph.js';
-import { CalmNode } from '../../model/node.js';
 
 export type C4ElementType = 'Enterprise' | 'System' | 'Container' | 'Component' | 'Person';
 

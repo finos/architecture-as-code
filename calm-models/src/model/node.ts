@@ -9,7 +9,7 @@ import {
     CalmNodeSchema
 } from '../types/core-types';
 import {CalmAdaptable, NullSchema} from './adaptable.js';
-import {CalmNodeCanonicalModel} from '../template/template-models';
+import {CalmNodeCanonicalModel} from '../canonical/template-models.js';
 
 export type CalmNodeType =
     | 'actor'

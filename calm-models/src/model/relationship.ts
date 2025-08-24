@@ -12,11 +12,7 @@ import {
     CalmRelationshipTypeSchema
 } from '../types/core-types.js';
 import { CalmAdaptable } from './adaptable.js';
-import {
-    CalmDecisionCanonicalModel,
-    CalmRelationshipCanonicalModel,
-    CalmRelationshipTypeCanonicalModel
-} from '../template/template-models';
+import {CalmRelationshipCanonicalModel, CalmRelationshipTypeCanonicalModel, CalmDecisionCanonicalModel} from '../canonical/template-models.js';
 
 export class CalmRelationship
 implements CalmAdaptable<CalmRelationshipSchema, CalmRelationshipCanonicalModel> {

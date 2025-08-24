@@ -1,5 +1,5 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
-import {CalmCore} from '../model/core';
+import {CalmCore} from '@finos/calm-models/model';
 
 export interface IndexFile {
     name: string;
