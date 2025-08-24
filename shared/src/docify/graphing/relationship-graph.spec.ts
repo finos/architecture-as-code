@@ -1,5 +1,5 @@
-import { CalmRelationshipGraph } from './relationship-graph.js';
-import { CalmRelationship } from '../../model/relationship';
+import { CalmRelationshipGraph } from './relationship-graph';
+import { CalmRelationship } from '@finos/calm-models/model';
 
 
 describe('CalmRelationshipGraph', () => {

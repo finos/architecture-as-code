@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
     CalmArchitectureSchema,
     CalmNodeSchema,
-} from '../../../../../shared/src/types/core-types.js';
+} from '../../../../../calm-models/src/types/core-types.js';
 import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { VisualizerContainer } from '../visualizer-container/VisualizerContainer.js';
 import { Data } from '../../../model/calm.js';
