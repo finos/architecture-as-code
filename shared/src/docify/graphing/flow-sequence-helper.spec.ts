@@ -1,8 +1,5 @@
 import { FlowSequenceHelper } from './flow-sequence-helper';
-import { Architecture, CalmCore } from '../../model/core';
-import { CalmNode } from '../../model/node';
-import { CalmRelationship } from '../../model/relationship';
-import { CalmFlowTransition } from '../../model/flow';
+import { Architecture, CalmCore, CalmNode, CalmRelationship, CalmFlowTransition } from '@finos/calm-models/model';
 
 describe('FlowSequenceHelper', () => {
     let helper: FlowSequenceHelper;

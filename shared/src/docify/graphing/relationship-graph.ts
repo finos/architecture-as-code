@@ -1,10 +1,10 @@
 import {
-    CalmComposedOfType,
+    CalmRelationship,
+    CalmInteractsType,
     CalmConnectsType,
     CalmDeployedInType,
-    CalmInteractsType,
-    CalmRelationship
-} from '../../model/relationship.js';
+    CalmComposedOfType
+} from '@finos/calm-models/model';
 
 export class CalmRelationshipGraph {
     private adjacencyList: Map<string, Set<string>> = new Map();

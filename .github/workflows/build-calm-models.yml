@@ -1,0 +1,38 @@
+name: Build Calm Models
+
+permissions:
+    contents: read
+
+on:
+    pull_request:
+        branches:
+            - 'main'
+    push:
+        branches:
+            - 'main'
+
+jobs:
+    shared:
+        name: Build, Test, and Lint Calm Models Module
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout PR Branch
+              uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+              with:
+                  node-version: v22
+
+            - name: Install workspace
+              run: npm ci
+
+            - name: Lint Shared Module
+              run: npm run lint --workspace=calm-models
+
+            - name: Build workspace
+              run: npm run build --workspace=calm-models
+
+            - name: Run tests with coverage for Calm Models
+              run: npm run test --workspace=calm-models

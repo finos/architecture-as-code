@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { LoggingVisitor } from './logging-visitor';
-import { CalmCore } from '../model/core';
-import { CalmCoreSchema } from '../types/core-types';
+import { CalmCore } from '@finos/calm-models/model';
+import { CalmCoreSchema } from '@finos/calm-models/types';
 
 describe('LoggingVisitor', () => {
 
@@ -81,7 +81,6 @@ describe('LoggingVisitor', () => {
             error: vi.fn()
         };
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const json = JSON.stringify(testArch, null, 2);
         const architecture: CalmCoreSchema = JSON.parse(json);
         const core = CalmCore.fromSchema(architecture);

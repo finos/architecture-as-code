@@ -1,5 +1,4 @@
-import { Architecture } from '../../model/core';
-import { CalmControl } from '../../model/control';
+import { Architecture, CalmControl } from '@finos/calm-models/model';
 
 export interface ControlRequirementGroup {
     id: string;

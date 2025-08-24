@@ -1,11 +1,11 @@
-import { Architecture } from '../../model/core';
-import { CalmFlowTransition } from '../../model/flow';
 import {
+    Architecture,
+    CalmFlowTransition,
     CalmRelationship,
     CalmInteractsType,
     CalmConnectsType,
     CalmComposedOfType
-} from '../../model/relationship';
+} from '@finos/calm-models/model';
 
 export class FlowSequenceHelper {
     public static readonly UNKNOWN_NODE = 'unknown';

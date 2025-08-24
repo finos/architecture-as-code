@@ -1,10 +1,6 @@
 import { C4Model } from './c4';
-import { CalmCore } from '../../model/core';
-import { CalmNode } from '../../model/node';
-import {
-    CalmRelationship} from '../../model/relationship';
+import { CalmCore, CalmNode, CalmRelationship } from '@finos/calm-models/model';
 
-;
 
 describe('C4Model', () => {
     it('should build elements and relationships from a CalmCore using fromSchema', () => {

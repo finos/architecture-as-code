@@ -5,7 +5,7 @@ import { CalmRelationship } from './relationship.js';
 import { CalmControls } from './control.js';
 import { CalmFlow } from './flow.js';
 import { CalmCoreSchema } from '../types/core-types.js';
-import {CalmCoreCanonicalModel} from '../template/template-models';
+import {CalmCoreCanonicalModel} from '../canonical/template-models.js';
 
 export type Architecture = CalmCore
 
