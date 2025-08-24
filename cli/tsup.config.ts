@@ -8,7 +8,7 @@ export default defineConfig({
     sourcemap: false,
     clean: true,
     external: ['canvas', 'fsevents', '@apidevtools/json-schema-ref-parser', /node_modules/, 'ts-node'],
-    noExternal: ['@finos/calm-shared', '@finos/calm-widgets', /tsup/],
+    noExternal: ['@finos/calm-shared', '@finos/calm-widgets','@finos/calm-models', /tsup/],
     bundle: true,
     splitting: false,
     minify: false,

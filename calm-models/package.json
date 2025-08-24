@@ -1,0 +1,51 @@
+{
+  "name": "@finos/calm-models",
+  "version": "1.0.0",
+  "description": "CALM (Common Architecture Language Model) type definitions and model classes",
+  "exports": {
+    "./model": {
+      "import": "./dist/model/index.js",
+      "types": "./dist/model/index.d.ts"
+    },
+    "./types": {
+      "import": "./dist/types/index.js",
+      "types": "./dist/types/index.d.ts"
+    },
+    "./canonical": {
+      "import": "./dist/canonical/template-models.js",
+      "types": "./dist/canonical/template-models.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "private": true,
+  "scripts": {
+    "build": "tsc -p ./tsconfig.build.json",
+    "watch": "tsc -watch -p ./tsconfig.build.json",
+    "clean": "rimraf dist tsconfig.build.tsbuildinfo",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "lint-fix": "eslint src --fix"
+  },
+  "keywords": [
+    "calm",
+    "architecture",
+    "model",
+    "types",
+    "schema"
+  ],
+  "author": "FINOS",
+  "license": "Apache-2.0",
+  "module": "esnext",
+  "type": "module",
+  "dependencies": {
+    "ajv": "^8.17.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "eslint": "^8.0.0",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.0.0"
+  }
+}

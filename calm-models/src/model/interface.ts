@@ -7,7 +7,7 @@ import {
 
 import { CalmAdaptable } from './adaptable.js';
 import {CalmInterfaceSchema} from '../types/core-types';
-import {CalmInterfaceCanonicalModel, CalmNodeInterfaceCanonicalModel} from '../template/template-models';
+import {CalmInterfaceCanonicalModel, CalmNodeInterfaceCanonicalModel} from '../canonical/template-models.js';
 
 export abstract class CalmInterface {
     protected constructor(public uniqueId: string) {}

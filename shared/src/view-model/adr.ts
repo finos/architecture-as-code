@@ -5,7 +5,7 @@ import {
     CalmAdrOptionSchema,
     CalmAdrDecisionSchema,
     CalmAdrLinkSchema,
-} from '../types/adr-types';
+} from '@finos/calm-models/types';
 
 export class CalmAdrMeta {
     constructor(

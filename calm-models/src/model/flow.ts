@@ -1,6 +1,6 @@
 import { CalmFlowSchema, CalmFlowTransitionSchema } from '../types/flow-types';
 import { CalmAdaptable } from './adaptable.js';
-import {CalmFlowCanonicalModel, CalmFlowTransitionCanonicalModel} from '../template/template-models';
+import {CalmFlowCanonicalModel, CalmFlowTransitionCanonicalModel} from '../canonical/template-models.js';
 import {CalmControls} from './control';
 import {CalmMetadata} from './metadata';
 

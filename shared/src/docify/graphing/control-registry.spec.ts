@@ -1,10 +1,6 @@
 import { ControlRegistry } from './control-registry';
-import { CalmCore, Architecture } from '../../model/core';
-import { CalmNode } from '../../model/node';
-import { CalmRelationship } from '../../model/relationship';
-import { CalmFlow } from '../../model/flow';
-import { CalmControls} from '../../model/control';
-import { CalmControlsSchema} from '../../types/control-types';
+import { CalmCore, Architecture, CalmNode, CalmRelationship, CalmFlow, CalmControls } from '@finos/calm-models/model';
+import { CalmControlsSchema} from '@finos/calm-models/types';
 import { InMemoryResolver } from '../../resolver/calm-reference-resolver';
 import {DereferencingVisitor} from '../../model-visitor/dereference-visitor';
 
