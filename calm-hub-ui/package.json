@@ -52,7 +52,7 @@
         "@types/file-saver": "^2.0.7",
         "@types/react": "^19.1.2",
         "@types/react-dom": "^19.1.2",
-        "@vitejs/plugin-react": "^4.3.4",
+        "@vitejs/plugin-react": "^5.0.0",
         "autoprefixer": "^10.4.20",
         "daisyui": "^5.0.0",
         "eslint": "^9.25.0",
