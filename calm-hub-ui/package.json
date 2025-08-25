@@ -72,7 +72,7 @@
     },
     "resolutions": {
         "css-what": "7.0.0",
-        "express": "4.21.2",
+        "express": "5.1.0",
         "nth-check": "2.1.1",
         "postcss": "8.5.6",
         "rollup": "4.46.4"
