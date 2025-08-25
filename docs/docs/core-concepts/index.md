@@ -6,7 +6,7 @@ sidebar_position: 2
 
 # Core Concepts
 
-Welcome to the Core Concepts section of CALM. This section provides a comprehensive understanding of the primary components that make up CALM, including nodes, interfaces, relationships, and metadata. By mastering these concepts, you can effectively define and manage your software architecture using CALM.
+Welcome to the Core Concepts section of CALM. This section provides a comprehensive understanding of the primary components that make up CALM, including nodes, interfaces, relationships, patterns, and metadata. By mastering these concepts, you can effectively define and manage your software architecture using CALM.
 
 Explore each concept below:
 
@@ -14,6 +14,7 @@ Explore each concept below:
 - [Interfaces](interfaces): Understand how nodes expose interaction points.
 - [Relationships](relationships): Discover how nodes connect and interact.
 - [Controls](controls): Understand how to apply domain controls to your architecture
+- [Patterns](patterns): Understand how to create reusable architectural templates and enforce standards.
 - [Metadata](metadata): Learn how to enrich your architecture with additional information.
 
 Continue through each section to get detailed explanations, examples, and best practices.
