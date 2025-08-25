@@ -13,6 +13,7 @@ on:
             - 'calm/draft/**'
             - 'calm/getting-started/**'
             - 'calm/interfaces/**'
+            - 'calm/patterns/**'
             - 'calm/release/**'
 
 jobs:
@@ -37,3 +38,12 @@ jobs:
             - name: Sync calm/getting-started folder to S3
               run: |
                   aws s3 sync calm/getting-started s3://${{ vars.AWS_S3_BUCKET }}/getting-started --delete
+            - name: Sync calm/interfaces folder to S3
+              run: |
+                  aws s3 sync calm/interfaces s3://${{ vars.AWS_S3_BUCKET }}/interfaces --delete
+            - name: Sync calm/controls folder to S3
+              run: |
+                  aws s3 sync calm/controls s3://${{ vars.AWS_S3_BUCKET }}/controls --delete
+            - name: Sync calm/patterns folder to S3
+              run: |
+                  aws s3 sync calm/patterns s3://${{ vars.AWS_S3_BUCKET }}/patterns --delete
