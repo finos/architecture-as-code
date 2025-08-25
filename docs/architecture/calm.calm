@@ -1,0 +1,35 @@
+{
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "metadata": {
+        "title": "Common Architecture Language Model (CALM) Architecture",
+        "description": "A CALM architecture describing the CALM architecture.",
+        "calm": {
+            "type": "architecture"
+        }
+    },
+    "nodes": [
+        {
+            "unique-id": "architect",
+            "node-type": "actor",
+            "name": "Architect",
+            "description": "The architect responsible for defining the architecture."
+        },
+        {
+            "unique-id": "calm-cli",
+            "node-type": "service",
+            "name": "CALM CLI",
+            "description": "Command Line Interface for interacting with CALM."
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "architect-uses-calm",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "architect",
+                    "nodes": ["calm-cli"]
+                }
+            }
+        }
+    ]
+}
