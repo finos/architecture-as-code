@@ -1,4 +1,4 @@
-import { Resolvable, ResolvableAndAdaptable } from '../model/resolvable';
+import { Resolvable, ResolvableAndAdaptable } from '@finos/calm-models/model';
 import { CalmModelVisitor } from './calm-model-visitor';
 import { initLogger, Logger } from '../logger.js';
 

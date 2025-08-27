@@ -1,8 +1,8 @@
 {
     "extends": "../tsconfig.base.json",
-    "module": "Preserve",
-    "moduleResolution": "bundler",
     "compilerOptions": {
+        "module": "Preserve",
+        "moduleResolution": "bundler",
         "outDir": "dist"
     },
     "include": ["src", "../vitest-globals.d.ts"],
