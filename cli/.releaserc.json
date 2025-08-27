@@ -3,7 +3,9 @@
     "main"
   ],
   "repositoryUrl": "https://github.com/finos/architecture-as-code",
-  "tagFormat": "cli-v${version}",
+  "tagFormat": "${version}",
+  "ci": true,
+  "dryRun": false,
   "plugins": [
     [
       "@semantic-release/commit-analyzer",
@@ -20,8 +22,40 @@
           { "type": "test", "scope": "cli", "release": false },
           { "type": "style", "scope": "cli", "release": false },
           { "type": "ci", "scope": "cli", "release": false },
-          { "scope": "!cli", "release": false }
-        ]
+          { "type": "feat", "scope": "shared", "release": "minor" },
+          { "type": "fix", "scope": "shared", "release": "patch" },
+          { "type": "perf", "scope": "shared", "release": "patch" },
+          { "type": "revert", "scope": "shared", "release": "patch" },
+          { "type": "docs", "scope": "shared", "release": "patch" },
+          { "type": "chore", "scope": "shared", "release": false },
+          { "type": "refactor", "scope": "shared", "release": "patch" },
+          { "type": "test", "scope": "shared", "release": false },
+          { "type": "style", "scope": "shared", "release": false },
+          { "type": "ci", "scope": "shared", "release": false },
+          { "type": "feat", "scope": "calm-models", "release": "minor" },
+          { "type": "fix", "scope": "calm-models", "release": "patch" },
+          { "type": "perf", "scope": "calm-models", "release": "patch" },
+          { "type": "revert", "scope": "calm-models", "release": "patch" },
+          { "type": "docs", "scope": "calm-models", "release": "patch" },
+          { "type": "chore", "scope": "calm-models", "release": false },
+          { "type": "refactor", "scope": "calm-models", "release": "patch" },
+          { "type": "test", "scope": "calm-models", "release": false },
+          { "type": "style", "scope": "calm-models", "release": false },
+          { "type": "ci", "scope": "calm-models", "release": false },
+          { "scope": "!(cli|shared|calm-models)", "release": false },
+          { "type": "feat", "release": "minor" },
+          { "type": "fix", "release": "patch" },
+          { "type": "perf", "release": "patch" },
+          { "type": "revert", "release": "patch" }
+        ],
+        "parserOpts": {
+          "noteKeywords": ["BREAKING CHANGE", "BREAKING CHANGES"]
+        },
+        "transform": {
+          "cli/**": { "scope": "cli" },
+          "shared/**": { "scope": "shared" },
+          "calm-models/**": { "scope": "calm-models" }
+        }
       }
     ],
     [
