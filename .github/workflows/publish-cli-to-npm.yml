@@ -1,13 +1,21 @@
-name: Publish CLI to NPM
+name: Publish CLI to NPM (Legacy - Manual Release)
+
+# This workflow is now LEGACY - automated releases happen via automated-release.yml
+# Only keep this for emergency manual releases if needed
 
 permissions:
-    contents: write # needed for semantic-release to create releases and update files
-    issues: write # needed for semantic-release to comment on issues
-    pull-requests: write # needed for semantic-release to comment on PRs
+    contents: write
+    issues: write
+    pull-requests: write
 
 on:
-    release:
-        types: [published]
+    workflow_dispatch: # Manual trigger only
+        inputs:
+            force_publish:
+                description: 'Force publish even if automated release exists'
+                required: false
+                default: false
+                type: boolean
 
 jobs:
     publish-cli:

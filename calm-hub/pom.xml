@@ -160,7 +160,7 @@
                 <artifactId>frontend-maven-plugin</artifactId>
                 <version>1.15.1</version>
                 <configuration>
-                    <workingDirectory>${project.basedir}/../calm-hub-ui</workingDirectory>
+                    <workingDirectory>${project.basedir}/..</workingDirectory>
                     <installDirectory>target</installDirectory>
                 </configuration>
                 <executions>
@@ -189,7 +189,7 @@
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>run prod</arguments>
+                            <arguments>run calm-hub-ui:prod</arguments>
                         </configuration>
                     </execution>
                 </executions>
