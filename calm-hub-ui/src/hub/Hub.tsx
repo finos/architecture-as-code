@@ -31,7 +31,7 @@ export default function Hub() {
                     {adrData && <AdrRenderer adrDetails={adrData} />}
                     {data?.calmType === 'Architectures' && <ArchitectureSection data={data!} />}
                     {data?.calmType !== 'Architectures' && !adrData && (
-                        <div className="p-5 bg-[#eee]">
+                        <div className="p-5 bg-[#eee] h-full">
                             <JsonRenderer json={data} />
                         </div>
                     )}
@@ -48,7 +48,7 @@ function ArchitectureSection({ data }: { data: Data }) {
                 <input
                     type="radio"
                     name="view-tabs"
-                    className="tab absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-sm shadow-lg rounded-lg px-4 py-2 border border-gray-200"
+                    className="tab absolute top-4 right-25 z-10 backdrop-blur-sm shadow-lg rounded-lg px-4 py-2 border border-gray-200 bg-white/90 checked:!bg-[#007dff] checked:!text-white hover:bg-gray-100/90"
                     aria-label="JSON"
                     defaultChecked
                 />
@@ -60,7 +60,7 @@ function ArchitectureSection({ data }: { data: Data }) {
                 <input
                     type="radio"
                     name="view-tabs"
-                    className="tab absolute top-4 left-20 z-10 bg-white/90 backdrop-blur-sm shadow-lg rounded-lg px-4 py-2 border border-gray-200"
+                    className="tab absolute top-4 right-4 z-10 backdrop-blur-sm shadow-lg rounded-lg px-4 py-2 border border-gray-200 bg-white/90 checked:!bg-[#007dff] checked:!text-white hover:bg-gray-100/90"
                     aria-label="Diagram"
                 />
                 <div className="tab-content h-full">

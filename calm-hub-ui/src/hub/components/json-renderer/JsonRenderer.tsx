@@ -6,7 +6,7 @@ interface JsonRendererProps {
 }
 
 function NoData() {
-    return <div className=" text-center">Please select a document to load.</div>;
+    return <div className="text-center w-full h-full">Please select a document to load.</div>;
 }
 
 function JsonDisplay({ data }: { data: object }) {
@@ -16,5 +16,5 @@ function JsonDisplay({ data }: { data: object }) {
 export function JsonRenderer({ json }: JsonRendererProps) {
     const content = json ? <JsonDisplay data={json} /> : <NoData />;
 
-    return <div>{content}</div>;
+    return <div className="h-full">{content}</div>;
 }
