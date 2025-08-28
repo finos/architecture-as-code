@@ -1,0 +1,150 @@
+name: Automated Release
+
+permissions:
+  contents: write # needed for semantic-release to create releases and update files
+  issues: write # needed for semantic-release to comment on issues
+  pull-requests: write # needed for semantic-release to comment on PRs
+  id-token: write # needed for npm provenance
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    outputs:
+      should-release: ${{ steps.check.outputs.should-release }}
+      release-type: ${{ steps.check.outputs.release-type }}
+      next-version: ${{ steps.check.outputs.next-version }}
+      current-version: ${{ steps.check.outputs.current-version }}
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci
+
+      - name: Check release type
+        id: check
+        run: |
+          npx semantic-release --dry-run --workspace cli > analysis.txt 2>&1 || true
+          
+          if grep -q "The next release version is" analysis.txt; then
+            NEXT_VERSION=$(grep "The next release version is" analysis.txt | sed 's/.*The next release version is \([0-9.]*\).*/\1/')
+            CURRENT_VERSION=$(node -p "require('./cli/package.json').version")
+            
+            CURRENT_MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
+            NEXT_MAJOR=$(echo $NEXT_VERSION | cut -d. -f1)
+            
+            if [ "$NEXT_MAJOR" -gt "$CURRENT_MAJOR" ]; then
+              RELEASE_TYPE="major"
+            else
+              CURRENT_MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
+              NEXT_MINOR=$(echo $NEXT_VERSION | cut -d. -f2)
+              RELEASE_TYPE=$([ "$NEXT_MINOR" -gt "$CURRENT_MINOR" ] && echo "minor" || echo "patch")
+            fi
+            
+            echo "should-release=true" >> $GITHUB_OUTPUT
+            echo "release-type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+            echo "next-version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+            echo "current-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            
+            echo "🔍 Release: $CURRENT_VERSION → $NEXT_VERSION ($RELEASE_TYPE)"
+          else
+            echo "should-release=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ No release needed"
+          fi
+
+  release-minor-patch:
+    needs: analyze
+    runs-on: ubuntu-latest
+    if: needs.analyze.outputs.should-release == 'true' && needs.analyze.outputs.release-type != 'major'
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Release
+        run: npm run semantic-release --workspace cli
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "## ✅ Release Published" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ needs.analyze.outputs.current-version }} → ${{ needs.analyze.outputs.next-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Type**: ${{ needs.analyze.outputs.release-type }}" >> $GITHUB_STEP_SUMMARY
+
+  prepare-major-release:
+    needs: analyze
+    runs-on: ubuntu-latest
+    if: needs.analyze.outputs.should-release == 'true' && needs.analyze.outputs.release-type == 'major'
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - run: npm ci
+
+      - name: Create draft release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Generate release notes
+          npx semantic-release --dry-run --workspace cli > release-output.txt 2>&1 || true
+          
+          cat > release-notes.md << EOF
+          ## 🚨 Major Version Release
+          
+          This major release contains breaking changes and requires manual approval.
+          
+          ### 💥 Breaking Changes
+          $(grep -i "BREAKING CHANGE" release-output.txt | head -5 || echo "Please review the changes below for breaking changes.")
+          
+          ### 📋 Changes
+          $(git log --oneline \$(git describe --tags --abbrev=0 2>/dev/null || echo "HEAD~10")..HEAD --grep="feat\|fix" -- cli/ | head -10)
+          
+          ### ⚠️ Before Publishing
+          - [ ] Review breaking changes
+          - [ ] Update documentation
+          - [ ] Notify users
+          
+          **Publishing will immediately deploy to NPM.**
+          EOF
+          
+          # Create draft release
+          gh release create "${{ needs.analyze.outputs.next-version }}" \
+            --title "v${{ needs.analyze.outputs.next-version }}" \
+            --notes-file release-notes.md \
+            --draft \
+            --target "${{ github.sha }}"
+
+      - run: |
+          echo "## 🚨 Major Release Draft Created" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ needs.analyze.outputs.current-version }} → ${{ needs.analyze.outputs.next-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Action Required**: Review and publish the draft release" >> $GITHUB_STEP_SUMMARY
