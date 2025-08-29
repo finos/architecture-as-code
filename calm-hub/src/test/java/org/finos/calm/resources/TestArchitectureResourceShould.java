@@ -29,7 +29,10 @@ import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSA
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @QuarkusTest
 @ExtendWith(MockitoExtension.class)
@@ -341,9 +344,16 @@ public class TestArchitectureResourceShould {
         Architecture expectedArchitecture = new Architecture.ArchitectureBuilder()
                 .setNamespace("test")
                 .setVersion("1.0.1")
+                .setName(TEST_NAME)
+                .setDescription(TEST_DESCRIPTION)
                 .setArchitecture("{ \"test\": \"json\" }")
                 .setId(20)
                 .build();
+
+        ArchitectureRequest architectureRequest = new ArchitectureRequest();
+        architectureRequest.setName(TEST_NAME);
+        architectureRequest.setDescription(TEST_DESCRIPTION);
+        architectureRequest.setArchitectureJson(expectedArchitecture.getArchitectureJson());
 
         if (exceptionToThrow != null) {
             when(mockArchitectureStore.createArchitectureForVersion(expectedArchitecture)).thenThrow(exceptionToThrow);
@@ -354,7 +364,7 @@ public class TestArchitectureResourceShould {
         if (expectedStatusCode == 201) {
             given()
                     .header("Content-Type", "application/json")
-                    .body(expectedArchitecture.getArchitectureJson())
+                    .body(architectureRequest)
                     .when()
                     .post("/calm/namespaces/test/architectures/20/versions/1.0.1")
                     .then()
@@ -364,7 +374,7 @@ public class TestArchitectureResourceShould {
         } else {
             given()
                     .header("Content-Type", "application/json")
-                    .body(expectedArchitecture.getArchitectureJson())
+                    .body(architectureRequest)
                     .when()
                     .post("/calm/namespaces/test/architectures/20/versions/1.0.1")
                     .then()
