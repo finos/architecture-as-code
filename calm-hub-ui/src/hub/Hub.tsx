@@ -29,7 +29,7 @@ export default function Hub() {
                 </div>
                 <div className="w-full h-full overflow-auto">
                     {adrData && <AdrRenderer adrDetails={adrData} />}
-                    {data?.calmType === 'Architectures' && <ArchitectureSection data={data!} />}
+                    {data?.calmType === 'Architectures' && <ArchitectureSection data={data} />}
                     {data?.calmType !== 'Architectures' && !adrData && (
                         <div className="p-5 bg-[#eee] h-full">
                             <JsonRenderer json={data} />
@@ -41,7 +41,7 @@ export default function Hub() {
     );
 }
 
-function ArchitectureSection({ data }: { data: Data }) {
+function ArchitectureSection({ data }: { data: Data & { calmType: 'Architectures' } }) {
     return (
         <div className="relative w-full h-full overflow-auto">
             <div className="tabs tabs-box w-full h-full">
