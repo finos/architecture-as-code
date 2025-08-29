@@ -180,13 +180,15 @@ public class ArchitectureResource {
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("architectureId") int architectureId,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
-            String architectureJson
+            ArchitectureRequest architectureRequest
     ) throws URISyntaxException {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
                 .setId(architectureId)
                 .setVersion(version)
-                .setArchitecture(architectureJson)
+                .setName(architectureRequest.getName())
+                .setDescription(architectureRequest.getDescription())
+                .setArchitecture(architectureRequest.getArchitectureJson())
                 .build();
 
         try {

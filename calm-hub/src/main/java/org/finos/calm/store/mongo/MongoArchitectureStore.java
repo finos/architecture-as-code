@@ -164,8 +164,7 @@ public class MongoArchitectureStore implements ArchitectureStore {
             throw new ArchitectureVersionExistsException();
         }
 
-        Document update = new Document("$set", new Document("architectures.$.versions." + architecture.getMongoVersion(), Document.parse(architecture.getArchitectureJson())));
-        writeArchitectureToMongo(architecture, update);
+        writeArchitectureToMongo(architecture);
         return architecture;
     }
 
@@ -174,19 +173,21 @@ public class MongoArchitectureStore implements ArchitectureStore {
         if (!namespaceStore.namespaceExists(architecture.getNamespace())) {
             throw new NamespaceNotFoundException();
         }
-        Document update = new Document("$set", new Document("architectures.$.versions." + architecture.getMongoVersion(), Document.parse(architecture.getArchitectureJson()))
-                .append("architectures.$.name", architecture.getName())
-                .append("architectures.$.description", architecture.getDescription())
-        );
-        writeArchitectureToMongo(architecture, update);
+
+        writeArchitectureToMongo(architecture);
         return architecture;
     }
 
-    private void writeArchitectureToMongo(Architecture architecture, Document update) throws ArchitectureNotFoundException, NamespaceNotFoundException {
+    private void writeArchitectureToMongo(Architecture architecture) throws ArchitectureNotFoundException, NamespaceNotFoundException {
         retrieveArchitectureVersions(architecture);
 
         Document filter = new Document("namespace", architecture.getNamespace())
                 .append("architectures.architectureId", architecture.getId());
+
+        Document update = new Document("$set", new Document("architectures.$.versions." + architecture.getMongoVersion(), Document.parse(architecture.getArchitectureJson()))
+                .append("architectures.$.name", architecture.getName())
+                .append("architectures.$.description", architecture.getDescription())
+        );
 
         try {
             architectureCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
