@@ -1,0 +1,8 @@
+{{#each nodes}}
+  {{#if (eq (lookup this 'unique-id') 'frontend-system')}}
+{{flow-sequence (lookup this 'details') flow-id="flow-frontend"}}
+  {{/if}}
+   {{#if (eq (lookup this 'unique-id') 'backing-system')}}
+{{flow-sequence (lookup this 'details') flow-id="flow-backing"}}
+   {{/if}}
+{{/each}}

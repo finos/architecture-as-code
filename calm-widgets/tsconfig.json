@@ -1,6 +1,8 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
+    "moduleResolution": "bundler",
+    "module": "ESNext",
     "outDir": "./dist",
     "rootDir": "./src",
     "declaration": true,
@@ -10,7 +12,6 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "types": ["vitest"]

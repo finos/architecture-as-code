@@ -442,9 +442,11 @@ describe('CLI Integration Tests', () => {
             };
         }
 
-        test('template command works with table widget', runTemplateWidgetTest('table-test.hbs', 'table-test.md'));
+        test('A user can render a table widget', runTemplateWidgetTest('table-test.hbs', 'table-test.md'));
 
-        test('template command works with list widget', runTemplateWidgetTest('list-test.hbs', 'list-test.md'));
+        test('A user can render a list widget', runTemplateWidgetTest('list-test.hbs', 'list-test.md'));
+
+        test('A user can render a flow sequence widget', runTemplateWidgetTest('flow-sequence-test.hbs', 'flow-sequence-test.md'));
 
         test('A user can render a json view their document or parts of their document', runTemplateWidgetTest('json-viewer-test.hbs', 'json-viewer-test.md'));
 

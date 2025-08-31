@@ -1,0 +1,76 @@
+{
+  "nodes": [
+    {
+      "unique-id": "frontend-system",
+      "name": "Frontend System",
+      "node-type": "webclient",
+      "details": {
+        "nodes": [
+          { "unique-id": "ui", "name": "UI", "node-type": "webclient" },
+          { "unique-id": "screen-service", "name": "Screen Service", "node-type": "webclient" }
+        ],
+        "relationships": [
+          {
+            "unique-id": "ui-to-screen",
+            "relationship-type": {
+              "connects": {
+                "source": { "node": "ui" },
+                "destination": { "node": "screen-service" }
+              }
+            }
+          }
+        ],
+        "flows": [
+          {
+            "unique-id": "flow-frontend",
+            "name": "UI to Screen Service Flow",
+            "description": "A flow where the UI connects to the Screen Service.",
+            "transitions": [
+              {
+                "relationship-unique-id": "ui-to-screen",
+                "sequence-number": 1,
+                "description": "UI sends requests to Screen Service"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "unique-id": "backing-system",
+      "name": "Backing System",
+      "node-type": "service",
+      "details": {
+        "nodes": [
+          { "unique-id": "position-service", "name": "Position Service", "node-type": "service" },
+          { "unique-id": "account-service", "name": "Account Service", "node-type": "service" }
+        ],
+        "relationships": [
+          {
+            "unique-id": "position-to-account",
+            "relationship-type": {
+              "connects": {
+                "source": { "node": "position-service" },
+                "destination": { "node": "account-service" }
+              }
+            }
+          }
+        ],
+        "flows": [
+          {
+            "unique-id": "flow-backing",
+            "name": "Position to Account Service Flow",
+            "description": "A flow where the Position Service connects to the Account Service.",
+            "transitions": [
+              {
+                "relationship-unique-id": "position-to-account",
+                "sequence-number": 1,
+                "description": "Position Service sends data to Account Service"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
