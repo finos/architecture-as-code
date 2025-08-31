@@ -1,10 +1,10 @@
 export type CalmCoreCanonicalModel = {
     nodes: CalmNodeCanonicalModel[];
     relationships: CalmRelationshipCanonicalModel[];
-    metadata: CalmMetadataCanonicalModel;
-    controls: CalmControlsCanonicalModel;
-    flows: CalmFlowCanonicalModel[];
-    adrs: string[];
+    metadata?: CalmMetadataCanonicalModel;
+    controls?: CalmControlsCanonicalModel;
+    flows?: CalmFlowCanonicalModel[];
+    adrs?: string[];
 };
 
 export type CalmNodeCanonicalModel = {
@@ -16,7 +16,7 @@ export type CalmNodeCanonicalModel = {
     interfaces?: CalmInterfaceCanonicalModel[];
     controls?: CalmControlsCanonicalModel;
     metadata?: CalmMetadataCanonicalModel;
-} & Record<string, unknown>; // includes any additional properties
+} & Record<string, unknown>;
 
 export type CalmDecisionCanonicalModel = {
     description: string;
@@ -38,8 +38,8 @@ export type CalmRelationshipCanonicalModel = {
     'relationship-type': CalmRelationshipTypeCanonicalModel;
     description?: string;
     protocol?: string;
-    metadata: CalmMetadataCanonicalModel;
-    controls: CalmControlsCanonicalModel;
+    metadata?: CalmMetadataCanonicalModel;
+    controls?: CalmControlsCanonicalModel;
 } & Record<string, unknown>;
 
 export type CalmFlowCanonicalModel = {
@@ -48,8 +48,8 @@ export type CalmFlowCanonicalModel = {
     description: string;
     transitions: CalmFlowTransitionCanonicalModel[];
     'requirement-url': string;
-    controls: CalmControlsCanonicalModel;
-    metadata: CalmMetadataCanonicalModel;
+    controls?: CalmControlsCanonicalModel;
+    metadata?: CalmMetadataCanonicalModel;
 };
 
 export type CalmFlowTransitionCanonicalModel = {
@@ -81,5 +81,48 @@ export type CalmNodeInterfaceCanonicalModel = {
 
 export type CalmInterfaceCanonicalModel = {
     'unique-id': string;
-} & Record<string, unknown>; // includes flattened config or other props
+} & Record<string, unknown>;
 
+export type CalmRelationshipKey = 'interacts' | 'connects' | 'composed-of' | 'deployed-in' | 'options';
+
+export type ExtractRel<K extends CalmRelationshipKey> =
+    Extract<CalmRelationshipTypeCanonicalModel, Record<K, unknown>>;
+
+export function isInteracts(rel: CalmRelationshipTypeCanonicalModel): rel is ExtractRel<'interacts'> {
+    return 'interacts' in rel;
+}
+
+export function isConnects(rel: CalmRelationshipTypeCanonicalModel): rel is ExtractRel<'connects'> {
+    return 'connects' in rel;
+}
+
+export function isComposedOf(rel: CalmRelationshipTypeCanonicalModel): rel is ExtractRel<'composed-of'> {
+    return 'composed-of' in rel;
+}
+
+export function isDeployedIn(rel: CalmRelationshipTypeCanonicalModel): rel is ExtractRel<'deployed-in'> {
+    return 'deployed-in' in rel;
+}
+
+export function isOptions(rel: CalmRelationshipTypeCanonicalModel): rel is ExtractRel<'options'> {
+    return 'options' in rel;
+}
+
+export function visitRelationship<T>(
+    rel: CalmRelationshipTypeCanonicalModel,
+    fns: {
+        interacts?: (r: ExtractRel<'interacts'>) => T;
+        connects?: (r: ExtractRel<'connects'>) => T;
+        composedOf?: (r: ExtractRel<'composed-of'>) => T;
+        deployedIn?: (r: ExtractRel<'deployed-in'>) => T;
+        options?: (r: ExtractRel<'options'>) => T;
+        default?: () => T;
+    }
+): T {
+    if (isInteracts(rel) && fns.interacts) return fns.interacts(rel);
+    if (isConnects(rel) && fns.connects) return fns.connects(rel);
+    if (isComposedOf(rel) && fns.composedOf) return fns.composedOf(rel);
+    if (isDeployedIn(rel) && fns.deployedIn) return fns.deployedIn(rel);
+    if (isOptions(rel) && fns.options) return fns.options(rel);
+    return fns.default ? fns.default() : (undefined as unknown as T);
+}

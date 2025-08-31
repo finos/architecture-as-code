@@ -1,6 +1,6 @@
 import { Resolvable } from './resolvable.js';
 import {CalmAdaptable} from './adaptable.js';
-import {CalmControlDetailSchema, CalmControlSchema, CalmControlsSchema} from '../types/control-types';
+import {CalmControlDetailSchema, CalmControlSchema, CalmControlsSchema} from '../types';
 import {
     CalmControlCanonicalModel,
     CalmControlDetailCanonicalModel,
