@@ -1,102 +1,78 @@
 import { CalmWidget } from '../../types';
 
-export const TableWidget: CalmWidget<
-    Array<Record<string, unknown>> | Record<string, unknown>,
-    { key?: string; headers?: boolean; columns?: string },
-    {
-        headers: boolean;
-        rows: Array<{ id: string; data: Record<string, unknown> }>;
-        flatTable?: boolean;
-        columnNames?: string[];
-    }
-> = {
+type TableContext = Array<Record<string, unknown>> | Record<string, unknown>;
+type TableOptions = { key?: string; headers?: boolean; columns?: string };
+type TableRow = { id: string; data: Record<string, unknown> };
+type TableViewModel = {
+    headers: boolean;
+    rows: TableRow[];
+    flatTable?: boolean;
+    columnNames?: string[];
+};
+
+function isPlainRecord(v: unknown): v is Record<string, unknown> {
+    return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+export const TableWidget: CalmWidget<TableContext, TableOptions, TableViewModel> = {
     id: 'table',
     templatePartial: 'table-template.html',
     partials: ['row-template.html'],
 
     transformToViewModel: (context, options) => {
-        const hash = options?.hash ?? {};
-        const key = typeof hash.key === 'string' ? hash.key : 'unique-id';
-        const columnList = typeof hash.columns === 'string'
-            ? hash.columns.split(',').map(col => col.trim()).filter(Boolean)
-            : undefined;
+        const { key = 'unique-id', headers = true, columns } = options ?? {};
+        const columnNames =
+            typeof columns === 'string'
+                ? columns.split(',').map(c => c.trim()).filter(Boolean)
+                : undefined;
 
-        // Determine if we should render as flat table or nested
-        const flatTable = columnList !== undefined;
+        const flatTable = columnNames !== undefined;
 
         let entries: Array<Record<string, unknown>>;
 
         if (Array.isArray(context)) {
-            entries = context;
-        } else if (typeof context === 'object' && context !== null && !Array.isArray(context)) {
-            // For objects, convert to array of entries with the key as the specified key field
-            entries = Object.entries(context).map(([id, value]) => {
-                const val = typeof value === 'object' && value !== null && !Array.isArray(value)
-                    ? { ...value, [key]: id }
-                    : { value, [key]: id };
-                return val;
-            });
+            entries = context as Array<Record<string, unknown>>;
+        } else if (isPlainRecord(context)) {
+            entries = Object.entries(context).map(([id, value]) =>
+                isPlainRecord(value) ? { ...value, [key]: id } : { value, [key]: id }
+            );
         } else {
             throw new Error('Unsupported context format for table widget');
         }
 
-        const rows = entries
-            .filter((item): item is Record<string, unknown> => {
-                // For arrays, don't filter by key - just ensure it's a valid object
-                if (Array.isArray(context)) {
-                    return typeof item === 'object' && item !== null && !Array.isArray(item);
-                }
-                // For objects/records, filter by key as before
-                const id = item?.[key];
-                return typeof id === 'string' && id.trim() !== '';
-            })
+        const rows: TableRow[] = entries
+            .filter(item => isPlainRecord(item))
             .map((item, index) => {
-                // For arrays, use index as fallback ID if no key field exists
-                let id: string;
-                if (Array.isArray(context)) {
-                    const keyValue = item?.[key];
-                    id = typeof keyValue === 'string' && keyValue.trim() !== ''
-                        ? keyValue
-                        : index.toString();
-                } else {
-                    id = item[key] as string;
-                }
+                const candidate = item[key];
+                const id =
+                    typeof candidate === 'string' && candidate.trim() !== ''
+                        ? candidate
+                        : String(index);
 
                 const cleaned = Object.fromEntries(
-                    Object.entries(item).filter(([_, value]) => value !== undefined)
+                    Object.entries(item).filter(([, value]) => value !== undefined)
                 );
 
-                const selectedData = columnList
-                    ? Object.fromEntries(
-                        columnList.map(col => [col, cleaned[col]])
-                    )
+                const data = columnNames
+                    ? Object.fromEntries(columnNames.map(col => [col, cleaned[col]]))
                     : cleaned;
 
-                return {
-                    id,
-                    data: selectedData
-                };
+                return { id, data };
             });
 
-        return {
-            headers: hash.headers !== false,
-            rows,
-            flatTable,
-            columnNames: columnList
-        };
+        return { headers, rows, flatTable, columnNames };
     },
 
-    validateContext: (context): context is Array<Record<string, unknown>> | Record<string, unknown> => {
+    validateContext: (context): context is TableContext => {
         return (
-            (Array.isArray(context) &&
-                context.every(item => typeof item === 'object' && item !== null && !Array.isArray(item))) ||
-            (typeof context === 'object' && context !== null && !Array.isArray(context))
+            (Array.isArray(context) && context.every(isPlainRecord)) ||
+            isPlainRecord(context)
         );
     },
 
     registerHelpers: () => ({
         objectEntries: (obj: unknown) => {
-            if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return [];
+            if (!isPlainRecord(obj)) return [];
             return Object.entries(obj).map(([id, data]) => ({ id, data }));
         }
     })
