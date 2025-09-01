@@ -75,7 +75,7 @@ describe('TableWidget', () => {
         it('uses custom key', () => {
             const custom = [{ key: 'abc', name: 'Test' }];
             const vm = TableWidget.transformToViewModel!(custom, {
-                hash: { key: 'key' }
+                key: 'key'
             });
             expect(vm.rows[0].id).toBe('abc');
         });
@@ -83,7 +83,7 @@ describe('TableWidget', () => {
         it('skips records with missing or non-string key', () => {
             const invalid = [{ id: 123 }, { id: null }, {}];
             const vm = TableWidget.transformToViewModel!(invalid, {
-                hash: { key: 'id' }
+                key: 'id'
             });
             expect(vm.rows.length).toBe(3); // All objects processed with fallback indices
             expect(vm.rows[0].id).toBe('0'); // Uses array index
@@ -93,21 +93,21 @@ describe('TableWidget', () => {
 
         it('respects headers option = false', () => {
             const vm = TableWidget.transformToViewModel!(data, {
-                hash: { headers: false }
+                headers: false
             });
             expect(vm.headers).toBe(false);
         });
 
         it('filters columns correctly', () => {
             const vm = TableWidget.transformToViewModel!(data, {
-                hash: { columns: 'name' }
+                columns: 'name'
             });
             expect(vm.rows[0].data).toEqual({ name: 'Alice' });
         });
 
         it('filters columns and keeps key out of data', () => {
             const vm = TableWidget.transformToViewModel!(data, {
-                hash: { columns: 'name', key: 'unique-id' }
+                columns: 'name', key: 'unique-id'
             });
             expect(vm.rows[0]).toEqual({
                 id: '1',
@@ -121,7 +121,7 @@ describe('TableWidget', () => {
                 bar: { a: 3, b: 4 }
             };
             const vm = TableWidget.transformToViewModel!(input, {
-                hash: { columns: 'a' }
+                columns: 'a'
             });
             expect(vm.rows[0].data).toEqual({ a: 1 });
         });

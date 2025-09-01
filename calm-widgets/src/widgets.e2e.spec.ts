@@ -137,4 +137,28 @@ describe('Widgets E2E - Handlebars Integration', () => {
             expect(listScenarios).toContain('objects-as-key-value');
         });
     });
+
+    describe('Flow Sequence Widget', () => {
+        it('renders a bidirectional flow', () => {
+            const { context, template, expected } = fixtures.loadFixture('flow-sequence-widget', 'bidirectional-flow');
+            const compiledTemplate = handlebars.compile(template);
+            const result = compiledTemplate(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders a flow with interacts and connects', () => {
+            const { context, template, expected } = fixtures.loadFixture('flow-sequence-widget', 'interacts-and-connects-flow');
+            const compiledTemplate = handlebars.compile(template);
+            const result = compiledTemplate(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders a flow from a nested architecture in node details', () => {
+            const { context, template, expected } = fixtures.loadFixture('flow-sequence-widget', 'nested-details-flow');
+
+            const compiledTemplate = handlebars.compile(template);
+            const result = compiledTemplate(context);
+            expect(result.trim()).toBe(expected);
+        });
+    });
 });

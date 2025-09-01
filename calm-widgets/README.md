@@ -44,13 +44,42 @@ Renders arrays as Markdown lists (ordered or unordered).
 - `property` (string): Extract specific property from objects
 
 ### JSON Viewer Widget
-
 Renders data as formatted JSON blocks.
 
 ```handlebars
 {{!-- Simple JSON output --}}
 {{json-viewer config}}
 ```
+
+### Flow Sequence Widget
+
+Renders flows (sequence of transitions) as Mermaid sequence diagrams. Use this widget to visualise ordered interactions and connections between nodes defined in a CALM architecture context.
+
+```handlebars
+{{!-- Render a flow by its unique-id from the current architecture context --}}
+{{flow-sequence this flow-id="flow-unique-id"}}
+
+
+{{!-- Example: when rendering a nested architecture in a node's details.}}
+{{#each nodes}}
+  {{#if (eq (lookup this 'unique-id') 'frontend-system')}}
+    {{flow-sequence (lookup this 'details') flow-id="flow-frontend"}}
+  {{/if}}
+{{/each}}
+```
+
+**Note: Simplified syntax to become available to end user on completion of https://github.com/finos/architecture-as-code/issues/1556**
+
+
+
+Options:
+- `flow-id` (string, required): The unique-id of the flow to render from the provided architecture context.
+
+Context requirements:
+- The context passed to the widget must be a valid CALM core canonical model (or a nested details object containing `nodes`, `relationships`, and `flows`).
+- `flows` must include a flow object with the specified `unique-id` and a `transitions` array.
+- Each transition must reference an existing relationship by `relationship-unique-id` and include a `sequence-number` (order) and optional `description`.
+
 
 ## 🛠️ Creating Custom Widgets
 
@@ -211,32 +240,6 @@ Create test fixtures to verify widget output:
 → FIRST ITEM
 → SECOND ITEM  
 → THIRD ITEM
-```
-
-### 5. Register Your Widget
-
-Add your widget to the engine:
-
-```typescript
-import { MyWidget } from './widgets/my-widget';
-
-// Register individual widget
-engine.setupWidgets([{
-  widget: MyWidget,
-  folder: __dirname + '/widgets/my-widget'
-}]);
-
-// Or extend registerDefaultWidgets
-class MyWidgetEngine extends WidgetEngine {
-  registerDefaultWidgets() {
-    super.registerDefaultWidgets();
-    
-    this.setupWidgets([{
-      widget: MyWidget,
-      folder: __dirname + '/widgets/my-widget' 
-    }]);
-  }
-}
 ```
 
 ## 🧪 Testing

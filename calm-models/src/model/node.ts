@@ -7,7 +7,7 @@ import {
     CalmCoreSchema,
     CalmNodeDetailsSchema,
     CalmNodeSchema
-} from '../types/core-types';
+} from '../types';
 import {CalmAdaptable, NullSchema} from './adaptable.js';
 import {CalmNodeCanonicalModel} from '../canonical/template-models.js';
 

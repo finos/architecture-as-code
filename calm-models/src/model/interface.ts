@@ -3,10 +3,10 @@ import {
     CalmInterfaceDefinitionSchema,
     CalmInterfaceTypeSchema,
     CalmNodeInterfaceSchema
-} from '../types/interface-types.js';
+} from '../types';
 
 import { CalmAdaptable } from './adaptable.js';
-import {CalmInterfaceSchema} from '../types/core-types';
+import {CalmInterfaceSchema} from '../types';
 import {CalmInterfaceCanonicalModel, CalmNodeInterfaceCanonicalModel} from '../canonical/template-models.js';
 
 export abstract class CalmInterface {
