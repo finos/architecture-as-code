@@ -317,3 +317,25 @@
   }
 ]
 ```
+
+
+
+### Test Partial Document With DotNotation
+
+```json
+[
+  {
+    "unique-id": "load-balancer",
+    "node-type": "network",
+    "name": "Load Balancer",
+    "description": "The attendees service, or a placeholder for another application",
+    "interfaces": [
+      {
+        "unique-id": "load-balancer-host-port",
+        "host": "[[ HOST ]]",
+        "port": -1
+      }
+    ]
+  }
+]
+```

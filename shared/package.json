@@ -30,8 +30,8 @@
     "module": "esnext",
     "type": "module",
     "dependencies": {
-        "@finos/calm-models": "file:../calm-models",
         "@apidevtools/json-schema-ref-parser": "^14.0.0",
+        "@finos/calm-models": "file:../calm-models",
         "@stoplight/spectral-cli": "^6.14.3",
         "@stoplight/spectral-core": "^1.19.5",
         "@stoplight/spectral-functions": "^1.9.4",
@@ -43,6 +43,7 @@
         "json-pointer": "^0.6.2",
         "jsonpath-plus": "^10.3.0",
         "junit-report-builder": "^5.1.1",
+        "lines-and-columns": "^2.0.4",
         "lodash": "^4.17.21",
         "loglevel": "^1.9.2",
         "mkdirp": "^3.0.1",
