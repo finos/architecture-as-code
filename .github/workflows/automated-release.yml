@@ -36,6 +36,9 @@ jobs:
 
       - name: Check release type
         id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           cd cli
           npx semantic-release --dry-run > analysis.txt 2>&1 || true
@@ -127,6 +130,7 @@ jobs:
       - name: Create draft release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           cd  cli
           # Generate release notes  
