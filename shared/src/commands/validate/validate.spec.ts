@@ -1,4 +1,4 @@
-import { validate, sortSpectralIssueBySeverity, convertSpectralDiagnosticToValidationOutputs, convertJsonSchemaIssuesToValidationOutputs, stripRefs, exitBasedOffOfValidationOutcome } from './validate';
+import { validate, sortSpectralIssueBySeverity, convertSpectralDiagnosticToValidationOutputs, convertJsonSchemaIssuesToValidationOutputs, stripRefs, exitBasedOffOfValidationOutcome, extractChoicesFromArchitecture, applyArchitectureOptionsToPattern } from './validate';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { ISpectralDiagnostic } from '@stoplight/spectral-core';
@@ -256,6 +256,85 @@ describe('validation support functions', () => {
         });
 
     });
+
+    describe('applyArchitectureOptionsToPattern', () => {
+        it('works with one options relationship', async () => {
+            const architecture = JSON.parse(
+                readFileSync(path.resolve(__dirname, '../../../test_fixtures/command/validate/options/arch.json'), 'utf8')
+            );
+            const pattern = JSON.parse(
+                readFileSync(path.resolve(__dirname, '../../../test_fixtures/command/validate/options/pattern.json'), 'utf8')
+            );
+            const expectedResult = JSON.parse(
+                readFileSync(path.resolve(__dirname, '../../../test_fixtures/command/validate/options/pattern-resolved.json'), 'utf8')
+            );
+
+            const newPattern = applyArchitectureOptionsToPattern(architecture, pattern);
+            expect(newPattern).toStrictEqual(expectedResult);
+        });
+    });
+
+    describe('extractChoicesFromArchitecture', () => {
+        it('works with no options relationship', async () => {
+            const architecture = {
+                relationships: [
+                    {
+                        "unique-id": "rel-1",
+                        "relationship-type": {
+                            connects: [
+                                { "description": "A connection", "source": { "node": "node-1" }, "destination": { "node": "node-2" } }
+                            ]
+                        }
+                    }
+                ]
+            };
+            const choices = extractChoicesFromArchitecture(architecture);
+            expect(choices).toHaveLength(0);
+        });
+
+        it('works with one options relationship', async () => {
+            const architecture = {
+                relationships: [
+                    {
+                        "unique-id": "rel-1",
+                        "relationship-type": {
+                            options: [
+                                { "description": "Option 1", "nodes": ["node-1", "node-2"], "relationships": [] }
+                            ]
+                        }
+                    }
+                ]
+            };
+            const choices = extractChoicesFromArchitecture(architecture);
+            expect(choices).toHaveLength(1);
+            expect(choices[0].description).toBe('Option 1');
+        });
+
+        it('works with two options relationship', async () => {
+            const architecture = {
+                relationships: [
+                    {
+                        "unique-id": "rel-1",
+                        "relationship-type": {
+                            options: [
+                                { "description": "Option 1", "nodes": ["node-1", "node-2"], "relationships": [] }
+                            ]
+                        }
+                    },
+                    {
+                        "unique-id": "rel-2",
+                        "relationship-type": {
+                            options: [
+                                { "description": "Option A", "nodes": ["node-4"], "relationships": ["rel-9"] }
+                            ]
+                        }
+                    }
+                ]
+            };
+            const choices = extractChoicesFromArchitecture(architecture);
+            expect(choices).toHaveLength(2);
+        });
+    });
 });
 
 describe('validate pattern and architecture', () => {
@@ -385,7 +464,6 @@ describe('validate pattern and architecture', () => {
         expect(response.allValidationOutputs()).not.toBeNull();
         expect(response.allValidationOutputs().length).toBeGreaterThan(0);
     });
-
 });
 
 describe('validate pattern only', () => {

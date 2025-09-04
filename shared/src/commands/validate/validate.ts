@@ -11,6 +11,7 @@ import createJUnitReport from './output-formats/junit-output.js';
 import prettyFormat from './output-formats/pretty-output.js';
 import { SchemaDirectory } from '../../schema-directory.js';
 import { JsonSchemaValidator } from './json-schema-validator.js';
+import { selectChoices, CalmChoice } from '../generate/components/options.js';
 
 let logger: Logger; // defined later at startup
 
@@ -40,14 +41,14 @@ export function formatOutput(
 ): string {
     logger.info(`Formatting output as ${format}`);
     switch (format) {
-    case 'junit': {
-        const spectralRuleNames = extractSpectralRuleNames();
-        return createJUnitReport(validationOutcome, spectralRuleNames);
-    }
-    case 'pretty':
-        return prettyFormat(validationOutcome);
-    case 'json':
-        return prettifyJson(validationOutcome);
+        case 'junit': {
+            const spectralRuleNames = extractSpectralRuleNames();
+            return createJUnitReport(validationOutcome, spectralRuleNames);
+        }
+        case 'pretty':
+            return prettyFormat(validationOutcome);
+        case 'json':
+            return prettifyJson(validationOutcome);
     }
 }
 
@@ -124,10 +125,6 @@ export async function validate(
  * @returns the validation outcome with the results of the spectral and json schema validations.
  */
 async function validateArchitectureAgainstPattern(architecture: object, pattern: object, schemaDirectory: SchemaDirectory, debug: boolean): Promise<ValidationOutcome> {
-    // Use JsonSchemaValidator
-    const jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, pattern, debug);
-    await jsonSchemaValidator.initialize();
-
     const spectralResultForPattern: SpectralResult = await runSpectralValidations(stripRefs(pattern), validationRulesForPattern);
     const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(JSON.stringify(architecture), validationRulesForArchitecture);
 
@@ -135,6 +132,12 @@ async function validateArchitectureAgainstPattern(architecture: object, pattern:
 
     let errors = spectralResult.errors;
     const warnings = spectralResult.warnings;
+
+    const patternResolved = applyArchitectureOptionsToPattern(architecture, pattern);
+
+    // Use JsonSchemaValidator
+    const jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, patternResolved, debug);
+    await jsonSchemaValidator.initialize();
 
     let jsonSchemaValidations = [];
 
@@ -198,6 +201,39 @@ async function validateArchitectureOnly(architecture: object): Promise<Validatio
     return new ValidationOutcome(jsonSchemaValidations, spectralResultForArchitecture.spectralIssues, errors, warnings);
 }
 
+/**
+ * If a pattern contains objects, we need to apply the chosen options recorded
+ * in the architecture to the pattern to produce a JSON schema pattern that can
+ * be used for validation.
+ * @param architecture Architecture which may contain options.
+ * @param pattern Pattern which may contain options.
+ * @returns Pattern with options applied and flattened.
+ */
+export function applyArchitectureOptionsToPattern(architecture: object, pattern: object): object {
+
+    const choices: CalmChoice[] = extractChoicesFromArchitecture(architecture);
+    if (choices.length === 0) {
+        return pattern;
+    }
+
+    return selectChoices(pattern, choices, true);
+}
+
+export function extractChoicesFromArchitecture(architecture: object): CalmChoice[] {
+    if (!architecture || !architecture.hasOwnProperty('relationships')) {
+        return [];
+    }
+
+    return architecture['relationships']
+        .filter((rel: object) => rel['relationship-type'] && rel['relationship-type'].hasOwnProperty('options'))
+        .map((rel: object) => rel['relationship-type']['options'][0])
+        .map((rel: object) => ({
+            description: rel['description'],
+            nodes: rel['nodes'] || [],
+            relationships: rel['relationships'] || []
+        }));
+}
+
 function extractSpectralRuleNames(): string[] {
     const architectureRuleNames = getRuleNamesFromRuleset(validationRulesForArchitecture);
     const patternRuleNames = getRuleNamesFromRuleset(validationRulesForPattern);
@@ -258,16 +294,16 @@ export function convertSpectralDiagnosticToValidationOutputs(spectralIssues: ISp
 
 function getSeverity(spectralSeverity: DiagnosticSeverity): string {
     switch (spectralSeverity) {
-    case 0:
-        return 'error';
-    case 1:
-        return 'warning';
-    case 2:
-        return 'info';
-    case 3:
-        return 'hint';
-    default:
-        throw Error('The spectralSeverity does not match the known values');
+        case 0:
+            return 'error';
+        case 1:
+            return 'warning';
+        case 2:
+            return 'info';
+        case 3:
+            return 'hint';
+        default:
+            throw Error('The spectralSeverity does not match the known values');
     }
 }
 
