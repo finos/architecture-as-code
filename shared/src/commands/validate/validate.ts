@@ -220,12 +220,12 @@ export function applyArchitectureOptionsToPattern(architecture: object, pattern:
 }
 
 export function extractChoicesFromArchitecture(architecture: object): CalmChoice[] {
-    if (!architecture || !architecture.hasOwnProperty('relationships')) {
+    if (!architecture || !Object.prototype.hasOwnProperty.call(architecture, 'relationships')) {
         return [];
     }
 
     return architecture['relationships']
-        .filter((rel: object) => rel['relationship-type'] && rel['relationship-type'].hasOwnProperty('options'))
+        .filter((rel: object) => rel['relationship-type'] && Object.prototype.hasOwnProperty.call(rel['relationship-type'], 'options'))
         .map((rel: object) => rel['relationship-type']['options'][0])
         .map((rel: object) => ({
             description: rel['description'],
