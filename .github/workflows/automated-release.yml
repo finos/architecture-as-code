@@ -116,6 +116,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          cd  cli
           # Generate release notes
           npx semantic-release > release-output.txt 2>&1 || true
           
