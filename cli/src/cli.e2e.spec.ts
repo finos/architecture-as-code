@@ -448,6 +448,8 @@ describe('CLI Integration Tests', () => {
 
         test('A user can render a flow sequence widget', runTemplateWidgetTest('flow-sequence-test.hbs', 'flow-sequence-test.md'));
 
+        test('A user can render a related nodes widget', runTemplateWidgetTest('related-nodes-test.hbs', 'related-nodes-test.md'));
+
         test('A user can render a json view their document or parts of their document', runTemplateWidgetTest('json-viewer-test.hbs', 'json-viewer-test.md'));
 
         test('A user can render a SAD document', runTemplateWidgetTest('sad-test.hbs', 'sad-test.md'));

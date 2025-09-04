@@ -57,8 +57,7 @@ Renders flows (sequence of transitions) as Mermaid sequence diagrams. Use this w
 
 ```handlebars
 {{!-- Render a flow by its unique-id from the current architecture context --}}
-{{flow-sequence this flow-id="flow-unique-id"}}
-
+{{flow-sequence flow-id="flow-unique-id"}}
 
 {{!-- Example: when rendering a nested architecture in a node's details.}}
 {{#each nodes}}
@@ -67,11 +66,6 @@ Renders flows (sequence of transitions) as Mermaid sequence diagrams. Use this w
   {{/if}}
 {{/each}}
 ```
-
-**Note: Simplified syntax to become available to end user on completion of https://github.com/finos/architecture-as-code/issues/1556**
-
-
-
 Options:
 - `flow-id` (string, required): The unique-id of the flow to render from the provided architecture context.
 
@@ -79,6 +73,59 @@ Context requirements:
 - The context passed to the widget must be a valid CALM core canonical model (or a nested details object containing `nodes`, `relationships`, and `flows`).
 - `flows` must include a flow object with the specified `unique-id` and a `transitions` array.
 - Each transition must reference an existing relationship by `relationship-unique-id` and include a `sequence-number` (order) and optional `description`.
+
+
+
+### Related Nodes Widget
+
+Renders relationships as Mermaid graph diagrams, showing connections between nodes in a CALM architecture. This widget provides contextual filtering to display either all relationships for a specific node or details about a specific relationship.
+
+```handlebars
+{{!-- Show all relationships for a specific node --}}
+{{related-nodes node-id="load-balancer"}}
+
+{{!-- Show details about a specific relationship --}}
+{{related-nodes relationship-id="conference-website-load-balancer"}}
+
+{{!-- Show relationships for a container node (displays deployed services) --}}
+{{related-nodes node-id="k8s-cluster"}}
+```
+
+**Options:**
+- `node-id` (string): Show all relationships involving this node. The node will be highlighted and all its connections (incoming, outgoing, and deployment relationships) will be displayed.
+- `relationship-id` (string): Show details about a specific relationship by its unique-id.
+
+**Context requirements:**
+- The context must be a valid CALM core canonical model containing `nodes` and `relationships` arrays.
+- For `node-id`: The specified node must exist in the `nodes` array.
+- For `relationship-id`: The specified relationship must exist in the `relationships` array.
+
+**Supported relationship types:**
+- **Interacts**: Actor-to-node interactions (e.g., "User -- Interacts --> Frontend")
+- **Connects**: Direct connections between services (e.g., "API -- Connects --> Database")
+- **Composed-of**: Container composition relationships (e.g., "System -- Composed Of --> Service")
+- **Deployed-in**: Deployment relationships (e.g., "Cluster -- Deployed In --> Service")
+
+**Output behavior:**
+- **Node perspective**: When using `node-id`, shows the node highlighted with all its related connections
+- **Relationship perspective**: When using `relationship-id`, shows just that specific relationship
+- **Container filtering**: Automatically filters relationships based on the focus node (container vs. service perspective)
+
+**Example outputs:**
+
+*Node view (`node-id="load-balancer"`)* - Shows the load balancer and all its connections:
+```mermaid
+graph TD;
+load-balancer[load-balancer]:::highlight;
+conference-website -- Connects --> load-balancer;
+load-balancer -- Connects --> attendees;
+k8s-cluster -- Deployed In --> load-balancer;
+classDef highlight fill:#f2bbae;
+```
+
+
+5. **Test thoroughly** with `npm test`
+
 
 
 ## 🛠️ Creating Custom Widgets

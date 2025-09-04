@@ -1,0 +1,17 @@
+{
+  "nodes": [
+    { "unique-id": "ServiceA", "name": "ServiceA" },
+    { "unique-id": "ServiceB", "name": "ServiceB" }
+  ],
+  "relationships": [
+    {
+      "unique-id": "rel-connects-1",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "ServiceA" },
+          "destination": { "node": "ServiceB" }
+        }
+      }
+    }
+  ]
+}

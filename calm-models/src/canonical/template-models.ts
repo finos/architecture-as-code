@@ -116,7 +116,7 @@ export function visitRelationship<T>(
         composedOf?: (r: ExtractRel<'composed-of'>) => T;
         deployedIn?: (r: ExtractRel<'deployed-in'>) => T;
         options?: (r: ExtractRel<'options'>) => T;
-        default?: () => T;
+        default: () => T;
     }
 ): T {
     if (isInteracts(rel) && fns.interacts) return fns.interacts(rel);
@@ -124,5 +124,24 @@ export function visitRelationship<T>(
     if (isComposedOf(rel) && fns.composedOf) return fns.composedOf(rel);
     if (isDeployedIn(rel) && fns.deployedIn) return fns.deployedIn(rel);
     if (isOptions(rel) && fns.options) return fns.options(rel);
-    return fns.default ? fns.default() : (undefined as unknown as T);
+    return fns.default();
+}
+
+
+export type CalmRelationshipTypeKindView =
+    | { kind: 'interacts'; actor: string; nodes: string[] }
+    | { kind: 'connects'; source: CalmNodeInterfaceCanonicalModel; destination: CalmNodeInterfaceCanonicalModel }
+    | { kind: 'deployed-in'; container: string; nodes: string[] }
+    | { kind: 'composed-of'; container: string; nodes: string[] }
+    | { kind: 'options'; options: CalmDecisionCanonicalModel[] };
+
+export function toKindView(rel: CalmRelationshipTypeCanonicalModel): CalmRelationshipTypeKindView {
+    return visitRelationship<CalmRelationshipTypeKindView>(rel, {
+        interacts:  r => ({ kind: 'interacts',   actor: r.interacts.actor, nodes: r.interacts.nodes }),
+        connects:   r => ({ kind: 'connects',    source: r.connects.source, destination: r.connects.destination }),
+        deployedIn: r => ({ kind: 'deployed-in', container: r['deployed-in'].container, nodes: r['deployed-in'].nodes }),
+        composedOf: r => ({ kind: 'composed-of', container: r['composed-of'].container, nodes: r['composed-of'].nodes }),
+        options:    r => ({ kind: 'options',     options: r.options }),
+        default:    () => { throw new Error('Unknown relationship type'); },
+    });
 }

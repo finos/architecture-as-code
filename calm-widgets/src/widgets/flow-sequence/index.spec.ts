@@ -62,7 +62,7 @@ describe('FlowSequenceWidget (actor → services → system)', () => {
         expect(FlowSequenceWidget.validateContext!(arch, { 'flow-id': 'flow-demo' })).toBe(true);
         expect(FlowSequenceWidget.validateContext!(arch, { 'flow-id': 'does-not-exist' })).toBe(false);
 
-        const noFlows: CalmCoreCanonicalModel = { ...arch, flows: [], adrs: [], nodes: [], relationships: [] };
+        const noFlows: CalmCoreCanonicalModel = { ...arch, flows: [], nodes: [], relationships: [] };
         expect(FlowSequenceWidget.validateContext!(noFlows, { 'flow-id': 'flow-demo' })).toBe(false);
     });
 

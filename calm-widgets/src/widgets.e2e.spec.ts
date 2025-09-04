@@ -161,4 +161,48 @@ describe('Widgets E2E - Handlebars Integration', () => {
             expect(result.trim()).toBe(expected);
         });
     });
+
+    describe('Related Nodes Widget', () => {
+        it('renders an interacts relationship', () => {
+            const { context, template, expected } = fixtures.loadFixture('related-nodes-widget', 'relationship-interacts');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders a connects relationship', () => {
+            const { context, template, expected } = fixtures.loadFixture('related-nodes-widget', 'relationship-connects');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders a composed relationship', () => {
+            const { context, template, expected } = fixtures.loadFixture('related-nodes-widget', 'relationship-composed');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders a deployed-in relationship', () => {
+            const { context, template, expected } = fixtures.loadFixture('related-nodes-widget', 'relationship-deployed');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders a node composed-of + connects relationships', () => {
+            const { context, template, expected } = fixtures.loadFixture('related-nodes-widget', 'node-composed-connects');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders a node with related relationships', () => {
+            const { context, template, expected } = fixtures.loadFixture('related-nodes-widget', 'node-with-related');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+    });
 });
