@@ -11,6 +11,7 @@ import createJUnitReport from './output-formats/junit-output.js';
 import prettyFormat from './output-formats/pretty-output.js';
 import { SchemaDirectory } from '../../schema-directory.js';
 import { JsonSchemaValidator } from './json-schema-validator.js';
+import { selectChoices, CalmChoice } from '../generate/components/options.js';
 
 let logger: Logger; // defined later at startup
 
@@ -124,10 +125,6 @@ export async function validate(
  * @returns the validation outcome with the results of the spectral and json schema validations.
  */
 async function validateArchitectureAgainstPattern(architecture: object, pattern: object, schemaDirectory: SchemaDirectory, debug: boolean): Promise<ValidationOutcome> {
-    // Use JsonSchemaValidator
-    const jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, pattern, debug);
-    await jsonSchemaValidator.initialize();
-
     const spectralResultForPattern: SpectralResult = await runSpectralValidations(stripRefs(pattern), validationRulesForPattern);
     const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(JSON.stringify(architecture), validationRulesForArchitecture);
 
@@ -135,6 +132,11 @@ async function validateArchitectureAgainstPattern(architecture: object, pattern:
 
     let errors = spectralResult.errors;
     const warnings = spectralResult.warnings;
+
+    const patternResolved = applyArchitectureOptionsToPattern(architecture, pattern);
+
+    const jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, patternResolved, debug);
+    await jsonSchemaValidator.initialize();
 
     let jsonSchemaValidations = [];
 
@@ -196,6 +198,39 @@ async function validateArchitectureOnly(architecture: object): Promise<Validatio
 
     logger.debug(`Returning validation outcome with ${jsonSchemaValidations.length} JSON schema validations, errors: ${errors}`);
     return new ValidationOutcome(jsonSchemaValidations, spectralResultForArchitecture.spectralIssues, errors, warnings);
+}
+
+/**
+ * If a pattern contains objects, we need to apply the chosen options recorded
+ * in the architecture to the pattern to produce a JSON schema pattern that can
+ * be used for validation.
+ * @param architecture Architecture which may contain options.
+ * @param pattern Pattern which may contain options.
+ * @returns Pattern with options applied and flattened.
+ */
+export function applyArchitectureOptionsToPattern(architecture: object, pattern: object): object {
+
+    const choices: CalmChoice[] = extractChoicesFromArchitecture(architecture);
+    if (choices.length === 0) {
+        return pattern;
+    }
+
+    return selectChoices(pattern, choices, true);
+}
+
+export function extractChoicesFromArchitecture(architecture: object): CalmChoice[] {
+    if (!architecture || !Object.prototype.hasOwnProperty.call(architecture, 'relationships')) {
+        return [];
+    }
+
+    return architecture['relationships']
+        .filter((rel: object) => rel['relationship-type'] && Object.prototype.hasOwnProperty.call(rel['relationship-type'], 'options'))
+        .map((rel: object) => rel['relationship-type']['options'][0])
+        .map((rel: object) => ({
+            description: rel['description'],
+            nodes: rel['nodes'] || [],
+            relationships: rel['relationships'] || []
+        }));
 }
 
 function extractSpectralRuleNames(): string[] {
