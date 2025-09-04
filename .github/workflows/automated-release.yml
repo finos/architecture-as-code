@@ -37,6 +37,7 @@ jobs:
       - name: Check release type
         id: check
         run: |
+          cd cli
           npx semantic-release --dry-run > analysis.txt 2>&1 || true
           
           if grep -q "The next release version is" analysis.txt; then
