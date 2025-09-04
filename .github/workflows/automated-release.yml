@@ -34,6 +34,16 @@ jobs:
 
       - run: npm ci
 
+      - name: Debug NPM Token
+        run: |
+          if [ -n "$NPM_TOKEN" ]; then
+            echo "✅ NPM_TOKEN is set (length: ${#NPM_TOKEN})"
+          else
+            echo "❌ NPM_TOKEN is not set"
+          fi
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
+
       - name: Check release type
         id: check
         env:
@@ -98,17 +108,6 @@ jobs:
 
       - run: npm ci
       - run: npm run build
-
-
-      - name: Debug NPM Token
-        run: |
-          if [ -n "$NPM_TOKEN" ]; then
-            echo "✅ NPM_TOKEN is set (length: ${#NPM_TOKEN})"
-          else
-            echo "❌ NPM_TOKEN is not set"
-          fi
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
 
       - name: Release
         run: |
