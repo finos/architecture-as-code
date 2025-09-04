@@ -99,8 +99,21 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+
+      - name: Debug NPM Token
+        run: |
+          if [ -n "$NPM_TOKEN" ]; then
+            echo "✅ NPM_TOKEN is set (length: ${#NPM_TOKEN})"
+          else
+            echo "❌ NPM_TOKEN is not set"
+          fi
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
+
       - name: Release
-        run: npm run semantic-release --workspace cli
+        run: |
+          cd cli
+          npm run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
