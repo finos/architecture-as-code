@@ -1,4 +1,4 @@
-import { validate, sortSpectralIssueBySeverity, convertSpectralDiagnosticToValidationOutputs, convertJsonSchemaIssuesToValidationOutputs, stripRefs, exitBasedOffOfValidationOutcome, extractChoicesFromArchitecture, applyArchitectureOptionsToPattern } from './validate';
+import { validate, sortSpectralIssueBySeverity, convertSpectralDiagnosticToValidationOutputs, convertJsonSchemaIssuesToValidationOutputs, stripRefs, exitBasedOffOfValidationOutcome, extractChoicesFromArchitecture } from './validate';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { ISpectralDiagnostic } from '@stoplight/spectral-core';
@@ -255,23 +255,6 @@ describe('validation support functions', () => {
             expect(actual).toStrictEqual(expected);
         });
 
-    });
-
-    describe('applyArchitectureOptionsToPattern', () => {
-        it('works with one options relationship', async () => {
-            const architecture = JSON.parse(
-                readFileSync(path.resolve(__dirname, '../../../test_fixtures/command/validate/options/arch.json'), 'utf8')
-            );
-            const pattern = JSON.parse(
-                readFileSync(path.resolve(__dirname, '../../../test_fixtures/command/validate/options/pattern.json'), 'utf8')
-            );
-            const expectedResult = JSON.parse(
-                readFileSync(path.resolve(__dirname, '../../../test_fixtures/command/validate/options/pattern-resolved.json'), 'utf8')
-            );
-
-            const newPattern = applyArchitectureOptionsToPattern(architecture, pattern);
-            expect(newPattern).toStrictEqual(expectedResult);
-        });
     });
 
     describe('extractChoicesFromArchitecture', () => {
