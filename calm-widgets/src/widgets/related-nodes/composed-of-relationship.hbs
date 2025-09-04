@@ -1,0 +1,19 @@
+{{#if id}}
+  {{!-- Path 1: Show what's composed OF this container (when viewing from container perspective) --}}
+  {{#if (eq container ../id)}}
+    {{#each nodes}}
+{{../container}} -- Composed Of --> {{this}};
+    {{/each}}
+  {{/if}}
+  {{!-- Path 2: Show what container this node is composed OF (when viewing from node perspective) --}}
+  {{#each nodes}}
+    {{#if (eq this ../../id)}}
+{{../container}} -- Composed Of --> {{this}};
+    {{/if}}
+  {{/each}}
+{{else}}
+  {{!-- Path 3: Show all composition relationships (no specific focus) --}}
+  {{#each nodes}}
+{{../container}} -- Composed Of --> {{this}};
+  {{/each}}
+{{/if}}
