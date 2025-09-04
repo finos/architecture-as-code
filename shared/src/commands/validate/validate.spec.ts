@@ -279,10 +279,10 @@ describe('validation support functions', () => {
             const architecture = {
                 relationships: [
                     {
-                        "unique-id": "rel-1",
-                        "relationship-type": {
+                        'unique-id': 'rel-1',
+                        'relationship-type': {
                             connects: [
-                                { "description": "A connection", "source": { "node": "node-1" }, "destination": { "node": "node-2" } }
+                                { 'description': 'A connection', 'source': { 'node': 'node-1' }, 'destination': { 'node': 'node-2' } }
                             ]
                         }
                     }
@@ -296,10 +296,10 @@ describe('validation support functions', () => {
             const architecture = {
                 relationships: [
                     {
-                        "unique-id": "rel-1",
-                        "relationship-type": {
+                        'unique-id': 'rel-1',
+                        'relationship-type': {
                             options: [
-                                { "description": "Option 1", "nodes": ["node-1", "node-2"], "relationships": [] }
+                                { 'description': 'Option 1', 'nodes': ['node-1', 'node-2'], 'relationships': [] }
                             ]
                         }
                     }
@@ -314,18 +314,18 @@ describe('validation support functions', () => {
             const architecture = {
                 relationships: [
                     {
-                        "unique-id": "rel-1",
-                        "relationship-type": {
+                        'unique-id': 'rel-1',
+                        'relationship-type': {
                             options: [
-                                { "description": "Option 1", "nodes": ["node-1", "node-2"], "relationships": [] }
+                                { 'description': 'Option 1', 'nodes': ['node-1', 'node-2'], 'relationships': [] }
                             ]
                         }
                     },
                     {
-                        "unique-id": "rel-2",
-                        "relationship-type": {
+                        'unique-id': 'rel-2',
+                        'relationship-type': {
                             options: [
-                                { "description": "Option A", "nodes": ["node-4"], "relationships": ["rel-9"] }
+                                { 'description': 'Option A', 'nodes': ['node-4'], 'relationships': ['rel-9'] }
                             ]
                         }
                     }
