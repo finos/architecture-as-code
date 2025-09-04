@@ -1,4 +1,4 @@
-name: Automated Release
+name: CLI - Automated Release
 
 permissions:
   contents: write # needed for semantic-release to create releases and update files
@@ -34,14 +34,36 @@ jobs:
 
       - run: npm ci
 
+      - name: Debug NPM Token
+        run: |
+          if [ -n "$NPM_TOKEN" ]; then
+            echo "✅ NPM_TOKEN is set (length: ${#NPM_TOKEN})"
+          else
+            echo "❌ NPM_TOKEN is not set"
+          fi
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
+
       - name: Check release type
         id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
         run: |
-          npx semantic-release --dry-run --workspace cli > analysis.txt 2>&1 || true
+          cd cli
+          npx semantic-release --dry-run > analysis.txt 2>&1 || true
+          
+          echo "=== SEMANTIC RELEASE ANALYSIS OUTPUT ==="
+          cat analysis.txt
+          echo "========================================"
           
           if grep -q "The next release version is" analysis.txt; then
-            NEXT_VERSION=$(grep "The next release version is" analysis.txt | sed 's/.*The next release version is \([0-9.]*\).*/\1/')
-            CURRENT_VERSION=$(node -p "require('./cli/package.json').version")
+            NEXT_VERSION=$(grep "The next release version is" analysis.txt | sed 's/.*The next release version is \([^[:space:]]\+\).*/\1/')
+            CURRENT_VERSION=$(node -p "require('./package.json').version")
+            
+            echo "📋 Extracted versions:"
+            echo "  Current: $CURRENT_VERSION"
+            echo "  Next: $NEXT_VERSION"
             
             CURRENT_MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
             NEXT_MAJOR=$(echo $NEXT_VERSION | cut -d. -f1)
@@ -63,6 +85,10 @@ jobs:
           else
             echo "should-release=false" >> $GITHUB_OUTPUT
             echo "ℹ️ No release needed"
+            echo "🔍 Checking for common patterns in analysis:"
+            echo "  - No relevant changes: $(grep -c "There are no relevant changes" analysis.txt || echo "0")"
+            echo "  - Branch restrictions: $(grep -c "only publish from" analysis.txt || echo "0")"
+            echo "  - Configuration errors: $(grep -c -i "error" analysis.txt || echo "0")"
           fi
 
   release-minor-patch:
@@ -84,10 +110,12 @@ jobs:
       - run: npm run build
 
       - name: Release
-        run: npm run semantic-release --workspace cli
+        run: |
+          cd cli
+          npm run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
 
       - name: Summary
         run: |
@@ -114,9 +142,11 @@ jobs:
       - name: Create draft release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
         run: |
-          # Generate release notes
-          npx semantic-release --dry-run --workspace cli > release-output.txt 2>&1 || true
+          cd  cli
+          # Generate release notes  
+          npx semantic-release > release-output.txt 2>&1 || true
           
           cat > release-notes.md << EOF
           ## 🚨 Major Version Release
