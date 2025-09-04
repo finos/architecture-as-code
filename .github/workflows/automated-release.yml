@@ -1,4 +1,4 @@
-name: Automated Release
+name: CLI - Automated Release
 
 permissions:
   contents: write # needed for semantic-release to create releases and update files
@@ -37,11 +37,11 @@ jobs:
       - name: Check release type
         id: check
         run: |
-          npx semantic-release --dry-run --workspace cli > analysis.txt 2>&1 || true
+          npx semantic-release --dry-run > analysis.txt 2>&1 || true
           
           if grep -q "The next release version is" analysis.txt; then
-            NEXT_VERSION=$(grep "The next release version is" analysis.txt | sed 's/.*The next release version is \([0-9.]*\).*/\1/')
-            CURRENT_VERSION=$(node -p "require('./cli/package.json').version")
+            NEXT_VERSION=$(grep "The next release version is" analysis.txt | sed 's/.*The next release version is \([^[:space:]]\+\).*/\1/')
+            CURRENT_VERSION=$(node -p "require('./package.json').version")
             
             CURRENT_MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
             NEXT_MAJOR=$(echo $NEXT_VERSION | cut -d. -f1)
@@ -116,7 +116,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Generate release notes
-          npx semantic-release --dry-run --workspace cli > release-output.txt 2>&1 || true
+          npx semantic-release > release-output.txt 2>&1 || true
           
           cat > release-notes.md << EOF
           ## 🚨 Major Version Release
