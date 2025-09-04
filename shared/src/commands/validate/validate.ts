@@ -135,7 +135,6 @@ async function validateArchitectureAgainstPattern(architecture: object, pattern:
 
     const patternResolved = applyArchitectureOptionsToPattern(architecture, pattern);
 
-    // Use JsonSchemaValidator
     const jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, patternResolved, debug);
     await jsonSchemaValidator.initialize();
 
