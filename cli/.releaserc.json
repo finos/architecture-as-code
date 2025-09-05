@@ -99,7 +99,7 @@
     [
       "@semantic-release/exec",
       {
-        "successCmd": "git checkout main && git checkout -b release/changelog-cli-v${nextRelease.version} && git add CHANGELOG.md && git commit -m 'docs(cli): update changelog for ${nextRelease.version} [skip ci]' && git push origin release/changelog-cli-v${nextRelease.version}"
+        "successCmd": "git checkout main && git checkout -b release/changelog-cli-v${nextRelease.version} && git add CHANGELOG.md && git commit -m 'ci(cli): update changelog for ${nextRelease.version}' && git push origin release/changelog-cli-v${nextRelease.version}"
       }
     ]
   ]
