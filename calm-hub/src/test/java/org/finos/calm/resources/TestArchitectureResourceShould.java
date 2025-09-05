@@ -1,9 +1,12 @@
 package org.finos.calm.resources;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.bson.json.JsonParseException;
-import org.finos.calm.domain.*;
+import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.architecture.ArchitectureRequest;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
@@ -26,14 +29,21 @@ import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSA
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @QuarkusTest
 @ExtendWith(MockitoExtension.class)
 public class TestArchitectureResourceShould {
 
+    private static final String TEST_NAME = "test-name";
+    private static final String TEST_DESCRIPTION = "test description";
     @InjectMock
     ArchitectureStore mockArchitectureStore;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     void return_a_404_when_an_invalid_namespace_is_provided_on_get_architectures() throws NamespaceNotFoundException {
@@ -60,7 +70,7 @@ public class TestArchitectureResourceShould {
 
     @Test
     void return_list_of_architecture_ids_when_valid_namespace_provided_on_get_architectures() throws NamespaceNotFoundException {
-        when(mockArchitectureStore.getArchitecturesForNamespace(anyString())).thenReturn(Arrays.asList(12345,54321));
+        when(mockArchitectureStore.getArchitecturesForNamespace(anyString())).thenReturn(Arrays.asList(12345, 54321));
 
         given()
                 .when()
@@ -73,22 +83,29 @@ public class TestArchitectureResourceShould {
     }
 
     @Test
-    void return_a_404_when_invalid_namespace_is_provided_on_create_architecture() throws NamespaceNotFoundException {
+    void return_a_404_when_invalid_namespace_is_provided_on_create_architecture() throws NamespaceNotFoundException, JsonProcessingException {
         when(mockArchitectureStore.createArchitectureForNamespace(any(Architecture.class)))
                 .thenThrow(new NamespaceNotFoundException());
 
-        String architecture = "{ \"test\": \"json\" }";
+        String architectureJson = "{ \"test\": \"json\" }";
+
+        ArchitectureRequest architectureRequest = new ArchitectureRequest();
+        architectureRequest.setName(TEST_NAME);
+        architectureRequest.setDescription(TEST_DESCRIPTION);
+        architectureRequest.setArchitectureJson(architectureJson);
 
         given()
                 .header("Content-Type", "application/json")
-                .body(architecture)
+                .body(objectMapper.writeValueAsString(architectureRequest))
                 .when()
                 .post("/calm/namespaces/invalid/architectures")
                 .then()
                 .statusCode(404);
 
         Architecture expectedArchitecture = new Architecture.ArchitectureBuilder()
-                .setArchitecture(architecture)
+                .setArchitecture(architectureJson)
+                .setName(TEST_NAME)
+                .setDescription(TEST_DESCRIPTION)
                 .setNamespace("invalid")
                 .build();
 
@@ -110,12 +127,6 @@ public class TestArchitectureResourceShould {
                 .then()
                 .statusCode(400);
 
-        Architecture expectedArchitecture = new Architecture.ArchitectureBuilder()
-                .setArchitecture(architecture)
-                .setNamespace("invalid")
-                .build();
-
-        verify(mockArchitectureStore, times(1)).createArchitectureForNamespace(expectedArchitecture);
     }
 
     @Test
@@ -131,7 +142,7 @@ public class TestArchitectureResourceShould {
     }
 
     @Test
-    void return_a_created_with_location_of_architecture_when_creating_architecture() throws NamespaceNotFoundException {
+    void return_a_created_with_location_of_architecture_when_creating_architecture() throws NamespaceNotFoundException, JsonProcessingException {
         String architectureJson = "{ \"test\": \"json\" }";
         String namespace = "finos";
 
@@ -139,14 +150,21 @@ public class TestArchitectureResourceShould {
                 .setArchitecture(architectureJson)
                 .setVersion("1.0.0")
                 .setId(12)
+                .setName(TEST_NAME)
+                .setDescription(TEST_DESCRIPTION)
                 .setNamespace(namespace)
                 .build();
+
+        ArchitectureRequest architectureRequest = new ArchitectureRequest();
+        architectureRequest.setName(TEST_NAME);
+        architectureRequest.setDescription(TEST_DESCRIPTION);
+        architectureRequest.setArchitectureJson(architectureJson);
 
         when(mockArchitectureStore.createArchitectureForNamespace(any(Architecture.class))).thenReturn(stubbedReturnArchitecture);
 
         given()
                 .header("Content-Type", "application/json")
-                .body(architectureJson)
+                .body(objectMapper.writeValueAsString(architectureRequest))
                 .when()
                 .post("/calm/namespaces/finos/architectures")
                 .then()
@@ -157,6 +175,8 @@ public class TestArchitectureResourceShould {
         Architecture expectedArchitectureToCreate = new Architecture.ArchitectureBuilder()
                 .setArchitecture(architectureJson)
                 .setNamespace(namespace)
+                .setName(TEST_NAME)
+                .setDescription(TEST_DESCRIPTION)
                 .build();
 
         verify(mockArchitectureStore, times(1)).createArchitectureForNamespace(expectedArchitectureToCreate);
@@ -199,7 +219,7 @@ public class TestArchitectureResourceShould {
             when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(versions);
         }
 
-        if (expectedStatusCode == 200 ) {
+        if (expectedStatusCode == 200) {
             String expectedBody = "{\"values\":[\"1.0.0\",\"1.0.1\"]}";
             given()
                     .when()
@@ -311,8 +331,8 @@ public class TestArchitectureResourceShould {
 
     static Stream<Arguments> provideParametersForCreateArchitectureTests() {
         return Stream.of(
-                Arguments.of( new NamespaceNotFoundException(), 404),
-                Arguments.of( new ArchitectureNotFoundException(), 404),
+                Arguments.of(new NamespaceNotFoundException(), 404),
+                Arguments.of(new ArchitectureNotFoundException(), 404),
                 Arguments.of(new ArchitectureVersionExistsException(), 409),
                 Arguments.of(null, 201)
         );
@@ -320,13 +340,20 @@ public class TestArchitectureResourceShould {
 
     @ParameterizedTest
     @MethodSource("provideParametersForCreateArchitectureTests")
-    void respond_correctly_to_create_architecture(Throwable exceptionToThrow, int expectedStatusCode) throws ArchitectureNotFoundException, ArchitectureVersionExistsException, NamespaceNotFoundException {
+    void respond_correctly_to_create_architecture(Throwable exceptionToThrow, int expectedStatusCode) throws ArchitectureNotFoundException, ArchitectureVersionExistsException, NamespaceNotFoundException, JsonProcessingException {
         Architecture expectedArchitecture = new Architecture.ArchitectureBuilder()
                 .setNamespace("test")
                 .setVersion("1.0.1")
+                .setName(TEST_NAME)
+                .setDescription(TEST_DESCRIPTION)
                 .setArchitecture("{ \"test\": \"json\" }")
                 .setId(20)
                 .build();
+
+        ArchitectureRequest architectureRequest = new ArchitectureRequest();
+        architectureRequest.setName(TEST_NAME);
+        architectureRequest.setDescription(TEST_DESCRIPTION);
+        architectureRequest.setArchitectureJson(expectedArchitecture.getArchitectureJson());
 
         if (exceptionToThrow != null) {
             when(mockArchitectureStore.createArchitectureForVersion(expectedArchitecture)).thenThrow(exceptionToThrow);
@@ -334,10 +361,10 @@ public class TestArchitectureResourceShould {
             when(mockArchitectureStore.createArchitectureForVersion(expectedArchitecture)).thenReturn(expectedArchitecture);
         }
 
-        if(expectedStatusCode == 201) {
+        if (expectedStatusCode == 201) {
             given()
                     .header("Content-Type", "application/json")
-                    .body(expectedArchitecture.getArchitectureJson())
+                    .body(architectureRequest)
                     .when()
                     .post("/calm/namespaces/test/architectures/20/versions/1.0.1")
                     .then()
@@ -347,7 +374,7 @@ public class TestArchitectureResourceShould {
         } else {
             given()
                     .header("Content-Type", "application/json")
-                    .body(expectedArchitecture.getArchitectureJson())
+                    .body(architectureRequest)
                     .when()
                     .post("/calm/namespaces/test/architectures/20/versions/1.0.1")
                     .then()

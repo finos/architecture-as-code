@@ -43,14 +43,14 @@ public class MongoArchitectureStore implements ArchitectureStore {
 
     @Override
     public List<Integer> getArchitecturesForNamespace(String namespace) throws NamespaceNotFoundException {
-        if(!namespaceStore.namespaceExists(namespace)) {
+        if (!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
 
         Document namespaceDocument = architectureCollection.find(Filters.eq("namespace", namespace)).first();
 
         //protects from an unpopulated mongo collection
-        if(namespaceDocument == null || namespaceDocument.isEmpty()) {
+        if (namespaceDocument == null || namespaceDocument.isEmpty()) {
             return List.of();
         }
 
@@ -66,13 +66,15 @@ public class MongoArchitectureStore implements ArchitectureStore {
 
     @Override
     public Architecture createArchitectureForNamespace(Architecture architecture) throws NamespaceNotFoundException {
-        if(!namespaceStore.namespaceExists(architecture.getNamespace())) {
+        if (!namespaceStore.namespaceExists(architecture.getNamespace())) {
             throw new NamespaceNotFoundException();
         }
 
         int id = counterStore.getNextArchitectureSequenceValue();
-        Document architectureDocument = new Document("architectureId", id).append("versions",
-                new Document("1-0-0", Document.parse(architecture.getArchitectureJson())));
+        Document architectureDocument = new Document("architectureId", id)
+                .append("name", architecture.getName())
+                .append("description", architecture.getDescription())
+                .append("versions", new Document("1-0-0", Document.parse(architecture.getArchitectureJson())));
 
         architectureCollection.updateOne(
                 Filters.eq("namespace", architecture.getNamespace()),
@@ -113,7 +115,7 @@ public class MongoArchitectureStore implements ArchitectureStore {
     }
 
     private Document retrieveArchitectureVersions(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException {
-        if(!namespaceStore.namespaceExists(architecture.getNamespace())) {
+        if (!namespaceStore.namespaceExists(architecture.getNamespace())) {
             throw new NamespaceNotFoundException();
         }
 
@@ -142,7 +144,7 @@ public class MongoArchitectureStore implements ArchitectureStore {
                 // Return the pattern JSON blob for the specified version
                 Document versionDoc = (Document) versions.get(architecture.getMongoVersion());
                 log.info("VersionDoc: [{}], Mongo Version: [{}]", architectureDoc.get("versions"), architecture.getMongoVersion());
-                if(versionDoc == null) {
+                if (versionDoc == null) {
                     throw new ArchitectureVersionNotFoundException();
                 }
                 return versionDoc.toJson();
@@ -154,11 +156,11 @@ public class MongoArchitectureStore implements ArchitectureStore {
 
     @Override
     public Architecture createArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionExistsException {
-        if(!namespaceStore.namespaceExists(architecture.getNamespace())) {
+        if (!namespaceStore.namespaceExists(architecture.getNamespace())) {
             throw new NamespaceNotFoundException();
         }
 
-        if(versionExists(architecture)) {
+        if (versionExists(architecture)) {
             throw new ArchitectureVersionExistsException();
         }
 
@@ -168,9 +170,10 @@ public class MongoArchitectureStore implements ArchitectureStore {
 
     @Override
     public Architecture updateArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException {
-        if(!namespaceStore.namespaceExists(architecture.getNamespace())) {
+        if (!namespaceStore.namespaceExists(architecture.getNamespace())) {
             throw new NamespaceNotFoundException();
         }
+
         writeArchitectureToMongo(architecture);
         return architecture;
     }
@@ -178,11 +181,13 @@ public class MongoArchitectureStore implements ArchitectureStore {
     private void writeArchitectureToMongo(Architecture architecture) throws ArchitectureNotFoundException, NamespaceNotFoundException {
         retrieveArchitectureVersions(architecture);
 
-        Document architectureDocument = Document.parse(architecture.getArchitectureJson());
         Document filter = new Document("namespace", architecture.getNamespace())
                 .append("architectures.architectureId", architecture.getId());
-        Document update = new Document("$set",
-                new Document("architectures.$.versions." + architecture.getMongoVersion(), architectureDocument));
+
+        Document update = new Document("$set", new Document("architectures.$.versions." + architecture.getMongoVersion(), Document.parse(architecture.getArchitectureJson()))
+                .append("architectures.$.name", architecture.getName())
+                .append("architectures.$.description", architecture.getDescription())
+        );
 
         try {
             architectureCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
