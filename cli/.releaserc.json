@@ -3,7 +3,7 @@
     "main"
   ],
   "repositoryUrl": "https://github.com/finos/architecture-as-code",
-  "tagFormat": "${version}",
+  "tagFormat": "cli-v${version}",
   "ci": true,
   "plugins": [
     [
@@ -94,10 +94,10 @@
       "@semantic-release/git",
       {
         "assets": [
-          "package.json",
           "CHANGELOG.md"
         ],
-        "message": "chore(cli): release ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+        "message": "docs(cli): update changelog for ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}",
+        "branch": "release/changelog-v${nextRelease.version}"
       }
     ],
     [
