@@ -10,7 +10,6 @@ We use [Semantic Release](https://semantic-release.gitbook.io/) to automate our 
 - **Automated releases** triggered by commit messages
 - **Generated changelogs** that clearly communicate changes to users
 - **Reduced human error** in the release process
-- **Faster delivery** of features and fixes to our users
 
 We enforce conventional commit standards across the entire project to ensure we can easily extend semantic-release to other modules when ready.
 
