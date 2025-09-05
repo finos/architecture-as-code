@@ -91,14 +91,15 @@
       }
     ],
     [
-      "@semantic-release/exec",
+      "@semantic-release/github",
       {
-        "prepareCmd": "git checkout -b release/changelog-cli-v${nextRelease.version} || git checkout release/changelog-cli-v${nextRelease.version} && git add CHANGELOG.md && git commit -m 'docs(cli): update changelog for ${nextRelease.version} [skip ci]' && git push origin release/changelog-cli-v${nextRelease.version}"
+        "draft": false
       }
     ],
     [
-      "@semantic-release/github",
+      "@semantic-release/exec",
       {
+        "successCmd": "git checkout main && git checkout -b release/changelog-cli-v${nextRelease.version} && git add CHANGELOG.md && git commit -m 'docs(cli): update changelog for ${nextRelease.version} [skip ci]' && git push origin release/changelog-cli-v${nextRelease.version}"
       }
     ]
   ]
