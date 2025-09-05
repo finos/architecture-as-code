@@ -93,16 +93,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "git checkout -b release/changelog-cli-v${nextRelease.version} || git checkout release/changelog-cli-v${nextRelease.version}"
-      }
-    ],
-    [
-      "@semantic-release/git",
-      {
-        "assets": [
-          "CHANGELOG.md"
-        ],
-        "message": "docs(cli): update changelog for ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+        "prepareCmd": "git checkout -b release/changelog-cli-v${nextRelease.version} || git checkout release/changelog-cli-v${nextRelease.version} && git add CHANGELOG.md && git commit -m 'docs(cli): update changelog for ${nextRelease.version} [skip ci]' && git push origin release/changelog-cli-v${nextRelease.version}"
       }
     ],
     [
