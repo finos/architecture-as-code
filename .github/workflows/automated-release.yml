@@ -42,13 +42,13 @@ jobs:
             echo "❌ NPM_TOKEN is not set"
           fi
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
+          NPM_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
 
       - name: Check release type
         id: check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
+          NPM_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
         run: |
           cd cli
           npx semantic-release --dry-run > analysis.txt 2>&1 || true
@@ -115,7 +115,7 @@ jobs:
           npm run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
+          NPM_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
 
       - name: Summary
         run: |
@@ -142,7 +142,7 @@ jobs:
       - name: Create draft release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
+          NPM_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
         run: |
           cd  cli
           # Generate release notes  
