@@ -121,6 +121,26 @@ jobs:
           echo "**Version**: ${{ needs.analyze.outputs.current-version }} → ${{ needs.analyze.outputs.next-version }}" >> $GITHUB_STEP_SUMMARY
           echo "**Type**: ${{ needs.analyze.outputs.release-type }}" >> $GITHUB_STEP_SUMMARY
 
+      - name: Create Changelog PR
+        if: needs.analyze.outputs.should-release == 'true'
+        run: |
+          CHANGELOG_BRANCH="release/changelog-cli-v${{ needs.analyze.outputs.next-version }}"
+          
+          # Check if the branch was created and pushed
+          if git ls-remote --heads origin $CHANGELOG_BRANCH | grep -q $CHANGELOG_BRANCH; then
+            gh pr create \
+              --title "docs(cli): update changelog for v${{ needs.analyze.outputs.next-version }}" \
+              --body "Automated changelog update for CLI release v${{ needs.analyze.outputs.next-version }}" \
+              --head "$CHANGELOG_BRANCH" \
+              --base main
+            echo "📋 Changelog PR created for branch: $CHANGELOG_BRANCH" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No changelog branch found - no CHANGELOG.md updates needed"
+            echo "ℹ️ No changelog updates needed" >> $GITHUB_STEP_SUMMARY
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   prepare-major-release:
     needs: analyze
     runs-on: ubuntu-latest

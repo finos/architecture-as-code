@@ -91,13 +91,18 @@
       }
     ],
     [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "git checkout -b release/changelog-cli-v${nextRelease.version} || git checkout release/changelog-cli-v${nextRelease.version}"
+      }
+    ],
+    [
       "@semantic-release/git",
       {
         "assets": [
           "CHANGELOG.md"
         ],
-        "message": "docs(cli): update changelog for ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}",
-        "branch": "release/changelog-v${nextRelease.version}"
+        "message": "docs(cli): update changelog for ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],
     [
