@@ -54,6 +54,31 @@ There are currently two types of tests;
 
 ## Releasing the CLI
 
+The CLI uses **semantic-release** for automated releases. Version management follows these principles:
+
+### Version Management
+
+- **Git tags** are the source of truth for version numbers
+- **package.json version** remains as a baseline/fallback but doesn't need manual updates
+- **Semantic-release** automatically determines the next version based on commit messages
+- **Releases are triggered** automatically when commits are merged to `main`
+
+The version field in [`package.json`](package.json) should be left as-is and not manually updated. Semantic-release will use git tags to determine the correct version during publishing, while the package.json version serves as a baseline for tooling compatibility.
+
+### Automated Release Process
+
+Releases are fully automated via semantic-release when commits are merged to `main`:
+
+1. **Commit analysis** - Semantic-release analyzes commit messages since the last release
+2. **Version calculation** - Determines next version based on conventional commit types
+3. **Git tag creation** - Creates a new version tag (e.g., `cli-v1.2.0`)
+4. **NPM publishing** - Publishes to npm using the git tag version
+5. **GitHub release** - Creates a GitHub release with auto-generated changelog
+
+### Manual Release (Legacy Information)
+
+> **Note**: The information below describes the legacy manual release process. The CLI now uses automated releases via semantic-release, but this is kept for reference.
+
 Before performing this process, one must update the [package.json](package.json) to represent the new version and tag that will be created.
 
 ```json

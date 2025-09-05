@@ -1,0 +1,47 @@
+{
+  "nodes": [
+    { "unique-id": "user", "name": "User", "node-type": "actor" },
+    { "unique-id": "frontend", "name": "Frontend App", "node-type": "webclient" },
+    { "unique-id": "api", "name": "API Service", "node-type": "service" }
+  ],
+  "relationships": [
+    {
+      "unique-id": "user-interacts-frontend",
+      "relationship-type": {
+        "interacts": {
+          "actor": "user",
+          "nodes": ["frontend"]
+        }
+      }
+    },
+    {
+      "unique-id": "frontend-connects-api",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "frontend" },
+          "destination": { "node": "api" }
+        }
+      }
+    }
+  ],
+  "flows": [
+    {
+      "unique-id": "flow-interacts-and-connects",
+      "name": "User interacts and connects flow",
+      "description": "A flow with both interacts and connects relationships.",
+      "transitions": [
+        {
+          "relationship-unique-id": "user-interacts-frontend",
+          "sequence-number": 1,
+          "description": "User interacts with the Frontend App"
+        },
+        {
+          "relationship-unique-id": "frontend-connects-api",
+          "sequence-number": 2,
+          "description": "Frontend App connects to API Service"
+        }
+      ]
+    }
+  ]
+}
+

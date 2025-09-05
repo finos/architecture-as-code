@@ -1,58 +1,56 @@
 import { CalmWidget } from '../../types';
 
-export const ListWidget: CalmWidget<
-    Array<string | Record<string, unknown>>,
-    { ordered?: boolean; property?: string },
-    { items: Array<string>; ordered: boolean }
-> = {
+type ListItem = string | Record<string, unknown>;
+type ListOptions = { ordered?: boolean; property?: string };
+type ListViewModel = { items: string[]; ordered: boolean };
+
+export const ListWidget: CalmWidget<ListItem[], ListOptions, ListViewModel> = {
     id: 'list',
     templatePartial: 'list-template.html',
 
     transformToViewModel: (context, options) => {
-        const hash = options?.hash ?? {};
-        const ordered = Boolean(hash.ordered);
-        const property = typeof hash.property === 'string' ? hash.property : undefined;
+        const { ordered = false, property } = options ?? {};
 
-        const cleanItems = context
-            .map(item => {
-                if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+        const items = context
+            .map((item) => {
+                if (typeof item === 'string') return item;
+
+                if (item && typeof item === 'object' && !Array.isArray(item)) {
                     const cleaned = Object.fromEntries(
-                        Object.entries(item).filter(([_, v]) => v !== undefined)
+                        Object.entries(item).filter(([, v]) => v !== undefined)
                     );
 
                     if (property) {
                         if (!(property in cleaned)) return undefined;
                         const val = cleaned[property];
-                        if (val === undefined || val === null) return undefined;
+
+                        if (val == null) return undefined;
                         if (typeof val === 'string') return val;
-                        if (typeof val === 'number' || typeof val === 'boolean') return val.toString();
+                        if (typeof val === 'number' || typeof val === 'boolean') return String(val);
                         if (typeof val === 'object') return undefined;
+
                         return String(val);
                     }
 
                     return Object.entries(cleaned)
-                        .map(([k, v]) => `${k}: ${v}`)
+                        .map(([k, v]) => `${k}: ${v as unknown as string}`)
                         .join(', ');
                 }
 
-                if (typeof item === 'string') return item;
-
                 return undefined;
             })
-            .filter((item): item is string => typeof item === 'string' && item.length > 0);
+            .filter((v): v is string => typeof v === 'string' && v.length > 0);
 
-        return {
-            items: cleanItems,
-            ordered,
-        };
+        return { items, ordered };
     },
-    validateContext: (context): context is Array<string | Record<string, unknown>> => {
+
+    validateContext: (context): context is ListItem[] => {
         return (
             Array.isArray(context) &&
             context.every(
-                item =>
+                (item) =>
                     typeof item === 'string' ||
-                    (typeof item === 'object' && item !== null && !Array.isArray(item))
+                    (item !== null && typeof item === 'object' && !Array.isArray(item))
             )
         );
     },

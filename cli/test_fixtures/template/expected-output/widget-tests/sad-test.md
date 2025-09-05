@@ -1,6 +1,19 @@
-# Solution Architecture Summary
+# Conference Registration System - Solution Architecture
 
-## 📄 Overview
+## 🎯 System Goals & Objectives
+
+The Conference Registration System is designed to provide a scalable, secure, and user-friendly platform for managing conference attendee registrations. This system enables seamless user registration while maintaining data integrity and supporting high-volume traffic during peak registration periods.
+
+### Primary Goals
+- **User Experience**: Provide an intuitive, responsive web interface for conference registration
+- **Scalability**: Handle thousands of concurrent registrations during peak periods
+- **Security**: Protect user data with industry-standard security practices
+- **Reliability**: Ensure 99.9% uptime during critical registration windows
+- **Compliance**: Meet data protection requirements for handling personal information
+
+## 🏗️ Architecture Overview
+
+The system follows a microservices architecture pattern deployed on Kubernetes, providing scalability, fault tolerance, and easy maintenance. The architecture separates concerns between presentation, business logic, and data persistence layers.
 
 <div class="table-container">
     <table>
@@ -40,7 +53,7 @@
 
 ---
 
-## 🌐 System Components
+## 🌐 System Components & Functions
 
 <div class="table-container">
     <table>
@@ -444,9 +457,17 @@
     </table>
 </div>
 
+### Component Functions
+
+- **Conference Website**: React-based single-page application providing user registration forms, event information, and real-time availability updates
+- **Load Balancer**: High-availability NGINX load balancer distributing traffic across service instances and providing SSL termination
+- **Attendees Service**: Core business logic service handling registration validation, duplicate detection, and attendee management workflows
+- **Attendees Store**: PostgreSQL database with optimized schemas for attendee data, supporting ACID transactions and data consistency
+- **Kubernetes Cluster**: Container orchestration platform providing auto-scaling, health monitoring, and zero-downtime deployments
+
 ---
 
-## 🔗 Relationships
+## 🔗 System Relationships & Data Flow
 
 <div class="table-container">
     <table>
@@ -1015,9 +1036,29 @@
     </table>
 </div>
 
+### Data Flow Patterns
+
+The system implements a layered communication pattern:
+1. **External Layer**: HTTPS connections from users through the web interface
+2. **Service Layer**: mTLS-secured internal service communication
+3. **Data Layer**: Encrypted database connections with connection pooling
+
 ---
 
-## 🔁 Flow: Conference Signup
+## 🔁 Registration Flow: Conference Signup
+
+The core user journey follows a three-tier processing model ensuring data validation and consistency:
+
+```mermaid
+sequenceDiagram
+    Conference Website ->> Load Balancer: User submits sign-up form via Conference Website to Load Balancer
+    Load Balancer ->> Attendees Service: Load Balancer forwards request to Attendees Service
+    Attendees Service ->> Attendees Store: Attendees Service stores attendee info in the Attendees Store
+```
+
+
+
+### Flow Details
 <ol>
         <li>
                 relationship-unique-id: conference-website-load-balancer, sequence-number: 1, description: User submits sign-up form via Conference Website to Load Balancer, direction: source-to-destination
@@ -1033,6 +1074,21 @@
 
 ---
 
+## 🚀 Deployment Architecture
+
+The system is deployed across a Kubernetes cluster with the following deployment strategy:
+
+### Container Deployment
+```mermaid
+graph TD;
+load-balancer[load-balancer]:::highlight;
+conference-website -- Connects --> load-balancer;
+load-balancer -- Connects --> attendees;
+load-balancer -- Deployed In --> k8s-cluster;
+classDef highlight fill:#f2bbae;
+```
+
+### Deployed Components
 <ol>
         <li>
                 load-balancer

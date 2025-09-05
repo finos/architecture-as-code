@@ -4,7 +4,7 @@ import { ListWidget } from './index';
 describe('ListWidget', () => {
     it('transforms array of strings', () => {
         const input = ['alpha', 'beta', 'gamma'];
-        const vm = ListWidget.transformToViewModel!(input, { hash: { ordered: false } });
+        const vm = ListWidget.transformToViewModel!(input, { ordered: false });
         expect(vm).toEqual({ items: input, ordered: false });
     });
 
@@ -32,7 +32,7 @@ describe('ListWidget', () => {
         ];
 
         const vm = ListWidget.transformToViewModel!(input, {
-            hash: { property: 'name' }
+            property: 'name'
         });
 
         expect(vm.items).toEqual([
@@ -53,7 +53,7 @@ describe('ListWidget', () => {
         ] as never[];
 
         const vm = ListWidget.transformToViewModel!(input, {
-            hash: { property: 'name' }
+            property: 'name'
         });
 
         expect(vm.items).toEqual(['valid']);
@@ -61,10 +61,10 @@ describe('ListWidget', () => {
 
     it('marks ordered correctly', () => {
         const vm1 = ListWidget.transformToViewModel!(['a', 'b'], {
-            hash: { ordered: true }
+            ordered: true
         });
         const vm2 = ListWidget.transformToViewModel!(['a', 'b'], {
-            hash: { ordered: false }
+            ordered: false
         });
 
         expect(vm1.ordered).toBe(true);

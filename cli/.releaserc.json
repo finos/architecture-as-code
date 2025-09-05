@@ -3,9 +3,8 @@
     "main"
   ],
   "repositoryUrl": "https://github.com/finos/architecture-as-code",
-  "tagFormat": "${version}",
+  "tagFormat": "cli-v${version}",
   "ci": true,
-  "dryRun": false,
   "plugins": [
     [
       "@semantic-release/commit-analyzer",
@@ -85,26 +84,22 @@
         "changelogTitle": "# Changelog\n\nAll notable changes to the CALM CLI will be documented in this file.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)."
       }
     ],
-    "@semantic-release/npm",
     [
-      "@semantic-release/git",
+      "@semantic-release/npm",
       {
-        "assets": [
-          "package.json",
-          "CHANGELOG.md"
-        ],
-        "message": "chore(cli): release ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+        "provenance": true
       }
     ],
     [
       "@semantic-release/github",
       {
-        "assets": [
-          {
-            "path": "dist/**/*",
-            "label": "CLI Distribution"
-          }
-        ]
+        "draft": false
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "successCmd": "git checkout main && git checkout -b release/changelog-cli-v${nextRelease.version} && git add CHANGELOG.md && git commit -m 'docs(cli): update changelog for ${nextRelease.version} [skip ci]' && git push origin release/changelog-cli-v${nextRelease.version}"
       }
     ]
   ]

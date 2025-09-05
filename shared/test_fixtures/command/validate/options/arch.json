@@ -1,0 +1,35 @@
+{
+  "nodes": [
+    {
+      "unique-id": "node-1",
+      "name": "Node 1",
+      "node-type": "service",
+      "description": "[[ DESCRIPTION ]]"
+    },
+    {
+      "unique-id": "node-2",
+      "name": "Node 2",
+      "node-type": "system",
+      "description": "[[ DESCRIPTION ]]"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "options",
+      "description": "Which databases does your application connect to?",
+      "relationship-type": {
+        "options": [
+          {
+            "description": "Both Nodes",
+            "nodes": [
+              "node-1",
+              "node-2"
+            ],
+            "relationships": []
+          }
+        ]
+      }
+    }
+  ],
+  "$schema": "https://calm.finos.org/draft/2025-03/prototype/anyof/pattern.json"
+}

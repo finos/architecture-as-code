@@ -42,6 +42,8 @@ module.exports = {
       ]
     ],
     // Disable body line length enforcement - we only care about type and description
-    'body-max-line-length': [0, 'always']
+    'body-max-line-length': [0, 'always'],
+    // Disable footer line length enforcement for semantic-release
+    'footer-max-line-length': [0, 'always']
   }
 };

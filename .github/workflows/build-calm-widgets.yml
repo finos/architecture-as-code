@@ -32,7 +32,7 @@ jobs:
               run: npm run lint --workspace=calm-widgets
 
             - name: Build workspace
-              run: npm run build --workspace=calm-widgets
+              run: npm run build:calm-widgets
 
             - name: Run tests with coverage for Calm Widgets
-              run: npm run test --workspace=calm-widgets
+              run: npm run test:calm-widgets

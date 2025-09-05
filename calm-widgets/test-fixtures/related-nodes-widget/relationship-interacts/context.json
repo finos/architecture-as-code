@@ -1,0 +1,15 @@
+{
+  "nodes": [
+    { "unique-id": "Frontend", "name": "Frontend" }
+  ],
+  "relationships": [
+    {
+      "unique-id": "rel-interacts-1",
+      "relationship-type": {
+        "interacts": { "actor": "User", "nodes": ["Frontend"] }
+      }
+    }
+  ]
+}
+
+

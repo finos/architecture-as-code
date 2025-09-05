@@ -7,6 +7,8 @@ import {registerGlobalTemplateHelpers} from './widget-helpers';
 import { TableWidget } from './widgets/table';
 import { ListWidget } from './widgets/list';
 import { JsonViewerWidget } from './widgets/json-viewer';
+import { FlowSequenceWidget } from './widgets/flow-sequence';
+import { RelatedNodesWidget } from './widgets/related-nodes';
 
 export class WidgetEngine {
     constructor(
@@ -57,8 +59,16 @@ export class WidgetEngine {
                 folder: __dirname + '/widgets/list',
             },
             {
-                widget: JsonViewerWidget,
+                widget: JsonViewerWidget as CalmWidget<unknown, object, unknown>,
                 folder: __dirname + '/widgets/json-viewer',
+            },
+            {
+                widget: FlowSequenceWidget as CalmWidget<unknown, object, unknown>,
+                folder: __dirname + '/widgets/flow-sequence',
+            },
+            {
+                widget: RelatedNodesWidget as CalmWidget<unknown, object, unknown>,
+                folder: __dirname + '/widgets/related-nodes',
             },
         ];
         this.setupWidgets(widgets);

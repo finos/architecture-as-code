@@ -1,0 +1,45 @@
+{
+  "nodes": [
+    { "unique-id": "user", "name": "User", "node-type": "actor" },
+    { "unique-id": "frontend", "name": "Frontend App", "node-type": "webclient" }
+  ],
+  "relationships": [
+    {
+      "unique-id": "user-interacts-frontend",
+      "relationship-type": {
+        "interacts": {
+          "actor": "user",
+          "nodes": ["frontend"]
+        }
+      }
+    },
+    {
+      "unique-id": "frontend-interacts-user",
+      "relationship-type": {
+        "interacts": {
+          "actor": "frontend",
+          "nodes": ["user"]
+        }
+      }
+    }
+  ],
+  "flows": [
+    {
+      "unique-id": "flow-bidirectional",
+      "name": "Bidirectional Interacts Flow",
+      "description": "A simple bidirectional interacts flow between a user and the frontend app.",
+      "transitions": [
+        {
+          "relationship-unique-id": "user-interacts-frontend",
+          "sequence-number": 1,
+          "description": "User interacts with the Frontend App"
+        },
+        {
+          "relationship-unique-id": "frontend-interacts-user",
+          "sequence-number": 2,
+          "description": "Frontend App responds to User"
+        }
+      ]
+    }
+  ]
+}

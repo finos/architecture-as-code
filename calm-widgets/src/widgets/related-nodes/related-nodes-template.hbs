@@ -1,0 +1,18 @@
+```mermaid
+graph TD;
+{{#if id}}
+{{id}}[{{id}}]:::highlight;
+{{/if}}
+{{#each relatedRelationships}}
+{{#if (eq kind "interacts")}}
+{{> interacts-relationship.hbs}}
+{{else if (eq kind "connects")}}
+{{> connects-relationship.hbs}}
+{{else if (eq kind "composed-of")}}
+{{> composed-of-relationship.hbs}}
+{{else if (eq kind "deployed-in")}}
+{{> deployed-in-relationship.hbs}}
+{{/if}}
+{{/each}}
+classDef highlight fill:#f2bbae;
+```

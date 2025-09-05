@@ -15,6 +15,7 @@
         "build": "npm run build --workspaces --if-present",
         "build:cli": "npm run build --workspace calm-models --workspace calm-widgets --workspace shared --workspace cli",
         "build:shared": "npm run build --workspace calm-models --workspace calm-widgets --workspace shared",
+        "build:calm-widgets": "npm run build --workspace calm-models --workspace calm-widgets",
         "build:docs": "npm run build --workspace docs",
         "test": "npm run test --workspaces --if-present",
         "test:cli": "npm run build:cli && npm run test --workspace cli",
