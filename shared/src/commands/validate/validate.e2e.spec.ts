@@ -50,7 +50,7 @@ describe('validate E2E', () => {
                 readFileSync(path.join(__dirname, '../../../test_fixtures/command/validate/options/pattern-resolved.json'), 'utf8')
             );
 
-            const newPattern = applyArchitectureOptionsToPattern(architecture, pattern);
+            const newPattern = applyArchitectureOptionsToPattern(architecture, pattern, false);
             expect(newPattern).toStrictEqual(expectedResult);
         });
     });
