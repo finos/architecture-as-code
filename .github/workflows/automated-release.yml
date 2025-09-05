@@ -58,7 +58,9 @@ jobs:
           
           if grep -q "The next release version is" analysis.txt; then
             NEXT_VERSION=$(grep "The next release version is" analysis.txt | sed 's/.*The next release version is \([^[:space:]]\+\).*/\1/')
-            CURRENT_VERSION=$(node -p "require('./package.json').version")
+            
+            # Get current version from latest git tag instead of package.json
+            CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/cli-v//')
             
             echo "📋 Extracted versions:"
             echo "  Current: $CURRENT_VERSION"
