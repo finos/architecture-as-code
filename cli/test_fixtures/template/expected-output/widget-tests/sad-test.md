@@ -1,5 +1,31 @@
 # Conference Registration System - Solution Architecture
 
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
+flowchart TB
+classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
+classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
+classDef iface fill:#f1f5f9,stroke:#64748b,stroke-width:1px,font-size:10px,color:#000;
+classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
+
+        subgraph k8s-cluster["Kubernetes Cluster"]
+        direction TB
+            attendees["Attendees Service"]:::node
+            attendees-store["Attendees Store"]:::node
+            load-balancer["Load Balancer"]:::node
+        end
+        class k8s-cluster boundary
+
+    conference-website["Conference Website"]:::node
+
+    conference-website -->|Request attendee details| load-balancer
+    load-balancer -->|Forward| attendees
+    attendees -->|Store or request attendee details| attendees-store
+
+
+
+```
+
 ## 🎯 System Goals & Objectives
 
 The Conference Registration System is designed to provide a scalable, secure, and user-friendly platform for managing conference attendee registrations. This system enables seamless user registration while maintaining data integrity and supporting high-volume traffic during peak registration periods.
@@ -15,41 +41,6 @@ The Conference Registration System is designed to provide a scalable, secure, an
 
 The system follows a microservices architecture pattern deployed on Kubernetes, providing scalability, fault tolerance, and easy maintenance. The architecture separates concerns between presentation, business logic, and data persistence layers.
 
-<div class="table-container">
-    <table>
-        <thead>
-        <tr>
-            <th>Key</th>
-            <th>Value</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-            <td><b>Kubernetes</b></td>
-            <td>
-                <div class="table-container">
-                    <table>
-                        <tbody>
-                        <tr>
-                            <td><b>Namespace</b></td>
-                            <td>
-                                conference
-                                    </td>
-                        </tr>
-                        <tr>
-                            <td><b>Unique Id</b></td>
-                            <td>
-                                kubernetes
-                                    </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </td>
-        </tr>
-        </tbody>
-    </table>
-</div>
 
 ---
 

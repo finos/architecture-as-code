@@ -1,0 +1,15 @@
+## Focus on All Interfaces [render-interfaces=true]
+{{block-architecture this render-interfaces=true}}
+
+## Focus on Data Definition Interfaces [focus-interfaces="https://calm.finos.org/release/1.0/interface-definition/data-element" edges="none"]
+{{block-architecture this focus-interfaces="https://calm.finos.org/release/1.0/interface-definition/data-element" render-interfaces=true edges="none"}}
+
+
+## Focus on Product Data Interface [focus-interfaces="product-data-interface" edges="connected"]
+{{block-architecture this focus-interfaces="product-data-interface" render-interfaces=true edges="connected"}}
+
+## Focus on Product Data Interface [focus-interfaces="product-data-interface" edges="seeded"]
+{{block-architecture this focus-interfaces="product-data-interface" render-interfaces=true edges="seeded"}}
+
+## Focus on Trade-Related Data Interfaces [focus-interfaces="trade-data-interface,legacy-trade-interface"]
+{{block-architecture this focus-interfaces="trade-data-interface,legacy-trade-interface" render-interfaces=true edges="none"}}

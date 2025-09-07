@@ -1,0 +1,38 @@
+{{!-- Handle individual node (VMLeafNode) when called from looseNodes --}}
+{{#if id}}
+    {{!-- Generate click for the node itself --}}
+    {{#if (lookup linkMap id)}}
+click {{id}} "{{lookup linkMap id}}" "Jump to {{label}}"
+    {{else if linkPrefix}}
+click {{id}} "{{linkPrefix}}{{id}}" "Jump to {{label}}"
+    {{/if}}
+    {{!-- Generate clicks for interfaces --}}
+    {{#each interfaces}}
+        {{#if (lookup ../linkMap id)}}
+click {{id}} "{{lookup ../linkMap id}}" "Jump to {{label}}"
+        {{else if ../linkPrefix}}
+click {{id}} "{{../linkPrefix}}{{id}}" "Jump to {{label}}"
+        {{/if}}
+    {{/each}}
+{{/if}}
+
+{{!-- Handle container with nodes array --}}
+{{#each nodes}}
+    {{#if (lookup ../linkMap id)}}
+click {{id}} "{{lookup ../linkMap id}}" "Jump to {{label}}"
+    {{else if ../linkPrefix}}
+click {{id}} "{{../linkPrefix}}{{id}}" "Jump to {{label}}"
+    {{/if}}
+    {{#each interfaces}}
+        {{#if (lookup ../../linkMap id)}}
+click {{id}} "{{lookup ../../linkMap id}}" "Jump to {{label}}"
+        {{else if ../../linkPrefix}}
+click {{id}} "{{../../linkPrefix}}{{id}}" "Jump to {{label}}"
+        {{/if}}
+    {{/each}}
+{{/each}}
+
+{{!-- Handle nested containers --}}
+{{#each containers}}
+    {{> click-links.hbs this linkPrefix=../linkPrefix linkMap=../linkMap}}
+{{/each}}
