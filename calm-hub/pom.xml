@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>calm-hub</artifactId>
-    <version>0.7.5</version>
+    <version>0.7.6</version>
     <properties>
         <compiler-plugin.version>3.14.0</compiler-plugin.version>
         <maven.compiler.release>21</maven.compiler.release>
