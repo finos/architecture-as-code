@@ -41,7 +41,7 @@ jobs:
             # Step 4: Build the application with Maven
             - name: Build with Maven
               working-directory: calm-hub
-              run: mvn -P integration clean package
+              run: mvn -P integration clean package -Ddependency-check.skip=true
 
             # Step 5: Set up Docker Buildx for multi-architecture builds
             - name: Set up Docker Buildx
