@@ -5,11 +5,6 @@
 			"version": "latest",
 			"jdkVersion": "latest",
 			"jdkDistro": "open"
-		},
-		"ghcr.io/devcontainers-contrib/features/mvnd-sdkman:2": {
-			"version": "latest",
-			"jdkVersion": "latest",
-			"jdkDistro": "open"
 		}
 	},
 	"containerEnv": {
