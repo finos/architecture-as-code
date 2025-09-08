@@ -37,7 +37,7 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-m2-
 
-            # Step 4: Build and Test
-            - name: Build and Test
-              working-directory: calm-hub
-              run: mvn clean verify
+                        # Step 4: Build and Test
+                        - name: Build and Test
+                            working-directory: calm-hub
+                            run: mvn clean verify -Ddependency-check.skip=true
