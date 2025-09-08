@@ -148,6 +148,9 @@
                     <formats>HTML,JSON</formats>
                     <failOnError>true</failOnError>
                     <skipSystemScope>true</skipSystemScope>
+                    <!-- Disable .NET analyzers to avoid dotnet requirement -->
+                    <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+                    <csharpAnalyzerEnabled>false</csharpAnalyzerEnabled>
                     <!-- Use environment-provided NVD API Key -->
                     <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
                     <suppressionFiles>
