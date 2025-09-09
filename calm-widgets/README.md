@@ -17,9 +17,11 @@ Renders data as Markdown tables with support for nested objects and column filte
 
 {{!-- Filter specific columns --}}
 {{table services columns="name,port,version" key="id"}}
-```
 
+{{table services oritentation='vertical' columns="name,status"}}
+```
 **Options:**
+- `oritentation` (vertical | horizontal): table layout (default: horizontal)
 - `headers` (boolean): Show/hide table headers (default: true)
 - `columns` (string): Comma-separated list of columns to include
 - `key` (string): Property to use as unique identifier (default: "unique-id")
