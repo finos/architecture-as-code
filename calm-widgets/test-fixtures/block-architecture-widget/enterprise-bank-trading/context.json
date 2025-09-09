@@ -1,0 +1,47 @@
+{
+  "nodes": [
+    { "unique-id": "enterprise-bank", "node-type": "system", "name": "Enterprise Bank", "description": "Main enterprise banking system" },
+    { "unique-id": "trading-system", "node-type": "system", "name": "Trading System", "description": "Handles trading operations" },
+    { "unique-id": "position-system", "node-type": "system", "name": "Position System", "description": "Manages trading positions" },
+    { "unique-id": "account-system", "node-type": "system", "name": "Account System", "description": "Manages account operations" },
+    { "unique-id": "product-system", "node-type": "system", "name": "Product System", "description": "Manages financial products" },
+    { "unique-id": "client-system", "node-type": "system", "name": "Client System", "description": "Manages client information" },
+    { "unique-id": "risk-system", "node-type": "system", "name": "Risk System", "description": "Handles risk management" },
+    { "unique-id": "reporting-system", "node-type": "system", "name": "Reporting System", "description": "Generates reports and analytics" },
+    { "unique-id": "messaging-system", "node-type": "system", "name": "Messaging System", "description": "Message bus infrastructure" },
+    { "unique-id": "trading-ui", "node-type": "service", "name": "Trading UI", "description": "User interface for trading", "interfaces": [ { "unique-id": "web-ui", "name": "Web Interface" } ] },
+    { "unique-id": "trade-svc", "node-type": "service", "name": "Trade Service", "description": "Core trading service", "interfaces": [ { "unique-id": "trade-api", "name": "Trade API" }, { "unique-id": "trade-events", "name": "Trade Events Publisher" } ] },
+    { "unique-id": "position-svc", "node-type": "service", "name": "Position Service", "description": "Position management service", "interfaces": [ { "unique-id": "position-api", "name": "Position API" }, { "unique-id": "position-updates", "name": "Position Updates" } ] },
+    { "unique-id": "account-svc", "node-type": "service", "name": "Account Service", "description": "Account management service", "interfaces": [ { "unique-id": "account-api", "name": "Account API" } ] },
+    { "unique-id": "product-svc", "node-type": "service", "name": "Product Service", "description": "Product management service", "interfaces": [ { "unique-id": "product-lookup", "name": "Product Lookup API" } ] },
+    { "unique-id": "client-svc", "node-type": "service", "name": "Client Service", "description": "Client management service", "interfaces": [ { "unique-id": "client-info", "name": "Client Info API" } ] },
+    { "unique-id": "risk-svc", "node-type": "service", "name": "Risk Service", "description": "Risk management service", "interfaces": [ { "unique-id": "risk-check", "name": "Risk Check API" } ] },
+    { "unique-id": "reporting-svc", "node-type": "service", "name": "Reporting Service", "description": "Reporting and analytics service", "interfaces": [ { "unique-id": "reports", "name": "Reports API" } ] },
+    { "unique-id": "message-bus", "node-type": "service", "name": "Message Bus Kafka", "description": "Kafka message bus", "interfaces": [ { "unique-id": "trade-events-topic", "name": "Trade Events Topic" } ] }
+  ],
+  "relationships": [
+    { "unique-id": "r1",  "relationship-type": { "composed-of": { "container": "enterprise-bank", "nodes": ["trading-system","position-system","account-system","product-system","client-system","risk-system","reporting-system","messaging-system"] } } },
+    { "unique-id": "r2",  "relationship-type": { "composed-of": { "container": "trading-system",  "nodes": ["trading-ui","trade-svc"] } } },
+    { "unique-id": "r3",  "relationship-type": { "composed-of": { "container": "position-system", "nodes": ["position-svc"] } } },
+    { "unique-id": "r4",  "relationship-type": { "composed-of": { "container": "account-system",  "nodes": ["account-svc"] } } },
+    { "unique-id": "r5",  "relationship-type": { "composed-of": { "container": "product-system",  "nodes": ["product-svc"] } } },
+    { "unique-id": "r6",  "relationship-type": { "composed-of": { "container": "client-system",   "nodes": ["client-svc"] } } },
+    { "unique-id": "r7",  "relationship-type": { "composed-of": { "container": "risk-system",     "nodes": ["risk-svc"] } } },
+    { "unique-id": "r8",  "relationship-type": { "composed-of": { "container": "reporting-system","nodes": ["reporting-svc"] } } },
+    { "unique-id": "r9",  "relationship-type": { "composed-of": { "container": "messaging-system","nodes": ["message-bus"] } } },
+
+    { "unique-id": "r10", "relationship-type": { "connects": { "source": { "node": "trading-ui", "interfaces": [ "web-ui" ] }, "destination": { "node": "trade-svc", "interfaces": [ "trade-api" ] } } }, "description": "User places trades" },
+    { "unique-id": "r11", "relationship-type": { "connects": { "source": { "node": "trade-svc",  "interfaces": [ "trade-api" ] }, "destination": { "node": "position-svc", "interfaces": [ "position-updates" ] } } }, "description": "Update positions sync" },
+    { "unique-id": "r12", "relationship-type": { "connects": { "source": { "node": "trade-svc",  "interfaces": [ "trade-events" ] }, "destination": { "node": "message-bus", "interfaces": [ "trade-events-topic" ] } } }, "description": "Publish TradeEvent" },
+    { "unique-id": "r13", "relationship-type": { "connects": { "source": { "node": "message-bus","interfaces": [ "trade-events-topic" ] }, "destination": { "node": "position-svc", "interfaces": [ "position-api" ] } } }, "description": "TradeEvent → Position" },
+    { "unique-id": "r14", "relationship-type": { "connects": { "source": { "node": "message-bus","interfaces": [ "trade-events-topic" ] }, "destination": { "node": "account-svc", "interfaces": [ "account-api" ] } } }, "description": "TradeEvent → Accounting" },
+    { "unique-id": "r15", "relationship-type": { "connects": { "source": { "node": "message-bus","interfaces": [ "trade-events-topic" ] }, "destination": { "node": "risk-svc",    "interfaces": [ "risk-check" ] } } }, "description": "TradeEvent → Risk" },
+    { "unique-id": "r16", "relationship-type": { "connects": { "source": { "node": "message-bus","interfaces": [ "trade-events-topic" ] }, "destination": { "node": "reporting-svc","interfaces": [ "reports" ] } } }, "description": "TradeEvent → Reporting" },
+    { "unique-id": "r17", "relationship-type": { "connects": { "source": { "node": "trade-svc",  "interfaces": [ "trade-api" ] }, "destination": { "node": "product-svc", "interfaces": [ "product-lookup" ] } } }, "description": "Validate product" },
+    { "unique-id": "r18", "relationship-type": { "connects": { "source": { "node": "trade-svc",  "interfaces": [ "trade-api" ] }, "destination": { "node": "client-svc", "interfaces": [ "client-info" ] } } }, "description": "Fetch client info" }
+  ],
+  "metadata": {},
+  "controls": {},
+  "flows": [],
+  "adrs": []
+}

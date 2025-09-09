@@ -1,0 +1,211 @@
+{
+  "nodes": [
+    {
+      "unique-id": "web-app",
+      "node-type": "application",
+      "name": "Web Application",
+      "description": "Main web application"
+    },
+    {
+      "unique-id": "api-gateway",
+      "node-type": "gateway",
+      "name": "API Gateway",
+      "description": "Entry point for all API calls"
+    },
+    {
+      "unique-id": "user-service",
+      "node-type": "microservice",
+      "name": "User Service",
+      "description": "User management microservice"
+    },
+    {
+      "unique-id": "order-service",
+      "node-type": "microservice",
+      "name": "Order Service",
+      "description": "Order processing microservice"
+    },
+    {
+      "unique-id": "payment-service",
+      "node-type": "microservice",
+      "name": "Payment Service",
+      "description": "Payment processing microservice"
+    },
+    {
+      "unique-id": "notification-service",
+      "node-type": "microservice",
+      "name": "Notification Service",
+      "description": "Email and SMS notifications"
+    },
+    {
+      "unique-id": "database",
+      "node-type": "database",
+      "name": "PostgreSQL Database",
+      "description": "Main application database"
+    },
+    {
+      "unique-id": "load-balancer",
+      "node-type": "load-balancer",
+      "name": "Load Balancer",
+      "description": "Distributes traffic across multiple instances"
+    },
+    {
+      "unique-id": "redis-cache",
+      "node-type": "cache",
+      "name": "Redis Cache",
+      "description": "In-memory caching layer"
+    },
+    {
+      "unique-id": "message-queue",
+      "node-type": "queue",
+      "name": "Message Queue",
+      "description": "Asynchronous message processing"
+    },
+    {
+      "unique-id": "frontend-container",
+      "node-type": "container",
+      "name": "Frontend Container",
+      "description": "Container for frontend applications"
+    },
+    {
+      "unique-id": "backend-container",
+      "node-type": "container",
+      "name": "Backend Services Container",
+      "description": "Container for backend microservices"
+    },
+    {
+      "unique-id": "web-ui",
+      "node-type": "application",
+      "name": "Web UI",
+      "description": "React-based web interface"
+    },
+    {
+      "unique-id": "mobile-ui",
+      "node-type": "application",
+      "name": "Mobile UI",
+      "description": "Native mobile application"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "web-to-gateway",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "web-app"},
+          "destination": {"node": "api-gateway"}
+        }
+      },
+      "description": "Web app connects to API gateway"
+    },
+    {
+      "unique-id": "gateway-to-user",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "api-gateway"},
+          "destination": {"node": "user-service"}
+        }
+      },
+      "description": "Gateway routes to user service"
+    },
+    {
+      "unique-id": "gateway-to-order",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "api-gateway"},
+          "destination": {"node": "order-service"}
+        }
+      },
+      "description": "Gateway routes to order service"
+    },
+    {
+      "unique-id": "order-to-payment",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "order-service"},
+          "destination": {"node": "payment-service"}
+        }
+      },
+      "description": "Order service calls payment service"
+    },
+    {
+      "unique-id": "order-to-notification",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "order-service"},
+          "destination": {"node": "notification-service"}
+        }
+      },
+      "description": "Order service triggers notifications"
+    },
+    {
+      "unique-id": "user-to-db",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "user-service"},
+          "destination": {"node": "database"}
+        }
+      },
+      "description": "User service connects to database"
+    },
+    {
+      "unique-id": "order-to-db",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "order-service"},
+          "destination": {"node": "database"}
+        }
+      },
+      "description": "Order service connects to database"
+    },
+    {
+      "unique-id": "lb-to-gateway",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "load-balancer"},
+          "destination": {"node": "api-gateway"}
+        }
+      },
+      "description": "Load balancer routes to API gateway"
+    },
+    {
+      "unique-id": "payment-to-cache",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "payment-service"},
+          "destination": {"node": "redis-cache"}
+        }
+      },
+      "description": "Payment service uses cache"
+    },
+    {
+      "unique-id": "notification-to-queue",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "notification-service"},
+          "destination": {"node": "message-queue"}
+        }
+      },
+      "description": "Notification service publishes events"
+    },
+    {
+      "unique-id": "frontend-contains-apps",
+      "relationship-type": {
+        "composed-of": {
+          "container": "frontend-container",
+          "nodes": ["web-ui", "mobile-ui"]
+        }
+      },
+      "description": "Frontend container contains UI applications"
+    },
+    {
+      "unique-id": "backend-contains-services",
+      "relationship-type": {
+        "composed-of": {
+          "container": "backend-container",
+          "nodes": ["user-service", "order-service", "payment-service"]
+        }
+      },
+      "description": "Backend container contains microservices"
+    }
+  ]
+}
+
