@@ -12,7 +12,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('@monaco-editor/react', () => ({
-    Editor: ({ value }: any) => <textarea value={value} readOnly data-testid="monaco-editor" />
+    Editor: ({ value }: { value: string }) => <textarea value={value} readOnly data-testid="monaco-editor" />
 }));
 
 describe('JsonRenderer', () => {
