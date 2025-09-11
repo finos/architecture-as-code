@@ -1,21 +1,5 @@
 package org.finos.calm.store.nitrite;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
@@ -31,6 +15,22 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class TestNitriteArchitectureStoreShould {
@@ -53,6 +53,8 @@ public class TestNitriteArchitectureStoreShould {
     private static final int ARCHITECTURE_ID = 42;
     private static final String VERSION = "1.0.0";
     private static final String VALID_JSON = "{\"test\": \"test\"}";
+    private static final String ARCHITECTURE_NAME = "architecture-name";
+    private static final String ARCHITECTURE_DESCRIPTION = "architecture description";
 
     @BeforeEach
     public void setup() {
@@ -189,6 +191,8 @@ public class TestNitriteArchitectureStoreShould {
 
         Architecture architectureToCreate = new Architecture.ArchitectureBuilder()
                 .setNamespace(NAMESPACE)
+                .setName(ARCHITECTURE_NAME)
+                .setDescription(ARCHITECTURE_DESCRIPTION)
                 .setArchitecture(VALID_JSON)
                 .build();
 
@@ -203,6 +207,8 @@ public class TestNitriteArchitectureStoreShould {
         assertThat(result.getId(), is(ARCHITECTURE_ID));
         assertThat(result.getNamespace(), is(NAMESPACE));
         assertThat(result.getDotVersion(), is("1.0.0"));
+        assertThat(result.getName(), is(ARCHITECTURE_NAME));
+        assertThat(result.getDescription(), is(ARCHITECTURE_DESCRIPTION));
         assertThat(result.getArchitectureJson(), is(VALID_JSON));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
         verify(mockCounterStore).getNextArchitectureSequenceValue();
@@ -218,6 +224,8 @@ public class TestNitriteArchitectureStoreShould {
         Architecture architectureToCreate = new Architecture.ArchitectureBuilder()
                 .setNamespace(NAMESPACE)
                 .setArchitecture(VALID_JSON)
+                .setName(ARCHITECTURE_NAME)
+                .setDescription(ARCHITECTURE_DESCRIPTION)
                 .build();
 
         List<Document> existingArchitectures = new ArrayList<>();
@@ -238,6 +246,8 @@ public class TestNitriteArchitectureStoreShould {
         assertThat(result.getId(), is(ARCHITECTURE_ID));
         assertThat(result.getNamespace(), is(NAMESPACE));
         assertThat(result.getDotVersion(), is("1.0.0"));
+        assertThat(result.getName(), is(ARCHITECTURE_NAME));
+        assertThat(result.getDescription(), is(ARCHITECTURE_DESCRIPTION));
         assertThat(result.getArchitectureJson(), is(VALID_JSON));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
         verify(mockCounterStore).getNextArchitectureSequenceValue();
@@ -593,6 +603,8 @@ public class TestNitriteArchitectureStoreShould {
 
         Document architectureDoc = Document.createDocument()
                 .put("architectureId", ARCHITECTURE_ID)
+                .put("name", ARCHITECTURE_NAME)
+                .put("description", ARCHITECTURE_DESCRIPTION)
                 .put("versions", versions);
 
         List<Document> architectures = new ArrayList<>();
@@ -609,6 +621,8 @@ public class TestNitriteArchitectureStoreShould {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(NAMESPACE)
                 .setId(ARCHITECTURE_ID)
+                .setName(ARCHITECTURE_NAME)
+                .setDescription(ARCHITECTURE_DESCRIPTION)
                 .setVersion(VERSION)
                 .setArchitecture(VALID_JSON)
                 .build();

@@ -10,6 +10,8 @@ import java.util.Objects;
  */
 public class Architecture {
     private final String namespace;
+    private final String name;
+    private final String description;
     private final int id;
     private final String version;
     private final String architecture;
@@ -19,10 +21,13 @@ public class Architecture {
         this.id = builder.id;
         this.version = builder.version;
         this.architecture = builder.architecture;
+        this.name = builder.name;
+        this.description = builder.description;
     }
 
     /**
      * Returns the namespace of the architecture.
+     *
      * @return the namespace of the architecture
      */
     public String getNamespace() {
@@ -31,6 +36,7 @@ public class Architecture {
 
     /**
      * Returns the id of the architecture.
+     *
      * @return the id of the architecture
      */
     public int getId() {
@@ -39,14 +45,24 @@ public class Architecture {
 
     /**
      * Returns the version of the architecture as it should be reflected to the external world.
+     *
      * @return the version of the architecture with dot format, e.g. 1.0.0
      */
     public String getDotVersion() {
         return version;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
     /**
      * Returns the version of the architecture as it should be reflected to the MongoDB.
+     *
      * @return the version of the architecture with hyphen format, e.g. 1-0-0
      */
     public String getMongoVersion() {
@@ -55,6 +71,7 @@ public class Architecture {
 
     /**
      * Returns the architecture in JSON format.
+     *
      * @return the architecture in JSON format
      */
     public String getArchitectureJson() {
@@ -91,9 +108,34 @@ public class Architecture {
         private int id;
         private String version;
         private String architecture;
+        private String name;
+        private String description;
+
+        /**
+         * Sets the name of the architecture.
+         *
+         * @param name the name of the architecture
+         * @return the ArchitectureBuilder object
+         */
+        public ArchitectureBuilder setName(String name) {
+            this.name = name;
+            return this;
+        }
+
+        /**
+         * Sets the description of the architecture.
+         *
+         * @param description the description of the architecture
+         * @return the ArchitectureBuilder object
+         */
+        public ArchitectureBuilder setDescription(String description) {
+            this.description = description;
+            return this;
+        }
 
         /**
          * Sets the namespace of the architecture.
+         *
          * @param namespace the namespace the architecture belongs to in CALM Hub
          * @return the ArchitectureBuilder object
          */
@@ -104,6 +146,7 @@ public class Architecture {
 
         /**
          * Sets the id of the architecture.
+         *
          * @param id as an integer known by CALM Hub
          * @return the ArchitectureBuilder object
          */
@@ -114,6 +157,7 @@ public class Architecture {
 
         /**
          * Sets the version of the architecture.
+         *
          * @param version the version of the architecture, in dot format e.g. 1.0.0
          * @return the ArchitectureBuilder object
          */
@@ -124,6 +168,7 @@ public class Architecture {
 
         /**
          * Sets the architecture in JSON format.
+         *
          * @param architecture the architecture in JSON format
          * @return the ArchitectureBuilder object
          */
@@ -134,6 +179,7 @@ public class Architecture {
 
         /**
          * Builds the Architecture object.
+         *
          * @return the Architecture object
          */
         public Architecture build() {
