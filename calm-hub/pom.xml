@@ -150,8 +150,8 @@
                     <skipSystemScope>true</skipSystemScope>
                     <!-- Disable .NET analyzers to avoid dotnet requirement -->
                     <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
-                    <!-- Use environment-provided NVD API Key -->
-                    <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
+                    <!-- Use environment-provided NVD API Key, fallback to Maven property -->
+                    <nvdApiKey>${env.NVD_API_KEY}${nvdApiKey}</nvdApiKey>
                     <suppressionFiles>
                         <suppressionFile>${project.basedir}/../.github/maven-cve-ignore-list.xml</suppressionFile>
                     </suppressionFiles>
