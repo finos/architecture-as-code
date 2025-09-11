@@ -94,7 +94,8 @@
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>    </td>
+                                </div>
+                            </td>
                         </tr>
                         </tbody>
                     </table>
@@ -157,7 +158,8 @@
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>    </td>
+                                </div>
+                            </td>
                         </tr>
                         </tbody>
                     </table>
@@ -214,7 +216,8 @@
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>        <div class="table-container">
+                                </div>
+                                <div class="table-container">
                                     <table>
                                         <tbody>
                                         <tr>
@@ -231,7 +234,8 @@
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>    </td>
+                                </div>
+                            </td>
                         </tr>
                         </tbody>
                     </table>
@@ -288,7 +292,8 @@
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>        <div class="table-container">
+                                </div>
+                                <div class="table-container">
                                     <table>
                                         <tbody>
                                         <tr>
@@ -305,7 +310,8 @@
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>    </td>
+                                </div>
+                            </td>
                         </tr>
                         </tbody>
                     </table>
@@ -416,7 +422,8 @@
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>    </td>
+                                                                </div>
+                                                            </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
@@ -584,7 +591,8 @@
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>    </td>
+                                                                </div>
+                                                            </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
@@ -749,7 +757,8 @@
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>    </td>
+                                                                </div>
+                                                            </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
@@ -914,7 +923,8 @@
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>    </td>
+                                                                </div>
+                                                            </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
@@ -1067,7 +1077,8 @@
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>        <div class="table-container">
+                                </div>
+                                <div class="table-container">
                                     <table>
                                         <tbody>
                                         <tr>
@@ -1084,7 +1095,8 @@
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>    </td>
+                                </div>
+                            </td>
                         </tr>
                         </tbody>
                     </table>

@@ -1,0 +1,39 @@
+{
+  "serviceA": {
+    "name": "auth",
+    "port": 8080,
+    "internal": true,
+    "meta": {
+      "version": "1.0.0",
+      "status": "active"
+    }
+  },
+  "serviceB": {
+    "name": "user",
+    "port": 8081,
+    "internal": false,
+    "meta": {
+      "version": "2.1.0",
+      "status": "running",
+      "endpoints": [
+        "/login",
+        "/logout"
+      ]
+    }
+  },
+  "simpleValue": "just-a-string",
+  "numberValue": 42,
+  "nullValue": null,
+  "nestedObject": {
+    "level1": {
+      "level2": {
+        "key": "deep",
+        "arr": [
+          { "id": 1, "name": "one" },
+          { "id": 2, "name": "two" }
+        ]
+      }
+    }
+  }
+}
+
