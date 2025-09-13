@@ -10,7 +10,17 @@ export default defineConfig([
         sourcemap: true,
         clean: true,
         dts: false,
+        // Bundle runtime dependencies into the extension so the installed VSIX does
+        // not rely on node_modules being present in the target environment.
+        // Keep 'vscode' external (provided by the host).
         external: ['vscode'],
+        noExternal: [
+            'yaml',
+            'cytoscape',
+            'cytoscape-dagre',
+            'cytoscape-fcose',
+            'lodash'
+        ],
         minify: false,
         outDir: 'dist',
     },
