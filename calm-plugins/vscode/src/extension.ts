@@ -3,9 +3,22 @@ import { CalmPreviewPanel } from './previewPanel'
 import { CalmTreeProvider } from './treeView'
 import { ModelIndex, detectCalmModel, loadCalmModel, toGraph } from './util/model'
 import { provideHovers, provideCodeLens } from './util/language'
+import { SchemaDirectory, initLogger } from '@finos/calm-shared'
 
 export function activate(context: vscode.ExtensionContext) {
     const output = vscode.window.createOutputChannel('CALM')
+
+    // Confirm shared logger is bundled: create logger and log a message
+    const logger = initLogger(true, 'vscode-ext')
+    logger.info('Logger from @finos/calm-shared is working!')
+
+    // Confirm shared dependency is bundled: instantiate SchemaDirectory and log its type
+    try {
+        const dummy = new SchemaDirectory({ initialise: async () => { } }, false)
+        output.appendLine('SchemaDirectory loaded from @finos/calm-shared: ' + typeof dummy)
+    } catch (e) {
+        output.appendLine('Failed to load SchemaDirectory from @finos/calm-shared: ' + (e?.message || e))
+    }
 
     const treeProvider = new CalmTreeProvider(() => currentModelIndex)
     const treeView = vscode.window.createTreeView('calmSidebar', { treeDataProvider: treeProvider })
@@ -49,7 +62,7 @@ export function activate(context: vscode.ExtensionContext) {
                 revealById(targetDoc, id)
             })
             currentPreview.onDidSelect(async (id) => {
-                try { await treeProvider.revealById(id) } catch {}
+                try { await treeProvider.revealById(id) } catch { }
                 // also highlight in editor
                 const uri = currentPreview?.getCurrentUri()
                 const targetDoc = uri ? (vscode.workspace.textDocuments.find(d => d.uri.fsPath === uri.fsPath) || doc) : doc

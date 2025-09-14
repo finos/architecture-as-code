@@ -19,7 +19,8 @@ export default defineConfig([
             'cytoscape',
             'cytoscape-dagre',
             'cytoscape-fcose',
-            'lodash'
+            'lodash',
+            '@finos/calm-shared'
         ],
         minify: false,
         outDir: 'dist',
