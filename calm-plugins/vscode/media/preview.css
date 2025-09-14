@@ -7,13 +7,6 @@ body {
     padding: 0;
     margin: 0;
 }
-#toolbar {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    padding: 6px 8px;
-    border-bottom: 1px solid #ddd;
-}
 /* Make toolbar buttons match VS Code themed button styles */
 #toolbar button {
     appearance: none;
@@ -62,3 +55,226 @@ body {
     word-break: break-word;
     font-size: 11px;
 }
+
+/* Single content area for tabs: only one tab-content is visible at a time */
+#container {
+    display: block;
+    height: calc(100% - 64px);
+    padding: 8px;
+}
+
+#docify-panel, #validation-panel {
+    background: var(--vscode-editor-background, #ffffff);
+    border: 1px solid var(--vscode-editorWidget-border, #ddd);
+    border-radius: 6px;
+    padding: 8px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.03) inset;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+#docify-panel h2, #validation-panel h2 {
+    margin: 0 0 6px 0;
+    font-size: 12px;
+    color: var(--vscode-editor-foreground);
+}
+
+/* toolbar under the header */
+#docify-content, #validation-content {
+    overflow: auto;
+    flex: 1 1 auto;
+    padding: 6px;
+    background: transparent;
+}
+
+@media (max-width: 900px) {
+    #container {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto auto;
+    }
+    #validation-panel { grid-row: 3 / 4; }
+    #docify-panel { grid-row: 4 / 5; }
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: 6px;
+    padding: 8px;
+    border-bottom: 1px solid var(--vscode-editorWidget-border, #ddd);
+}
+.tab-button {
+    background: transparent;
+    border: 1px solid transparent;
+    padding: 6px 10px;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    color: var(--vscode-editor-foreground);
+}
+.tab-button.active {
+    background: var(--vscode-editorWidget-background, rgba(255,255,255,0.03));
+    border-color: var(--vscode-editorWidget-border, #ddd);
+    border-bottom-color: transparent;
+}
+
+/* Only the active tab-content is visible */
+.tab-content { display: none; }
+.tab-content.active { display: flex; height: calc(100vh - 140px); }
+
+/* Honor the hidden attribute strictly to avoid leaking visuals */
+[hidden], .tab-content[hidden] { display: none !important; visibility: hidden !important; }
+
+/* GitHub-style Markdown CSS for Docify content */
+#docify-content h1, #docify-content h2, #docify-content h3, #docify-content h4, #docify-content h5, #docify-content h6 {
+    margin-top: 24px;
+    margin-bottom: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--vscode-editor-foreground);
+}
+
+#docify-content h1 {
+    font-size: 2em;
+    border-bottom: 1px solid var(--vscode-editorWidget-border, #d1d9e0);
+    padding-bottom: 0.3em;
+}
+
+#docify-content h2 {
+    font-size: 1.5em;
+    border-bottom: 1px solid var(--vscode-editorWidget-border, #d1d9e0);
+    padding-bottom: 0.3em;
+}
+
+#docify-content h3 {
+    font-size: 1.25em;
+}
+
+#docify-content h4 {
+    font-size: 1em;
+}
+
+#docify-content h5 {
+    font-size: 0.875em;
+}
+
+#docify-content h6 {
+    font-size: 0.85em;
+    color: var(--vscode-descriptionForeground, #6a737d);
+}
+
+#docify-content p {
+    margin-top: 0;
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+#docify-content blockquote {
+    padding: 0 1em;
+    color: var(--vscode-descriptionForeground, #6a737d);
+    border-left: 0.25em solid var(--vscode-editorWidget-border, #dfe2e5);
+    margin: 0 0 16px;
+}
+
+#docify-content ul, #docify-content ol {
+    padding-left: 2em;
+    margin-top: 0;
+    margin-bottom: 16px;
+}
+
+#docify-content li {
+    margin: 0.25em 0;
+}
+
+#docify-content code {
+    padding: 0.2em 0.4em;
+    font-size: 85%;
+    background-color: var(--vscode-textCodeBlock-background, rgba(175,184,193,0.2));
+    border-radius: 6px;
+    font-family: var(--vscode-editor-font-family, 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace);
+}
+
+#docify-content pre {
+    padding: 16px;
+    font-size: 85%;
+    line-height: 1.45;
+    background-color: var(--vscode-textCodeBlock-background, #f6f8fa);
+    border-radius: 6px;
+    overflow: auto;
+    margin: 0 0 16px;
+    font-family: var(--vscode-editor-font-family, 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace);
+}
+
+#docify-content pre code {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+}
+
+#docify-content table {
+    border-spacing: 0;
+    border-collapse: collapse;
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    overflow: auto;
+    margin-bottom: 16px;
+    font-variant: tabular-nums;
+}
+
+#docify-content table th,
+#docify-content table td {
+    padding: 6px 13px;
+    border: 1px solid var(--vscode-editorWidget-border, #d1d9e0);
+}
+
+#docify-content table th {
+    font-weight: 600;
+    background-color: var(--vscode-editorWidget-background, #f6f8fa);
+}
+
+#docify-content table tr {
+    background-color: var(--vscode-editor-background, #ffffff);
+    border-top: 1px solid var(--vscode-editorWidget-border, #d1d9e0);
+}
+
+#docify-content table tr:nth-child(2n) {
+    background-color: var(--vscode-editorWidget-background, #f6f8fa);
+}
+
+#docify-content hr {
+    height: 0.25em;
+    padding: 0;
+    margin: 24px 0;
+    background-color: var(--vscode-editorWidget-border, #e1e4e8);
+    border: 0;
+    border-radius: 2px;
+}
+
+#docify-content a {
+    color: var(--vscode-textLink-foreground, #0366d6);
+    text-decoration: none;
+}
+
+#docify-content a:hover {
+    text-decoration: underline;
+}
+
+#docify-content strong {
+    font-weight: 600;
+}
+
+#docify-content em {
+    font-style: italic;
+}
+
+/* Style for the block-architecture widget output */
+#docify-content .block-architecture {
+    margin: 16px 0;
+    border: 1px solid var(--vscode-editorWidget-border, #d1d9e0);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+/* End of styles */

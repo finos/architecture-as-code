@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'none';
+             img-src {{cspSource}} blob: data:;
+             style-src {{cspSource}} 'unsafe-inline';
+             script-src {{cspSource}} 'nonce-{{nonce}}';
+             font-src {{cspSource}};"
+  />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="{{styleUri}}" rel="stylesheet" />
+  <style>
+    .tab-content[hidden]{display:none!important}
+    #detailsPre {
+      margin-top: 8px; padding: 8px;
+      border: 1px solid var(--vscode-editorWidget-border);
+      background: var(--vscode-editor-background);
+      color: var(--vscode-editor-foreground);
+      max-height: 200px; overflow: auto; font-size: 12px;
+    }
+  </style>
+  <title>CALM Preview</title>
+</head>
+<body>
+  <header style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid rgba(0,0,0,0.08)">
+    <div style="font-weight:600">CALM Preview</div>
+    <div style="font-size:12px;color:var(--vscode-editor-foreground)">Version: {{version}}</div>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Preview Tabs" style="display:flex;justify-content:space-between;align-items:center;">
+    <div style="display:flex;">
+      <button class="tab-button active" role="tab" data-target="docify-panel">Docify</button>
+      <button class="tab-button" role="tab" data-target="template-panel">Template</button>
+      <button class="tab-button" role="tab" data-target="model-panel">Model</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div id="show-labels-control" style="display:none;align-items:center;gap:6px;font-size:12px;">
+        <input type="checkbox" id="show-labels-checkbox" checked>
+        <label for="show-labels-checkbox" style="color:var(--vscode-editor-foreground);user-select:none;cursor:pointer;">Show Labels</label>
+      </div>
+      <div id="live-docify-badge" style="display:none;background:var(--vscode-badge-background);color:var(--vscode-badge-foreground);padding:4px 8px;border-radius:12px;font-size:11px;font-weight:600;">
+        Live Docify Mode
+      </div>
+    </div>
+  </div>
+
+  <div id="container">
+
+    <div id="docify-panel" class="tab-content active">
+      <div id="docify-content"></div>
+    </div>
+
+    <div id="template-panel" class="tab-content">
+      <div id="template-content"></div>
+    </div>
+
+    <div id="model-panel" class="tab-content">
+      <div id="model-content"></div>
+    </div>
+  </div>
+
+  <!-- 1) Bootstrap VS Code API once and override acquireVsCodeApi -->
+  <script nonce="{{nonce}}">
+  (function(){
+    try {
+      var api = acquireVsCodeApi();     // may throw if already acquired elsewhere
+      window.__vscodeApi = api;
+      window.acquireVsCodeApi = function(){ return api; };
+    } catch(e) {
+      window.__vscodeApi = window.__vscodeApi || undefined;
+      if (typeof window.acquireVsCodeApi !== 'function') {
+        window.acquireVsCodeApi = function(){ return window.__vscodeApi; };
+      }
+    }
+  })();
+  </script>
+
+  <!-- 2) Tab switcher -->
+  <script nonce="{{nonce}}">
+  (function(){
+    var buttons = Array.prototype.slice.call(document.querySelectorAll('.tab-button'));
+    var contents = Array.prototype.slice.call(document.querySelectorAll('.tab-content'));
+
+    function activate(targetId){
+      buttons.forEach(function(b){
+        var isActive = b.getAttribute('data-target') === targetId;
+        b.classList.toggle('active', isActive);
+        b.setAttribute('aria-selected', String(isActive));
+      });
+      contents.forEach(function(c){
+        var isActive = c.id === targetId;
+        c.classList.toggle('active', isActive);
+        if (isActive) { c.removeAttribute('hidden'); c.setAttribute('aria-hidden','false'); }
+        else { c.setAttribute('hidden',''); c.setAttribute('aria-hidden','true'); }
+      });
+    }
+
+    contents.forEach(function(c){
+      if (!c.classList.contains('active')) { c.setAttribute('hidden',''); c.setAttribute('aria-hidden','true'); }
+      else { c.removeAttribute('hidden'); c.setAttribute('aria-hidden','false'); }
+    });
+
+    buttons.forEach(function(b){ b.addEventListener('click', function(){ activate(b.getAttribute('data-target')); }); });
+    buttons.forEach(function(b,i){
+      b.addEventListener('keydown', function(e){
+        if(e.key === 'ArrowRight') buttons[(i+1)%buttons.length].focus();
+        if(e.key === 'ArrowLeft') buttons[(i-1+buttons.length)%buttons.length].focus();
+        if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); b.click(); }
+      });
+    });
+  })();
+  </script>
+
+  <!-- 3) Your webview bundle (renderMarkdown exporter) -->
+  <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
+
+  <!-- 4) Docify glue: runs every time you click the Docify tab -->
+  <script nonce="{{nonce}}">
+  (function(){
+    var vscodeApi = window.__vscodeApi || (typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null);
+    var docifyRunning = false;
+
+    function isDocifyActive(){
+      var panel = document.getElementById('docify-panel');
+      return panel && panel.classList.contains('active');
+    }
+
+    function triggerDocify(){
+      if (docifyRunning) return;
+      if (!isDocifyActive()) return;
+      docifyRunning = true;
+
+      var content = document.getElementById('docify-content');
+      if (content) content.innerHTML = '<em>Rendering...</em>';
+      if (vscodeApi && vscodeApi.postMessage) {
+        try { vscodeApi.postMessage({ type:'log', message:'docify-run' }); } catch(e){}
+        vscodeApi.postMessage({ type:'runDocify', templatePath:'__DEFAULT__' });
+      } else {
+        if (content) content.innerHTML = '<div style="color:var(--vscode-editorError-foreground)">VS Code API unavailable</div>';
+      }
+    }
+
+    var docifyButton = Array.prototype.find.call(document.querySelectorAll('.tab-button'), function(b){
+      return b.getAttribute('data-target') === 'docify-panel';
+    });
+    if (docifyButton) {
+      docifyButton.addEventListener('click', function(){
+        setTimeout(triggerDocify, 0); // run after tab becomes active
+      });
+    }
+
+    window.addEventListener('message', function(ev){
+      var msg = ev.data || {};
+      var content = document.getElementById('docify-content');
+      function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+      if (msg.type === 'docifyResult') {
+        docifyRunning = false;
+        if (!content) return;
+        if (msg.format === 'html') {
+          content.innerHTML = msg.content;
+        } else {
+          var r = (window && window.renderMarkdown) ? window.renderMarkdown : undefined;
+          if (typeof r === 'function') {
+            r(msg.content).then(function(html){ content.innerHTML = html; })
+              .catch(function(e){ content.innerHTML = '<pre style="white-space:pre-wrap">'+esc(String(e))+'</pre>'; });
+          } else {
+            content.innerHTML = '<pre style="white-space:pre-wrap">'+esc(msg.content)+'</pre>';
+          }
+        }
+      } else if (msg.type === 'docifyError') {
+        docifyRunning = false;
+        if (content) content.innerHTML = '<div style="color:var(--vscode-editorError-foreground)">Error: '+esc(msg.message)+'</div>';
+      } else if (msg.type === 'refreshDocifyIfActive') {
+        // Auto-refresh docify if the docify tab is currently active
+        if (vscodeApi && vscodeApi.postMessage) {
+          try { vscodeApi.postMessage({ type:'log', message:'docify-auto-refresh-check: isActive=' + isDocifyActive() }); } catch(e){}
+        }
+        if (isDocifyActive()) {
+          if (vscodeApi && vscodeApi.postMessage) {
+            try { vscodeApi.postMessage({ type:'log', message:'docify-auto-refresh-triggered' }); } catch(e){}
+          }
+          setTimeout(triggerDocify, 100); // Small delay to ensure selection is processed
+        }
+      }
+    });
+  })();
+  </script>
+
+  <!-- 5) Model tab: display the JSON architecture model -->
+  <script nonce="{{nonce}}">
+  (function(){
+    var vscodeApi = window.__vscodeApi || (typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null);
+
+    function isModelActive(){
+      var panel = document.getElementById('model-panel');
+      return panel && panel.classList.contains('active');
+    }
+
+    function requestModelData(){
+      if (vscodeApi && vscodeApi.postMessage) {
+        vscodeApi.postMessage({ type:'requestModelData' });
+      }
+    }
+
+    var modelButton = Array.prototype.find.call(document.querySelectorAll('.tab-button'), function(b){
+      return b.getAttribute('data-target') === 'model-panel';
+    });
+    if (modelButton) {
+      modelButton.addEventListener('click', function(){
+        setTimeout(requestModelData, 0); // run after tab becomes active
+      });
+    }
+
+    window.addEventListener('message', function(ev){
+      var msg = ev.data || {};
+      var content = document.getElementById('model-content');
+      function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+      if (msg.type === 'modelData') {
+        if (!content) return;
+        if (msg.data) {
+          var jsonStr = JSON.stringify(msg.data, null, 2);
+          content.innerHTML = '<pre style="font-family:monospace;font-size:12px;white-space:pre-wrap;margin:0;padding:12px;overflow:auto;">'+esc(jsonStr)+'</pre>';
+        } else {
+          content.innerHTML = '<div style="color:var(--vscode-editorWarning-foreground);padding:12px;">No model data available</div>';
+        }
+      } else if (msg.type === 'select') {
+        // Auto-refresh model data when selection changes (if model tab is active)
+        if (isModelActive()) {
+          setTimeout(requestModelData, 100); // Small delay to ensure selection is processed
+        }
+      }
+    });
+  })();
+  </script>
+
+  <!-- 6) Template tab: display the underlying template used for docify -->
+  <script nonce="{{nonce}}">
+  (function(){
+    var vscodeApi = window.__vscodeApi || (typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null);
+
+    function isTemplateActive(){
+      var panel = document.getElementById('template-panel');
+      return panel && panel.classList.contains('active');
+    }
+
+    function requestTemplateData(){
+      if (vscodeApi && vscodeApi.postMessage) {
+        vscodeApi.postMessage({ type:'requestTemplateData' });
+      }
+    }
+
+    var templateButton = Array.prototype.find.call(document.querySelectorAll('.tab-button'), function(b){
+      return b.getAttribute('data-target') === 'template-panel';
+    });
+    if (templateButton) {
+      templateButton.addEventListener('click', function(){
+        setTimeout(requestTemplateData, 0); // run after tab becomes active
+      });
+    }
+
+    window.addEventListener('message', function(ev){
+      var msg = ev.data || {};
+      var content = document.getElementById('template-content');
+      function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+      if (msg.type === 'templateData') {
+        if (!content) return;
+        if (msg.data) {
+          var templateStr = msg.data.content || '';
+          var templateName = msg.data.name || 'Unknown Template';
+          var selectedId = msg.data.selectedId || 'none';
+          
+          content.innerHTML = 
+            '<div style="padding:12px;border-bottom:1px solid rgba(0,0,0,0.1);background:var(--vscode-editor-background);font-size:13px;">' +
+            '<strong>Template:</strong> ' + esc(templateName) + '<br/>' +
+            '<strong>Selection:</strong> ' + esc(selectedId) +
+            '</div>' +
+            '<pre style="font-family:monospace;font-size:12px;white-space:pre-wrap;margin:0;padding:12px;overflow:auto;">'+esc(templateStr)+'</pre>';
+        } else {
+          content.innerHTML = '<div style="color:var(--vscode-editorWarning-foreground);padding:12px;">No template data available</div>';
+        }
+      } else if (msg.type === 'select') {
+        // Auto-refresh template data when selection changes (if template tab is active)
+        if (isTemplateActive()) {
+          setTimeout(requestTemplateData, 100); // Small delay to ensure selection is processed
+        }
+      }
+    });
+  })();
+  </script>
+  <!-- 7) Live Docify Mode Badge Controller -->
+  <script nonce="{{nonce}}">
+  (function(){
+    var badge = document.getElementById('live-docify-badge');
+    
+    window.addEventListener('message', function(ev){
+      var msg = ev.data || {};
+      
+      if (msg.type === 'templateData' && msg.data) {
+        // Show or hide badge based on template mode
+        if (msg.data.isTemplateMode) {
+          if (badge) badge.style.display = 'block';
+        } else {
+          if (badge) badge.style.display = 'none';
+        }
+      } else if (msg.type === 'setData') {
+        // Hide badge when in regular architecture mode (setData means we're showing graph data)
+        if (badge) badge.style.display = 'none';
+      }
+    });
+    
+    // Also check initial state when page loads
+    setTimeout(function(){
+      // Request template data to check if we're in template mode
+      var vscodeApi = window.__vscodeApi || (typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null);
+      if (vscodeApi && vscodeApi.postMessage) {
+        vscodeApi.postMessage({ type:'requestTemplateData' });
+      }
+    }, 100);
+  })();
+  </script>
+
+  <!-- 8) Show Labels Checkbox Controller -->
+  <script nonce="{{nonce}}">
+  (function(){
+    var showLabelsControl = document.getElementById('show-labels-control');
+    var showLabelsCheckbox = document.getElementById('show-labels-checkbox');
+    var isTemplateMode = false;
+    
+    // Listen for template mode changes
+    window.addEventListener('message', function(ev){
+      var msg = ev.data || {};
+      
+      if (msg.type === 'templateData' && msg.data) {
+        isTemplateMode = msg.data.isTemplateMode;
+        // Hide show-labels control in template mode
+        if (showLabelsControl) {
+          showLabelsControl.style.display = isTemplateMode ? 'none' : 'flex';
+        }
+      } else if (msg.type === 'setData') {
+        isTemplateMode = false;
+        // Show show-labels control in regular architecture mode
+        if (showLabelsControl) {
+          showLabelsControl.style.display = 'flex';
+        }
+      }
+    });
+    
+    // Handle checkbox changes
+    if (showLabelsCheckbox) {
+      showLabelsCheckbox.addEventListener('change', function() {
+        var vscodeApi = window.__vscodeApi || (typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null);
+        if (vscodeApi && vscodeApi.postMessage) {
+          // Send message to backend to regenerate with/without labels
+          vscodeApi.postMessage({ 
+            type: 'toggleLabels', 
+            showLabels: showLabelsCheckbox.checked 
+          });
+        }
+      });
+    }
+  })();
+  </script>
+</body>
+</html>

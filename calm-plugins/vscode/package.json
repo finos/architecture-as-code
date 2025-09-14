@@ -2,8 +2,12 @@
     "name": "calm-vscode-plugin",
     "displayName": "CALM Preview & Tools",
     "description": "Live-visualize CALM architecture models, validate, and generate docs.",
-    "version": "0.1.6",
+    "version": "0.1.32",
     "publisher": "local",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/finos/architecture-as-code.git"
+    },
     "engines": {
         "vscode": "^1.88.0"
     },
@@ -13,16 +17,23 @@
     "icon": "media/icon.png",
     "main": "dist/extension.js",
     "activationEvents": [
-        "onStartupFinished",
-        "onLanguage:json",
-        "onLanguage:yaml",
-        "onLanguage:yml"
+        "onStartupFinished"
     ],
     "contributes": {
         "commands": [
             {
                 "command": "calm.openPreview",
                 "title": "CALM: Open Preview"
+            },
+            {
+                "command": "calm.searchTreeView",
+                "title": "Search Model Elements",
+                "icon": "$(search)"
+            },
+            {
+                "command": "calm.clearTreeViewSearch",
+                "title": "Clear Search",
+                "icon": "$(clear-all)"
             }
         ],
         "viewsContainers": {
@@ -38,7 +49,9 @@
             "calm": [
                 {
                     "id": "calmSidebar",
-                    "name": "Model Elements"
+                    "name": "Model Elements",
+                    "canSelectMany": false,
+                    "visibility": "visible"
                 }
             ]
         },
@@ -55,21 +68,6 @@
                     "default": false,
                     "description": "Automatically open CALM Preview when a CALM file is opened."
                 },
-                "calm.preview.layout": {
-                    "type": "string",
-                    "enum": [
-                        "fcose",
-                        "cose",
-                        "dagre"
-                    ],
-                    "default": "dagre",
-                    "description": "Graph layout algorithm for the preview."
-                },
-                "calm.preview.showLabels": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Show labels for nodes and edges in the preview."
-                },
                 "calm.files.globs": {
                     "type": "array",
                     "items": {
@@ -80,6 +78,19 @@
                         "calm/**/*.y?(a)ml"
                     ],
                     "markdownDescription": "Glob patterns for CALM model files in the workspace."
+                },
+                "calm.template.globs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        "**/*.md",
+                        "**/*.markdown",
+                        "**/*.hbs",
+                        "**/*.handlebars"
+                    ],
+                    "markdownDescription": "Glob patterns for template files that may reference CALM architecture files."
                 }
             }
         },
@@ -92,10 +103,21 @@
             }
         ],
         "menus": {
+            "view/title": [
+                {
+                    "command": "calm.searchTreeView",
+                    "when": "view == calmSidebar",
+                    "group": "navigation"
+                },
+                {
+                    "command": "calm.clearTreeViewSearch",
+                    "when": "view == calmSidebar",
+                    "group": "navigation"
+                }
+            ],
             "editor/context": [
                 {
                     "command": "calm.openPreview",
-                    "when": "resourceLangId == json || resourceLangId == yaml || resourceLangId == yml",
                     "group": "navigation@9"
                 }
             ]
@@ -103,20 +125,21 @@
     },
     "scripts": {
         "build": "tsup",
+        "postbuild": "node ./scripts/copy-widgets.js",
         "watch": "tsup --watch",
         "test": "vitest run",
         "test:watch": "vitest",
         "lint": "eslint src",
         "lint-fix": "eslint src --fix",
-        "package": "vsce package --no-dependencies",
-        "vscode:prepublish": "tsup"
+        "package": "npm run build && vsce package --no-dependencies",
+        "vscode:prepublish": "npm run build"
     },
     "devDependencies": {
-        "@types/cytoscape-fcose": "^2.2.4",
         "@types/node": "^22.0.0",
-        "@vscode/dts": "^0.4.1",
+        "@types/vscode": "^1.88.0",
         "@typescript-eslint/eslint-plugin": "^8.29.1",
         "@typescript-eslint/parser": "^8.29.1",
+        "@vscode/dts": "^0.4.1",
         "eslint": "^9.24.0",
         "globals": "^16.0.0",
         "tsup": "^8.2.4",
@@ -125,10 +148,11 @@
         "vsce": "^2.15.0"
     },
     "dependencies": {
-        "cytoscape": "^3.28.1",
-        "cytoscape-dagre": "^2.5.0",
-        "cytoscape-fcose": "^2.2.0",
-        "yaml": "^2.5.1",
-        "@finos/calm-shared": "file:../../shared"
+        "@finos/calm-models": "file:../../calm-models",
+        "@finos/calm-shared": "file:../../shared",
+        "jsdom": "^22.1.0",
+        "markdown-it": "^13.0.1",
+        "mermaid": "^10.4.0",
+        "yaml": "^2.5.1"
     }
 }

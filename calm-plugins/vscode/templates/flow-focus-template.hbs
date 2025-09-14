@@ -1,0 +1,13 @@
+# {{flows["{{focused-flow-id}}"].name}}
+
+## Overview
+{{table flows["{{focused-flow-id}}"] orientation="vertical" columns="unique-id,name, description"}}
+
+## Architecture 
+{{block-architecture focus-flows="{{focused-flow-id}}"}}
+
+## Flow Sequence
+{{flow-sequence flow-id="{{focused-flow-id}}" }}
+
+## Interfaces
+{{block-architecture focus-flows="{{focused-flow-id}}" render-interfaces="true" edges="connected" include-containers="none"}}

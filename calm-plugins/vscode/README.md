@@ -1,4 +1,6 @@
-# CALM VS Code Plugin (Experimental)
+# CALM V- Interactive CALM Preview (webview)
+    - Live documentation generation with block-architecture rendering
+    - Intelligent validation with detailed error reportingugin (Experimental)
 
 Status: Experimental — APIs, behavior, and visuals may change. Use at your own risk.
 

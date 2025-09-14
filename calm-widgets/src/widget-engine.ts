@@ -2,7 +2,7 @@ import Handlebars from 'handlebars';
 import { WidgetRegistry } from './widget-registry';
 import { WidgetRenderer } from './widget-renderer';
 import { CalmWidget } from './types';
-import {registerGlobalTemplateHelpers} from './widget-helpers';
+import { registerGlobalTemplateHelpers } from './widget-helpers';
 
 import { TableWidget } from './widgets/table';
 import { ListWidget } from './widgets/list';
@@ -15,13 +15,17 @@ export class WidgetEngine {
     constructor(
         private readonly handlebars: typeof Handlebars,
         private readonly registry: WidgetRegistry
-    ) {}
+    ) { }
 
     setupWidgets(widgets: { widget: CalmWidget<unknown, Record<string, unknown>, unknown>, folder: string }[]) {
         const helpers = registerGlobalTemplateHelpers();
 
         for (const [name, fn] of Object.entries(helpers)) {
-            this.handlebars.registerHelper(name, fn);
+            if (!this.handlebars.helpers[name]) {
+                this.handlebars.registerHelper(name, fn);
+            } else {
+                console.warn(`[WidgetEngine] ⚠️ Helper '${name}' is already registered. Skipping registration.`);
+            }
         }
 
         for (const { widget, folder } of widgets) {
@@ -32,11 +36,11 @@ export class WidgetEngine {
             }
 
             if (this.handlebars.helpers[widgetId]) {
-                throw new Error(`[WidgetEngine] ❌ Conflict: Handlebars already has a helper registered as '${widgetId}'.`);
+                console.warn(`[WidgetEngine] ⚠️ Helper '${widgetId}' is already registered. Skipping widget helper registration.`);
+            } else {
+                this.registry.register(widget, folder);
+                this.registerWidgetHelper(widgetId);
             }
-
-            this.registry.register(widget, folder);
-            this.registerWidgetHelper(widgetId);
         }
     }
 

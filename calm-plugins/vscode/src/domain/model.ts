@@ -3,7 +3,7 @@ import { parse as parseYaml } from 'yaml'
 export type CalmModel = {
     nodes?: Array<{ id: string; type?: string; name?: string; label?: string; description?: string; raw?: any }>
     relationships?: Array<{ id: string; type?: string; source: string; target: string; label?: string; description?: string; raw?: any }>
-    flows?: Array<{ id: string; source: string; target: string; label?: string; description?: string; raw?: any }>
+    flows?: Array<{ id: string; source?: string; target?: string; label?: string; description?: string; raw?: any }>
 }
 
 export function detectCalmModel(text: string): boolean {
@@ -65,7 +65,13 @@ export class ModelIndex {
     rangeOf(id: string): any | undefined {
         return this.idToRange.get(id)
     }
-    get nodes() { return (this.model.nodes || []).map(n => ({ id: n.id, label: n.label || n.name || n.id })) }
+    get nodes() {
+        return (this.model.nodes || []).map(n => ({
+            id: n.id,
+            label: n.label || n.name || n.id,
+            nodeType: n.type
+        }))
+    }
     get relationships() {
         const rels: any[] = Array.isArray(this.model.relationships) ? (this.model.relationships as any[]) : []
         const grouped = new Map<string, { id: string; label: string }>()
@@ -81,14 +87,14 @@ export class ModelIndex {
         }
         return Array.from(grouped.values())
     }
-    get flows() { return (this.model.flows || []).map(f => ({ id: f.id, label: f.label })) }
+    get flows() { return (this.model.flows || []).map(f => ({ id: f.id, label: f.label || f.description || f.id })) }
 }
 
 export function toGraph(model: CalmModel, _cfg?: any) {
     // Build parent mapping from 'deployed-in' relationships (node -> container)
     const parentMap = new Map<string, string>()
     for (const r of (model.relationships || []) as any[]) {
-    if (r && (r.type === 'deployed-in' || r.type === 'composed-of') && r.source && r.target) {
+        if (r && (r.type === 'deployed-in' || r.type === 'composed-of') && r.source && r.target) {
             parentMap.set(r.source, r.target)
         }
     }
@@ -168,10 +174,10 @@ function normalizeModel(input: any): CalmModel {
         id: f['unique-id'] ?? f.id,
         source: f.source,
         target: f.target,
-        label: f.label ?? f.description,
+        label: f.label ?? f.name ?? f.description,
         description: f.description,
         raw: f
-    })).filter(f => !!f.source && !!f.target)
+    })).filter(f => !!f.id)
 
     return { nodes, relationships, flows: normFlows }
 }

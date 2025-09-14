@@ -1,4 +1,3 @@
-
 # Strict bundle-only .vscodeignore
 # Ignore everything by default, then allow only essential files for the VSIX
 **
@@ -18,6 +17,9 @@
 
 # Keep this ignore file itself
 !.vscodeignore
+
+# Include the templates directory
+!templates/**
 
 # Exclude node_modules entirely to avoid pulling workspace symlinks or repo-top files
 # (If you need to vendor runtime packages, copy just their runtime output into `dist/` before packaging.)
