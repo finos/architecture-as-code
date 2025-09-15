@@ -5,6 +5,18 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## <small>1.3.1 (2025-09-15)</small>
+
+- Merge pull request #1612 from rocketstack-matt/cve-fix ([f0a8acc](https://github.com/finos/architecture-as-code/commit/f0a8acc)), closes [#1612](https://github.com/finos/architecture-as-code/issues/1612)
+- fix(ci): Ensure consistency of dependency check locally and remote ([9ad9372](https://github.com/finos/architecture-as-code/commit/9ad9372))
+
+## 1.3.0 (2025-09-11)
+
+- Merge pull request #1603 from LeighFinegold/vertical-table ([0021f2b](https://github.com/finos/architecture-as-code/commit/0021f2b)), closes [#1603](https://github.com/finos/architecture-as-code/issues/1603)
+- Merge pull request #1604 from finos/dependabot/npm_and_yarn/npm_and_yarn-d2c86c59b8 ([3907c64](https://github.com/finos/architecture-as-code/commit/3907c64)), closes [#1604](https://github.com/finos/architecture-as-code/issues/1604)
+- chore(deps): bump the npm_and_yarn group across 2 directories with 1 update ([d4830d0](https://github.com/finos/architecture-as-code/commit/d4830d0))
+- feat(calm-widgets): table enhancements to support flat vertical tables ([364d4a5](https://github.com/finos/architecture-as-code/commit/364d4a5))
+
 ## 1.2.0 (2025-09-09)
 
 - Merge pull request #1592 from LeighFinegold/feature/document-block-architecture-widget ([c399a75](https://github.com/finos/architecture-as-code/commit/c399a75)), closes [#1592](https://github.com/finos/architecture-as-code/issues/1592)
@@ -70,7 +82,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation generation capabilities
 - Widget support for enhanced functionality
 
-[Unreleased]: https://github.com/finos/architecture-as-code/compare/cli-v1.2.0...HEAD
+[Unreleased]: https://github.com/finos/architecture-as-code/compare/cli-v1.3.1...HEAD
+[1.3.1]: https://github.com/finos/architecture-as-code/compare/cli-v1.3.0...cli-v1.3.1
+[1.3.0]: https://github.com/finos/architecture-as-code/compare/cli-v1.2.0...cli-v1.3.0
 [1.2.0]: https://github.com/finos/architecture-as-code/compare/cli-v1.1.3...cli-v1.2.0
 [1.1.3]: https://github.com/finos/architecture-as-code/compare/cli-v1.1.2...cli-v1.1.3
 [1.1.2]: https://github.com/finos/architecture-as-code/compare/cli-v1.1.1...cli-v1.1.2
