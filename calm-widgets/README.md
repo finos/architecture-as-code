@@ -17,9 +17,11 @@ Renders data as Markdown tables with support for nested objects and column filte
 
 {{!-- Filter specific columns --}}
 {{table services columns="name,port,version" key="id"}}
-```
 
+{{table services oritentation='vertical' columns="name,status"}}
+```
 **Options:**
+- `oritentation` (vertical | horizontal): table layout (default: horizontal)
 - `headers` (boolean): Show/hide table headers (default: true)
 - `columns` (string): Comma-separated list of columns to include
 - `key` (string): Property to use as unique identifier (default: "unique-id")
@@ -124,9 +126,182 @@ classDef highlight fill:#f2bbae;
 ```
 
 
-5. **Test thoroughly** with `npm test`
+
+### Block Architecture Widget
+
+Renders a system architecture as a Mermaid flowchart with optional containers (systems), interfaces, highlights, and flow-focused slices.
+
+```handlebars
+{{!-- Basic: render entire architecture --}}
+{{block-architecture this}}
+
+{{!-- Hide containers (just the services) --}}
+{{block-architecture this include-containers="none"}}
+
+{{!-- Show node interfaces as small attachment boxes --}}
+{{block-architecture this render-interfaces=true}}
+
+{{!-- Focus specific nodes (comma-separated) and highlight them --}}
+{{block-architecture this focus-nodes="trading-system,position-system" highlight-nodes="trade-svc,position-svc"}}
+
+{{!-- Focus one or more flows by unique-id or name (case-insensitive) --}}
+{{block-architecture this focus-flows="order-flow"}}
+
+{{!-- Flow focus + hide containers --}}
+{{block-architecture this focus-flows="order-flow" include-containers="none"}}
+
+{{!-- Multiple flows --}}
+{{block-architecture this focus-flows="order-flow,onboarding-flow"}}
+```
+
+**What it shows**
+- **Containers (systems)** as Mermaid subgraphs, with contained **nodes (services, dbs, etc.)** inside.
+- Optional **interfaces** as dotted attachments to their parent node.
+- **Edges** for `connects`/`interacts` relationships, using the relationship **`description`** as the label when present.
+- **Highlights** for any nodes listed in `highlight-nodes`.
+- Optional **clickable links** per node/interface (via `link-prefix` or `link-map`).
+
+**Options**
+
+| Option                | Type | Default | Description |
+|-----------------------|---|---:|---|
+| `focus-nodes`         | string (CSV) | — | Restrict the view to these node IDs (and, if containers are shown, their parent/child context per other options). |
+| `focus-relationships` | string (CSV) | — | Restrict view to the specified relationship unique-ids. Only those relationships and the nodes they connect are included (plus containers per settings). |
+| `focus-flows`         | string (CSV) | — | Restrict edges to transitions that belong to the given **flow unique-ids or names** (case-insensitive). Only nodes touching those edges are included (plus containers per settings). |
+| `focus-controls`      | string (CSV) | — | Restrict view to nodes and relationships linked to the specified control IDs. Only nodes touching those controls are included (plus containers per settings). |
+| `focus-interfaces`    | string (CSV) | — | Restrict view to nodes and relationships linked to the specified interface IDs. Only nodes touching those interfaces are included (plus containers per settings). || `highlight-nodes`     | string (CSV) | — | Nodes to visually highlight. |
+| `render-interfaces`   | boolean | `false` | If `true`, render each node’s `interfaces` as small interface boxes connected by dotted lines. |
+| `include-containers`  | `'none' \| 'parents' \| 'all'` | `'all'` | Which containers (systems) to draw. |
+| `include-children`    | `'none' \| 'direct' \| 'all'` | `'all'` | When focusing container nodes, include their direct/all descendants. |
+| `edges`               | `'connected' \| 'seeded' \| 'all' \| 'none'` | `'connected'` | For non-flow views, expand visible set with directly connected neighbors. When flows are focused, only flow edges are shown. |
+| `node-types`          | string (CSV) | — | Only include nodes whose `node-type` is in this list. |
+| `direction`           | `'both' \| 'in' \| 'out'` | `'both'` | Reserved (currently not used by the renderer). |
+| `edge-labels`         | `'description' \| 'none'` | `'description'` | Use the relationship `description` for edge labels; or hide labels entirely. |
+| `link-prefix`         | string | — | Prefix for clickable `click` links in Mermaid (e.g., `/docs/` makes `/docs/<node-id>`). |
+| `link-map`            | stringified JSON map | — | Explicit per-id links, e.g. `{"trade-svc": "/svc/trade"}`. Map entries override `link-prefix`. |
+
+> **Sorting:** Containers and nodes are always sorted **alphabetically by label** for stable layouts.
+
+**Context requirements**
+- The context must be a **CALM core canonical model**, e.g. `{ nodes, relationships, flows? }`.
+- To use `focus-flows`, `context.flows` must include the target flows. Each flow’s `transitions[*].relationship-unique-id` must point to a relationship in `context.relationships`.
+
+**Example Visual**
+
+For more examples, see the test fixtures:
+- [Basic structures](./test-fixtures/block-architecture-widget/basic-structures/)
+- [Enterprise trading system](./test-fixtures/block-architecture-widget/enterprise-bank-trading/)
+- [Interface variations](./test-fixtures/block-architecture-widget/interface-variations/)
+- [Focus flows](./test-fixtures/block-architecture-widget/focus-flows/)
+- [Domain interaction](./test-fixtures/block-architecture-widget/domain-interaction/)
+
+#### Example block architecture diagram with interfaces
+
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
+flowchart TB
+classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
+classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
+classDef iface fill:#f1f5f9,stroke:#64748b,stroke-width:1px,font-size:10px,color:#000;
+classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
+
+        subgraph enterprise-bank["Enterprise Bank"]
+        direction TB
+                subgraph messaging-system["Messaging System"]
+                direction TB
+                    message-bus["Message Bus"]:::node
+                        message-bus__iface__trade-events-topic["◻ Trade Events Topic"]:::iface
+                end
+                class messaging-system boundary
+                subgraph trading-system["Trading System"]
+                direction TB
+                    trade-svc["Trade Service"]:::node
+                        trade-svc__iface__api["◻ API: /trades"]:::iface
+                        trade-svc__iface__jdbc["◻ JDBC: trading-db"]:::iface
+                        trade-svc__iface__events["◻ Topic: trade.events"]:::iface
+                    trading-db["Trading DB"]:::node
+                        trading-db__iface__sql["◻ SQL Interface"]:::iface
+                    trading-ui["Trading UI"]:::node
+                        trading-ui__iface__web-ui["◻ Web Interface"]:::iface
+                end
+                class trading-system boundary
+        end
+        class enterprise-bank boundary
 
 
+    trading-ui__iface__web-ui -->|Place Trade| trade-svc__iface__api
+    trade-svc__iface__jdbc -->|Persist| trading-db__iface__sql
+    trade-svc__iface__events -->|Publish Events| message-bus__iface__trade-events-topic
+
+    trading-ui -.- trading-ui__iface__web-ui
+    trade-svc -.- trade-svc__iface__api
+    trade-svc -.- trade-svc__iface__jdbc
+    trade-svc -.- trade-svc__iface__events
+    trading-db -.- trading-db__iface__sql
+    message-bus -.- message-bus__iface__trade-events-topic
+
+    class trade-svc highlight
+    class trading-ui highlight
+    class trading-db highlight
+    class message-bus highlight
+                        click message-bus "#message-bus" "Jump to Message Bus"
+                            click message-bus__iface__trade-events-topic "#message-bus__iface__trade-events-topic" "Jump to ◻ Trade Events Topic"
+                                        click trade-svc "#trade-service" "Jump to Trade Service"
+                            click trade-svc__iface__api "#trade-service-api" "Jump to ◻ API: /trades"
+                            click trade-svc__iface__jdbc "#trade-service-storage" "Jump to ◻ JDBC: trading-db"
+                            click trade-svc__iface__events "#trade-service-events" "Jump to ◻ Topic: trade.events"
+                        click trading-db "#trading-db" "Jump to Trading DB"
+                            click trading-db__iface__sql "#trading-db__iface__sql" "Jump to ◻ SQL Interface"
+                                click trading-ui "#trading-ui" "Jump to Trading UI"
+                            click trading-ui__iface__web-ui "#trading-ui__iface__web-ui" "Jump to ◻ Web Interface"
+
+```
+
+---
+
+#### Example block architecture diagram without interfaces
+
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
+flowchart TB
+classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
+classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
+classDef iface fill:#f1f5f9,stroke:#64748b,stroke-width:1px,font-size:10px,color:#000;
+classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
+
+        subgraph enterprise-bank["Enterprise Bank"]
+        direction TB
+                subgraph messaging-system["Messaging System"]
+                direction TB
+                    message-bus["Message Bus"]:::node
+                end
+                class messaging-system boundary
+                subgraph trading-system["Trading System"]
+                direction TB
+                    trade-svc["Trade Service"]:::node
+                    trading-db["Trading DB"]:::node
+                    trading-ui["Trading UI"]:::node
+                end
+                class trading-system boundary
+        end
+        class enterprise-bank boundary
+
+
+    trading-ui -->|Place Trade| trade-svc
+    trade-svc -->|Persist| trading-db
+    trade-svc -->|Publish Events| message-bus
+
+
+    class trade-svc highlight
+    class trading-ui highlight
+    class trading-db highlight
+    class message-bus highlight
+                        click message-bus "#message-bus" "Jump to Message Bus"
+                        click trade-svc "#trade-service" "Jump to Trade Service"
+                        click trading-db "#trading-db" "Jump to Trading DB"
+                        click trading-ui "#trading-ui" "Jump to Trading UI"
+
+```
 
 ## 🛠️ Creating Custom Widgets
 
@@ -157,20 +332,20 @@ export interface MyWidgetViewModel {
 
 export const MyWidget: CalmWidget<
   MyWidgetContext,
-  MyWidgetOptions, 
+  MyWidgetOptions,
   MyWidgetViewModel
 > = {
   id: 'my-widget',
   templatePartial: 'my-widget-template.html',
-  
+
   // Optional: additional template partials
   partials: ['item-template.html'],
-  
+
   // Transform input data to view model
   transformToViewModel: (context, options) => {
     const showCount = options?.hash?.showCount ?? false;
     const prefix = options?.hash?.prefix ?? '•';
-    
+
     return {
       title: context.title,
       items: context.items,
@@ -197,6 +372,8 @@ export const MyWidget: CalmWidget<
   })
 };
 ```
+
+
 
 ### 2. Template Files
 

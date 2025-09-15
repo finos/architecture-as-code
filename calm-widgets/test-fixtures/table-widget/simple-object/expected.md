@@ -1,5 +1,5 @@
-<div class="container">
-    <div class="table-container">
+## Table built on properties of an object
+<div class="table-container">
     <table>
         <thead>
         <tr>
@@ -115,5 +115,4 @@
         </tr>
         </tbody>
     </table>
-</div>
 </div>

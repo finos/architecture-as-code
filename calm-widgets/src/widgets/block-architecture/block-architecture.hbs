@@ -1,0 +1,46 @@
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
+flowchart TB
+classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
+classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
+classDef iface fill:#f1f5f9,stroke:#64748b,stroke-width:1px,font-size:10px,color:#000;
+classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
+
+{{!-- Render container forest (if any) --}}
+{{#each containers}}
+    {{> container.hbs}}
+{{/each}}
+
+{{!-- Render loose nodes (not inside any rendered container) --}}
+{{#each looseNodes}}
+    {{id}}["{{label}}"]:::node
+    {{#each interfaces}}
+        {{id}}["{{label}}"]:::iface
+    {{/each}}
+{{/each}}
+
+{{!-- Edges --}}
+{{#each edges}}
+    {{source}} -->{{#if label}}|{{label}}|{{/if}} {{target}}
+{{/each}}
+
+{{!-- Dotted attachments (node -> interface) --}}
+{{#each attachments}}
+    {{from}} -.- {{to}}
+{{/each}}
+
+{{!-- Highlights --}}
+{{#each highlightNodeIds}}
+    class {{this}} highlight
+{{/each}}
+{{!-- Clickable links for containers + loose nodes --}}
+{{#if linkPrefix}}
+    {{#each containers}}
+        {{> click-links.hbs this linkPrefix=../linkPrefix linkMap=../linkMap}}
+    {{/each}}
+    {{#each looseNodes}}
+        {{> click-links.hbs this linkPrefix=../linkPrefix linkMap=../linkMap}}
+    {{/each}}
+{{/if}}
+
+```

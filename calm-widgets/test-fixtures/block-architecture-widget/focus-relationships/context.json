@@ -1,0 +1,249 @@
+{
+  "nodes": [
+    {
+      "unique-id": "user-actor",
+      "node-type": "actor",
+      "name": "User",
+      "description": "End user actor"
+    },
+    {
+      "unique-id": "admin-actor",
+      "node-type": "actor",
+      "name": "System Administrator",
+      "description": "System admin actor"
+    },
+    {
+      "unique-id": "client-app",
+      "node-type": "client",
+      "name": "Client Application",
+      "description": "External client application"
+    },
+    {
+      "unique-id": "api-gateway",
+      "node-type": "gateway",
+      "name": "API Gateway",
+      "description": "Central API gateway"
+    },
+    {
+      "unique-id": "auth-service",
+      "node-type": "service",
+      "name": "Authentication Service",
+      "description": "Handles authentication"
+    },
+    {
+      "unique-id": "business-service",
+      "node-type": "service",
+      "name": "Business Logic Service",
+      "description": "Core business logic"
+    },
+    {
+      "unique-id": "data-service",
+      "node-type": "service",
+      "name": "Data Access Service",
+      "description": "Data access layer"
+    },
+    {
+      "unique-id": "external-api",
+      "node-type": "external",
+      "name": "External Payment API",
+      "description": "Third-party payment processing"
+    },
+    {
+      "unique-id": "web-portal",
+      "node-type": "application",
+      "name": "Web Portal",
+      "description": "User web portal"
+    },
+    {
+      "unique-id": "admin-panel",
+      "node-type": "application",
+      "name": "Admin Panel",
+      "description": "Administrative interface"
+    },
+    {
+      "unique-id": "app-container",
+      "node-type": "container",
+      "name": "Application Container",
+      "description": "Kubernetes application pod"
+    },
+    {
+      "unique-id": "service-a",
+      "node-type": "microservice",
+      "name": "Service A",
+      "description": "Microservice A"
+    },
+    {
+      "unique-id": "service-b",
+      "node-type": "microservice",
+      "name": "Service B",
+      "description": "Microservice B"
+    },
+    {
+      "unique-id": "mobile-client",
+      "node-type": "client",
+      "name": "Mobile Client",
+      "description": "iOS and Android mobile app"
+    },
+    {
+      "unique-id": "edge-gateway",
+      "node-type": "gateway",
+      "name": "Edge Gateway",
+      "description": "Edge computing gateway"
+    },
+    {
+      "unique-id": "core-service",
+      "node-type": "service",
+      "name": "Core Processing Service",
+      "description": "Main business logic service"
+    },
+    {
+      "unique-id": "legacy-system",
+      "node-type": "legacy",
+      "name": "Legacy Mainframe",
+      "description": "Legacy mainframe system"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "client-gateway-connection",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "client-app"},
+          "destination": {"node": "api-gateway"}
+        }
+      },
+      "description": "Client connects to API gateway",
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "gateway-auth-route",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "api-gateway"},
+          "destination": {"node": "auth-service"}
+        }
+      },
+      "description": "Gateway routes authentication requests",
+      "protocol": "HTTP"
+    },
+    {
+      "unique-id": "gateway-business-route",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "api-gateway"},
+          "destination": {"node": "business-service"}
+        }
+      },
+      "description": "Gateway routes business logic requests",
+      "protocol": "HTTP"
+    },
+    {
+      "unique-id": "business-data-connection",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "business-service"},
+          "destination": {"node": "data-service"}
+        }
+      },
+      "description": "Business service accesses data",
+      "protocol": "gRPC"
+    },
+    {
+      "unique-id": "business-payment-integration",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "business-service"},
+          "destination": {"node": "external-api"}
+        }
+      },
+      "description": "Business service integrates with payment API",
+      "protocol": "REST"
+    },
+    {
+      "unique-id": "user-interacts-portal",
+      "relationship-type": {
+        "interacts": {
+          "actor": "user-actor",
+          "nodes": ["web-portal"]
+        }
+      },
+      "description": "User interacts with web portal"
+    },
+    {
+      "unique-id": "admin-interacts-panel",
+      "relationship-type": {
+        "interacts": {
+          "actor": "admin-actor",
+          "nodes": ["admin-panel"]
+        }
+      },
+      "description": "Admin interacts with admin panel"
+    },
+    {
+      "unique-id": "services-deployed-container",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "app-container",
+          "nodes": ["service-a", "service-b"]
+        }
+      },
+      "description": "Services deployed in application container"
+    },
+    {
+      "unique-id": "portal-connects-service",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "web-portal"},
+          "destination": {"node": "service-a"}
+        }
+      },
+      "description": "Portal connects to service A"
+    },
+    {
+      "unique-id": "mobile-edge-websocket",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "mobile-client"},
+          "destination": {"node": "edge-gateway"}
+        }
+      },
+      "description": "Mobile client connects via WebSocket",
+      "protocol": "WebSocket",
+      "metadata": {
+        "connection-type": "real-time",
+        "security": "WSS"
+      }
+    },
+    {
+      "unique-id": "gateway-core-grpc",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "edge-gateway"},
+          "destination": {"node": "core-service"}
+        }
+      },
+      "description": "Gateway to core service via gRPC",
+      "protocol": "gRPC",
+      "metadata": {
+        "connection-type": "streaming",
+        "load-balancing": "round-robin"
+      }
+    },
+    {
+      "unique-id": "core-legacy-mq",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "core-service"},
+          "destination": {"node": "legacy-system"}
+        }
+      },
+      "description": "Core service to legacy via message queue",
+      "protocol": "IBM MQ",
+      "metadata": {
+        "connection-type": "asynchronous",
+        "queue-manager": "LEGACY_QM"
+      }
+    }
+  ]
+}
+
