@@ -1,0 +1,168 @@
+{
+    "nodes": [
+      {
+        "unique-id": "enterprise-bank",
+        "node-type": "system",
+        "name": "Enterprise Bank",
+        "description": "Main enterprise banking system"
+      },
+      {
+        "unique-id": "trading-system",
+        "node-type": "system",
+        "name": "Trading System",
+        "description": "Handles trading operations"
+      },
+      {
+        "unique-id": "position-system",
+        "node-type": "system",
+        "name": "Position System",
+        "description": "Manages trading positions"
+      },
+      {
+        "unique-id": "messaging-system",
+        "node-type": "system",
+        "name": "Messaging System",
+        "description": "Message bus infrastructure"
+      },
+      {
+        "unique-id": "trading-ui",
+        "node-type": "service",
+        "name": "Trading UI",
+        "description": "User interface for trading",
+        "interfaces": [
+          {
+            "unique-id": "web-ui",
+            "name": "Web Interface"
+          }
+        ]
+      },
+      {
+        "unique-id": "trade-svc",
+        "node-type": "service",
+        "name": "Trade Service",
+        "description": "Core trading service",
+        "interfaces": [
+          {
+            "unique-id": "api",
+            "name": "API: /trades"
+          },
+          {
+            "unique-id": "jdbc",
+            "name": "JDBC: trading-db"
+          },
+          {
+            "unique-id": "events",
+            "name": "Topic: trade.events"
+          }
+        ]
+      },
+      {
+        "unique-id": "trading-db",
+        "node-type": "datastore",
+        "name": "Trading DB",
+        "description": "Trading database",
+        "interfaces": [
+          {
+            "unique-id": "sql",
+            "name": "SQL Interface"
+          }
+        ]
+      },
+      {
+        "unique-id": "position-svc",
+        "node-type": "service",
+        "name": "Position Service",
+        "description": "Position management service",
+        "interfaces": [
+          {
+            "unique-id": "position-api",
+            "name": "Position API"
+          }
+        ]
+      },
+      {
+        "unique-id": "message-bus",
+        "node-type": "service",
+        "name": "Message Bus",
+        "description": "Kafka message bus",
+        "interfaces": [
+          {
+            "unique-id": "trade-events-topic",
+            "name": "Trade Events Topic"
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "unique-id": "r1",
+        "relationship-type": {
+          "composed-of": {
+            "container": "enterprise-bank",
+            "nodes": ["trading-system", "position-system", "messaging-system"]
+          }
+        }
+      },
+      {
+        "unique-id": "r2",
+        "relationship-type": {
+          "composed-of": {
+            "container": "trading-system",
+            "nodes": ["trading-ui", "trade-svc", "trading-db"]
+          }
+        }
+      },
+      {
+        "unique-id": "r3",
+        "relationship-type": {
+          "composed-of": {
+            "container": "position-system",
+            "nodes": ["position-svc"]
+          }
+        }
+      },
+      {
+        "unique-id": "r4",
+        "relationship-type": {
+          "composed-of": {
+            "container": "messaging-system",
+            "nodes": ["message-bus"]
+          }
+        }
+      },
+      {
+        "unique-id": "r5",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "trading-ui", "interfaces": [ "web-ui" ] },
+            "destination": { "node": "trade-svc", "interfaces": [ "api" ] }
+          }
+        },
+        "description": "Place Trade"
+      },
+      {
+        "unique-id": "r6",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "trade-svc", "interfaces": [ "jdbc" ] },
+            "destination": { "node": "trading-db", "interfaces": [ "sql" ] }
+          }
+        },
+        "description": "Persist"
+      },
+      {
+        "unique-id": "r7",
+        "relationship-type": {
+          "connects": {
+            "source": { "node": "trade-svc", "interfaces": [ "events" ] },
+            "destination": { "node": "message-bus", "interfaces": [ "trade-events-topic" ] }
+          }
+        },
+        "description": "Publish Events"
+      }
+    ],
+    "metadata": {},
+    "controls": {},
+    "flows": [],
+    "adrs": []
+  }

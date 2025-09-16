@@ -378,6 +378,18 @@ describe('TemplatePreprocessor.preprocessTemplate', () => {
         expect(output).toBe('{{flow-sequence this flow-id="x" type="short"}}');
     });
 
+    it('widget helper with no arguments adds explicit this', () => {
+        const input = '{{block-architecture}}';
+        const output = TemplatePreprocessor.preprocessTemplate(input);
+        expect(output).toBe('{{block-architecture this}}');
+    });
+
+    it('widget helper with only key-value arguments adds explicit this', () => {
+        const input = '{{block-architecture focus-nodes="attendees"}}';
+        const output = TemplatePreprocessor.preprocessTemplate(input);
+        expect(output).toBe('{{block-architecture this focus-nodes="attendees"}}');
+    });
+
     it('leaves reserved standalone paths', () => {
         expect(TemplatePreprocessor.preprocessTemplate('{{this}}')).toBe('{{this}}');
         expect(TemplatePreprocessor.preprocessTemplate('{{.}}')).toBe('{{.}}');

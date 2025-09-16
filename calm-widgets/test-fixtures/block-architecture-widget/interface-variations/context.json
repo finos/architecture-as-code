@@ -1,0 +1,53 @@
+{
+  "nodes": [
+    {
+      "unique-id": "retail-platform",
+      "node-type": "system",
+      "name": "Retail Platform",
+      "description": "Customer ordering and fulfillment"
+    },
+    {
+      "unique-id": "order-svc",
+      "node-type": "service",
+      "name": "Order Service",
+      "description": "Accepts and manages customer orders",
+      "interfaces": [
+        { "unique-id": "rest", "name": "REST API" }
+      ]
+    },
+    {
+      "unique-id": "inventory-svc",
+      "node-type": "service",
+      "name": "Inventory Service",
+      "description": "Tracks stock and reservations",
+      "interfaces": [
+        { "unique-id": "rest", "name": "REST API" }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "c1",
+      "relationship-type": {
+        "composed-of": {
+          "container": "retail-platform",
+          "nodes": ["order-svc", "inventory-svc"]
+        }
+      }
+    },
+    {
+      "unique-id": "e1",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "order-svc" },
+          "destination": { "node": "inventory-svc", "interfaces": [ "rest" ] }
+        }
+      },
+      "description": "REST API call to reserve stock"
+    }
+  ],
+  "metadata": {},
+  "controls": {},
+  "flows": [],
+  "adrs": []
+}
