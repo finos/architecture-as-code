@@ -5,10 +5,8 @@ import * as os from 'os';
 import { execa } from 'execa';
 import { parseStringPromise } from 'xml2js';
 import axios from 'axios';
-import { Mock } from 'vitest';
 import { expectDirectoryMatch, expectFilesMatch } from '@finos/calm-shared';
 import { spawn } from 'node:child_process';
-vi.mock('axios');
 
 const millisPerSecond = 1000;
 const integrationTestPrefix = 'calm-consumer-test';
@@ -254,12 +252,9 @@ describe('CLI Integration Tests', () => {
     });
 
     test('server command starts and responds to /health', async () => {
-        (axios.get as Mock).mockResolvedValue({
-            status: 200,
-            data: { status: 'ok' },
-        });
+        const schemaDir = path.resolve(__dirname, '../../calm');
         const serverProcess = spawn(
-            calm(), ['server', '--port', '3002', '--schema-directory', '../../dist/calm/'],
+            calm(), ['server', '--port', '3002', '--schema-directory', schemaDir],
             {
                 cwd: tempDir,
                 stdio: 'inherit',
@@ -270,7 +265,41 @@ describe('CLI Integration Tests', () => {
         try {
             const res = await axios.get('http://127.0.0.1:3002/health');
             expect(res.status).toBe(200);
-            expect(res.data.status).toBe('ok');
+            expect(res.data.status).toBe('OK');
+        } finally {
+            process.kill(-serverProcess.pid);
+        }
+    });
+
+    test('server command starts and validates an architecture', async () => {
+        const schemaDir = path.resolve(__dirname, '../test_fixtures/api-gateway');
+        const serverProcess = spawn(
+            calm(), ['server', '--port', '3003', '--schema-directory', schemaDir],
+            {
+                cwd: tempDir,
+                stdio: 'inherit',
+                detached: true,
+            }
+        );
+
+        const validArchitecture = fs.readFileSync(
+            path.join(__dirname, '../test_fixtures/validation_route/valid_instantiation.json'),
+            'utf8'
+        );
+
+        await new Promise((r) => setTimeout(r, 5 * millisPerSecond));
+
+        try {
+            const res = await axios.post(
+                'http://127.0.0.1:3003/calm/validate',
+                JSON.parse(validArchitecture),
+                { headers: { 'Content-Type': 'application/json' } }
+            );
+            expect(res.status).toBe(201);
+            expect(JSON.stringify(res.data)).toContain('jsonSchemaValidationOutputs');
+            expect(JSON.stringify(res.data)).toContain('spectralSchemaValidationOutputs');
+            expect(JSON.stringify(res.data)).toContain('hasErrors');
+            expect(JSON.stringify(res.data)).toContain('hasWarnings');
         } finally {
             process.kill(-serverProcess.pid);
         }

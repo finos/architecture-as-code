@@ -17,7 +17,7 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <surefire-plugin.version>3.5.3</surefire-plugin.version>
+        <surefire-plugin.version>3.5.4</surefire-plugin.version>
     </properties>
 
     <!-- Override Netty components to a secure version (keep all modules aligned) -->
@@ -27,7 +27,7 @@
                 <groupId>io.netty</groupId>
                 <artifactId>netty-bom</artifactId>
                 <!-- Force patched Netty version to mitigate CVE-2025-58057 (affecting 4.1.124.Final) -->
-                <version>4.1.127.Final</version>
+                <version>4.2.6.Final</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -131,33 +131,6 @@
     </dependencies>
     <build>
         <plugins>
-            <!-- OWASP Dependency Check Plugin -->
-            <plugin>
-                <groupId>org.owasp</groupId>
-                <artifactId>dependency-check-maven</artifactId>
-                <version>12.1.3</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <!-- Optional configuration: reuse suppression file if present -->
-                <configuration>
-                    <formats>HTML,JSON</formats>
-                    <failOnError>true</failOnError>
-                    <skipSystemScope>true</skipSystemScope>
-                    <!-- Disable .NET analyzers to avoid dotnet requirement -->
-                    <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
-                    <csharpAnalyzerEnabled>false</csharpAnalyzerEnabled>
-                    <!-- Use environment-provided NVD API Key -->
-                    <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
-                    <suppressionFiles>
-                        <suppressionFile>${project.basedir}/../.github/maven-cve-ignore-list.xml</suppressionFile>
-                    </suppressionFiles>
-                </configuration>
-            </plugin>
             <!-- Quarkus Maven Plugin -->
             <plugin>
                 <groupId>io.quarkus</groupId>
@@ -364,6 +337,42 @@
                             <includes>
                                 <include>**/*Integration.java</include>
                             </includes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>dependency-check</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <!-- OWASP Dependency Check Plugin -->
+                    <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <version>12.1.3</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <!-- Optional configuration: reuse suppression file if present -->
+                        <configuration>
+                            <formats>HTML,JSON</formats>
+                            <failOnError>true</failOnError>
+                            <skipSystemScope>true</skipSystemScope>
+                            <!-- Disable .NET analyzers to avoid dotnet requirement -->
+                            <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+                            <!-- Use environment-provided NVD API Key, fallback to Maven property -->
+                            <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
+                            <suppressionFiles>
+                                <suppressionFile>${project.basedir}/../.github/maven-cve-ignore-list.xml</suppressionFile>
+                            </suppressionFiles>
                         </configuration>
                     </plugin>
                 </plugins>
