@@ -5,6 +5,11 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.3.1 (2025-09-15)
+
+* Merge pull request #1612 from rocketstack-matt/cve-fix ([f0a8acc](https://github.com/finos/architecture-as-code/commit/f0a8acc)), closes [#1612](https://github.com/finos/architecture-as-code/issues/1612)
+* fix(ci): Ensure consistency of dependency check locally and remote ([9ad9372](https://github.com/finos/architecture-as-code/commit/9ad9372))
+
 ## 1.3.0 (2025-09-11)
 
 * Merge pull request #1603 from LeighFinegold/vertical-table ([0021f2b](https://github.com/finos/architecture-as-code/commit/0021f2b)), closes [#1603](https://github.com/finos/architecture-as-code/issues/1603)
