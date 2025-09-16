@@ -5,6 +5,11 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.1.3 (2025-09-05)
+
+* Merge pull request #1590 from Thels/semantic-release-fixes ([9f83a08](https://github.com/finos/architecture-as-code/commit/9f83a08)), closes [#1590](https://github.com/finos/architecture-as-code/issues/1590)
+* fix(release): update success command to remove [skip ci] from changelog commit message ([b9ae424](https://github.com/finos/architecture-as-code/commit/b9ae424))
+
 ## 1.1.2 (2025-09-05)
 
 * Merge pull request #1588 from markscott-ms/fix-1555-tidy-debug ([57e38ec](https://github.com/finos/architecture-as-code/commit/57e38ec)), closes [#1588](https://github.com/finos/architecture-as-code/issues/1588)
@@ -18,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * fix(release): remove assets configuration from GitHub plugin ([a82bce1](https://github.com/finos/architecture-as-code/commit/a82bce1))
 * fix(release): swap @semantic-release/exec and @semantic-release/github ([299aa43](https://github.com/finos/architecture-as-code/commit/299aa43))
 * fix(release): update current version retrieval to use latest git tag instead of package.json ([ad0fcf6](https://github.com/finos/architecture-as-code/commit/ad0fcf6))
+
 ## 1.1.0 (2025-09-05)
 
 * Merge pull request #1580 from Thels/semantic-release-fixes ([232ef93](https://github.com/finos/architecture-as-code/commit/232ef93)), closes [#1580](https://github.com/finos/architecture-as-code/issues/1580)
