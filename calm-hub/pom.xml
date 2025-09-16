@@ -17,7 +17,7 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <surefire-plugin.version>3.5.3</surefire-plugin.version>
+        <surefire-plugin.version>3.5.4</surefire-plugin.version>
     </properties>
 
     <!-- Override Netty components to a secure version (keep all modules aligned) -->
@@ -27,7 +27,7 @@
                 <groupId>io.netty</groupId>
                 <artifactId>netty-bom</artifactId>
                 <!-- Force patched Netty version to mitigate CVE-2025-58057 (affecting 4.1.124.Final) -->
-                <version>4.1.127.Final</version>
+                <version>4.2.6.Final</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
