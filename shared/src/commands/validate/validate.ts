@@ -133,7 +133,7 @@ async function validateArchitectureAgainstPattern(architecture: object, pattern:
     let errors = spectralResult.errors;
     const warnings = spectralResult.warnings;
 
-    const patternResolved = applyArchitectureOptionsToPattern(architecture, pattern);
+    const patternResolved = applyArchitectureOptionsToPattern(architecture, pattern, debug);
 
     const jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, patternResolved, debug);
     await jsonSchemaValidator.initialize();
@@ -208,14 +208,14 @@ async function validateArchitectureOnly(architecture: object): Promise<Validatio
  * @param pattern Pattern which may contain options.
  * @returns Pattern with options applied and flattened.
  */
-export function applyArchitectureOptionsToPattern(architecture: object, pattern: object): object {
+export function applyArchitectureOptionsToPattern(architecture: object, pattern: object, debug: boolean): object {
 
     const choices: CalmChoice[] = extractChoicesFromArchitecture(architecture);
     if (choices.length === 0) {
         return pattern;
     }
 
-    return selectChoices(pattern, choices, true);
+    return selectChoices(pattern, choices, debug);
 }
 
 export function extractChoicesFromArchitecture(architecture: object): CalmChoice[] {

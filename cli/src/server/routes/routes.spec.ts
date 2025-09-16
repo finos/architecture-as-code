@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { CLIServerRoutes } from './routes';
 import { ValidationRouter } from './validation-route';
 import { HealthRouter } from './health-route';
+import { SchemaDirectory } from '@finos/calm-shared';
 
 const mockUse = vi.fn();
 const mockRouter = {
@@ -24,14 +25,18 @@ vi.mock('./health-route', () => {
     };
 });
 
+vi.mock('@finos/calm-shared', () =>{
+    return {
+        SchemaDirectory: vi.fn()
+    };
+});
 describe('CLIServerRoutes', () => {
-    let schemaDirectoryPath: string;
+    let schemaDirectory: SchemaDirectory;
     let cliServerRoutes: CLIServerRoutes;
     let mockRouter: Router;
 
     beforeEach(() => {
-        schemaDirectoryPath = '/path/to/schema';
-        cliServerRoutes = new CLIServerRoutes(schemaDirectoryPath);
+        cliServerRoutes = new CLIServerRoutes(schemaDirectory);
         mockRouter = cliServerRoutes.router;
     });
 

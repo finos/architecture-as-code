@@ -1,0 +1,137 @@
+{
+  "nodes": [
+    {
+      "unique-id": "msg-bus",
+      "node-type": "service",
+      "name": "Message Bus",
+      "description": "Central message bus"
+    },
+    {
+      "unique-id": "sys1",
+      "node-type": "system",
+      "name": "System 1",
+      "description": "First system"
+    },
+    {
+      "unique-id": "sys2",
+      "node-type": "system",
+      "name": "System 2",
+      "description": "Second system"
+    },
+    {
+      "unique-id": "sys3",
+      "node-type": "system",
+      "name": "System 3",
+      "description": "Third system"
+    },
+    {
+      "unique-id": "sys4",
+      "node-type": "system",
+      "name": "System 4",
+      "description": "Fourth system"
+    },
+    {
+      "unique-id": "sys5",
+      "node-type": "system",
+      "name": "System 5",
+      "description": "Fifth system"
+    },
+    {
+      "unique-id": "sys6",
+      "node-type": "system",
+      "name": "System 6",
+      "description": "Sixth system"
+    },
+    {
+      "unique-id": "sys7",
+      "node-type": "system",
+      "name": "System 7",
+      "description": "Seventh system"
+    },
+    {
+      "unique-id": "sys8",
+      "node-type": "system",
+      "name": "System 8",
+      "description": "Eighth system"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "r1",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "sys1" },
+          "destination": { "node": "msg-bus" }
+        }
+      }
+    },
+    {
+      "unique-id": "r2",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "sys2" },
+          "destination": { "node": "msg-bus" }
+        }
+      }
+    },
+    {
+      "unique-id": "r3",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "sys3" },
+          "destination": { "node": "msg-bus" }
+        }
+      }
+    },
+    {
+      "unique-id": "r4",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "sys4" },
+          "destination": { "node": "msg-bus" }
+        }
+      }
+    },
+    {
+      "unique-id": "r5",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "sys5" },
+          "destination": { "node": "msg-bus" }
+        }
+      }
+    },
+    {
+      "unique-id": "r6",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "sys6" },
+          "destination": { "node": "msg-bus" }
+        }
+      }
+    },
+    {
+      "unique-id": "r7",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "sys7" },
+          "destination": { "node": "msg-bus" }
+        }
+      }
+    },
+    {
+      "unique-id": "r8",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "sys8" },
+          "destination": { "node": "msg-bus" }
+        }
+      }
+    }
+  ],
+  "metadata": {},
+  "controls": {},
+  "flows": [],
+  "adrs": []
+}
+

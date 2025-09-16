@@ -1,0 +1,21 @@
+{
+	"image": "mcr.microsoft.com/devcontainers/universal:3",
+	"postCreateCommand": [
+		"bash", "-c", 
+		"sudo apt-get update && sudo apt-get install -y openjdk-21-jdk maven && echo 'export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64' >> ~/.bashrc"
+	],
+	"containerEnv": {
+		"JAVA_HOME": "/usr/lib/jvm/java-21-openjdk-amd64"
+	},
+	"hostRequirements": {
+		"cpus": 4,
+		"memory": "16gb"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"vscjava.vscode-java-pack"
+			]
+		}
+	}
+}

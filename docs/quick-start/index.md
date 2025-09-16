@@ -45,7 +45,7 @@ Assuming all went well, you will see a message like this:
 [INFO] Reactor Summary:
 [INFO] 
 [INFO] parent 1.0.0-SNAPSHOT .............................. SUCCESS [  0.278 s]
-[INFO] calm-hub 0.7.5 ..................................... SUCCESS [02:37 min]
+[INFO] calm-hub 0.7.6 ..................................... SUCCESS [02:37 min]
 [INFO] cli 1.0.0-SNAPSHOT ................................. SUCCESS [  0.021 s]
 [INFO] calm 1.0.0-SNAPSHOT ................................ SUCCESS [  0.016 s]
 [INFO] docs 1.0.0-SNAPSHOT ................................ SUCCESS [  0.016 s]
@@ -74,7 +74,7 @@ __  ____  __  _____   ___  __ ____  ______
  --/ __ \/ / / / _ | / _ \/ //_/ / / / __/
  -/ /_/ / /_/ / __ |/ , _/ ,< / /_/ /\ \
 --\___\_\____/_/ |_/_/|_/_/|_|\____/___/
-2025-08-21 14:19:52,408 INFO  [io.quarkus] (Quarkus Main Thread) calm-hub 0.7.5 on JVM (powered by Quarkus 3.23.0) started in 1.690s. Listening on: http://localhost:8080
+2025-08-21 14:19:52,408 INFO  [io.quarkus] (Quarkus Main Thread) calm-hub 0.7.6 on JVM (powered by Quarkus 3.23.0) started in 1.690s. Listening on: http://localhost:8080
 2025-08-21 14:19:52,411 INFO  [io.quarkus] (Quarkus Main Thread) Profile dev activated. Live Coding activated.
 2025-08-21 14:19:52,411 INFO  [io.quarkus] (Quarkus Main Thread) Installed features: [cdi, compose, hibernate-validator, mongodb-client, oidc, resteasy, resteasy-jsonb, security, smallrye-context-propagation, smallrye-openapi, swagger-ui, vertx]
 

@@ -122,15 +122,16 @@ describe('WidgetEngine', () => {
     });
 
     describe('registerDefaultWidgets', () => {
-        it('registers the default widgets (list, table, json-viewer)', () => {
+        it('registers the default widgets (list, table, json-viewer, flow-sequence, related-nodes, block-architecture)', () => {
             engine.registerDefaultWidgets();
 
-            expect(registerMock).toHaveBeenCalledTimes(5);
+            expect(registerMock).toHaveBeenCalledTimes(6);
             expect(localHandlebars.registerHelper).toHaveBeenCalledWith('list', expect.any(Function));
             expect(localHandlebars.registerHelper).toHaveBeenCalledWith('table', expect.any(Function));
             expect(localHandlebars.registerHelper).toHaveBeenCalledWith('json-viewer', expect.any(Function));
             expect(localHandlebars.registerHelper).toHaveBeenCalledWith('flow-sequence', expect.any(Function));
             expect(localHandlebars.registerHelper).toHaveBeenCalledWith('related-nodes', expect.any(Function));
+            expect(localHandlebars.registerHelper).toHaveBeenCalledWith('block-architecture', expect.any(Function));
         });
     });
 });

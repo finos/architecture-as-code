@@ -1,0 +1,16 @@
+{{!-- Only emit a subgraph if it has content --}}
+{{#if (or (gt (length nodes) 0) (gt (length containers) 0))}}
+    subgraph {{id}}["{{label}}"]
+    direction TB
+    {{#each nodes}}
+        {{id}}["{{label}}"]:::node
+        {{#each interfaces}}
+            {{id}}["{{label}}"]:::iface
+        {{/each}}
+    {{/each}}
+    {{#each containers}}
+        {{> container.hbs}}
+    {{/each}}
+    end
+    class {{id}} boundary
+{{/if}}
