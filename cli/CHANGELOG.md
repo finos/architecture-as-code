@@ -5,6 +5,11 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.1.2 (2025-09-05)
+
+* Merge pull request #1588 from markscott-ms/fix-1555-tidy-debug ([57e38ec](https://github.com/finos/architecture-as-code/commit/57e38ec)), closes [#1588](https://github.com/finos/architecture-as-code/issues/1588)
+* fix(shared): honour user's selected log level in validation option selection logic ([da6e513](https://github.com/finos/architecture-as-code/commit/da6e513))
+
 ## 1.1.1 (2025-09-05)
 
 * Merge pull request #1583 from Thels/semantic-release-fixes ([8b3a2b9](https://github.com/finos/architecture-as-code/commit/8b3a2b9)), closes [#1583](https://github.com/finos/architecture-as-code/issues/1583)
