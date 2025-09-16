@@ -54,6 +54,15 @@ describe('Widgets E2E - Handlebars Integration', () => {
 
             expect(result.trim()).toBe(expected);
         });
+
+        it('renders an flat vertical table', () => {
+            const { context, template, expected } = fixtures.loadFixture('table-widget', 'flat-vertical-table');
+
+            const compiledTemplate = handlebars.compile(template);
+            const result = compiledTemplate(context);
+
+            expect(result.trim()).toBe(expected);
+        });
     });
 
     describe('List Widget', () => {

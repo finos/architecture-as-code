@@ -105,7 +105,8 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>    </td>
+                                </div>
+                            </td>
                         </tr>
                         </tbody>
                     </table>
@@ -168,7 +169,8 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>    </td>
+                                </div>
+                            </td>
                         </tr>
                         </tbody>
                     </table>
@@ -225,7 +227,8 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>        <div class="table-container">
+                                </div>
+                                <div class="table-container">
                                     <table>
                                         <tbody>
                                         <tr>
@@ -242,7 +245,8 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>    </td>
+                                </div>
+                            </td>
                         </tr>
                         </tbody>
                     </table>
@@ -299,7 +303,8 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>        <div class="table-container">
+                                </div>
+                                <div class="table-container">
                                     <table>
                                         <tbody>
                                         <tr>
@@ -316,7 +321,8 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>    </td>
+                                </div>
+                            </td>
                         </tr>
                         </tbody>
                     </table>
@@ -427,7 +433,8 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>    </td>
+                                                                </div>
+                                                            </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
@@ -605,7 +612,8 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>    </td>
+                                                                </div>
+                                                            </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
@@ -770,7 +778,8 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>    </td>
+                                                                </div>
+                                                            </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
@@ -935,7 +944,8 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>    </td>
+                                                                </div>
+                                                            </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
