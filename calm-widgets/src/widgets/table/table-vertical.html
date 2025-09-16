@@ -1,0 +1,20 @@
+{{#if headers}}
+{{#unless flatTable}}
+<thead>
+<tr>
+    <th style="text-align:left">Key</th>
+    <th>Value</th>
+</tr>
+</thead>
+{{/unless}}
+{{/if}}
+<tbody>
+{{#each columnNames}}
+<tr>
+    <th style="text-align:left">{{kebabToTitleCase this}}</th>
+    {{#each ../rows}}
+    <td>{{lookup this.data ../this}}</td>
+    {{/each}}
+</tr>
+{{/each}}
+</tbody>

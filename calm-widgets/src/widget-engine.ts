@@ -9,6 +9,7 @@ import { ListWidget } from './widgets/list';
 import { JsonViewerWidget } from './widgets/json-viewer';
 import { FlowSequenceWidget } from './widgets/flow-sequence';
 import { RelatedNodesWidget } from './widgets/related-nodes';
+import { BlockArchitectureWidget } from './widgets/block-architecture';
 
 export class WidgetEngine {
     constructor(
@@ -69,6 +70,10 @@ export class WidgetEngine {
             {
                 widget: RelatedNodesWidget as CalmWidget<unknown, object, unknown>,
                 folder: __dirname + '/widgets/related-nodes',
+            },
+            {
+                widget: BlockArchitectureWidget as CalmWidget<unknown, object, unknown>,
+                folder: __dirname + '/widgets/block-architecture',
             },
         ];
         this.setupWidgets(widgets);

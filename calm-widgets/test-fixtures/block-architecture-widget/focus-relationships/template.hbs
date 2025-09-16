@@ -1,0 +1,17 @@
+## Default Architecture (No Focus)
+{{block-architecture this}}
+
+## Single Relationship Focus [focus-relationships="client-gateway-connection"]
+{{block-architecture this focus-relationships="client-gateway-connection"}}
+
+## Multiple Related Relationships [focus-relationships="gateway-auth-route,gateway-business-route"]
+{{block-architecture this focus-relationships="gateway-auth-route,gateway-business-route"}}
+
+## Relationship with Connected Edges [focus-relationships="business-data-connection" edges="connected"]
+{{block-architecture this focus-relationships="business-data-connection" edges="connected"}}
+
+## Actor Interactions [focus-relationships="user-interacts-portal,admin-interacts-panel"]
+{{block-architecture this focus-relationships="user-interacts-portal,admin-interacts-panel"}}
+
+## Container Deployment [focus-relationships="services-deployed-container"]
+{{block-architecture this focus-relationships="services-deployed-container"}}
