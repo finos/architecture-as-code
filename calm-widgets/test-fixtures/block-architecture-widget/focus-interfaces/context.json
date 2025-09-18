@@ -1,0 +1,376 @@
+{
+  "nodes": [
+    {
+      "unique-id": "product-service",
+      "node-type": "service",
+      "name": "Product Service",
+      "description": "Manages product catalog and inventory",
+      "interfaces": [
+        {
+          "unique-id": "product-data-interface",
+          "definition-url": "https://calm.finos.org/release/1.0/interface-definition/data-element",
+          "config": {
+            "data-catalog-entry": "https://data-catalog.example.org/entities/product",
+            "schemaRef": {
+              "url": "https://api.example.org/openapi/swagger.json#/components/schemas/Product",
+              "endpoints": [
+                { "protocol": "HTTPS", "endpoint": "/products", "method": "GET" },
+                { "protocol": "HTTPS", "endpoint": "/products", "method": "POST" }
+              ]
+            },
+            "content-type": "application/json",
+            "elements": [
+              { "name": "product_id", "type": "string", "description": "Unique product identifier", "classification": "Internal" },
+              { "name": "name", "type": "string", "description": "Product name", "classification": "Public" },
+              { "name": "price", "type": "number", "description": "Product price", "classification": "Internal" },
+              { "name": "category", "type": "string", "description": "Product category", "classification": "Public" }
+            ]
+          }
+        },
+        {
+          "unique-id": "product-rest-api",
+          "definition-url": "https://api.example.org/product-service",
+          "protocol": "HTTPS",
+          "port": 8080,
+          "path": "/api/v1/products",
+          "authentication": "Bearer",
+          "version": "v1"
+        },
+        {
+          "unique-id": "product-health-check",
+          "definition-url": "https://api.example.org/health",
+          "protocol": "HTTP",
+          "port": 8081,
+          "path": "/health",
+          "monitoring": true
+        }
+      ]
+    },
+    {
+      "unique-id": "account-service",
+      "node-type": "service",
+      "name": "Account Service",
+      "description": "Manages customer accounts and profiles",
+      "interfaces": [
+        {
+          "unique-id": "account-data-interface",
+          "definition-url": "https://calm.finos.org/release/1.0/interface-definition/data-element",
+          "config": {
+            "data-catalog-entry": "https://data-catalog.example.org/entities/account",
+            "schemaRef": {
+              "url": "https://api.example.org/openapi/swagger.json#/components/schemas/Account",
+              "endpoints": [
+                { "protocol": "HTTPS", "endpoint": "/accounts", "method": "GET" },
+                { "protocol": "Kafka", "topic": "account-updated" }
+              ]
+            },
+            "content-type": "application/json",
+            "elements": [
+              { "name": "account_id", "type": "string", "description": "Unique account identifier", "classification": "Internal" },
+              { "name": "customer_email", "type": "string", "description": "Customer email", "classification": "PII" },
+              { "name": "balance", "type": "number", "description": "Account balance", "classification": "Confidential" },
+              { "name": "status", "type": "string", "description": "Account status", "classification": "Internal" }
+            ]
+          }
+        },
+        {
+          "unique-id": "account-grpc-api",
+          "definition-url": "https://grpc.example.org/account-service",
+          "protocol": "gRPC",
+          "port": 9090,
+          "service-name": "AccountService",
+          "version": "v2"
+        }
+      ]
+    },
+    {
+      "unique-id": "trade-service",
+      "node-type": "service",
+      "name": "Trade Service",
+      "description": "Processes trading transactions",
+      "interfaces": [
+        {
+          "unique-id": "trade-data-interface",
+          "definition-url": "https://calm.finos.org/release/1.0/interface-definition/data-element",
+          "config": {
+            "data-catalog-entry": "https://data-catalog.example.org/entities/trade",
+            "schemaRef": {
+              "url": "https://api.example.org/openapi/swagger.json#/components/schemas/Trade",
+              "endpoints": [
+                { "protocol": "HTTPS", "endpoint": "/trades", "method": "POST" },
+                { "protocol": "Kafka", "topic": "trade-executed" }
+              ]
+            },
+            "content-type": "application/json",
+            "elements": [
+              { "name": "trade_id", "type": "string", "description": "Unique trade identifier", "classification": "Internal" },
+              { "name": "account_id", "type": "string", "description": "Account executing trade", "classification": "Internal" },
+              { "name": "product_id", "type": "string", "description": "Product being traded", "classification": "Internal" },
+              { "name": "quantity", "type": "number", "description": "Trade quantity", "classification": "Internal" },
+              { "name": "execution_price", "type": "number", "description": "Execution price", "classification": "Internal" },
+              { "name": "timestamp", "type": "string", "description": "Trade execution time", "classification": "Internal" }
+            ]
+          }
+        },
+        {
+          "unique-id": "trade-websocket",
+          "definition-url": "https://ws.example.org/trade-stream",
+          "protocol": "WebSocket",
+          "port": 8082,
+          "path": "/ws/trades",
+          "real-time": true
+        },
+        {
+          "unique-id": "trade-metrics",
+          "definition-url": "https://metrics.example.org/trade-service",
+          "protocol": "HTTP",
+          "port": 9090,
+          "path": "/metrics",
+          "format": "prometheus"
+        }
+      ]
+    },
+    {
+      "unique-id": "legacy-system",
+      "node-type": "legacy-system",
+      "name": "Legacy Trading System",
+      "description": "Legacy mainframe system with same data definitions",
+      "interfaces": [
+        {
+          "unique-id": "legacy-trade-interface",
+          "definition-url": "https://calm.finos.org/release/1.0/interface-definition/data-element",
+          "config": {
+            "data-catalog-entry": "https://data-catalog.example.org/entities/trade",
+            "schemaRef": {
+              "url": "https://legacy.example.org/cobol/copybook#TRADE-RECORD",
+              "endpoints": [
+                { "protocol": "MQ", "queue": "TRADE.QUEUE" },
+                { "protocol": "FTP", "endpoint": "/batch/trades.dat" }
+              ]
+            },
+            "content-type": "application/x-fixed-width",
+            "elements": [
+              { "name": "trade_id", "type": "string", "description": "Unique trade identifier", "classification": "Internal" },
+              { "name": "account_id", "type": "string", "description": "Account executing trade", "classification": "Internal" },
+              { "name": "product_id", "type": "string", "description": "Product being traded", "classification": "Internal" },
+              { "name": "quantity", "type": "number", "description": "Trade quantity", "classification": "Internal" },
+              { "name": "execution_price", "type": "number", "description": "Execution price", "classification": "Internal" },
+              { "name": "timestamp", "type": "string", "description": "Trade execution time", "classification": "Internal" }
+            ]
+          }
+        },
+        {
+          "unique-id": "legacy-mq-interface",
+          "definition-url": "https://mq.legacy.example.org",
+          "protocol": "MQ",
+          "port": 1414,
+          "queue-manager": "TRADE_QM",
+          "channel": "SYSTEM.DEF.SVRCONN"
+        },
+        {
+          "unique-id": "legacy-batch-interface",
+          "definition-url": "https://batch.legacy.example.org",
+          "protocol": "FTP",
+          "port": 21,
+          "path": "/batch",
+          "schedule": "daily"
+        }
+      ]
+    },
+    {
+      "unique-id": "api-gateway",
+      "node-type": "gateway",
+      "name": "API Gateway",
+      "description": "Main entry point for REST APIs",
+      "interfaces": [
+        {
+          "unique-id": "gateway-rest",
+          "definition-url": "https://gateway.example.org/api",
+          "protocol": "HTTPS",
+          "port": 443,
+          "path": "/api/v1",
+          "authentication": "OAuth2",
+          "rate-limit": "1000/hour"
+        },
+        {
+          "unique-id": "gateway-admin",
+          "definition-url": "https://admin.gateway.example.org",
+          "protocol": "HTTPS",
+          "port": 8443,
+          "path": "/admin",
+          "authentication": "mTLS",
+          "network": "private"
+        }
+      ]
+    },
+    {
+      "unique-id": "kafka-broker",
+      "node-type": "message-broker",
+      "name": "Event Stream",
+      "description": "Kafka event streaming platform",
+      "interfaces": [
+        {
+          "unique-id": "kafka-events",
+          "definition-url": "https://kafka.example.org",
+          "protocol": "Kafka",
+          "port": 9092,
+          "topics": ["account-updated", "trade-executed"]
+        },
+        {
+          "unique-id": "kafka-connect",
+          "definition-url": "https://connect.kafka.example.org",
+          "protocol": "HTTP",
+          "port": 8083,
+          "path": "/connectors",
+          "service-type": "kafka-connect"
+        },
+        {
+          "unique-id": "kafka-schema-registry",
+          "definition-url": "https://schema.kafka.example.org",
+          "protocol": "HTTP",
+          "port": 8081,
+          "path": "/subjects",
+          "service-type": "schema-registry"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "gateway-to-product",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-gateway",
+            "interfaces": ["gateway-rest"]
+          },
+          "destination": {
+            "node": "product-service",
+            "interfaces": ["product-data-interface"]
+          }
+        }
+      },
+      "description": "API Gateway routes product requests",
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "gateway-to-account",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-gateway",
+            "interfaces": ["gateway-rest"]
+          },
+          "destination": {
+            "node": "account-service",
+            "interfaces": ["account-data-interface"]
+          }
+        }
+      },
+      "description": "API Gateway routes account requests",
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "gateway-to-trade",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-gateway",
+            "interfaces": ["gateway-rest"]
+          },
+          "destination": {
+            "node": "trade-service",
+            "interfaces": ["trade-data-interface"]
+          }
+        }
+      },
+      "description": "API Gateway routes trade requests",
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "trade-to-kafka",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "trade-service",
+            "interfaces": ["trade-data-interface"]
+          },
+          "destination": {
+            "node": "kafka-broker",
+            "interfaces": ["kafka-events"]
+          }
+        }
+      },
+      "description": "Trade service publishes execution events",
+      "protocol": "Kafka"
+    },
+    {
+      "unique-id": "account-to-kafka",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "account-service",
+            "interfaces": ["account-data-interface"]
+          },
+          "destination": {
+            "node": "kafka-broker",
+            "interfaces": ["kafka-events"]
+          }
+        }
+      },
+      "description": "Account service publishes update events",
+      "protocol": "Kafka"
+    },
+    {
+      "unique-id": "legacy-to-kafka",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "legacy-system",
+            "interfaces": ["legacy-trade-interface"]
+          },
+          "destination": {
+            "node": "kafka-broker",
+            "interfaces": ["kafka-events"]
+          }
+        }
+      },
+      "description": "Legacy system publishes trades via adapter",
+      "protocol": "MQ-to-Kafka"
+    },
+    {
+      "unique-id": "trade-reads-account",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "trade-service",
+            "interfaces": ["trade-data-interface"]
+          },
+          "destination": {
+            "node": "account-service",
+            "interfaces": ["account-data-interface"]
+          }
+        }
+      },
+      "description": "Trade service validates account balance",
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "trade-reads-product",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "trade-service",
+            "interfaces": ["trade-data-interface"]
+          },
+          "destination": {
+            "node": "product-service",
+            "interfaces": ["product-data-interface"]
+          }
+        }
+      },
+      "description": "Trade service gets product pricing",
+      "protocol": "HTTPS"
+    }
+  ]
+}

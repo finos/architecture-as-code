@@ -1,0 +1,132 @@
+{
+  "nodes": [
+    { "unique-id": "web-app", "node-type": "service", "name": "Web Application", "description": "" },
+    { "unique-id": "api-gateway", "node-type": "service", "name": "API Gateway", "description": "" },
+    { "unique-id": "user-service", "node-type": "service", "name": "User Service", "description": "" },
+    { "unique-id": "order-service", "node-type": "service", "name": "Order Service", "description": "" },
+    { "unique-id": "payment-service", "node-type": "service", "name": "Payment Service", "description": "" },
+    { "unique-id": "notification-service", "node-type": "service", "name": "Notification Service", "description": "" },
+    { "unique-id": "user-db", "node-type": "database", "name": "User Database", "description": "" },
+    { "unique-id": "order-db", "node-type": "database", "name": "Order Database", "description": "" },
+
+    { "unique-id": "ecommerce-platform", "node-type": "system", "name": "E-Commerce Platform", "description": "" },
+    { "unique-id": "customer-edge", "node-type": "system", "name": "Customer Edge", "description": "" },
+    { "unique-id": "core-services", "node-type": "system", "name": "Core Services", "description": "" },
+    { "unique-id": "payments-system", "node-type": "system", "name": "Payments System", "description": "" },
+    { "unique-id": "notifications-system", "node-type": "system", "name": "Notifications System", "description": "" },
+    { "unique-id": "data-platform", "node-type": "system", "name": "Operational Data", "description": "" }
+  ],
+  "relationships": [
+    {
+      "unique-id": "r1",
+      "relationship-type": {
+        "connects": { "source": { "node": "web-app" }, "destination": { "node": "api-gateway" } }
+      },
+      "description": "HTTP requests"
+    },
+    {
+      "unique-id": "r2",
+      "relationship-type": {
+        "connects": { "source": { "node": "api-gateway" }, "destination": { "node": "user-service" } }
+      },
+      "description": "User operations"
+    },
+    {
+      "unique-id": "r3",
+      "relationship-type": {
+        "connects": { "source": { "node": "api-gateway" }, "destination": { "node": "order-service" } }
+      },
+      "description": "Order operations"
+    },
+    {
+      "unique-id": "r4",
+      "relationship-type": {
+        "connects": { "source": { "node": "order-service" }, "destination": { "node": "payment-service" } }
+      },
+      "description": "Process payment"
+    },
+    {
+      "unique-id": "r5",
+      "relationship-type": {
+        "connects": { "source": { "node": "payment-service" }, "destination": { "node": "notification-service" } }
+      },
+      "description": "Payment notification"
+    },
+    {
+      "unique-id": "r6",
+      "relationship-type": {
+        "connects": { "source": { "node": "user-service" }, "destination": { "node": "user-db" } }
+      },
+      "description": "Store user data"
+    },
+    {
+      "unique-id": "r7",
+      "relationship-type": {
+        "connects": { "source": { "node": "order-service" }, "destination": { "node": "order-db" } }
+      },
+      "description": "Store order data"
+    },
+
+    {
+      "unique-id": "c0",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ecommerce-platform",
+          "nodes": ["customer-edge", "core-services", "payments-system", "notifications-system", "data-platform"]
+        }
+      }
+    },
+    {
+      "unique-id": "c1",
+      "relationship-type": { "composed-of": { "container": "customer-edge", "nodes": ["web-app", "api-gateway"] } }
+    },
+    {
+      "unique-id": "c2",
+      "relationship-type": { "composed-of": { "container": "core-services", "nodes": ["user-service", "order-service"] } }
+    },
+    {
+      "unique-id": "c3",
+      "relationship-type": { "composed-of": { "container": "payments-system", "nodes": ["payment-service"] } }
+    },
+    {
+      "unique-id": "c4",
+      "relationship-type": { "composed-of": { "container": "notifications-system", "nodes": ["notification-service"] } }
+    },
+    {
+      "unique-id": "c5",
+      "relationship-type": { "composed-of": { "container": "data-platform", "nodes": ["user-db", "order-db"] } }
+    }
+  ],
+  "flows": [
+    {
+      "unique-id": "order-flow",
+      "name": "Order Processing Flow",
+      "description": "Complete order processing from web to payment",
+      "transitions": [
+        { "relationship-unique-id": "r1", "sequence-number": 1, "description": "User submits order" },
+        { "relationship-unique-id": "r3", "sequence-number": 2, "description": "Gateway routes to order service" },
+        { "relationship-unique-id": "r4", "sequence-number": 3, "description": "Order service calls payment" },
+        { "relationship-unique-id": "r5", "sequence-number": 4, "description": "Payment service notifies completion" }
+      ],
+      "requirement-url": "",
+      "controls": {},
+      "metadata": {}
+    },
+    {
+      "unique-id": "user-flow",
+      "name": "User Management Flow",
+      "description": "Fetching and persisting user data",
+      "transitions": [
+        { "relationship-unique-id": "r1", "sequence-number": 1, "description": "User action via web" },
+        { "relationship-unique-id": "r2", "sequence-number": 2, "description": "Gateway routes to user service" },
+        { "relationship-unique-id": "r6", "sequence-number": 3, "description": "Persist user data" }
+      ],
+      "requirement-url": "",
+      "controls": {},
+      "metadata": {}
+    }
+  ],
+  "metadata": {},
+  "controls": {},
+  "adrs": []
+}

@@ -138,7 +138,17 @@ export class TemplatePreprocessor {
         const isKV = (t: string) => /^@?[A-Za-z0-9_$-]+=/.test(t);
         if (tokens.length === 0) return { impliedThis: false, isStandalonePath: false };
         if (tokens.length === 1) {
-            return { contextPath: tokens[0], impliedThis: false, isStandalonePath: true };
+            const singleToken = tokens[0];
+            // Check if this is a known widget helper that needs implicit 'this'
+            if (TemplatePreprocessor.isWidgetHelper(singleToken)) {
+                return {
+                    helper: singleToken,
+                    contextPath: 'this',
+                    impliedThis: true,
+                    isStandalonePath: false
+                };
+            }
+            return { contextPath: singleToken, impliedThis: false, isStandalonePath: true };
         }
         const [helper, second, ...rest] = tokens;
         if (isKV(second)) {
@@ -155,6 +165,22 @@ export class TemplatePreprocessor {
             return { helper, contextPath: second, extras, impliedThis: false, isStandalonePath: false };
         }
         return { impliedThis: false, isStandalonePath: false };
+    }
+
+    /**
+     * Checks if a token is a known widget helper that requires implicit 'this' context.
+     * Widget helpers are designed to work with architecture data and need the current context.
+     */
+    private static isWidgetHelper(token: string): boolean {
+        const WIDGET_HELPERS = new Set([
+            'block-architecture',
+            'table',
+            'list',
+            'flow-sequence',
+            'related-nodes',
+            'json-viewer'
+        ]);
+        return WIDGET_HELPERS.has(token);
     }
 
     private static readonly RESERVED_PATHS = new Set<string>([
@@ -399,7 +425,17 @@ export class TemplatePreprocessor {
         const tokens = TemplatePreprocessor.tokenize(body);
         if (tokens.length === 0) return { kind: 'leave', seg, reason: 'empty' };
 
+        // Always use interpretTokens first to check for widget helpers
+        const { helper, contextPath, extras, impliedThis } = TemplatePreprocessor.interpretTokens(tokens);
+
         if (tokens.length === 1) {
+            // If it's a widget helper with implied this, handle it as such
+            if (impliedThis && helper) {
+                const newText = TemplatePreprocessor.buildImpliedThisHelperRewrite(helper, extras);
+                return { kind: 'rewrite', seg, newText };
+            }
+
+            // Otherwise, handle as a standalone path
             const path = tokens[0].trim();
             const prepSingle = TemplatePreprocessor.prepareRewriteContext(seg, path, undefined);
             if (prepSingle.decision) {
@@ -409,7 +445,6 @@ export class TemplatePreprocessor {
             return { kind: 'rewrite', seg, newText: TemplatePreprocessor.buildStandalonePathRewrite(safe) };
         }
 
-        const { helper, contextPath, extras, impliedThis } = TemplatePreprocessor.interpretTokens(tokens);
         if (!helper) return { kind: 'invalid', seg, reason: 'no-helper' };
 
         const path = (contextPath ?? 'this').trim();
