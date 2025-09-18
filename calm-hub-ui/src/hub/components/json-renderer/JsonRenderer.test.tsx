@@ -11,6 +11,10 @@ vi.mock('react-router-dom', async () => {
     };
 });
 
+vi.mock('@monaco-editor/react', () => ({
+    Editor: ({ value }: { value: string }) => <textarea value={value} readOnly data-testid="monaco-editor" />
+}));
+
 describe('JsonRenderer', () => {
     const mockNavigate = vi.fn();
 
@@ -42,9 +46,9 @@ describe('JsonRenderer', () => {
                 <JsonRenderer json={data} />
             </MemoryRouter>
         );
-        expect(screen.getByText(/name/i)).toBeInTheDocument();
-        expect(screen.getByText(/bar/i)).toBeInTheDocument();
-        expect(screen.getByText(/data/i)).toBeInTheDocument();
-        expect(screen.getByText(/undefined/i)).toBeInTheDocument();
+
+        // Monaco Editor is mocked as a textarea, so check its value
+        const textarea = screen.getByTestId('monaco-editor');
+        expect(textarea).toHaveValue(JSON.stringify(data, null, 2));
     });
 });

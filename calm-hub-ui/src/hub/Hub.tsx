@@ -5,6 +5,7 @@ import { Data, Adr } from '../model/calm.js';
 import { Navbar } from '../components/navbar/Navbar.js';
 import { AdrRenderer } from './components/adr-renderer/AdrRenderer.js';
 import { useNavigate } from 'react-router-dom';
+import './Hub.css';
 
 function Hub() {
     const navigate = useNavigate();
@@ -38,7 +39,7 @@ function Hub() {
                     <div className="p-5 flex-1 overflow-auto bg-[#eee] border-t-1 border-gray-300">
                         {data && (
                             <button
-                                className="bg-primary hover:bg-blue-500 text-white font-bold py-2 px-4 rounded float-right"
+                                className="bg-primary hover:bg-blue-500 text-white font-bold py-2 px-4 rounded float-right visualize-button"
                                 onClick={() => handleVisualize(data)}
                             >
                                 Visualize
