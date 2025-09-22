@@ -3,6 +3,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { Sidebar } from './Sidebar.js';
 import { CytoscapeNodeData, Edge } from '../../contracts/contracts.js';
 
+vi.mock('@monaco-editor/react', () => ({
+    Editor: ({ value }: { value: string }) => <textarea value={value} readOnly data-testid="monaco-editor" />
+}));
+
 describe('Sidebar Component', () => {
     const mockCloseSidebar = vi.fn();
 
@@ -52,29 +56,21 @@ describe('Sidebar Component', () => {
     it('should render edge details correctly', () => {
         render(<Sidebar selectedData={mockEdgeData} closeSidebar={mockCloseSidebar} />);
 
+        // Monaco Editor is mocked as a textarea, so check its value
+        const textarea = screen.getByTestId('monaco-editor');
+
         expect(screen.getByText('Edge Details')).toBeInTheDocument();
-        expect(screen.getByText(/edge-1/i)).toBeInTheDocument();
-        expect(screen.getByText(/Edge 1/i)).toBeInTheDocument();
-        expect(screen.getByText(/node-1/i)).toBeInTheDocument();
-        expect(screen.getByText(/node-2/i)).toBeInTheDocument();
+        expect(textarea).toHaveValue(JSON.stringify(mockEdgeData, null, 2));
     });
 
     it('should render node details dynamically based on selectedData', () => {
         render(<Sidebar selectedData={mockNodeData} closeSidebar={mockCloseSidebar} />);
 
         expect(screen.getByText('Node Details')).toBeInTheDocument();
-        expect(screen.getByText(/node-1/i)).toBeInTheDocument();
-        expect(screen.getByText(/Node 1/i)).toBeInTheDocument();
-        expect(screen.getByText(/type-1/i)).toBeInTheDocument();
-        expect(screen.getByText(/Mock Node/i)).toBeInTheDocument();
 
-        expect(screen.getByText(/load-balancer-host-port/i)).toBeInTheDocument();
-
-        // Interfaces & Controls
-        expect(
-            screen.getByText(/Control requirements for delivering patterns/i)
-        ).toBeInTheDocument();
-        expect(screen.getByText(/load-balancer-host-port/i)).toBeInTheDocument();
+        // Monaco Editor is mocked as a textarea, so check its value
+        const textarea = screen.getByTestId('monaco-editor');
+        expect(textarea).toHaveValue(JSON.stringify(mockNodeData, null, 2));
     });
 
     it('should call closeSidebar when close button is clicked', () => {
