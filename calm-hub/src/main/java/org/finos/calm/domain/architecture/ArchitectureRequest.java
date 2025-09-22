@@ -48,4 +48,12 @@ public class ArchitectureRequest {
         return Objects.hash(name, description, architectureJson);
     }
 
+    @Override
+    public String toString() {
+        return "ArchitectureRequest{" +
+                "name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", architectureJson='" + architectureJson + '\'' +
+                '}';
+    }
 }
