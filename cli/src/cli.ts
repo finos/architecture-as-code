@@ -202,6 +202,21 @@ export function setupCLI(program: Command) {
             await docifier.docify();
         });
 
+    program
+        .command('copilot-chatmode')
+        .description('Augment a git repository with a CALM VSCode chatmode for AI assistance')
+        .option('-d, --directory <path>', 'Target directory (defaults to current directory)', '.')
+        .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+        .action(async (options) => {
+            const { setupAiTools } = await import('./command-helpers/ai-tools');
+
+            if (options.verbose) {
+                process.env.DEBUG = 'true';
+            }
+
+            await setupAiTools(options.directory, !!options.verbose);
+        });
+
 }
 
 export async function parseDocumentLoaderConfig(options): Promise<DocumentLoaderOptions> {
