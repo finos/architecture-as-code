@@ -1,0 +1,6 @@
+.visualize-button {
+    position: absolute;
+    z-index: 5;
+    right: 3rem;
+    top: 6.75rem;
+}
