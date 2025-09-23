@@ -19,4 +19,4 @@ jobs:
             - name: Label PR based on changes
               uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v6
               with:
-                  repo-token: '${{ secrets.GITHUB_TOKEN }}'
+                  token: '${{ secrets.GITHUB_TOKEN }}'
