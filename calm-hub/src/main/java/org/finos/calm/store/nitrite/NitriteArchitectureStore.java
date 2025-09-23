@@ -39,6 +39,8 @@ public class NitriteArchitectureStore implements ArchitectureStore {
     private static final String ARCHITECTURE_ID_FIELD = "architectureId";
     private static final String ARCHITECTURES_FIELD = "architectures";
     private static final String VERSIONS_FIELD = "versions";
+    private static final String NAME_FIELD = "name";
+    private static final String DESCRIPTION_FIELD = "description";
 
     private final NitriteCollection architectureCollection;
     private final NitriteNamespaceStore namespaceStore;
@@ -93,6 +95,8 @@ public class NitriteArchitectureStore implements ArchitectureStore {
         int id = counterStore.getNextArchitectureSequenceValue();
         // Store the architecture JSON as a string
         Document architectureDocument = Document.createDocument()
+                .put(NAME_FIELD, architecture.getName())
+                .put(DESCRIPTION_FIELD, architecture.getDescription())
                 .put(ARCHITECTURE_ID_FIELD, id)
                 .put(VERSIONS_FIELD, Document.createDocument()
                         .put("1-0-0", architecture.getArchitectureJson()));
@@ -124,6 +128,8 @@ public class NitriteArchitectureStore implements ArchitectureStore {
                 .setId(id)
                 .setVersion("1.0.0")
                 .setNamespace(architecture.getNamespace())
+                .setName(architecture.getName())
+                .setDescription(architecture.getDescription())
                 .setArchitecture(architecture.getArchitectureJson())
                 .build();
     }
@@ -144,7 +150,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
                 for (String versionKey : versionKeys) {
                     resourceVersions.add(versionKey.replace('-', '.'));
                 }
-                LOG.debug("Retrieved {} versions for architecture {} in namespace '{}'", 
+                LOG.debug("Retrieved {} versions for architecture {} in namespace '{}'",
                         resourceVersions.size(), architecture.getId(), architecture.getNamespace());
                 return resourceVersions;
             }
@@ -187,7 +193,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
                 LOG.info("VersionDoc: [{}], Mongo Version: [{}]", versions, mongoVersion);
 
                 if (versionObj == null) {
-                    LOG.warn("Version '{}' not found for architecture {} in namespace '{}'", 
+                    LOG.warn("Version '{}' not found for architecture {} in namespace '{}'",
                             architecture.getDotVersion(), architecture.getId(), architecture.getNamespace());
                     throw new ArchitectureVersionNotFoundException();
                 }
@@ -211,7 +217,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
         }
 
         if (versionExists(architecture)) {
-            LOG.warn("Version '{}' already exists for architecture {} in namespace '{}'", 
+            LOG.warn("Version '{}' already exists for architecture {} in namespace '{}'",
                     architecture.getDotVersion(), architecture.getId(), architecture.getNamespace());
             throw new ArchitectureVersionExistsException();
         }
@@ -256,6 +262,8 @@ public class NitriteArchitectureStore implements ArchitectureStore {
                             // Found the architecture, update its version
                             Document versions = architectureDoc.get(VERSIONS_FIELD, Document.class);
                             versions.put(architecture.getMongoVersion(), architecture.getArchitectureJson());
+                            architectureDoc.put(NAME_FIELD, architecture.getName());
+                            architectureDoc.put(DESCRIPTION_FIELD, architecture.getDescription());
                             architectureDoc.put(VERSIONS_FIELD, versions);
                             architectures.set(i, architectureDoc);
                             found = true;
@@ -267,7 +275,7 @@ public class NitriteArchitectureStore implements ArchitectureStore {
                         // Update the namespace document with the modified architectures list
                         namespaceDoc.put(ARCHITECTURES_FIELD, architectures);
                         architectureCollection.update(filter, namespaceDoc);
-                        LOG.info("Updated version '{}' for architecture {} in namespace '{}'", 
+                        LOG.info("Updated version '{}' for architecture {} in namespace '{}'",
                                 architecture.getDotVersion(), architecture.getId(), architecture.getNamespace());
                         return;
                     }
