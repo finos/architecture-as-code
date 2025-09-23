@@ -51,7 +51,7 @@ export async function setupAiTools(targetDirectory: string, verbose: boolean): P
 
 async function validateBundledResources(logger: Logger): Promise<void> {
     logger.info('🔍 Validating bundled AI tool resources...');
-    
+
     const requiredFiles = [
         'CALM.chatmode.md',
         'tools/architecture-creation.md',
@@ -72,7 +72,7 @@ async function validateBundledResources(logger: Logger): Promise<void> {
         try {
             const bundledPath = getBundledResourcePath(relativePath);
             const content = await readFile(bundledPath, 'utf8');
-            
+
             // Basic validation - check if file has content and appears to be markdown
             if (!content.trim()) {
                 corruptedFiles.push(relativePath);
@@ -93,21 +93,21 @@ async function validateBundledResources(logger: Logger): Promise<void> {
     } else {
         const totalIssues = missingFiles.length + corruptedFiles.length;
         logger.warn(`⚠️  Found ${totalIssues} issue(s) with bundled resources:`);
-        
+
         if (missingFiles.length > 0) {
             logger.warn(`   • ${missingFiles.length} missing files: ${missingFiles.join(', ')}`);
         }
-        
+
         if (corruptedFiles.length > 0) {
             logger.warn(`   • ${corruptedFiles.length} potentially corrupted files: ${corruptedFiles.join(', ')}`);
         }
-        
+
         logger.warn('   • Will use fallback content where possible');
-        
+
         // If critical files are missing, warn about reduced functionality
         const criticalFiles = ['CALM.chatmode.md'];
         const missingCritical = missingFiles.filter(file => criticalFiles.some(critical => file.includes(critical)));
-        
+
         if (missingCritical.length > 0) {
             logger.warn('⚠️  Critical files missing - AI tools may have reduced functionality');
         }
@@ -122,12 +122,12 @@ async function createChatmodeConfig(chatmodesDir: string, logger: Logger): Promi
         // Get the bundled chatmode config file
         const bundledConfigPath = getBundledResourcePath('CALM.chatmode.md');
         const chatmodeContent = await readFile(bundledConfigPath, 'utf8');
-        
+
         // Validate content quality
         if (!chatmodeContent.trim()) {
             throw new Error('Bundled chatmode file is empty');
         }
-        
+
         if (!chatmodeContent.includes('CALM') || chatmodeContent.length < 500) {
             logger.warn('Bundled chatmode file appears incomplete or corrupted');
         }
@@ -137,7 +137,7 @@ async function createChatmodeConfig(chatmodesDir: string, logger: Logger): Promi
     } catch (error) {
         logger.warn(`⚠️  Could not use bundled chatmode config: ${error}`);
         logger.info('📄 Using built-in fallback content...');
-        
+
         // Fallback to inline content if bundled file not found
         const fallbackContent = getFallbackChatmodeContent();
         await writeFile(chatmodeFile, fallbackContent, 'utf8');
@@ -151,7 +151,7 @@ async function createChatmodeConfig(chatmodesDir: string, logger: Logger): Promi
         if (createdStat.size === 0) {
             throw new Error('Created chatmode file is empty');
         }
-        
+
         if (usedFallback) {
             logger.warn('⚠️  Note: Using fallback chatmode content. Some features may be limited.');
         }
@@ -190,31 +190,31 @@ async function createToolPrompts(chatmodesDir: string, logger: Logger): Promise<
             const targetFilePath = join(promptsDir, fileName);
 
             const content = await readFile(bundledFilePath, 'utf8');
-            
+
             // Validate content quality
             if (!content.trim()) {
                 throw new Error('File is empty');
             }
-            
+
             if (!content.includes('#') || content.length < 100) {
                 logger.warn(`⚠️  Tool file ${fileName} appears incomplete (${content.length} chars)`);
             }
 
             await writeFile(targetFilePath, content, 'utf8');
-            
+
             // Verify the file was written correctly
             const writtenStat = await stat(targetFilePath);
             if (writtenStat.size === 0) {
                 throw new Error('Written file is empty');
             }
-            
+
             successCount++;
             logger.debug(`✅ Created tool prompt: ${fileName}`);
         } catch (error) {
             failureCount++;
             failedFiles.push(fileName);
             logger.warn(`❌ Failed to create tool prompt ${fileName}: ${error}`);
-            
+
             // Create a minimal fallback file for critical functionality
             try {
                 const fallbackContent = createFallbackToolContent(fileName);
@@ -235,7 +235,7 @@ async function createToolPrompts(chatmodesDir: string, logger: Logger): Promise<
         if (failedFiles.length > 0) {
             logger.warn(`   Failed files: ${failedFiles.join(', ')}`);
         }
-        
+
         if (failureCount > toolFiles.length / 2) {
             logger.error('❌ More than half of tool prompts failed - AI functionality will be severely limited');
             throw new Error(`Tool prompt setup failed: ${failureCount}/${toolFiles.length} files failed`);
@@ -247,7 +247,7 @@ async function createToolPrompts(chatmodesDir: string, logger: Logger): Promise<
 
 function createFallbackToolContent(fileName: string): string {
     const baseName = fileName.replace('.md', '').replace(/-/g, ' ');
-    const toolName = baseName.split(' ').map(word => 
+    const toolName = baseName.split(' ').map(word =>
         word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
 
@@ -276,20 +276,20 @@ function getBundledResourcePath(relativePath: string): string {
     if (!relativePath || typeof relativePath !== 'string') {
         throw new Error(`Invalid relative path: ${relativePath}`);
     }
-    
+
     // Prevent path traversal attacks
     if (relativePath.includes('..') || relativePath.startsWith('/')) {
         throw new Error(`Unsafe path detected: ${relativePath}`);
     }
-    
+
     // In the built CLI, resources are in dist/calm-ai/
     // Use __dirname to get the directory containing the current script
     const currentDir = __dirname;
     const fullPath = join(currentDir, 'calm-ai', relativePath);
-    
+
     // Additional validation could be added here to check if path exists
     // but we'll let the caller handle file existence checks for better error messages
-    
+
     return fullPath;
 }
 
