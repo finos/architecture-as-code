@@ -1,4 +1,5 @@
 import { initLogger } from '@finos/calm-shared';
+import { Logger } from '@finos/calm-shared/src/logger.js';
 import { mkdir, writeFile, readFile, stat } from 'fs/promises';
 import { join, resolve } from 'path';
 
@@ -45,7 +46,7 @@ export async function setupAiTools(targetDirectory: string, verbose: boolean): P
     }
 }
 
-async function createChatmodeConfig(chatmodesDir: string, logger: any): Promise<void> {
+async function createChatmodeConfig(chatmodesDir: string, logger: Logger): Promise<void> {
     const chatmodeFile = join(chatmodesDir, 'CALM.chatmode.md');
 
     try {
@@ -64,7 +65,7 @@ async function createChatmodeConfig(chatmodesDir: string, logger: any): Promise<
     }
 }
 
-async function createToolPrompts(chatmodesDir: string, logger: any): Promise<void> {
+async function createToolPrompts(chatmodesDir: string, logger: Logger): Promise<void> {
     const promptsDir = join(chatmodesDir, 'calm-prompts');
     await mkdir(promptsDir, { recursive: true });
     logger.info('Created calm-prompts directory');
