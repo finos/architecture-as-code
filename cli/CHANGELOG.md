@@ -5,6 +5,13 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## <small>1.4.1 (2025-09-24)</small>
+
+* Merge pull request #1635 from Thels/semantic-release-changelog-push ([8870144](https://github.com/finos/architecture-as-code/commit/8870144)), closes [#1635](https://github.com/finos/architecture-as-code/issues/1635)
+* Merge pull request #1636 from Thels/semantic-release-changelog-push ([8487ecd](https://github.com/finos/architecture-as-code/commit/8487ecd)), closes [#1636](https://github.com/finos/architecture-as-code/issues/1636)
+* fix(release): add checks for existing changelog/version PRs and automate changelog updates ([d521399](https://github.com/finos/architecture-as-code/commit/d521399))
+* fix(release): update GitHub token to SRB_TOKEN and remove changelog PR creation step ([9a4720b](https://github.com/finos/architecture-as-code/commit/9a4720b))
+
 ## <small>1.3.2 (2025-09-17)</small>
 
 * Merge branch 'main' into release/changelog-cli-v1.1.0 ([e228ee5](https://github.com/finos/architecture-as-code/commit/e228ee5))
