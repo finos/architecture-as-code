@@ -5,6 +5,20 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.5.0 (2025-09-24)
+
+* Merge branch 'main' into calm-ai ([6a0faf8](https://github.com/finos/architecture-as-code/commit/6a0faf8))
+* Merge branch 'main' into readme ([aeef620](https://github.com/finos/architecture-as-code/commit/aeef620))
+* Merge pull request #1637 from rocketstack-matt/calm-ai ([1af211d](https://github.com/finos/architecture-as-code/commit/1af211d)), closes [#1637](https://github.com/finos/architecture-as-code/issues/1637)
+* Merge pull request #1638 from finos/release/changelog-cli-v1.4.1 ([5ea4463](https://github.com/finos/architecture-as-code/commit/5ea4463)), closes [#1638](https://github.com/finos/architecture-as-code/issues/1638)
+* Merge pull request #1639 from rocketstack-matt/readme ([d050377](https://github.com/finos/architecture-as-code/commit/d050377)), closes [#1639](https://github.com/finos/architecture-as-code/issues/1639)
+* fix(ai-tools): Change log level from warn to error for missing bundled files ([d3967e7](https://github.com/finos/architecture-as-code/commit/d3967e7))
+* fix(docs): Add CALM AI project to top level readme ([35424b2](https://github.com/finos/architecture-as-code/commit/35424b2))
+* test(ai-tools): Update warning expectation for incomplete bundled chatmode file ([a2537b3](https://github.com/finos/architecture-as-code/commit/a2537b3))
+* ci(cli): update changelog and version for 1.4.1 ([d1a578e](https://github.com/finos/architecture-as-code/commit/d1a578e))
+* feat(ai-tools): Enhance setupAiTools with bundled resource validation and improved error handling ([0867933](https://github.com/finos/architecture-as-code/commit/0867933))
+* feat(calm-ai): Add CALM AI Tools and copilot-chatmode to the CLI ([079c6c4](https://github.com/finos/architecture-as-code/commit/079c6c4)), closes [#1628](https://github.com/finos/architecture-as-code/issues/1628)
+
 ## <small>1.4.1 (2025-09-24)</small>
 
 * Merge pull request #1635 from Thels/semantic-release-changelog-push ([8870144](https://github.com/finos/architecture-as-code/commit/8870144)), closes [#1635](https://github.com/finos/architecture-as-code/issues/1635)
