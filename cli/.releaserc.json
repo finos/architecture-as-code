@@ -162,7 +162,57 @@
             "release": false
           },
           {
-            "scope": "!(cli|shared|calm-models)",
+            "type": "feat",
+            "scope": "calm-ai",
+            "release": "minor"
+          },
+          {
+            "type": "fix",
+            "scope": "calm-ai",
+            "release": "patch"
+          },
+          {
+            "type": "perf",
+            "scope": "calm-ai",
+            "release": "patch"
+          },
+          {
+            "type": "revert",
+            "scope": "calm-ai",
+            "release": "patch"
+          },
+          {
+            "type": "docs",
+            "scope": "calm-ai",
+            "release": "patch"
+          },
+          {
+            "type": "chore",
+            "scope": "calm-ai",
+            "release": false
+          },
+          {
+            "type": "refactor",
+            "scope": "calm-ai",
+            "release": "patch"
+          },
+          {
+            "type": "test",
+            "scope": "calm-ai",
+            "release": false
+          },
+          {
+            "type": "style",
+            "scope": "calm-ai",
+            "release": false
+          },
+          {
+            "type": "ci",
+            "scope": "calm-ai",
+            "release": false
+          },
+          {
+            "scope": "!(cli|shared|calm-models|calm-ai)",
             "release": false
           },
           {
@@ -197,6 +247,9 @@
           },
           "calm-models/**": {
             "scope": "calm-models"
+          },
+          "calm-ai/**": {
+            "scope": "calm-ai"
           }
         }
       }
@@ -213,7 +266,8 @@
               "scope": [
                 "cli",
                 "shared",
-                "calm-models"
+                "calm-models",
+                "calm-ai"
               ]
             },
             {
@@ -222,7 +276,8 @@
               "scope": [
                 "cli",
                 "shared",
-                "calm-models"
+                "calm-models",
+                "calm-ai"
               ]
             },
             {
@@ -231,7 +286,8 @@
               "scope": [
                 "cli",
                 "shared",
-                "calm-models"
+                "calm-models",
+                "calm-ai"
               ]
             },
             {
@@ -240,7 +296,8 @@
               "scope": [
                 "cli",
                 "shared",
-                "calm-models"
+                "calm-models",
+                "calm-ai"
               ]
             },
             {
@@ -249,7 +306,8 @@
               "scope": [
                 "cli",
                 "shared",
-                "calm-models"
+                "calm-models",
+                "calm-ai"
               ]
             },
             {
@@ -258,7 +316,8 @@
               "scope": [
                 "cli",
                 "shared",
-                "calm-models"
+                "calm-models",
+                "calm-ai"
               ]
             },
             {
@@ -268,7 +327,8 @@
               "scope": [
                 "cli",
                 "shared",
-                "calm-models"
+                "calm-models",
+                "calm-ai"
               ]
             },
             {
@@ -278,7 +338,8 @@
               "scope": [
                 "cli",
                 "shared",
-                "calm-models"
+                "calm-models",
+                "calm-ai"
               ]
             },
             {
@@ -288,7 +349,8 @@
               "scope": [
                 "cli",
                 "shared",
-                "calm-models"
+                "calm-models",
+                "calm-ai"
               ]
             },
             {
@@ -298,7 +360,8 @@
               "scope": [
                 "cli",
                 "shared",
-                "calm-models"
+                "calm-models",
+                "calm-ai"
               ]
             }
           ]
