@@ -5,6 +5,7 @@
     "workspaces": [
         "calm-models",
         "calm-widgets",
+        "calm-ai",
         "shared",
         "cli",
         "docs",

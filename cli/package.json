@@ -1,6 +1,6 @@
 {
     "name": "@finos/calm-cli",
-    "version": "1.0.0",
+    "version": "1.4.1",
     "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
     "homepage": "https://calm.finos.org",
     "repository": {
@@ -15,11 +15,12 @@
         "calm": "dist/index.js"
     },
     "scripts": {
-        "build": "tsup && npm run copy-calm-schema && npm run copy-docify-templates && npm run copy-widgets",
+        "build": "tsup && npm run copy-calm-schema && npm run copy-docify-templates && npm run copy-widgets && npm run copy-ai-tools",
         "watch": "node watch.mjs",
         "copy-calm-schema": "copyfiles \"../calm/release/**/meta/*\" \"../calm/draft/**/meta/*\" dist/calm/",
         "copy-docify-templates": "copyfiles \"../shared/dist/template-bundles/**/*\" dist --up 3",
         "copy-widgets": "copyfiles \"../calm-widgets/dist/cli/widgets/**/*\" dist --up 4",
+        "copy-ai-tools": "copyfiles \"../calm-ai/tools/**/*\" \"../calm-ai/CALM.chatmode.md\" dist/calm-ai/ --up 2",
         "test": "vitest run",
         "lint": "eslint src",
         "lint-fix": "eslint src --fix",
