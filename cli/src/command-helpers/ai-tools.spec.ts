@@ -130,7 +130,7 @@ describe('ai-tools', () => {
 
             await setupAiTools(targetDirectory, verbose);
 
-            expect(mockLogger.warn).toHaveBeenCalledWith('Bundled chatmode file appears incomplete or corrupted');
+            expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('Bundled chatmode file appears incomplete or corrupted'));
         });
 
         it('should handle chatmode file verification failure', async () => {
