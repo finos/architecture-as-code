@@ -80,7 +80,7 @@ async function validateBundledResources(logger: Logger): Promise<void> {
             }
         } catch (_error) {
             missingFiles.push(relativePath);
-            logger.warn(`❌ Missing bundled file: ${relativePath}`);
+            logger.error(`❌ Missing bundled file: ${relativePath}`);
         }
     }
 }
@@ -98,8 +98,15 @@ async function createChatmodeConfig(chatmodesDir: string, logger: Logger): Promi
             throw new Error('Bundled chatmode file is empty');
         }
 
-        if (!chatmodeContent.includes('CALM') || chatmodeContent.length < 500) {
-            logger.warn('Bundled chatmode file appears incomplete or corrupted');
+        const MIN_CHATMODE_CONTENT_LENGTH = 500; // Minimum acceptable length for chatmode content
+
+        if (
+            !chatmodeContent.includes('CALM') ||
+            chatmodeContent.length < MIN_CHATMODE_CONTENT_LENGTH
+        ) {
+            logger.warn(
+                `Bundled chatmode file appears incomplete or corrupted (length: ${chatmodeContent.length} < ${MIN_CHATMODE_CONTENT_LENGTH})`
+            );
         }
 
         await writeFile(chatmodeFile, chatmodeContent, 'utf8');
@@ -155,8 +162,9 @@ async function createToolPrompts(chatmodesDir: string, logger: Logger): Promise<
                 throw new Error('File is empty');
             }
 
-            if (!content.includes('#') || content.length < 100) {
-                logger.warn(`⚠️  Tool file ${fileName} appears incomplete (${content.length} chars)`);
+            const MIN_TOOL_FILE_LENGTH = 100; // Minimum acceptable length for a tool prompt
+            if (!content.includes('#') || content.length < MIN_TOOL_FILE_LENGTH) {
+                logger.warn(`⚠️  Tool file ${fileName} appears incomplete (${content.length} chars; expected >= ${MIN_TOOL_FILE_LENGTH})`);
             }
 
             await writeFile(targetFilePath, content, 'utf8');
