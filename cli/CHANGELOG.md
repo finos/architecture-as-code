@@ -5,6 +5,37 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.4.0 (2025-09-24)
+
+* feat(calm-hub-ui): Use Monaco editor to render CALM Json ([4272bb2](https://github.com/finos/architecture-as-code/commit/4272bb2))
+* feat(calm-hub): finos#1442 - Adding name and description to architecture POST and PUT endpoints (#16 ([45ee7fe](https://github.com/finos/architecture-as-code/commit/45ee7fe)), closes [finos#1442](https://github.com/finos/issues/1442) [#1605](https://github.com/finos/architecture-as-code/issues/1605) [issue#1442](https://github.com/issue/issues/1442) [issue#1442](https://github.com/issue/issues/1442)
+* Change from pull_request_target to pull_request to test workflow fixes ([1dbb026](https://github.com/finos/architecture-as-code/commit/1dbb026))
+* Fix checkout to use PR head commit for labeler configuration ([ebc4bbd](https://github.com/finos/architecture-as-code/commit/ebc4bbd))
+* Fix labeler action configuration for v6 compatibility ([090e24b](https://github.com/finos/architecture-as-code/commit/090e24b))
+* Initial plan ([43864d1](https://github.com/finos/architecture-as-code/commit/43864d1))
+* Merge branch 'main' into monaco ([a9ca158](https://github.com/finos/architecture-as-code/commit/a9ca158))
+* Merge branch 'main' into monaco ([b999d59](https://github.com/finos/architecture-as-code/commit/b999d59))
+* Merge branch 'main' into monaco ([90d7241](https://github.com/finos/architecture-as-code/commit/90d7241))
+* Merge branch 'main' into oss-index-credentials ([b9ef9c4](https://github.com/finos/architecture-as-code/commit/b9ef9c4))
+* Merge branch 'main' into renovate/minor-updates ([9129581](https://github.com/finos/architecture-as-code/commit/9129581))
+* Merge branch 'monaco' of https://github.com/aamanrebello/architecture-as-code into monaco ([cb045cc](https://github.com/finos/architecture-as-code/commit/cb045cc))
+* Merge pull request #1575 from aamanrebello/monaco ([7b52cae](https://github.com/finos/architecture-as-code/commit/7b52cae)), closes [#1575](https://github.com/finos/architecture-as-code/issues/1575)
+* Merge pull request #1621 from finos/release/changelog-cli-v1.3.2 ([26c2002](https://github.com/finos/architecture-as-code/commit/26c2002)), closes [#1621](https://github.com/finos/architecture-as-code/issues/1621)
+* Merge pull request #1624 from finos/renovate/semgrep-semgrep ([3cc1771](https://github.com/finos/architecture-as-code/commit/3cc1771)), closes [#1624](https://github.com/finos/architecture-as-code/issues/1624)
+* Merge pull request #1626 from finos/renovate/minor-updates ([d14d6a5](https://github.com/finos/architecture-as-code/commit/d14d6a5)), closes [#1626](https://github.com/finos/architecture-as-code/issues/1626)
+* Merge pull request #1627 from finos/renovate/actions-labeler-6.x ([f127127](https://github.com/finos/architecture-as-code/commit/f127127)), closes [#1627](https://github.com/finos/architecture-as-code/issues/1627)
+* Merge pull request #1630 from finos/oss-index-credentials ([6b2b5d7](https://github.com/finos/architecture-as-code/commit/6b2b5d7)), closes [#1630](https://github.com/finos/architecture-as-code/issues/1630)
+* Merge pull request #1631 from finos/copilot/fix-0eeb6399-8138-46b7-b262-cd56ea6b5cda ([9b4f249](https://github.com/finos/architecture-as-code/commit/9b4f249)), closes [#1631](https://github.com/finos/architecture-as-code/issues/1631)
+* Restore pull_request_target with proper checkout for production use ([5b724f9](https://github.com/finos/architecture-as-code/commit/5b724f9))
+* Update cve-scanning-node.yml ([c5f3345](https://github.com/finos/architecture-as-code/commit/c5f3345))
+* fix: oss index username secret name ([7139c34](https://github.com/finos/architecture-as-code/commit/7139c34))
+* fix(calm-hub-ui): Lint fix ([0a01574](https://github.com/finos/architecture-as-code/commit/0a01574))
+* chore(deps): update actions/labeler action to v6 ([c4d149c](https://github.com/finos/architecture-as-code/commit/c4d149c))
+* chore(deps): update minor updates ([bee327e](https://github.com/finos/architecture-as-code/commit/bee327e))
+* chore(deps): update semgrep/semgrep docker digest to cda1b56 ([9ed1c7b](https://github.com/finos/architecture-as-code/commit/9ed1c7b))
+* style(calm-hub-ui): Make "Visualize" button position absolute ([a02064b](https://github.com/finos/architecture-as-code/commit/a02064b))
+* ci(cli): update changelog for 1.3.2 ([754b977](https://github.com/finos/architecture-as-code/commit/754b977))
+
 ## <small>1.3.2 (2025-09-17)</small>
 
 * Merge branch 'main' into release/changelog-cli-v1.1.0 ([e228ee5](https://github.com/finos/architecture-as-code/commit/e228ee5))
