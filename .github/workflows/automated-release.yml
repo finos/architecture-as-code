@@ -35,6 +35,36 @@ jobs:
 
       - run: npm ci
 
+      - name: Check for existing changelog/version PRs
+        run: |
+          echo "Checking for open PRs with changelog & version updates..."
+          
+          # Search for open PRs with the specific title pattern
+          PR_LIST=$(gh pr list \
+            --state open \
+            --search "ci(cli): update changelog & versions for v" \
+            --json title,number,headRefName 2>/dev/null || echo "[]")
+          
+          echo "PR search result: $PR_LIST"
+          
+          if [ "$PR_LIST" != "[]" ] && [ "$PR_LIST" != "" ]; then
+            echo "❌ Found existing changelog/version PR(s):"
+            
+            # Parse JSON without jq dependency - extract key fields manually
+            echo "$PR_LIST" | grep -o '"number":[0-9]*' | sed 's/"number":/PR #/' || echo "  - Found matching PR(s)"
+            echo "$PR_LIST" | grep -o '"title":"[^"]*"' | sed 's/"title":"//;s/"$//' | sed 's/^/  Title: /' || true
+            echo "$PR_LIST" | grep -o '"headRefName":"[^"]*"' | sed 's/"headRefName":"//;s/"$//' | sed 's/^/  Branch: /' || true
+            
+            echo ""
+            echo "Please merge or close the existing changelog/version PR before running a new release."
+            echo "This prevents conflicts between multiple version updates."
+            exit 1
+          else
+            echo "✅ No existing changelog/version PRs found. Proceeding with release checks."
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Check build-cli workflow status
         run: |
           echo "Checking if build-cli.yml has passed on main branch..."
@@ -160,7 +190,25 @@ jobs:
           echo "## ✅ Release Published" >> $GITHUB_STEP_SUMMARY
           echo "**Version**: ${{ needs.analyze.outputs.current-version }} → ${{ needs.analyze.outputs.next-version }}" >> $GITHUB_STEP_SUMMARY
           echo "**Type**: ${{ needs.analyze.outputs.release-type }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Changes**: Committed directly to main with [skip ci]" >> $GITHUB_STEP_SUMMARY
+
+      - name: Create Semantic Release PR
+        if: needs.analyze.outputs.should-release == 'true'
+        run: |
+          CHANGELOG_BRANCH="release/changelog-cli-v${{ needs.analyze.outputs.next-version }}"
+          
+          if git ls-remote --heads origin $CHANGELOG_BRANCH | grep -q $CHANGELOG_BRANCH; then
+            gh pr create \
+              --title "ci(cli): update changelog & versions for v${{ needs.analyze.outputs.next-version }}" \
+              --body "Automated changelog & versions update update for CLI release v${{ needs.analyze.outputs.next-version }}" \
+              --head "$CHANGELOG_BRANCH" \
+              --base main
+            echo "📋 Changelog PR created for branch: $CHANGELOG_BRANCH" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No changelog branch found - no CHANGELOG.md updates needed"
+            echo "ℹ️ No changelog updates needed" >> $GITHUB_STEP_SUMMARY
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   prepare-major-release:
     needs: analyze
