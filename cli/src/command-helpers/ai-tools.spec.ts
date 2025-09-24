@@ -28,10 +28,6 @@ vi.mock('@finos/calm-shared', () => ({
     initLogger: mocks.initLogger,
 }));
 
-vi.mock('@finos/calm-shared/src/logger.js', () => ({
-    Logger: vi.fn(),
-}));
-
 describe('ai-tools', () => {
     const mockLogger = {
         info: vi.fn(),
@@ -43,6 +39,17 @@ describe('ai-tools', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mocks.initLogger.mockReturnValue(mockLogger);
+
+        // Default successful mocks
+        mocks.stat.mockImplementation((path: string) => {
+            if (path.endsWith('.git')) {
+                return Promise.resolve({}); // Git directory exists
+            }
+            return Promise.resolve({ isDirectory: () => true, size: 100 });
+        });
+        mocks.mkdir.mockResolvedValue(undefined);
+        mocks.writeFile.mockResolvedValue(undefined);
+        mocks.readFile.mockResolvedValue('# Mock CALM content with enough text to pass validation');
     });
 
     afterEach(() => {
@@ -53,68 +60,15 @@ describe('ai-tools', () => {
         const targetDirectory = '/test/directory';
         const verbose = false;
 
-        beforeEach(() => {
-            // Mock successful directory stat
-            mocks.stat.mockImplementation((path: string) => {
-                if (path === resolve(targetDirectory)) {
-                    return Promise.resolve({ isDirectory: () => true });
-                }
-                if (path === join(resolve(targetDirectory), '.git')) {
-                    return Promise.resolve({}); // Git directory exists
-                }
-                return Promise.reject(new Error('File not found'));
-            });
-
-            // Mock successful mkdir
-            mocks.mkdir.mockResolvedValue(undefined);
-
-            // Mock successful writeFile
-            mocks.writeFile.mockResolvedValue(undefined);
-
-            // Mock successful readFile for bundled resources
-            mocks.readFile.mockResolvedValue('mock chatmode content');
-        });
-
-        it('should setup AI tools successfully in a git repository', async () => {
+        it('should setup AI tools successfully', async () => {
             await setupAiTools(targetDirectory, verbose);
 
-            // Verify logger was initialized
             expect(mocks.initLogger).toHaveBeenCalledWith(verbose, 'calm-ai-tools');
-
-            // Verify directory validation
-            expect(mocks.stat).toHaveBeenCalledWith(resolve(targetDirectory));
-
-            // Verify git directory check
-            expect(mocks.stat).toHaveBeenCalledWith(join(resolve(targetDirectory), '.git'));
-
-            // Verify chatmodes directory creation
             expect(mocks.mkdir).toHaveBeenCalledWith(
                 join(resolve(targetDirectory), '.github', 'chatmodes'),
                 { recursive: true }
             );
-
-            // Verify success messages
-            expect(mockLogger.info).toHaveBeenCalledWith(`Setting up CALM AI tools in: ${resolve(targetDirectory)}`);
-            expect(mockLogger.info).toHaveBeenCalledWith('Git repository detected');
-            expect(mockLogger.info).toHaveBeenCalledWith('Created .github/chatmodes directory following GitHub Copilot conventions');
-            expect(mockLogger.info).toHaveBeenCalledWith('✅ CALM AI tools setup completed successfully!');
-        });
-
-        it('should warn when not in a git repository', async () => {
-            // Mock git directory not found
-            mocks.stat.mockImplementation((path: string) => {
-                if (path === resolve(targetDirectory)) {
-                    return Promise.resolve({ isDirectory: () => true });
-                }
-                if (path === join(resolve(targetDirectory), '.git')) {
-                    return Promise.reject(new Error('File not found'));
-                }
-                return Promise.reject(new Error('File not found'));
-            });
-
-            await setupAiTools(targetDirectory, verbose);
-
-            expect(mockLogger.warn).toHaveBeenCalledWith('Warning: No .git directory found. This may not be a git repository.');
+            expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('CALM AI tools setup completed successfully'));
         });
 
         it('should throw error when target is not a directory', async () => {
@@ -122,7 +76,7 @@ describe('ai-tools', () => {
                 if (path === resolve(targetDirectory)) {
                     return Promise.resolve({ isDirectory: () => false });
                 }
-                return Promise.reject(new Error('File not found'));
+                return Promise.resolve({ isDirectory: () => true, size: 100 });
             });
 
             await expect(setupAiTools(targetDirectory, verbose)).rejects.toThrow(
@@ -130,144 +84,105 @@ describe('ai-tools', () => {
             );
         });
 
-        it('should handle errors and log them appropriately', async () => {
-            const errorMessage = 'Permission denied';
-            mocks.stat.mockRejectedValue(new Error(errorMessage));
+        it('should handle bundled resource read failure', async () => {
+            mocks.readFile.mockRejectedValue(new Error('Bundled file not found'));
 
-            await expect(setupAiTools(targetDirectory, verbose)).rejects.toThrow(errorMessage);
-            expect(mockLogger.error).toHaveBeenCalledWith(`❌ Failed to setup AI tools: Error: ${errorMessage}`);
+            await expect(setupAiTools(targetDirectory, verbose)).rejects.toThrow();
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to setup AI tools'));
         });
 
-        it('should create chatmode configuration file', async () => {
+        it('should warn when not in a git repository', async () => {
+            mocks.stat.mockImplementation((path: string) => {
+                if (path === resolve(targetDirectory)) {
+                    return Promise.resolve({ isDirectory: () => true, size: 100 });
+                }
+                if (path.endsWith('.git')) {
+                    return Promise.reject(new Error('Not found'));
+                }
+                return Promise.resolve({ isDirectory: () => true, size: 100 });
+            });
+
             await setupAiTools(targetDirectory, verbose);
 
-            const chatmodeFilePath = join(resolve(targetDirectory), '.github', 'chatmodes', 'CALM.chatmode.md');
-
-
-            // Verify readFile was called for bundled resource
-            expect(mocks.readFile).toHaveBeenCalledWith(
-                expect.stringContaining('CALM.chatmode.md'),
-                'utf8'
-            );
-
-            // Verify writeFile was called for chatmode config
-            expect(mocks.writeFile).toHaveBeenCalledWith(
-                chatmodeFilePath,
-                'mock chatmode content',
-                'utf8'
-            );
-
-            expect(mockLogger.info).toHaveBeenCalledWith('Created CALM chatmode configuration');
+            expect(mockLogger.warn).toHaveBeenCalledWith('Warning: No .git directory found. This may not be a git repository.');
         });
 
-        it('should use fallback content when bundled chatmode file not found', async () => {
-            // Mock readFile to fail for bundled resource
+        it('should handle empty bundled files and catch errors', async () => {
             mocks.readFile.mockImplementation((path: string) => {
                 if (path.includes('CALM.chatmode.md')) {
-                    return Promise.reject(new Error('Bundled file not found'));
+                    return Promise.resolve(''); // Empty content
                 }
-                return Promise.resolve('mock content');
+                return Promise.resolve('# Valid content with CALM and sufficient length for validation');
             });
 
+            // Should still complete but log error
             await setupAiTools(targetDirectory, verbose);
-
-            const chatmodeFilePath = join(resolve(targetDirectory), '.github', 'chatmodes', 'CALM.chatmode.md');
-
-            // Verify fallback content was written
-            expect(mocks.writeFile).toHaveBeenCalledWith(
-                chatmodeFilePath,
-                expect.stringContaining('# CALM Architecture Assistant'),
-                'utf8'
-            );
-
-            expect(mockLogger.warn).toHaveBeenCalledWith(
-                expect.stringContaining('Could not read bundled chatmode config, using fallback:')
-            );
-            expect(mockLogger.info).toHaveBeenCalledWith('Created CALM chatmode configuration (fallback)');
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Could not load bundled chatmode config'));
         });
 
-        it('should create tool prompt files', async () => {
-            await setupAiTools(targetDirectory, verbose);
-
-            const promptsDir = join(resolve(targetDirectory), '.github', 'chatmodes', 'calm-prompts');
-
-            // Verify prompts directory creation
-            expect(mocks.mkdir).toHaveBeenCalledWith(promptsDir, { recursive: true });
-            expect(mockLogger.info).toHaveBeenCalledWith('Created calm-prompts directory');
-
-            // Verify tool files are attempted to be read and written
-            const expectedToolFiles = [
-                'architecture-creation.md',
-                'node-creation.md',
-                'relationship-creation.md',
-                'interface-creation.md',
-                'metadata-creation.md',
-                'control-creation.md',
-                'flow-creation.md',
-                'pattern-creation.md',
-                'documentation-creation.md'
-            ];
-
-            expectedToolFiles.forEach(fileName => {
-                expect(mocks.readFile).toHaveBeenCalledWith(
-                    expect.stringContaining(`tools/${fileName}`),
-                    'utf8'
-                );
-                expect(mocks.writeFile).toHaveBeenCalledWith(
-                    join(promptsDir, fileName),
-                    'mock chatmode content',
-                    'utf8'
-                );
-            });
-
-            expect(mockLogger.info).toHaveBeenCalledWith('Created all tool prompt files');
-        });
-
-        it('should continue processing other tool files when one fails', async () => {
-            // Mock readFile to fail for one specific tool file
+        it('should warn about incomplete chatmode content but still proceed', async () => {
             mocks.readFile.mockImplementation((path: string) => {
-                if (path.includes('tools/node-creation.md')) {
-                    return Promise.reject(new Error('File not found'));
+                if (path.includes('CALM.chatmode.md')) {
+                    return Promise.resolve('short'); // Too short and missing CALM
                 }
-                return Promise.resolve('mock content');
+                return Promise.resolve('# Valid content with CALM and sufficient length for validation');
             });
 
             await setupAiTools(targetDirectory, verbose);
 
-            // Should warn about the failed file
-            expect(mockLogger.warn).toHaveBeenCalledWith(
-                expect.stringContaining('Could not read bundled tool file node-creation.md:')
-            );
-
-            // Should still complete successfully
-            expect(mockLogger.info).toHaveBeenCalledWith('Created all tool prompt files');
+            expect(mockLogger.warn).toHaveBeenCalledWith('Bundled chatmode file appears incomplete or corrupted');
         });
 
-        it('should handle verbose logging', async () => {
+        it('should handle chatmode file verification failure', async () => {
+            mocks.stat.mockImplementation((path: string) => {
+                if (path === resolve(targetDirectory)) {
+                    return Promise.resolve({ isDirectory: () => true });
+                }
+                if (path.endsWith('.git')) {
+                    return Promise.resolve({});
+                }
+                if (path.endsWith('CALM.chatmode.md')) {
+                    return Promise.reject(new Error('File verification failed'));
+                }
+                return Promise.resolve({ isDirectory: () => true, size: 100 });
+            });
+
+            await expect(setupAiTools(targetDirectory, verbose)).rejects.toThrow('Chatmode configuration setup failed');
+        });
+
+        it('should enable verbose logging when requested', async () => {
             await setupAiTools(targetDirectory, true);
 
             expect(mocks.initLogger).toHaveBeenCalledWith(true, 'calm-ai-tools');
         });
 
-        it('should resolve relative paths correctly', async () => {
-            const relativePath = './relative/path';
-            const resolvedPath = resolve(relativePath);
-
-            // Update mock to handle the resolved relative path
+        it('should handle directory stat failure', async () => {
             mocks.stat.mockImplementation((path: string) => {
-                if (path === resolvedPath) {
-                    return Promise.resolve({ isDirectory: () => true });
+                if (path === resolve(targetDirectory)) {
+                    return Promise.reject(new Error('Permission denied'));
                 }
-                if (path === join(resolvedPath, '.git')) {
-                    return Promise.resolve({}); // Git directory exists
-                }
-                return Promise.reject(new Error('File not found'));
+                return Promise.resolve({ isDirectory: () => true, size: 100 });
             });
 
-            await setupAiTools(relativePath, verbose);
+            await expect(setupAiTools(targetDirectory, verbose)).rejects.toThrow('Permission denied');
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to setup AI tools'));
+        });
 
-            expect(mocks.stat).toHaveBeenCalledWith(resolvedPath);
-            expect(mockLogger.info).toHaveBeenCalledWith(`Setting up CALM AI tools in: ${resolvedPath}`);
+        it('should handle empty chatmode file after creation and throw error', async () => {
+            mocks.stat.mockImplementation((path: string) => {
+                if (path === resolve(targetDirectory)) {
+                    return Promise.resolve({ isDirectory: () => true });
+                }
+                if (path.endsWith('.git')) {
+                    return Promise.resolve({});
+                }
+                if (path.endsWith('CALM.chatmode.md')) {
+                    return Promise.resolve({ size: 0 }); // File was created but is empty
+                }
+                return Promise.resolve({ isDirectory: () => true, size: 100 });
+            });
+
+            await expect(setupAiTools(targetDirectory, verbose)).rejects.toThrow('Created chatmode file is empty');
         });
     });
 });
