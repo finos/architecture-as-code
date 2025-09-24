@@ -1,4 +1,11 @@
-import { parse as parseYaml } from 'yaml'
+// Make yaml import optional to avoid VS Code extension activation issues
+let parseYaml: any
+try {
+    parseYaml = require('yaml').parse
+} catch {
+    // Fallback if yaml package is not available or causes issues
+    parseYaml = null
+}
 
 export type CalmModel = {
     nodes?: Array<{ id: string; type?: string; name?: string; label?: string; description?: string; raw?: any }>
@@ -23,7 +30,19 @@ function tryParse(text: string): any {
     const trimmed = text.trim()
     if (!trimmed) return {}
     if (trimmed.startsWith('{') || trimmed.startsWith('[')) return JSON.parse(text)
-    return parseYaml(text)
+
+    // Only try YAML parsing if the yaml library is available
+    if (parseYaml) {
+        try {
+            return parseYaml(text)
+        } catch {
+            // If YAML parsing fails, return empty object
+            return {}
+        }
+    }
+
+    // Fallback: if no yaml parser available, return empty object for non-JSON
+    return {}
 }
 
 export class ModelIndex {
@@ -88,7 +107,7 @@ export function toGraph(model: CalmModel, _cfg?: any) {
     // Build parent mapping from 'deployed-in' relationships (node -> container)
     const parentMap = new Map<string, string>()
     for (const r of (model.relationships || []) as any[]) {
-    if (r && (r.type === 'deployed-in' || r.type === 'composed-of') && r.source && r.target) {
+        if (r && (r.type === 'deployed-in' || r.type === 'composed-of') && r.source && r.target) {
             parentMap.set(r.source, r.target)
         }
     }
