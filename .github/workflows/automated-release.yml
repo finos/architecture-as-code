@@ -138,7 +138,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.SRB_TOKEN }}
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -152,7 +152,7 @@ jobs:
           cd cli
           npm run semantic-release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.SRB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
 
       - name: Summary
@@ -160,26 +160,7 @@ jobs:
           echo "## ✅ Release Published" >> $GITHUB_STEP_SUMMARY
           echo "**Version**: ${{ needs.analyze.outputs.current-version }} → ${{ needs.analyze.outputs.next-version }}" >> $GITHUB_STEP_SUMMARY
           echo "**Type**: ${{ needs.analyze.outputs.release-type }}" >> $GITHUB_STEP_SUMMARY
-
-      - name: Create Changelog PR
-        if: needs.analyze.outputs.should-release == 'true'
-        run: |
-          CHANGELOG_BRANCH="release/changelog-cli-v${{ needs.analyze.outputs.next-version }}"
-          
-          # Check if the branch was created and pushed
-          if git ls-remote --heads origin $CHANGELOG_BRANCH | grep -q $CHANGELOG_BRANCH; then
-            gh pr create \
-              --title "docs(cli): update changelog for v${{ needs.analyze.outputs.next-version }}" \
-              --body "Automated changelog update for CLI release v${{ needs.analyze.outputs.next-version }}" \
-              --head "$CHANGELOG_BRANCH" \
-              --base main
-            echo "📋 Changelog PR created for branch: $CHANGELOG_BRANCH" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "No changelog branch found - no CHANGELOG.md updates needed"
-            echo "ℹ️ No changelog updates needed" >> $GITHUB_STEP_SUMMARY
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "**Changes**: Committed directly to main with [skip ci]" >> $GITHUB_STEP_SUMMARY
 
   prepare-major-release:
     needs: analyze
