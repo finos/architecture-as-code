@@ -11,49 +11,193 @@
       {
         "preset": "conventionalcommits",
         "releaseRules": [
-          { "type": "feat", "scope": "cli", "release": "minor" },
-          { "type": "fix", "scope": "cli", "release": "patch" },
-          { "type": "perf", "scope": "cli", "release": "patch" },
-          { "type": "revert", "scope": "cli", "release": "patch" },
-          { "type": "docs", "scope": "cli", "release": "patch" },
-          { "type": "chore", "scope": "cli", "release": false },
-          { "type": "refactor", "scope": "cli", "release": "patch" },
-          { "type": "test", "scope": "cli", "release": false },
-          { "type": "style", "scope": "cli", "release": false },
-          { "type": "ci", "scope": "cli", "release": false },
-          { "type": "feat", "scope": "shared", "release": "minor" },
-          { "type": "fix", "scope": "shared", "release": "patch" },
-          { "type": "perf", "scope": "shared", "release": "patch" },
-          { "type": "revert", "scope": "shared", "release": "patch" },
-          { "type": "docs", "scope": "shared", "release": "patch" },
-          { "type": "chore", "scope": "shared", "release": false },
-          { "type": "refactor", "scope": "shared", "release": "patch" },
-          { "type": "test", "scope": "shared", "release": false },
-          { "type": "style", "scope": "shared", "release": false },
-          { "type": "ci", "scope": "shared", "release": false },
-          { "type": "feat", "scope": "calm-models", "release": "minor" },
-          { "type": "fix", "scope": "calm-models", "release": "patch" },
-          { "type": "perf", "scope": "calm-models", "release": "patch" },
-          { "type": "revert", "scope": "calm-models", "release": "patch" },
-          { "type": "docs", "scope": "calm-models", "release": "patch" },
-          { "type": "chore", "scope": "calm-models", "release": false },
-          { "type": "refactor", "scope": "calm-models", "release": "patch" },
-          { "type": "test", "scope": "calm-models", "release": false },
-          { "type": "style", "scope": "calm-models", "release": false },
-          { "type": "ci", "scope": "calm-models", "release": false },
-          { "scope": "!(cli|shared|calm-models)", "release": false },
-          { "type": "feat", "release": "minor" },
-          { "type": "fix", "release": "patch" },
-          { "type": "perf", "release": "patch" },
-          { "type": "revert", "release": "patch" }
+          {
+            "type": "feat",
+            "scope": "cli",
+            "release": "minor"
+          },
+          {
+            "type": "fix",
+            "scope": "cli",
+            "release": "patch"
+          },
+          {
+            "type": "perf",
+            "scope": "cli",
+            "release": "patch"
+          },
+          {
+            "type": "revert",
+            "scope": "cli",
+            "release": "patch"
+          },
+          {
+            "type": "docs",
+            "scope": "cli",
+            "release": "patch"
+          },
+          {
+            "type": "chore",
+            "scope": "cli",
+            "release": false
+          },
+          {
+            "type": "refactor",
+            "scope": "cli",
+            "release": "patch"
+          },
+          {
+            "type": "test",
+            "scope": "cli",
+            "release": false
+          },
+          {
+            "type": "style",
+            "scope": "cli",
+            "release": false
+          },
+          {
+            "type": "ci",
+            "scope": "cli",
+            "release": false
+          },
+          {
+            "type": "feat",
+            "scope": "shared",
+            "release": "minor"
+          },
+          {
+            "type": "fix",
+            "scope": "shared",
+            "release": "patch"
+          },
+          {
+            "type": "perf",
+            "scope": "shared",
+            "release": "patch"
+          },
+          {
+            "type": "revert",
+            "scope": "shared",
+            "release": "patch"
+          },
+          {
+            "type": "docs",
+            "scope": "shared",
+            "release": "patch"
+          },
+          {
+            "type": "chore",
+            "scope": "shared",
+            "release": false
+          },
+          {
+            "type": "refactor",
+            "scope": "shared",
+            "release": "patch"
+          },
+          {
+            "type": "test",
+            "scope": "shared",
+            "release": false
+          },
+          {
+            "type": "style",
+            "scope": "shared",
+            "release": false
+          },
+          {
+            "type": "ci",
+            "scope": "shared",
+            "release": false
+          },
+          {
+            "type": "feat",
+            "scope": "calm-models",
+            "release": "minor"
+          },
+          {
+            "type": "fix",
+            "scope": "calm-models",
+            "release": "patch"
+          },
+          {
+            "type": "perf",
+            "scope": "calm-models",
+            "release": "patch"
+          },
+          {
+            "type": "revert",
+            "scope": "calm-models",
+            "release": "patch"
+          },
+          {
+            "type": "docs",
+            "scope": "calm-models",
+            "release": "patch"
+          },
+          {
+            "type": "chore",
+            "scope": "calm-models",
+            "release": false
+          },
+          {
+            "type": "refactor",
+            "scope": "calm-models",
+            "release": "patch"
+          },
+          {
+            "type": "test",
+            "scope": "calm-models",
+            "release": false
+          },
+          {
+            "type": "style",
+            "scope": "calm-models",
+            "release": false
+          },
+          {
+            "type": "ci",
+            "scope": "calm-models",
+            "release": false
+          },
+          {
+            "scope": "!(cli|shared|calm-models)",
+            "release": false
+          },
+          {
+            "type": "feat",
+            "release": "minor"
+          },
+          {
+            "type": "fix",
+            "release": "patch"
+          },
+          {
+            "type": "perf",
+            "release": "patch"
+          },
+          {
+            "type": "revert",
+            "release": "patch"
+          }
         ],
         "parserOpts": {
-          "noteKeywords": ["BREAKING CHANGE", "BREAKING CHANGES"]
+          "noteKeywords": [
+            "BREAKING CHANGE",
+            "BREAKING CHANGES"
+          ]
         },
         "transform": {
-          "cli/**": { "scope": "cli" },
-          "shared/**": { "scope": "shared" },
-          "calm-models/**": { "scope": "calm-models" }
+          "cli/**": {
+            "scope": "cli"
+          },
+          "shared/**": {
+            "scope": "shared"
+          },
+          "calm-models/**": {
+            "scope": "calm-models"
+          }
         }
       }
     ],
@@ -63,16 +207,100 @@
         "preset": "conventionalcommits",
         "presetConfig": {
           "types": [
-            { "type": "feat", "section": "🚀 Features" },
-            { "type": "fix", "section": "🐛 Bug Fixes" },
-            { "type": "perf", "section": "⚡ Performance Improvements" },
-            { "type": "revert", "section": "⏪ Reverts" },
-            { "type": "docs", "section": "📚 Documentation" },
-            { "type": "refactor", "section": "♻️ Code Refactoring" },
-            { "type": "test", "section": "✅ Tests", "hidden": true },
-            { "type": "style", "section": "🎨 Styles", "hidden": true },
-            { "type": "chore", "section": "🔧 Chores", "hidden": true },
-            { "type": "ci", "section": "🤖 CI/CD", "hidden": true }
+            {
+              "type": "feat",
+              "section": "🚀 Features",
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models"
+              ]
+            },
+            {
+              "type": "fix",
+              "section": "🐛 Bug Fixes",
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models"
+              ]
+            },
+            {
+              "type": "perf",
+              "section": "⚡ Performance Improvements",
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models"
+              ]
+            },
+            {
+              "type": "revert",
+              "section": "⏪ Reverts",
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models"
+              ]
+            },
+            {
+              "type": "docs",
+              "section": "📚 Documentation",
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models"
+              ]
+            },
+            {
+              "type": "refactor",
+              "section": "♻️ Code Refactoring",
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models"
+              ]
+            },
+            {
+              "type": "test",
+              "section": "✅ Tests",
+              "hidden": true,
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models"
+              ]
+            },
+            {
+              "type": "style",
+              "section": "🎨 Styles",
+              "hidden": true,
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models"
+              ]
+            },
+            {
+              "type": "chore",
+              "section": "🔧 Chores",
+              "hidden": true,
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models"
+              ]
+            },
+            {
+              "type": "ci",
+              "section": "🤖 CI/CD",
+              "hidden": true,
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models"
+              ]
+            }
           ]
         }
       }
@@ -97,9 +325,14 @@
       }
     ],
     [
-      "@semantic-release/exec",
+      "@semantic-release/git",
       {
-        "successCmd": "git checkout main && git checkout -b release/changelog-cli-v${nextRelease.version} && git add CHANGELOG.md && git commit -m 'ci(cli): update changelog for ${nextRelease.version}' && git push origin release/changelog-cli-v${nextRelease.version}"
+        "assets": [
+          "CHANGELOG.md",
+          "package.json",
+          "package-lock.json"
+        ],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ]
   ]
