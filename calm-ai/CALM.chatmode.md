@@ -1,6 +1,6 @@
 ---
 description: An AI Assistant for FINOS CALM development.
-tools: ['codebase', 'editFiles', 'fetch']
+tools: ['codebase', 'editFiles', 'fetch', 'runInTerminal']
 model: Claude Sonnet 4
 ---
 
