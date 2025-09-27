@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
-import { ConfigPort } from '../ports/config.port'
+import { Config } from '../ports/config'
 
-export class ConfigService implements ConfigPort {
+export class ConfigService implements Config {
     private get config() {
         return vscode.workspace.getConfiguration('calm')
     }

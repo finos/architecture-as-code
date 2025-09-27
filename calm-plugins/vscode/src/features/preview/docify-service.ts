@@ -2,15 +2,16 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
 import * as vscode from 'vscode'
-import { parseFrontMatter } from '../domain/front-matter'
+import { parseFrontMatter } from '../../domain/front-matter'
 import { TemplateService } from './template-service'
+import { Logger } from '../../core/ports/logger'
 
-type GraphData = { nodes: Array<{ id: string; label: string; type?: string }>; edges: Array<{ id: string; source: string; target: string; label?: string; type?: string }> }
+type GraphData = { nodes: Array<{ id: string; label: string; type?: string }>; edges: Array<{ id:string; source: string; target: string; label?: string; type?: string }> }
 
 type DocifyResult = { content: string; format: 'html' | 'markdown'; sourceFile: string }
 
 export class DocifyService {
-  constructor(private output: vscode.OutputChannel, private templateService: TemplateService) {}
+  constructor(private log: Logger, private templateService: TemplateService) {}
 
   async run(params: {
     currentUri: vscode.Uri | undefined
@@ -58,7 +59,7 @@ export class DocifyService {
       )
       await fs.promises.writeFile(autoTpl, templateContent, 'utf8')
       templatePath = autoTpl
-      this.output.appendLine('[preview] Generated template: ' + templateContent.replace(/\n/g, '\\n'))
+      this.log.info('[preview] Generated template: ' + templateContent.replace(/\n/g, '\\n'))
     }
     const mod: any = await import('@finos/calm-shared')
     const Docifier = mod.Docifier || mod.default?.Docifier || (mod as any).Docifier
@@ -67,7 +68,7 @@ export class DocifyService {
     const templateMode = templatePath ? 'template' : 'bundle'
     const d = new Docifier(docifyMode, archUri.fsPath, outFile, urlToLocalPathMapping, templateMode, templatePath, false)
     await d.docify()
-    this.output.appendLine('[preview] Docify finished')
+    this.log.info('[preview] Docify finished')
     let content: string | undefined
     let outputPath: string | undefined
     try {
@@ -88,4 +89,3 @@ export class DocifyService {
     return { content, format: content.trim().startsWith('<') ? 'html' : 'markdown', sourceFile: outputPath || outFile }
   }
 }
-

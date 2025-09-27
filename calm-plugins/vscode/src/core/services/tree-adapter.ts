@@ -1,4 +1,4 @@
-import type { ModelIndex } from '../../domain/model'
+import type { ModelIndex } from '../../domain/model-index'
 
 export interface TreeAdapter {
     setModel(model: ModelIndex): void

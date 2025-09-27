@@ -1,8 +1,8 @@
 import * as vscode from 'vscode'
-import { CalmTreeProvider, CalmItem } from '../tree-view'
-import { ModelIndex } from '../domain/model'
-import { TreeViewModel } from '../application/view-models/tree.view-model'
-import type { SelectionService } from '../core/services/selection-service'
+import { CalmTreeProvider, CalmItem } from './tree-view'
+import { ModelIndex } from '../../domain/model-index'
+import { TreeViewModel } from './tree.view-model'
+import type { SelectionService } from '../../core/services/selection-service'
 
 export class TreeViewManager {
     private provider: CalmTreeProvider
@@ -49,7 +49,7 @@ export class TreeViewManager {
 
     dispose() {
         for (const d of this.disposables) {
-            try { d.dispose() } catch {}
+            try { d.dispose() } catch { }
         }
         this.disposables = []
     }

@@ -1,12 +1,13 @@
 import * as vscode from 'vscode'
-import { detectFileType, FileType } from '../domain/file-types'
-import type { ModelIndex } from '../domain/model'
-import type { RefreshService } from '../core/services/refresh-service'
-import type { PreviewManager } from './preview-manager'
-import type { SelectionService } from '../core/services/selection-service'
+import { detectFileType, FileType } from '../../domain/file-types'
+import type { ModelIndex } from '../../domain/model-index'
+import type { RefreshService } from '../../core/services/refresh-service'
+import type { PreviewManager } from '../preview/preview-manager'
+import type { SelectionService } from '../../core/services/selection-service'
+import type { Logger } from '../../core/ports/logger'
 
 export class EditorGateway {
-    constructor(private getModelIndex: () => ModelIndex | undefined) {}
+    constructor(private getModelIndex: () => ModelIndex | undefined) { }
 
     async revealById(doc: vscode.TextDocument, id: string) {
         const modelIndex = this.getModelIndex()
@@ -28,7 +29,7 @@ export class EditorGateway {
                     }
                     if (targetColumn) break
                 }
-            } catch {}
+            } catch { }
         }
         const editor = await vscode.window.showTextDocument(
             doc,
@@ -50,7 +51,7 @@ export class EditorGateway {
         preview: PreviewManager,
         refresh: RefreshService,
         setTemplateMode: (enabled: boolean) => void,
-        output: vscode.OutputChannel
+        log: Logger
     ) {
         vscode.window.onDidChangeActiveTextEditor(editor => {
             const panel = preview.get()
@@ -61,7 +62,7 @@ export class EditorGateway {
                 (ft.type === FileType.ArchitectureFile && ft.isValid) ||
                 (ft.type === FileType.TemplateFile && ft.isValid)
             ) {
-                output.appendLine('[extension] Detected file switch, updating preview: ' + doc.uri.fsPath)
+                log.info('[extension] Detected file switch, updating preview: ' + doc.uri.fsPath)
                 panel.reveal(doc.uri)
                 const resultP = refresh.refreshForDocument(doc)
                 resultP?.then(r => { if (r) setTemplateMode(r.isTemplateMode) })

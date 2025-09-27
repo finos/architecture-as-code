@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import { detectFileType, FileType } from '../domain/file-types'
 import type { CommandDeps } from './types'
 
-export function registerOpenPreview({ ctx, output, config, refresh, selection, tree, preview, setTemplateMode }: CommandDeps) {
+export function registerOpenPreview({ ctx, log, config, refresh, selection, tree, preview, setTemplateMode }: CommandDeps) {
     const getCurrentSelection = () => tree.getCurrentSelectionId()
 
     const disposable = vscode.commands.registerCommand('calm.openPreview', async () => {
@@ -12,9 +12,9 @@ export function registerOpenPreview({ ctx, output, config, refresh, selection, t
         const fileInfo = detectFileType(doc.uri.fsPath)
 
         if (fileInfo.type === FileType.ArchitectureFile && fileInfo.isValid) {
-            output.appendLine(`[command] Opening preview for architecture file: ${doc.uri.fsPath}`)
+            log.info(`[command] Opening preview for architecture file: ${doc.uri.fsPath}`)
         } else if (fileInfo.type === FileType.TemplateFile && fileInfo.isValid) {
-            output.appendLine(`[command] Opening preview for template file: ${doc.uri.fsPath} -> ${fileInfo.architecturePath}`)
+            log.info(`[command] Opening preview for template file: ${doc.uri.fsPath} -> ${fileInfo.architecturePath}`)
         } else {
             vscode.window.showWarningMessage('This file is not a CALM architecture file or a template file with architecture reference.')
             return
@@ -22,7 +22,7 @@ export function registerOpenPreview({ ctx, output, config, refresh, selection, t
 
         let panel = preview.get()
         if (!panel) {
-            panel = preview.createOrShow(ctx, doc.uri, config, output)
+            panel = preview.createOrShow(ctx, doc.uri, config, log)
             preview.clearOnDispose()
 
             panel.setGetCurrentTreeSelection(getCurrentSelection)

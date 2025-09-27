@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import type { ModelIndex } from '../../domain/model'
+import type { ModelIndex } from '../../domain/model-index'
 
 export interface TreeRevealer {
     revealById(id: string): Promise<void>
@@ -23,7 +23,7 @@ export class SelectionService {
         private tree: TreeRevealer,
         private revealInEditor: (doc: vscode.TextDocument, id: string) => Promise<void>,
         private isTemplateMode: () => boolean
-    ) {}
+    ) { }
 
     /** Tree selection changed */
     async syncFromTree(id: string) {
@@ -50,7 +50,7 @@ export class SelectionService {
 
     /** Preview node clicked */
     async syncFromPreview(id: string) {
-        try { await this.tree.revealById(id) } catch {}
+        try { await this.tree.revealById(id) } catch { }
         const preview = this.getPreview()
         const uri = preview?.getCurrentUri()
         const fallbackDoc = vscode.window.activeTextEditor?.document

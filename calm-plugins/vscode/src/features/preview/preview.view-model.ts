@@ -1,5 +1,5 @@
 import { debounce } from 'lodash'
-import type { GraphData, LastData } from '../../preview/types'
+import type { GraphData, LastData } from './types'
 
 /**
  * PreviewViewModel - MVVM pattern for preview panel presentation logic

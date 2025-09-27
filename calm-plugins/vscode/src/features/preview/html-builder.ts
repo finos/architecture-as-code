@@ -1,7 +1,15 @@
 import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
-import { getNonce } from '../util/web-view'
+
+function getNonce() {
+    let text = ''
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+    for (let i = 0; i < 32; i++) {
+        text += possible.charAt(Math.floor(Math.random() * possible.length))
+    }
+    return text
+}
 
 export class HtmlBuilder {
   constructor(private context: vscode.ExtensionContext) {}
@@ -27,4 +35,3 @@ export class HtmlBuilder {
     return html
   }
 }
-

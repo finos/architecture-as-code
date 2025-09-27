@@ -1,13 +1,13 @@
 import * as vscode from 'vscode'
 import { detectFileType, FileType } from '../../domain/file-types'
-import { ConfigPort } from '../ports/config.port'
+import { Config } from '../ports/config'
 import { RefreshService } from './refresh-service'
 
 export class WatchService {
     private disposables: vscode.Disposable[] = []
 
     constructor(
-        private config: ConfigPort, // Use port instead of concrete service
+        private config: Config, // Use port instead of concrete service
         private refresh: RefreshService
     ) {}
 

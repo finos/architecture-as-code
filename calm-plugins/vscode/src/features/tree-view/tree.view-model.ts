@@ -1,5 +1,5 @@
 import { debounce, groupBy } from 'lodash'
-import type { ModelIndex } from '../../domain/model'
+import type { ModelIndex } from '../../domain/model-index'
 
 /**
  * TreeViewModel - MVVM pattern for tree view presentation logic

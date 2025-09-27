@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { TreeViewModel } from './application/view-models/tree.view-model'
+import { TreeViewModel } from './tree.view-model'
 
 export class CalmTreeProvider implements vscode.TreeDataProvider<CalmItem> {
     private _onDidChangeTreeData = new vscode.EventEmitter<CalmItem | undefined | null | void>()

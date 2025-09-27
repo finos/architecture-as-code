@@ -1,9 +1,10 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import * as vscode from 'vscode'
+import { Logger } from '../../core/ports/logger'
 
 export class TemplateService {
-  constructor(private context: vscode.ExtensionContext, private output: vscode.OutputChannel) {}
+  constructor(private context: vscode.ExtensionContext, private log: Logger) {}
 
   processTemplateForLabels(content: string, showLabels: boolean) {
     if (!showLabels) content = content.replace(new RegExp('\{\{block-architecture(\\s*)\}\}', 'g'), '{{block-architecture$1 edge-labels="none"}}')
@@ -17,7 +18,7 @@ export class TemplateService {
       return this.processTemplateForLabels(c, showLabels)
     } catch (e) {
       const edge = showLabels ? '' : ' edge-labels="none"'
-      this.output?.appendLine?.(`[preview] loadTemplate: using fallback template for ${name}`)
+      this.log.info(`[preview] loadTemplate: using fallback template for ${name}`)
       return `{{block-architecture${edge}}}`
     }
   }
@@ -60,7 +61,7 @@ export class TemplateService {
           return t.replace(new RegExp('\{\{focused-flow-id\}\}', 'g'), selectedId)
         }
       } catch (e) {
-        this.output?.appendLine?.(`[preview] generateTemplateContent: error reading modelFile ${String(e)}`)
+        this.log.info(`[preview] generateTemplateContent: error reading modelFile ${String(e)}`)
       }
     }
     return this.loadTemplate('default-template.hbs', showLabels)

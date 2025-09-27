@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
-import { CalmPreviewPanel } from '../preview-panel'
+import { CalmPreviewPanel } from './preview-panel'
+import { Logger } from '../../core/ports/logger'
 
 export interface PreviewLike {
     setData(data: any): void
@@ -19,9 +20,9 @@ export class PreviewManager {
         return this.current
     }
 
-    createOrShow(ctx: vscode.ExtensionContext, uri: vscode.Uri, configService: any, output: vscode.OutputChannel) {
+    createOrShow(ctx: vscode.ExtensionContext, uri: vscode.Uri, configService: any, log: Logger) {
         if (!this.current) {
-            this.current = CalmPreviewPanel.createOrShow(ctx, uri, configService, output)
+            this.current = CalmPreviewPanel.createOrShow(ctx, uri, configService, log)
         } else {
             this.current.reveal(uri)
         }

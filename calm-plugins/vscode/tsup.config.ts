@@ -28,7 +28,7 @@ export default defineConfig([
     },
     // Webview (Browser environment)
     {
-        entry: { 'webview/main': 'src/webview/main.ts' },
+        entry: { 'webview/main': 'src/features/preview/webview/main.ts' },
         platform: 'browser',
         target: 'es2020',
         format: ['iife'],
@@ -37,6 +37,6 @@ export default defineConfig([
         clean: false,
         dts: false,
         minify: false,
-        outDir: 'dist',
+        outDir: 'dist'
     }
 ])

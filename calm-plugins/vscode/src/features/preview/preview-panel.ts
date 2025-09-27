@@ -1,15 +1,15 @@
 import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
-import { detectFileType, FileType } from './domain/file-types'
-import { parseFrontMatter } from './domain/front-matter'
-import { StateStore } from './preview/state-store'
-import { ModelService } from './preview/model-service'
-import { TemplateService } from './preview/template-service'
-import { HtmlBuilder } from './preview/html-builder'
-import { DocifyService } from './preview/docify-service'
-import { Debouncer } from './preview/utils/debounce'
-import { AsyncGuard } from './preview/utils/async-guard'
+import { detectFileType, FileType } from '../../domain/file-types'
+import { parseFrontMatter } from '../../domain/front-matter'
+import { StateStore } from './state-store'
+import { ModelService } from './model-service'
+import { TemplateService } from './template-service'
+import { HtmlBuilder } from './html-builder'
+import { DocifyService } from './docify-service'
+import { Debouncer } from './utils/debounce'
+import { AsyncGuard } from './utils/async-guard'
 import {
   isInMsg,
   InMsg,
@@ -27,9 +27,10 @@ import {
   ToggleLabelsCmd,
   LogCmd,
   ErrorCmd,
-} from './preview/commands'
-import {GraphData} from "./preview/types";
-import { PreviewViewModel } from './application/view-models/preview.view-model'
+} from './commands'
+import { GraphData } from "./types";
+import { PreviewViewModel } from './preview.view-model'
+import { Logger } from '../../core/ports/logger'
 
 /** ---------- main panel ---------- */
 export class CalmPreviewPanel {
@@ -53,10 +54,10 @@ export class CalmPreviewPanel {
   private commands = new CommandRegistry()
 
   static createOrShow(
-      context: vscode.ExtensionContext,
-      uri: vscode.Uri,
-      config: vscode.WorkspaceConfiguration,
-      output: vscode.OutputChannel
+    context: vscode.ExtensionContext,
+    uri: vscode.Uri,
+    config: vscode.WorkspaceConfiguration,
+    log: Logger
   ) {
     const column = vscode.ViewColumn.Beside
     if (CalmPreviewPanel.currentPanel) {
@@ -72,23 +73,23 @@ export class CalmPreviewPanel {
         vscode.Uri.joinPath(context.extensionUri, 'templates'),
       ],
     })
-    CalmPreviewPanel.currentPanel = new CalmPreviewPanel(panel, context, config, output)
+    CalmPreviewPanel.currentPanel = new CalmPreviewPanel(panel, context, config, log)
     CalmPreviewPanel.currentPanel.reveal(uri)
     return CalmPreviewPanel.currentPanel
   }
 
   constructor(
-      panel: vscode.WebviewPanel,
-      private context: vscode.ExtensionContext,
-      private cfg: vscode.WorkspaceConfiguration,
-      private output: vscode.OutputChannel
+    panel: vscode.WebviewPanel,
+    private context: vscode.ExtensionContext,
+    private cfg: vscode.WorkspaceConfiguration,
+    private log: Logger
   ) {
     this.panel = panel
     this.store = new StateStore(context)
-    this.modelService = new ModelService(output)
-    this.templateService = new TemplateService(context, output)
+    this.modelService = new ModelService()
+    this.templateService = new TemplateService(context, log)
     this.htmlBuilder = new HtmlBuilder(context)
-    this.docifyService = new DocifyService(output, this.templateService)
+    this.docifyService = new DocifyService(log, this.templateService)
 
     // Initialize ViewModel with MVVM pattern
     this.viewModel = new PreviewViewModel()
@@ -113,14 +114,14 @@ export class CalmPreviewPanel {
 
     // route messages to commands
     this.panel.webview.onDidReceiveMessage(
-        (raw: unknown) => {
-          if (!isInMsg(raw)) return
-          const msg: InMsg = raw
-          try { this.output.appendLine('[preview][rawMsg] ' + JSON.stringify(msg)) } catch {}
-          this.commands.dispatch(msg)
-        },
-        undefined,
-        this.disposables
+      (raw: unknown) => {
+        if (!isInMsg(raw)) return
+        const msg: InMsg = raw
+        try { this.log.info('[preview][rawMsg] ' + JSON.stringify(msg)) } catch { }
+        this.commands.dispatch(msg)
+      },
+      undefined,
+      this.disposables
     )
 
     this.panel.webview.html = this.htmlBuilder.getHtml(this.panel)
@@ -159,7 +160,7 @@ export class CalmPreviewPanel {
   }
 
   private post(msg: unknown) {
-    try { this.panel.webview.postMessage(msg) } catch {}
+    try { this.panel.webview.postMessage(msg) } catch { }
   }
 
   /** --------- public API - now delegates to ViewModel --------- */
@@ -168,16 +169,16 @@ export class CalmPreviewPanel {
     const fileInfo = detectFileType(uri.fsPath)
     const isTemplateMode = fileInfo.type === FileType.TemplateFile && fileInfo.isValid
 
-    this.output.appendLine(`[preview] reveal() - File: ${uri.fsPath}`)
-    this.output.appendLine(`[preview] reveal() - fileInfo: type=${fileInfo.type}, isValid=${fileInfo.isValid}, architecturePath=${fileInfo.architecturePath}`)
-    this.output.appendLine(`[preview] reveal() - isTemplateMode set to: ${isTemplateMode}`)
+    this.log.info(`[preview] reveal() - File: ${uri.fsPath}`)
+    this.log.info(`[preview] reveal() - fileInfo: type=${fileInfo.type}, isValid=${fileInfo.isValid}, architecturePath=${fileInfo.architecturePath}`)
+    this.log.info(`[preview] reveal() - isTemplateMode set to: ${isTemplateMode}`)
 
     if (isTemplateMode) {
       this.viewModel.setTemplateMode(true, uri.fsPath, fileInfo.architecturePath)
-      this.output.appendLine(`[preview] Template mode activated: ${uri.fsPath} -> ${fileInfo.architecturePath}`)
+      this.log.info(`[preview] Template mode activated: ${uri.fsPath} -> ${fileInfo.architecturePath}`)
     } else {
       this.viewModel.setTemplateMode(false)
-      this.output.appendLine(`[preview] Architecture mode: ${uri.fsPath}`)
+      this.log.info(`[preview] Architecture mode: ${uri.fsPath}`)
     }
 
     this.panel.reveal(vscode.ViewColumn.Beside)
@@ -204,7 +205,7 @@ export class CalmPreviewPanel {
 
   postSelect(id: string) {
     this.viewModel.setSelectedId(id)
-    this.output.appendLine(`[preview] TreeView selection changed to: ${id || 'none'}`)
+    this.log.info(`[preview] TreeView selection changed to: ${id || 'none'}`)
   }
 
   setGetCurrentTreeSelection(fn: () => string | undefined) {
@@ -216,7 +217,7 @@ export class CalmPreviewPanel {
     CalmPreviewPanel.currentPanel = undefined
     while (this.disposables.length) {
       const d = this.disposables.pop()
-      try { d?.dispose() } catch {}
+      try { d?.dispose() } catch { }
     }
   }
 
@@ -238,23 +239,23 @@ export class CalmPreviewPanel {
   public handleSavePositions(positions: unknown) {
     this.viewModel.handleSavePositions(positions)
     const currentUri = this.getCurrentUri()
-    if (currentUri) this.store.savePositions(currentUri, positions).catch(() => {})
+    if (currentUri) this.store.savePositions(currentUri, positions).catch(() => { })
   }
 
   public handleSaveViewport(viewport: unknown) {
     this.viewModel.handleSaveViewport(viewport)
     const currentUri = this.getCurrentUri()
-    if (currentUri) this.store.saveViewport(currentUri, viewport).catch(() => {})
+    if (currentUri) this.store.saveViewport(currentUri, viewport).catch(() => { })
   }
 
   public handleClearPositions() {
     const currentUri = this.getCurrentUri()
-    if (currentUri) this.store.clearPositions(currentUri).catch(() => {})
+    if (currentUri) this.store.clearPositions(currentUri).catch(() => { })
   }
 
   public handleSaveToggles(toggles: unknown) {
     const currentUri = this.getCurrentUri()
-    if (currentUri) this.store.saveToggles(currentUri, toggles).catch(() => {})
+    if (currentUri) this.store.saveToggles(currentUri, toggles).catch(() => { })
   }
 
   public handleRunDocify() {
@@ -274,12 +275,12 @@ export class CalmPreviewPanel {
   }
 
   public handleLog(message: string) {
-    this.output.appendLine(`[webview] ${message}`)
+    this.log.info(`[webview] ${message}`)
   }
 
   public handleError(message: string, stack?: string) {
-    this.output.appendLine(`[webview][error] ${message}`)
-    if (stack) this.output.appendLine(String(stack))
+    this.log.error?.(`[webview][error] ${message}`)
+    if (stack) this.log.error?.(String(stack))
   }
 
   // Implementation methods triggered by ViewModel
@@ -289,20 +290,20 @@ export class CalmPreviewPanel {
 
     try {
       const state = this.viewModel.getPreviewState()
-      this.output.appendLine(`[preview] handleRequestModelData - isTemplateMode: ${state.isTemplateMode}`)
+      this.log.info(`[preview] handleRequestModelData - isTemplateMode: ${state.isTemplateMode}`)
 
       const fileInfo = detectFileType(uri.fsPath)
       const isTemplate = fileInfo.type === FileType.TemplateFile && fileInfo.isValid
       const fileToRead = isTemplate && fileInfo.architecturePath ? fileInfo.architecturePath : uri.fsPath
 
-      this.output.appendLine(`[preview] Reading ${isTemplate ? 'architecture file for template mode' : 'current file'}: ${fileToRead}`)
+      this.log.info(`[preview] Reading ${isTemplate ? 'architecture file for template mode' : 'current file'}: ${fileToRead}`)
 
       const fullModelData = this.modelService.readModel(fileToRead)
       const filteredData = this.modelService.filterBySelection(fullModelData, state.selectedId)
       this.post({ type: 'modelData', data: filteredData })
-      this.output.appendLine(`[preview] Sent filtered model data for selection: ${state.selectedId || 'none'}`)
+      this.log.info(`[preview] Sent filtered model data for selection: ${state.selectedId || 'none'}`)
     } catch (error) {
-      this.output.appendLine('[preview] Error reading model data: ' + String(error))
+      this.log.error?.('[preview] Error reading model data: ' + String(error))
       this.post({ type: 'modelData', data: null })
     }
   }
@@ -325,12 +326,12 @@ export class CalmPreviewPanel {
         }
       } else {
         templateContent = await this.templateService.generateTemplateContent(
-            state.selectedId,
-            this.viewModel.getData()?.graph,
-            state.currentUri,
-            state.showLabels,
-            state.isTemplateMode,
-            state.architectureFilePath
+          state.selectedId,
+          this.viewModel.getData()?.graph,
+          state.currentUri,
+          state.showLabels,
+          state.isTemplateMode,
+          state.architectureFilePath
         )
         templateName = this.templateService.getTemplateNameForSelection(state.selectedId, this.viewModel.getData()?.graph)
       }
@@ -340,28 +341,28 @@ export class CalmPreviewPanel {
         data: { content: templateContent, name: templateName, selectedId: state.selectedId || 'none', isTemplateMode: state.isTemplateMode }
       })
     } catch (error) {
-      this.output.appendLine('[preview] Error reading template data: ' + String(error))
+      this.log.error?.('[preview] Error reading template data: ' + String(error))
       this.post({ type: 'templateData', data: null })
     }
   }
 
   private handleRunDocifyImpl() {
-    this.output.appendLine('[preview] runDocify requested')
+    this.log.info('[preview] runDocify requested')
     this.runDocifyGuard
-        .run(async () => {
-          const state = this.viewModel.getPreviewState()
-          const res = await this.docifyService.run({
-            currentUri: state.currentUri ? vscode.Uri.file(state.currentUri) : undefined,
-            isTemplateMode: state.isTemplateMode,
-            templateFilePath: state.templateFilePath,
-            architectureFilePath: state.architectureFilePath,
-            selectedId: state.selectedId,
-            getCurrentTreeSelection: this.getCurrentTreeSelection,
-            lastData: this.viewModel.getData(),
-            showLabels: state.showLabels,
-          })
-          this.post({ type: 'docifyResult', content: res.content, format: res.format, sourceFile: res.sourceFile })
+      .run(async () => {
+        const state = this.viewModel.getPreviewState()
+        const res = await this.docifyService.run({
+          currentUri: state.currentUri ? vscode.Uri.file(state.currentUri) : undefined,
+          isTemplateMode: state.isTemplateMode,
+          templateFilePath: state.templateFilePath,
+          architectureFilePath: state.architectureFilePath,
+          selectedId: state.selectedId,
+          getCurrentTreeSelection: this.getCurrentTreeSelection,
+          lastData: this.viewModel.getData(),
+          showLabels: state.showLabels,
         })
-        .catch(e => this.post({ type: 'docifyError', message: String(e?.message || e) }))
+        this.post({ type: 'docifyResult', content: res.content, format: res.format, sourceFile: res.sourceFile })
+      })
+      .catch(e => this.post({ type: 'docifyError', message: String(e?.message || e) }))
   }
 }

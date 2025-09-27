@@ -1,10 +1,11 @@
 import * as vscode from 'vscode'
 import * as fs from 'fs'
 import { detectFileType, FileType } from '../../domain/file-types'
-import { loadCalmModel, ModelIndex, toGraph } from '../../domain/model'
-import { ConfigPort } from '../ports/config.port'
+import { loadCalmModel, toGraph } from '../../domain/model'
+import { Config } from '../ports/config'
 import { TreeAdapter } from './tree-adapter'
 import type { Logger } from '../ports/logger'
+import { ModelIndex } from '../../domain/model-index'
 
 export interface RefreshResult {
     modelIndex: ModelIndex | undefined
@@ -17,12 +18,12 @@ export class RefreshService {
 
     constructor(
         private log: Logger,
-        private config: ConfigPort, // Use port instead of concrete service
+        private config: Config, // Use port instead of concrete service
         private tree: TreeAdapter,
         private getPreview: () =>
             | { setData: (data: any) => void; postSelect: (id: string) => void }
             | undefined
-    ) {}
+    ) { }
 
     getModelIndex() {
         return this.currentModelIndex

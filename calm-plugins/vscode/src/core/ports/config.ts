@@ -2,7 +2,7 @@
  * Configuration port - interface for accessing extension configuration
  * Part of hexagonal architecture - allows different config implementations
  */
-export interface ConfigPort {
+export interface Config {
     filesGlobs(): string[]
     templateGlobs(): string[]
     autoOpen(): boolean

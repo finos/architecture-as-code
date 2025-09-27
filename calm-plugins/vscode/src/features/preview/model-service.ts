@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import * as vscode from 'vscode'
 
 export class ModelService {
-  constructor(private output: vscode.OutputChannel) {}
+  constructor() {}
 
   readModel(filePath: string) {
     const content = fs.readFileSync(filePath, 'utf8')
@@ -35,4 +35,3 @@ export class ModelService {
     return fullModelData
   }
 }
-
