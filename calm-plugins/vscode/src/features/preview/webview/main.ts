@@ -1,6 +1,5 @@
 // src/webview/main.ts
-import { WebviewViewModel } from './webview.view-model';
-import { View } from './view';
+import { PreviewPanelFactory } from './preview-panel.factory';
 
 // Access VS Code API if present; otherwise fall back to no-op poster.
 const vscode =
@@ -24,9 +23,5 @@ window.addEventListener('unhandledrejection', (ev: any) => {
     postError('Unhandled rejection', ev.reason)
 })
 
-// Initialize MVVM
-const viewModel = new WebviewViewModel(vscode);
-new View(viewModel);
-
-// Initial data request
-vscode.postMessage({ type: 'runDocify' });
+// Create the complete panel hierarchy using the factory
+const { viewModel, view } = PreviewPanelFactory.create(vscode)

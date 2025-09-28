@@ -1,40 +1,36 @@
 import * as vscode from 'vscode'
-import { detectFileType, FileType } from '../domain/file-types'
-import type { CommandDeps } from './types'
+import { detectFileType, FileType } from '../models/file-types'
+import type { ApplicationStoreApi } from '../application-store'
 
-export function registerOpenPreview({ ctx, log, config, refresh, selection, tree, preview, setTemplateMode }: CommandDeps) {
-    const getCurrentSelection = () => tree.getCurrentSelectionId()
-
-    const disposable = vscode.commands.registerCommand('calm.openPreview', async () => {
+export function createOpenPreviewCommand(store: ApplicationStoreApi) {
+    return vscode.commands.registerCommand('calm.openPreview', async (elementId?: string) => {
         const editor = vscode.window.activeTextEditor
         if (!editor) return
         const doc = editor.document
         const fileInfo = detectFileType(doc.uri.fsPath)
 
         if (fileInfo.type === FileType.ArchitectureFile && fileInfo.isValid) {
-            log.info(`[command] Opening preview for architecture file: ${doc.uri.fsPath}`)
+            // Valid architecture file
         } else if (fileInfo.type === FileType.TemplateFile && fileInfo.isValid) {
-            log.info(`[command] Opening preview for template file: ${doc.uri.fsPath} -> ${fileInfo.architecturePath}`)
+            // Valid template file with architecture reference
         } else {
             vscode.window.showWarningMessage('This file is not a CALM architecture file or a template file with architecture reference.')
             return
         }
 
-        let panel = preview.get()
-        if (!panel) {
-            panel = preview.createOrShow(ctx, doc.uri, config, log)
-            preview.clearOnDispose()
-
-            panel.setGetCurrentTreeSelection(getCurrentSelection)
-            panel.onRevealInEditor(async id => { await selection.syncFromPreview(id) })
-            panel.onDidSelect(async id => { await selection.syncFromPreview(id) })
+        const state = store.getState()
+        
+        state.setCurrentDocument(doc.uri)
+        
+        if (fileInfo.type === FileType.TemplateFile && fileInfo.isValid) {
+            state.setTemplateMode(true, doc.uri.fsPath, fileInfo.architecturePath)
         } else {
-            panel.reveal(doc.uri)
+            state.setTemplateMode(false)
         }
 
-        const result = await refresh.refreshForDocument(doc)
-        if (result) setTemplateMode(result.isTemplateMode)
+        // If an elementId was provided (from CodeLens), set the selection
+        if (elementId) {
+            state.setSelectedElement(elementId)
+        }
     })
-
-    ctx.subscriptions.push(disposable)
 }

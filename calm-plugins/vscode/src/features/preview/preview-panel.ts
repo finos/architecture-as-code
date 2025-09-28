@@ -1,15 +1,13 @@
 import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
-import { detectFileType, FileType } from '../../domain/file-types'
-import { parseFrontMatter } from '../../domain/front-matter'
-import { StateStore } from './state-store'
-import { ModelService } from './model-service'
-import { TemplateService } from './template-service'
-import { HtmlBuilder } from './html-builder'
-import { DocifyService } from './docify-service'
-import { Debouncer } from './utils/debounce'
-import { AsyncGuard } from './utils/async-guard'
+import { detectFileType, FileType } from '../../models/file-types'
+import { parseFrontMatter } from '../../cli/front-matter'
+import { ModelService } from '../../core/services/model-service'
+import { TemplateService } from '../../cli/template-service'
+import { HtmlBuilder } from '../../cli/html-builder'
+import { DocifyService } from '../../cli/docify-service'
+import { AsyncGuard } from '../../core/async-guard'
 import {
   isInMsg,
   InMsg,
@@ -17,10 +15,6 @@ import {
   RevealInEditorCmd,
   SelectedCmd,
   ReadyCmd,
-  SavePositionsCmd,
-  SaveViewportCmd,
-  ClearPositionsCmd,
-  SaveTogglesCmd,
   RunDocifyCmd,
   RequestModelDataCmd,
   RequestTemplateDataCmd,
@@ -28,9 +22,9 @@ import {
   LogCmd,
   ErrorCmd,
 } from './commands'
-import { GraphData } from "./types";
 import { PreviewViewModel } from './preview.view-model'
 import { Logger } from '../../core/ports/logger'
+import {GraphData} from "../../models/model";
 
 /** ---------- main panel ---------- */
 export class CalmPreviewPanel {
@@ -42,14 +36,12 @@ export class CalmPreviewPanel {
 
   private getCurrentTreeSelection: (() => string | undefined) | undefined = undefined
 
-  private store: StateStore
   private modelService: ModelService
   private templateService: TemplateService
   private htmlBuilder: HtmlBuilder
   private docifyService: DocifyService
-  private viewModel: PreviewViewModel
+  public readonly viewModel: PreviewViewModel  // Made public for external access
 
-  private runDocifyDebounce = new Debouncer()
   private runDocifyGuard = new AsyncGuard()
   private commands = new CommandRegistry()
 
@@ -61,8 +53,15 @@ export class CalmPreviewPanel {
   ) {
     const column = vscode.ViewColumn.Beside
     if (CalmPreviewPanel.currentPanel) {
-      CalmPreviewPanel.currentPanel.reveal(uri)
-      return CalmPreviewPanel.currentPanel
+      // Ensure the existing panel is still valid before reusing
+      try {
+        CalmPreviewPanel.currentPanel.reveal(uri)
+        return CalmPreviewPanel.currentPanel
+      } catch (error) {
+        // Panel may have been disposed externally, clean up the reference
+        log.info('[preview] Existing panel was invalid, creating new one')
+        CalmPreviewPanel.currentPanel = undefined
+      }
     }
     const panel = vscode.window.createWebviewPanel('calmPreview', 'CALM Preview', column, {
       enableScripts: true,
@@ -78,21 +77,54 @@ export class CalmPreviewPanel {
     return CalmPreviewPanel.currentPanel
   }
 
+  static createOrShowWithViewModel(
+    context: vscode.ExtensionContext,
+    uri: vscode.Uri,
+    config: vscode.WorkspaceConfiguration,
+    log: Logger,
+    viewModel: PreviewViewModel
+  ) {
+    const column = vscode.ViewColumn.Beside
+    if (CalmPreviewPanel.currentPanel) {
+      // Ensure the existing panel is still valid before reusing
+      try {
+        CalmPreviewPanel.currentPanel.reveal(uri)
+        return CalmPreviewPanel.currentPanel
+      } catch (error) {
+        // Panel may have been disposed externally, clean up the reference
+        log.info('[preview] Existing panel was invalid, creating new one')
+        CalmPreviewPanel.currentPanel = undefined
+      }
+    }
+    const panel = vscode.window.createWebviewPanel('calmPreview', 'CALM Preview', column, {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      localResourceRoots: [
+        vscode.Uri.joinPath(context.extensionUri, 'dist'),
+        vscode.Uri.joinPath(context.extensionUri, 'media'),
+        vscode.Uri.joinPath(context.extensionUri, 'templates'),
+      ],
+    })
+    CalmPreviewPanel.currentPanel = new CalmPreviewPanel(panel, context, config, log, viewModel)
+    CalmPreviewPanel.currentPanel.reveal(uri)
+    return CalmPreviewPanel.currentPanel
+  }
+
   constructor(
     panel: vscode.WebviewPanel,
     private context: vscode.ExtensionContext,
     private cfg: vscode.WorkspaceConfiguration,
-    private log: Logger
+    private log: Logger,
+    externalViewModel?: PreviewViewModel
   ) {
     this.panel = panel
-    this.store = new StateStore(context)
     this.modelService = new ModelService()
     this.templateService = new TemplateService(context, log)
     this.htmlBuilder = new HtmlBuilder(context)
     this.docifyService = new DocifyService(log, this.templateService)
 
-    // Initialize ViewModel with MVVM pattern
-    this.viewModel = new PreviewViewModel()
+    // Use external ViewModel if provided, otherwise create new one
+    this.viewModel = externalViewModel || new PreviewViewModel()
 
     // Bind ViewModel events to service operations
     this.bindViewModelEvents()
@@ -101,10 +133,6 @@ export class CalmPreviewPanel {
     this.commands.register(new RevealInEditorCmd(this))
     this.commands.register(new SelectedCmd(this))
     this.commands.register(new ReadyCmd(this))
-    this.commands.register(new SavePositionsCmd(this))
-    this.commands.register(new SaveViewportCmd(this))
-    this.commands.register(new ClearPositionsCmd(this))
-    this.commands.register(new SaveTogglesCmd(this))
     this.commands.register(new RunDocifyCmd(this))
     this.commands.register(new RequestModelDataCmd(this))
     this.commands.register(new RequestTemplateDataCmd(this))
@@ -138,9 +166,11 @@ export class CalmPreviewPanel {
 
     this.viewModel.onStateChanged(() => {
       const state = this.viewModel.getPreviewState()
+      this.log.info(`[preview] onStateChanged - ready: ${state.ready}, hasData: ${state.hasData}, selectedId: ${state.selectedId}`)
       if (state.ready && state.hasData) {
         this.post({ type: 'setData', ...this.viewModel.getData() })
         if (state.selectedId) {
+          this.log.info(`[preview] Posting select message for: ${state.selectedId}`)
           this.post({ type: 'select', id: state.selectedId })
         }
       }
@@ -156,6 +186,16 @@ export class CalmPreviewPanel {
 
     this.viewModel.onDocifyRequest(() => {
       this.handleRunDocifyImpl()
+    })
+
+    // Listen for docify results and post them to webview
+    this.viewModel.docify.onDocifyResult((result) => {
+      this.post({ type: 'docifyResult', content: result.content, format: result.format, sourceFile: result.sourceFile })
+    })
+
+    // Listen for docify errors and post them to webview
+    this.viewModel.docify.onDocifyError((error) => {
+      this.post({ type: 'docifyError', message: error })
     })
   }
 
@@ -176,31 +216,41 @@ export class CalmPreviewPanel {
     if (isTemplateMode) {
       this.viewModel.setTemplateMode(true, uri.fsPath, fileInfo.architecturePath)
       this.log.info(`[preview] Template mode activated: ${uri.fsPath} -> ${fileInfo.architecturePath}`)
+
+      // Send template mode to webview
+      this.post({
+        type: 'templateMode',
+        isTemplateMode: true,
+        templatePath: uri.fsPath,
+        architecturePath: fileInfo.architecturePath
+      })
     } else {
-      this.viewModel.setTemplateMode(false)
+      this.viewModel.setTemplateMode(false, undefined, uri.fsPath)
       this.log.info(`[preview] Architecture mode: ${uri.fsPath}`)
+
+      // Send template mode to webview
+      this.post({
+        type: 'templateMode',
+        isTemplateMode: false
+      })
     }
+
+    // Don't trigger docify immediately here - let refreshForDocument handle it after selection is determined
 
     this.panel.reveal(vscode.ViewColumn.Beside)
   }
 
   getCurrentUri(): vscode.Uri | undefined {
-    const uri = this.viewModel.getCurrentUri()
-    return uri ? vscode.Uri.file(uri) : undefined
+    const uriString = this.viewModel.getCurrentUriString()
+    return uriString ? vscode.Uri.file(uriString) : undefined
   }
 
   onDidDispose(handler: () => void) { this.panel.onDidDispose(handler) }
   onRevealInEditor(handler: (id: string) => void) { this.revealInEditorHandlers.push(handler) }
   onDidSelect(handler: (id: string) => void) { this.selectHandlers.push(handler) }
 
-  setData(payload: { graph: GraphData; selectedId?: string; settings?: unknown }) {
-    const currentUri = this.getCurrentUri()
-    const positions = currentUri ? this.store.getPositions(currentUri) : undefined
-    const viewport = currentUri ? this.store.getViewport(currentUri) : undefined
-    const toggles = currentUri ? this.store.getToggles(currentUri) : undefined
-    const settings = { ...(payload.settings || {}), ...(toggles || {}) }
-
-    this.viewModel.setData({ ...payload, settings, positions, viewport })
+  setData(payload: { graph: GraphData; selectedId?: string }) {
+    this.viewModel.setData(payload)
   }
 
   postSelect(id: string) {
@@ -233,29 +283,8 @@ export class CalmPreviewPanel {
   }
 
   public handleReady() {
+    this.log.info('[preview] handleReady() called - webview is ready')
     this.viewModel.handleReady()
-  }
-
-  public handleSavePositions(positions: unknown) {
-    this.viewModel.handleSavePositions(positions)
-    const currentUri = this.getCurrentUri()
-    if (currentUri) this.store.savePositions(currentUri, positions).catch(() => { })
-  }
-
-  public handleSaveViewport(viewport: unknown) {
-    this.viewModel.handleSaveViewport(viewport)
-    const currentUri = this.getCurrentUri()
-    if (currentUri) this.store.saveViewport(currentUri, viewport).catch(() => { })
-  }
-
-  public handleClearPositions() {
-    const currentUri = this.getCurrentUri()
-    if (currentUri) this.store.clearPositions(currentUri).catch(() => { })
-  }
-
-  public handleSaveToggles(toggles: unknown) {
-    const currentUri = this.getCurrentUri()
-    if (currentUri) this.store.saveToggles(currentUri, toggles).catch(() => { })
   }
 
   public handleRunDocify() {
@@ -347,12 +376,18 @@ export class CalmPreviewPanel {
   }
 
   private handleRunDocifyImpl() {
+    const state = this.viewModel.getPreviewState()
+    const treeSelection = this.getCurrentTreeSelection ? this.getCurrentTreeSelection() : undefined
     this.log.info('[preview] runDocify requested')
+    this.log.info(`[preview] runDocify - state.selectedId: ${state.selectedId}`)
+    this.log.info(`[preview] runDocify - tree selection: ${treeSelection}`)
+    this.log.info(`[preview] runDocify - isTemplateMode: ${state.isTemplateMode}`)
+    this.log.info(`[preview] runDocify - currentUri: ${state.currentUri}`)
+    this.log.info(`[preview] runDocify - architectureFilePath: ${state.architectureFilePath}`)
     this.runDocifyGuard
       .run(async () => {
-        const state = this.viewModel.getPreviewState()
         const res = await this.docifyService.run({
-          currentUri: state.currentUri ? vscode.Uri.file(state.currentUri) : undefined,
+          currentFilePath: state.currentUri,
           isTemplateMode: state.isTemplateMode,
           templateFilePath: state.templateFilePath,
           architectureFilePath: state.architectureFilePath,
@@ -361,8 +396,14 @@ export class CalmPreviewPanel {
           lastData: this.viewModel.getData(),
           showLabels: state.showLabels,
         })
-        this.post({ type: 'docifyResult', content: res.content, format: res.format, sourceFile: res.sourceFile })
+        // Use MVVM pattern - set result in DocifyViewModel instead of posting directly
+        this.viewModel.docify.setDocifyResult(res.content, res.format, res.sourceFile)
+        this.log.info('[preview] Docify finished')
+        this.log.info(`[preview] Docify result format: ${res.format}, source: ${res.sourceFile}`)
       })
-      .catch(e => this.post({ type: 'docifyError', message: String(e?.message || e) }))
+      .catch(e => {
+        // Use MVVM pattern - set error in DocifyViewModel instead of posting directly
+        this.viewModel.docify.setDocifyError(String(e?.message || e))
+      })
   }
 }

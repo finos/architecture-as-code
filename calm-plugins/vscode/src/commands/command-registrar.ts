@@ -1,15 +1,25 @@
-import type { CommandDeps } from './types'
-import { registerOpenPreview } from './open-preview-command'
-import { registerSearchTreeView } from './search-tree-view-command'
-import { registerClearTreeViewSearch } from './clear-tree-view-search-command'
+import type { ApplicationStoreApi } from '../application-store'
+import { createOpenPreviewCommand } from './open-preview-command'
+import { createSearchTreeViewCommand } from './search-tree-view-command'
+import { createClearTreeViewSearchCommand } from './clear-tree-view-search-command'
+import * as vscode from 'vscode'
 
 export class CommandRegistrar {
-    constructor(private deps: CommandDeps) {}
+    constructor(
+        private context: vscode.ExtensionContext,
+        private store: ApplicationStoreApi
+    ) {}
 
     registerAll() {
-        registerOpenPreview(this.deps)
-        registerSearchTreeView(this.deps)
-        registerClearTreeViewSearch(this.deps)
+        const commands = [
+            createOpenPreviewCommand(this.store),
+            createSearchTreeViewCommand(this.store),
+            createClearTreeViewSearchCommand(this.store)
+        ]
+
+        commands.forEach(disposable => {
+            this.context.subscriptions.push(disposable)
+        })
     }
 }
 

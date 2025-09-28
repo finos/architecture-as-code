@@ -27,7 +27,11 @@ export class DiagnosticsService {
 
     private async checkSchemaDirectory() {
         try {
-            const dummy = new SchemaDirectory({ initialise: async () => {} }, false)
+            const dummyLoader = {
+                initialise: async () => {},
+                loadMissingDocument: async (documentId: string, type: any) => ({})
+            }
+            const dummy = new SchemaDirectory(dummyLoader, false)
             this.log.info('SchemaDirectory loaded from @finos/calm-shared: ' + typeof dummy)
         } catch (e: any) {
             this.log.error?.('Failed to load SchemaDirectory from @finos/calm-shared: ' + (e?.message || e))

@@ -2,7 +2,7 @@
     "name": "calm-vscode-plugin",
     "displayName": "CALM Preview & Tools",
     "description": "Live-visualize CALM architecture models, validate, and generate docs.",
-    "version": "0.1.38",
+    "version": "0.0.7",
     "publisher": "local",
     "repository": {
         "type": "git",
@@ -135,7 +135,9 @@
         "vscode:prepublish": "npm run build"
     },
     "devDependencies": {
+        "@types/markdown-it": "^14.1.2",
         "@types/node": "^22.0.0",
+        "@types/lodash": "^4.17.16",
         "@types/vscode": "^1.88.0",
         "@typescript-eslint/eslint-plugin": "^8.29.1",
         "@typescript-eslint/parser": "^8.29.1",
@@ -152,8 +154,10 @@
         "@finos/calm-models": "file:../../calm-models",
         "@finos/calm-shared": "file:../../shared",
         "jsdom": "^22.1.0",
+        "lodash": "^4.17.21",
         "markdown-it": "^13.0.1",
         "mermaid": "^10.4.0",
-        "yaml": "^2.5.1"
+        "yaml": "^2.5.1",
+        "zustand": "^5.0.8"
     }
 }

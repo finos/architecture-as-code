@@ -1,19 +1,15 @@
 import * as vscode from 'vscode'
-import type { CommandDeps } from './types'
+import type { ApplicationStoreApi } from '../application-store'
 
-export function registerSearchTreeView({ ctx, tree }: CommandDeps) {
-    const disposable = vscode.commands.registerCommand('calm.searchTreeView', async () => {
+export function createSearchTreeViewCommand(store: ApplicationStoreApi) {
+    return vscode.commands.registerCommand('calm.searchTreeView', async () => {
         const searchText = await vscode.window.showInputBox({
             prompt: 'Search CALM Architecture Elements',
             placeHolder: 'Enter text to filter nodes, relationships, and flows...',
-            value: tree.getSearchFilter()
+            value: store.getState().searchFilter
         })
         if (searchText !== undefined) {
-            tree.setSearchFilter(searchText)
-            if (searchText.trim()) {
-                setTimeout(() => { tree.expandRoot() }, 100)
-            }
+            store.getState().setSearchFilter(searchText)
         }
     })
-    ctx.subscriptions.push(disposable)
 }

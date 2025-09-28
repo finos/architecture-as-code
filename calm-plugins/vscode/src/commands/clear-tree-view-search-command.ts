@@ -1,9 +1,8 @@
 import * as vscode from 'vscode'
-import type { CommandDeps } from './types'
+import type { ApplicationStoreApi } from '../application-store'
 
-export function registerClearTreeViewSearch({ ctx, tree }: CommandDeps) {
-    const disposable = vscode.commands.registerCommand('calm.clearTreeViewSearch', () => {
-        tree.setSearchFilter('')
+export function createClearTreeViewSearchCommand(store: ApplicationStoreApi) {
+    return vscode.commands.registerCommand('calm.clearTreeViewSearch', () => {
+        store.getState().setSearchFilter('')
     })
-    ctx.subscriptions.push(disposable)
 }

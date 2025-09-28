@@ -21,7 +21,8 @@ export default defineConfig([
             '@finos/calm-models',
             'markdown-it',
             'mermaid',
-            'jsdom'
+            'jsdom',
+            'zustand'
         ],
         minify: false,
         outDir: 'dist',
