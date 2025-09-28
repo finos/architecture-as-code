@@ -176,6 +176,49 @@ npm test -- tree-view     # Run specific test suite
 
 Settings can be configured in VS Code Settings UI by searching for "CALM", or programmatically in your workspace settings.
 
+## Publishing
+
+### GitHub Actions Publishing
+
+The extension can be published via GitHub Actions using manual workflow dispatch:
+
+1. **Navigate to Actions tab** in your GitHub repository
+2. **Select "Build VS Code Extension"** from the workflow list
+3. **Click "Run workflow"** button
+4. **Choose your options**:
+   - ☐ Leave unchecked: Build, test, and package only
+   - ☑️ Check "Publish to VS Code Marketplace": Build, test, package, AND publish
+
+**What it does**:
+- **Always runs**: Lint → Test → Package
+- **Conditionally runs**: Publish (only when checkbox is selected)
+
+**Prerequisites**: 
+- Ensure `VSCE_PAT` secret is configured in repository settings
+- Secret is only needed if you plan to publish
+
+**Testing**: You can run the workflow without publishing to test builds and verify everything works before publishing.
+
+### Manual Publishing
+
+To publish manually:
+
+1. **Package the extension:**
+   ```bash
+   npm run package:vscode
+   ```
+
+2. **Publish to VS Code Marketplace:**
+   ```bash
+   cd calm-plugins/vscode
+   npx vsce publish --packagePath *.vsix
+   ```
+   *Requires `VSCE_PAT` environment variable with your Personal Access Token*
+
+### Setting up Personal Access Token
+
+- **VS Code Marketplace**: Create a PAT at [Azure DevOps](https://dev.azure.com/) with `Marketplace > Manage` scope
+
 ## Usage
 
 ### Basic Workflow
