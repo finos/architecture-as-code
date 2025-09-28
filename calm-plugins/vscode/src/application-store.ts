@@ -30,7 +30,7 @@ export type ApplicationStoreApi = StoreApi<ApplicationStore>
 
 export function createApplicationStore(): ApplicationStoreApi {
     return create<ApplicationStore>()(
-        subscribeWithSelector((set, get) => ({
+        subscribeWithSelector((set, _get) => ({
             currentModelIndex: undefined,
             currentDocumentUri: undefined,
             isTemplateMode: false,

@@ -30,7 +30,7 @@ describe('TreeViewModel', () => {
         mockStore = {
             getState: vi.fn(() => mockState),
             setState: vi.fn(),
-            subscribe: vi.fn((callback) => {
+            subscribe: vi.fn(() => {
                 return vi.fn()
             }),
             destroy: vi.fn()

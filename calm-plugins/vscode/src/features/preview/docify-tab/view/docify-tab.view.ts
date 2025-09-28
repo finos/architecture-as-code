@@ -64,7 +64,7 @@ export class DocifyTabView {
     /**
      * Update the view when external selection changes
      */
-    public updateSelection(selectedId?: string): void {
+    public updateSelection(_selectedId?: string): void {
         // Just update the internal state, don't auto-trigger docify
         // The TabsViewModel will handle triggering docify when appropriate
     }

@@ -33,9 +33,9 @@ export class CalmExtensionController {
     const treeManager = new TreeViewFactory(store)
     const editorFactory = new EditorFactory(store)
 
-    let isCurrentlyInTemplateMode = false
+    let _isCurrentlyInTemplateMode = false
     const setTemplateMode = (enabled: boolean) => {
-      isCurrentlyInTemplateMode = enabled
+      _isCurrentlyInTemplateMode = enabled
       store.getState().setTemplateMode(enabled)
     }
     const selectionService = new SelectionService(

@@ -57,7 +57,7 @@ export class CalmPreviewPanel {
       try {
         CalmPreviewPanel.currentPanel.reveal(uri)
         return CalmPreviewPanel.currentPanel
-      } catch (error) {
+      } catch {
         // Panel may have been disposed externally, clean up the reference
         log.info('[preview] Existing panel was invalid, creating new one')
         CalmPreviewPanel.currentPanel = undefined
@@ -90,7 +90,7 @@ export class CalmPreviewPanel {
       try {
         CalmPreviewPanel.currentPanel.reveal(uri)
         return CalmPreviewPanel.currentPanel
-      } catch (error) {
+      } catch {
         // Panel may have been disposed externally, clean up the reference
         log.info('[preview] Existing panel was invalid, creating new one')
         CalmPreviewPanel.currentPanel = undefined
@@ -331,7 +331,7 @@ export class CalmPreviewPanel {
       const filteredData = this.modelService.filterBySelection(fullModelData, state.selectedId)
       this.post({ type: 'modelData', data: filteredData })
       this.log.info(`[preview] Sent filtered model data for selection: ${state.selectedId || 'none'}`)
-    } catch (error) {
+    } catch {
       this.log.error?.('[preview] Error reading model data: ' + String(error))
       this.post({ type: 'modelData', data: null })
     }
@@ -369,7 +369,7 @@ export class CalmPreviewPanel {
         type: 'templateData',
         data: { content: templateContent, name: templateName, selectedId: state.selectedId || 'none', isTemplateMode: state.isTemplateMode }
       })
-    } catch (error) {
+    } catch {
       this.log.error?.('[preview] Error reading template data: ' + String(error))
       this.post({ type: 'templateData', data: null })
     }

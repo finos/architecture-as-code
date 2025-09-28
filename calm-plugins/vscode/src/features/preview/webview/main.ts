@@ -24,4 +24,4 @@ window.addEventListener('unhandledrejection', (ev: any) => {
 })
 
 // Create the complete panel hierarchy using the factory
-const { viewModel, view } = PreviewPanelFactory.create(vscode)
+const { viewModel: _viewModel, view: _view } = PreviewPanelFactory.create(vscode)

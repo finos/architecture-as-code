@@ -47,7 +47,7 @@ export function parseFrontMatter(filePath: string): ParsedTemplate | null {
     try {
         const content = fs.readFileSync(filePath, 'utf8')
         return parseFrontMatterFromContent(content, filePath)
-    } catch (error) {
+    } catch {
         return null
     }
 }
@@ -132,7 +132,7 @@ export function parseFrontMatterFromContent(content: string, filePath?: string):
             architecturePath,
             urlToLocalPathMapping
         }
-    } catch (error) {
+    } catch {
         // YAML parsing failed
         return {
             frontMatter: {},

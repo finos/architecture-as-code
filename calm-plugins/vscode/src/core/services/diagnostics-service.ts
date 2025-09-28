@@ -29,7 +29,7 @@ export class DiagnosticsService {
         try {
             const dummyLoader = {
                 initialise: async () => {},
-                loadMissingDocument: async (documentId: string, type: any) => ({})
+                loadMissingDocument: async (_documentId: string, _type: any) => ({})
             }
             const dummy = new SchemaDirectory(dummyLoader, false)
             this.log.info('SchemaDirectory loaded from @finos/calm-shared: ' + typeof dummy)

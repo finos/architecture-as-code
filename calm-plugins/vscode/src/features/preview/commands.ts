@@ -1,5 +1,3 @@
-import type * as vscode from 'vscode'
-
 // Message typing
 export type InMsg =
   | { type: 'revealInEditor'; id: string }

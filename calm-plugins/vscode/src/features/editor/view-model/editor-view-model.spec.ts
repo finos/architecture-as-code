@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type MockedFunction } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { EditorViewModel } from './editor-view-model'
 import type { ApplicationStoreApi, ApplicationStore } from '../../../application-store'
 
@@ -49,8 +49,8 @@ describe('EditorViewModel', () => {
     describe('model index operations', () => {
         beforeEach(() => {
             const mockModelIndex = {
-                rangeOf: vi.fn((id: string) => ({ line: 1, character: 0 })),
-                idAt: vi.fn((doc: any, position: any) => 'test-id'),
+                rangeOf: vi.fn((_id: string) => ({ line: 1, character: 0 })),
+                idAt: vi.fn((_doc: any, _position: any) => 'test-id'),
                 idToRange: new Map(),
                 doc: { getText: () => '' },
                 model: { nodes: [], relationships: [], flows: [] },

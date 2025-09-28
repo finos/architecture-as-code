@@ -102,7 +102,7 @@ export class PreviewViewModel implements PreviewViewModelInterface {
         })
 
         // When labels toggle, may affect docify output
-        this.template.onShowLabelsChanged((showLabels) => {
+        this.template.onShowLabelsChanged((_showLabels) => {
             this.notifyStateChanged()
             if (this.docify.getIsLiveMode()) {
                 this.docify.requestDocify()
