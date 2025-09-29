@@ -33,7 +33,8 @@
         "link:cli": "npm link --workspace cli",
         "calm-hub-ui:run": "npm run start --workspace calm-hub-ui",
         "calm-hub-ui:prod": "npm run prod --workspace calm-hub-ui",
-        "prepare": "husky"
+        "prepare": "husky",
+        "do:not:merge": "echo 'huh'"
     },
     "devDependencies": {
         "@commitlint/cli": "^19.0.0",
