@@ -3,7 +3,7 @@
     "displayName": "CALM Preview & Tools",
     "description": "Live-visualize CALM architecture models, validate, and generate docs.",
     "version": "0.0.1",
-    "publisher": "local",
+    "publisher": "FINOS",
     "repository": {
         "type": "git",
         "url": "https://github.com/finos/architecture-as-code.git"
