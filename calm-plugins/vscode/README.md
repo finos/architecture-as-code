@@ -1,169 +1,280 @@
-# CALM VS Code Plugin (Experimental)
+# CALM VS Code Extension
 
-Status: Experimental — APIs, behavior, and visuals may change. Use at your own risk.
+> **Status**: Experimental - APIs, behavior, and visuals may change. Use at your own risk.
 
-Live-visualize CALM architecture models while you edit them. See structure, navigate quickly, validate with a local CLI, and generate docs — all offline.
+Live-visualize CALM architecture models while you edit them. Features an interactive preview, tree navigation, intelligent validation, and documentation generation - all working offline with a clean MVVM architecture.
 
 ## Features
 
-- Interactive CALM Preview (webview)
-    - Graph powered by Cytoscape with configurable layouts (dagre, fcose, cose)
-    - Containment: “deployed-in” and “composed-of” render as nested compound containers (dashed boxes), with multi-level nesting supported
-    - Edges: connectivity relationships and flows are shown; containment edges are hidden to avoid clutter
-    - Smooth, incremental updates without camera jumps; preserves pan/zoom and node positions between edits
-    - Toolbar: Fit to view, Reset layout/positions
-    - Labels & descriptions toggles (per document), theme-aware styling matching your VS Code theme
-    - Click to inspect details; double-click to jump to source in editor
-    - Resizable panel split (drag divider)
-- Sidebar tree view
-    - Lists Nodes, Relationships, and Flows from the active model
-    - Reveal selection and jump to source
-- Editing helpers
-    - Hovers and CodeLens for quick navigation across model elements
-    - File watching and auto-refresh on save (no manual refresh needed)
-    - Basic diagnostics surfaced in Problems (when available)
-- Optional CLI integration (future)
-    - Planned: run validation and generate docs using a local CALM CLI
-- Offline-first
-    - No network access required; no language server needed
+### 🎯 Interactive Preview Panel
+- **Live Graph Visualization**: Powered by Cytoscape with configurable layouts (dagre, fcose, cose)
+- **Smart Containment Rendering**: "deployed-in" and "composed-of" relationships render as nested compound containers
+- **Smooth Updates**: Incremental updates preserve pan/zoom and node positions between edits
+- **Rich Interactions**: Click to inspect, double-click to jump to source, drag nodes to reposition
+- **Theme Integration**: Styling automatically matches your VS Code theme
 
-## Usage
+![CALM VS Code Extension](docs/CalmVSExtension.png)
+*Interactive preview with tree navigation, editor integration, and live graph visualization*
 
-1. Open a CALM model file (JSON or YAML). By default, the extension watches files under `calm/**/*.json` and `calm/**/*.y?(a)ml`.
+### 🌳 Tree View Navigation
+- **Structured Overview**: Hierarchical view of Nodes, Relationships, and Flows
+- **Quick Navigation**: Click to reveal elements in both editor and preview
+- **Search & Filter**: Find specific elements across large models
+- **Context Actions**: Right-click for additional operations
 
-2. Run the command “CALM: Open Preview” to open the live graph view.
+*Tree view navigation shown in the main extension screenshot above*
 
-3. Interact with the graph:
-    - Drag nodes to position them (positions are persisted per document)
-    - Use Fit to reframe; Reset to clear positions and run the layout
-    - Toggle Labels and Descriptions independently
-    - Double-click a node or edge to reveal its definition in the editor
+### ✨ Smart Editor Features
+- **Hover Information**: Rich tooltips for model elements
+- **CodeLens Actions**: Quick navigation links embedded in your code
+- **Auto-Refresh**: File watching with automatic preview updates on save
+- **Diagnostics Integration**: Problems panel shows validation errors
 
-4. Use the “CALM” activity bar to open the Model Elements tree and navigate across Nodes, Relationships, and Flows.
+### 📋 Template & Documentation Mode
+- **Template Processing**: Generate documentation from CALM models using Handlebars templates
+- **Live Mode**: Auto-refresh documentation as you edit
+- **Multiple Formats**: Support for HTML and Markdown output
+- **Custom Templates**: Use your own templates or built-in defaults
 
-5. Optional (future): a CLI path setting exists but commands are not exposed yet.
+![Live Docify Mode](docs/LiveDocifyMode.png)
+*Live templating mode with real-time documentation generation*
 
-## Commands
+## Architecture
 
-- CALM: Open Preview — open the interactive graph
+The extension follows a **Redux Pattern + MVVM + Hexagonal Architecture** approach with clear separation of concerns:
+
+### 🏗️ Core Architecture Principles
+
+```mermaid
+graph TB
+    UI[VS Code UI<br/>TreeView, Webview, Commands]
+    VM[View Models<br/>Presentation Logic]
+    M[Mediators<br/>Cross-cutting Concerns]
+    Store[Application Store<br/>Global State]
+    
+    UI <--> VM
+    VM --> Store
+    M --> Store
+    M --> VM
+    
+    subgraph "Framework-Free Zone"
+        VM
+        Store
+    end
+    
+    subgraph "VS Code Integration"
+        UI
+        M
+    end
+    
+    style Store fill:#e1f5fe
+    style VM fill:#f3e5f5
+    style M fill:#fff3e0
+    style UI fill:#e8f5e8
+```
+
+#### **MVVM (Model-View-ViewModel)**
+- **Models**: `application-store.ts` - Zustand-based global state management
+- **ViewModels**: Framework-free presentation logic (no `vscode` imports)
+  - `TreeViewModel` - Tree structure and navigation
+  - `EditorViewModel` - Editor interactions and positioning  
+  - `DocifyViewModel` - Documentation generation state
+  - `CalmModelViewModel` - Model data display
+  - `TemplateViewModel` - Template processing and live mode
+- **Views**: VS Code specific UI implementations (TreeDataProvider, WebviewPanel, etc.)
+- **Controller**: `calm-extension-controller.ts` handles dependency wiring and VS Code lifecycle
+
+#### **Hexagonal Architecture (Ports & Adapters)**
+```
+src/core/
+├── ports/           # Interfaces (dependency inversion)
+├── services/        # Core business logic
+├── mediators/       # Cross-cutting concerns coordination
+└── application-store.ts  # Central state management
+```
+
+#### **Mediator Pattern**
+Mediators handle cross-cutting concerns without tight coupling:
+- **RefreshService**: Coordinates model updates and UI refreshes
+- **SelectionService**: Syncs selection across tree, editor, and preview
+- **WatchService**: File system monitoring and change detection
+- **StoreReactionMediator**: Reactive state management orchestration
+
+### 📁 Project Structure
+
+```
+src/
+├── application-store.ts         # Zustand store (global state)
+├── calm-extension-controller.ts # Main orchestration controller
+├── extension.ts                 # VS Code entry point
+├── 
+├── core/                        # Hexagonal architecture core
+│   ├── ports/                   # Dependency inversion interfaces
+│   ├── services/                # Business logic services
+│   ├── mediators/               # Cross-cutting concern coordinators
+│   └── emitter.ts              # Framework-free event system
+│   
+├── features/                    # Feature-based organization
+│   ├── editor/                  # Editor integration (hover, CodeLens)
+│   ├── preview/                 # Webview preview panel
+│   │   ├── docify-tab/         # Documentation generation
+│   │   ├── model-tab/          # Model data display
+│   │   └── template-tab/       # Template processing
+│   └── tree-view/              # Sidebar tree navigation
+│       └── view-model/         # MVVM presentation logic
+│
+├── commands/                    # VS Code command implementations
+├── models/                      # Model parsing and indexing
+└── cli/                        # CLI integration (to be replaced)
+```
+
+## Installation & Development
+
+### Prerequisites
+- VS Code 1.88+
+- Node.js 18+
+
+### Development Setup
+
+1. **Install dependencies**:
+   ```bash
+   cd calm-plugins/vscode
+   npm install
+   ```
+
+2. **Start development server**:
+   ```bash
+   npm run watch
+   ```
+
+3. **Launch Extension Development Host**:
+   - Press `F5` in VS Code
+   - Or use "Run CALM Extension" from the debug panel
+
+### Building for Production
+
+At the root project level
+
+```bash
+npm run package:vscode
+```
+
+This will ensure dependent projects are compiled first
+
+### Testing
+
+```bash
+npm test                    # Run all tests
+npm test -- --watch       # Run tests in watch mode
+npm test -- tree-view     # Run specific test suite
+```
+
+**Test Coverage**: 109 tests across all ViewModels with comprehensive:
+- State management validation
+- Event emission testing  
+- Resource cleanup verification
+- Edge case handling
 
 ## Configuration
 
-These settings can be adjusted in Settings (search for “CALM”) or in settings.json:
+Settings can be configured in VS Code Settings UI by searching for "CALM", or programmatically in your workspace settings.
 
-- calm.cli.path (string): Path to the CALM CLI entry. Default: `./cli`
-- calm.preview.autoOpen (boolean): Auto-open the preview when a CALM file is opened. Default: false
-- calm.preview.layout (string): `dagre` | `fcose` | `cose`. Default: `dagre`
-- calm.preview.showLabels (boolean): Show labels by default. Default: true
-- calm.files.globs (string[]): File globs to watch for models. Default: [`calm/**/*.json`, `calm/**/*.y?(a)ml`]
+## Publishing
 
-Notes:
+### GitHub Actions Publishing
 
-- The preview also persists per-document toggles (Labels, Descriptions), positions, and viewport.
-- Containment (“deployed-in”, “composed-of”) renders as nested compound parents; containers missing from the node list are synthesized so nesting remains intact.
+The extension can be published via GitHub Actions using manual workflow dispatch:
 
-## Install / Load locally
+1. **Navigate to Actions tab** in your GitHub repository
+2. **Select "Build VS Code Extension"** from the workflow list
+3. **Click "Run workflow"** button
+4. **Choose your options**:
+   - ☐ Leave unchecked: Build, test, and package only
+   - ☑️ Check "Publish to VS Code Marketplace": Build, test, package, AND publish
 
-Option A — Run from source (recommended for development):
+**What it does**:
+- **Always runs**: Lint → Test → Package
+- **Conditionally runs**: Publish (only when checkbox is selected)
 
-1. Prereqs: VS Code (1.88+), Node.js 18+
+**Prerequisites**: 
+- Ensure `VSCE_PAT` secret is configured in repository settings
+- Secret is only needed if you plan to publish
 
-2. In this folder (`calm-plugins/vscode`), install deps and start the watcher:
-    - npm install
-    - npm run watch
+**Testing**: You can run the workflow without publishing to test builds and verify everything works before publishing.
 
-3. Press F5 in VS Code to launch the “Run Extension” target. A new Extension Development Host window will open with the plugin loaded.
+### Manual Publishing
 
-Option B — Install from VSIX:
+To publish manually:
 
-1. Build and package:
-    - npm run build
-    - npm run package
-      This produces a `.vsix` file in the folder.
-2. In VS Code, open the Extensions view menu (…)
-3. Choose “Install from VSIX…” and select the generated `.vsix`.
+1. **Package the extension:**
+   ```bash
+   npm run package:vscode
+   ```
 
-## VS Code Launch Configuration
+2. **Publish to VS Code Marketplace:**
+   ```bash
+   cd calm-plugins/vscode
+   npx vsce publish --packagePath *.vsix
+   ```
+   *Requires `VSCE_PAT` environment variable with your Personal Access Token*
 
-For convenience, add the following entries to `.vscode/launch.json` to run and test the extension. The `preLaunchTask` keeps the build running in watch mode so changes are picked up automatically.
+### Setting up Personal Access Token
 
-```jsonc
-{
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Run CALM Extension",
-            "type": "extensionHost",
-            "request": "launch",
-            "runtimeExecutable": "${execPath}",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/calm-plugins/vscode",
-            ],
-            "outFiles": ["${workspaceFolder}/calm-plugins/vscode/dist/**/*.js"],
-            "preLaunchTask": "calm-plugin: watch",
-        },
-        {
-            "name": "Extension Tests",
-            "type": "extensionHost",
-            "request": "launch",
-            "runtimeExecutable": "${execPath}",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/calm-plugins/vscode",
-                "--extensionTestsPath=${workspaceFolder}/calm-plugins/vscode/dist/test",
-            ],
-            "outFiles": ["${workspaceFolder}/calm-plugins/vscode/dist/**/*.js"],
-            "preLaunchTask": "calm-plugin: watch",
-        },
-    ],
-}
-```
+- **VS Code Marketplace**: Create a PAT at [Azure DevOps](https://dev.azure.com/) with `Marketplace > Manage` scope
 
-Supporting task in `.vscode/tasks.json`:
+## Usage
 
-```jsonc
-{
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "calm-plugin: watch",
-            "type": "shell",
-            "command": "npm run watch",
-            "options": { "cwd": "${workspaceFolder}/calm-plugins/vscode" },
-            "isBackground": true,
-        },
-    ],
-}
-```
+### Basic Workflow
 
-Workflow:
+1. **Open a CALM model** (JSON or YAML)
+2. **Run "CALM: Open Preview"** to launch the interactive graph
+3. **Use the CALM activity bar** for tree navigation
+4. **Edit your model** - preview updates automatically on save
 
-1. Press F5 (Run CALM Extension) to launch an Extension Development Host.
-2. Edit code; tsup watch rebuilds automatically.
-3. Use the Extension Tests config to debug test executions if needed.
+### Advanced Features
 
-## Model formats
+- **Template Mode**: Generate docs using Handlebars templates
+- **Search & Filter**: Find elements across large models  
+- **Position Persistence**: Node positions saved per document
+- **Multi-format Support**: JSON and YAML with automatic normalization
 
-- JSON or YAML CALM documents are supported. The parser normalizes common field variants:
-    - Node IDs via `id` or `unique-id`; node type via `type` or `node-type`
-    - Relationships via `type` or `relationship-type` shapes (supports `connects`, `deployed-in`, `composed-of`)
-    - Flows via `flows[]`
+## Developer Guide
 
-## Limitations
+### 🎯 Current Implementation Status
 
-- Experimental: behavior and visuals may change, and some features are incomplete.
-- No language server (LSP) yet; validation relies on the optional local CLI.
-- Very large models may require tuning the chosen layout or manual positioning.
+#### ✅ **Completed** 
+- **MVVM Architecture**: Clean separation with framework-free ViewModels
+- **Comprehensive Testing**: 109 tests covering all ViewModels
+- **State Management**: Zustand-based reactive store  
+- **Interactive Preview**: Cytoscape-powered graph with rich interactions
+- **Tree Navigation**: Full CRUD operations with search/filter
+- **Editor Integration**: Hover, CodeLens, and automatic refresh
+- **Template System**: Handlebars processing with live mode
 
-## Troubleshooting
+#### 📋 **In Progress/Planned**
+- **Hexagonal Architecture Refinement**: Completing ports/adapters pattern
+- **Mediator Coordination**: Fine-tuning cross-cutting concerns
+- **CLI Integration Replacement**: `--scaffold` mode from docify CLI will replace most of the code in  `src/cli/` folder (See https://github.com/finos/architecture-as-code/issues/1563)
+- **Model Updates**: Original [POC](https://github.com/finos/architecture-as-code/pull/1516) models in `src/models/` and settings need updating to potentially use models from @finos/calm-models and reduce use of any
+- **Enhanced Validation**: Richer diagnostics and error reporting
 
-- Preview is empty or missing nodes:
-    - Check your file matches the configured globs (see calm.files.globs)
-    - Click Reset in the preview to clear positions and re-layout
-- Validation/Docs commands do nothing:
-    - Set `calm.cli.path` to your local CLI entry and ensure it’s executable
-- Still stuck?
-    - Open the “CALM” Output channel for logs
+### 🎯 Contribution Guidelines
 
-## License
+#### **ViewModels Should**
+- ✅ Be framework-free (no `vscode` imports)
+- ✅ React to store state changes only
+- ✅ Provide presentation-ready data
+- ✅ Emit events for user intents
+- ❌ **NOT** know about mediators directly
 
-See the repository LICENSE file.
+#### **Mediators Should** 
+- ✅ Coordinate between different parts of the system
+- ✅ Handle cross-cutting concerns (selection, refresh, etc.)
+- ✅ Subscribe to store changes and ViewModel events
+- ❌ **NOT** contain business logic
+
+
+
+---
+
+**Contributing**: Issues and PRs welcome! Please follow the architectural patterns established and include tests for new functionality.

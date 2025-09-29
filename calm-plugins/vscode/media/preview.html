@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'none';
+             img-src {{cspSource}} blob: data:;
+             style-src {{cspSource}} 'unsafe-inline';
+             script-src {{cspSource}} 'nonce-{{nonce}}';
+             font-src {{cspSource}};"
+  />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="{{styleUri}}" rel="stylesheet" />
+  <style>
+    .tab-content[hidden]{display:none!important}
+    #detailsPre {
+      margin-top: 8px; padding: 8px;
+      border: 1px solid var(--vscode-editorWidget-border);
+      background: var(--vscode-editor-background);
+      color: var(--vscode-editor-foreground);
+      max-height: 200px; overflow: auto; font-size: 12px;
+    }
+  </style>
+  <title>CALM Preview</title>
+</head>
+<body>
+  <header style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid rgba(0,0,0,0.08)">
+    <div style="font-weight:600">CALM Preview</div>
+    <div style="font-size:12px;color:var(--vscode-editor-foreground)">Version: {{version}}</div>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Preview Tabs" style="display:flex;justify-content:space-between;align-items:center;">
+    <div style="display:flex;">
+      <button class="tab-button active" role="tab" data-target="docify-panel">Docify</button>
+      <button class="tab-button" role="tab" data-target="template-panel">Template</button>
+      <button class="tab-button" role="tab" data-target="model-panel">Model</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div id="show-labels-control" style="display:none;align-items:center;gap:6px;font-size:12px;">
+        <input type="checkbox" id="show-labels-checkbox" checked>
+        <label for="show-labels-checkbox" style="color:var(--vscode-editor-foreground);user-select:none;cursor:pointer;">Show Labels</label>
+      </div>
+      <div id="live-docify-badge" style="display:none;background:var(--vscode-badge-background);color:var(--vscode-badge-foreground);padding:4px 8px;border-radius:12px;font-size:11px;font-weight:600;">
+        Live Docify Mode
+      </div>
+    </div>
+  </div>
+
+  <div id="container">
+
+    <div id="docify-panel" class="tab-content active">
+      <div id="docify-content"></div>
+    </div>
+
+    <div id="template-panel" class="tab-content">
+      <div id="template-content"></div>
+    </div>
+
+    <div id="model-panel" class="tab-content">
+      <div id="model-content"></div>
+    </div>
+  </div>
+
+  <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
+
+</body>
+</html>

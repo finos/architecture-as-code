@@ -1,0 +1,25 @@
+# Strict bundle-only .vscodeignore
+# Ignore everything by default, then allow only essential files for the VSIX
+**
+
+# Keep package metadata
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE
+
+# Keep built extension bundles
+!dist/**
+
+# Keep media/icons used by the extension (if present)
+!media/**
+!icons/**
+
+# Keep this ignore file itself
+!.vscodeignore
+
+# Include the templates directory
+!templates/**
+
+# Exclude node_modules entirely to avoid pulling workspace symlinks or repo-top files
+# (If you need to vendor runtime packages, copy just their runtime output into `dist/` before packaging.)
