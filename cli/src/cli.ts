@@ -151,7 +151,7 @@ export function setupCLI(program: Command) {
 
     program
         .command('docify')
-        .description('Generate a documentation website from your CALM model using a template or template directory')
+        .description('Generate a documentatiaaaon website from your CALM model using a template or template directory')
         .requiredOption(ARCHITECTURE_OPTION, 'Path to the CALM architecture JSON file')
         .requiredOption(OUTPUT_OPTION, 'Path to output directory')
         .option(CLEAR_OUTPUT_DIRECTORY_OPTION, 'Clear the output directory before processing', false)
