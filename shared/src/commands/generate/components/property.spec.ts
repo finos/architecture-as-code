@@ -1,13 +1,13 @@
- 
 
-import { getConstValue, getEnumPlaceholder, getPropertyValue } from './property';
+
+import { getConstValue, getDefaultValue, getEnumPlaceholder, getPropertyValue } from './property';
 
 vi.mock('../../../logger', () => {
     return {
         initLogger: () => {
             return {
-                info: () => {},
-                debug: () => {}
+                info: () => { },
+                debug: () => { }
             };
         }
     };
@@ -24,6 +24,32 @@ describe('getConstValue', () => {
     it('generates const value with entire subtree if const is provided', () => {
         expect(getConstValue({
             'const': {
+                'connects': {
+                    'source': 'source',
+                    'destination': 'destination'
+                }
+            }
+        }))
+            .toEqual({
+                'connects': {
+                    'source': 'source',
+                    'destination': 'destination'
+                }
+            });
+    });
+});
+
+describe('getDefaultValue', () => {
+    it('generates default value if default is provided', () => {
+        expect(getDefaultValue({
+            'default': 'Example value'
+        }))
+            .toBe('Example value');
+    });
+
+    it('generates default value with entire subtree if default is provided', () => {
+        expect(getDefaultValue({
+            'default': {
                 'connects': {
                     'source': 'source',
                     'destination': 'destination'
@@ -70,7 +96,7 @@ describe('getPropertyValue', () => {
         }))
             .toBe('[[ REF_KEY_NAME ]]');
     });
-    
+
     it('generates boolean placeholder from variable', () => {
         expect(getPropertyValue('key-name', {
             'type': 'boolean'

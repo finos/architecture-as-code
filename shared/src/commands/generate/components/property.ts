@@ -1,5 +1,6 @@
 export interface JsonSchema {
     const?: string | object,
+    default?: string | object,
     enum?: string[],
     type?: 'string' | 'integer' | 'number' | 'array' | 'boolean' | 'object',
     $ref?: string
@@ -27,16 +28,23 @@ export function getBooleanPlaceholder(name: string): string {
  * @param detail The detail from the object to instantiate
  * @returns Either the value or the object described by the 'const' property.
  */
-export function getConstValue(detail: JsonSchema) : string | object {
+export function getConstValue(detail: JsonSchema): string | object {
     return detail.const;
 }
 
+export function getDefaultValue(detail: JsonSchema): string | object {
+    return detail.default;
+}
+
 export function getPropertyValue(keyName: string, detail: JsonSchema): string | string[] | number | object {
-    // if both const and type are defined, prefer const
+    // if const, default and type are defined, prefer const
     if (detail.const) {
         return detail.const;
     }
-
+    // if default and type are defined, prefer default
+    if (detail.default) {
+        return detail.default;
+    }
     if (detail.type) {
         const propertyType = detail.type;
 
