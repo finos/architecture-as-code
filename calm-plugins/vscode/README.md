@@ -153,10 +153,13 @@ src/
 
 ### Building for Production
 
+At the root project level
+
 ```bash
-npm run build
-npm run package  # Creates .vsix file
+npm run package:vscode
 ```
+
+This will ensure dependent projects are compiled first
 
 ### Testing
 
