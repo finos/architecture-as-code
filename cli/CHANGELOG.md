@@ -5,6 +5,17 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.6.0 (2025-09-29)
+
+* feat(1139) Add initial style guide for CLI testing ([48866b9](https://github.com/finos/architecture-as-code/commit/48866b9))
+* Merge pull request #1641 from finos/release/changelog-cli-v1.5.0 ([2cb2901](https://github.com/finos/architecture-as-code/commit/2cb2901)), closes [#1641](https://github.com/finos/architecture-as-code/issues/1641)
+* Merge pull request #1643 from rocketstack-matt/release-config ([33742f3](https://github.com/finos/architecture-as-code/commit/33742f3)), closes [#1643](https://github.com/finos/architecture-as-code/issues/1643)
+* Merge pull request #1646 from willosborne/style-guide ([6e3d92c](https://github.com/finos/architecture-as-code/commit/6e3d92c)), closes [#1646](https://github.com/finos/architecture-as-code/issues/1646) [#1139](https://github.com/finos/architecture-as-code/issues/1139)
+* Merge pull request #1647 from rocketstack-matt/calm-ai ([8e357b0](https://github.com/finos/architecture-as-code/commit/8e357b0)), closes [#1647](https://github.com/finos/architecture-as-code/issues/1647)
+* feat(calm-ai): Add 'runInTerminal' tool to CALM assistant configuration ([0c5d683](https://github.com/finos/architecture-as-code/commit/0c5d683))
+* feat(calm-ai): Add release rules and scope for calm-ai in semantic release configuration ([df56904](https://github.com/finos/architecture-as-code/commit/df56904))
+* ci(cli): update changelog and version for 1.5.0 ([9c23353](https://github.com/finos/architecture-as-code/commit/9c23353))
+
 ## 1.5.0 (2025-09-24)
 
 * Merge branch 'main' into calm-ai ([6a0faf8](https://github.com/finos/architecture-as-code/commit/6a0faf8))
