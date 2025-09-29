@@ -1,6 +1,6 @@
 ## Single Node Focus [focus-nodes="web-app"]
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "padding": 15, "nodeSpacing": 40, "rankSpacing": 60, "useMaxWidth": true}}}%%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
 classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
@@ -20,7 +20,7 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
 
 ## Gateway Node with All Connections [focus-nodes="api-gateway"]
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "padding": 15, "nodeSpacing": 40, "rankSpacing": 60, "useMaxWidth": true}}}%%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
 classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
@@ -50,7 +50,7 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
 
 ## Multiple Services Focus [focus-nodes="user-service,order-service"]
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "padding": 15, "nodeSpacing": 40, "rankSpacing": 60, "useMaxWidth": true}}}%%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
 classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
@@ -84,7 +84,7 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
 
 ## Database with All Connected Services [focus-nodes="database"]
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "padding": 15, "nodeSpacing": 40, "rankSpacing": 60, "useMaxWidth": true}}}%%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
 classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
@@ -110,7 +110,7 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
 
 ## Container Hierarchy with Children [focus-nodes="backend-container" include-children="all"]
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "padding": 15, "nodeSpacing": 40, "rankSpacing": 60, "useMaxWidth": true}}}%%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
 classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;

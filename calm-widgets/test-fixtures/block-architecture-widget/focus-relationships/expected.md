@@ -1,6 +1,6 @@
 ## Default Architecture (No Focus)
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "padding": 15, "nodeSpacing": 40, "rankSpacing": 60, "useMaxWidth": true}}}%%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
 classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
@@ -47,7 +47,7 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
 
 ## Single Relationship Focus [focus-relationships="client-gateway-connection"]
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "padding": 15, "nodeSpacing": 40, "rankSpacing": 60, "useMaxWidth": true}}}%%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
 classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
@@ -66,7 +66,7 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
 
 ## Multiple Related Relationships [focus-relationships="gateway-auth-route,gateway-business-route"]
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "padding": 15, "nodeSpacing": 40, "rankSpacing": 60, "useMaxWidth": true}}}%%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
 classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
@@ -87,7 +87,7 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
 
 ## Relationship with Connected Edges [focus-relationships="business-data-connection" edges="connected"]
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "padding": 15, "nodeSpacing": 40, "rankSpacing": 60, "useMaxWidth": true}}}%%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
 classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
@@ -106,7 +106,7 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
 
 ## Actor Interactions [focus-relationships="user-interacts-portal,admin-interacts-panel"]
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "padding": 15, "nodeSpacing": 40, "rankSpacing": 60, "useMaxWidth": true}}}%%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
 classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
@@ -128,7 +128,7 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
 
 ## Container Deployment [focus-relationships="services-deployed-container"]
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "padding": 15, "nodeSpacing": 40, "rankSpacing": 60, "useMaxWidth": true}}}%%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
 classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;

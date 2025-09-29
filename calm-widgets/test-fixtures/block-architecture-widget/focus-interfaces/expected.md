@@ -1,6 +1,6 @@
 ## Focus on All Interfaces [render-interfaces=true]
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "padding": 15, "nodeSpacing": 40, "rankSpacing": 60, "useMaxWidth": true}}}%%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
 classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
@@ -62,7 +62,7 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
 
 ## Focus on Data Definition Interfaces [focus-interfaces="https://calm.finos.org/release/1.0/interface-definition/data-element" edges="none"]
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "padding": 15, "nodeSpacing": 40, "rankSpacing": 60, "useMaxWidth": true}}}%%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
 classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
@@ -105,7 +105,7 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
 
 ## Focus on Product Data Interface [focus-interfaces="product-data-interface" edges="connected"]
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "padding": 15, "nodeSpacing": 40, "rankSpacing": 60, "useMaxWidth": true}}}%%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
 classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
@@ -142,7 +142,7 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
 
 ## Focus on Product Data Interface [focus-interfaces="product-data-interface" edges="seeded"]
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "padding": 15, "nodeSpacing": 40, "rankSpacing": 60, "useMaxWidth": true}}}%%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
 classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
@@ -165,7 +165,7 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
 
 ## Focus on Trade-Related Data Interfaces [focus-interfaces="trade-data-interface,legacy-trade-interface"]
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "padding": 15, "nodeSpacing": 40, "rankSpacing": 60, "useMaxWidth": true}}}%%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
 classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;

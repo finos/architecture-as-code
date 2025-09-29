@@ -7,7 +7,7 @@ This page demonstrates **Mermaid diagrams with clickable nodes** and many permut
 
 ## Trading System without Interfaces [render-interfaces=false focus-nodes="trade-svc,trading-ui,trading-db,message-bus" edges="connected"]
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "padding": 15, "nodeSpacing": 40, "rankSpacing": 60, "useMaxWidth": true}}}%%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
 classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
@@ -46,7 +46,7 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
 
 ## Trading System with Interfaces [render-interfaces=true focus-nodes="trade-svc,trading-ui,trading-db,message-bus" edges="connected"]
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "padding": 15, "nodeSpacing": 40, "rankSpacing": 60, "useMaxWidth": true}}}%%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
 classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
