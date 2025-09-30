@@ -2,8 +2,9 @@
     "name": "calm-vscode-plugin",
     "displayName": "CALM Preview & Tools",
     "description": "Live-visualize CALM architecture models, validate, and generate docs.",
-    "version": "0.0.1",
-    "publisher": "local",
+    "version": "0.0.3",
+    "publisher": "FINOS",
+    "homepage": "https://calm.finos.org",
     "repository": {
         "type": "git",
         "url": "https://github.com/finos/architecture-as-code.git"
@@ -12,7 +13,16 @@
         "vscode": "^1.88.0"
     },
     "categories": [
-        "Other"
+        "Programming Languages",
+        "Visualization"
+    ],
+    "keywords": [
+        "calm",
+        "architecture-as-code",
+        "architecture",
+        "modeling",
+        "documentation",
+        "finos"
     ],
     "icon": "media/icon.png",
     "main": "dist/extension.js",

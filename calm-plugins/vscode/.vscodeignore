@@ -7,6 +7,10 @@
 !README.md
 !CHANGELOG.md
 !LICENSE
+!docs/**
+
+# Explicitly exclude developer documentation
+DEVELOPER.md
 
 # Keep built extension bundles
 !dist/**
