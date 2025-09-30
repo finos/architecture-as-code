@@ -33,6 +33,7 @@ export function parseOptions(raw?: BlockArchOptions): NormalizedOptions {
         direction: 'both',
         renderInterfaces: false,
         edgeLabels: 'description',
+        collapseRelationships: false,
     };
 
     if (!raw) return o;
@@ -46,6 +47,7 @@ export function parseOptions(raw?: BlockArchOptions): NormalizedOptions {
     if (raw['highlight-nodes']) o.highlightNodes = csv(raw['highlight-nodes']);
     if (raw['node-types']) o.nodeTypes = csv(raw['node-types']);
     if (raw['render-interfaces']) o.renderInterfaces = true;
+    if (raw['collapse-relationships']) o.collapseRelationships = true;
 
     o.edgeLabels = pickEnum(raw['edge-labels'], ['description', 'none'] as const, o.edgeLabels);
     o.direction = pickEnum(raw['direction'], ['both', 'in', 'out'] as const, o.direction);

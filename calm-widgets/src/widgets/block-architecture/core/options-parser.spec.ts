@@ -87,6 +87,22 @@ describe('options-parser', () => {
         expect(out.edgeLabels).toBe('none');
     });
 
+    it('sets collapse-relationships to true when flag is present', () => {
+        const input: BlockArchOptions = {
+            'collapse-relationships': true
+        };
+        const out = parseOptions(input);
+        expect(out.collapseRelationships).toBe(true);
+    });
+
+    it('keeps collapse-relationships as false by default', () => {
+        const input: BlockArchOptions = {
+            edges: 'all'
+        };
+        const out = parseOptions(input);
+        expect(out.collapseRelationships).toBe(false);
+    });
+
     it('falls back to defaults on invalid enum values', () => {
         const input = raw(`{
       "include-containers": "maybe",

@@ -152,6 +152,9 @@ Renders a system architecture as a Mermaid flowchart with optional containers (s
 
 {{!-- Multiple flows --}}
 {{block-architecture this focus-flows="order-flow,onboarding-flow"}}
+
+{{!-- Collapse multiple relationships between same source-target pairs --}}
+{{block-architecture this collapse-relationships=true}}
 ```
 
 **What it shows**
@@ -177,6 +180,7 @@ Renders a system architecture as a Mermaid flowchart with optional containers (s
 | `node-types`          | string (CSV) | — | Only include nodes whose `node-type` is in this list. |
 | `direction`           | `'both' \| 'in' \| 'out'` | `'both'` | Reserved (currently not used by the renderer). |
 | `edge-labels`         | `'description' \| 'none'` | `'description'` | Use the relationship `description` for edge labels; or hide labels entirely. |
+| `collapse-relationships` | boolean                                      |         `false` | If `true`, multiple relationships between same source and destination are collapsed into single edge with combined labels.                                                           |
 | `link-prefix`         | string | — | Prefix for clickable `click` links in Mermaid (e.g., `/docs/` makes `/docs/<node-id>`). |
 | `link-map`            | stringified JSON map | — | Explicit per-id links, e.g. `{"trade-svc": "/svc/trade"}`. Map entries override `link-prefix`. |
 

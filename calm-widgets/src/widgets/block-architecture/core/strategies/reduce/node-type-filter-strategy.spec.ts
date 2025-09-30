@@ -21,6 +21,7 @@ describe('NodeTypeFilterStrategy', () => {
             direction: 'both',
             renderInterfaces: false,
             edgeLabels: 'description',
+            collapseRelationships: false,
             nodeTypes: ['service']
         };
 
@@ -46,7 +47,8 @@ describe('NodeTypeFilterStrategy', () => {
             edges: 'connected',
             direction: 'both',
             renderInterfaces: false,
-            edgeLabels: 'description'
+            edgeLabels: 'description',
+            collapseRelationships: false
             // nodeTypes omitted
         };
 
@@ -74,6 +76,7 @@ describe('NodeTypeFilterStrategy', () => {
             direction: 'both',
             renderInterfaces: false,
             edgeLabels: 'description',
+            collapseRelationships: false,
             nodeTypes: ['service', 'database']
         };
 
@@ -98,6 +101,7 @@ describe('NodeTypeFilterStrategy', () => {
             direction: 'both',
             renderInterfaces: false,
             edgeLabels: 'description',
+            collapseRelationships: false,
             nodeTypes: ['service']
         };
 

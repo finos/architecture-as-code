@@ -15,6 +15,7 @@ const baseOpts = (): NormalizedOptions => ({
     direction: 'both',
     renderInterfaces: false,
     edgeLabels: 'description',
+    collapseRelationships: false,
 });
 
 const ctrl = (description = 'control'): CalmControlCanonicalModel => ({

@@ -1,0 +1,97 @@
+{
+    "nodes": [
+        {
+            "unique-id": "frontend-app",
+            "node-type": "service",
+            "name": "Frontend App",
+            "description": "Client application"
+        },
+        {
+            "unique-id": "backend-api",
+            "node-type": "service",
+            "name": "Backend API",
+            "description": "Main API service"
+        },
+        {
+            "unique-id": "database",
+            "node-type": "database",
+            "name": "Database",
+            "description": "Primary data store"
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "r1",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "frontend-app"
+                    },
+                    "destination": {
+                        "node": "backend-api"
+                    }
+                }
+            },
+            "description": "Authentication requests"
+        },
+        {
+            "unique-id": "r2",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "frontend-app"
+                    },
+                    "destination": {
+                        "node": "backend-api"
+                    }
+                }
+            },
+            "description": "Data queries"
+        },
+        {
+            "unique-id": "r3",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "frontend-app"
+                    },
+                    "destination": {
+                        "node": "backend-api"
+                    }
+                }
+            },
+            "description": "File uploads"
+        },
+        {
+            "unique-id": "r4",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "backend-api"
+                    },
+                    "destination": {
+                        "node": "database"
+                    }
+                }
+            },
+            "description": "Read operations"
+        },
+        {
+            "unique-id": "r5",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "backend-api"
+                    },
+                    "destination": {
+                        "node": "database"
+                    }
+                }
+            },
+            "description": "Write operations"
+        }
+    ],
+    "metadata": {},
+    "controls": {},
+    "flows": []
+}

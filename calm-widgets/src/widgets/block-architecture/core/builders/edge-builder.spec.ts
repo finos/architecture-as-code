@@ -63,7 +63,7 @@ describe('edge-builder', () => {
             ['b', { 'unique-id': 'b', 'node-type': 'database', name: 'B', description: '' }]
         ]);
 
-        const out = buildEdges(rels, false, 'description', ifaceNames, nodesById);
+        const out = buildEdges(rels, false, 'description', false, ifaceNames, nodesById);
 
         expect(out).toEqual(expectedEdges);
 
@@ -73,7 +73,57 @@ describe('edge-builder', () => {
         const cfg = fake.calls[0].cfg;
         expect(cfg.renderInterfaces).toBe(false);
         expect(cfg.edgeLabelMode).toBe('description');
+        expect(cfg.collapseRelationships).toBe(false);
         expect(cfg.ifaceNames).toBe(ifaceNames);
         expect(cfg.nodesById).toBe(nodesById);
+    });
+
+    it('collapses multiple relationships between same source-target pairs when flag is enabled', () => {
+        const example = {
+            calls: [] as Array<{ rel: CalmRelationshipCanonicalModel; cfg: EdgeConfig }>,
+            createEdge(rel: CalmRelationshipCanonicalModel, cfg: EdgeConfig): VMEdge[] {
+                this.calls.push({ rel, cfg });
+                if (rel['unique-id'] === 'r1') {
+                    return [{ id: 'r1', source: 'a', target: 'b', label: 'Connection 1' }];
+                } else if (rel['unique-id'] === 'r2') {
+                    return [{ id: 'r2', source: 'a', target: 'b', label: 'Connection 2' }];
+                } else if (rel['unique-id'] === 'r3') {
+                    return [{ id: 'r3', source: 'c', target: 'd', label: 'Other connection' }];
+                }
+                return [];
+            }
+        };
+
+        VMFactoryProvider.setFactories(undefined, example as VMEdgeFactory);
+
+        const rels: CalmRelationshipCanonicalModel[] = [
+            { 'unique-id': 'r1', 'relationship-type': { interacts: { actor: 'u', nodes: [] } }, description: 'Connection 1' },
+            { 'unique-id': 'r2', 'relationship-type': { interacts: { actor: 'u', nodes: [] } }, description: 'Connection 2' },
+            { 'unique-id': 'r3', 'relationship-type': { interacts: { actor: 'u', nodes: [] } }, description: 'Other connection' }
+        ];
+
+        const ifaceNames = new Map<string, Map<string, string>>();
+        const nodesById = new Map<string, CalmNodeCanonicalModel>();
+
+        // Test with collapsing enabled
+        const collapsedOut = buildEdges(rels, false, 'description', true, ifaceNames, nodesById);
+
+        expect(collapsedOut).toHaveLength(2); // Two unique source-target pairs
+
+        // Find the collapsed edge (a->b)
+        const collapsedEdge = collapsedOut.find(e => e.source === 'a' && e.target === 'b');
+        expect(collapsedEdge).toBeDefined();
+        expect(collapsedEdge!.id).toBe('r1|r2'); // IDs joined with |
+        expect(collapsedEdge!.label).toBe('Connection 1, Connection 2'); // Labels combined
+
+        // Find the non-collapsed edge (c->d)
+        const nonCollapsedEdge = collapsedOut.find(e => e.source === 'c' && e.target === 'd');
+        expect(nonCollapsedEdge).toBeDefined();
+        expect(nonCollapsedEdge!.id).toBe('r3');
+        expect(nonCollapsedEdge!.label).toBe('Other connection');
+
+        // Test without collapsing (should return 3 separate edges)
+        const normalOut = buildEdges(rels, false, 'description', false, ifaceNames, nodesById);
+        expect(normalOut).toHaveLength(3); // All original edges
     });
 });

@@ -116,6 +116,7 @@ export class BlockArchVMBuilder {
                 this.visibilityResult.filteredRels,
                 this.options.renderInterfaces,
                 this.options.edgeLabels,
+                this.options.collapseRelationships,
                 ifaceNames,
                 nodesById
             );
