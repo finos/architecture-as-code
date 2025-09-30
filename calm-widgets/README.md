@@ -1,6 +1,6 @@
 # CALM Widgets Framework
 
-A TypeScript widget system built on Handlebars that provides reusable components for generating Markdown documentation. The framework allows you to create custom widgets that can transform data into formatted output using Handlebars templates.
+A TypeScript widget system built on Handlebars that provides reusable components for generating Markdown documentation. The framework allows you to create custom widgets.
 
 ## 🔧 Built-in Widgets
 
@@ -155,6 +155,12 @@ Renders a system architecture as a Mermaid flowchart with optional containers (s
 
 {{!-- Collapse multiple relationships between same source-target pairs --}}
 {{block-architecture this collapse-relationships=true}}
+
+{{!-- Render nodes with different shapes based on node-type --}}
+{{block-architecture this render-node-type-shapes=true}}
+
+{{!-- Custom node type mapping to built-in shapes --}}
+{{block-architecture this render-node-type-shapes=true node-type-map='{"cache": "database", "queue": "messagebus", "proxy": "service"}'}}
 ```
 
 **What it shows**
@@ -172,7 +178,10 @@ Renders a system architecture as a Mermaid flowchart with optional containers (s
 | `focus-relationships` | string (CSV) | — | Restrict view to the specified relationship unique-ids. Only those relationships and the nodes they connect are included (plus containers per settings). |
 | `focus-flows`         | string (CSV) | — | Restrict edges to transitions that belong to the given **flow unique-ids or names** (case-insensitive). Only nodes touching those edges are included (plus containers per settings). |
 | `focus-controls`      | string (CSV) | — | Restrict view to nodes and relationships linked to the specified control IDs. Only nodes touching those controls are included (plus containers per settings). |
-| `focus-interfaces`    | string (CSV) | — | Restrict view to nodes and relationships linked to the specified interface IDs. Only nodes touching those interfaces are included (plus containers per settings). || `highlight-nodes`     | string (CSV) | — | Nodes to visually highlight. |
+| `focus-interfaces`    | string (CSV) | — | Restrict view to nodes and relationships linked to the specified interface IDs. Only nodes touching those interfaces are included (plus containers per settings). |
+| `highlight-nodes`     | string (CSV) | — | Nodes to visually highlight. |
+| `render-node-type-shapes` | boolean | `false` | If `true`, render nodes with different Mermaid shapes based on their `node-type`. Supports built-in CALM types: `actor`, `database`, `webclient`, `service`, `system`, `messagebus`. |
+| `node-type-map`       | stringified JSON map | — | Custom mapping of node types to built-in shapes, e.g. `{"cache": "database", "queue": "messagebus"}`. Only used when `render-node-type-shapes` is `true`. |
 | `render-interfaces`   | boolean | `false` | If `true`, render each node’s `interfaces` as small interface boxes connected by dotted lines. |
 | `include-containers`  | `'none' \| 'parents' \| 'all'` | `'all'` | Which containers (systems) to draw. |
 | `include-children`    | `'none' \| 'direct' \| 'all'` | `'all'` | When focusing container nodes, include their direct/all descendants. |
@@ -183,6 +192,17 @@ Renders a system architecture as a Mermaid flowchart with optional containers (s
 | `collapse-relationships` | boolean                                      |         `false` | If `true`, multiple relationships between same source and destination are collapsed into single edge with combined labels.                                                           |
 | `link-prefix`         | string | — | Prefix for clickable `click` links in Mermaid (e.g., `/docs/` makes `/docs/<node-id>`). |
 | `link-map`            | stringified JSON map | — | Explicit per-id links, e.g. `{"trade-svc": "/svc/trade"}`. Map entries override `link-prefix`. |
+
+**Built-in Node Type Shapes**
+
+When `render-node-type-shapes` is enabled, the following CALM node types are rendered with distinctive Mermaid shapes:
+
+- `actor` → Circle with person icon 👤
+- `database` → Cylinder shape with database icon 🗄️
+- `webclient` → Rectangle with web icon 💻
+- `service` → Rounded rectangle with gear icon ⚙️
+- `system` → Rectangle with system icon 🏢
+- `messagebus` → horizontal cylinder with web icon 📨
 
 > **Sorting:** Containers and nodes are always sorted **alphabetically by label** for stable layouts.
 
@@ -198,6 +218,8 @@ For more examples, see the test fixtures:
 - [Interface variations](./test-fixtures/block-architecture-widget/interface-variations/)
 - [Focus flows](./test-fixtures/block-architecture-widget/focus-flows/)
 - [Domain interaction](./test-fixtures/block-architecture-widget/domain-interaction/)
+- [Node type shapes](./test-fixtures/block-architecture-widget/node-type-shapes/)
+- [Custom node type mapping](./test-fixtures/block-architecture-widget/custom-node-type-map/)
 
 #### Example block architecture diagram with interfaces
 

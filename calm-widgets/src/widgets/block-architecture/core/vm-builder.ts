@@ -170,8 +170,10 @@ export class BlockArchVMBuilder {
             attachments: this.containerResult.attachments,
             looseNodes: this.containerResult.looseNodes,
             highlightNodeIds,
+            renderNodeTypeShapes: this.options.renderNodeTypeShapes,
             linkPrefix: this.options.linkPrefix,
             linkMap: this.options.linkMap,
+            nodeTypeMap: this.options.nodeTypeMap,
             warnings: this.visibilityResult.warnings,
         };
     }
