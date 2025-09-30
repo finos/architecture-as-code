@@ -94,7 +94,7 @@ describe('edge-builder', () => {
             }
         };
 
-        VMFactoryProvider.setFactories(undefined, example as any);
+        VMFactoryProvider.setFactories(undefined, example as VMEdgeFactory);
 
         const rels: CalmRelationshipCanonicalModel[] = [
             { 'unique-id': 'r1', 'relationship-type': { interacts: { actor: 'u', nodes: [] } }, description: 'Connection 1' },
