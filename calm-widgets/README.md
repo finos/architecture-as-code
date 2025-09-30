@@ -202,7 +202,7 @@ When `render-node-type-shapes` is enabled, the following CALM node types are ren
 - `webclient` → Rectangle with web icon 💻
 - `service` → Rounded rectangle with gear icon ⚙️
 - `system` → Rectangle with system icon 🏢
-- `messagebus` → horizontal cylinder with web icon 📨
+- `messagebus` → horizontal cylinder with web icon 📨  - this isn't in schema but think we need it
 
 > **Sorting:** Containers and nodes are always sorted **alphabetically by label** for stable layouts.
 
