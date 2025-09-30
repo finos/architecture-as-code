@@ -212,7 +212,57 @@
             "release": false
           },
           {
-            "scope": "!(cli|shared|calm-models|calm-ai)",
+            "type": "feat",
+            "scope": "calm-widgets",
+            "release": "minor"
+          },
+          {
+            "type": "fix",
+            "scope": "calm-widgets",
+            "release": "patch"
+          },
+          {
+            "type": "perf",
+            "scope": "calm-widgets",
+            "release": "patch"
+          },
+          {
+            "type": "revert",
+            "scope": "calm-widgets",
+            "release": "patch"
+          },
+          {
+            "type": "docs",
+            "scope": "calm-widgets",
+            "release": "patch"
+          },
+          {
+            "type": "chore",
+            "scope": "calm-widgets",
+            "release": false
+          },
+          {
+            "type": "refactor",
+            "scope": "calm-widgets",
+            "release": "patch"
+          },
+          {
+            "type": "test",
+            "scope": "calm-widgets",
+            "release": false
+          },
+          {
+            "type": "style",
+            "scope": "calm-widgets",
+            "release": false
+          },
+          {
+            "type": "ci",
+            "scope": "calm-widgets",
+            "release": false
+          },
+          {
+            "scope": "!(cli|shared|calm-models|calm-ai|calm-widgets)",
             "release": false
           },
           {
@@ -250,6 +300,9 @@
           },
           "calm-ai/**": {
             "scope": "calm-ai"
+          },
+          "calm-widgets/**": {
+            "scope": "calm-widgets"
           }
         }
       }
@@ -267,7 +320,8 @@
                 "cli",
                 "shared",
                 "calm-models",
-                "calm-ai"
+                "calm-ai",
+                "calm-widgets"
               ]
             },
             {
@@ -277,7 +331,8 @@
                 "cli",
                 "shared",
                 "calm-models",
-                "calm-ai"
+                "calm-ai",
+                "calm-widgets"
               ]
             },
             {
@@ -287,7 +342,8 @@
                 "cli",
                 "shared",
                 "calm-models",
-                "calm-ai"
+                "calm-ai",
+                "calm-widgets"
               ]
             },
             {
@@ -297,7 +353,8 @@
                 "cli",
                 "shared",
                 "calm-models",
-                "calm-ai"
+                "calm-ai",
+                "calm-widgets"
               ]
             },
             {
@@ -307,7 +364,8 @@
                 "cli",
                 "shared",
                 "calm-models",
-                "calm-ai"
+                "calm-ai",
+                "calm-widgets"
               ]
             },
             {
@@ -317,7 +375,8 @@
                 "cli",
                 "shared",
                 "calm-models",
-                "calm-ai"
+                "calm-ai",
+                "calm-widgets"
               ]
             },
             {
@@ -328,7 +387,8 @@
                 "cli",
                 "shared",
                 "calm-models",
-                "calm-ai"
+                "calm-ai",
+                "calm-widgets"
               ]
             },
             {
@@ -339,7 +399,8 @@
                 "cli",
                 "shared",
                 "calm-models",
-                "calm-ai"
+                "calm-ai",
+                "calm-widgets"
               ]
             },
             {
@@ -350,7 +411,8 @@
                 "cli",
                 "shared",
                 "calm-models",
-                "calm-ai"
+                "calm-ai",
+                "calm-widgets"
               ]
             },
             {
@@ -361,7 +423,8 @@
                 "cli",
                 "shared",
                 "calm-models",
-                "calm-ai"
+                "calm-ai",
+                "calm-widgets"
               ]
             }
           ]
