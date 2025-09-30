@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { CalmCoreCanonicalModel } from '@finos/calm-models/canonical';
 import * as vmBuilderModule from './core/vm-builder';
 import * as optionsParser from './core/options-parser';
-import {BlockArchitectureWidget, BlockArchVM, transformToBlockArchVM} from '.';
-import {BlockArchVMBuilder} from './core/vm-builder';
+import { BlockArchitectureWidget, BlockArchVM, transformToBlockArchVM } from '.';
+import { BlockArchVMBuilder } from './core/vm-builder';
 
 
 describe('BlockArchitectureWidget', () => {
@@ -31,6 +31,7 @@ describe('BlockArchitectureWidget', () => {
             direction: 'both',
             renderInterfaces: false,
             edgeLabels: 'description',
+            collapseRelationships: false,
         });
 
         const fakeVM: BlockArchVM = { containers: [], edges: [], attachments: [], looseNodes: [], highlightNodeIds: [], warnings: [] };
@@ -66,6 +67,7 @@ describe('BlockArchitectureWidget', () => {
             direction: 'both',
             renderInterfaces: false,
             edgeLabels: 'description',
+            collapseRelationships: false,
         });
         expect(builder).toBeInstanceOf(BlockArchVMBuilder);
     });

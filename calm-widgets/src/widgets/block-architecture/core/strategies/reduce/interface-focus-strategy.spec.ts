@@ -13,6 +13,7 @@ const baseOpts = (): NormalizedOptions => ({
     direction: 'both',
     renderInterfaces: false,
     edgeLabels: 'description',
+    collapseRelationships: false,
 });
 
 function relConnects(
@@ -35,12 +36,12 @@ function relConnects(
 
 const model: CalmCoreCanonicalModel = {
     nodes: [
-        { 'unique-id': 'svcA', 'node-type': 'service',  name: 'svcA', description: '', interfaces: [{ 'unique-id': 'api' }, { 'unique-id': 'events' }] },
-        { 'unique-id': 'dbB',  'node-type': 'database', name: 'dbB',  description: '', interfaces: [{ 'unique-id': 'jdbc' }] },
-        { 'unique-id': 'svcC', 'node-type': 'service',  name: 'svcC', description: '' },
+        { 'unique-id': 'svcA', 'node-type': 'service', name: 'svcA', description: '', interfaces: [{ 'unique-id': 'api' }, { 'unique-id': 'events' }] },
+        { 'unique-id': 'dbB', 'node-type': 'database', name: 'dbB', description: '', interfaces: [{ 'unique-id': 'jdbc' }] },
+        { 'unique-id': 'svcC', 'node-type': 'service', name: 'svcC', description: '' },
     ],
     relationships: [
-        relConnects('r1', 'svcA', 'api',    'dbB', 'jdbc'),
+        relConnects('r1', 'svcA', 'api', 'dbB', 'jdbc'),
         relConnects('r2', 'svcA', 'events', 'svcC', 'api'),
     ],
 };

@@ -12,7 +12,8 @@ const baseOpts = (): NormalizedOptions => ({
     edges: 'connected',
     direction: 'both',
     renderInterfaces: false,
-    edgeLabels: 'description'
+    edgeLabels: 'description',
+    collapseRelationships: false
 });
 
 function relConnects(id: string, sourceNode: string, sourceIface: string, destNode: string, destIface: string): CalmRelationshipCanonicalModel {
@@ -46,10 +47,10 @@ function relDeployedIn(id: string, container: string, nodes: string[]): CalmRela
 
 const ctx = (rels: CalmRelationshipCanonicalModel[]): CalmCoreCanonicalModel => ({
     nodes: [
-        { 'unique-id': 'A', 'node-type': 'service',  name: 'A', description: '', interfaces: [{ 'unique-id': 'api' }] },
+        { 'unique-id': 'A', 'node-type': 'service', name: 'A', description: '', interfaces: [{ 'unique-id': 'api' }] },
         { 'unique-id': 'B', 'node-type': 'database', name: 'B', description: '', interfaces: [{ 'unique-id': 'jdbc' }] },
-        { 'unique-id': 'C', 'node-type': 'system',   name: 'C', description: '' },
-        { 'unique-id': 'D', 'node-type': 'service',  name: 'D', description: '' }
+        { 'unique-id': 'C', 'node-type': 'system', name: 'C', description: '' },
+        { 'unique-id': 'D', 'node-type': 'service', name: 'D', description: '' }
     ],
     relationships: rels
 });
@@ -57,7 +58,7 @@ const ctx = (rels: CalmRelationshipCanonicalModel[]): CalmCoreCanonicalModel => 
 describe('RelationshipFocusStrategy', () => {
     it('no focus-relationships → no-op', () => {
         const strat = new RelationshipFocusStrategy();
-        const model = ctx([relConnects('r1','A','api','B','jdbc')]);
+        const model = ctx([relConnects('r1', 'A', 'api', 'B', 'jdbc')]);
         const res = strat.applyFilter(model, baseOpts(), new Set(['A']), model.relationships);
         expect(res.visibleNodes).toEqual(new Set(['A']));
         expect(res.activeRelationships).toBeUndefined();
@@ -67,21 +68,21 @@ describe('RelationshipFocusStrategy', () => {
     it('focus by relationship IDs selects participating nodes and activeRelationships', () => {
         const strat = new RelationshipFocusStrategy();
         const rels = [
-            relConnects('r1','A','api','B','jdbc'),
-            relInteracts('r2','C',['A','B']),
-            relDeployedIn('r3','C',['D'])
+            relConnects('r1', 'A', 'api', 'B', 'jdbc'),
+            relInteracts('r2', 'C', ['A', 'B']),
+            relDeployedIn('r3', 'C', ['D'])
         ];
         const model = ctx(rels);
-        const opts: NormalizedOptions = { ...baseOpts(), focusRelationships: ['r1','r3'] };
+        const opts: NormalizedOptions = { ...baseOpts(), focusRelationships: ['r1', 'r3'] };
         const res = strat.applyFilter(model, opts, new Set(), model.relationships);
-        expect(res.activeRelationships?.map(r => r['unique-id']).sort()).toEqual(['r1','r3']);
-        expect(res.visibleNodes).toEqual(new Set(['A','B','C','D']));
-        expect(res.seedNodes).toEqual(new Set(['A','B','C','D']));
+        expect(res.activeRelationships?.map(r => r['unique-id']).sort()).toEqual(['r1', 'r3']);
+        expect(res.visibleNodes).toEqual(new Set(['A', 'B', 'C', 'D']));
+        expect(res.seedNodes).toEqual(new Set(['A', 'B', 'C', 'D']));
     });
 
     it('invalid relationship IDs produce warnings and no additions', () => {
         const strat = new RelationshipFocusStrategy();
-        const model = ctx([relConnects('r1','A','api','B','jdbc')]);
+        const model = ctx([relConnects('r1', 'A', 'api', 'B', 'jdbc')]);
         const opts: NormalizedOptions = { ...baseOpts(), focusRelationships: ['nope'] };
         const res = strat.applyFilter(model, opts, new Set(), model.relationships);
         expect(res.activeRelationships).toBeUndefined();

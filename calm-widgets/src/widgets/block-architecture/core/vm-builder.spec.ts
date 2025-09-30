@@ -10,6 +10,7 @@ const baseOpts = (over: Partial<NormalizedOptions> = {}): NormalizedOptions => (
     direction: 'both',
     renderInterfaces: false,
     edgeLabels: 'description',
+    collapseRelationships: false,
     ...over,
 });
 

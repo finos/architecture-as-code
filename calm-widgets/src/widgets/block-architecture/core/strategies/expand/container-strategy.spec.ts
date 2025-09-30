@@ -11,7 +11,8 @@ const base = (includeContainers: NormalizedOptions['includeContainers']): Normal
     edges: 'connected',
     direction: 'both',
     renderInterfaces: false,
-    edgeLabels: 'description'
+    edgeLabels: 'description',
+    collapseRelationships: false
 });
 
 describe('ContainerStrategy', () => {
