@@ -22,7 +22,7 @@ Live-visualize CALM architecture models while you edit them. Features an interac
 - **Diagnostics Integration**: Validation errors in Problems panel
 
 
-![CALM VS Code Extension](docs/CalmVSExtension.png)
+![CALM VS Code Extension](https://raw.githubusercontent.com/finos/architecture-as-code/main/calm-plugins/vscode/docs/CalmVSExtension.png)
 *Interactive preview with tree navigation, editor integration, and live visualization*
 
 
@@ -32,7 +32,7 @@ Live-visualize CALM architecture models while you edit them. Features an interac
 - **Multiple Formats**: HTML and Markdown output
 - **Custom Templates**: Use built-in or custom templates
 
-![Live Docify Mode](docs/LiveDocifyMode.png)
+![Live Docify Mode](https://raw.githubusercontent.com/finos/architecture-as-code/main/calm-plugins/vscode/docs/LiveDocifyMode.png)
 *Live templating mode with real-time documentation generation*
 
 ## Getting Involved
@@ -43,4 +43,4 @@ Have an idea or feedback? [Raise an issue](https://github.com/finos/architecture
 
 ---
 
-**Contributing**: Issues and PRs welcome! 
+**Contributing**: Issues and PRs welcome!
