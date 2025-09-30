@@ -79,10 +79,17 @@ export function buildEdges(
         nodesById
     };
 
-    // First, create all edges from individual relationships
-    const allEdges = relationships.flatMap(relationship =>
-        edgeFactory.createEdge(relationship, config)
-    );
+    // First, create all edges from individual relationships and maintain mapping
+    const edgeToRelationshipMap = new Map<VMEdge, CalmRelationshipCanonicalModel>();
+    const allEdges: VMEdge[] = [];
+
+    for (const relationship of relationships) {
+        const edges = edgeFactory.createEdge(relationship, config);
+        for (const edge of edges) {
+            allEdges.push(edge);
+            edgeToRelationshipMap.set(edge, relationship);
+        }
+    }
 
     if (!collapseRelationships) {
         return allEdges;
@@ -91,30 +98,31 @@ export function buildEdges(
     // Collapse relationships: group by source-target pair and merge labels
     const edgeMap = new Map<string, VMEdge>();
     const relationshipGroups = new Map<string, CalmRelationshipCanonicalModel[]>();
-    const edgeToRelationshipMap = new Map<VMEdge, CalmRelationshipCanonicalModel>();
-
-    // Create mapping from edges back to their source relationships
-    let edgeIndex = 0;
-    for (const relationship of relationships) {
-        const edges = edgeFactory.createEdge(relationship, config);
-        for (const edge of edges) {
-            edgeToRelationshipMap.set(allEdges[edgeIndex], relationship);
-            edgeIndex++;
-        }
-    }
 
     // Group edges by source-target pair
     for (const edge of allEdges) {
         const key = `${edge.source}->${edge.target}`;
-        const relationship = edgeToRelationshipMap.get(edge)!;
+        const relationship = edgeToRelationshipMap.get(edge);
+
+        if (!relationship) {
+            // This should not happen with correct synchronization, but handle gracefully
+            console.warn(`No relationship mapping found for edge ${edge.id} (${key})`);
+            continue;
+        }
         
         if (!edgeMap.has(key)) {
             edgeMap.set(key, { ...edge });
             relationshipGroups.set(key, [relationship]);
         } else {
             // Accumulate relationships for this source-target pair
-            const existing = relationshipGroups.get(key)!;
-            existing.push(relationship);
+            const existing = relationshipGroups.get(key);
+            if (existing) {
+                existing.push(relationship);
+            } else {
+                // This should not happen, but handle gracefully
+                console.warn(`No relationship group found for key ${key}`);
+                relationshipGroups.set(key, [relationship]);
+            }
         }
     }
 
