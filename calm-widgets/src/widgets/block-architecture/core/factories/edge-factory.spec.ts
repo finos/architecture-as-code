@@ -11,6 +11,7 @@ function makeConfig(overrides: Partial<EdgeConfig> = {}): EdgeConfig {
     return {
         renderInterfaces: false,
         edgeLabelMode: 'description',
+        collapseRelationships: false,
         ifaceNames: new Map(),
         nodesById: new Map(),
         ...overrides,
@@ -107,7 +108,7 @@ describe('StandardVMEdgeFactory', () => {
 
         const nodesById = new Map<string, CalmNodeCanonicalModel>([
             ['svcA', { 'unique-id': 'svcA', 'node-type': 'service', name: 'Service A', description: '' }],
-            ['dbB',  { 'unique-id': 'dbB',  'node-type': 'database', name: 'Orders DB', description: '' }]
+            ['dbB', { 'unique-id': 'dbB', 'node-type': 'database', name: 'Orders DB', description: '' }]
         ]);
 
         const edges = f.createEdge(rel, makeConfig({ ifaceNames, nodesById }));

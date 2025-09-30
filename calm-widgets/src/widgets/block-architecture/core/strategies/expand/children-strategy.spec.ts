@@ -12,6 +12,7 @@ const base = (overrides: Partial<NormalizedOptions> = {}): NormalizedOptions => 
     direction: 'both',
     renderInterfaces: false,
     edgeLabels: 'description',
+    collapseRelationships: false,
     ...overrides,
 });
 

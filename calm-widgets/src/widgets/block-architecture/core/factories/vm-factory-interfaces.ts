@@ -21,6 +21,7 @@ export interface VMEdgeFactory {
 export interface EdgeConfig {
     renderInterfaces: boolean;
     edgeLabelMode: EdgeLabels;
+    collapseRelationships: boolean;
     ifaceNames: Map<string, Map<string, string>>;
     nodesById: Map<string, CalmNodeCanonicalModel>;
 }

@@ -9,7 +9,8 @@ const baseOpts = (): NormalizedOptions => ({
     edges: 'connected',
     direction: 'both',
     renderInterfaces: false,
-    edgeLabels: 'description'
+    edgeLabels: 'description',
+    collapseRelationships: false
 });
 
 const ctx = (ids: string[]): CalmCoreCanonicalModel => ({
@@ -25,7 +26,7 @@ const ctx = (ids: string[]): CalmCoreCanonicalModel => ({
 describe('NodeFocusStrategy', () => {
     it('no focus-nodes → returns currentVisible unchanged', () => {
         const strat = new NodeFocusStrategy();
-        const res = strat.applyFilter(ctx(['n1','n2']), baseOpts(), new Set(['n1']), []);
+        const res = strat.applyFilter(ctx(['n1', 'n2']), baseOpts(), new Set(['n1']), []);
         expect(res.visibleNodes).toEqual(new Set(['n1']));
         expect(res.warnings).toEqual([]);
         expect(res.seedNodes).toBeUndefined();
@@ -33,8 +34,8 @@ describe('NodeFocusStrategy', () => {
 
     it('focus-nodes seeds visibleNodes with valid IDs only', () => {
         const strat = new NodeFocusStrategy();
-        const opts: NormalizedOptions = { ...baseOpts(), focusNodes: ['n1','n3','n1'] };
-        const res = strat.applyFilter(ctx(['n1','n2']), opts, new Set(), []);
+        const opts: NormalizedOptions = { ...baseOpts(), focusNodes: ['n1', 'n3', 'n1'] };
+        const res = strat.applyFilter(ctx(['n1', 'n2']), opts, new Set(), []);
         expect(res.visibleNodes).toEqual(new Set(['n1']));
         expect(res.seedNodes).toEqual(new Set(['n1']));
         expect(res.warnings.join(' ')).toMatch(/n3/);
@@ -42,7 +43,7 @@ describe('NodeFocusStrategy', () => {
 
     it('all invalid focus-nodes → empty visibleNodes + warning', () => {
         const strat = new NodeFocusStrategy();
-        const opts: NormalizedOptions = { ...baseOpts(), focusNodes: ['x','y'] };
+        const opts: NormalizedOptions = { ...baseOpts(), focusNodes: ['x', 'y'] };
         const res = strat.applyFilter(ctx(['n1']), opts, new Set(), []);
         expect(res.visibleNodes.size).toBe(0);
         expect(res.seedNodes).toEqual(new Set<string>());

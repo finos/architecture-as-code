@@ -9,7 +9,8 @@ const baseOpts: NormalizedOptions = {
     edges: 'connected',
     direction: 'both',
     renderInterfaces: false,
-    edgeLabels: 'description'
+    edgeLabels: 'description',
+    collapseRelationships: false
 };
 
 const emptyContext: CalmCoreCanonicalModel = { nodes: [], relationships: [] };

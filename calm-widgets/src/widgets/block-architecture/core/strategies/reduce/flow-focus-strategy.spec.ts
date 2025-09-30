@@ -14,6 +14,7 @@ const baseOpts = (): NormalizedOptions => ({
     direction: 'both',
     renderInterfaces: false,
     edgeLabels: 'description',
+    collapseRelationships: false,
 });
 
 function relConnects(id: string, srcNode: string, dstNode: string): CalmRelationshipCanonicalModel {
@@ -30,9 +31,9 @@ function relConnects(id: string, srcNode: string, dstNode: string): CalmRelation
 
 const model: CalmCoreCanonicalModel = {
     nodes: [
-        { 'unique-id': 'n1', 'node-type': 'service',  name: 'n1', description: '', interfaces: [{ 'unique-id': 'api' }] },
+        { 'unique-id': 'n1', 'node-type': 'service', name: 'n1', description: '', interfaces: [{ 'unique-id': 'api' }] },
         { 'unique-id': 'n2', 'node-type': 'database', name: 'n2', description: '', interfaces: [{ 'unique-id': 'jdbc' }] },
-        { 'unique-id': 'n3', 'node-type': 'service',  name: 'n3', description: '' },
+        { 'unique-id': 'n3', 'node-type': 'service', name: 'n3', description: '' },
     ],
     relationships: [
         relConnects('r1', 'n1', 'n2'),

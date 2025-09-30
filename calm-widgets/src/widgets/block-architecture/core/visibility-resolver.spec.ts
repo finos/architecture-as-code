@@ -87,6 +87,7 @@ describe('resolveVisibilityWithStrategies functional', () => {
         direction: 'both',
         renderInterfaces: false,
         edgeLabels: 'description',
+        collapseRelationships: false,
         ...over,
     });
 

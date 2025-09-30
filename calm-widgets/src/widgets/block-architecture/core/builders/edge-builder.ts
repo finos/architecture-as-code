@@ -26,6 +26,39 @@ export function buildInterfaceNameMap(nodes: CalmNodeCanonicalModel[]): Map<stri
 }
 
 /**
+ * Merges labels from multiple relationships that have been collapsed into a single edge
+ */
+function mergeRelationshipLabels(relationships: CalmRelationshipCanonicalModel[], edgeLabelMode: EdgeLabels): string | undefined {
+    if (edgeLabelMode === 'none') {
+        return undefined;
+    }
+
+    const labels = relationships
+        .map(rel => rel.description)
+        .filter(desc => desc && desc.trim().length > 0);
+
+    if (labels.length === 0) {
+        return `${relationships.length} connections`;
+    }
+
+    if (labels.length === 1) {
+        return labels[0];
+    }
+
+    // Multiple descriptions - combine them or show count
+    const uniqueLabels = Array.from(new Set(labels));
+    if (uniqueLabels.length === 1) {
+        return uniqueLabels[0]; // All descriptions are the same
+    }
+
+    if (uniqueLabels.length <= 3) {
+        return uniqueLabels.join(', '); // Show all if few enough
+    }
+
+    return `${relationships.length} connections`; // Too many to show individually
+}
+
+/**
  * Converts relationship models into view model edges for rendering.
  * Now uses the factory pattern for elegant, testable edge creation.
  */
@@ -33,6 +66,7 @@ export function buildEdges(
     relationships: CalmRelationshipCanonicalModel[],
     renderInterfaces: boolean,
     edgeLabelMode: EdgeLabels,
+    collapseRelationships: boolean,
     ifaceNames: Map<string, Map<string, string>>,
     nodesById: Map<string, CalmNodeCanonicalModel>
 ): VMEdge[] {
@@ -40,11 +74,58 @@ export function buildEdges(
     const config: EdgeConfig = {
         renderInterfaces,
         edgeLabelMode,
+        collapseRelationships,
         ifaceNames,
         nodesById
     };
 
-    return relationships.flatMap(relationship =>
+    // First, create all edges from individual relationships
+    const allEdges = relationships.flatMap(relationship =>
         edgeFactory.createEdge(relationship, config)
     );
+
+    if (!collapseRelationships) {
+        return allEdges;
+    }
+
+    // Collapse relationships: group by source-target pair and merge labels
+    const edgeMap = new Map<string, VMEdge>();
+    const relationshipGroups = new Map<string, CalmRelationshipCanonicalModel[]>();
+    const edgeToRelationshipMap = new Map<VMEdge, CalmRelationshipCanonicalModel>();
+
+    // Create mapping from edges back to their source relationships
+    let edgeIndex = 0;
+    for (const relationship of relationships) {
+        const edges = edgeFactory.createEdge(relationship, config);
+        for (const edge of edges) {
+            edgeToRelationshipMap.set(allEdges[edgeIndex], relationship);
+            edgeIndex++;
+        }
+    }
+
+    // Group edges by source-target pair
+    for (const edge of allEdges) {
+        const key = `${edge.source}->${edge.target}`;
+        const relationship = edgeToRelationshipMap.get(edge)!;
+        
+        if (!edgeMap.has(key)) {
+            edgeMap.set(key, { ...edge });
+            relationshipGroups.set(key, [relationship]);
+        } else {
+            // Accumulate relationships for this source-target pair
+            const existing = relationshipGroups.get(key)!;
+            existing.push(relationship);
+        }
+    }
+
+    // Merge labels and IDs for collapsed edges
+    for (const [key, relationships] of relationshipGroups.entries()) {
+        if (relationships.length > 1) {
+            const edge = edgeMap.get(key)!;
+            edge.label = mergeRelationshipLabels(relationships, edgeLabelMode);
+            edge.id = relationships.map(r => r['unique-id']).join('|');
+        }
+    }
+
+    return Array.from(edgeMap.values());
 }

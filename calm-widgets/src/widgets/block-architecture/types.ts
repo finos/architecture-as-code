@@ -22,6 +22,7 @@ export interface BlockArchOptions {
     ['node-types']?: string;
     ['direction']?: Direction;
     ['edge-labels']?: EdgeLabels;
+    ['collapse-relationships']?: boolean;
     ['link-prefix']?: string;
     ['link-map']?: string;
 }
@@ -63,6 +64,7 @@ export type NormalizedOptions = {
     direction: Direction;
     renderInterfaces: boolean;
     edgeLabels: EdgeLabels;
+    collapseRelationships: boolean;
     linkPrefix?: string;
     linkMap?: Record<string, string>;
 };

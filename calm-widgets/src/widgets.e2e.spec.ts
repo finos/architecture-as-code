@@ -302,5 +302,12 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const result = compiled(context);
             expect(result.trim()).toBe(expected);
         });
+
+        it('collapses multiple relationships between same source and destination into single edges', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'collapse-relationships');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
     });
 });
