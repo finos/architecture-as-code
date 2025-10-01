@@ -86,6 +86,7 @@ describe('resolveVisibilityWithStrategies functional', () => {
         edges: 'connected',
         direction: 'both',
         renderInterfaces: false,
+        renderNodeTypeShapes: false,
         edgeLabels: 'description',
         collapseRelationships: false,
         ...over,

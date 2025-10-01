@@ -12,6 +12,7 @@ const opts = (edges: NormalizedOptions['edges'], direction: NormalizedOptions['d
     edges,
     direction,
     renderInterfaces: false,
+    renderNodeTypeShapes: false,
     edgeLabels: 'description',
     collapseRelationships: false
 });

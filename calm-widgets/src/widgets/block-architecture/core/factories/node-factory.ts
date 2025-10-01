@@ -1,7 +1,7 @@
 import { CalmNodeCanonicalModel } from '@finos/calm-models/canonical';
 import { VMLeafNode, VMAttach } from '../../types';
 import { VMNodeFactory } from './vm-factory-interfaces';
-import {ifaceId, prettyLabel} from '../utils';
+import { ifaceId, prettyLabel } from '../utils';
 
 
 type WithOptionalLabel = CalmNodeCanonicalModel & { label?: string };
@@ -18,7 +18,8 @@ export class StandardVMNodeFactory implements VMNodeFactory {
         const attachments: VMAttach[] = [];
         const leaf: VMLeafNode = {
             id: node['unique-id'],
-            label: labelFor(node, node['unique-id'])
+            label: labelFor(node, node['unique-id']),
+            nodeType: node['node-type']
         };
 
         if (renderInterfaces && Array.isArray(node.interfaces) && node.interfaces.length > 0) {

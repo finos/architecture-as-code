@@ -309,5 +309,12 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const result = compiled(context);
             expect(result.trim()).toBe(expected);
         });
+
+        it('renders nodes with type-specific shapes and colors when render-node-type-shapes option is enabled', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'node-type-shapes');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
     });
 });

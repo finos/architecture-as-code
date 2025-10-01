@@ -40,6 +40,7 @@ export function buildContainerForest(
         vmContainers.set(id, {
             id,
             label: labelFor(node, id),
+            nodeType: node?.['node-type'],
             nodes: [],
             containers: [],
         });

@@ -28,7 +28,7 @@ export const BlockArchitectureWidget: CalmWidget<
 > = {
     id: 'block-architecture',
     templatePartial: 'block-architecture.hbs',
-    partials: ['container.hbs', 'click-links.hbs'],
+    partials: ['container.hbs', 'click-links.hbs', 'typed-node.hbs'],
     validateContext: isCalmCoreCanonicalModel,
     transformToViewModel: transformToBlockArchVM,
     registerHelpers: registerGlobalTemplateHelpers,

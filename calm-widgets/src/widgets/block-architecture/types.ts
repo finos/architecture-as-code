@@ -16,6 +16,7 @@ export interface BlockArchOptions {
     ['focus-interfaces']?: string;
     ['highlight-nodes']?: string;
     ['render-interfaces']?: boolean;
+    ['render-node-type-shapes']?: boolean;
     ['include-containers']?: IncludeContainers;
     ['include-children']?: IncludeChildren;
     ['edges']?: Edges;
@@ -25,14 +26,15 @@ export interface BlockArchOptions {
     ['collapse-relationships']?: boolean;
     ['link-prefix']?: string;
     ['link-map']?: string;
+    ['node-type-map']?: string;
 }
 
 /** -----------------------------
  * VM Types
  * ------------------------------ */
 export type VMInterface = { id: string; label: string };
-export type VMLeafNode = { id: string; label: string; interfaces?: VMInterface[] };
-export type VMContainer = { id: string; label: string; nodes: VMLeafNode[]; containers: VMContainer[] };
+export type VMLeafNode = { id: string; label: string; nodeType?: string; interfaces?: VMInterface[] };
+export type VMContainer = { id: string; label: string; nodeType?: string; nodes: VMLeafNode[]; containers: VMContainer[] };
 export type VMEdge = { id: string; source: string; target: string; label?: string };
 export type VMAttach = { from: string; to: string };
 
@@ -42,8 +44,10 @@ export type BlockArchVM = {
     attachments: VMAttach[];
     looseNodes: VMLeafNode[];
     highlightNodeIds?: string[];  // union of highlight-nodes + focus-nodes
+    renderNodeTypeShapes?: boolean;
     linkPrefix?: string;
     linkMap?: Record<string, string>;
+    nodeTypeMap?: Record<string, string>;
     warnings?: string[];
 };
 
@@ -63,10 +67,12 @@ export type NormalizedOptions = {
     nodeTypes?: string[];
     direction: Direction;
     renderInterfaces: boolean;
+    renderNodeTypeShapes: boolean;
     edgeLabels: EdgeLabels;
     collapseRelationships: boolean;
     linkPrefix?: string;
     linkMap?: Record<string, string>;
+    nodeTypeMap?: Record<string, string>;
 };
 
 

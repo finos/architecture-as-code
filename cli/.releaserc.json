@@ -286,7 +286,14 @@
           "noteKeywords": [
             "BREAKING CHANGE",
             "BREAKING CHANGES"
-          ]
+          ],
+          "mergePattern": "^Merge pull request #(\\d+) from (.*)$",
+          "mergeCorrespondence": ["id", "source"]
+        },
+        "writerOpts": {
+          "transform": {
+            "merge": null
+          }
         },
         "transform": {
           "cli/**": {
@@ -311,6 +318,11 @@
       "@semantic-release/release-notes-generator",
       {
         "preset": "conventionalcommits",
+        "writerOpts": {
+          "transform": {
+            "merge": null
+          }
+        },
         "presetConfig": {
           "types": [
             {
