@@ -1,0 +1,190 @@
+{
+    "nodes": [
+        {
+            "unique-id": "user",
+            "node-type": "actor",
+            "name": "Customer",
+            "description": "End user of the system"
+        },
+        {
+            "unique-id": "web-app",
+            "node-type": "webclient",
+            "name": "Web Application",
+            "description": "Frontend user interface"
+        },
+        {
+            "unique-id": "api-service",
+            "node-type": "service",
+            "name": "API Service",
+            "description": "Backend REST API"
+        },
+        {
+            "unique-id": "database",
+            "node-type": "database",
+            "name": "PostgreSQL",
+            "description": "Main application database"
+        },
+        {
+            "unique-id": "message-bus",
+            "node-type": "messagebus",
+            "name": "Message Bus",
+            "description": "Event streaming platform"
+        },
+        {
+            "unique-id": "payment-system",
+            "node-type": "system",
+            "name": "Payment System",
+            "description": "External payment processor"
+        },
+        {
+            "unique-id": "redis-cache",
+            "node-type": "cache",
+            "name": "Redis Cache",
+            "description": "In-memory caching layer"
+        },
+        {
+            "unique-id": "load-balancer",
+            "node-type": "proxy",
+            "name": "Load Balancer",
+            "description": "Request distribution layer"
+        },
+        {
+            "unique-id": "worker-queue",
+            "node-type": "queue",
+            "name": "Background Jobs",
+            "description": "Async task processing"
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "r1",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "user"
+                    },
+                    "destination": {
+                        "node": "web-app"
+                    }
+                }
+            },
+            "description": "User interacts with web app"
+        },
+        {
+            "unique-id": "r2",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "web-app"
+                    },
+                    "destination": {
+                        "node": "api-service"
+                    }
+                }
+            },
+            "description": "Web app calls API"
+        },
+        {
+            "unique-id": "r3",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "api-service"
+                    },
+                    "destination": {
+                        "node": "database"
+                    }
+                }
+            },
+            "description": "API queries database"
+        },
+        {
+            "unique-id": "r4",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "api-service"
+                    },
+                    "destination": {
+                        "node": "message-bus"
+                    }
+                }
+            },
+            "description": "API publishes events"
+        },
+        {
+            "unique-id": "r5",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "api-service"
+                    },
+                    "destination": {
+                        "node": "payment-system"
+                    }
+                }
+            },
+            "description": "API calls payment service"
+        },
+        {
+            "unique-id": "r6",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "api-service"
+                    },
+                    "destination": {
+                        "node": "redis-cache"
+                    }
+                }
+            },
+            "description": "API reads from cache"
+        },
+        {
+            "unique-id": "r7",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "web-app"
+                    },
+                    "destination": {
+                        "node": "load-balancer"
+                    }
+                }
+            },
+            "description": "Requests go through load balancer"
+        },
+        {
+            "unique-id": "r8",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "load-balancer"
+                    },
+                    "destination": {
+                        "node": "api-service"
+                    }
+                }
+            },
+            "description": "Load balancer routes to API"
+        },
+        {
+            "unique-id": "r9",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "api-service"
+                    },
+                    "destination": {
+                        "node": "worker-queue"
+                    }
+                }
+            },
+            "description": "API queues background jobs"
+        }
+    ],
+    "metadata": {},
+    "controls": {},
+    "flows": [],
+    "adrs": []
+}

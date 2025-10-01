@@ -3,7 +3,11 @@
     subgraph {{id}}["{{label}}"]
     direction TB
     {{#each nodes}}
+    {{#if @root.renderNodeTypeShapes}}
+        {{> typed-node.hbs}}
+    {{else}}
         {{id}}["{{label}}"]:::node
+    {{/if}}
         {{#each interfaces}}
             {{id}}["{{label}}"]:::iface
         {{/each}}

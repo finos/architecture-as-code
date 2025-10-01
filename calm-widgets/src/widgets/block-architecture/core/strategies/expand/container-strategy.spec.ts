@@ -11,6 +11,7 @@ const base = (includeContainers: NormalizedOptions['includeContainers']): Normal
     edges: 'connected',
     direction: 'both',
     renderInterfaces: false,
+    renderNodeTypeShapes: false,
     edgeLabels: 'description',
     collapseRelationships: false
 });

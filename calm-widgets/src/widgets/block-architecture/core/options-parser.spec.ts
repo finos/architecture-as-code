@@ -118,4 +118,29 @@ describe('options-parser', () => {
         expect(out.direction).toBe('both');
         expect(out.edgeLabels).toBe('description');
     });
+
+    it('parses node-type-map when provided as object', () => {
+        const out = parseOptions(
+            raw('{ "node-type-map": { "postgres": "database", "nginx": "service" } }')
+        );
+        expect(out.nodeTypeMap).toEqual({ postgres: 'database', nginx: 'service' });
+    });
+
+    it('parses node-type-map when provided as JSON string', () => {
+        const out = parseOptions({
+            'node-type-map': JSON.stringify({ redis: 'database', 'load-balancer': 'service' })
+        });
+        expect(out.nodeTypeMap).toEqual({ redis: 'database', 'load-balancer': 'service' });
+    });
+
+    it('ignores bad JSON for node-type-map', () => {
+        const out = parseOptions({ 'node-type-map': '{bad json for node types' });
+        expect(out.nodeTypeMap).toBeUndefined();
+    });
+
+    it('render-node-type-shapes: false by default; true only when explicitly true', () => {
+        expect(parseOptions().renderNodeTypeShapes).toBe(false);
+        expect(parseOptions({ 'render-node-type-shapes': false }).renderNodeTypeShapes).toBe(false);
+        expect(parseOptions({ 'render-node-type-shapes': true }).renderNodeTypeShapes).toBe(true);
+    });
 });

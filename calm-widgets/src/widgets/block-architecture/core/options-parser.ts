@@ -32,6 +32,7 @@ export function parseOptions(raw?: BlockArchOptions): NormalizedOptions {
         edges: 'connected',
         direction: 'both',
         renderInterfaces: false,
+        renderNodeTypeShapes: false,
         edgeLabels: 'description',
         collapseRelationships: false,
     };
@@ -47,6 +48,7 @@ export function parseOptions(raw?: BlockArchOptions): NormalizedOptions {
     if (raw['highlight-nodes']) o.highlightNodes = csv(raw['highlight-nodes']);
     if (raw['node-types']) o.nodeTypes = csv(raw['node-types']);
     if (raw['render-interfaces']) o.renderInterfaces = true;
+    if (raw['render-node-type-shapes']) o.renderNodeTypeShapes = true;
     if (raw['collapse-relationships']) o.collapseRelationships = true;
 
     o.edgeLabels = pickEnum(raw['edge-labels'], ['description', 'none'] as const, o.edgeLabels);
@@ -75,8 +77,22 @@ export function parseOptions(raw?: BlockArchOptions): NormalizedOptions {
             } else {
                 o.linkMap = raw['link-map'];
             }
-        } catch {
-            // ignore bad JSON; keep linkMap undefined
+        } catch (error) {
+            console.warn(`[options-parser] Failed to parse link-map JSON: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            // keep linkMap undefined
+        }
+    }
+
+    if (raw['node-type-map']) {
+        try {
+            if (typeof raw['node-type-map'] === 'string') {
+                o.nodeTypeMap = JSON.parse(raw['node-type-map']);
+            } else {
+                o.nodeTypeMap = raw['node-type-map'];
+            }
+        } catch (error) {
+            console.warn(`[options-parser] Failed to parse node-type-map JSON: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            // keep nodeTypeMap undefined
         }
     }
 
