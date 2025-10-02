@@ -106,11 +106,11 @@ jobs:
             else
               RELEASE_NOTES="Release version $VERSION
 
-See the CHANGELOG for details."
-            fi
-          else
-            RELEASE_NOTES="Release version $VERSION"
-          fi
+              See the CHANGELOG for details."
+                          fi
+                        else
+                          RELEASE_NOTES="Release version $VERSION"
+                        fi
           
           # Create GitHub release
           gh release create "$TAG_NAME" \
