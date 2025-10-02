@@ -106,7 +106,7 @@ jobs:
             else
               RELEASE_NOTES="Release version $VERSION
 
-          See the CHANGELOG for details."
+See the CHANGELOG for details."
             fi
           else
             RELEASE_NOTES="Release version $VERSION"
