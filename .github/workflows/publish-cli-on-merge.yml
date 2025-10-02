@@ -1,0 +1,128 @@
+name: Publish CLI to NPM (On Version PR Merge)
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write # needed for npm provenance
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+    paths:
+      - 'cli/package.json'
+
+jobs:
+  check-if-version-pr:
+    runs-on: ubuntu-latest
+    outputs:
+      should-publish: ${{ steps.check.outputs.should-publish }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 2
+
+      - name: Check if this is an automated version PR
+        id: check
+        run: |
+          # Check if PR was merged (not just closed)
+          if [ "${{ github.event.pull_request.merged }}" != "true" ]; then
+            echo "PR was closed but not merged. Skipping publish."
+            echo "should-publish=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Check if PR has the automated-release label
+          if echo '${{ github.event.pull_request.labels.*.name }}' | grep -q "automated-release"; then
+            echo "✅ This is an automated release PR"
+            
+            # Extract version from package.json
+            VERSION=$(grep '"version":' cli/package.json | sed 's/.*"version": "\([^"]*\)".*/\1/')
+            echo "Detected version: $VERSION"
+            
+            # Validate version format
+            if [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "should-publish=true" >> $GITHUB_OUTPUT
+              echo "version=$VERSION" >> $GITHUB_OUTPUT
+              echo "🚀 Will publish version $VERSION to npm"
+            else
+              echo "❌ Invalid version format: $VERSION"
+              echo "should-publish=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "Not an automated release PR. Skipping publish."
+            echo "should-publish=false" >> $GITHUB_OUTPUT
+          fi
+
+  publish-cli:
+    needs: check-if-version-pr
+    runs-on: ubuntu-latest
+    if: needs.check-if-version-pr.outputs.should-publish == 'true'
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build workspace
+        run: npm run build
+
+      - name: Publish CLI to npm
+        run: npm publish --workspace cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        run: |
+          VERSION="${{ needs.check-if-version-pr.outputs.version }}"
+          TAG_NAME="cli-v$VERSION"
+          
+          # Check if tag already exists
+          if git tag -l "$TAG_NAME" | grep -q "$TAG_NAME"; then
+            echo "Tag $TAG_NAME already exists. Skipping release creation."
+            exit 0
+          fi
+          
+          # Create tag
+          git tag "$TAG_NAME"
+          git push origin "$TAG_NAME"
+          
+          # Extract changelog section for this version
+          if [ -f "cli/CHANGELOG.md" ]; then
+            # Try to extract the changelog section for this version
+            CHANGELOG_SECTION=$(awk "/^## \[$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" cli/CHANGELOG.md || echo "")
+            
+            if [ -n "$CHANGELOG_SECTION" ]; then
+              RELEASE_NOTES="$CHANGELOG_SECTION"
+            else
+              RELEASE_NOTES="Release version $VERSION
+
+          See the CHANGELOG for details."
+            fi
+          else
+            RELEASE_NOTES="Release version $VERSION"
+          fi
+          
+          # Create GitHub release
+          gh release create "$TAG_NAME" \
+            --title "CLI v$VERSION" \
+            --notes "$RELEASE_NOTES" \
+            --target main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "## ✅ CLI Published Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ needs.check-if-version-pr.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**NPM Package**: [@finos/calm-cli](https://www.npmjs.com/package/@finos/calm-cli)" >> $GITHUB_STEP_SUMMARY
+          echo "**GitHub Release**: [cli-v${{ needs.check-if-version-pr.outputs.version }}](https://github.com/finos/architecture-as-code/releases/tag/cli-v${{ needs.check-if-version-pr.outputs.version }})" >> $GITHUB_STEP_SUMMARY

@@ -451,21 +451,10 @@
       }
     ],
     [
-      "@semantic-release/npm",
-      {
-        "provenance": true
-      }
-    ],
-    [
-      "@semantic-release/github",
-      {
-        "draft": false
-      }
-    ],
-    [
       "@semantic-release/exec",
       {
-        "successCmd": "git checkout main && git checkout -b release/changelog-cli-v${nextRelease.version} && git add CHANGELOG.md package.json && git commit -m 'ci(cli): update changelog and version for ${nextRelease.version}' && git push origin release/changelog-cli-v${nextRelease.version}"
+        "prepareCmd": "echo 'Preparing release ${nextRelease.version}'",
+        "successCmd": "git checkout -b release/cli-v${nextRelease.version} && git add CHANGELOG.md package.json && git commit -m 'ci(cli): release version ${nextRelease.version}' && git push origin release/cli-v${nextRelease.version}"
       }
     ]
   ]

@@ -160,7 +160,7 @@ jobs:
             echo "  - Configuration errors: $(grep -c -i "error" analysis.txt || echo "0")"
           fi
 
-  release-minor-patch:
+  create-version-pr:
     needs: analyze
     runs-on: ubuntu-latest
     if: needs.analyze.outputs.should-release == 'true' && needs.analyze.outputs.release-type != 'major'
@@ -177,35 +177,44 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      - name: Release
+      - name: Create version update PR
         run: |
           cd cli
           npm run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.SRB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
 
-      - name: Summary
+      - name: Create Pull Request
         run: |
-          echo "## ✅ Release Published" >> $GITHUB_STEP_SUMMARY
-          echo "**Version**: ${{ needs.analyze.outputs.current-version }} → ${{ needs.analyze.outputs.next-version }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Type**: ${{ needs.analyze.outputs.release-type }}" >> $GITHUB_STEP_SUMMARY
-
-      - name: Create Semantic Release PR
-        if: needs.analyze.outputs.should-release == 'true'
-        run: |
-          CHANGELOG_BRANCH="release/changelog-cli-v${{ needs.analyze.outputs.next-version }}"
+          RELEASE_BRANCH="release/cli-v${{ needs.analyze.outputs.next-version }}"
           
-          if git ls-remote --heads origin $CHANGELOG_BRANCH | grep -q $CHANGELOG_BRANCH; then
+          if git ls-remote --heads origin $RELEASE_BRANCH | grep -q $RELEASE_BRANCH; then
+            PR_BODY="🚀 **Automated Release PR**
+          
+          This PR updates the CLI version from ${{ needs.analyze.outputs.current-version }} to ${{ needs.analyze.outputs.next-version }}.
+          
+          **Changes:**
+          - Updated package.json version to ${{ needs.analyze.outputs.next-version }}
+          - Updated CHANGELOG.md with release notes
+          
+          **Next Steps:**
+          Upon merging this PR, the automated publish workflow will publish the package to npm and create a GitHub release.
+          
+          ⚠️ Do not edit this PR manually - it is generated automatically by semantic-release"
+          
             gh pr create \
-              --title "ci(cli): update changelog & versions for v${{ needs.analyze.outputs.next-version }}" \
-              --body "Automated changelog & versions update update for CLI release v${{ needs.analyze.outputs.next-version }}" \
-              --head "$CHANGELOG_BRANCH" \
-              --base main
-            echo "📋 Changelog PR created for branch: $CHANGELOG_BRANCH" >> $GITHUB_STEP_SUMMARY
+              --title "ci(cli): release version ${{ needs.analyze.outputs.next-version }}" \
+              --body "$PR_BODY" \
+              --head "$RELEASE_BRANCH" \
+              --base main \
+              --label "automated-release"
+            
+            echo "📋 Version update PR created for branch: $RELEASE_BRANCH" >> $GITHUB_STEP_SUMMARY
+            echo "**Version**: ${{ needs.analyze.outputs.current-version }} → ${{ needs.analyze.outputs.next-version }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Type**: ${{ needs.analyze.outputs.release-type }}" >> $GITHUB_STEP_SUMMARY
           else
-            echo "No changelog branch found - no CHANGELOG.md updates needed"
-            echo "ℹ️ No changelog updates needed" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Release branch not found - semantic-release may have failed"
+            exit 1
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
