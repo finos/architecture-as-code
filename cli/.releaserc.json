@@ -287,7 +287,7 @@
             "BREAKING CHANGE",
             "BREAKING CHANGES"
           ],
-          "mergePattern": "^Merge pull request #(\\d+) from (.*)$",
+          "mergePattern": "^Merge pull request #\\d+ from .*$|^Merge branch .*$|^Merge .*$",
           "mergeCorrespondence": ["id", "source"]
         },
         "writerOpts": {
@@ -318,10 +318,24 @@
       "@semantic-release/release-notes-generator",
       {
         "preset": "conventionalcommits",
+        "parserOpts": {
+          "mergePattern": "^Merge pull request #\\d+ from .*$|^Merge branch .*$|^Merge .*$",
+          "mergeCorrespondence": [
+            "id",
+            "source"
+          ]
+        },
         "writerOpts": {
           "transform": {
             "merge": null
-          }
+          },
+          "groupBy": "type",
+          "commitGroupsSort": "title",
+          "commitsSort": [
+            "scope",
+            "subject"
+          ],
+          "noteGroupsSort": "title"
         },
         "presetConfig": {
           "types": [
@@ -448,6 +462,12 @@
       {
         "changelogFile": "CHANGELOG.md",
         "changelogTitle": "# Changelog\n\nAll notable changes to the CALM CLI will be documented in this file.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)."
+      }
+    ],
+    [
+      "@semantic-release/npm",
+      {
+        "npmPublish": false
       }
     ],
     [
