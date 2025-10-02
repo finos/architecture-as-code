@@ -7,10 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 1.8.0 (2025-10-02)
 
-* Merge pull request #1670 from LeighFinegold/block-architecture-shapes ([b9f36126ef796c645feb23d95dca4c2715ef1c16](https://github.com/finos/architecture-as-code/commit/b9f36126ef796c645feb23d95dca4c2715ef1c16)), closes [#1670](https://github.com/finos/architecture-as-code/issues/1670)
-* Merge pull request #1671 from finos/release/changelog-cli-v1.7.0 ([ab3866b437df5205a509aca038acecdb6d61cf45](https://github.com/finos/architecture-as-code/commit/ab3866b437df5205a509aca038acecdb6d61cf45)), closes [#1671](https://github.com/finos/architecture-as-code/issues/1671)
-* Merge pull request #1672 from rocketstack-matt/cli-release ([7d6b181721e19b4fc5a3b2f6d2247be314b29b8e](https://github.com/finos/architecture-as-code/commit/7d6b181721e19b4fc5a3b2f6d2247be314b29b8e)), closes [#1672](https://github.com/finos/architecture-as-code/issues/1672)
-* Merge pull request #1676 from rocketstack-matt/semantic-release ([4eef7061328e49f4d232226216326b1a8a3d1bdb](https://github.com/finos/architecture-as-code/commit/4eef7061328e49f4d232226216326b1a8a3d1bdb)), closes [#1676](https://github.com/finos/architecture-as-code/issues/1676)
 * fix(ci): correct formatting of release notes in publish CLI workflow ([dde1c6917c0a2f53540cf795c81d0ad23d900997](https://github.com/finos/architecture-as-code/commit/dde1c6917c0a2f53540cf795c81d0ad23d900997))
 * feat(calm-widgets): adding new node-type shapes for block-architecture diagrams (#1669) ([d552c080c9a7df67b312efa7352098b290aa83ac](https://github.com/finos/architecture-as-code/commit/d552c080c9a7df67b312efa7352098b290aa83ac)), closes [#1669](https://github.com/finos/architecture-as-code/issues/1669)
 * feat(cli): update automated release workflow to be two stage (#1673) ([86e9d5b3690dae87c7cde325cbf1ead580b43349](https://github.com/finos/architecture-as-code/commit/86e9d5b3690dae87c7cde325cbf1ead580b43349)), closes [#1673](https://github.com/finos/architecture-as-code/issues/1673)
