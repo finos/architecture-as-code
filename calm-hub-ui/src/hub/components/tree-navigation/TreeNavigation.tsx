@@ -312,7 +312,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
     };
 
     return (
-        <div className="border border-gray-300 h-full w-full overflow-auto flex flex-col">
+        <div className="border-r border-base-300 h-full w-full overflow-auto flex flex-col">
             <div className="flex-1 overflow-auto px-4 pb-4">
                 <ul className="menu w-full">
                     <li>

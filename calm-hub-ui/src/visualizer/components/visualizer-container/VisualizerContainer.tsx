@@ -30,7 +30,7 @@ export function VisualizerContainer({
     const toggleConnectionDesc = () => setConDescActive((prev) => !prev);
 
     return (
-        <div className="relative flex m-auto border" data-testid="visualizer-container">
+        <div className="relative flex m-auto" data-testid="visualizer-container">
             <DiagramControlPanel
                 title={title}
                 isNodeDescActive={isNodeDescActive}
