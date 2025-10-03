@@ -42,7 +42,7 @@ describe('DiagramControlPanel', () => {
             />
         );
         expect(screen.getByText('Architecture:')).toBeInTheDocument();
-        expect(screen.getByText('Display Settings')).toBeInTheDocument();
+        expect(screen.getByText('View')).toBeInTheDocument();
     });
 
     it('should call toggleNodeDesc when Node Descriptions checkbox is clicked', () => {

@@ -29,6 +29,8 @@ export interface CytoscapeRendererProps {
     edges: Edge[];
     nodeClickedCallback: (x: CytoscapeNode['data'] | Edge['data']) => void;
     edgeClickedCallback: (x: CytoscapeNode['data'] | Edge['data']) => void;
+    backgroundClickedCallback?: () => void;
+    selectedItemId?: string;
     calmKey: string;
 }
 
@@ -75,9 +77,6 @@ const accentLightColor = getComputedStyle(document.documentElement)
 const accentColor = getComputedStyle(document.documentElement)
     .getPropertyValue('--color-accent')
     .trim();
-const primaryColor = getComputedStyle(document.documentElement)
-    .getPropertyValue('--color-primary')
-    .trim();
 
 export function CytoscapeRenderer({
     nodes = [],
@@ -86,6 +85,8 @@ export function CytoscapeRenderer({
     isNodeDescActive,
     nodeClickedCallback,
     edgeClickedCallback,
+    backgroundClickedCallback,
+    selectedItemId,
     calmKey,
 }: CytoscapeRendererProps) {
     const cyRef = useRef<HTMLDivElement>(null);
@@ -111,14 +112,14 @@ export function CytoscapeRenderer({
                 {
                     selector: 'node:selected',
                     style: {
-                        backgroundColor: accentLightColor,
+                        'background-color': accentLightColor,
                     },
                 },
                 {
                     selector: 'edge:selected',
                     style: {
-                        'line-color': primaryColor,
-                        'target-arrow-color': primaryColor,
+                        'line-color': accentColor,
+                        'target-arrow-color': accentColor,
                     },
                 },
                 {
@@ -172,6 +173,12 @@ export function CytoscapeRenderer({
             edgeClickedCallback(edge.data());
         });
 
+        cy.on('tap', (e) => {
+            if (e.target === cy && backgroundClickedCallback) {
+                backgroundClickedCallback();
+            }
+        });
+
         cy.on('dragfree', 'node', () => {
             const nodePositions = cy
                 .nodes()
@@ -185,6 +192,19 @@ export function CytoscapeRenderer({
 
         layoutCorrectionService.calculateAndUpdateNodePositions(cy, nodes);
 
+        // Apply selection highlighting based on selectedItemId
+        if (cy.elements && cy.getElementById) {
+            if (selectedItemId) {
+                const element = cy.getElementById(selectedItemId);
+                if (element.length > 0) {
+                    cy.elements().unselect();
+                    element.select();
+                }
+            } else {
+                cy.elements().unselect();
+            }
+        }
+
         return () => {
             zoom.current = cy.zoom();
             pan.current = cy.pan();
@@ -197,6 +217,8 @@ export function CytoscapeRenderer({
         isRelationshipDescActive,
         nodeClickedCallback,
         edgeClickedCallback,
+        backgroundClickedCallback,
+        selectedItemId,
         cyRef,
         calmKey,
     ]);

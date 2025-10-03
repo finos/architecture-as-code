@@ -4,17 +4,12 @@ import { TreeNavigation } from './components/tree-navigation/TreeNavigation.js';
 import { Data, Adr } from '../model/calm.js';
 import { Navbar } from '../components/navbar/Navbar.js';
 import { AdrRenderer } from './components/adr-renderer/AdrRenderer.js';
-import { useNavigate } from 'react-router-dom';
 import './Hub.css';
+import { Drawer } from '../visualizer/components/drawer/Drawer.js';
 
-function Hub() {
-    const navigate = useNavigate();
+export default function Hub() {
     const [data, setData] = useState<Data | undefined>();
     const [adrData, setAdrData] = useState<Adr | undefined>();
-
-    function handleVisualize(data: Data) {
-        navigate('/visualizer', { state: data });
-    }
 
     function handleDataLoad(data: Data) {
         setData(data);
@@ -29,23 +24,21 @@ function Hub() {
     return (
         <>
             <Navbar />
-            <div className="flex flex-row h-[95%] overflow-auto">
+            <div className="flex flex-row h-[95%]">
                 <div className="w-1/4">
                     <TreeNavigation onDataLoad={handleDataLoad} onAdrLoad={handleAdrLoad} />
                 </div>
                 {adrData ? (
                     <AdrRenderer adrDetails={adrData} />
                 ) : (
-                    <div className="p-5 flex-1 overflow-auto bg-[#eee] border-t-1 border-gray-300">
-                        {data && (
-                            <button
-                                className="bg-primary hover:bg-blue-500 text-white font-bold py-2 px-4 rounded float-right visualize-button"
-                                onClick={() => handleVisualize(data)}
-                            >
-                                Visualize
-                            </button>
+                    <div className="w-full h-full overflow-auto">
+                        {adrData && <AdrRenderer adrDetails={adrData} />}
+                        {data?.calmType === 'Architectures' && <ArchitectureSection data={data} />}
+                        {data?.calmType !== 'Architectures' && !adrData && (
+                            <div className="p-5 bg-[#eee] h-full">
+                                <JsonRenderer json={data} />
+                            </div>
                         )}
-                        <JsonRenderer json={data} />
                     </div>
                 )}
             </div>
@@ -53,4 +46,32 @@ function Hub() {
     );
 }
 
-export default Hub;
+function ArchitectureSection({ data }: { data: Data & { calmType: 'Architectures' } }) {
+    return (
+        <div className="relative w-full h-full overflow-auto">
+            <div className="tabs tabs-box w-full h-full">
+                <input
+                    type="radio"
+                    name="view-tabs"
+                    className="tab absolute top-4 right-25 z-[100] backdrop-blur-sm shadow-lg rounded-lg px-4 py-2 border border-gray-200 bg-white/90 checked:!bg-[#007dff] checked:!text-white hover:bg-gray-100/90"
+                    aria-label="JSON"
+                    defaultChecked
+                />
+                <div className="tab-content h-full">
+                    <div className="h-full bg-[#eee]">
+                        <JsonRenderer json={data} />
+                    </div>
+                </div>
+                <input
+                    type="radio"
+                    name="view-tabs"
+                    className="tab absolute top-4 right-4 z-[100] backdrop-blur-sm shadow-lg rounded-lg px-4 py-2 border border-gray-200 bg-white/90 checked:!bg-[#007dff] checked:!text-white hover:bg-gray-100/90"
+                    aria-label="Diagram"
+                />
+                <div className="tab-content h-full">
+                    <Drawer data={data} />
+                </div>
+            </div>
+        </div>
+    );
+}
