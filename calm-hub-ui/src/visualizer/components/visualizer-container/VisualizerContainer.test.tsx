@@ -40,7 +40,7 @@ describe('VisualizerContainer', () => {
         expect(screen.getByTestId('visualizer-container')).toBeInTheDocument();
     });
 
-    it('shows Sidebar when a node is clicked and closes it', () => {
+    it('calls nodeClickedCallback when a node is clicked', () => {
         const nodes: CytoscapeNode[] = [
             {
                 data: {
@@ -59,24 +59,23 @@ describe('VisualizerContainer', () => {
             },
         ];
 
+        const nodeClickedCallback = vi.fn();
+
         render(
             <VisualizerContainer
                 title="Test Architecture"
                 calmKey="test"
                 nodes={nodes}
                 edges={[]}
+                nodeClickedCallback={nodeClickedCallback}
             />
         );
 
         fireEvent.click(screen.getByTestId('node'));
-        expect(screen.getByTestId('sidebar')).toBeInTheDocument();
-        expect(screen.getByText('Node')).toBeInTheDocument();
-
-        fireEvent.click(screen.getByText('Close'));
-        expect(screen.queryByTestId('sidebar')).not.toBeInTheDocument();
+        expect(nodeClickedCallback).toHaveBeenCalledWith(nodes[0].data);
     });
 
-    it('shows Sidebar when an edge is clicked and closes it', () => {
+    it('calls edgeClickedCallback when an edge is clicked', () => {
         const edges: Edge[] = [
             {
                 data: {
@@ -88,19 +87,19 @@ describe('VisualizerContainer', () => {
             },
         ];
 
+        const edgeClickedCallback = vi.fn();
+
         render(
             <VisualizerContainer
                 title="Test Architecture"
                 calmKey="test"
                 nodes={[]}
                 edges={edges}
+                edgeClickedCallback={edgeClickedCallback}
             />
         );
 
         fireEvent.click(screen.getByTestId('edge'));
-        expect(screen.getByTestId('sidebar')).toBeInTheDocument();
-
-        fireEvent.click(screen.getByText('Close'));
-        expect(screen.queryByTestId('sidebar')).not.toBeInTheDocument();
+        expect(edgeClickedCallback).toHaveBeenCalledWith(edges[0].data);
     });
 });

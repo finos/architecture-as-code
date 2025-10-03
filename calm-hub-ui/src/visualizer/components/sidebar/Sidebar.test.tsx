@@ -50,7 +50,7 @@ describe('Sidebar Component', () => {
 
         expect(screen.getByText('Unknown Selected Entity')).toBeInTheDocument();
         expect(screen.queryByText('Node Details')).not.toBeInTheDocument();
-        expect(screen.queryByText('Edge Details')).not.toBeInTheDocument();
+        expect(screen.queryByText('Relationship Details')).not.toBeInTheDocument();
     });
 
     it('should render edge details correctly', () => {
@@ -59,7 +59,7 @@ describe('Sidebar Component', () => {
         // Monaco Editor is mocked as a textarea, so check its value
         const textarea = screen.getByTestId('monaco-editor');
 
-        expect(screen.getByText('Edge Details')).toBeInTheDocument();
+        expect(screen.getByText('Relationship Details')).toBeInTheDocument();
         expect(textarea).toHaveValue(JSON.stringify(mockEdgeData, null, 2));
     });
 

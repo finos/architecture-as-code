@@ -77,9 +77,12 @@ export function Drawer({ data }: DrawerProps) {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
     useEffect(() => {
-        setTitle(title ?? data?.name);
+        // Only update title from data if data exists and title wasn't already set by file upload
+        if (data?.name && data?.id && data?.version) {
+            setTitle(data.name + '/' + data.id + '/' + data.version);
+        }
         setCALMInstance((fileInstance as CalmArchitectureSchema) ?? data?.data);
-    }, [fileInstance, title, data]);
+    }, [fileInstance, data]);
 
     function closeSidebar() {
         setSelectedNode(null);
@@ -203,6 +206,14 @@ export function Drawer({ data }: DrawerProps) {
                             nodes={nodes}
                             edges={edges}
                             calmKey={createStorageKey(title, data)}
+                            nodeClickedCallback={(nodeData) =>
+                                setSelectedNode({ data: nodeData } as CytoscapeNode)
+                            }
+                            edgeClickedCallback={(edgeData) =>
+                                setSelectedNode({ data: edgeData } as CytoscapeNode)
+                            }
+                            backgroundClickedCallback={closeSidebar}
+                            selectedItemId={selectedNode?.data?.id}
                         />
                     ) : (
                         <div className="flex justify-center items-center h-full w-full">

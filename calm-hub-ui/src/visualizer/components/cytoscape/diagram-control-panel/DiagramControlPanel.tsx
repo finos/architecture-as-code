@@ -1,26 +1,26 @@
-export interface CytoscapeControlPanelProps {
+export interface DiagramControlPanelProps {
     title: string;
     isNodeDescActive: boolean;
     isRelationshipDescActive: boolean;
     toggleConnectionDesc: () => void;
     toggleNodeDesc: () => void;
 }
-export function CytoscapeControlPanel({
+export function DiagramControlPanel({
     title,
     isNodeDescActive,
     isRelationshipDescActive,
     toggleConnectionDesc,
     toggleNodeDesc,
-}: CytoscapeControlPanelProps) {
+}: DiagramControlPanelProps) {
     return (
-        <div className="graph-title absolute m-5 btn-outline btn-primary shadow-md p-4">
+        <div className="graph-title absolute m-6 bg-base-100 shadow-lg p-4 rounded-lg border border-base-300">
             <div className="mb-4">
-                <span className="text-lg font-thin text-primary">Architecture: </span>
-                <span className="text-lg font-semibold text-primary">{title}</span>
+                <span className="text-lg font-normal text-base-content">Architecture: </span>
+                <span className="text-lg font-semibold text-base-content">{title}</span>
             </div>
             <hr className="my-4 border-base-300" />
             <div>
-                <div className="text-sm font-semibold mb-2 text-primary">Display Settings</div>
+                <div className="text-sm font-semibold mb-2 text-base-content">View</div>
                 <div className="flex flex-col gap-2 text-sm">
                     <label className="label cursor-pointer">
                         <input
