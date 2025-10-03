@@ -64,7 +64,11 @@ function ArchitectureSection({ data }: { data: Data & { calmType: 'Architectures
                     aria-label="Diagram"
                 />
                 <div className="tab-content h-full">
-                    <Drawer calmInstance={data?.data} title={''} data={data} />
+                    <Drawer
+                        calmInstance={data?.data}
+                        title={data?.name + '/' + data?.id + '/' + data?.version || ''}
+                        data={data}
+                    />
                 </div>
             </div>
         </div>

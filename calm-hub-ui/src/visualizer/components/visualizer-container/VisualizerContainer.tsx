@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { Sidebar } from '../sidebar/Sidebar.js';
 import { CytoscapeRenderer } from '../cytoscape/cytoscape-renderer/CytoscapeRenderer.js';
-import { CytoscapeControlPanel } from '../cytoscape/cytoscape-control-panel/CytoscapeControlPanel.js';
+import { DiagramControlPanel } from '../cytoscape/diagram-control-panel/DiagramControlPanel.js';
 
 interface VisualizerContainerProps {
     title?: string;
@@ -33,7 +33,7 @@ export function VisualizerContainer({
     return (
         <div className="relative flex m-auto" data-testid="visualizer-container">
             {title && (
-                <CytoscapeControlPanel
+                <DiagramControlPanel
                     title={title}
                     isNodeDescActive={isNodeDescActive}
                     isRelationshipDescActive={isRelationshipDescActive}

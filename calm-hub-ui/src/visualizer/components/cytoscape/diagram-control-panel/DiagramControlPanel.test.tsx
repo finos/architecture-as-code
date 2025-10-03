@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { CytoscapeControlPanel } from './CytoscapeControlPanel.js';
+import { DiagramControlPanel } from './DiagramControlPanel.js';
 
 vi.mock('../sidebar/Sidebar.js', () => ({
     Sidebar: ({ closeSidebar }: SidebarProps) => (
@@ -31,7 +31,7 @@ vi.mock('../cytoscape/cytoscape-renderer/CytoscapeRenderer.js', () => ({
 describe('CytoscapeControlPanel', () => {
     it('should successfully render cytoscape control panel', () => {
         render(
-            <CytoscapeControlPanel
+            <DiagramControlPanel
                 title="Test Architecture"
                 isNodeDescActive={true}
                 isRelationshipDescActive={true}
@@ -46,7 +46,7 @@ describe('CytoscapeControlPanel', () => {
     it('should call toggleNodeDesc when Node Descriptions checkbox is clicked', () => {
         const toggleNodeDesc = vi.fn();
         render(
-            <CytoscapeControlPanel
+            <DiagramControlPanel
                 title="Test Architecture"
                 isNodeDescActive={false}
                 isRelationshipDescActive={false}
@@ -61,7 +61,7 @@ describe('CytoscapeControlPanel', () => {
     it('should call toggleConnectionDesc when Relationship Descriptions checkbox is clicked', () => {
         const toggleConnectionDesc = vi.fn();
         render(
-            <CytoscapeControlPanel
+            <DiagramControlPanel
                 title="Test Architecture"
                 isNodeDescActive={false}
                 isRelationshipDescActive={false}
