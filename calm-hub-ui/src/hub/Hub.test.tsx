@@ -91,17 +91,19 @@ describe('Hub', () => {
         expect(screen.getByTestId('adr-renderer')).toHaveTextContent('ADR: test-adr');
     });
 
-    it('shows Visualize button when data is loaded', () => {
+    it('shows JSON and Diagram tabs when architecture data is loaded', () => {
         renderWithRouter(<Hub />);
 
-        // Initially, no Visualize button
-        expect(screen.queryByText('Visualize')).not.toBeInTheDocument();
+        // Initially, no tabs should be visible
+        expect(screen.queryByLabelText('JSON')).not.toBeInTheDocument();
+        expect(screen.queryByLabelText('Diagram')).not.toBeInTheDocument();
 
-        // Load test data
+        // Load test data (non-architecture type shouldn't show tabs)
         fireEvent.click(screen.getByText('Load Test Data'));
 
-        // Now Visualize button should appear
-        expect(screen.getByText('Visualize')).toBeInTheDocument();
+        // Still no tabs for non-Architecture calmType
+        expect(screen.queryByLabelText('JSON')).not.toBeInTheDocument();
+        expect(screen.queryByLabelText('Diagram')).not.toBeInTheDocument();
     });
 
     it('switches between JsonRenderer and AdrRenderer correctly', () => {

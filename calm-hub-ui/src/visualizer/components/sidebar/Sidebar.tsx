@@ -26,39 +26,47 @@ export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
     const isCALMEdge = isCALMEdgeData(selectedData);
 
     return (
-        <div className="fixed right-0 h-full w-90 bg-base-300 shadow-lg">
+        <div className="fixed right-0 h-full w-96 bg-base-200 shadow-2xl flex flex-col">
             <label htmlFor="node-details" className="drawer-overlay" onClick={closeSidebar}></label>
-            <div className="menu bg-base-300 text-base-content h-full w-90 p-4">
-                <div className="flex justify-end">
-                    <button
-                        aria-label="close-sidebar"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            closeSidebar();
-                        }}
-                        className="btn btn-square btn-xs bg-red-500 hover:bg-red-600 text-white"
-                    >
-                        <IoCloseOutline size={24} />
-                    </button>
+
+            {/* Header */}
+            <div className="bg-base-100 border-b border-base-300 p-4 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                    <div
+                        className="w-1 h-6 rounded-full"
+                        style={{ backgroundColor: 'var(--color-accent)' }}
+                    ></div>
+                    <h2 className="text-lg font-semibold text-base-content">
+                        {isCALMNode
+                            ? 'Node Details'
+                            : isCALMEdge
+                              ? 'Relationship Details'
+                              : 'Details'}
+                    </h2>
                 </div>
-                {isCALMNode && (
-                    <>
-                        <div className="text-sm font-semibold mb-2 text-primary">Node Details</div>
-                        <div className="max-w-full overflow-y-auto overflow-x-auto">
-                            <JsonRenderer json={selectedData} />
-                        </div>
-                    </>
-                )}
-                {isCALMEdge && (
-                    <>
-                        <div className="text-sm font-semibold mb-2 text-primary">Edge Details</div>
-                        <div className="max-w-full overflow-y-auto overflow-x-auto">
-                            <JsonRenderer json={selectedData} />
-                        </div>
-                    </>
+                <button
+                    aria-label="close-sidebar"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        closeSidebar();
+                    }}
+                    className="btn btn-ghost btn-sm btn-circle hover:bg-base-300"
+                >
+                    <IoCloseOutline size={20} />
+                </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 flex flex-col p-4 min-h-0">
+                {(isCALMNode || isCALMEdge) && (
+                    <div className="flex-1 bg-base-100 rounded-lg border border-base-300 overflow-auto shadow-sm min-h-0">
+                        <JsonRenderer json={selectedData} />
+                    </div>
                 )}
                 {!isCALMEdge && !isCALMNode && (
-                    <div className="text-xl font-bold mb-2">Unknown Selected Entity</div>
+                    <div className="flex items-center justify-center flex-1 text-base-content/60">
+                        <p>Unknown Selected Entity</p>
+                    </div>
                 )}
             </div>
         </div>
