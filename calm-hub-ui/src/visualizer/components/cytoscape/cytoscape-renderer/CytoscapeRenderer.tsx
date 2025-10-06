@@ -27,8 +27,8 @@ export interface CytoscapeRendererProps {
     isRelationshipDescActive: boolean;
     nodes: CytoscapeNode[];
     edges: Edge[];
-    nodeClickedCallback: (x: CytoscapeNode['data'] | Edge['data']) => void;
-    edgeClickedCallback: (x: CytoscapeNode['data'] | Edge['data']) => void;
+    nodeClickedCallback: (x: CytoscapeNode['data']) => void;
+    edgeClickedCallback: (x: Edge['data']) => void;
     backgroundClickedCallback?: () => void;
     selectedItemId?: string;
     calmKey: string;

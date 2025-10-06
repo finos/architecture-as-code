@@ -8,8 +8,8 @@ export interface VisualizerContainerProps {
     nodes: CytoscapeNode[];
     edges: Edge[];
     calmKey: string;
-    nodeClickedCallback?: (x: CytoscapeNode['data'] | Edge['data']) => void;
-    edgeClickedCallback?: (x: CytoscapeNode['data'] | Edge['data']) => void;
+    nodeClickedCallback: (x: CytoscapeNode['data']) => void;
+    edgeClickedCallback: (x: Edge['data']) => void;
     backgroundClickedCallback?: () => void;
     selectedItemId?: string;
 }
@@ -43,8 +43,8 @@ export function VisualizerContainer({
                 isRelationshipDescActive={isRelationshipDescActive}
                 nodes={nodes}
                 edges={edges}
-                nodeClickedCallback={nodeClickedCallback || (() => {})}
-                edgeClickedCallback={edgeClickedCallback || (() => {})}
+                nodeClickedCallback={nodeClickedCallback}
+                edgeClickedCallback={edgeClickedCallback}
                 backgroundClickedCallback={backgroundClickedCallback}
                 selectedItemId={selectedItemId}
                 calmKey={calmKey}
