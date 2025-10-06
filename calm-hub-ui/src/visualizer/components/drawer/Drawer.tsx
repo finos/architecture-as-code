@@ -64,7 +64,7 @@ export function Drawer({ data }: DrawerProps) {
     const [title, setTitle] = useState<string>('');
     const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
     const [fileInstance, setFileInstance] = useState<string | undefined>(undefined);
-    const [selectedNode, setSelectedNode] = useState<CytoscapeNode | null>(null);
+    const [selectedNode, setSelectedNode] = useState<CytoscapeNode | Edge | null>(null);
 
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
         if (acceptedFiles[0]) {
@@ -206,12 +206,8 @@ export function Drawer({ data }: DrawerProps) {
                             nodes={nodes}
                             edges={edges}
                             calmKey={createStorageKey(title, data)}
-                            nodeClickedCallback={(nodeData) =>
-                                setSelectedNode({ data: nodeData } as CytoscapeNode)
-                            }
-                            edgeClickedCallback={(edgeData) =>
-                                setSelectedNode({ data: edgeData } as CytoscapeNode)
-                            }
+                            nodeClickedCallback={(nodeData) => setSelectedNode({ data: nodeData })}
+                            edgeClickedCallback={(edgeData) => setSelectedNode({ data: edgeData })}
                             backgroundClickedCallback={closeSidebar}
                             selectedItemId={selectedNode?.data?.id}
                         />
