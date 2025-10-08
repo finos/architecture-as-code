@@ -496,8 +496,8 @@ export class CalmPreviewPanel {
       return false
     }
 
-    // Check for absolute file paths
-    if (path.startsWith('/') || path.match(/^[a-zA-Z]:\\/)) {
+    // Check for absolute file paths (cross-platform)
+    if (require('path').isAbsolute(path)) {
       return false
     }
 
