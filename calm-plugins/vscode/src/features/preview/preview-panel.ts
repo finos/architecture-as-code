@@ -24,7 +24,7 @@ import {
 } from './commands'
 import { PreviewViewModel } from './preview.view-model'
 import { Logger } from '../../core/ports/logger'
-import {GraphData} from "../../models/model";
+import { GraphData } from "../../models/model";
 
 /** ---------- main panel ---------- */
 export class CalmPreviewPanel {
@@ -422,12 +422,17 @@ export class CalmPreviewPanel {
 
     try {
       const sourceDir = path.dirname(sourceFile)
-      this.log.info(`[preview] Source directory: ${sourceDir}`)
 
       // Regex to match markdown image syntax:
       // - Inline images: ![alt](path), ![alt](path "title"), ![alt](path 'title')
       // - Reference-style images: ![alt][ref]
       const imageRegex = /!\[([^\]]*)\]\(([^)\s]+)(?:\s+(['"])(.*?)\3)?\)|!\[([^\]]*)\]\[([^\]]+)\]/g
+
+      this.log.info(`[preview] Searching for images with regex: ${imageRegex.source}`)
+
+      // Test if the regex finds any matches
+      const testMatches = markdownContent.match(imageRegex)
+      this.log.info(`[preview] Found ${testMatches ? testMatches.length : 0} potential image matches: ${testMatches ? JSON.stringify(testMatches) : 'none'}`)
 
       const processedContent = markdownContent.replace(imageRegex, (match, alt1, imagePath, quote, title, alt2, ref) => {
         // Handle inline images: ![alt](path "title") or ![alt](path)
@@ -451,7 +456,10 @@ export class CalmPreviewPanel {
               this.log.info(`[preview] Resolved ${imagePath} to ${absolutePath}`)
 
               // Convert to webview URI
-              const webviewUri = this.panel.webview.asWebviewUri(vscode.Uri.file(absolutePath))
+              this.log.info(`[preview] Creating vscode.Uri.file from: ${absolutePath}`)
+              const fileUri = vscode.Uri.file(absolutePath)
+              this.log.info(`[preview] Created file URI: ${fileUri.toString()}`)
+              const webviewUri = this.panel.webview.asWebviewUri(fileUri)
               const convertedPath = webviewUri.toString()
               this.log.info(`[preview] Converted to webview URI: ${convertedPath}`)
 
@@ -483,9 +491,12 @@ export class CalmPreviewPanel {
       })
 
       this.log.info(`[preview] Markdown preprocessing completed`)
+      this.log.info(`[preview] Processed content length: ${processedContent.length}`)
+      this.log.info(`[preview] Processed content preview: ${processedContent.substring(0, 500)}...`)
       return processedContent
     } catch (error) {
       this.log.error?.(`[preview] Error preprocessing markdown images: ${String(error)}`)
+      this.log.error?.(`[preview] Stack trace: ${error instanceof Error ? error.stack : 'No stack trace'}`)
       return markdownContent // Return original content if preprocessing fails
     }
   }
