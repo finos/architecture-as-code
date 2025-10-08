@@ -490,19 +490,24 @@ export class CalmPreviewPanel {
     }
   }
 
-  private isRelativePath(path: string): boolean {
+  private isRelativePath(imagePath: string): boolean {
     // Check for absolute URLs
-    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:') || path.startsWith('blob:')) {
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://') || imagePath.startsWith('data:') || imagePath.startsWith('blob:')) {
       return false
     }
 
-    // Check for absolute file paths (cross-platform)
-    if (require('path').isAbsolute(path)) {
-      return false
+    // Check for absolute file paths
+    if (imagePath.startsWith('/')) {
+      return false // Unix/macOS absolute path
+    }
+
+    // Check for Windows absolute paths (C:\, D:\, etc.)
+    if (imagePath.match(/^[a-zA-Z]:\\/)) {
+      return false // Windows absolute path
     }
 
     // Check for special VS Code URIs
-    if (path.startsWith('vscode-')) {
+    if (imagePath.startsWith('vscode-')) {
       return false
     }
 
