@@ -424,42 +424,62 @@ export class CalmPreviewPanel {
       const sourceDir = path.dirname(sourceFile)
       this.log.info(`[preview] Source directory: ${sourceDir}`)
 
-      // Regex to match markdown image syntax: ![alt](path)
-      const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g
+      // Regex to match markdown image syntax:
+      // - Inline images: ![alt](path), ![alt](path "title"), ![alt](path 'title')
+      // - Reference-style images: ![alt][ref]
+      const imageRegex = /!\[([^\]]*)\]\(([^)\s]+)(?:\s+(['"])(.*?)\3)?\)|!\[([^\]]*)\]\[([^\]]+)\]/g
 
-      const processedContent = markdownContent.replace(imageRegex, (match, alt, imagePath) => {
-        this.log.info(`[preview] Found image: alt="${alt}", path="${imagePath}"`)
+      const processedContent = markdownContent.replace(imageRegex, (match, alt1, imagePath, quote, title, alt2, ref) => {
+        // Handle inline images: ![alt](path "title") or ![alt](path)
+        if (alt1 !== undefined) {
+          this.log.info(`[preview] Found image: alt="${alt1}", path="${imagePath}"${title ? `, title="${title}"` : ''}`)
 
-        if (this.isRelativePath(imagePath)) {
-          try {
-            let absolutePath: string
+          if (this.isRelativePath(imagePath)) {
+            try {
+              let absolutePath: string
 
-            if (imagePath.startsWith('./')) {
-              absolutePath = path.resolve(sourceDir, imagePath.substring(2))
-            } else if (imagePath.startsWith('../')) {
-              absolutePath = path.resolve(sourceDir, imagePath)
-            } else if (!imagePath.startsWith('/')) {
-              absolutePath = path.resolve(sourceDir, imagePath)
-            } else {
-              return match // Skip absolute paths
+              if (imagePath.startsWith('./')) {
+                absolutePath = path.resolve(sourceDir, imagePath.substring(2))
+              } else if (imagePath.startsWith('../')) {
+                absolutePath = path.resolve(sourceDir, imagePath)
+              } else if (!imagePath.startsWith('/')) {
+                absolutePath = path.resolve(sourceDir, imagePath)
+              } else {
+                return match // Skip absolute paths
+              }
+
+              this.log.info(`[preview] Resolved ${imagePath} to ${absolutePath}`)
+
+              // Convert to webview URI
+              const webviewUri = this.panel.webview.asWebviewUri(vscode.Uri.file(absolutePath))
+              const convertedPath = webviewUri.toString()
+              this.log.info(`[preview] Converted to webview URI: ${convertedPath}`)
+
+              // Preserve title if present
+              if (title) {
+                return `![${alt1}](${convertedPath} ${quote}${title}${quote})`
+              } else {
+                return `![${alt1}](${convertedPath})`
+              }
+            } catch (error) {
+              this.log.error?.(`[preview] Error converting image path ${imagePath}: ${String(error)}`)
+              return match // Return original if conversion fails
             }
-
-            this.log.info(`[preview] Resolved ${imagePath} to ${absolutePath}`)
-
-            // Convert to webview URI
-            const webviewUri = this.panel.webview.asWebviewUri(vscode.Uri.file(absolutePath))
-            const convertedPath = webviewUri.toString()
-            this.log.info(`[preview] Converted to webview URI: ${convertedPath}`)
-
-            return `![${alt}](${convertedPath})`
-          } catch (error) {
-            this.log.error?.(`[preview] Error converting image path ${imagePath}: ${String(error)}`)
-            return match // Return original if conversion fails
+          } else {
+            this.log.info(`[preview] Skipping non-relative image path: ${imagePath}`)
+            return match // Return original for non-relative paths
           }
-        } else {
-          this.log.info(`[preview] Skipping non-relative image path: ${imagePath}`)
-          return match // Return original for non-relative paths
         }
+        // Handle reference-style images: ![alt][ref]
+        else if (alt2 !== undefined && ref !== undefined) {
+          this.log.info(`[preview] Found reference-style image: alt="${alt2}", ref="${ref}"`)
+          // For reference-style images, we would need to parse the reference definitions
+          // elsewhere in the document. For now, we'll leave them unchanged.
+          this.log.info(`[preview] Reference-style images not yet supported, leaving unchanged`)
+          return match
+        }
+
+        return match
       })
 
       this.log.info(`[preview] Markdown preprocessing completed`)

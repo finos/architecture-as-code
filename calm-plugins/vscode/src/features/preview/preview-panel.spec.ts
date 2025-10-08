@@ -313,6 +313,47 @@ describe('CalmPreviewPanel', () => {
       expect(result).toContain('![Complex alt text with "quotes" and symbols](vscode-webview:///test/source/image.png)')
     })
 
+      it('should handle images with titles using double quotes', () => {
+          const markdown = '![Logo](./logo.png "This is the logo")'
+          const sourceFile = '/test/source/demo.md'
+
+          const result = (panel as any).preprocessMarkdownImages(markdown, sourceFile)
+
+          expect(result).toContain('![Logo](vscode-webview:///test/source/logo.png "This is the logo")')
+          expect(mockPanel.webview.asWebviewUri).toHaveBeenCalled()
+      })
+
+      it('should handle images with titles using single quotes', () => {
+          const markdown = "![Logo](./logo.png 'This is the logo')"
+          const sourceFile = '/test/source/demo.md'
+
+          const result = (panel as any).preprocessMarkdownImages(markdown, sourceFile)
+
+          expect(result).toContain("![Logo](vscode-webview:///test/source/logo.png 'This is the logo')")
+          expect(mockPanel.webview.asWebviewUri).toHaveBeenCalled()
+      })
+
+      it('should handle reference-style images by leaving them unchanged', () => {
+          const markdown = '![Logo][logo-ref]'
+          const sourceFile = '/test/source/demo.md'
+
+          const result = (panel as any).preprocessMarkdownImages(markdown, sourceFile)
+
+          expect(result).toBe(markdown) // Should be unchanged
+          expect(mockPanel.webview.asWebviewUri).not.toHaveBeenCalled()
+      })
+
+      it('should handle mixed inline and reference-style images', () => {
+          const markdown = '![Inline](./inline.png)\n![Reference][ref]\n![Another](./another.jpg "Title")'
+          const sourceFile = '/test/source/demo.md'
+
+          const result = (panel as any).preprocessMarkdownImages(markdown, sourceFile)
+
+          expect(result).toContain('![Inline](vscode-webview:///test/source/inline.png)')
+          expect(result).toContain('![Reference][ref]') // Unchanged
+          expect(result).toContain('![Another](vscode-webview:///test/source/another.jpg "Title")')
+      })
+
     it('should handle images with empty alt text', () => {
       const markdown = '![](./image.png)'
       const sourceFile = '/test/source/demo.md'
