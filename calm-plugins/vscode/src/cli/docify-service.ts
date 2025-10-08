@@ -67,8 +67,12 @@ export class DocifyService {
     this.log.info(`[docify-service] - output: ${fileNames.outFile}`)
     await this.executeDocify(archFilePath, fileNames.outFile, urlToLocalPathMapping, templatePath)
 
-    // Process results
-    return await this.processResults(tmpDir, fileNames.outFile)
+    // Process results - use the original template file path for image resolution
+    const originalSourceFile = params.isTemplateMode && params.templateFilePath
+      ? params.templateFilePath
+      : params.currentFilePath
+
+    return await this.processResults(tmpDir, fileNames.outFile, originalSourceFile)
   }
 
   private async prepareDocifyInputs(params: any) {
@@ -151,7 +155,7 @@ export class DocifyService {
     this.log.info('[preview] Docify finished')
   }
 
-  private async processResults(tmpDir: string, expectedOutputFile: string): Promise<DocifyResult> {
+  private async processResults(tmpDir: string, expectedOutputFile: string, originalSourceFile: string): Promise<DocifyResult> {
     let content: string
     let outputPath: string
 
@@ -174,7 +178,7 @@ export class DocifyService {
     return {
       content,
       format: this.processor.detectContentFormat(content),
-      sourceFile: outputPath
+      sourceFile: originalSourceFile // Use the original template file path for image resolution
     }
   }
 }

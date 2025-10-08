@@ -43,13 +43,13 @@ export class DocifyTabView {
      * Render docify result - keep it simple but render markdown properly
      */
     private async renderResult(result: { content: string; format: 'html' | 'markdown'; sourceFile: string }): Promise<void> {
-        const { content, format } = result
+        const { content, format, sourceFile } = result
         
         if (format === 'html') {
             ;(this.container as any).innerHTML = content
         } else {
-            // For markdown, render it through MermaidRenderer like the original
-            const renderedHtml = await this.markdownRenderer.render(content)
+            // For markdown, render it through MermaidRenderer with source file path for image resolution
+            const renderedHtml = await this.markdownRenderer.render(content, sourceFile)
             ;(this.container as any).innerHTML = renderedHtml
         }
     }
