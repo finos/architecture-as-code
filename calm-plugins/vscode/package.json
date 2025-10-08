@@ -2,7 +2,7 @@
     "name": "calm-vscode-plugin",
     "displayName": "CALM Preview & Tools",
     "description": "Live-visualize CALM architecture models, validate, and generate docs.",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "publisher": "FINOS",
     "homepage": "https://calm.finos.org",
     "repository": {
@@ -139,6 +139,7 @@
         "watch": "tsup --watch",
         "test": "vitest run",
         "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage",
         "lint": "eslint src",
         "lint-fix": "eslint src --fix",
         "package": "npm run build && vsce package --no-dependencies",
@@ -157,7 +158,6 @@
         "globals": "^16.0.0",
         "tsup": "^8.2.4",
         "typescript": "^5.6.2",
-        "vitest": "^3.2.4",
         "vsce": "^2.15.0"
     },
     "dependencies": {

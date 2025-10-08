@@ -24,7 +24,7 @@ import {
 } from './commands'
 import { PreviewViewModel } from './preview.view-model'
 import { Logger } from '../../core/ports/logger'
-import {GraphData} from "../../models/model";
+import { GraphData } from "../../models/model";
 
 /** ---------- main panel ---------- */
 export class CalmPreviewPanel {
@@ -70,6 +70,8 @@ export class CalmPreviewPanel {
         vscode.Uri.joinPath(context.extensionUri, 'dist'),
         vscode.Uri.joinPath(context.extensionUri, 'media'),
         vscode.Uri.joinPath(context.extensionUri, 'templates'),
+        // Add workspace folders to allow access to local images
+        ...(vscode.workspace.workspaceFolders || []).map(folder => folder.uri),
       ],
     })
     CalmPreviewPanel.currentPanel = new CalmPreviewPanel(panel, context, config, log)
@@ -103,6 +105,8 @@ export class CalmPreviewPanel {
         vscode.Uri.joinPath(context.extensionUri, 'dist'),
         vscode.Uri.joinPath(context.extensionUri, 'media'),
         vscode.Uri.joinPath(context.extensionUri, 'templates'),
+        // Add workspace folders to allow access to local images
+        ...(vscode.workspace.workspaceFolders || []).map(folder => folder.uri),
       ],
     })
     CalmPreviewPanel.currentPanel = new CalmPreviewPanel(panel, context, config, log, viewModel)
@@ -331,7 +335,7 @@ export class CalmPreviewPanel {
       const filteredData = this.modelService.filterBySelection(fullModelData, state.selectedId)
       this.post({ type: 'modelData', data: filteredData })
       this.log.info(`[preview] Sent filtered model data for selection: ${state.selectedId || 'none'}`)
-    } catch {
+    } catch (error) {
       this.log.error?.('[preview] Error reading model data: ' + String(error))
       this.post({ type: 'modelData', data: null })
     }
@@ -369,7 +373,7 @@ export class CalmPreviewPanel {
         type: 'templateData',
         data: { content: templateContent, name: templateName, selectedId: state.selectedId || 'none', isTemplateMode: state.isTemplateMode }
       })
-    } catch {
+    } catch (error) {
       this.log.error?.('[preview] Error reading template data: ' + String(error))
       this.post({ type: 'templateData', data: null })
     }
@@ -396,8 +400,11 @@ export class CalmPreviewPanel {
           lastData: this.viewModel.getData(),
           showLabels: state.showLabels,
         })
+        // Preprocess the content to convert image paths before sending to webview
+        const processedContent = res.format === 'markdown' ? this.preprocessMarkdownImages(res.content, res.sourceFile) : res.content
+
         // Use MVVM pattern - set result in DocifyViewModel instead of posting directly
-        this.viewModel.docify.setDocifyResult(res.content, res.format, res.sourceFile)
+        this.viewModel.docify.setDocifyResult(processedContent, res.format, res.sourceFile)
         this.log.info('[preview] Docify finished')
         this.log.info(`[preview] Docify result format: ${res.format}, source: ${res.sourceFile}`)
       })
@@ -405,5 +412,116 @@ export class CalmPreviewPanel {
         // Use MVVM pattern - set error in DocifyViewModel instead of posting directly
         this.viewModel.docify.setDocifyError(String(e?.message || e))
       })
+  }
+
+  /**
+   * Preprocess markdown content to convert relative image paths to webview URIs
+   */
+  private preprocessMarkdownImages(markdownContent: string, sourceFile: string): string {
+    this.log.info(`[preview] Preprocessing markdown images from source: ${sourceFile}`)
+
+    try {
+      const sourceDir = path.dirname(sourceFile)
+
+      // Regex to match markdown image syntax:
+      // - Inline images: ![alt](path), ![alt](path "title"), ![alt](path 'title')
+      // - Reference-style images: ![alt][ref]
+      const imageRegex = /!\[([^\]]*)\]\(([^)\s]+)(?:\s+(['"])(.*?)\3)?\)|!\[([^\]]*)\]\[([^\]]+)\]/g
+
+      this.log.info(`[preview] Searching for images with regex: ${imageRegex.source}`)
+
+      // Test if the regex finds any matches
+      const testMatches = markdownContent.match(imageRegex)
+      this.log.info(`[preview] Found ${testMatches ? testMatches.length : 0} potential image matches: ${testMatches ? JSON.stringify(testMatches) : 'none'}`)
+
+      const processedContent = markdownContent.replace(imageRegex, (match, alt1, imagePath, quote, title, alt2, ref) => {
+        // Handle inline images: ![alt](path "title") or ![alt](path)
+        if (alt1 !== undefined) {
+          this.log.info(`[preview] Found image: alt="${alt1}", path="${imagePath}"${title ? `, title="${title}"` : ''}`)
+
+          if (this.isRelativePath(imagePath)) {
+            try {
+              let absolutePath: string
+
+              if (imagePath.startsWith('./')) {
+                absolutePath = path.resolve(sourceDir, imagePath.substring(2))
+              } else if (imagePath.startsWith('../')) {
+                absolutePath = path.resolve(sourceDir, imagePath)
+              } else if (!imagePath.startsWith('/')) {
+                absolutePath = path.resolve(sourceDir, imagePath)
+              } else {
+                return match // Skip absolute paths
+              }
+
+              this.log.info(`[preview] Resolved ${imagePath} to ${absolutePath}`)
+
+              // Convert to webview URI
+              this.log.info(`[preview] Creating vscode.Uri.file from: ${absolutePath}`)
+              const fileUri = vscode.Uri.file(absolutePath)
+              this.log.info(`[preview] Created file URI: ${fileUri.toString()}`)
+              const webviewUri = this.panel.webview.asWebviewUri(fileUri)
+              const convertedPath = webviewUri.toString()
+              this.log.info(`[preview] Converted to webview URI: ${convertedPath}`)
+
+              // Preserve title if present
+              if (title) {
+                return `![${alt1}](${convertedPath} ${quote}${title}${quote})`
+              } else {
+                return `![${alt1}](${convertedPath})`
+              }
+            } catch (error) {
+              this.log.error?.(`[preview] Error converting image path ${imagePath}: ${String(error)}`)
+              return match // Return original if conversion fails
+            }
+          } else {
+            this.log.info(`[preview] Skipping non-relative image path: ${imagePath}`)
+            return match // Return original for non-relative paths
+          }
+        }
+        // Handle reference-style images: ![alt][ref]
+        else if (alt2 !== undefined && ref !== undefined) {
+          this.log.info(`[preview] Found reference-style image: alt="${alt2}", ref="${ref}"`)
+          // For reference-style images, we would need to parse the reference definitions
+          // elsewhere in the document. For now, we'll leave them unchanged.
+          this.log.info(`[preview] Reference-style images not yet supported, leaving unchanged`)
+          return match
+        }
+
+        return match
+      })
+
+      this.log.info(`[preview] Markdown preprocessing completed`)
+      this.log.info(`[preview] Processed content length: ${processedContent.length}`)
+      this.log.info(`[preview] Processed content preview: ${processedContent.substring(0, 500)}...`)
+      return processedContent
+    } catch (error) {
+      this.log.error?.(`[preview] Error preprocessing markdown images: ${String(error)}`)
+      this.log.error?.(`[preview] Stack trace: ${error instanceof Error ? error.stack : 'No stack trace'}`)
+      return markdownContent // Return original content if preprocessing fails
+    }
+  }
+
+  private isRelativePath(imagePath: string): boolean {
+    // Check for absolute URLs
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://') || imagePath.startsWith('data:') || imagePath.startsWith('blob:')) {
+      return false
+    }
+
+    // Check for absolute file paths
+    if (imagePath.startsWith('/')) {
+      return false // Unix/macOS absolute path
+    }
+
+    // Check for Windows absolute paths (C:\, D:\, etc.)
+    if (imagePath.match(/^[a-zA-Z]:\\/)) {
+      return false // Windows absolute path
+    }
+
+    // Check for special VS Code URIs
+    if (imagePath.startsWith('vscode-')) {
+      return false
+    }
+
+    return true
   }
 }

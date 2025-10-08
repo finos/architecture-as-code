@@ -40,34 +40,62 @@ export default class MermaidRenderer {
         }
     }
 
-    async render(mdText: string): Promise<string> {
-        const initialHtml = this.md.render(String(mdText ?? ''))
+    /**
+     * Render markdown content with Mermaid support
+     */
+    async render(content: string, sourceFile: string): Promise<string> {
         this.ensureMermaid()
 
-        const container = document.createElement('div')
-        container.innerHTML = initialHtml
-
-        const codes = container.querySelectorAll('code.language-mermaid')
-        if (!codes.length) return container.innerHTML
-
-        let i = 0
-        for (const code of Array.from(codes)) {
-            const graph = code.textContent ?? ''
-            const pre = code.parentElement?.tagName.toLowerCase() === 'pre' ? code.parentElement! : code
-            try {
-                const id = `mmd-${++i}`
-                const out = await mermaid.render(id, graph) // v10+: { svg, bindFunctions }
-                const shell = document.createElement('div')
-                shell.innerHTML = out.svg
-                const svgEl = shell.firstElementChild
-                if (svgEl) pre.replaceWith(svgEl)
-            } catch (e) {
-                const err = document.createElement('pre')
-                err.textContent = 'Mermaid error: ' + String(e)
-                pre.replaceWith(err)
+        try {
+            // First, check for raw Mermaid blocks in markdown (```mermaid)
+            const rawMermaidRegex = /```mermaid\s*\n([\s\S]*?)```/g
+            let processedContent = content
+            
+            // Process raw Mermaid blocks first
+            let match
+            while ((match = rawMermaidRegex.exec(content)) !== null) {
+                const mermaidCode = match[1].trim()
+                try {
+                    // Generate a unique ID for this diagram
+                    const diagramId = `mermaid-${Math.random().toString(36).substr(2, 9)}`
+                    
+                    // Render the Mermaid diagram
+                    const { svg } = await mermaid.render(diagramId, mermaidCode)
+                    
+                    // Replace the code block with the SVG
+                    processedContent = processedContent.replace(match[0], svg)
+                } catch (error) {
+                    console.error('Error rendering Mermaid diagram:', error)
+                    // Keep the original code block if rendering fails
+                }
             }
-        }
+            
+            // Then, render the remaining markdown using markdown-it
+            let html = this.md.render(processedContent)
 
-        return container.innerHTML
+            // Finally, check for any remaining HTML-encoded Mermaid blocks
+            const htmlMermaidRegex = /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g
+            while ((match = htmlMermaidRegex.exec(html)) !== null) {
+                const mermaidCode = match[1].trim()
+                try {
+                    // Generate a unique ID for this diagram
+                    const diagramId = `mermaid-${Math.random().toString(36).substr(2, 9)}`
+
+                    // Render the Mermaid diagram
+                    const { svg } = await mermaid.render(diagramId, mermaidCode)
+
+                    // Replace the code block with the SVG
+                    html = html.replace(match[0], svg)
+                } catch (error) {
+                    console.error('Error rendering HTML Mermaid diagram:', error)
+                    // Keep the original code block if rendering fails
+                }
+            }
+
+            return html
+        } catch (error) {
+            console.error('Error rendering markdown:', error)
+            return `<div style="color: red;">Error rendering content: ${String(error)}</div>`
+        }
     }
 }
