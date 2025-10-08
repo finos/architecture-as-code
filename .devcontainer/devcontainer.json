@@ -1,21 +1,16 @@
 {
 	"image": "mcr.microsoft.com/devcontainers/universal:3",
 	"features": {
-		"ghcr.io/devcontainers-contrib/features/maven-sdkman:2": {
-			"version": "latest",
-			"jdkVersion": "latest",
-			"jdkDistro": "open"
-		},
-		"ghcr.io/devcontainers-contrib/features/mvnd-sdkman:2": {
-			"version": "latest",
-			"jdkVersion": "latest",
-			"jdkDistro": "open"
+		"ghcr.io/devcontainers/features/java:1": {
+			"version": "21",
+			"installMaven": true,
+			"mavenVersion": "latest"
 		}
 	},
 	"containerEnv": {
 		"JAVA_HOME": "/usr/local/sdkman/candidates/java/current"
 	},
-	"postCreateCommand": "echo 'export JAVA_HOME=/usr/local/sdkman/candidates/java/current' >> ~/.bashrc",
+	"postCreateCommand": "echo 'Container setup completed'",
 	"hostRequirements": {
 		"cpus": 4,
 		"memory": "16gb"

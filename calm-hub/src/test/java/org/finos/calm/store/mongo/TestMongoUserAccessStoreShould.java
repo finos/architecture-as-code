@@ -15,11 +15,13 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
-import java.util.*;
+import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @QuarkusTest
@@ -32,18 +34,72 @@ public class TestMongoUserAccessStoreShould {
     @InjectMock
     MongoCounterStore counterStore;
 
-    private MongoDatabase mongoDatabase;
     private MongoCollection<Document> userAccessCollection;
     private MongoUserAccessStore mongoUserAccessStore;
 
     @BeforeEach
     void setup() {
-        mongoDatabase = Mockito.mock(MongoDatabase.class);
-        userAccessCollection = Mockito.mock(MongoCollection.class);
+        MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
+        userAccessCollection = Mockito.mock(DocumentMongoCollection.class);
 
         when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
         when(mongoDatabase.getCollection("userAccess")).thenReturn(userAccessCollection);
         mongoUserAccessStore = new MongoUserAccessStore(mongoClient, namespaceStore, counterStore);
+    }
+
+    @Test
+    void throw_exception_if_user_access_not_found_for_username() {
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        DocumentMongoCursor mockMongoCursor = mock(DocumentMongoCursor.class);
+        when(mockMongoCursor.hasNext()).thenReturn(false);
+        when(findIterable.iterator()).thenReturn(mockMongoCursor);
+        when(userAccessCollection.find(Filters.eq("username", "test")))
+                .thenReturn(findIterable);
+
+        assertThrows(UserAccessNotFoundException.class,
+                () -> mongoUserAccessStore.getUserAccessForUsername("test"));
+    }
+
+    @Test
+    void return_user_access_for_valid_username() throws Exception {
+        String username = "test";
+        String namespace = "finos";
+
+        Document doc = new Document("username", username)
+                .append("namespace", namespace)
+                .append("permission", Permission.read.name())
+                .append("resourceType", ResourceType.patterns.name())
+                .append("userAccessId", 101);
+
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        DocumentMongoCursor cursor = mock(DocumentMongoCursor.class);
+        when(cursor.hasNext()).thenReturn(true, false);
+        when(cursor.next()).thenReturn(doc);
+        when(findIterable.iterator()).thenReturn(cursor);
+
+        when(userAccessCollection.find(Filters.eq("username", username))).thenReturn(findIterable);
+
+        List<UserAccess> actual = mongoUserAccessStore.getUserAccessForUsername(username);
+        assertThat(actual, hasSize(1));
+        assertThat(actual.getFirst().getNamespace(), is(namespace));
+    }
+
+    @Test
+    void throw_exception_if_no_user_access_found_for_namespace() {
+        String namespace = "finos";
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        DocumentMongoCursor mockMongoCursor = mock(DocumentMongoCursor.class);
+        when(mockMongoCursor.hasNext()).thenReturn(false);
+        when(findIterable.iterator()).thenReturn(mockMongoCursor);
+
+        when(userAccessCollection.find(Filters.eq("namespace", namespace)))
+                .thenReturn(findIterable);
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        assertThrows(UserAccessNotFoundException.class,
+                () -> mongoUserAccessStore.getUserAccessForNamespace(namespace));
     }
 
     @Test
@@ -78,61 +134,6 @@ public class TestMongoUserAccessStoreShould {
     }
 
     @Test
-    void throw_exception_if_user_access_not_found_for_username() {
-        FindIterable<Document> findIterable = mock(FindIterable.class);
-        MongoCursor<Document> mockMongoCursor = mock(MongoCursor.class);
-        when(mockMongoCursor.hasNext()).thenReturn(false);
-        when(findIterable.iterator()).thenReturn(mockMongoCursor);
-        when(userAccessCollection.find(Filters.eq("username", "test")))
-                .thenReturn(findIterable);
-
-        assertThrows(UserAccessNotFoundException.class,
-                () -> mongoUserAccessStore.getUserAccessForUsername("test"));
-    }
-
-    @Test
-    void return_user_access_for_valid_username() throws Exception {
-        String username = "test";
-        String namespace = "finos";
-
-        Document doc = new Document("username", username)
-                .append("namespace", namespace)
-                .append("permission", Permission.read.name())
-                .append("resourceType", ResourceType.patterns.name())
-                .append("userAccessId", 101);
-
-        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-
-        FindIterable<Document> findIterable = mock(FindIterable.class);
-        MongoCursor<Document> cursor = mock(MongoCursor.class);
-        when(cursor.hasNext()).thenReturn(true, false);
-        when(cursor.next()).thenReturn(doc);
-        when(findIterable.iterator()).thenReturn(cursor);
-
-        when(userAccessCollection.find(Filters.eq("username", username))).thenReturn(findIterable);
-
-        List<UserAccess> actual = mongoUserAccessStore.getUserAccessForUsername(username);
-        assertThat(actual, hasSize(1));
-        assertThat(actual.get(0).getNamespace(), is(namespace));
-    }
-
-    @Test
-    void throw_exception_if_no_user_access_found_for_namespace() {
-        String namespace = "finos";
-        FindIterable<Document> findIterable = mock(FindIterable.class);
-        MongoCursor<Document> mockMongoCursor = mock(MongoCursor.class);
-        when(mockMongoCursor.hasNext()).thenReturn(false);
-        when(findIterable.iterator()).thenReturn(mockMongoCursor);
-
-        when(userAccessCollection.find(Filters.eq("namespace", namespace)))
-                .thenReturn(findIterable);
-        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
-
-        assertThrows(UserAccessNotFoundException.class,
-                () -> mongoUserAccessStore.getUserAccessForNamespace(namespace));
-    }
-
-    @Test
     void return_user_access_list_for_namespace() throws Exception {
         String namespace = "finos";
         Document doc = new Document("username", "test")
@@ -141,8 +142,8 @@ public class TestMongoUserAccessStoreShould {
                 .append("resourceType", ResourceType.flows.name())
                 .append("userAccessId", 111);
 
-        FindIterable<Document> findIterable = mock(FindIterable.class);
-        MongoCursor<Document> cursor = mock(MongoCursor.class);
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        DocumentMongoCursor cursor = mock(DocumentMongoCursor.class);
         when(cursor.hasNext()).thenReturn(true, false);
         when(cursor.next()).thenReturn(doc);
 
@@ -154,17 +155,17 @@ public class TestMongoUserAccessStoreShould {
         List<UserAccess> actual = mongoUserAccessStore.getUserAccessForNamespace(namespace);
 
         assertThat(actual, hasSize(1));
-        assertThat(actual.get(0).getUsername(), is("test"));
-        assertThat(actual.get(0).getPermission(), is(Permission.read));
-        assertThat(actual.get(0).getResourceType(), is(ResourceType.flows));
+        assertThat(actual.getFirst().getUsername(), is("test"));
+        assertThat(actual.getFirst().getPermission(), is(Permission.read));
+        assertThat(actual.getFirst().getResourceType(), is(ResourceType.flows));
     }
 
     @Test
     void throw_exception_if_no_user_access_found_for_namespace_and_user_access_id() {
         String namespace = "finos";
         Integer userAccessId = 101;
-        FindIterable<Document> findIterable = mock(FindIterable.class);
-        MongoCursor<Document> mockMongoCursor = mock(MongoCursor.class);
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        DocumentMongoCursor mockMongoCursor = mock(DocumentMongoCursor.class);
         when(mockMongoCursor.hasNext()).thenReturn(false);
         when(findIterable.iterator()).thenReturn(mockMongoCursor);
 
@@ -190,7 +191,7 @@ public class TestMongoUserAccessStoreShould {
                 .append("resourceType", ResourceType.flows.name())
                 .append("userAccessId", userAccessId);
 
-        FindIterable<Document> mockFindIterable = mock(FindIterable.class);
+        DocumentFindIterable mockFindIterable = mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
         when(userAccessCollection.find(Filters.and(
                 Filters.eq("namespace", namespace),
@@ -205,5 +206,14 @@ public class TestMongoUserAccessStoreShould {
         assertThat(actual.getResourceType(), is(ResourceType.flows));
         assertThat(actual.getNamespace(), is(namespace));
         assertThat(actual.getUserAccessId(), is(userAccessId));
+    }
+
+    private interface DocumentFindIterable extends FindIterable<Document> {
+    }
+
+    private interface DocumentMongoCollection extends MongoCollection<Document> {
+    }
+
+    private interface DocumentMongoCursor extends MongoCursor<Document> {
     }
 }

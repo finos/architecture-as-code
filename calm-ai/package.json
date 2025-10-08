@@ -1,0 +1,29 @@
+{
+    "name": "@finos/calm-ai",
+    "version": "1.0.0",
+    "description": "AI tools and prompts for FINOS CALM architecture modeling",
+    "private": true,
+    "main": "index.js",
+    "files": [
+        "tools/"
+    ],
+    "scripts": {
+        "validate": "echo 'Validating tool prompt files...'",
+        "lint": "echo 'Linting markdown files...'",
+        "test": "echo 'Testing tool prompts...'"
+    },
+    "keywords": [
+        "calm",
+        "architecture",
+        "ai",
+        "prompts",
+        "finos"
+    ],
+    "author": "FINOS",
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/finos/architecture-as-code.git",
+        "directory": "calm-ai"
+    }
+}

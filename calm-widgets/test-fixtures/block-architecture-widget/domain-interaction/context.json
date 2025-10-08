@@ -1,0 +1,163 @@
+{
+  "nodes": [
+    { "unique-id": "commerce-platform", "node-type": "system", "name": "Commerce Platform" },
+
+    { "unique-id": "order-domain",     "node-type": "domain", "name": "Order Domain" },
+    { "unique-id": "catalog-domain",   "node-type": "domain", "name": "Catalog Domain" },
+    { "unique-id": "customer-domain",  "node-type": "domain", "name": "Customer Domain" },
+    { "unique-id": "inventory-domain", "node-type": "domain", "name": "Inventory Domain" },
+    { "unique-id": "billing-domain",   "node-type": "domain", "name": "Billing Domain" },
+
+    { "unique-id": "order-ui",      "node-type": "service", "name": "Order UI" },
+    { "unique-id": "order-svc",     "node-type": "service", "name": "Order Service" },
+    { "unique-id": "checkout-svc",  "node-type": "service", "name": "Checkout Service" },
+
+    { "unique-id": "catalog-svc",   "node-type": "service", "name": "Catalog Service" },
+    { "unique-id": "customer-svc",  "node-type": "service", "name": "Customer Service" },
+    { "unique-id": "inventory-svc", "node-type": "service", "name": "Inventory Service" },
+    { "unique-id": "billing-svc",   "node-type": "service", "name": "Billing Service" }
+  ],
+  "relationships": [
+    {
+      "unique-id": "r1",
+      "relationship-type": {
+        "composed-of": {
+          "container": "commerce-platform",
+          "nodes": [
+            "order-domain",
+            "catalog-domain",
+            "customer-domain",
+            "inventory-domain",
+            "billing-domain"
+          ]
+        }
+      }
+    },
+
+    {
+      "unique-id": "r2",
+      "relationship-type": {
+        "composed-of": {
+          "container": "order-domain",
+          "nodes": ["order-ui", "order-svc", "checkout-svc"]
+        }
+      }
+    },
+    {
+      "unique-id": "r3",
+      "relationship-type": {
+        "composed-of": { "container": "catalog-domain", "nodes": ["catalog-svc"] }
+      }
+    },
+    {
+      "unique-id": "r4",
+      "relationship-type": {
+        "composed-of": { "container": "customer-domain", "nodes": ["customer-svc"] }
+      }
+    },
+    {
+      "unique-id": "r5",
+      "relationship-type": {
+        "composed-of": { "container": "inventory-domain", "nodes": ["inventory-svc"] }
+      }
+    },
+    {
+      "unique-id": "r6",
+      "relationship-type": {
+        "composed-of": { "container": "billing-domain", "nodes": ["billing-svc"] }
+      }
+    },
+    {
+      "unique-id": "r10",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "order-ui" },
+          "destination": { "node": "order-svc" }
+        }
+      },
+      "description": "User places order"
+    },
+    {
+      "unique-id": "r11",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "order-svc" },
+          "destination": { "node": "catalog-svc" }
+        }
+      },
+      "description": "Fetch product details"
+    },
+    {
+      "unique-id": "r12",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "order-svc" },
+          "destination": { "node": "customer-svc" }
+        }
+      },
+      "description": "Retrieve customer profile"
+    },
+    {
+      "unique-id": "r13",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "order-svc" },
+          "destination": { "node": "inventory-svc" }
+        }
+      },
+      "description": "Reserve inventory"
+    },
+    {
+      "unique-id": "r14",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "checkout-svc" },
+          "destination": { "node": "billing-svc" }
+        }
+      },
+      "description": "Authorize payment"
+    },
+    {
+      "unique-id": "r20",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "order-domain" },
+          "destination": { "node": "catalog-domain" }
+        }
+      },
+      "description": "Needs product data"
+    },
+    {
+      "unique-id": "r21",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "order-domain" },
+          "destination": { "node": "customer-domain" }
+        }
+      },
+      "description": "Needs customer profile"
+    },
+    {
+      "unique-id": "r22",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "order-domain" },
+          "destination": { "node": "inventory-domain" }
+        }
+      },
+      "description": "Reserves inventory"
+    },
+    {
+      "unique-id": "r23",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "order-domain" },
+          "destination": { "node": "billing-domain" }
+        }
+      },
+      "description": "Requests payment authorization"
+    }
+  ],
+  "metadata": {},
+  "controls": {}
+}

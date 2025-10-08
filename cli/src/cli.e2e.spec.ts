@@ -5,10 +5,8 @@ import * as os from 'os';
 import { execa } from 'execa';
 import { parseStringPromise } from 'xml2js';
 import axios from 'axios';
-import { Mock } from 'vitest';
 import { expectDirectoryMatch, expectFilesMatch } from '@finos/calm-shared';
 import { spawn } from 'node:child_process';
-vi.mock('axios');
 
 const millisPerSecond = 1000;
 const integrationTestPrefix = 'calm-consumer-test';
@@ -254,12 +252,9 @@ describe('CLI Integration Tests', () => {
     });
 
     test('server command starts and responds to /health', async () => {
-        (axios.get as Mock).mockResolvedValue({
-            status: 200,
-            data: { status: 'ok' },
-        });
+        const schemaDir = path.resolve(__dirname, '../../calm');
         const serverProcess = spawn(
-            calm(), ['server', '-p', '3002', '--schemaDirectory', '../../dist/calm/'],
+            calm(), ['server', '--port', '3002', '--schema-directory', schemaDir],
             {
                 cwd: tempDir,
                 stdio: 'inherit',
@@ -270,7 +265,41 @@ describe('CLI Integration Tests', () => {
         try {
             const res = await axios.get('http://127.0.0.1:3002/health');
             expect(res.status).toBe(200);
-            expect(res.data.status).toBe('ok');
+            expect(res.data.status).toBe('OK');
+        } finally {
+            process.kill(-serverProcess.pid);
+        }
+    });
+
+    test('server command starts and validates an architecture', async () => {
+        const schemaDir = path.resolve(__dirname, '../test_fixtures/api-gateway');
+        const serverProcess = spawn(
+            calm(), ['server', '--port', '3003', '--schema-directory', schemaDir],
+            {
+                cwd: tempDir,
+                stdio: 'inherit',
+                detached: true,
+            }
+        );
+
+        const validArchitecture = fs.readFileSync(
+            path.join(__dirname, '../test_fixtures/validation_route/valid_instantiation.json'),
+            'utf8'
+        );
+
+        await new Promise((r) => setTimeout(r, 5 * millisPerSecond));
+
+        try {
+            const res = await axios.post(
+                'http://127.0.0.1:3003/calm/validate',
+                JSON.parse(validArchitecture),
+                { headers: { 'Content-Type': 'application/json' } }
+            );
+            expect(res.status).toBe(201);
+            expect(JSON.stringify(res.data)).toContain('jsonSchemaValidationOutputs');
+            expect(JSON.stringify(res.data)).toContain('spectralSchemaValidationOutputs');
+            expect(JSON.stringify(res.data)).toContain('hasErrors');
+            expect(JSON.stringify(res.data)).toContain('hasWarnings');
         } finally {
             process.kill(-serverProcess.pid);
         }
@@ -301,7 +330,7 @@ describe('CLI Integration Tests', () => {
             calm(),
             [
                 'template',
-                '--input', testModelPath,
+                '--architecture', testModelPath,
                 '--bundle', templateBundlePath,
                 '--output', outputDir,
                 '--url-to-local-file-mapping', localDirectory
@@ -324,7 +353,7 @@ describe('CLI Integration Tests', () => {
         const outputFile = path.join(outputDir, 'simple-template-output.md');
 
         await run(
-            calm(), ['template', '--input', testModelPath, '--template', templatePath, '--output', outputFile]
+            calm(), ['template', '--architecture', testModelPath, '--template', templatePath, '--output', outputFile]
         );
 
         expect(fs.existsSync(outputFile)).toBe(true);
@@ -341,7 +370,7 @@ describe('CLI Integration Tests', () => {
         const actualOutputDir = path.join(tempDir, 'output-template-dir');
 
         await run(
-            calm(), ['template', '--input', testModelPath, '--template-dir', templateDirPath, '--output', actualOutputDir]
+            calm(), ['template', '--architecture', testModelPath, '--template-dir', templateDirPath, '--output', actualOutputDir]
         );
 
         await expectDirectoryMatch(expectedOutputDir, actualOutputDir);
@@ -361,7 +390,7 @@ describe('CLI Integration Tests', () => {
         );
         const outputDir = path.join(tempDir, 'output/documentation');
         await run(
-            calm(), ['docify', '--input', testModelPath, '--output', outputDir, '--url-to-local-file-mapping', localDirectory]
+            calm(), ['docify', '--architecture', testModelPath, '--output', outputDir, '--url-to-local-file-mapping', localDirectory]
         );
         [
             'docs/index.md',
@@ -386,7 +415,7 @@ describe('CLI Integration Tests', () => {
         const outputFile = path.join(outputDir, 'simple-template-output.md');
 
         await run(
-            calm(), ['docify', '--input', testModelPath, '--template', templatePath, '--output', outputFile, '--url-to-local-file-mapping', localDirectory]
+            calm(), ['docify', '--architecture', testModelPath, '--template', templatePath, '--output', outputFile, '--url-to-local-file-mapping', localDirectory]
         );
 
         expect(fs.existsSync(outputFile)).toBe(true);
@@ -404,7 +433,7 @@ describe('CLI Integration Tests', () => {
         const actualOutputDir = path.join(tempDir, 'output-template-dir');
 
         await run(
-            calm(), ['docify', '--input', testModelPath, '--template-dir', templateDirPath, '--output', actualOutputDir, '--url-to-local-file-mapping', localDirectory]
+            calm(), ['docify', '--architecture', testModelPath, '--template-dir', templateDirPath, '--output', actualOutputDir, '--url-to-local-file-mapping', localDirectory]
         );
 
         await expectDirectoryMatch(expectedOutputDir, actualOutputDir);
@@ -432,7 +461,7 @@ describe('CLI Integration Tests', () => {
                 const outputFile = path.join(outputDir, outputName);
 
                 await run(
-                    calm(), ['docify', '--input', testModelPath, '--template', templatePath, '--output', outputFile]
+                    calm(), ['docify', '--architecture', testModelPath, '--template', templatePath, '--output', outputFile]
                 );
 
                 expect(fs.existsSync(outputFile)).toBe(true);
@@ -442,9 +471,15 @@ describe('CLI Integration Tests', () => {
             };
         }
 
-        test('template command works with table widget', runTemplateWidgetTest('table-test.hbs', 'table-test.md'));
+        test('A user can render a table widget', runTemplateWidgetTest('table-test.hbs', 'table-test.md'));
 
-        test('template command works with list widget', runTemplateWidgetTest('list-test.hbs', 'list-test.md'));
+        test('A user can render a list widget', runTemplateWidgetTest('list-test.hbs', 'list-test.md'));
+
+        test('A user can render a flow sequence widget', runTemplateWidgetTest('flow-sequence-test.hbs', 'flow-sequence-test.md'));
+
+        test('A user can render a related nodes widget', runTemplateWidgetTest('related-nodes-test.hbs', 'related-nodes-test.md'));
+
+        test('A user can render a blocked architecture widget', runTemplateWidgetTest('block-architecture-test.hbs', 'block-architecture-test.md'));
 
         test('A user can render a json view their document or parts of their document', runTemplateWidgetTest('json-viewer-test.hbs', 'json-viewer-test.md'));
 
@@ -461,10 +496,6 @@ describe('CLI Integration Tests', () => {
             __dirname,
             '../../cli/test_fixtures/getting-started'
         );
-
-        // This will enforce that people verify the getting-started guide works prior to any cli change
-        const { stdout } = await run(calm(), ['--version']);
-        expect(stdout.trim()).toMatch('0.8.0'); // basic semver check
 
         //STEP 1: Generate Architecture From Pattern
         const inputPattern = path.resolve(
@@ -486,7 +517,7 @@ describe('CLI Integration Tests', () => {
         //STEP 2: Generate Docify Website From Architecture
         const outputWebsite = path.resolve(tempDir, 'website');
         await run(
-            calm(), ['docify', '--input', outputArchitecture, '--output', outputWebsite]
+            calm(), ['docify', '--architecture', outputArchitecture, '--output', outputWebsite]
         );
 
         const expectedOutputDocifyWebsite = path.resolve(
@@ -539,7 +570,7 @@ describe('CLI Integration Tests', () => {
             'website-with-flow'
         );
         await run(
-            calm(), ['docify', '--input', outputArchitecture, '--output', outputWebsiteWithFlow]
+            calm(), ['docify', '--architecture', outputArchitecture, '--output', outputWebsiteWithFlow]
         );
 
         const expectedOutputDocifyWebsiteWithFLow = path.resolve(

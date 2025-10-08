@@ -92,7 +92,7 @@ public class MongoFlowStore implements FlowStore {
     public List<String> getFlowVersions(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException {
         Document result = retrieveFlowVersions(flow);
 
-        List<Document> flows = (List<Document>) result.get("flows");
+        List<Document> flows = result.getList("flows", Document.class);
         for (Document flowDoc : flows) {
             if (flow.getId() == flowDoc.getInteger("flowId")) {
                 // Extract the versions map from the matching flow
@@ -132,7 +132,7 @@ public class MongoFlowStore implements FlowStore {
     public String getFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException {
         Document result = retrieveFlowVersions(flow);
 
-        List<Document> flows = (List<Document>) result.get("flows");
+        List<Document> flows = result.getList("flows", Document.class);
         for (Document flowDoc : flows) {
             if (flow.getId() == flowDoc.getInteger("flowId")) {
                 // Retrieve the versions map from the matching flow
@@ -197,7 +197,7 @@ public class MongoFlowStore implements FlowStore {
         Document result = flowCollection.find(filter).projection(projection).first();
 
         if (result != null) {
-            List<Document> flows = (List<Document>) result.get("flows");
+            List<Document> flows = result.getList("flows", Document.class);
             for (Document flowDoc : flows) {
                 Document versions = (Document) flowDoc.get("versions");
                 if (versions != null && versions.containsKey(flow.getMongoVersion())) {

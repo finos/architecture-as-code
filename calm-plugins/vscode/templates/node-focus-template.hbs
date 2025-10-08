@@ -1,0 +1,13 @@
+# {{nodes["{{focused-node-id}}"].name}}
+
+## Overview
+{{table nodes["{{focused-node-id}}"] orientation="vertical" columns="unique-id,name, description, node-type"}}
+
+## Architecture 
+{{block-architecture focus-nodes="{{focused-node-id}}"}}
+
+## Related Nodes
+{{related-nodes node-id="{{focused-node-id}}" }}
+
+## Interface View
+{{block-architecture focus-nodes="{{focused-node-id}}" render-interfaces="true" edges="connected" include-containers="none" include-children="false"}}

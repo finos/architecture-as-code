@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { getToken } from '../../authService.js';
-import { CalmAdrMeta } from 'shared/src/view-model/adr.js';
+import { CalmAdrMeta } from '@finos/calm-shared/src/view-model/adr.js';
 
 export class AdrService {
     private readonly ax: AxiosInstance;

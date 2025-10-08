@@ -24,15 +24,14 @@ public class TestMongoNamespaceStoreShould {
     @InjectMock
     MongoClient mongoClient;
 
-    private MongoDatabase mongoDatabase;
     private MongoCollection<Document> namespaceCollection;
 
     private MongoNamespaceStore mongoNamespaceStore;
 
     @BeforeEach
     void setup() {
-        mongoDatabase = Mockito.mock(MongoDatabase.class);
-        namespaceCollection = Mockito.mock(MongoCollection.class);
+        MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
+        namespaceCollection = Mockito.mock(DocumentMongoCollection.class);
 
         when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
         when(mongoDatabase.getCollection("namespaces")).thenReturn(namespaceCollection);
@@ -41,8 +40,8 @@ public class TestMongoNamespaceStoreShould {
 
     @Test
     void return_an_empty_list_when_no_namespaces_exist() {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
-        MongoCursor<Document> emptyCursor = Mockito.mock(MongoCursor.class);
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
+        DocumentMongoCursor emptyCursor = Mockito.mock(DocumentMongoCursor.class);
 
         when(emptyCursor.hasNext()).thenReturn(false);
         when(findIterable.iterator()).thenReturn(emptyCursor);
@@ -55,8 +54,8 @@ public class TestMongoNamespaceStoreShould {
 
     @Test
     void return_list_of_namespaces() {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
-        MongoCursor<Document> cursor = Mockito.mock(MongoCursor.class);
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
+        DocumentMongoCursor cursor = Mockito.mock(DocumentMongoCursor.class);
 
         Document doc1 = new Document("namespace", "finos");
         Document doc2 = new Document("namespace", "other");
@@ -74,7 +73,7 @@ public class TestMongoNamespaceStoreShould {
 
     @Test
     void return_false_when_namespace_does_not_exist() {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
         String namespace = "does-note-exist";
 
         when(namespaceCollection.find(any(Document.class))).thenReturn(findIterable);
@@ -86,7 +85,7 @@ public class TestMongoNamespaceStoreShould {
 
     @Test
     void return_true_when_namespace_exists() {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
         String namespace = "finos";
 
         when(namespaceCollection.find(any(Document.class))).thenReturn(findIterable);
@@ -99,7 +98,7 @@ public class TestMongoNamespaceStoreShould {
 
     @Test
     void create_namespace_when_it_does_not_exist() {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
         String namespace = "new-namespace";
 
         when(namespaceCollection.find(any(Document.class))).thenReturn(findIterable);
@@ -113,7 +112,7 @@ public class TestMongoNamespaceStoreShould {
 
     @Test
     void do_not_create_namespace_when_it_already_exists() {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
         String namespace = "existing-namespace";
 
         when(namespaceCollection.find(any(Document.class))).thenReturn(findIterable);
@@ -124,5 +123,14 @@ public class TestMongoNamespaceStoreShould {
 
         verify(namespaceCollection).find(new Document("namespace", namespace));
         verify(namespaceCollection, Mockito.never()).insertOne(any(Document.class));
+    }
+
+    private interface DocumentFindIterable extends FindIterable<Document> {
+    }
+
+    private interface DocumentMongoCollection extends MongoCollection<Document> {
+    }
+
+    private interface DocumentMongoCursor extends MongoCursor<Document> {
     }
 }

@@ -1,0 +1,86 @@
+{
+  "nodes": [
+    {
+      "unique-id": "system-a",
+      "node-type": "system",
+      "name": "System A",
+      "description": "Main system"
+    },
+    {
+      "unique-id": "system-b",
+      "node-type": "system",
+      "name": "System B",
+      "description": "Secondary system"
+    },
+    {
+      "unique-id": "svc1",
+      "node-type": "service",
+      "name": "Service 1",
+      "description": "First service"
+    },
+    {
+      "unique-id": "svc2",
+      "node-type": "service",
+      "name": "Service 2",
+      "description": "Second service"
+    },
+    {
+      "unique-id": "svc3",
+      "node-type": "service",
+      "name": "Service 3",
+      "description": "Third service"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "r1",
+      "relationship-type": {
+        "composed-of": {
+          "container": "system-a",
+          "nodes": ["svc1", "svc2"]
+        }
+      }
+    },
+    {
+      "unique-id": "r2",
+      "relationship-type": {
+        "composed-of": {
+          "container": "system-b",
+          "nodes": ["svc3"]
+        }
+      }
+    },
+    {
+      "unique-id": "r3",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "svc1"
+          },
+          "destination": {
+            "node": "svc2"
+          }
+        }
+      },
+      "description": "Service 1 calls Service 2"
+    },
+    {
+      "unique-id": "r4",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "svc2"
+          },
+          "destination": {
+            "node": "svc3"
+          }
+        }
+      },
+      "description": "Service 2 integrates with Service 3"
+    }
+  ],
+  "metadata": {},
+  "controls": {},
+  "flows": [],
+  "adrs": []
+}

@@ -1,0 +1,54 @@
+name: Build VS Code Extension
+
+permissions:
+    contents: read
+
+on:
+    pull_request:
+        branches:
+            - 'main'
+    push:
+        branches:
+            - 'main'
+    workflow_dispatch:
+        inputs:
+            publish_to_marketplace:
+                description: 'Publish to VS Code Marketplace'
+                required: false
+                default: false
+                type: boolean
+
+jobs:
+    build-and-publish:
+        name: Build, Test, and Publish VS Code Extension
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+
+            - name: Setup Node.js
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+              with:
+                  node-version: v22
+
+            - name: Install workspace
+              run: npm ci
+
+            - name: Lint VS Code Extension
+              run: npm run lint --workspace=calm-plugins/vscode
+
+            - name: Build and Test VS Code Extension
+              run: npm run test:vscode
+
+            - name: Package VS Code Extension
+              run: npm run package:vscode
+
+            - name: Publish to VS Code Marketplace
+              if: github.event.inputs.publish_to_marketplace == 'true'
+              working-directory: ./calm-plugins/vscode
+              run: npx vsce publish --packagePath *.vsix
+              env:
+                  VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+

@@ -35,7 +35,8 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @QuarkusTest
 public class TestMongoStandardStoreShould {
@@ -49,15 +50,14 @@ public class TestMongoStandardStoreShould {
     @InjectMock
     MongoNamespaceStore namespaceStore;
 
-    private MongoDatabase mongoDatabase;
     private MongoCollection<Document> standardCollection;
 
     private MongoStandardStore mongoStandardStore;
 
     @BeforeEach
     void setup() {
-        mongoDatabase = Mockito.mock(MongoDatabase.class);
-        standardCollection = Mockito.mock(MongoCollection.class);
+        MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
+        standardCollection = Mockito.mock(DocumentMongoCollection.class);
 
         when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
         when(mongoDatabase.getCollection("standards")).thenReturn(standardCollection);
@@ -65,19 +65,8 @@ public class TestMongoStandardStoreShould {
     }
 
     @Test
-    void get_standard_for_namespace_that_doesnt_exist_throws_exception() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        String namespace = "does-not-exist";
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoStandardStore.getStandardsForNamespace(namespace));
-
-        verify(namespaceStore).namespaceExists(namespace);
-    }
-
-    @Test
     void get_standard_for_namespace_returns_empty_list_when_none_exist() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(standardCollection.find(eq(Filters.eq("namespace", "finos"))))
                 .thenReturn(findIterable);
@@ -92,7 +81,7 @@ public class TestMongoStandardStoreShould {
 
     @Test
     void get_standard_for_namespace_returns_empty_list_when_mongo_collection_not_created() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(standardCollection.find(eq(Filters.eq("namespace", "finos"))))
                 .thenReturn(findIterable);
@@ -103,8 +92,19 @@ public class TestMongoStandardStoreShould {
     }
 
     @Test
+    void get_standard_for_namespace_that_doesnt_exist_throws_exception() {
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
+        String namespace = "does-not-exist";
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> mongoStandardStore.getStandardsForNamespace(namespace));
+
+        verify(namespaceStore).namespaceExists(namespace);
+    }
+
+    @Test
     void get_standard_for_namespace_returns_values() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(standardCollection.find(eq(Filters.eq("namespace", "finos"))))
                 .thenReturn(findIterable);
@@ -129,6 +129,29 @@ public class TestMongoStandardStoreShould {
         assertThat(standards.getFirst().getId(), is(55));
 
         verify(namespaceStore).namespaceExists("finos");
+    }
+
+    private DocumentFindIterable setupInvalidStandard() {
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        //Return the same find iterable as the projection unboxes, then return null
+        when(standardCollection.find(any(Bson.class)))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(null);
+
+
+        return findIterable;
+    }
+
+    private void mockSetupStandardDocumentWithVersions() {
+        Document mainDocument = setupStandardVersionDocument();
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(standardCollection.find(any(Bson.class)))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(mainDocument);
     }
 
     @Test
@@ -202,17 +225,7 @@ public class TestMongoStandardStoreShould {
         verify(namespaceStore).namespaceExists("does-not-exist");
     }
 
-    private FindIterable<Document> setupInvalidStandard() {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        //Return the same find iterable as the projection unboxes, then return null
-        when(standardCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-
-        return findIterable;
+    private interface DocumentFindIterable extends FindIterable<Document> {
     }
 
     @Test
@@ -280,14 +293,7 @@ public class TestMongoStandardStoreShould {
                 .append("standards", Arrays.asList(paddingStandard, targetStoredStandard));
     }
 
-    private void mockSetupStandardDocumentWithVersions() {
-        Document mainDocument = setupStandardVersionDocument();
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(standardCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(mainDocument);
+    private interface DocumentMongoCollection extends MongoCollection<Document> {
     }
 
     @Test

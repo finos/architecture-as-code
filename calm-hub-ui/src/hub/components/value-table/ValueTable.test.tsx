@@ -56,7 +56,8 @@ describe('ValueTable', () => {
             />
         );
         const selected = screen.getByText('Value 3');
-        expect(selected.className).toContain('bg-[#eee]');
+        // Check for bg-base-200 at the end (not as part of hover:bg-base-200)
+        expect(selected.className).toMatch(/ bg-base-200$/);
     });
 
     it('does not apply selected style to non-current values', () => {
@@ -69,7 +70,8 @@ describe('ValueTable', () => {
             />
         );
         const notSelected = screen.getByText('Value 2');
-        expect(notSelected.className).not.toContain('bg-[#eee]');
+        // Should only have hover:bg-base-200, not bg-base-200 at the end
+        expect(notSelected.className).not.toMatch(/ bg-base-200$/);
     });
 
     it('renders nothing if values array is empty', () => {

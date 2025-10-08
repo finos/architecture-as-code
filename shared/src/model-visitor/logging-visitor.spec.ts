@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { LoggingVisitor } from './logging-visitor';
-import { CalmCore } from '../model/core';
-import {CalmCoreSchema} from '../types/core-types';
+import { CalmCore } from '@finos/calm-models/model';
+import { CalmCoreSchema } from '@finos/calm-models/types';
 
 describe('LoggingVisitor', () => {
 
@@ -24,7 +24,7 @@ describe('LoggingVisitor', () => {
                     }
                 ],
                 'details': {
-                    'detailed-architecture':  'http://example.com/arch-detail'
+                    'detailed-architecture': 'http://example.com/arch-detail'
                 }
             },
             {
@@ -81,12 +81,10 @@ describe('LoggingVisitor', () => {
             error: vi.fn()
         };
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (LoggingVisitor as any).logger = logger;
         const json = JSON.stringify(testArch, null, 2);
         const architecture: CalmCoreSchema = JSON.parse(json);
         const core = CalmCore.fromSchema(architecture);
-        const visitor = new LoggingVisitor();
+        const visitor = new LoggingVisitor((logger as Logger));
         await visitor.visit(core);
 
         const logLines = logger.info.mock.calls.map(args => args[0]);

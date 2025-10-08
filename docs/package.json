@@ -34,8 +34,8 @@
         "on-headers": "^1.1.0"
     },
     "devDependencies": {
-        "@docusaurus/module-type-aliases": "3.8.1",
-        "@docusaurus/types": "3.8.1",
+        "@docusaurus/module-type-aliases": "3.9.1",
+        "@docusaurus/types": "3.9.1",
         "express": "^5.1.0",
         "webpack-dev-server": "^5.2.2"
     },

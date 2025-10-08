@@ -1,4 +1,4 @@
-import {describe, it, expect, vi, beforeEach, Mock} from 'vitest';
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import handlebars from 'handlebars';
 import { WidgetEngine } from './widget-engine';
 import { WidgetRegistry } from './widget-registry';
@@ -86,7 +86,8 @@ describe('WidgetEngine', () => {
             }).toThrowError('[WidgetEngine] ❌ Conflict: widget id \'notEmpty\' collides with a global helper name.');
         });
 
-        it('throws if widget id already registered as helper', () => {
+        it('warns and skips if widget id already registered as helper', () => {
+            const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
             localHandlebars.registerHelper('table', () => true);
 
             const conflictingWidget: CalmWidget<unknown, Record<string, unknown>, unknown> = {
@@ -97,7 +98,10 @@ describe('WidgetEngine', () => {
 
             expect(() => {
                 engine.setupWidgets([{ widget: conflictingWidget, folder: '/conflict' }]);
-            }).toThrowError('[WidgetEngine] ❌ Conflict: Handlebars already has a helper registered as \'table\'.');
+            }).not.toThrow();
+
+            expect(consoleSpy).toHaveBeenCalledWith('[WidgetEngine] ⚠️ Helper \'table\' is already registered. Skipping widget helper registration.');
+            consoleSpy.mockRestore();
         });
 
         it('handles empty widget array', () => {
@@ -122,13 +126,16 @@ describe('WidgetEngine', () => {
     });
 
     describe('registerDefaultWidgets', () => {
-        it('registers the default widgets (list, table, json-viewer)', () => {
+        it('registers the default widgets (list, table, json-viewer, flow-sequence, related-nodes, block-architecture)', () => {
             engine.registerDefaultWidgets();
 
-            expect(registerMock).toHaveBeenCalledTimes(3);
+            expect(registerMock).toHaveBeenCalledTimes(6);
             expect(localHandlebars.registerHelper).toHaveBeenCalledWith('list', expect.any(Function));
             expect(localHandlebars.registerHelper).toHaveBeenCalledWith('table', expect.any(Function));
             expect(localHandlebars.registerHelper).toHaveBeenCalledWith('json-viewer', expect.any(Function));
+            expect(localHandlebars.registerHelper).toHaveBeenCalledWith('flow-sequence', expect.any(Function));
+            expect(localHandlebars.registerHelper).toHaveBeenCalledWith('related-nodes', expect.any(Function));
+            expect(localHandlebars.registerHelper).toHaveBeenCalledWith('block-architecture', expect.any(Function));
         });
     });
 });

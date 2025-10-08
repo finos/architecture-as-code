@@ -1,14 +1,22 @@
 package org.finos.calm.resources;
 
-import jakarta.validation.constraints.Pattern;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.*;
+import jakarta.validation.constraints.Pattern;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.finos.calm.domain.*;
+import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.ValueWrapper;
+import org.finos.calm.domain.architecture.ArchitectureRequest;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
@@ -26,6 +34,7 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MES
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
+
 
 /**
  * Resource for managing architectures in a given namespace
@@ -47,6 +56,7 @@ public class ArchitectureResource {
 
     /**
      * Retrieve a list of architectures in a given namespace
+     *
      * @param namespace the namespace to retrieve architectures for
      * @return a list of architectures in the given namespace
      */
@@ -79,11 +89,15 @@ public class ArchitectureResource {
     )
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
     public Response createArchitectureForNamespace(
-            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace, String architectureJson
+            @PathParam("namespace")
+            @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            ArchitectureRequest architectureRequest
     ) throws URISyntaxException {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
-                .setArchitecture(architectureJson)
+                .setDescription(architectureRequest.getDescription())
+                .setName(architectureRequest.getName())
+                .setArchitecture(architectureRequest.getArchitectureJson())
                 .build();
 
         try {
@@ -92,7 +106,7 @@ public class ArchitectureResource {
             logger.error("Invalid namespace [{}] when creating architecture", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (JsonParseException e) {
-            logger.error("Cannot parse Architecture JSON for namespace [{}]. Architecture JSON : [{}]", namespace, architectureJson, e);
+            logger.error("Cannot parse Architecture JSON for namespace [{}]. Architecture request : [{}]", namespace, architectureRequest, e);
             return invalidArchitectureJsonResponse(namespace);
         }
     }
@@ -166,13 +180,15 @@ public class ArchitectureResource {
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("architectureId") int architectureId,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
-            String architectureJson
+            ArchitectureRequest architectureRequest
     ) throws URISyntaxException {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
                 .setId(architectureId)
                 .setVersion(version)
-                .setArchitecture(architectureJson)
+                .setName(architectureRequest.getName())
+                .setDescription(architectureRequest.getDescription())
+                .setArchitecture(architectureRequest.getArchitectureJson())
                 .build();
 
         try {
@@ -203,15 +219,17 @@ public class ArchitectureResource {
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("architectureId") int architectureId,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
-            String architectureJson) throws URISyntaxException {
+            ArchitectureRequest architectureRequest) throws URISyntaxException {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
                 .setId(architectureId)
                 .setVersion(version)
-                .setArchitecture(architectureJson)
+                .setName(architectureRequest.getName())
+                .setDescription(architectureRequest.getDescription())
+                .setArchitecture(architectureRequest.getArchitectureJson())
                 .build();
 
-        if(!allowPutOperations) {
+        if (!allowPutOperations) {
             return Response.status(Response.Status.FORBIDDEN).entity("This Calm Hub does not support PUT operations on architectures").build();
         }
 

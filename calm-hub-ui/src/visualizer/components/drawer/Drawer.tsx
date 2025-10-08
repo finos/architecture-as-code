@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
     CalmArchitectureSchema,
     CalmNodeSchema,
-} from '../../../../../shared/src/types/core-types.js';
+} from '../../../../../calm-models/src/types/core-types.js';
 import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
 import { VisualizerContainer } from '../visualizer-container/VisualizerContainer.js';
 import { Data } from '../../../model/calm.js';
@@ -64,7 +64,7 @@ export function Drawer({ data }: DrawerProps) {
     const [title, setTitle] = useState<string>('');
     const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
     const [fileInstance, setFileInstance] = useState<string | undefined>(undefined);
-    const [selectedNode, setSelectedNode] = useState<CytoscapeNode | null>(null);
+    const [selectedNode, setSelectedNode] = useState<CytoscapeNode | Edge | null>(null);
 
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
         if (acceptedFiles[0]) {
@@ -77,9 +77,12 @@ export function Drawer({ data }: DrawerProps) {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
     useEffect(() => {
-        setTitle(title ?? data?.name);
+        // Only update title from data if data exists and title wasn't already set by file upload
+        if (data?.name && data?.id && data?.version) {
+            setTitle(data.name + '/' + data.id + '/' + data.version);
+        }
         setCALMInstance((fileInstance as CalmArchitectureSchema) ?? data?.data);
-    }, [fileInstance, title, data]);
+    }, [fileInstance, data]);
 
     function closeSidebar() {
         setSelectedNode(null);
@@ -203,6 +206,10 @@ export function Drawer({ data }: DrawerProps) {
                             nodes={nodes}
                             edges={edges}
                             calmKey={createStorageKey(title, data)}
+                            nodeClickedCallback={(nodeData) => setSelectedNode({ data: nodeData })}
+                            edgeClickedCallback={(edgeData) => setSelectedNode({ data: edgeData })}
+                            backgroundClickedCallback={closeSidebar}
+                            selectedItemId={selectedNode?.data?.id}
                         />
                     ) : (
                         <div className="flex justify-center items-center h-full w-full">

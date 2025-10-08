@@ -21,7 +21,6 @@ describe('ValidationRouter', () => {
         const router: express.Router = express.Router();
         new ValidationRouter(
             router,
-            schemaDirectoryPath,
             new SchemaDirectory(
                 new FileSystemDocumentLoader(
                     [schemaDirectoryPath, apiGatewayPatternPath],

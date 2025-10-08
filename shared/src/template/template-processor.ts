@@ -9,12 +9,12 @@ import {
     SelfProvidedTemplateLoader,
     TemplateBundleFileLoader
 } from './template-bundle-file-loader.js';
-import { initLogger } from '../logger.js';
-import {CompositeReferenceResolver, MappedReferenceResolver} from '../resolver/calm-reference-resolver.js';
-import {pathToFileURL} from 'node:url';
+import { initLogger, Logger } from '../logger.js';
+import { CompositeReferenceResolver, MappedReferenceResolver } from '../resolver/calm-reference-resolver.js';
+import { pathToFileURL } from 'node:url';
 import TemplateDefaultTransformer from './template-default-transformer';
-import {CalmCore} from '../model/core';
-import {DereferencingVisitor} from '../model-visitor/dereference-visitor';
+import { CalmCore } from '@finos/calm-models/model';
+import { DereferencingVisitor } from '../model-visitor/dereference-visitor';
 import { WidgetEngine, WidgetRegistry } from '@finos/calm-widgets';
 import Handlebars from 'handlebars';
 
@@ -24,18 +24,28 @@ export class TemplateProcessor {
     private readonly inputPath: string;
     private readonly templateBundlePath: string;
     private readonly outputPath: string;
-    private readonly urlToLocalPathMapping:Map<string, string>;
+    private readonly urlToLocalPathMapping: Map<string, string>;
     private readonly mode: TemplateProcessingMode;
-    private static logger = initLogger(process.env.DEBUG === 'true', TemplateProcessor.name);
     private readonly supportWidgetEngine: boolean;
+    private readonly clearOutputDirectory: boolean = false;
 
-    constructor(inputPath: string, templateBundlePath: string, outputPath: string, urlToLocalPathMapping:Map<string,string>, mode: TemplateProcessingMode = 'bundle', supportWidgetEngine: boolean = false) {
+    private static _logger: Logger | undefined;
+
+    private static get logger(): Logger {
+        if (!this._logger) {
+            this._logger = initLogger(process.env.DEBUG === 'true', TemplateProcessor.name);
+        }
+        return this._logger;
+    }
+
+    constructor(inputPath: string, templateBundlePath: string, outputPath: string, urlToLocalPathMapping: Map<string, string>, mode: TemplateProcessingMode = 'bundle', supportWidgetEngine: boolean = false, clearOutputDirectory: boolean = false) {
         this.inputPath = inputPath;
         this.templateBundlePath = templateBundlePath;
         this.outputPath = outputPath;
         this.urlToLocalPathMapping = urlToLocalPathMapping;
         this.mode = mode;
         this.supportWidgetEngine = supportWidgetEngine;
+        this.clearOutputDirectory = clearOutputDirectory;
     }
 
     public async processTemplate(): Promise<void> {
@@ -67,14 +77,14 @@ export class TemplateProcessor {
 
         const config = loader.getConfig();
 
-        if(this.supportWidgetEngine === true) {
+        if (this.supportWidgetEngine === true) {
             //TODO: Handlebars supports local instance. Ideally to make testable we should use a local instance of Handlebars and inject dependency.
             const widgetEngine = new WidgetEngine(Handlebars, new WidgetRegistry(Handlebars));
             widgetEngine.registerDefaultWidgets();
         }
 
         try {
-            this.cleanOutputDirectory(resolvedOutputPath);
+            this.createOutputDirectory(resolvedOutputPath);
 
             const calmJson = this.readInputFile(resolvedInputPath);
 
@@ -97,13 +107,26 @@ export class TemplateProcessor {
         }
     }
 
-    private cleanOutputDirectory(outputPath: string): void {
+    private createOutputDirectory(outputPath: string): void {
         const logger = TemplateProcessor.logger;
         if (fs.existsSync(outputPath)) {
-            logger.info('🗑️ Cleaning up previous generation...');
-            fs.rmSync(outputPath, { recursive: true, force: true });
+            logger.info(`✅ Output directory exists: ${outputPath}`);
+            if (this.clearOutputDirectory) {
+                logger.info(`🗑️ Clearing output directory: ${outputPath}`);
+                fs.rmSync(outputPath, { recursive: true, force: true });
+                fs.mkdirSync(outputPath, { recursive: true });
+            }
+            else {
+                const directoryContents = fs.readdirSync(outputPath);
+                if (directoryContents && directoryContents.length > 0) {
+                    logger.warn('⚠️ Output directory is not empty. Any files not overwritten will remain untouched.');
+                }
+            }
         }
-        fs.mkdirSync(outputPath, { recursive: true });
+        else {
+            logger.info(`📂 Creating output directory: ${outputPath}`);
+            fs.mkdirSync(outputPath, { recursive: true });
+        }
     }
 
     private readInputFile(inputPath: string): string {

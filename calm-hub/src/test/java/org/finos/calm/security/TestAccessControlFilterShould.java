@@ -110,6 +110,7 @@ public class TestAccessControlFilterShould {
     }
 
     private static class TestNamespaceResource {
+        @SuppressWarnings("unused")
         public List<String> getNamespacesUnsecured() {
             return List.of("test", "dev");
         }

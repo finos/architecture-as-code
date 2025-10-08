@@ -1,0 +1,264 @@
+{
+  "nodes": [
+    {
+      "unique-id": "enterprise-platform",
+      "node-type": "enterprise-system",
+      "name": "Enterprise E-Commerce Platform",
+      "description": "Complete enterprise e-commerce solution"
+    },
+    {
+      "unique-id": "web-client",
+      "node-type": "client",
+      "name": "Web Client",
+      "description": "Browser-based client application"
+    },
+    {
+      "unique-id": "api-gateway",
+      "node-type": "gateway",
+      "name": "API Gateway",
+      "description": "External API entry point"
+    },
+    {
+      "unique-id": "microservices-platform",
+      "node-type": "system",
+      "name": "Microservices Platform",
+      "description": "Internal microservices architecture"
+    },
+    {
+      "unique-id": "user-management-system",
+      "node-type": "system",
+      "name": "User Management System",
+      "description": "User authentication and profile management"
+    },
+    {
+      "unique-id": "order-processing-system",
+      "node-type": "system",
+      "name": "Order Processing System",
+      "description": "Order and payment processing workflows"
+    },
+    {
+      "unique-id": "user-service",
+      "node-type": "microservice",
+      "name": "User Service",
+      "description": "Handles user management and authentication",
+      "interfaces": [
+        {
+          "unique-id": "user-api",
+          "protocol": "HTTP",
+          "port": 8001,
+          "path": "/api/users"
+        }
+      ]
+    },
+    {
+      "unique-id": "auth-service",
+      "node-type": "microservice",
+      "name": "Authentication Service",
+      "description": "JWT token management and validation",
+      "interfaces": [
+        {
+          "unique-id": "auth-api",
+          "protocol": "HTTP",
+          "port": 8004,
+          "path": "/api/auth"
+        }
+      ]
+    },
+    {
+      "unique-id": "order-service",
+      "node-type": "microservice",
+      "name": "Order Service",
+      "description": "Processes customer orders",
+      "interfaces": [
+        {
+          "unique-id": "order-api",
+          "protocol": "HTTP",
+          "port": 8002,
+          "path": "/api/orders"
+        }
+      ]
+    },
+    {
+      "unique-id": "payment-service",
+      "node-type": "microservice",
+      "name": "Payment Service",
+      "description": "Handles payment processing",
+      "interfaces": [
+        {
+          "unique-id": "payment-api",
+          "protocol": "HTTP",
+          "port": 8003,
+          "path": "/api/payments"
+        }
+      ]
+    },
+    {
+      "unique-id": "internal-db",
+      "node-type": "database",
+      "name": "Shared Database",
+      "description": "PostgreSQL database for microservices"
+    },
+    {
+      "unique-id": "message-bus",
+      "node-type": "message-broker",
+      "name": "Event Bus",
+      "description": "Internal event messaging"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "enterprise-composition",
+      "relationship-type": {
+        "composed-of": {
+          "container": "enterprise-platform",
+          "nodes": ["web-client", "api-gateway", "microservices-platform"]
+        }
+      },
+      "description": "Enterprise platform contains core components"
+    },
+    {
+      "unique-id": "client-to-gateway",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "web-client"},
+          "destination": {"node": "api-gateway"}
+        }
+      },
+      "description": "Client connects to API gateway",
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "gateway-to-platform",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "api-gateway"},
+          "destination": {"node": "microservices-platform"}
+        }
+      },
+      "description": "API gateway routes to microservices platform",
+      "protocol": "HTTP"
+    },
+    {
+      "unique-id": "platform-to-payment-gateway",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "microservices-platform"},
+          "destination": {"node": "external-payment-gateway"}
+        }
+      },
+      "description": "Platform integrates with external payment gateway",
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "platform-to-monitoring",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "microservices-platform"},
+          "destination": {"node": "monitoring-system"}
+        }
+      },
+      "description": "Platform sends metrics and logs to monitoring",
+      "protocol": "HTTP"
+    },
+    {
+      "unique-id": "microservices-platform-composition",
+      "relationship-type": {
+        "composed-of": {
+          "container": "microservices-platform",
+          "nodes": ["user-management-system", "order-processing-system", "internal-db", "message-bus"]
+        }
+      },
+      "description": "Microservices platform contains internal systems and infrastructure"
+    },
+    {
+      "unique-id": "user-system-composition",
+      "relationship-type": {
+        "composed-of": {
+          "container": "user-management-system",
+          "nodes": ["user-service", "auth-service"]
+        }
+      },
+      "description": "User management system contains user and auth services"
+    },
+    {
+      "unique-id": "order-system-composition",
+      "relationship-type": {
+        "composed-of": {
+          "container": "order-processing-system",
+          "nodes": ["order-service", "payment-service"]
+        }
+      },
+      "description": "Order processing system contains order and payment services"
+    },
+    {
+      "unique-id": "user-to-db",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "user-service"},
+          "destination": {"node": "internal-db"}
+        }
+      },
+      "description": "User service stores user data"
+    },
+    {
+      "unique-id": "auth-to-db",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "auth-service"},
+          "destination": {"node": "internal-db"}
+        }
+      },
+      "description": "Auth service stores session data"
+    },
+    {
+      "unique-id": "order-to-db",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "order-service"},
+          "destination": {"node": "internal-db"}
+        }
+      },
+      "description": "Order service stores order data"
+    },
+    {
+      "unique-id": "order-to-payment",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "order-service"},
+          "destination": {"node": "payment-service"}
+        }
+      },
+      "description": "Order service calls payment service"
+    },
+    {
+      "unique-id": "payment-events",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "payment-service"},
+          "destination": {"node": "message-bus"}
+        }
+      },
+      "description": "Payment service publishes events"
+    },
+    {
+      "unique-id": "order-events",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "order-service"},
+          "destination": {"node": "message-bus"}
+        }
+      },
+      "description": "Order service publishes events"
+    },
+    {
+      "unique-id": "user-auth-integration",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "user-service"},
+          "destination": {"node": "auth-service"}
+        }
+      },
+      "description": "User service integrates with auth service"
+    }
+  ]
+}

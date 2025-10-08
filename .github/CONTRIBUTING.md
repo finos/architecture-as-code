@@ -42,3 +42,7 @@ To make review of PRs easier, please:
 * Use the present tense ("Add feature" not "Added feature")
 * Use the imperative mood ("Move button left..." not "Moves button left...")
 * Limit the first line to 72 characters or less
+
+## Style guide
+
+See [STYLE_GUIDE.md](STYLE_GUIDE.md).

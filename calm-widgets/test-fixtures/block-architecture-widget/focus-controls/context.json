@@ -1,0 +1,226 @@
+{
+  "controls": {
+    "global-security-policy": {
+      "description": "Enterprise-wide security policy requirements",
+      "requirements": [
+        {
+          "requirement-url": "https://enterprise.com/policies/security",
+          "scope": "enterprise"
+        }
+      ]
+    },
+    "compliance-framework": {
+      "description": "Overall compliance framework requirements",
+      "requirements": [
+        {
+          "requirement-url": "https://company.com/compliance/framework",
+          "standard": "SOX"
+        }
+      ]
+    },
+    "data-governance": {
+      "description": "Data governance and privacy controls",
+      "requirements": [
+        {
+          "requirement-url": "https://enterprise.com/policies/data-governance",
+          "regulations": ["GDPR", "CCPA"]
+        }
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "unique-id": "web-server",
+      "node-type": "server",
+      "name": "Web Server",
+      "description": "Public facing web server",
+      "controls": {
+        "security-hardening": {
+          "description": "Server security hardening requirements",
+          "requirements": [
+            {
+              "requirement-url": "https://company.com/security/server-hardening",
+              "priority": "high"
+            }
+          ]
+        },
+        "ssl-encryption": {
+          "description": "SSL/TLS encryption for all communications",
+          "requirements": [
+            {
+              "requirement-url": "https://company.com/security/encryption",
+              "standard": "TLS 1.3"
+            }
+          ]
+        },
+        "authentication": {
+          "description": "API authentication and authorization controls",
+          "requirements": [
+            {
+              "requirement-url": "https://company.com/security/api-auth",
+              "method": "OAuth2"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "database-server",
+      "node-type": "database",
+      "name": "Database Server",
+      "description": "Production database server",
+      "controls": {
+        "data-encryption": {
+          "description": "Database encryption at rest and in transit",
+          "requirements": [
+            {
+              "requirement-url": "https://company.com/security/database-encryption",
+              "compliance": "GDPR"
+            }
+          ]
+        },
+        "backup-policy": {
+          "description": "Automated backup and recovery procedures",
+          "requirements": [
+            {
+              "requirement-url": "https://company.com/ops/backup-policy",
+              "frequency": "daily"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "payment-processor",
+      "node-type": "service",
+      "name": "Payment Processing Service",
+      "description": "Handles credit card and ACH payments",
+      "controls": {
+        "pci-compliance": {
+          "description": "PCI DSS compliance requirements for payment processing",
+          "requirements": [
+            {
+              "requirement-url": "https://company.com/compliance/pci-dss",
+              "standard": "PCI DSS 4.0",
+              "level": "Level 1"
+            }
+          ]
+        },
+        "fraud-detection": {
+          "description": "Real-time fraud detection and prevention",
+          "requirements": [
+            {
+              "requirement-url": "https://company.com/security/fraud-prevention",
+              "ml-model": "required"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "api-service",
+      "node-type": "service",
+      "name": "API Service",
+      "description": "REST API service",
+      "controls": {
+        "authentication": {
+          "description": "API authentication and authorization controls",
+          "requirements": [
+            {
+              "requirement-url": "https://company.com/security/api-auth",
+              "method": "OAuth2"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "frontend-app",
+      "node-type": "application",
+      "name": "Frontend Application",
+      "description": "Customer-facing web application",
+      "controls": {
+        "ui-security": {
+          "description": "Frontend security controls",
+          "requirements": [
+            {
+              "requirement-url": "https://enterprise.com/security/frontend",
+              "framework": "OWASP"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "web-to-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "web-server"
+          },
+          "destination": {
+            "node": "api-service"
+          }
+        }
+      },
+      "description": "Web server connects to API service",
+      "controls": {
+        "secure-communication": {
+          "description": "Secure communication channel requirements",
+          "requirements": [
+            {
+              "requirement-url": "https://company.com/security/secure-channels",
+              "protocol": "HTTPS"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "api-to-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-service"
+          },
+          "destination": {
+            "node": "database-server"
+          }
+        }
+      },
+      "description": "API service connects to database"
+    },
+    {
+      "unique-id": "frontend-to-payment",
+      "relationship-type": {
+        "connects": {
+          "source": {"node": "frontend-app"},
+          "destination": {"node": "payment-processor"}
+        }
+      },
+      "description": "Frontend connects to payment processor",
+      "controls": {
+        "api-gateway-security": {
+          "description": "API gateway security controls for payment processing",
+          "requirements": [
+            {
+              "requirement-url": "https://enterprise.com/security/api-gateway",
+              "rate-limiting": "enabled"
+            }
+          ]
+        },
+        "data-pipeline-security": {
+          "description": "Data pipeline security and integrity controls",
+          "requirements": [
+            {
+              "requirement-url": "https://enterprise.com/security/data-pipeline",
+              "encryption": "AES-256"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

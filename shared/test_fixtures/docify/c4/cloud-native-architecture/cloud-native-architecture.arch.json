@@ -1,0 +1,378 @@
+{
+  "nodes": [
+    {
+      "unique-id": "edge-system",
+      "node-type": "system",
+      "name": "Edge Computing System",
+      "description": "Global edge infrastructure for content delivery and traffic management",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "core-system",
+      "node-type": "system",
+      "name": "Core Application System",
+      "description": "Main application services running in Kubernetes",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "data-system",
+      "node-type": "system",
+      "name": "Data Platform System",
+      "description": "Data storage, processing, and analytics infrastructure",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "cdn",
+      "node-type": "service",
+      "name": "Content Delivery Network",
+      "description": "Global CDN for static content and caching",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "load-balancer",
+      "node-type": "service",
+      "name": "Global Load Balancer",
+      "description": "Traffic distribution across multiple regions",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "api-gateway",
+      "node-type": "service",
+      "name": "API Gateway",
+      "description": "Unified entry point for all API requests",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "auth-service",
+      "node-type": "service",
+      "name": "Authentication Service",
+      "description": "OAuth2/OIDC authentication and JWT management",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "api-service",
+      "node-type": "service",
+      "name": "Core API Service",
+      "description": "Main business logic API with GraphQL and REST endpoints",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "search-service",
+      "node-type": "service",
+      "name": "Search Service",
+      "description": "Elasticsearch-powered search and analytics",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "primary-db",
+      "node-type": "service",
+      "name": "Primary Database",
+      "description": "PostgreSQL cluster for transactional data",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "analytics-db",
+      "node-type": "service",
+      "name": "Analytics Database",
+      "description": "ClickHouse for real-time analytics and reporting",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "cache-cluster",
+      "node-type": "service",
+      "name": "Cache Cluster",
+      "description": "Redis cluster for session storage and caching",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "data-processor",
+      "node-type": "service",
+      "name": "Data Processing Engine",
+      "description": "Apache Spark for batch and stream processing",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "web-user",
+      "node-type": "actor",
+      "name": "Web User",
+      "description": "End user accessing via web browser",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "mobile-user",
+      "node-type": "actor",
+      "name": "Mobile User",
+      "description": "End user accessing via mobile application",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "data-analyst",
+      "node-type": "actor",
+      "name": "Data Analyst",
+      "description": "Business analyst running reports and dashboards",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "edge-composition",
+      "relationship-type": {
+        "composed-of": {
+          "container": "edge-system",
+          "nodes": [
+            "cdn",
+            "load-balancer",
+            "api-gateway"
+          ]
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Edge System contains global infrastructure components"
+    },
+    {
+      "unique-id": "core-composition",
+      "relationship-type": {
+        "composed-of": {
+          "container": "core-system",
+          "nodes": [
+            "auth-service",
+            "api-service",
+            "search-service"
+          ]
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Core System contains application services"
+    },
+    {
+      "unique-id": "data-composition",
+      "relationship-type": {
+        "composed-of": {
+          "container": "data-system",
+          "nodes": [
+            "primary-db",
+            "analytics-db",
+            "cache-cluster",
+            "data-processor"
+          ]
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Data System contains storage and processing components"
+    },
+    {
+      "unique-id": "web-user-cdn",
+      "relationship-type": {
+        "interacts": {
+          "actor": "web-user",
+          "nodes": [
+            "cdn"
+          ]
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Web users access static content via CDN"
+    },
+    {
+      "unique-id": "mobile-user-gateway",
+      "relationship-type": {
+        "interacts": {
+          "actor": "mobile-user",
+          "nodes": [
+            "api-gateway"
+          ]
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Mobile users access APIs via gateway"
+    },
+    {
+      "unique-id": "analyst-reports",
+      "relationship-type": {
+        "interacts": {
+          "actor": "data-analyst",
+          "nodes": [
+            "analytics-db"
+          ]
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Data analysts query analytics database"
+    },
+    {
+      "unique-id": "cdn-lb",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "cdn",
+            "interfaces": []
+          },
+          "destination": {
+            "node": "load-balancer",
+            "interfaces": []
+          }
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "CDN forwards dynamic requests to load balancer"
+    },
+    {
+      "unique-id": "lb-gateway",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "load-balancer",
+            "interfaces": []
+          },
+          "destination": {
+            "node": "api-gateway",
+            "interfaces": []
+          }
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Load balancer routes traffic to API gateway"
+    },
+    {
+      "unique-id": "gateway-auth",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-gateway",
+            "interfaces": []
+          },
+          "destination": {
+            "node": "auth-service",
+            "interfaces": []
+          }
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "API gateway validates tokens with auth service"
+    },
+    {
+      "unique-id": "gateway-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-gateway",
+            "interfaces": []
+          },
+          "destination": {
+            "node": "api-service",
+            "interfaces": []
+          }
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "API gateway routes requests to core API"
+    },
+    {
+      "unique-id": "api-cache",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-service",
+            "interfaces": []
+          },
+          "destination": {
+            "node": "cache-cluster",
+            "interfaces": []
+          }
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "API service uses cache for session storage"
+    },
+    {
+      "unique-id": "api-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-service",
+            "interfaces": []
+          },
+          "destination": {
+            "node": "primary-db",
+            "interfaces": []
+          }
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "API service reads/writes transactional data"
+    }
+  ],
+  "metadata": [{"scenario": "cloud-native-architecture"}]
+}

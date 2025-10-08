@@ -54,6 +54,15 @@ describe('Widgets E2E - Handlebars Integration', () => {
 
             expect(result.trim()).toBe(expected);
         });
+
+        it('renders an flat vertical table', () => {
+            const { context, template, expected } = fixtures.loadFixture('table-widget', 'flat-vertical-table');
+
+            const compiledTemplate = handlebars.compile(template);
+            const result = compiledTemplate(context);
+
+            expect(result.trim()).toBe(expected);
+        });
     });
 
     describe('List Widget', () => {
@@ -135,6 +144,177 @@ describe('Widgets E2E - Handlebars Integration', () => {
             expect(listScenarios).toContain('unordered-strings');
             expect(listScenarios).toContain('ordered-strings');
             expect(listScenarios).toContain('objects-as-key-value');
+        });
+    });
+
+    describe('Flow Sequence Widget', () => {
+        it('renders a bidirectional flow', () => {
+            const { context, template, expected } = fixtures.loadFixture('flow-sequence-widget', 'bidirectional-flow');
+            const compiledTemplate = handlebars.compile(template);
+            const result = compiledTemplate(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders a flow with interacts and connects', () => {
+            const { context, template, expected } = fixtures.loadFixture('flow-sequence-widget', 'interacts-and-connects-flow');
+            const compiledTemplate = handlebars.compile(template);
+            const result = compiledTemplate(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders a flow from a nested architecture in node details', () => {
+            const { context, template, expected } = fixtures.loadFixture('flow-sequence-widget', 'nested-details-flow');
+
+            const compiledTemplate = handlebars.compile(template);
+            const result = compiledTemplate(context);
+            expect(result.trim()).toBe(expected);
+        });
+    });
+
+    describe('Related Nodes Widget', () => {
+        it('renders an interacts relationship', () => {
+            const { context, template, expected } = fixtures.loadFixture('related-nodes-widget', 'relationship-interacts');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders a connects relationship', () => {
+            const { context, template, expected } = fixtures.loadFixture('related-nodes-widget', 'relationship-connects');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders a composed relationship', () => {
+            const { context, template, expected } = fixtures.loadFixture('related-nodes-widget', 'relationship-composed');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders a deployed-in relationship', () => {
+            const { context, template, expected } = fixtures.loadFixture('related-nodes-widget', 'relationship-deployed');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders a node composed-of + connects relationships', () => {
+            const { context, template, expected } = fixtures.loadFixture('related-nodes-widget', 'node-composed-connects');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders a node with related relationships', () => {
+            const { context, template, expected } = fixtures.loadFixture('related-nodes-widget', 'node-with-related');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+    });
+
+    describe('Block Architecture Widget', () => {
+        it('renders basic architecture structures (empty, single system, multiple systems)', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'basic-structures');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        // Interface rendering variations - consolidated from interfaces-off, interfaces-on-both, interfaces-on-one-side
+        it('handles all interface rendering variations in one comprehensive test', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'interface-variations');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        // Complex real-world scenarios - keep these as they demonstrate practical use cases
+        it('renders enterprise bank trading system with mixed communication patterns', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'enterprise-bank-trading');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders enterprise bank with clickable navigation pattern and progressive detail levels', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'enterprise-bank-navigation');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders a nested architecture with nested relationships', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'nested-architecture');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders large topology with many nodes and connections efficiently', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'large-topology');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('applies domain interaction diagram', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'domain-interaction');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        // New focus flows test - demonstrates flow-based filtering
+        it('filters architecture based on specific flows', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'focus-flows');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('filters architecture based on interface matching by unique-id and properties', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'focus-interfaces');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('filters architecture based on control matching by ID and properties', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'focus-controls');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('filters architecture based on node focusing with comprehensive scenarios', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'focus-nodes');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('filters architecture based on relationship focusing by unique-id', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'focus-relationships');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('collapses multiple relationships between same source and destination into single edges', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'collapse-relationships');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders nodes with type-specific shapes and colors when render-node-type-shapes option is enabled', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'node-type-shapes');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
         });
     });
 });

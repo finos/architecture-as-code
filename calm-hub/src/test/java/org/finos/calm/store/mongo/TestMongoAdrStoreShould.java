@@ -22,32 +22,20 @@ import org.bson.conversions.Bson;
 import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
 import org.finos.calm.domain.adr.Status;
-import org.finos.calm.domain.exception.AdrNotFoundException;
-import org.finos.calm.domain.exception.AdrParseException;
-import org.finos.calm.domain.exception.AdrPersistenceException;
-import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
-import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @QuarkusTest
 public class TestMongoAdrStoreShould {
@@ -63,9 +51,6 @@ public class TestMongoAdrStoreShould {
 
     private ObjectMapper objectMapper;
 
-    private MongoDatabase mongoDatabase;
-    private MongoCollection<Document> adrCollection;
-    private MongoAdrStore mongoAdrStore;
     private final String NAMESPACE = "finos";
     private final AdrMeta simpleAdrMeta = new AdrMeta.AdrMetaBuilder()
             .setNamespace(NAMESPACE)
@@ -78,11 +63,13 @@ public class TestMongoAdrStoreShould {
                     .setUpdateDateTime(LocalDateTime.now())
                     .build())
             .build();
+    private MongoCollection<Document> adrCollection;
+    private MongoAdrStore mongoAdrStore;
 
     @BeforeEach
     void setup() {
-        mongoDatabase = Mockito.mock(MongoDatabase.class);
-        adrCollection = Mockito.mock(MongoCollection.class);
+        MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
+        adrCollection = Mockito.mock(DocumentMongoCollection.class);
 
         when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
         when(mongoDatabase.getCollection("adrs")).thenReturn(adrCollection);
@@ -93,19 +80,8 @@ public class TestMongoAdrStoreShould {
     }
 
     @Test
-    void get_adrs_for_namespace_that_doesnt_exist_throws_exception() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        String namespace = "does-not-exist";
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoAdrStore.getAdrsForNamespace(namespace));
-
-        verify(namespaceStore).namespaceExists(namespace);
-    }
-
-    @Test
     void get_adrs_for_namespace_returns_empty_list_when_none_exist() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(adrCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
                 .thenReturn(findIterable);
@@ -120,7 +96,7 @@ public class TestMongoAdrStoreShould {
 
     @Test
     void get_adrs_for_namespace_returns_empty_list_when_mongo_collection_not_created() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(adrCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
                 .thenReturn(findIterable);
@@ -131,8 +107,19 @@ public class TestMongoAdrStoreShould {
     }
 
     @Test
+    void get_adrs_for_namespace_that_doesnt_exist_throws_exception() {
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
+        String namespace = "does-not-exist";
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> mongoAdrStore.getAdrsForNamespace(namespace));
+
+        verify(namespaceStore).namespaceExists(namespace);
+    }
+
+    @Test
     void get_adrs_for_namespace_returns_values() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(adrCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
                 .thenReturn(findIterable);
@@ -149,6 +136,28 @@ public class TestMongoAdrStoreShould {
 
         assertThat(adrIds, is(Arrays.asList(1001, 1002)));
         verify(namespaceStore).namespaceExists(NAMESPACE);
+    }
+
+    private FindIterable<Document> setupInvalidAdr() {
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        //Return the same find iterable as the projection unboxes, then return null
+        when(adrCollection.find(any(Bson.class)))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(null);
+
+        return findIterable;
+    }
+
+    private void mockSetupAdrDocumentWithRevisions() throws JsonProcessingException {
+        Document mainDocument = setupAdrRevisionDocument();
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(adrCollection.find(any(Bson.class)))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(mainDocument);
     }
 
     @Test
@@ -204,16 +213,14 @@ public class TestMongoAdrStoreShould {
         verify(namespaceStore).namespaceExists(adrMeta.getNamespace());
     }
 
-    private FindIterable<Document> setupInvalidAdr() {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+    private void mockSetupAdrDocumentWithNoRevisions() {
+        Document mainDocument = setupAdrWithNoRevisions();
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        //Return the same find iterable as the projection unboxes, then return null
         when(adrCollection.find(any(Bson.class)))
                 .thenReturn(findIterable);
         when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-        return findIterable;
+        when(findIterable.first()).thenReturn(mainDocument);
     }
 
     @Test
@@ -273,14 +280,10 @@ public class TestMongoAdrStoreShould {
         assertThat(adrMetaRevision, is(expectedAdrRevisionMeta));
     }
 
-    private void mockSetupAdrDocumentWithRevisions() throws JsonProcessingException {
-        Document mainDocument = setupAdrRevisionDocument();
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(adrCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(mainDocument);
+    private Document setupAdrWithNoRevisions() {
+        //Set up an ADR document with 1 ADR with No Revisions
+        return new Document("namespace", NAMESPACE)
+                .append("adrs", List.of(new Document("adrId", 42)));
     }
 
     private Document setupAdrRevisionDocument() throws JsonProcessingException {
@@ -318,23 +321,10 @@ public class TestMongoAdrStoreShould {
                 () -> mongoAdrStore.getAdr(adrMeta));
     }
 
-    private Document setupAdrWithNoRevisions() {
-        //Set up an ADR document with 1 ADR with No Revisions
-
-        Document targetStoredAdr = new Document("adrId", 42);
-
-        return new Document("namespace", NAMESPACE)
-                .append("adrs", List.of(targetStoredAdr));
+    private interface DocumentFindIterable extends FindIterable<Document> {
     }
 
-    private void mockSetupAdrDocumentWithNoRevisions() {
-        Document mainDocument = setupAdrWithNoRevisions();
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(adrCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(mainDocument);
+    private interface DocumentMongoCollection extends MongoCollection<Document> {
     }
 
     @Test

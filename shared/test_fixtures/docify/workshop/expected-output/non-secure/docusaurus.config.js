@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-require-imports, no-undef */
-import remarkReplaceLinks from './src/remark/remark-replace-links';
+/* eslint-disable no-undef */
+import remarkReplaceLinks from './src/remark/remark-replace-links.mjs';
 
 module.exports = {
     title: 'My Docusaurus Docs',

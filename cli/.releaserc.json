@@ -1,0 +1,481 @@
+{
+  "branches": [
+    "main"
+  ],
+  "repositoryUrl": "https://github.com/finos/architecture-as-code",
+  "tagFormat": "cli-v${version}",
+  "ci": true,
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          {
+            "type": "feat",
+            "scope": "cli",
+            "release": "minor"
+          },
+          {
+            "type": "fix",
+            "scope": "cli",
+            "release": "patch"
+          },
+          {
+            "type": "perf",
+            "scope": "cli",
+            "release": "patch"
+          },
+          {
+            "type": "revert",
+            "scope": "cli",
+            "release": "patch"
+          },
+          {
+            "type": "docs",
+            "scope": "cli",
+            "release": "patch"
+          },
+          {
+            "type": "chore",
+            "scope": "cli",
+            "release": false
+          },
+          {
+            "type": "refactor",
+            "scope": "cli",
+            "release": "patch"
+          },
+          {
+            "type": "test",
+            "scope": "cli",
+            "release": false
+          },
+          {
+            "type": "style",
+            "scope": "cli",
+            "release": false
+          },
+          {
+            "type": "ci",
+            "scope": "cli",
+            "release": false
+          },
+          {
+            "type": "feat",
+            "scope": "shared",
+            "release": "minor"
+          },
+          {
+            "type": "fix",
+            "scope": "shared",
+            "release": "patch"
+          },
+          {
+            "type": "perf",
+            "scope": "shared",
+            "release": "patch"
+          },
+          {
+            "type": "revert",
+            "scope": "shared",
+            "release": "patch"
+          },
+          {
+            "type": "docs",
+            "scope": "shared",
+            "release": "patch"
+          },
+          {
+            "type": "chore",
+            "scope": "shared",
+            "release": false
+          },
+          {
+            "type": "refactor",
+            "scope": "shared",
+            "release": "patch"
+          },
+          {
+            "type": "test",
+            "scope": "shared",
+            "release": false
+          },
+          {
+            "type": "style",
+            "scope": "shared",
+            "release": false
+          },
+          {
+            "type": "ci",
+            "scope": "shared",
+            "release": false
+          },
+          {
+            "type": "feat",
+            "scope": "calm-models",
+            "release": "minor"
+          },
+          {
+            "type": "fix",
+            "scope": "calm-models",
+            "release": "patch"
+          },
+          {
+            "type": "perf",
+            "scope": "calm-models",
+            "release": "patch"
+          },
+          {
+            "type": "revert",
+            "scope": "calm-models",
+            "release": "patch"
+          },
+          {
+            "type": "docs",
+            "scope": "calm-models",
+            "release": "patch"
+          },
+          {
+            "type": "chore",
+            "scope": "calm-models",
+            "release": false
+          },
+          {
+            "type": "refactor",
+            "scope": "calm-models",
+            "release": "patch"
+          },
+          {
+            "type": "test",
+            "scope": "calm-models",
+            "release": false
+          },
+          {
+            "type": "style",
+            "scope": "calm-models",
+            "release": false
+          },
+          {
+            "type": "ci",
+            "scope": "calm-models",
+            "release": false
+          },
+          {
+            "type": "feat",
+            "scope": "calm-ai",
+            "release": "minor"
+          },
+          {
+            "type": "fix",
+            "scope": "calm-ai",
+            "release": "patch"
+          },
+          {
+            "type": "perf",
+            "scope": "calm-ai",
+            "release": "patch"
+          },
+          {
+            "type": "revert",
+            "scope": "calm-ai",
+            "release": "patch"
+          },
+          {
+            "type": "docs",
+            "scope": "calm-ai",
+            "release": "patch"
+          },
+          {
+            "type": "chore",
+            "scope": "calm-ai",
+            "release": false
+          },
+          {
+            "type": "refactor",
+            "scope": "calm-ai",
+            "release": "patch"
+          },
+          {
+            "type": "test",
+            "scope": "calm-ai",
+            "release": false
+          },
+          {
+            "type": "style",
+            "scope": "calm-ai",
+            "release": false
+          },
+          {
+            "type": "ci",
+            "scope": "calm-ai",
+            "release": false
+          },
+          {
+            "type": "feat",
+            "scope": "calm-widgets",
+            "release": "minor"
+          },
+          {
+            "type": "fix",
+            "scope": "calm-widgets",
+            "release": "patch"
+          },
+          {
+            "type": "perf",
+            "scope": "calm-widgets",
+            "release": "patch"
+          },
+          {
+            "type": "revert",
+            "scope": "calm-widgets",
+            "release": "patch"
+          },
+          {
+            "type": "docs",
+            "scope": "calm-widgets",
+            "release": "patch"
+          },
+          {
+            "type": "chore",
+            "scope": "calm-widgets",
+            "release": false
+          },
+          {
+            "type": "refactor",
+            "scope": "calm-widgets",
+            "release": "patch"
+          },
+          {
+            "type": "test",
+            "scope": "calm-widgets",
+            "release": false
+          },
+          {
+            "type": "style",
+            "scope": "calm-widgets",
+            "release": false
+          },
+          {
+            "type": "ci",
+            "scope": "calm-widgets",
+            "release": false
+          },
+          {
+            "scope": "!(cli|shared|calm-models|calm-ai|calm-widgets)",
+            "release": false
+          },
+          {
+            "type": "feat",
+            "release": "minor"
+          },
+          {
+            "type": "fix",
+            "release": "patch"
+          },
+          {
+            "type": "perf",
+            "release": "patch"
+          },
+          {
+            "type": "revert",
+            "release": "patch"
+          }
+        ],
+        "parserOpts": {
+          "noteKeywords": [
+            "BREAKING CHANGE",
+            "BREAKING CHANGES"
+          ],
+          "mergePattern": "^Merge pull request #\\d+ from .*$|^Merge branch .*$|^Merge .*$",
+          "mergeCorrespondence": ["id", "source"]
+        },
+        "writerOpts": {
+          "transform": {
+            "merge": null
+          }
+        },
+        "transform": {
+          "cli/**": {
+            "scope": "cli"
+          },
+          "shared/**": {
+            "scope": "shared"
+          },
+          "calm-models/**": {
+            "scope": "calm-models"
+          },
+          "calm-ai/**": {
+            "scope": "calm-ai"
+          },
+          "calm-widgets/**": {
+            "scope": "calm-widgets"
+          }
+        }
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "conventionalcommits",
+        "parserOpts": {
+          "mergePattern": "^Merge pull request #\\d+ from .*$|^Merge branch .*$|^Merge .*$",
+          "mergeCorrespondence": [
+            "id",
+            "source"
+          ]
+        },
+        "writerOpts": {
+          "transform": {
+            "merge": null
+          },
+          "groupBy": "type",
+          "commitGroupsSort": "title",
+          "commitsSort": [
+            "scope",
+            "subject"
+          ],
+          "noteGroupsSort": "title"
+        },
+        "presetConfig": {
+          "types": [
+            {
+              "type": "feat",
+              "section": "🚀 Features",
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models",
+                "calm-ai",
+                "calm-widgets"
+              ]
+            },
+            {
+              "type": "fix",
+              "section": "🐛 Bug Fixes",
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models",
+                "calm-ai",
+                "calm-widgets"
+              ]
+            },
+            {
+              "type": "perf",
+              "section": "⚡ Performance Improvements",
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models",
+                "calm-ai",
+                "calm-widgets"
+              ]
+            },
+            {
+              "type": "revert",
+              "section": "⏪ Reverts",
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models",
+                "calm-ai",
+                "calm-widgets"
+              ]
+            },
+            {
+              "type": "docs",
+              "section": "📚 Documentation",
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models",
+                "calm-ai",
+                "calm-widgets"
+              ]
+            },
+            {
+              "type": "refactor",
+              "section": "♻️ Code Refactoring",
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models",
+                "calm-ai",
+                "calm-widgets"
+              ]
+            },
+            {
+              "type": "test",
+              "section": "✅ Tests",
+              "hidden": true,
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models",
+                "calm-ai",
+                "calm-widgets"
+              ]
+            },
+            {
+              "type": "style",
+              "section": "🎨 Styles",
+              "hidden": true,
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models",
+                "calm-ai",
+                "calm-widgets"
+              ]
+            },
+            {
+              "type": "chore",
+              "section": "🔧 Chores",
+              "hidden": true,
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models",
+                "calm-ai",
+                "calm-widgets"
+              ]
+            },
+            {
+              "type": "ci",
+              "section": "🤖 CI/CD",
+              "hidden": true,
+              "scope": [
+                "cli",
+                "shared",
+                "calm-models",
+                "calm-ai",
+                "calm-widgets"
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md",
+        "changelogTitle": "# Changelog\n\nAll notable changes to the CALM CLI will be documented in this file.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)."
+      }
+    ],
+    [
+      "@semantic-release/npm",
+      {
+        "npmPublish": false
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "echo 'Preparing release ${nextRelease.version}'",
+        "successCmd": "git checkout -b release/cli-v${nextRelease.version} && git add CHANGELOG.md package.json && git commit -m 'ci(cli): release version ${nextRelease.version}' && git push origin release/cli-v${nextRelease.version}"
+      }
+    ]
+  ]
+}

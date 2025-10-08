@@ -1,103 +1,139 @@
 import { CalmWidget } from '../../types';
 
-export const TableWidget: CalmWidget<
-    Array<Record<string, unknown>> | Record<string, unknown>,
-    { key?: string; headers?: boolean; columns?: string },
-    {
-        headers: boolean;
-        rows: Array<{ id: string; data: Record<string, unknown> }>;
-        flatTable?: boolean;
-        columnNames?: string[];
-    }
-> = {
+type TableContext = Array<Record<string, unknown>> | Record<string, unknown>;
+
+type TableOptions = {
+    key?: string;
+    headers?: boolean;
+    columns?: string;
+    orientation?: 'horizontal' | 'vertical';
+};
+
+type TableRow = { id: string; data: Record<string, unknown> };
+
+type TableViewModel = {
+    headers: boolean;
+    rows: TableRow[];
+    flatTable?: boolean;
+    columnNames?: string[];
+    isVertical?: boolean;
+};
+
+function isPlainRecord(v: unknown): v is Record<string, unknown> {
+    return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+export const TableWidget: CalmWidget<TableContext, TableOptions, TableViewModel> = {
     id: 'table',
     templatePartial: 'table-template.html',
-    partials: ['row-template.html'],
+    partials: ['row-template.html', 'table-horizontal.html', 'table-vertical.html'],
 
     transformToViewModel: (context, options) => {
-        const hash = options?.hash ?? {};
-        const key = typeof hash.key === 'string' ? hash.key : 'unique-id';
-        const columnList = typeof hash.columns === 'string'
-            ? hash.columns.split(',').map(col => col.trim()).filter(Boolean)
-            : undefined;
+        const {
+            key = 'unique-id',
+            headers = true,
+            columns,
+            orientation = 'horizontal',
+        } = options ?? {};
 
-        // Determine if we should render as flat table or nested
-        const flatTable = columnList !== undefined;
+        const isVertical = orientation === 'vertical';
 
+        let columnNames: string[] | undefined =
+            typeof columns === 'string'
+                ? columns.split(',').map(c => c.trim()).filter(Boolean)
+                : undefined;
+
+        let flatTable: boolean;
         let entries: Array<Record<string, unknown>>;
 
         if (Array.isArray(context)) {
             entries = context;
-        } else if (typeof context === 'object' && context !== null && !Array.isArray(context)) {
-            // For objects, convert to array of entries with the key as the specified key field
-            entries = Object.entries(context).map(([id, value]) => {
-                const val = typeof value === 'object' && value !== null && !Array.isArray(value)
-                    ? { ...value, [key]: id }
-                    : { value, [key]: id };
-                return val;
-            });
+            flatTable = columnNames !== undefined;
+        } else if (isPlainRecord(context)) {
+            const obj: Record<string, unknown> = context;
+            const canSingleRowWithColumns =
+                !!columnNames && columnNames.every(col => Object.prototype.hasOwnProperty.call(obj, col));
+
+            if (canSingleRowWithColumns || isVertical) {
+                flatTable = !!columnNames;
+                entries = columnNames
+                    ? [Object.fromEntries(columnNames.map(col => [col, obj[col]]))]
+                    : [obj];
+            } else {
+                flatTable = false;
+                entries = Object.entries(obj).map(([propKey, value]) =>
+                    isPlainRecord(value) ? { ...value, [key]: propKey } : { value, [key]: propKey }
+                );
+            }
         } else {
             throw new Error('Unsupported context format for table widget');
         }
 
-        const rows = entries
-            .filter((item): item is Record<string, unknown> => {
-                // For arrays, don't filter by key - just ensure it's a valid object
-                if (Array.isArray(context)) {
-                    return typeof item === 'object' && item !== null && !Array.isArray(item);
-                }
-                // For objects/records, filter by key as before
-                const id = item?.[key];
-                return typeof id === 'string' && id.trim() !== '';
-            })
+        const rows: TableRow[] = entries
+            .filter(isPlainRecord)
             .map((item, index) => {
-                // For arrays, use index as fallback ID if no key field exists
-                let id: string;
-                if (Array.isArray(context)) {
-                    const keyValue = item?.[key];
-                    id = typeof keyValue === 'string' && keyValue.trim() !== ''
-                        ? keyValue
-                        : index.toString();
-                } else {
-                    id = item[key] as string;
-                }
+                const rec: Record<string, unknown> = item;
 
-                const cleaned = Object.fromEntries(
-                    Object.entries(item).filter(([_, value]) => value !== undefined)
+                const candidate = rec[key] ?? rec['unique-id'] ?? rec['id'];
+                const id = (() => {
+                    const s = candidate == null ? '' : String(candidate).trim();
+                    return s === '' ? String(index) : s;
+                })();
+
+                const cleaned: Record<string, unknown> = Object.fromEntries(
+                    Object.entries(rec).filter(([, v]) => v !== undefined)
                 );
 
-                const selectedData = columnList
-                    ? Object.fromEntries(
-                        columnList.map(col => [col, cleaned[col]])
-                    )
-                    : cleaned;
+                const data: Record<string, unknown> =
+                    columnNames && flatTable
+                        ? Object.fromEntries(columnNames.map(col => [col, cleaned[col]]))
+                        : cleaned;
 
-                return {
-                    id,
-                    data: selectedData
-                };
+                // Ensure key/id values are present in data when explicitly requested in columns
+                if (columnNames?.includes(key)) {
+                    const curr = data[key];
+                    const missing = curr == null || (typeof curr === 'string' && curr === '');
+                    if (missing) data[key] = id;
+                }
+
+                if (columnNames?.includes('id')) {
+                    const curr = data['id'];
+                    const missing = curr == null || (typeof curr === 'string' && curr === '');
+                    if (missing) {
+                        data['id'] = cleaned['id'] ?? cleaned['unique-id'] ?? id;
+                    }
+                }
+
+                return { id, data };
             });
 
+        // If vertical and no explicit columns, infer columnNames from the first row's keys
+        if (isVertical && !columnNames && rows.length > 0) {
+            columnNames = Object.keys(rows[0].data);
+            // Note: flatTable stays false here; vertical partial uses columnNames to pivot.
+        }
+
         return {
-            headers: hash.headers !== false,
+            headers,
             rows,
             flatTable,
-            columnNames: columnList
+            columnNames,
+            isVertical,
         };
     },
 
-    validateContext: (context): context is Array<Record<string, unknown>> | Record<string, unknown> => {
-        return (
-            (Array.isArray(context) &&
-                context.every(item => typeof item === 'object' && item !== null && !Array.isArray(item))) ||
-            (typeof context === 'object' && context !== null && !Array.isArray(context))
-        );
+    validateContext: (context): context is TableContext => {
+        return (Array.isArray(context) && context.every(isPlainRecord)) || isPlainRecord(context);
     },
 
     registerHelpers: () => ({
         objectEntries: (obj: unknown) => {
-            if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return [];
+            if (!isPlainRecord(obj)) return [];
             return Object.entries(obj).map(([id, data]) => ({ id, data }));
-        }
-    })
+        },
+        and: (...args: unknown[]) => {
+            const realArgs = args.slice(0, -1);
+            return realArgs.every(Boolean);
+        },
+    }),
 };

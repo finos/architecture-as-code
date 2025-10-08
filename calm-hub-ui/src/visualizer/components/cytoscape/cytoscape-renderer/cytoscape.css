@@ -19,7 +19,7 @@
 .graph-title {
     background: white;
     z-index: 1;
-    padding: var(--navbar-padding, 0.5rem);
+    padding: var(--navbar-padding, 1rem);
 }
 
 .element {

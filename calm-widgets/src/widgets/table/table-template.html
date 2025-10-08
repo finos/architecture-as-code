@@ -1,33 +1,17 @@
 <div class="table-container">
     <table>
-        {{#if headers}}
-        <thead>
-        <tr>
-            {{#if flatTable}}
-            {{#each columnNames}}
-            <th>{{kebabToTitleCase this}}</th>
-            {{/each}}
-            {{else}}
-            <th>Key</th>
-            <th>Value</th>
-            {{/if}}
-        </tr>
-        </thead>
-        {{/if}}
-        <tbody>
-        {{#if flatTable}}
-        {{#each rows}}
-        <tr>
-            {{#each ../columnNames}}
-            <td>{{lookup ../data this}}</td>
-            {{/each}}
-        </tr>
-        {{/each}}
+        {{#if isVertical}}
+        {{> table-vertical.html
+        headers=headers
+        columnNames=columnNames
+        rows=rows
+        flatTable=flatTable }}
         {{else}}
-        {{#each rows}}
-        {{> row-template.html this}}
-        {{/each}}
+        {{> table-horizontal.html
+        headers=headers
+        columnNames=columnNames
+        rows=rows
+        flatTable=flatTable }}
         {{/if}}
-        </tbody>
     </table>
 </div>

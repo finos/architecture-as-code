@@ -175,7 +175,7 @@ public class MongoAdrStore implements AdrStore {
             throw new AdrNotFoundException();
         }
 
-        return (List<Document>) result.get("adrs");
+        return result.getList("adrs", Document.class);
     }
 
     private Document retrieveAdrDoc(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException {

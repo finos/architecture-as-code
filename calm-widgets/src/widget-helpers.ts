@@ -65,6 +65,20 @@ export function registerGlobalTemplateHelpers(): Record<string, (...args: unknow
             return actualArgs.some(Boolean);
         },
 
+        length: (value: unknown): number => {
+            if (Array.isArray(value) || typeof value === 'string') return value.length;
+            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                return Object.keys(value).length;
+            }
+            return 0;
+        },
+
+        gt: (a: unknown, b: unknown): boolean => {
+            const an = typeof a === 'number' ? a : Number(a);
+            const bn = typeof b === 'number' ? b : Number(b);
+            return an > bn;
+        },
+
         eachInMap: (map: unknown, options: unknown): string => {
             let result = '';
             if (

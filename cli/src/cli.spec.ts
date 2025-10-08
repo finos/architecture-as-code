@@ -5,8 +5,8 @@ import {
     TemplateProcessingMode,
     TemplateProcessor
 } from '@finos/calm-shared';
-import {Command} from 'commander';
-import {MockInstance} from 'vitest';
+import { Command } from 'commander';
+import { MockInstance } from 'vitest';
 
 let calmShared: typeof import('@finos/calm-shared');
 let validateModule: typeof import('./command-helpers/validate');
@@ -59,7 +59,7 @@ describe('CLI Commands', () => {
                 '-p', 'pattern.json',
                 '-o', 'output.json',
                 '--verbose',
-                '--schemaDirectory', 'schemas',
+                '--schema-directory', 'schemas',
             ]);
 
             expect(fileSystemDocLoaderModule.FileSystemDocumentLoader.prototype.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
@@ -94,7 +94,7 @@ describe('CLI Commands', () => {
             await program.parseAsync([
                 'node', 'cli.js', 'server',
                 '--port', '4000',
-                '--schemaDirectory', 'mySchemas',
+                '--schema-directory', 'mySchemas',
                 '--verbose',
             ]);
 
@@ -122,7 +122,7 @@ describe('CLI Commands', () => {
         it('should handle --bundle mode correctly', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'template',
-                '--input', 'model.json',
+                '--architecture', 'model.json',
                 '--bundle', 'templateDir',
                 '--output', 'outDir',
                 '--verbose',
@@ -133,14 +133,16 @@ describe('CLI Commands', () => {
                 'templateDir',
                 'outDir',
                 expect.any(Map),
-                'bundle'
+                'bundle',
+                false,
+                false
             );
         });
 
         it('should handle --template mode correctly', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'template',
-                '--input', 'model.json',
+                '--architecture', 'model.json',
                 '--template', 'template.hbs',
                 '--output', 'outDir',
             ]);
@@ -150,14 +152,16 @@ describe('CLI Commands', () => {
                 'template.hbs',
                 'outDir',
                 expect.any(Map),
-                'template'
+                'template',
+                false,
+                false
             );
         });
 
         it('should handle --template-dir mode correctly', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'template',
-                '--input', 'model.json',
+                '--architecture', 'model.json',
                 '--template-dir', 'templates/',
                 '--output', 'outDir',
             ]);
@@ -167,7 +171,29 @@ describe('CLI Commands', () => {
                 'templates/',
                 'outDir',
                 expect.any(Map),
-                'template-directory'
+                'template-directory',
+                false,
+                false
+            );
+        });
+
+        it('should honour --clear-output-directory', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'template',
+                '--architecture', 'model.json',
+                '--template-dir', 'templates/',
+                '--output', 'outDir',
+                '--clear-output-directory'
+            ]);
+
+            expect(processorConstructorSpy).toHaveBeenCalledWith(
+                'model.json',
+                'templates/',
+                'outDir',
+                expect.any(Map),
+                'template-directory',
+                false,
+                true
             );
         });
 
@@ -176,11 +202,11 @@ describe('CLI Commands', () => {
                 throw new Error('process.exit called');
             });
 
-            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
             await expect(program.parseAsync([
                 'node', 'cli.js', 'template',
-                '--input', 'model.json',
+                '--architecture', 'model.json',
                 '--template', 't1.hbs',
                 '--bundle', 'bundle',
                 '--output', 'outDir'
@@ -198,12 +224,12 @@ describe('CLI Commands', () => {
     describe('Docify Command', () => {
         let docifierConstructorSpy: MockInstance<
             (this: Docifier,
-             mode: DocifyMode,
-             inputPath: string,
-             outputPath: string,
-             urlToLocalPathMapping: Map<string, string>,
-             templateProcessingMode?: TemplateProcessingMode,
-             templatePath?: string) => Docifier
+                mode: DocifyMode,
+                inputPath: string,
+                outputPath: string,
+                urlToLocalPathMapping: Map<string, string>,
+                templateProcessingMode?: TemplateProcessingMode,
+                templatePath?: string) => Docifier
         >;
 
         beforeEach(() => {
@@ -217,7 +243,7 @@ describe('CLI Commands', () => {
         it('should default to WEBSITE mode with bundle', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'docify',
-                '--input', 'model.json',
+                '--architecture', 'model.json',
                 '--output', 'outDir',
             ]);
 
@@ -227,14 +253,34 @@ describe('CLI Commands', () => {
                 'outDir',
                 expect.any(Map),
                 'bundle',
-                undefined
+                undefined,
+                false
+            );
+        });
+
+        it('should honour --clear-output-directory', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+                '--clear-output-directory'
+            ]);
+
+            expect(docifierConstructorSpy).toHaveBeenCalledWith(
+                'WEBSITE',
+                'model.json',
+                'outDir',
+                expect.any(Map),
+                'bundle',
+                undefined,
+                true
             );
         });
 
         it('should use template mode if --template is specified', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'docify',
-                '--input', 'model.json',
+                '--architecture', 'model.json',
                 '--output', 'outDir',
                 '--template', 'template.hbs',
             ]);
@@ -245,14 +291,15 @@ describe('CLI Commands', () => {
                 'outDir',
                 expect.any(Map),
                 'template',
-                'template.hbs'
+                'template.hbs',
+                false
             );
         });
 
         it('should use template-directory mode if --template-dir is specified', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'docify',
-                '--input', 'model.json',
+                '--architecture', 'model.json',
                 '--output', 'outDir',
                 '--template-dir', 'templateDir',
             ]);
@@ -263,7 +310,8 @@ describe('CLI Commands', () => {
                 'outDir',
                 expect.any(Map),
                 'template-directory',
-                'templateDir'
+                'templateDir',
+                false
             );
         });
 
@@ -271,11 +319,11 @@ describe('CLI Commands', () => {
             const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(() => {
                 throw new Error('process.exit called');
             });
-            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
             await expect(program.parseAsync([
                 'node', 'cli.js', 'docify',
-                '--input', 'model.json',
+                '--architecture', 'model.json',
                 '--output', 'outDir',
                 '--template', 't1.hbs',
                 '--template-dir', 'templateDir'

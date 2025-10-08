@@ -22,7 +22,7 @@ This will create an architecture in the current working directory with the defau
 
 - **`-p, --pattern <source>`**: Path to the pattern file to use. This can be a file path or a URL.
 - **`-o, --output <output>`**: Path to the location where the generated file will be saved (default is `architecture.json`).
-- **`-s, --schemaDirectory <path>`**: Path to the directory containing schemas to use in architecture.
+- **`-s, --schema-directory <path>`**: Path to the directory containing schemas to use in architecture.
 - **`-g, --generateAll`**: Generates all properties, ignoring the "required" field (default: false).
 
 ## Example of Generating an architecture

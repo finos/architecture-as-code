@@ -11,27 +11,22 @@ This documentation is generated from the **CALM Architecture-as-Code** model.
 
 ## High Level Architecture
 ```mermaid
-C4Container
+C4Deployment
 
-            Container(conference-website,"Conference Website","","Website to sign up for a conference")
-
-
-
-        System_Boundary("Kubernetes Cluster","Kubernetes Cluster with network policy rules enabled"){
-                Container(load-balancer,"Load Balancer","","The attendees service, or a placeholder for another application")
-                Container(attendees,"Attendees Service","","The attendees service, or a placeholder for another application")
-                Container(attendees-store,"Attendees Store","","Persistent storage for attendees")
-                Container(load-balancer,"Load Balancer","","The attendees service, or a placeholder for another application")
-                Container(attendees,"Attendees Service","","The attendees service, or a placeholder for another application")
-                Container(attendees-store,"Attendees Store","","Persistent storage for attendees")
+    Deployment_Node(deployment, "Architecture", ""){
+        Container(conference-website, "Conference Website", "", "Website to sign up for a conference")
+        Deployment_Node(k8s-cluster, "Kubernetes Cluster", "Kubernetes Cluster with network policy rules enabled"){
+            Container(load-balancer, "Load Balancer", "", "The attendees service, or a placeholder for another application")
+            Container(attendees, "Attendees Service", "", "The attendees service, or a placeholder for another application")
+            Container(attendees-store, "Attendees Store", "", "Persistent storage for attendees")
         }
-
+    }
 
     Rel(conference-website,load-balancer,"Connects To")
     Rel(load-balancer,attendees,"Connects To")
     Rel(attendees,attendees-store,"Connects To")
 
-UpdateLayoutConfig($c4ShapeInRow="2", $c4BoundaryInRow="0")
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="2")
 ```
 ## Nodes
     - [Conference Website](nodes/conference-website)

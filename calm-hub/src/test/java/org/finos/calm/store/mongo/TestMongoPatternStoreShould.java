@@ -47,16 +47,15 @@ public class TestMongoPatternStoreShould {
     @InjectMock
     MongoNamespaceStore namespaceStore;
 
-    private MongoCollection patternCollection;
+    private final String validJson = "{\"test\": \"test\"}";
 
     private MongoPatternStore mongoPatternStore;
-
-    private final String validJson = "{\"test\": \"test\"}";
+    private MongoCollection<Document> patternCollection;
 
     @BeforeEach
     void setup() {
         MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
-        patternCollection = Mockito.mock(MongoCollection.class);
+        patternCollection = Mockito.mock(DocumentMongoCollection.class);
 
         when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
         when(mongoDatabase.getCollection("patterns")).thenReturn(patternCollection);
@@ -64,19 +63,8 @@ public class TestMongoPatternStoreShould {
     }
 
     @Test
-    void get_pattern_for_namespace_that_doesnt_exist_throws_exception() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        String namespace = "does-not-exist";
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoPatternStore.getPatternsForNamespace(namespace));
-
-        verify(namespaceStore).namespaceExists(namespace);
-    }
-
-    @Test
     void get_pattern_for_namespace_returns_empty_list_when_none_exist() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(patternCollection.find(eq(Filters.eq("namespace", "finos"))))
                 .thenReturn(findIterable);
@@ -91,7 +79,7 @@ public class TestMongoPatternStoreShould {
 
     @Test
     void get_pattern_for_namespace_returns_empty_list_when_mongo_collection_not_created() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(patternCollection.find(eq(Filters.eq("namespace", "finos"))))
                 .thenReturn(findIterable);
@@ -102,8 +90,19 @@ public class TestMongoPatternStoreShould {
     }
 
     @Test
+    void get_pattern_for_namespace_that_doesnt_exist_throws_exception() {
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
+        String namespace = "does-not-exist";
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> mongoPatternStore.getPatternsForNamespace(namespace));
+
+        verify(namespaceStore).namespaceExists(namespace);
+    }
+
+    @Test
     void get_pattern_for_namespace_returns_values() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(patternCollection.find(eq(Filters.eq("namespace", "finos"))))
                 .thenReturn(findIterable);
@@ -120,6 +119,29 @@ public class TestMongoPatternStoreShould {
 
         assertThat(patternIds, is(Arrays.asList(1001, 1002)));
         verify(namespaceStore).namespaceExists("finos");
+    }
+
+    private DocumentFindIterable setupInvalidPattern() {
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        //Return the same find iterable as the projection unboxes, then return null
+        when(patternCollection.find(any(Bson.class)))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(null);
+
+
+        return findIterable;
+    }
+
+    private void mockSetupPatternDocumentWithVersions() {
+        Document mainDocument = setupPatternVersionDocument();
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(patternCollection.find(any(Bson.class)))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(mainDocument);
     }
 
     @Test
@@ -185,17 +207,7 @@ public class TestMongoPatternStoreShould {
         verify(namespaceStore).namespaceExists(pattern.getNamespace());
     }
 
-    private FindIterable<Document> setupInvalidPattern() {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        //Return the same find iterable as the projection unboxes, then return null
-        when(patternCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-
-        return findIterable;
+    private interface DocumentFindIterable extends FindIterable<Document> {
     }
 
     @Test
@@ -268,14 +280,7 @@ public class TestMongoPatternStoreShould {
                 .append("patterns", Arrays.asList(paddingPattern, targetStoredPattern));
     }
 
-    private void mockSetupPatternDocumentWithVersions() {
-        Document mainDocument = setupPatternVersionDocument();
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(patternCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(mainDocument);
+    private interface DocumentMongoCollection extends MongoCollection<Document> {
     }
 
     @Test

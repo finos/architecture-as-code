@@ -11,8 +11,11 @@ export interface CalmWidget<
 
     transformToViewModel?: (
         context: TContext,
-        options?: { hash?: TOptions }
+        options?: TOptions
     ) => TViewModel;
 
-    validateContext: (context: unknown) => context is TContext;
+    validateContext: (
+        context: unknown,
+        options?: TOptions
+    ) => context is TContext;
 }

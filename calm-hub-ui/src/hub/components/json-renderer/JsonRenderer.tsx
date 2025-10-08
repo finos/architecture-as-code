@@ -1,20 +1,32 @@
-import { allExpanded, defaultStyles, JsonView } from 'react-json-view-lite';
-import 'react-json-view-lite/dist/index.css';
+import { Editor } from '@monaco-editor/react';
 
 interface JsonRendererProps {
     json?: object;
 }
 
 function NoData() {
-    return <div className=" text-center">Please select a document to load.</div>;
+    return <div className="text-center w-full h-full">Please select a document to load.</div>;
 }
 
 function JsonDisplay({ data }: { data: object }) {
-    return <JsonView data={data} shouldExpandNode={allExpanded} style={defaultStyles} />;
+    return (
+        <Editor
+            height="100%"
+            defaultLanguage="json"
+            value={JSON.stringify(data, null, 2)}
+            options={{
+                readOnly: true,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                overviewRulerLanes: 0,
+                wordWrap: 'on',
+            }}
+        />
+    );
 }
 
 export function JsonRenderer({ json }: JsonRendererProps) {
     const content = json ? <JsonDisplay data={json} /> : <NoData />;
 
-    return <div>{content}</div>;
+    return <div className="h-full">{content}</div>;
 }

@@ -341,4 +341,65 @@ describe('TemplateProcessor E2E', () => {
 
         await expectDirectoryMatch(EXPECTED_OUTPUT_WORKSHOP_DIR, OUTPUT_DIR);
     });
+
+    describe('C4 Architecture Diagram Generation', () => {
+        const C4_BUNDLE_DIR = path.join(__dirname, '../../test_fixtures/docify/c4');
+        const C4_OUTPUT_DIR = path.join(C4_BUNDLE_DIR, 'generated-output');
+
+        beforeEach(() => {
+            if (fs.existsSync(C4_OUTPUT_DIR)) {
+                fs.rmSync(C4_OUTPUT_DIR, { recursive: true, force: true });
+            }
+            fs.mkdirSync(C4_OUTPUT_DIR, { recursive: true });
+        });
+
+        afterAll(() => {
+            if (fs.existsSync(C4_OUTPUT_DIR)) {
+                fs.rmSync(C4_OUTPUT_DIR, { recursive: true, force: true });
+            }
+        });
+
+        function runC4DiagramTest(scenarioName: string) {
+            return async () => {
+                const inputPath = path.join(
+                    C4_BUNDLE_DIR,
+                    scenarioName,
+                    `${scenarioName}.arch.json`
+                );
+                const expectedFile = path.join(C4_BUNDLE_DIR, scenarioName, `${scenarioName}.md`);
+                const actualFile = path.join(C4_OUTPUT_DIR, `${scenarioName}.md`);
+
+                expect(fs.existsSync(inputPath)).toBe(true);
+
+                const processor = new TemplateProcessor(
+                    inputPath,
+                    C4_BUNDLE_DIR,
+                    C4_OUTPUT_DIR,
+                    new Map<string, string>()
+                );
+
+                await processor.processTemplate();
+
+                expect(fs.existsSync(actualFile)).toBe(true);
+                const actualContent = fs.readFileSync(actualFile, 'utf8').trim();
+                const expectedContent = fs.readFileSync(expectedFile, 'utf8').trim();
+                expect(actualContent).toEqual(expectedContent);
+            };
+        }
+
+        it('should generate C4 diagram for cloud-native-architecture scenario', runC4DiagramTest('cloud-native-architecture'));
+
+        it('should generate C4 diagram for three-tier-architecture scenario', runC4DiagramTest('three-tier-architecture'));
+
+        it('should generate C4 diagram for ecommerce-architecture scenario', runC4DiagramTest('ecommerce-architecture'));
+
+        it('should generate C4 diagram for enterprise-multi-system scenario', runC4DiagramTest('enterprise-multi-system'));
+
+        it('should generate C4 diagram for iot-platform-architecture scenario', runC4DiagramTest('iot-platform-architecture'));
+
+        it('should generate C4 diagram for multi-system-architecture scenario', runC4DiagramTest('multi-system-architecture'));
+
+        it('should generate C4 diagram for simple-banking scenario', runC4DiagramTest('simple-banking'));
+
+    });
 });

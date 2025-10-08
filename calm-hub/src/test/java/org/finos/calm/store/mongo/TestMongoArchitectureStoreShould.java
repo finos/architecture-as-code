@@ -26,14 +26,22 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @QuarkusTest
 public class TestMongoArchitectureStoreShould {
@@ -52,10 +60,11 @@ public class TestMongoArchitectureStoreShould {
     private final String NAMESPACE = "finos";
 
     private final String validJson = "{\"test\": \"test\"}";
+
     @BeforeEach
     void setup() {
         MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
-        architectureCollection = Mockito.mock(MongoCollection.class);
+        architectureCollection = Mockito.mock(DocumentMongoCollection.class);
 
         when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
         when(mongoDatabase.getCollection("architectures")).thenReturn(architectureCollection);
@@ -63,20 +72,8 @@ public class TestMongoArchitectureStoreShould {
     }
 
     @Test
-    void get_architecture_for_namespace_that_doesnt_exist_throws_exception() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        String namespace = "does-not-exist";
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoArchitectureStore.getArchitecturesForNamespace(namespace));
-
-        verify(namespaceStore).namespaceExists(namespace);
-    }
-
-
-    @Test
     void get_architectures_for_namespace_returns_empty_list_when_none_exist() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(architectureCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
                 .thenReturn(findIterable);
@@ -91,7 +88,7 @@ public class TestMongoArchitectureStoreShould {
 
     @Test
     void get_architectures_for_namespace_returns_empty_list_when_mongo_collection_not_created() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(architectureCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
                 .thenReturn(findIterable);
@@ -102,8 +99,19 @@ public class TestMongoArchitectureStoreShould {
     }
 
     @Test
+    void get_architecture_for_namespace_that_doesnt_exist_throws_exception() {
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
+        String namespace = "does-not-exist";
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> mongoArchitectureStore.getArchitecturesForNamespace(namespace));
+
+        verify(namespaceStore).namespaceExists(namespace);
+    }
+
+    @Test
     void get_architecture_for_namespace_returns_values() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(architectureCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
                 .thenReturn(findIterable);
@@ -120,6 +128,29 @@ public class TestMongoArchitectureStoreShould {
 
         assertThat(architectureIds, is(Arrays.asList(1001, 1002)));
         verify(namespaceStore).namespaceExists(NAMESPACE);
+    }
+
+    private FindIterable<Document> setupInvalidArchitecture() {
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        //Return the same find iterable as the projection unboxes, then return null
+        when(architectureCollection.find(any(Bson.class)))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(null);
+
+
+        return findIterable;
+    }
+
+    private void mockSetupArchitectureDocumentWithVersions() {
+        Document mainDocument = setupArchitectureVersionDocument();
+        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(architectureCollection.find(any(Bson.class)))
+                .thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(mainDocument);
     }
 
     @Test
@@ -150,9 +181,14 @@ public class TestMongoArchitectureStoreShould {
     void return_created_architecture_when_parameters_are_valid() throws NamespaceNotFoundException {
         String validNamespace = NAMESPACE;
         int sequenceNumber = 42;
+        String validName = "test-name";
+        String validDescription = "test description";
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(counterStore.getNextArchitectureSequenceValue()).thenReturn(sequenceNumber);
+
         Architecture architectureToCreate = new Architecture.ArchitectureBuilder().setArchitecture(validJson)
+                .setName(validName)
+                .setDescription(validDescription)
                 .setNamespace(validNamespace)
                 .build();
 
@@ -160,13 +196,17 @@ public class TestMongoArchitectureStoreShould {
 
         Architecture expectedArchitecture = new Architecture.ArchitectureBuilder().setArchitecture(validJson)
                 .setNamespace(validNamespace)
+                .setName(validName)
+                .setDescription(validDescription)
                 .setVersion("1.0.0")
                 .setId(sequenceNumber)
                 .build();
 
         assertThat(architecture, is(expectedArchitecture));
-        Document expectedDoc = new Document("architectureId", architecture.getId()).append("versions",
-                new Document("1-0-0", Document.parse(architecture.getArchitectureJson())));
+        Document expectedDoc = new Document("architectureId", architecture.getId())
+                .append("name", validName)
+                .append("description", validDescription)
+                .append("versions", new Document("1-0-0", Document.parse(architecture.getArchitectureJson())));
 
         verify(architectureCollection).updateOne(
                 eq(Filters.eq("namespace", validNamespace)),
@@ -185,17 +225,7 @@ public class TestMongoArchitectureStoreShould {
         verify(namespaceStore).namespaceExists(architecture.getNamespace());
     }
 
-    private FindIterable<Document> setupInvalidArchitecture() {
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        //Return the same find iterable as the projection unboxes, then return null
-        when(architectureCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-
-        return findIterable;
+    private interface DocumentFindIterable extends FindIterable<Document> {
     }
 
     @Test
@@ -268,18 +298,11 @@ public class TestMongoArchitectureStoreShould {
                 .append("architectures", Arrays.asList(paddingArchitecture, targetStoredArchitecture));
     }
 
-    private void mockSetupArchitectureDocumentWithVersions() {
-        Document mainDocument = setupArchitectureVersionDocument();
-        FindIterable<Document> findIterable = Mockito.mock(FindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(architectureCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(mainDocument);
+    private interface DocumentMongoCollection extends MongoCollection<Document> {
     }
 
     @Test
-    void throw_an_exception_when_architecture_for_given_version_does_not_exist()  {
+    void throw_an_exception_when_architecture_for_given_version_does_not_exist() {
         mockSetupArchitectureDocumentWithVersions();
 
         Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE)
@@ -337,8 +360,12 @@ public class TestMongoArchitectureStoreShould {
     @Test
     void accept_the_creation_or_update_of_a_valid_version() throws ArchitectureNotFoundException, NamespaceNotFoundException, ArchitectureVersionExistsException {
         mockSetupArchitectureDocumentWithVersions();
-        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE)
-                .setId(50).setVersion("1.0.1")
+        Architecture architecture = new Architecture.ArchitectureBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(50)
+                .setName("architecture-name")
+                .setDescription("architecture-description")
+                .setVersion("1.0.1")
                 .setArchitecture(validJson).build();
 
         mongoArchitectureStore.updateArchitectureForVersion(architecture);

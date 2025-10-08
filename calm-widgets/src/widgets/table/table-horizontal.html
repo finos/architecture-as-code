@@ -1,0 +1,29 @@
+{{#if headers}}
+<thead>
+<tr>
+    {{#if flatTable}}
+    {{#each columnNames}}
+    <th>{{kebabToTitleCase this}}</th>
+    {{/each}}
+    {{else}}
+    <th>Key</th>
+    <th>Value</th>
+    {{/if}}
+</tr>
+</thead>
+{{/if}}
+<tbody>
+{{#if flatTable}}
+{{#each rows}}
+<tr>
+    {{#each ../columnNames}}
+    <td>{{lookup ../data this}}</td>
+    {{/each}}
+</tr>
+{{/each}}
+{{else}}
+{{#each rows}}
+{{> row-template.html this}}
+{{/each}}
+{{/if}}
+</tbody>

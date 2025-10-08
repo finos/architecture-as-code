@@ -1,6 +1,6 @@
 import {defineConfig} from 'vitest/config';
 
-import {CoverageV8Options} from "vitest/node";
+import {CoverageV8Options} from 'vitest/node';
 
 const v8CoverageSettings: CoverageV8Options = {
     enabled: true,
@@ -12,8 +12,8 @@ const v8CoverageSettings: CoverageV8Options = {
         statements: 75
     },
     exclude: ['test_fixtures/**', '*.config.ts'],
-    include: ['**/*.ts'],
-}
+    include: ['**/*.ts']
+};
 
 export default defineConfig({
     test: {
@@ -24,4 +24,4 @@ export default defineConfig({
             ...v8CoverageSettings,
         },
     }
-})
+});

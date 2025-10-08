@@ -31,7 +31,24 @@ export class FixtureLoader {
             throw new Error(`Expected file not found: ${expectedPath}`);
         }
 
-        const context = JSON.parse(fs.readFileSync(contextPath, 'utf-8'));
+        const rawContext = fs.readFileSync(contextPath, 'utf-8');
+        let context: unknown;
+        try {
+            context = JSON.parse(rawContext);
+        } catch {
+            // Try to be forgiving: strip common markdown code fences and JS-style comments
+            const stripped = rawContext
+                .replace(/^\uFEFF/, '') // BOM
+                .replace(/```(?:json)?\n?|```/g, '') // remove ```json fences
+                .replace(/\/\/.*$/gm, '') // remove // line comments
+                .replace(/\/\*[\s\S]*?\*\//g, '') // remove /* */ block comments
+                .trim();
+            try {
+                context = JSON.parse(stripped);
+            } catch (err2) {
+                throw new Error(`Failed to parse JSON context file ${contextPath}: ${err2 instanceof Error ? err2.message : String(err2)}`);
+            }
+        }
         const template = fs.readFileSync(templatePath, 'utf-8');
         const expected = fs.readFileSync(expectedPath, 'utf-8').trim();
 

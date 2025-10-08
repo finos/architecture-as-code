@@ -1,0 +1,12 @@
+{
+  "name": "C4 Architecture Diagram Generator",
+  "transformer": "c4-transformer",
+  "templates": [
+    {
+      "template": "c4-container.hbs",
+      "from": "document",
+      "output": "{{id}}.md",
+      "output-type": "single"
+    }
+  ]
+}

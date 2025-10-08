@@ -1,0 +1,359 @@
+{
+  "nodes": [
+    {
+      "unique-id": "iot-edge-system",
+      "node-type": "system",
+      "name": "IoT Edge System",
+      "description": "Edge computing infrastructure for IoT device management",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "iot-cloud-system",
+      "node-type": "system",
+      "name": "IoT Cloud Platform",
+      "description": "Centralized cloud platform for IoT data processing and analytics",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "storage-system",
+      "node-type": "system",
+      "name": "Data Storage System",
+      "description": "Scalable storage infrastructure for IoT data",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "edge-gateway",
+      "node-type": "service",
+      "name": "Edge Gateway",
+      "description": "Local gateway for device connectivity and edge processing",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "edge-processor",
+      "node-type": "service",
+      "name": "Edge Data Processor",
+      "description": "Real-time data processing at the edge",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "device-manager",
+      "node-type": "service",
+      "name": "Device Manager",
+      "description": "Local device registration and management",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "cloud-ingestion",
+      "node-type": "service",
+      "name": "Data Ingestion Service",
+      "description": "High-throughput data ingestion from edge gateways",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "device-registry",
+      "node-type": "service",
+      "name": "Global Device Registry",
+      "description": "Centralized registry for all IoT devices",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "analytics-engine",
+      "node-type": "service",
+      "name": "Analytics Engine",
+      "description": "Machine learning and predictive analytics for IoT data",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "alerting-service",
+      "node-type": "service",
+      "name": "Alerting Service",
+      "description": "Real-time alerting and notification system",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "timeseries-db",
+      "node-type": "service",
+      "name": "Time Series Database",
+      "description": "InfluxDB for high-volume time series data",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "metadata-db",
+      "node-type": "service",
+      "name": "Metadata Database",
+      "description": "MongoDB for device metadata and configurations",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "data-lake",
+      "node-type": "service",
+      "name": "Data Lake",
+      "description": "S3-compatible storage for long-term data archival",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "iot-device",
+      "node-type": "actor",
+      "name": "IoT Device",
+      "description": "Smart sensors and connected devices",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "operator",
+      "node-type": "actor",
+      "name": "Operations Team",
+      "description": "Team monitoring and managing IoT infrastructure",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    },
+    {
+      "unique-id": "data-scientist",
+      "node-type": "actor",
+      "name": "Data Scientist",
+      "description": "Analyst building models from IoT data",
+      "metadata": [
+        {}
+      ],
+      "interfaces": []
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "edge-composition",
+      "relationship-type": {
+        "composed-of": {
+          "container": "iot-edge-system",
+          "nodes": [
+            "edge-gateway",
+            "edge-processor",
+            "device-manager"
+          ]
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "IoT Edge System contains edge infrastructure"
+    },
+    {
+      "unique-id": "cloud-composition",
+      "relationship-type": {
+        "composed-of": {
+          "container": "iot-cloud-system",
+          "nodes": [
+            "cloud-ingestion",
+            "device-registry",
+            "analytics-engine",
+            "alerting-service"
+          ]
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "IoT Cloud Platform contains processing services"
+    },
+    {
+      "unique-id": "storage-composition",
+      "relationship-type": {
+        "composed-of": {
+          "container": "storage-system",
+          "nodes": [
+            "timeseries-db",
+            "metadata-db",
+            "data-lake"
+          ]
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Storage System contains data persistence layers"
+    },
+    {
+      "unique-id": "device-gateway",
+      "relationship-type": {
+        "interacts": {
+          "actor": "iot-device",
+          "nodes": [
+            "edge-gateway"
+          ]
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "IoT devices connect to edge gateway via MQTT/CoAP"
+    },
+    {
+      "unique-id": "operator-alerts",
+      "relationship-type": {
+        "interacts": {
+          "actor": "operator",
+          "nodes": [
+            "alerting-service"
+          ]
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Operations team receives alerts and notifications"
+    },
+    {
+      "unique-id": "scientist-analytics",
+      "relationship-type": {
+        "interacts": {
+          "actor": "data-scientist",
+          "nodes": [
+            "analytics-engine"
+          ]
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Data scientists build models using analytics engine"
+    },
+    {
+      "unique-id": "processor-ingestion",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "edge-processor",
+            "interfaces": []
+          },
+          "destination": {
+            "node": "cloud-ingestion",
+            "interfaces": []
+          }
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Edge processor sends processed data to cloud"
+    },
+    {
+      "unique-id": "device-mgr-registry",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "device-manager",
+            "interfaces": []
+          },
+          "destination": {
+            "node": "device-registry",
+            "interfaces": []
+          }
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Local device manager syncs with global registry"
+    },
+    {
+      "unique-id": "ingestion-timeseries",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "cloud-ingestion",
+            "interfaces": []
+          },
+          "destination": {
+            "node": "timeseries-db",
+            "interfaces": []
+          }
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Ingestion service stores real-time data"
+    },
+    {
+      "unique-id": "analytics-timeseries",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "analytics-engine",
+            "interfaces": []
+          },
+          "destination": {
+            "node": "timeseries-db",
+            "interfaces": []
+          }
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Analytics engine reads time series data"
+    },
+    {
+      "unique-id": "timeseries-archive",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "timeseries-db",
+            "interfaces": []
+          },
+          "destination": {
+            "node": "data-lake",
+            "interfaces": []
+          }
+        }
+      },
+      "metadata": [
+        {}
+      ],
+      "description": "Time series DB archives old data to data lake"
+    }
+  ],
+  "metadata": [{"scenario": "iot-platform-architecture"}]
+}

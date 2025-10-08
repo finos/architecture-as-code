@@ -36,7 +36,29 @@ describe('Docifier', () => {
             outputPath,
             urlToLocalPathMapping,
             'bundle',
+            false,
             false
+        );
+        expect(processTemplateMock).toHaveBeenCalled();
+    });
+
+    it('should pass clear-output-directory through to template processor', async () => {
+        const processTemplateMock = vi.fn().mockResolvedValue(undefined);
+        MockedTemplateProcessor.mockImplementationOnce(() => ({
+            processTemplate: processTemplateMock,
+        }));
+
+        const docifier = new Docifier('WEBSITE', inputPath, outputPath, urlToLocalPathMapping, 'bundle', undefined, true);
+        await docifier.docify();
+
+        expect(MockedTemplateProcessor).toHaveBeenCalledWith(
+            inputPath,
+            expect.stringContaining('template-bundles/docusaurus'),
+            outputPath,
+            urlToLocalPathMapping,
+            'bundle',
+            false,
+            true
         );
         expect(processTemplateMock).toHaveBeenCalled();
     });
@@ -71,7 +93,8 @@ describe('Docifier', () => {
             outputPath,
             urlToLocalPathMapping,
             'template-directory',
-            true
+            true,
+            false
         );
 
         expect(processTemplateMock).toHaveBeenCalled();
@@ -109,7 +132,8 @@ describe('Docifier', () => {
                 outputPath,
                 urlToLocalPathMapping,
                 'bundle',
-                false // supportWidgetEngine should be false for WEBSITE mode
+                false, // supportWidgetEngine should be false for WEBSITE mode
+                false
             );
 
             vi.clearAllMocks();
@@ -126,7 +150,8 @@ describe('Docifier', () => {
                 outputPath,
                 urlToLocalPathMapping,
                 'bundle',
-                true // supportWidgetEngine should be true for USER_PROVIDED mode
+                true, // supportWidgetEngine should be true for USER_PROVIDED mode
+                false
             );
         });
 
@@ -148,7 +173,8 @@ describe('Docifier', () => {
                 expect.any(String),
                 expect.any(Map),
                 expect.any(String),
-                false // This reflects the TODO comment about widget clashing
+                false, // This reflects the TODO comment about widget clashing
+                false
             );
         });
     });

@@ -1,0 +1,17 @@
+{
+  "nodes": [
+    { "unique-id": "ServiceA", "name": "ServiceA" },
+    { "unique-id": "ServiceB", "name": "ServiceB" },
+    { "unique-id": "SystemC", "name": "SystemC" }
+  ],
+  "relationships": [
+    {
+      "unique-id": "r1",
+      "relationship-type": { "connects": { "source": { "node": "ServiceA" }, "destination": { "node": "ServiceB" } } }
+    },
+    {
+      "unique-id": "r2",
+      "relationship-type": { "composed-of": { "container": "SystemC", "nodes": ["ServiceA", "ServiceB"] } }
+    }
+  ]
+}
