@@ -1,10 +1,12 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { Sidebar } from './Sidebar.js';
-import { CytoscapeNodeData, Edge } from '../../contracts/contracts.js';
+import { CytoscapeNodeData, CytoscapeEdge } from '../../contracts/contracts.js';
 
 vi.mock('@monaco-editor/react', () => ({
-    Editor: ({ value }: { value: string }) => <textarea value={value} readOnly data-testid="monaco-editor" />
+    Editor: ({ value }: { value: string }) => (
+        <textarea value={value} readOnly data-testid="monaco-editor" />
+    ),
 }));
 
 describe('Sidebar Component', () => {
@@ -37,7 +39,7 @@ describe('Sidebar Component', () => {
         },
     } as CytoscapeNodeData;
 
-    const mockEdgeData: Edge['data'] = {
+    const mockEdgeData: CytoscapeEdge['data'] = {
         id: 'edge-1',
         label: 'Edge 1',
         source: 'node-1',

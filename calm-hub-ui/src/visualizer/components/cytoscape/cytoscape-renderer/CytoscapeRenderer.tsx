@@ -1,7 +1,7 @@
 import './cytoscape.css';
 import { useEffect, useRef } from 'react';
 import cytoscape, { EdgeSingular, NodeSingular } from 'cytoscape';
-import { CytoscapeNode, Edge } from '../../../contracts/contracts.js';
+import { CytoscapeNode, CytoscapeEdge } from '../../../contracts/contracts.js';
 import { LayoutCorrectionService } from '../../../services/layout-correction-service.js';
 import {
     saveNodePositions,
@@ -26,9 +26,9 @@ export interface CytoscapeRendererProps {
     isNodeDescActive: boolean;
     isRelationshipDescActive: boolean;
     nodes: CytoscapeNode[];
-    edges: Edge[];
+    edges: CytoscapeEdge[];
     nodeClickedCallback: (x: CytoscapeNode['data']) => void;
-    edgeClickedCallback: (x: Edge['data']) => void;
+    edgeClickedCallback: (x: CytoscapeEdge['data']) => void;
     backgroundClickedCallback?: () => void;
     selectedItemId?: string;
     calmKey: string;
