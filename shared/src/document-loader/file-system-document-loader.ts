@@ -59,10 +59,10 @@ export class FileSystemDocumentLoader implements DocumentLoader {
         } catch (err) {
             this.logger.error(`Error checking existence of document ID ${documentId}: ${err.message}. This could be because it isn't a file path.`);
         }
-        this.logger.info(`Document ID ${documentId} does not exist in file system, cannot load.`);
+        this.logger.debug(`Document ID ${documentId} does not exist in file system, cannot load.`);
         const errorMessage = `Document with id [${documentId}] and type [${type}] was requested but not loaded at initialisation. 
             File system document loader can only load at startup. Please ensure the schemas are present on your directory path or use CALMHub.`;
-        this.logger.error(errorMessage);
+        this.logger.debug(errorMessage);
         throw new DocumentLoadError({
             name: 'OPERATION_NOT_IMPLEMENTED',
             message: errorMessage
