@@ -5,6 +5,23 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.10.0 (2025-10-13)
+
+*  ([83609c9285d1e81826f40e8b2362f86c6e8907ac](https://github.com/finos/architecture-as-code/commit/83609c9285d1e81826f40e8b2362f86c6e8907ac))
+*  ([a45339a92c0b4c58ac435fe9a754323440b1f273](https://github.com/finos/architecture-as-code/commit/a45339a92c0b4c58ac435fe9a754323440b1f273))
+* ci(cli): release version 1.9.0 ([e20bfad1540f6e1ded2c287818952f6da314db4f](https://github.com/finos/architecture-as-code/commit/e20bfad1540f6e1ded2c287818952f6da314db4f))
+* ci(cli): release version 1.9.0 ([590f00119697bde584d34cda78c3c96d6d1ab623](https://github.com/finos/architecture-as-code/commit/590f00119697bde584d34cda78c3c96d6d1ab623))
+* feat(vscode): enhance image handling in markdown preprocessing ([74709ef42144e66e4de596d72730a1837b7f4753](https://github.com/finos/architecture-as-code/commit/74709ef42144e66e4de596d72730a1837b7f4753))
+* fix(ci): update to use environment variables for OSS Index credentials ([f7ef8924fb9f5d8bef2cb5b4579ebec24044f10e](https://github.com/finos/architecture-as-code/commit/f7ef8924fb9f5d8bef2cb5b4579ebec24044f10e))
+* fix(ci): update to use environment variables for OSS Index credentials ([00b91fb5e5fc330acad615732362d555f07760d3](https://github.com/finos/architecture-as-code/commit/00b91fb5e5fc330acad615732362d555f07760d3))
+* fix(ci): update to use vars for OSS Index credentials ([b09378db9f27723d24aa2fd9bbea9088761c5057](https://github.com/finos/architecture-as-code/commit/b09378db9f27723d24aa2fd9bbea9088761c5057))
+* fix(ci): update to use vars for OSS Index credentials ([da32507f70a7b800faa2b1ebd9f5fddcf537d4c3](https://github.com/finos/architecture-as-code/commit/da32507f70a7b800faa2b1ebd9f5fddcf537d4c3))
+* fix(viscose): Update calm-plugins/vscode/src/features/preview/preview-panel.ts ([ce0743cfc5fb845100bb8800d8836b192e8b93a0](https://github.com/finos/architecture-as-code/commit/ce0743cfc5fb845100bb8800d8836b192e8b93a0))
+* fix(vscode): Add ability to render images in CALM Preview ([aa3a87d845350b3dcd2c6b7710871d56ff61e3f5](https://github.com/finos/architecture-as-code/commit/aa3a87d845350b3dcd2c6b7710871d56ff61e3f5))
+* fix(vscode): Add ability to render images in CALM Preview ([3bade0c6442f4e3c224379b0f5b19d153f70430f](https://github.com/finos/architecture-as-code/commit/3bade0c6442f4e3c224379b0f5b19d153f70430f))
+* fix(vscode): handle path check on both Windows and *nix style systems ([da74700e4955ada6138fc3cc68acf1dfdbf8b099](https://github.com/finos/architecture-as-code/commit/da74700e4955ada6138fc3cc68acf1dfdbf8b099))
+* fix(vscode): update Mermaid render handling to work on Windows ([0756cbba4de938bd6fd0631d4b9a62721fa11cbb](https://github.com/finos/architecture-as-code/commit/0756cbba4de938bd6fd0631d4b9a62721fa11cbb))
+
 ## 1.9.0 (2025-10-08)
 
 *  ([96351581044999b92a455b71624b8223abe5dc9f](https://github.com/finos/architecture-as-code/commit/96351581044999b92a455b71624b8223abe5dc9f))
