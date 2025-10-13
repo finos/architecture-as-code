@@ -1,6 +1,6 @@
 import axios, { Axios } from 'axios';
 import { SchemaDirectory } from '../schema-directory';
-import { CalmDocumentType, DocumentLoader } from './document-loader';
+import { CalmDocumentType, DocumentLoader, DocumentLoadError } from './document-loader';
 import { initLogger, Logger } from '../logger';
 
 export class CalmHubDocumentLoader implements DocumentLoader {
@@ -51,11 +51,19 @@ export class CalmHubDocumentLoader implements DocumentLoader {
 
         this.logger.debug(`Loading CALM schema from ${this.calmHubUrl}${path}`);
 
-        // TODO gracefully handle 404s and other errors
-        const response = await this.ax.get(path);
-        const document = response.data;
-        this.logger.debug('Successfully loaded document from CALMHub with id ' + documentId);
-        return document;
+        try {
+            const response = await this.ax.get(path);
+            const document = response.data;
+            this.logger.debug('Successfully loaded document from CalmHub with id ' + documentId);
+            return document;
+        } catch (error) {
+            this.logger.debug('Error loading document from CalmHub: ' + error);
+            throw new DocumentLoadError({
+                name: 'UNKNOWN',
+                message: 'Error loading document from CalmHub',
+                cause: error
+            });
+        }
     }
 
 }
