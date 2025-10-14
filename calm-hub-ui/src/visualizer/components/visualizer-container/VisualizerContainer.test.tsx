@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { VisualizerContainer } from './VisualizerContainer.js';
-import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
+import { CytoscapeNode, CytoscapeEdge } from '../../contracts/contracts.js';
 import { SidebarProps } from '../sidebar/Sidebar.js';
 import { CytoscapeRendererProps } from '../cytoscape/cytoscape-renderer/CytoscapeRenderer.js';
 
@@ -34,7 +34,14 @@ vi.mock('../cytoscape/cytoscape-renderer/CytoscapeRenderer.js', () => ({
 describe('VisualizerContainer', () => {
     it('renders without crashing', () => {
         render(
-            <VisualizerContainer title="Test Architecture" calmKey="test" nodes={[]} edges={[]} />
+            <VisualizerContainer
+                title="Test Architecture"
+                calmKey="test"
+                nodes={[]}
+                edges={[]}
+                nodeClickedCallback={() => {}}
+                edgeClickedCallback={() => {}}
+            />
         );
 
         expect(screen.getByTestId('visualizer-container')).toBeInTheDocument();
@@ -67,6 +74,7 @@ describe('VisualizerContainer', () => {
                 calmKey="test"
                 nodes={nodes}
                 edges={[]}
+                edgeClickedCallback={() => {}}
                 nodeClickedCallback={nodeClickedCallback}
             />
         );
@@ -76,7 +84,7 @@ describe('VisualizerContainer', () => {
     });
 
     it('calls edgeClickedCallback when an edge is clicked', () => {
-        const edges: Edge[] = [
+        const edges: CytoscapeEdge[] = [
             {
                 data: {
                     id: 'a',
@@ -96,6 +104,7 @@ describe('VisualizerContainer', () => {
                 nodes={[]}
                 edges={edges}
                 edgeClickedCallback={edgeClickedCallback}
+                nodeClickedCallback={() => {}}
             />
         );
 

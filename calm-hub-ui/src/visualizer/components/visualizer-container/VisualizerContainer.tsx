@@ -1,15 +1,15 @@
 import { useState } from 'react';
-import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
+import { CytoscapeNode, CytoscapeEdge } from '../../contracts/contracts.js';
 import { CytoscapeRenderer } from '../cytoscape/cytoscape-renderer/CytoscapeRenderer.js';
 import { DiagramControlPanel } from '../cytoscape/diagram-control-panel/DiagramControlPanel.js';
 
 export interface VisualizerContainerProps {
     title: string;
     nodes: CytoscapeNode[];
-    edges: Edge[];
+    edges: CytoscapeEdge[];
     calmKey: string;
     nodeClickedCallback: (x: CytoscapeNode['data']) => void;
-    edgeClickedCallback: (x: Edge['data']) => void;
+    edgeClickedCallback: (x: CytoscapeEdge['data']) => void;
     backgroundClickedCallback?: () => void;
     selectedItemId?: string;
 }

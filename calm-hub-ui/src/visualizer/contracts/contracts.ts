@@ -1,5 +1,5 @@
 import cytoscape from 'cytoscape';
-import { CalmInterfaceSchema, CalmControlsSchema } from '@finos/calm-models/src/types/control-types.js';
+import { CalmInterfaceSchema, CalmControlsSchema } from '@finos/calm-models/types';
 
 export type CytoscapeNode = {
     classes?: string;
@@ -21,7 +21,7 @@ export type CytoscapeNodeData = {
     parent?: string;
 };
 
-export type Edge = {
+export type CytoscapeEdge = {
     data: {
         id: string;
         label: string;
