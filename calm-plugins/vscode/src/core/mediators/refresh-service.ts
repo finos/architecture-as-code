@@ -79,7 +79,8 @@ export class RefreshService {
             // Update store with new model and state - ViewModels will react automatically
             const store = this.store.getState()
             store.setModelIndex(modelIndex)
-            store.setCurrentDocument(doc.uri)
+            // NOTE: Don't call setCurrentDocument here - it would re-trigger store reactions
+            // The caller (command or store reaction) is responsible for setting the document
 
             // Set template mode with proper architecture path
             const architecturePath = isTemplateMode && fileInfo.architecturePath ? fileInfo.architecturePath : doc.uri.fsPath

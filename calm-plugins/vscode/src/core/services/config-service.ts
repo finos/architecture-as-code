@@ -14,10 +14,6 @@ export class ConfigService implements Config {
         return this.config.get<string[]>('template.globs', ["**/*.md", "**/*.markdown", "**/*.hbs", "**/*.handlebars"])
     }
 
-    autoOpen(): boolean {
-        return this.config.get<boolean>('preview.autoOpen', false)
-    }
-
     previewLayout(): string {
         return this.config.get<string>('preview.layout', 'dagre')
     }

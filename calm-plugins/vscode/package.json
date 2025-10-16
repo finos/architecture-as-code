@@ -2,7 +2,7 @@
     "name": "calm-vscode-plugin",
     "displayName": "CALM Preview & Tools",
     "description": "Live-visualize CALM architecture models, validate, and generate docs.",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "publisher": "FINOS",
     "homepage": "https://calm.finos.org",
     "repository": {
@@ -72,11 +72,6 @@
                     "type": "string",
                     "default": "./cli",
                     "markdownDescription": "Path to the CALM CLI entry. If not available, the extension will fall back to internal validation."
-                },
-                "calm.preview.autoOpen": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Automatically open CALM Preview when a CALM file is opened."
                 },
                 "calm.files.globs": {
                     "type": "array",

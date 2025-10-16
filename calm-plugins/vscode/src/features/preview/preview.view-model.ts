@@ -244,6 +244,15 @@ export class PreviewViewModel implements PreviewViewModelInterface {
         if (data.selectedId) {
             this.calmModel.setSelectedId(data.selectedId)
         }
+
+        // Clear docify content when switching documents
+        this.docify.clear()
+
+        // If we're currently on the docify tab, automatically trigger a fresh docify run
+        // This ensures the content updates when switching documents while viewing docify
+        if (this.activeTab === 'docify') {
+            this.docify.requestDocify()
+        }
     }
 
     /**
