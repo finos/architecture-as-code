@@ -103,6 +103,15 @@ export class PanelView {
         this.tabsView = new TabsView(panelViewModel.tabs, tabsContainer)
 
         this.bindViewModelEvents()
+
+        // Set initial visibility state based on current template mode
+        const initialTemplateMode = this.panelViewModel.tabs.template.getIsTemplateMode()
+        this.updateShowLabelsControl(initialTemplateMode)
+        this.updateLiveDocifyBadge(initialTemplateMode)
+
+        // Set initial checkbox state
+        const initialShowLabels = this.panelViewModel.tabs.template.getShowLabels()
+        this.updateShowLabelsCheckbox(initialShowLabels)
     }
 
     private bindViewModelEvents(): void {
@@ -112,10 +121,19 @@ export class PanelView {
             this.tabsView.updateSelection(selectedId)
         })
 
-        // Listen for template mode changes to show/hide live docify badge
+        // Listen for template mode changes to show/hide live docify badge and show labels control
         this.panelViewModel.tabs.template.onTemplateModeChanged((modeData) => {
             this.updateLiveDocifyBadge(modeData.isTemplateMode)
+            this.updateShowLabelsControl(modeData.isTemplateMode)
         })
+
+        // Listen for show labels changes to update checkbox state
+        this.panelViewModel.tabs.template.onShowLabelsChanged((showLabels) => {
+            this.updateShowLabelsCheckbox(showLabels)
+        })
+
+        // Wire up the show labels checkbox event listener
+        this.bindShowLabelsCheckbox()
     }
 
     /**
@@ -126,6 +144,51 @@ export class PanelView {
         const badge = document.getElementById('live-docify-badge')
         if (badge) {
             (badge as HTMLElement).style.display = isTemplateMode ? 'block' : 'none'
+        }
+    }
+
+    /**
+     * Update the show labels control visibility based on template mode
+     * Show labels control should be visible for CALM JSON files (NOT in template mode)
+     * Hide for markdown template files (in template mode)
+     */
+    private updateShowLabelsControl(isTemplateMode: boolean): void {
+        const control = document.getElementById('show-labels-control')
+        if (control) {
+            // Show when NOT in template mode (i.e., when viewing CALM JSON files)
+            (control as HTMLElement).style.display = isTemplateMode ? 'none' : 'flex'
+        }
+    }
+
+    /**
+     * Update the checkbox state to match the ViewModel
+     */
+    private updateShowLabelsCheckbox(showLabels: boolean): void {
+        const checkbox = document.getElementById('show-labels-checkbox') as HTMLInputElement | null
+        if (checkbox) {
+            checkbox.checked = showLabels
+        }
+    }
+
+    /**
+     * Wire up the show labels checkbox to send toggleLabels messages
+     */
+    private bindShowLabelsCheckbox(): void {
+        const checkbox = document.getElementById('show-labels-checkbox')
+        if (checkbox) {
+            checkbox.addEventListener('change', (event) => {
+                const isChecked = (event.target as HTMLInputElement).checked
+                this.panelViewModel.tabs.template.setShowLabels(isChecked)
+                // Send message to backend to update showLabels preference
+                this.panelViewModel.tabs['vscode'].postMessage({
+                    type: 'toggleLabels',
+                    showLabels: isChecked
+                })
+                // Trigger immediate docify refresh to show the change
+                this.panelViewModel.tabs['vscode'].postMessage({
+                    type: 'runDocify'
+                })
+            })
         }
     }
 

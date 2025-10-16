@@ -43,7 +43,7 @@ export default class MermaidRenderer {
     /**
      * Render markdown content with Mermaid support
      */
-    async render(content: string, sourceFile: string): Promise<string> {
+    async render(content: string, _sourceFile: string): Promise<string> {
         this.ensureMermaid()
 
         try {

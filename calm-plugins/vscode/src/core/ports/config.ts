@@ -5,7 +5,6 @@
 export interface Config {
     filesGlobs(): string[]
     templateGlobs(): string[]
-    autoOpen(): boolean
     previewLayout(): string
     showLabels(): boolean
 }

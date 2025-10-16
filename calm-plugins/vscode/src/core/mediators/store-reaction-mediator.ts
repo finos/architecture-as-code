@@ -53,19 +53,48 @@ export class StoreReactionMediator {
   }
 
   private async handleDocumentChange(uri: vscode.Uri) {
-    this.log.info(`[extension] Document changed to: ${uri.fsPath}`)
+    this.log.info(`[extension] ========== Document changed to: ${uri.fsPath} ==========`)
 
-    const panel = this.previewPanelFactory.createOrShow(this.context, uri, this.configService, this.log)
+    // Check if this is a user-initiated preview opening by checking if we should force-create
+    const state = this.store.getState() as any
+    const shouldForceCreate = state._forceCreatePreview
+
+    if (shouldForceCreate) {
+      this.log.info('[extension] ✅ Force-creating preview panel for user command')
+      // Clear the flag immediately
+      delete state._forceCreatePreview
+    } else {
+      this.log.info('[extension] ⏭️  Skipping auto-open - checking if panel exists')
+    }
+
+    let panel: any
+    if (shouldForceCreate) {
+      // Create the panel
+      this.log.info('[extension] 🏗️  Calling previewPanelFactory.createOrShow()...')
+      panel = this.previewPanelFactory.createOrShow(this.context, uri, this.configService, this.log)
+      this.log.info('[extension] ✅ Panel created/shown')
+    } else {
+      // Only refresh if preview panel is already open - don't auto-create
+      panel = this.previewPanelFactory.get()
+      if (!panel) {
+        this.log.info('[extension] ❌ No preview panel open, skipping auto-refresh')
+        return
+      }
+      this.log.info('[extension] ✅ Preview panel exists, will refresh')
+    }
     
-    // Set up event handlers if this is a new panel
+    // Set up event handlers
     const getCurrentSelection = () => this.store.getState().selectedElementId
     panel.setGetCurrentTreeSelection(getCurrentSelection)
-    panel.onRevealInEditor(async id => { await this.selectionService.syncFromPreview(id) })
-    panel.onDidSelect(async id => { await this.selectionService.syncFromPreview(id) })
+    panel.onRevealInEditor(async (id: string) => { await this.selectionService.syncFromPreview(id) })
+    panel.onDidSelect(async (id: string) => { await this.selectionService.syncFromPreview(id) })
     
     // Refresh data for the document
+    this.log.info('[extension] 📂 Opening text document...')
     const doc = await vscode.workspace.openTextDocument(uri)
+    this.log.info('[extension] 📄 Document opened, calling refreshForDocument()...')
     await this.refreshService.refreshForDocument(doc)
+    this.log.info('[extension] ========== handleDocumentChange complete ==========')
   }
 
   private handleSelectionChange(selectedId: string) {
