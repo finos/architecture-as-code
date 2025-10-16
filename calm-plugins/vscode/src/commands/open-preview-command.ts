@@ -20,8 +20,8 @@ export function createOpenPreviewCommand(store: ApplicationStoreApi) {
 
         // Set a flag to indicate this is a user-initiated preview opening
         // This will trigger the StoreReactionMediator to force-create the panel
-        const state = store.getState();
-        (state as any)._forceCreatePreview = true
+        const state = store.getState()
+        state.setForceCreatePreview(true)
         
         state.setCurrentDocument(doc.uri)
         

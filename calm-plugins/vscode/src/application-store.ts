@@ -12,6 +12,7 @@ export interface ApplicationState {
     selectedElementId: string | undefined
     searchFilter: string
     showLabels: boolean
+    forceCreatePreview: boolean
 }
 
 export interface ApplicationActions {
@@ -21,6 +22,7 @@ export interface ApplicationActions {
     setSelectedElement: (id: string | undefined) => void
     setSearchFilter: (filter: string) => void
     setShowLabels: (show: boolean) => void
+    setForceCreatePreview: (force: boolean) => void
     clearSelection: () => void
     resetDocument: () => void
 }
@@ -39,6 +41,7 @@ export function createApplicationStore(): ApplicationStoreApi {
             selectedElementId: undefined,
             searchFilter: '',
             showLabels: true,
+            forceCreatePreview: false,
 
             setModelIndex: (modelIndex) =>
                 set({ currentModelIndex: modelIndex }),
@@ -61,6 +64,9 @@ export function createApplicationStore(): ApplicationStoreApi {
 
             setShowLabels: (show) =>
                 set({ showLabels: show }),
+
+            setForceCreatePreview: (force) =>
+                set({ forceCreatePreview: force }),
 
             clearSelection: () =>
                 set({ selectedElementId: undefined }),

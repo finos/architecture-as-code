@@ -56,13 +56,13 @@ export class StoreReactionMediator {
     this.log.info(`[extension] ========== Document changed to: ${uri.fsPath} ==========`)
 
     // Check if this is a user-initiated preview opening by checking if we should force-create
-    const state = this.store.getState() as any
-    const shouldForceCreate = state._forceCreatePreview
+    const state = this.store.getState()
+    const shouldForceCreate = state.forceCreatePreview
 
     if (shouldForceCreate) {
       this.log.info('[extension] ✅ Force-creating preview panel for user command')
       // Clear the flag immediately
-      delete state._forceCreatePreview
+      state.setForceCreatePreview(false)
     } else {
       this.log.info('[extension] ⏭️  Skipping auto-open - checking if panel exists')
     }
