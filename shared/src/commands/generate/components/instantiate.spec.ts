@@ -253,4 +253,43 @@ describe('instantiate', () => {
             ['nested-array' ]
         ]);
     });
+
+    it('handles const values at top level properties', async () => {
+        // Test pattern with top-level const properties
+        const patternWithTopLevelConst = {
+            $schema: 'schema#',
+            $id: 'test-pattern-top-level-const',
+            properties: {
+                'simple-const': { const: 'simple-value' },
+                'object-const': { const: { nested: 'object-value' } },
+                'array-const': { const: ['array', 'value'] },
+                'number-const': { const: 42 },
+                'boolean-const': { const: true },
+                'null-const': { const: null },
+                'mixed-property': {
+                    type: 'object',
+                    properties: {
+                        'nested-const': { const: 'nested-value' },
+                        'nested-placeholder': { type: 'string' }
+                    }
+                }
+            }
+        };
+
+        (fs.readFileSync as Mock).mockImplementation(() => JSON.stringify(patternWithTopLevelConst));
+
+        const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
+        const result = await instantiate(pattern, true, new SchemaDirectory(null));
+
+        expect(result['simple-const']).toBe('simple-value');
+        expect(result['object-const']).toEqual({ nested: 'object-value' });
+        expect(result['array-const']).toEqual(['array', 'value']);
+        expect(result['number-const']).toBe(42);
+        expect(result['boolean-const']).toBe(true);
+        expect(result['null-const']).toBeNull();
+        expect(result['mixed-property']).toEqual({
+            'nested-const': 'nested-value',
+            'nested-placeholder': '[[ NESTED_PLACEHOLDER ]]'
+        });
+    });
 });
