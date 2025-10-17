@@ -5,6 +5,30 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.11.0 (2025-10-17)
+
+*  ([2c16d76618f8e09afe226d4578b5fdcb3e2df9f6](https://github.com/finos/architecture-as-code/commit/2c16d76618f8e09afe226d4578b5fdcb3e2df9f6))
+*  ([57002f433dc2cf3d6b51c0be48a27a677fcd1271](https://github.com/finos/architecture-as-code/commit/57002f433dc2cf3d6b51c0be48a27a677fcd1271))
+*  ([74d0dd3e681864650deabda6313b413ba040361c](https://github.com/finos/architecture-as-code/commit/74d0dd3e681864650deabda6313b413ba040361c))
+* chore(ci): Update .github/workflows/automated-release.yml ([f62645f834fbc13a4314d77a7da17636bbfa8c40](https://github.com/finos/architecture-as-code/commit/f62645f834fbc13a4314d77a7da17636bbfa8c40))
+* chore(deps-dev): bump vite from 7.0.0 to 7.0.7 in the npm_and_yarn group across 1 directory ([52d285e53c5e93168d516ce468b1bd53b2d7cdd3](https://github.com/finos/architecture-as-code/commit/52d285e53c5e93168d516ce468b1bd53b2d7cdd3))
+* chore(deps-dev): bump vite from 7.0.0 to 7.0.7 in the npm_and_yarn group across 1 directory ([878dff9d2335b999a39fcdc1f8ec7930093c7c18](https://github.com/finos/architecture-as-code/commit/878dff9d2335b999a39fcdc1f8ec7930093c7c18))
+* chore(deps-dev): bump vite in the npm_and_yarn group across 1 directory ([f8b12aba2793019098d549abd056bd4a86fcdab7](https://github.com/finos/architecture-as-code/commit/f8b12aba2793019098d549abd056bd4a86fcdab7))
+* chore(deps-dev): bump vite in the npm_and_yarn group across 1 directory ([d4c1a4cef378e570a9d747492a1b5c4626598899](https://github.com/finos/architecture-as-code/commit/d4c1a4cef378e570a9d747492a1b5c4626598899))
+* chore(deps): update actions/setup-java action to v5 ([4ca0b3c60a02a611ddf14966d9f9acf04e9f86c1](https://github.com/finos/architecture-as-code/commit/4ca0b3c60a02a611ddf14966d9f9acf04e9f86c1))
+* chore(deps): update actions/setup-java action to v5 ([cba3d2239f8c3942ca1cf26d349d793f5b0c416e](https://github.com/finos/architecture-as-code/commit/cba3d2239f8c3942ca1cf26d349d793f5b0c416e))
+* chore(deps): update minor updates ([fabb260b68b94a5e5c0c86c4c1e1a2ef66b569f5](https://github.com/finos/architecture-as-code/commit/fabb260b68b94a5e5c0c86c4c1e1a2ef66b569f5))
+* chore(deps): update minor updates ([e11cf160ea7d150be69ae86aae29288ac3f47906](https://github.com/finos/architecture-as-code/commit/e11cf160ea7d150be69ae86aae29288ac3f47906))
+* ci(cli): release version 1.10.0 ([f63f7a80fd546829c976b4123b39a31e0ddb8648](https://github.com/finos/architecture-as-code/commit/f63f7a80fd546829c976b4123b39a31e0ddb8648))
+* feat(ci): add publish-on-merge job for automated NPM releases ([86976fd35bb56fb76365823b9478b9d5a8ddfd07](https://github.com/finos/architecture-as-code/commit/86976fd35bb56fb76365823b9478b9d5a8ddfd07))
+* feat(ci): add publish-on-merge job for automated NPM releases ([ff773eba4a99c90dc0729b5de3f676b76b52cc19](https://github.com/finos/architecture-as-code/commit/ff773eba4a99c90dc0729b5de3f676b76b52cc19))
+* fix(cli): add support for top-level const properties in instantiation (#1719) ([f22b30f1987cf498f33d4c52175f53dad1096483](https://github.com/finos/architecture-as-code/commit/f22b30f1987cf498f33d4c52175f53dad1096483)), closes [#1719](https://github.com/finos/architecture-as-code/issues/1719)
+* fix(vscode): apply changes for copilot feedback ([63cc6ef106e26b5fac5e9bd094f4ca666185a85d](https://github.com/finos/architecture-as-code/commit/63cc6ef106e26b5fac5e9bd094f4ca666185a85d))
+* fix(vscode): Remove auto open on CALM Preview and fix a bunch of bugs, resolves #1690 ([87689506d2f711058460f4b391d3949968654338](https://github.com/finos/architecture-as-code/commit/87689506d2f711058460f4b391d3949968654338)), closes [#1690](https://github.com/finos/architecture-as-code/issues/1690)
+* fix(workflows): adjust working directory for build and sync steps in … ([353ddfdfabb19837be88fa8985ef50aa64dab1aa](https://github.com/finos/architecture-as-code/commit/353ddfdfabb19837be88fa8985ef50aa64dab1aa))
+* fix(workflows): adjust working directory for build and sync steps in S3 sync workflow ([51ed8aa7f039fb15096c6006da856e4f4f6ec27d](https://github.com/finos/architecture-as-code/commit/51ed8aa7f039fb15096c6006da856e4f4f6ec27d))
+* refactor(calm-hub-ui): refactor drawer component (#1703) ([b3ab6161f7e2c65ab599be760a5d927184c1e75b](https://github.com/finos/architecture-as-code/commit/b3ab6161f7e2c65ab599be760a5d927184c1e75b)), closes [#1703](https://github.com/finos/architecture-as-code/issues/1703)
+
 ## 1.10.0 (2025-10-13)
 
 *  ([83609c9285d1e81826f40e8b2362f86c6e8907ac](https://github.com/finos/architecture-as-code/commit/83609c9285d1e81826f40e8b2362f86c6e8907ac))
