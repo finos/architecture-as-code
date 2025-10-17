@@ -111,7 +111,12 @@ async function instantiateFromProperties(
                 })
             );
         } else {
-            output[key] = await instantiateObject(resolvedDef, schemaDir, [key]);
+            // Check for const values at the top level
+            if (resolvedDef.const !== undefined) {
+                output[key] = resolvedDef.const;
+            } else {
+                output[key] = await instantiateObject(resolvedDef, schemaDir, [key]);
+            }
         }
     }
 
