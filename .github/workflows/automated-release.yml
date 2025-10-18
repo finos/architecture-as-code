@@ -398,7 +398,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build CLI and dependencies
+      - name: Build dependencies
+        run: |
+          # Build in order: calm-models -> shared -> calm-widgets -> cli
+          npm run build --workspace=calm-models
+          npm run build --workspace=shared
+          npm run build --workspace=calm-widgets
+
+      - name: Build CLI
         run: npm run build --workspace=cli
 
       - name: Get version from package.json
