@@ -36,6 +36,8 @@ on:
 jobs:
   analyze:
     runs-on: ubuntu-latest
+    # Only run analysis on schedule or manual trigger, not on PR merge
+    if: github.event_name != 'pull_request'
     outputs:
       should-release: ${{ steps.check.outputs.should-release }}
       release-type: ${{ steps.check.outputs.release-type }}
@@ -396,10 +398,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build package
-        run: |
-          cd cli
-          npm run build
+      - name: Build CLI and dependencies
+        run: npm run build --workspace=cli
 
       - name: Get version from package.json
         id: version
