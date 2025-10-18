@@ -13,7 +13,22 @@ permissions:
 on:
   schedule:
     - cron: '30 7 * * 1,3'  # Run at 7:30 AM GMT on Monday and Wednesday
-  workflow_dispatch: # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      force-release:
+        description: 'Force a release even if no relevant changes are detected'
+        required: false
+        type: boolean
+        default: false
+      release-type:
+        description: 'Release type (only used with force-release)'
+        required: false
+        type: choice
+        default: 'patch'
+        options:
+          - patch
+          - minor
+          - major
   pull_request:
     types:
       - closed
@@ -121,46 +136,83 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
         run: |
           cd cli
-          npx semantic-release --dry-run > analysis.txt 2>&1 || true
           
-          echo "=== SEMANTIC RELEASE ANALYSIS OUTPUT ==="
-          cat analysis.txt
-          echo "========================================"
+          # Check if force-release is enabled
+          FORCE_RELEASE="${{ github.event.inputs.force-release }}"
+          FORCE_RELEASE_TYPE="${{ github.event.inputs.release-type }}"
           
-          if grep -q "The next release version is" analysis.txt; then
-            NEXT_VERSION=$(grep "The next release version is" analysis.txt | sed 's/.*The next release version is \([^[:space:]]\+\).*/\1/')
+          if [ "$FORCE_RELEASE" = "true" ]; then
+            echo "🔨 Force release enabled with type: $FORCE_RELEASE_TYPE"
             
-            # Get current version from latest git tag instead of package.json
-            CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/cli-v//')
+            # Get current version from latest git tag
+            CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/cli-v//' || echo "0.0.0")
             
-            echo "📋 Extracted versions:"
-            echo "  Current: $CURRENT_VERSION"
-            echo "  Next: $NEXT_VERSION"
-            
+            # Calculate next version based on force release type
             CURRENT_MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
-            NEXT_MAJOR=$(echo $NEXT_VERSION | cut -d. -f1)
+            CURRENT_MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
+            CURRENT_PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
             
-            if [ "$NEXT_MAJOR" -gt "$CURRENT_MAJOR" ]; then
-              RELEASE_TYPE="major"
-            else
-              CURRENT_MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
-              NEXT_MINOR=$(echo $NEXT_VERSION | cut -d. -f2)
-              RELEASE_TYPE=$([ "$NEXT_MINOR" -gt "$CURRENT_MINOR" ] && echo "minor" || echo "patch")
-            fi
+            case "$FORCE_RELEASE_TYPE" in
+              major)
+                NEXT_VERSION="$((CURRENT_MAJOR + 1)).0.0"
+                ;;
+              minor)
+                NEXT_VERSION="$CURRENT_MAJOR.$((CURRENT_MINOR + 1)).0"
+                ;;
+              patch)
+                NEXT_VERSION="$CURRENT_MAJOR.$CURRENT_MINOR.$((CURRENT_PATCH + 1))"
+                ;;
+            esac
             
             echo "should-release=true" >> $GITHUB_OUTPUT
-            echo "release-type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+            echo "release-type=$FORCE_RELEASE_TYPE" >> $GITHUB_OUTPUT
             echo "next-version=$NEXT_VERSION" >> $GITHUB_OUTPUT
             echo "current-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
             
-            echo "🔍 Release: $CURRENT_VERSION → $NEXT_VERSION ($RELEASE_TYPE)"
+            echo "🔍 Forced Release: $CURRENT_VERSION → $NEXT_VERSION ($FORCE_RELEASE_TYPE)"
           else
-            echo "should-release=false" >> $GITHUB_OUTPUT
-            echo "ℹ️ No release needed"
-            echo "🔍 Checking for common patterns in analysis:"
-            echo "  - No relevant changes: $(grep -c "There are no relevant changes" analysis.txt || echo "0")"
-            echo "  - Branch restrictions: $(grep -c "only publish from" analysis.txt || echo "0")"
-            echo "  - Configuration errors: $(grep -c -i "error" analysis.txt || echo "0")"
+            # Normal semantic-release analysis
+            npx semantic-release --dry-run > analysis.txt 2>&1 || true
+            
+            echo "=== SEMANTIC RELEASE ANALYSIS OUTPUT ==="
+            cat analysis.txt
+            echo "========================================"
+            
+            if grep -q "The next release version is" analysis.txt; then
+              NEXT_VERSION=$(grep "The next release version is" analysis.txt | sed 's/.*The next release version is \([^[:space:]]\+\).*/\1/')
+              
+              # Get current version from latest git tag instead of package.json
+              CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/cli-v//')
+              
+              echo "📋 Extracted versions:"
+              echo "  Current: $CURRENT_VERSION"
+              echo "  Next: $NEXT_VERSION"
+              
+              CURRENT_MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
+              NEXT_MAJOR=$(echo $NEXT_VERSION | cut -d. -f1)
+              
+              if [ "$NEXT_MAJOR" -gt "$CURRENT_MAJOR" ]; then
+                RELEASE_TYPE="major"
+              else
+                CURRENT_MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
+                NEXT_MINOR=$(echo $NEXT_VERSION | cut -d. -f2)
+                RELEASE_TYPE=$([ "$NEXT_MINOR" -gt "$CURRENT_MINOR" ] && echo "minor" || echo "patch")
+              fi
+              
+              echo "should-release=true" >> $GITHUB_OUTPUT
+              echo "release-type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+              echo "next-version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+              echo "current-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+              
+              echo "🔍 Release: $CURRENT_VERSION → $NEXT_VERSION ($RELEASE_TYPE)"
+            else
+              echo "should-release=false" >> $GITHUB_OUTPUT
+              echo "ℹ️ No release needed"
+              echo "🔍 Checking for common patterns in analysis:"
+              echo "  - No relevant changes: $(grep -c "There are no relevant changes" analysis.txt || echo "0")"
+              echo "  - Branch restrictions: $(grep -c "only publish from" analysis.txt || echo "0")"
+              echo "  - Configuration errors: $(grep -c -i "error" analysis.txt || echo "0")"
+            fi
           fi
 
   create-version-pr:
@@ -183,7 +235,47 @@ jobs:
       - name: Create version update PR
         run: |
           cd cli
-          npm run semantic-release
+          
+          # Check if this is a forced release
+          if [ "${{ github.event.inputs.force-release }}" = "true" ]; then
+            echo "🔨 Creating forced release PR"
+            
+            # Update package.json version manually
+            npm version ${{ needs.analyze.outputs.next-version }} --no-git-tag-version
+            
+            # Update CHANGELOG.md
+            cat > temp_changelog.md << EOF
+          # Changelog
+          
+          All notable changes to the CALM CLI will be documented in this file.
+          
+          The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+          and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+          
+          ## [${{ needs.analyze.outputs.next-version }}] - $(date +%Y-%m-%d)
+          
+          ### Changed
+          - Manual release triggered
+          
+          EOF
+            
+            # Append existing changelog content (skip the header)
+            if [ -f "CHANGELOG.md" ]; then
+              tail -n +8 CHANGELOG.md >> temp_changelog.md
+            fi
+            mv temp_changelog.md CHANGELOG.md
+            
+            # Create release branch
+            git checkout -b "release/cli-v${{ needs.analyze.outputs.next-version }}"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add CHANGELOG.md package.json
+            git commit -m "ci(cli): release version ${{ needs.analyze.outputs.next-version }}"
+            git push origin "release/cli-v${{ needs.analyze.outputs.next-version }}"
+          else
+            # Use semantic-release for automatic releases
+            npm run semantic-release
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.SRB_TOKEN }}
 
@@ -294,7 +386,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-          ref: ${{ github.event.pull_request.base.ref }}
+          ref: main
 
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -304,10 +396,53 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Publish to NPM
+      - name: Build package
+        run: |
+          cd cli
+          npm run build
+
+      - name: Get version from package.json
+        id: version
+        run: |
+          cd cli
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing CLI version: $VERSION"
+
+      - name: Create Git tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "cli-v${{ steps.version.outputs.version }}"
+          git push origin "cli-v${{ steps.version.outputs.version }}"
+
+      - name: Create GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd cli
+          
+          # Extract changelog for this version
+          if [ -f "CHANGELOG.md" ]; then
+            # Try to extract the section for this version from CHANGELOG.md
+            RELEASE_NOTES=$(awk '/^## \['${{ steps.version.outputs.version }}'\]/, /^## \[/{//!p}' CHANGELOG.md | sed '/^## \[/d' || echo "")
+          fi
+          
+          if [ -z "$RELEASE_NOTES" ]; then
+            RELEASE_NOTES="Release of CLI version ${{ steps.version.outputs.version }}"
+          fi
+          
+          gh release create "cli-v${{ steps.version.outputs.version }}" \
+            --title "CLI v${{ steps.version.outputs.version }}" \
+            --notes "$RELEASE_NOTES" \
+            --target main
+
+      - name: Publish to NPM
+        env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
         run: |
           cd cli
-          npm run semantic-release
+          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
+          npm publish
+          
+          echo "✅ Successfully published @finos/calm-cli@${{ steps.version.outputs.version }} to NPM" >> $GITHUB_STEP_SUMMARY
