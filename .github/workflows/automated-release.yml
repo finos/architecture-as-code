@@ -146,8 +146,8 @@ jobs:
           if [ "$FORCE_RELEASE" = "true" ]; then
             echo "🔨 Force release enabled with type: $FORCE_RELEASE_TYPE"
             
-            # Get current version from latest git tag
-            CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/cli-v//' || echo "0.0.0")
+            # Get current version from package.json (the source of truth)
+            CURRENT_VERSION=$(node -p "require('./package.json').version")
             
             # Calculate next version based on force release type
             CURRENT_MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
