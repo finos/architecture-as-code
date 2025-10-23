@@ -23,6 +23,8 @@ community and contribute your projects to the AasC monorepo which has the benefi
 community; thereby attracting contributions and ensuring that changes to the manifest will be proactively built against
 your project.
 
+Ready to get started? Read the [CALM quickstart guide](https://calm.finos.org/quick-start/).
+
 ## Projects
 
 | Project                                                                                        | Lead Maintainers                                                                                                                                                                                                                     | Builds                                                                                                                                                                                                                                                                                                                                                                                      |
