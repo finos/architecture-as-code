@@ -27,7 +27,7 @@
                 <groupId>io.netty</groupId>
                 <artifactId>netty-bom</artifactId>
                 <!-- Force patched Netty version to mitigate CVE-2025-58057 (affecting 4.1.124.Final) -->
-                <version>4.2.6.Final</version>
+                <version>4.2.7.Final</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -211,7 +211,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.13</version>
+                <version>0.8.14</version>
                 <configuration>
                     <excludes>
                         <exclude>**/*Builder.*</exclude>
@@ -354,7 +354,7 @@
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>12.1.6</version>
+                        <version>12.1.8</version>
                         <executions>
                             <execution>
                                 <goals>
