@@ -246,7 +246,9 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
             } else if (type === 'Flows') {
                 fetchFlowIDs(selectedNamespace, setFlowIDs);
             } else if (type === 'ADRs') {
-                adrService.fetchAdrIDs(selectedNamespace).then(ids => setAdrIDs(ids.map(id => id.toString())));
+                adrService
+                    .fetchAdrIDs(selectedNamespace)
+                    .then((ids) => setAdrIDs(ids.map((id) => id.toString())));
             }
         }
         setSelectedResourceID('');
@@ -264,7 +266,9 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
         } else if (type === 'Flows') {
             fetchFlowVersions(selectedNamespace, resourceID, setFlowVersions);
         } else if (type === 'ADRs') {
-            adrService.fetchAdrRevisions(selectedNamespace, resourceID).then(revisions => setAdrRevisions(revisions.map(rev => rev.toString())));
+            adrService
+                .fetchAdrRevisions(selectedNamespace, resourceID)
+                .then((revisions) => setAdrRevisions(revisions.map((rev) => rev.toString())));
         }
     };
 
@@ -314,7 +318,6 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
 
     return (
         <div className="h-full w-full flex flex-col">
-            {/* Header */}
             <div className="bg-base-200 px-6 py-4 border-b border-base-300">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
                     <IoCompassOutline className="text-accent" />
@@ -322,7 +325,6 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
                 </h2>
             </div>
 
-            {/* Content */}
             <div className="flex-1 overflow-auto p-4">
                 <ul className="menu w-full">
                     <li>

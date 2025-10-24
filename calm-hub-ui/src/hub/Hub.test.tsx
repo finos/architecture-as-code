@@ -66,7 +66,7 @@ describe('Hub', () => {
     it('renders JsonRenderer when data is loaded', () => {
         renderWithRouter(<Hub />);
 
-        // Initially, no content should be rendered (ExploreSection returns null without data)
+        // Initially, no content should be rendered
         expect(screen.queryByTestId('json-renderer')).not.toBeInTheDocument();
 
         // Click the Load Test Data button to simulate data loading
