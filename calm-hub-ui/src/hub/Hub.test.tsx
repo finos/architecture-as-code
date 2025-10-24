@@ -66,14 +66,14 @@ describe('Hub', () => {
     it('renders JsonRenderer when data is loaded', () => {
         renderWithRouter(<Hub />);
 
-        // Initially, JsonRenderer should be present but empty
-        expect(screen.getByTestId('json-renderer')).toBeInTheDocument();
-        expect(screen.getByTestId('json-renderer')).toHaveTextContent('');
+        // Initially, no content should be rendered (ExploreSection returns null without data)
+        expect(screen.queryByTestId('json-renderer')).not.toBeInTheDocument();
 
         // Click the Load Test Data button to simulate data loading
         fireEvent.click(screen.getByText('Load Test Data'));
 
-        // Now JsonRenderer should show JSON content
+        // Now JsonRenderer should be visible and show JSON content
+        expect(screen.getByTestId('json-renderer')).toBeInTheDocument();
         expect(screen.getByTestId('json-renderer')).toHaveTextContent('JSON');
     });
 

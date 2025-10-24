@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { IoCompassOutline } from 'react-icons/io5';
 import {
     fetchNamespaces,
     fetchPatternIDs,
@@ -312,8 +313,17 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
     };
 
     return (
-        <div className="border-r border-base-300 h-full w-full overflow-auto flex flex-col">
-            <div className="flex-1 overflow-auto px-4 pb-4">
+        <div className="h-full w-full flex flex-col">
+            {/* Header */}
+            <div className="bg-base-200 px-6 py-4 border-b border-base-300">
+                <h2 className="text-xl font-semibold flex items-center gap-2">
+                    <IoCompassOutline className="text-accent" />
+                    Explore
+                </h2>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-auto p-4">
                 <ul className="menu w-full">
                     <li>
                         <a>Namespaces</a>
