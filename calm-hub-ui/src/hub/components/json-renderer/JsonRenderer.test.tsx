@@ -12,7 +12,14 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('@monaco-editor/react', () => ({
-    Editor: ({ value }: { value: string }) => <textarea value={value} readOnly data-testid="monaco-editor" />
+    Editor: ({ value, options }: { value: string; options?: { lineNumbers?: 'on' | 'off' } }) => (
+        <textarea
+            value={value}
+            readOnly
+            data-testid="monaco-editor"
+            data-line-numbers={options?.lineNumbers}
+        />
+    )
 }));
 
 describe('JsonRenderer', () => {
@@ -50,5 +57,41 @@ describe('JsonRenderer', () => {
         // Monaco Editor is mocked as a textarea, so check its value
         const textarea = screen.getByTestId('monaco-editor');
         expect(textarea).toHaveValue(JSON.stringify(data, null, 2));
+    });
+
+    it('shows line numbers by default', () => {
+        const data = { test: 'data' };
+        render(
+            <MemoryRouter>
+                <JsonRenderer json={data} />
+            </MemoryRouter>
+        );
+
+        const textarea = screen.getByTestId('monaco-editor');
+        expect(textarea).toHaveAttribute('data-line-numbers', 'on');
+    });
+
+    it('shows line numbers when showLineNumbers is true', () => {
+        const data = { test: 'data' };
+        render(
+            <MemoryRouter>
+                <JsonRenderer json={data} showLineNumbers={true} />
+            </MemoryRouter>
+        );
+
+        const textarea = screen.getByTestId('monaco-editor');
+        expect(textarea).toHaveAttribute('data-line-numbers', 'on');
+    });
+
+    it('hides line numbers when showLineNumbers is false', () => {
+        const data = { test: 'data' };
+        render(
+            <MemoryRouter>
+                <JsonRenderer json={data} showLineNumbers={false} />
+            </MemoryRouter>
+        );
+
+        const textarea = screen.getByTestId('monaco-editor');
+        expect(textarea).toHaveAttribute('data-line-numbers', 'off');
     });
 });

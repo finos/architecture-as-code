@@ -22,9 +22,9 @@ export default function Hub() {
     }
 
     return (
-        <>
+        <div className="flex flex-col h-screen">
             <Navbar />
-            <div className="flex flex-row h-[95%]">
+            <div className="flex flex-row flex-1 overflow-hidden">
                 <div className="w-1/4">
                     <TreeNavigation onDataLoad={handleDataLoad} onAdrLoad={handleAdrLoad} />
                 </div>
@@ -42,22 +42,21 @@ export default function Hub() {
                     </div>
                 )}
             </div>
-        </>
+        </div>
     );
 }
 
 function ArchitectureSection({ data }: { data: Data & { calmType: 'Architectures' } }) {
     return (
-        <div className="relative w-full h-full">
-            <div className="tabs w-full h-full">
+        <div className="relative w-full h-full flex flex-col">
+            <div className="tabs w-full flex-1 flex flex-col">
                 <input
                     type="radio"
                     name="view-tabs"
                     className="tab absolute top-4 right-25 z-[100] backdrop-blur-sm shadow-lg rounded-lg px-4 py-2 border border-base-300 bg-base-100/90 checked:!bg-[#007dff] checked:!text-white hover:bg-base-200/90"
                     aria-label="JSON"
-                    defaultChecked
                 />
-                <div className="tab-content h-full">
+                <div className="tab-content flex-1">
                     <div className="h-full bg-base-200">
                         <JsonRenderer json={data} />
                     </div>
@@ -67,8 +66,9 @@ function ArchitectureSection({ data }: { data: Data & { calmType: 'Architectures
                     name="view-tabs"
                     className="tab absolute top-4 right-4 z-[100] backdrop-blur-sm shadow-lg rounded-lg px-4 py-2 border border-base-300 bg-base-100/90 checked:!bg-[#007dff] checked:!text-white hover:bg-base-200/90"
                     aria-label="Diagram"
+                    defaultChecked
                 />
-                <div className="tab-content h-full">
+                <div className="tab-content flex-1">
                     <Drawer data={data} />
                 </div>
             </div>
