@@ -49,9 +49,9 @@ export function Drawer({ data }: DrawerProps) {
     const { edges, nodes } = convertCalmToCytoscape(calmInstance);
 
     return (
-        <div {...getRootProps()} className="flex-1 flex overflow-hidden h-screen">
+        <div {...getRootProps()} className="flex-1 flex overflow-hidden h-full">
             {!calmInstance && <input {...getInputProps()} />}
-            <div className={`drawer drawer-end ${selectedItem ? 'drawer-open' : ''} w-full`}>
+            <div className={`drawer drawer-end ${selectedItem ? 'drawer-open' : ''} w-full h-full`}>
                 <input
                     type="checkbox"
                     aria-label="drawer-toggle"

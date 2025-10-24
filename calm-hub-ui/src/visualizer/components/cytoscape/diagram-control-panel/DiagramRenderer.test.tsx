@@ -41,8 +41,9 @@ describe('DiagramControlPanel', () => {
                 toggleNodeDesc={vi.fn()}
             />
         );
-        expect(screen.getByText('Architecture:')).toBeInTheDocument();
         expect(screen.getByText('View')).toBeInTheDocument();
+        expect(screen.getByText('Relationship Descriptions')).toBeInTheDocument();
+        expect(screen.getByText('Node Descriptions')).toBeInTheDocument();
     });
 
     it('should call toggleNodeDesc when Node Descriptions checkbox is clicked', () => {
