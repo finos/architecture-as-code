@@ -4,7 +4,6 @@ import com.mongodb.MongoWriteException;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteError;
 import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -39,7 +38,7 @@ import static org.mockito.Mockito.*;
 public class TestMongoFlowStoreShould {
 
     @InjectMock
-    MongoClient mongoClient;
+    MongoDatabase mongoDatabase;
 
     @InjectMock
     MongoCounterStore counterStore;
@@ -55,12 +54,10 @@ public class TestMongoFlowStoreShould {
 
     @BeforeEach
     void setup() {
-        MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
         flowCollection = Mockito.mock(DocumentMongoCollection.class);
 
-        when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
         when(mongoDatabase.getCollection("flows")).thenReturn(flowCollection);
-        mongoFlowStore = new MongoFlowStore(mongoClient, counterStore, namespaceStore);
+        mongoFlowStore = new MongoFlowStore(mongoDatabase, counterStore, namespaceStore);
     }
 
     @Test
@@ -329,7 +326,7 @@ public class TestMongoFlowStoreShould {
                 .setFlow(validJson).build();
 
         WriteError writeError = new WriteError(2, "The positional operator did not find the match needed from the query", new BsonDocument());
-        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress());
+        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
 
         when(flowCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
                 .thenThrow(mongoWriteException);

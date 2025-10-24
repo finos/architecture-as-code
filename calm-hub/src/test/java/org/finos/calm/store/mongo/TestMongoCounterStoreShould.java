@@ -1,7 +1,6 @@
 package org.finos.calm.store.mongo;
 
 
-import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
@@ -22,19 +21,17 @@ import static org.mockito.Mockito.when;
 public class TestMongoCounterStoreShould {
 
     @InjectMock
-    MongoClient mongoClient;
+    MongoDatabase mongoDatabase;
 
     private MongoCollection<Document> counterCollection;
     private MongoCounterStore counterStore;
 
     @BeforeEach
     void setUp() {
-        MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
         counterCollection = Mockito.mock(DocumentMongoCollection.class);
 
-        when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
         when(mongoDatabase.getCollection("counters")).thenReturn(counterCollection);
-        counterStore = new MongoCounterStore(mongoClient);
+        counterStore = new MongoCounterStore(mongoDatabase);
     }
 
     private interface DocumentMongoCollection extends MongoCollection<Document> {
