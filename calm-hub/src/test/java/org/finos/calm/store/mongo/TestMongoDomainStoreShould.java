@@ -24,19 +24,17 @@ import static org.mockito.Mockito.when;
 @QuarkusTest
 public class TestMongoDomainStoreShould {
     @InjectMock
-    MongoClient mongoClient;
+    MongoDatabase mongoDatabase;
 
     private MongoCollection<Document> domainsCollection;
     private MongoDomainStore mongoDomainStore;
 
     @BeforeEach
     public void setup() {
-        MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
         domainsCollection = Mockito.mock(DocumentMongoCollection.class);
 
-        when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
         when(mongoDatabase.getCollection("domains")).thenReturn(domainsCollection);
-        mongoDomainStore = new MongoDomainStore(mongoClient);
+        mongoDomainStore = new MongoDomainStore(mongoDatabase);
     }
 
     @Test

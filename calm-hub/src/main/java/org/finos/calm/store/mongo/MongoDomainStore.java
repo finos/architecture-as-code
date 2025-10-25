@@ -1,6 +1,5 @@
 package org.finos.calm.store.mongo;
 
-import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -19,8 +18,7 @@ public class MongoDomainStore implements DomainStore {
 
     private final MongoCollection<Document> domainsCollection;
 
-    public MongoDomainStore(MongoClient mongoClient) {
-        MongoDatabase database = mongoClient.getDatabase("calmSchemas");
+    public MongoDomainStore(MongoDatabase database) {
         this.domainsCollection = database.getCollection("domains");
     }
 

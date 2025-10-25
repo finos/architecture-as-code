@@ -4,7 +4,6 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +24,7 @@ public class MongoNamespaceIntegration {
     @BeforeEach
     public void setupNamespaces() {
         String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
+        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
 
         // Safeguard: Fail fast if URI is not set
         if (mongoUri == null || mongoUri.isBlank()) {
@@ -33,7 +33,7 @@ public class MongoNamespaceIntegration {
         }
 
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
-            MongoDatabase database = mongoClient.getDatabase("calmSchemas");
+            MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
             namespaceSetup(database);
         }

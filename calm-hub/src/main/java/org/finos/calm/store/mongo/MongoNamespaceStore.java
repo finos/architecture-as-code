@@ -1,6 +1,5 @@
 package org.finos.calm.store.mongo;
 
-import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -17,8 +16,7 @@ public class MongoNamespaceStore implements NamespaceStore {
 
     private final MongoCollection<Document> namespaceCollection;
 
-    public MongoNamespaceStore(MongoClient mongoClient) {
-        MongoDatabase database = mongoClient.getDatabase("calmSchemas");
+    public MongoNamespaceStore(MongoDatabase database) {
         this.namespaceCollection = database.getCollection("namespaces");
     }
 

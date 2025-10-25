@@ -1,7 +1,6 @@
 package org.finos.calm.store.mongo;
 
 import com.mongodb.MongoWriteException;
-import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -30,10 +29,9 @@ public class MongoStandardStore implements StandardStore {
     private final MongoNamespaceStore namespaceStore;
     private final MongoCollection<Document> standardCollection;
 
-    public MongoStandardStore(MongoClient mongoClient, MongoCounterStore mongoCounterStore, MongoNamespaceStore mongoNamespaceStore) {
+    public MongoStandardStore(MongoDatabase database, MongoCounterStore mongoCounterStore, MongoNamespaceStore mongoNamespaceStore) {
         this.counterStore = mongoCounterStore;
         this.namespaceStore = mongoNamespaceStore;
-        MongoDatabase database = mongoClient.getDatabase("calmSchemas");
         this.standardCollection = database.getCollection("standards");
     }
 

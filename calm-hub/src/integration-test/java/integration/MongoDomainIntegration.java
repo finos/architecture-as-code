@@ -28,6 +28,7 @@ public class MongoDomainIntegration {
     @BeforeEach
     public void setupDomains() {
         String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
+        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
 
         if (mongoUri == null || mongoUri.isBlank()) {
             logger.error("MongoDB URI is not set. Check the EndToEndResource configuration.");
@@ -35,7 +36,7 @@ public class MongoDomainIntegration {
         }
 
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
-            MongoDatabase database = mongoClient.getDatabase("calmSchemas");
+            MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
             MongoSetup.domainSetup(database);
         }
     }

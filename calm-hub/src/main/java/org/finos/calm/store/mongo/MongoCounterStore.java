@@ -1,6 +1,5 @@
 package org.finos.calm.store.mongo;
 
-import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
@@ -15,8 +14,7 @@ public class MongoCounterStore {
 
     private final MongoCollection<Document> counterCollection;
 
-    public MongoCounterStore(MongoClient mongoClient) {
-        MongoDatabase database = mongoClient.getDatabase("calmSchemas");
+    public MongoCounterStore(MongoDatabase database) {
         this.counterCollection = database.getCollection("counters");
     }
 
