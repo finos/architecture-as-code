@@ -1,6 +1,5 @@
 package org.finos.calm.store.mongo;
 
-import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -26,9 +25,8 @@ public class MongoUserAccessStore implements UserAccessStore {
     private final MongoCounterStore counterStore;
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public MongoUserAccessStore(MongoClient mongoClient, MongoNamespaceStore namespaceStore, MongoCounterStore counterStore) {
+    public MongoUserAccessStore(MongoDatabase database, MongoNamespaceStore namespaceStore, MongoCounterStore counterStore) {
         this.namespaceStore = namespaceStore;
-        MongoDatabase database = mongoClient.getDatabase("calmSchemas");
         this.userAccessCollection = database.getCollection("userAccess");
         this.counterStore = counterStore;
     }

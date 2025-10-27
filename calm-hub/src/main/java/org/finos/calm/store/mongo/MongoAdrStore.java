@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.mongodb.MongoWriteException;
-import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -37,10 +36,9 @@ public class MongoAdrStore implements AdrStore {
     private final ObjectMapper objectMapper;
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public MongoAdrStore(MongoClient mongoClient, MongoCounterStore counterStore, MongoNamespaceStore namespaceStore) {
+    public MongoAdrStore(MongoDatabase database, MongoCounterStore counterStore, MongoNamespaceStore namespaceStore) {
         this.counterStore = counterStore;
         this.namespaceStore = namespaceStore;
-        MongoDatabase database = mongoClient.getDatabase("calmSchemas");
         this.adrCollection = database.getCollection("adrs");
         this.objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());

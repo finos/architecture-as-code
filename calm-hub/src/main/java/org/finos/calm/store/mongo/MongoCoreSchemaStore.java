@@ -1,6 +1,5 @@
 package org.finos.calm.store.mongo;
 
-import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -21,8 +20,7 @@ public class MongoCoreSchemaStore implements CoreSchemaStore {
 
     private final MongoCollection<Document> schemaCollection;
 
-    public MongoCoreSchemaStore(MongoClient mongoClient) {
-        MongoDatabase database = mongoClient.getDatabase("calmSchemas");
+    public MongoCoreSchemaStore(MongoDatabase database) {
         this.schemaCollection = database.getCollection("schemas");
     }
 

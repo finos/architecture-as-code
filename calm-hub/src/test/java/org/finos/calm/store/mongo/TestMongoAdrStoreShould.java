@@ -7,7 +7,6 @@ import com.mongodb.MongoWriteException;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteError;
 import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -41,7 +40,7 @@ import static org.mockito.Mockito.*;
 public class TestMongoAdrStoreShould {
 
     @InjectMock
-    MongoClient mongoClient;
+    MongoDatabase mongoDatabase;
 
     @InjectMock
     MongoCounterStore counterStore;
@@ -68,12 +67,10 @@ public class TestMongoAdrStoreShould {
 
     @BeforeEach
     void setup() {
-        MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
         adrCollection = Mockito.mock(DocumentMongoCollection.class);
 
-        when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
         when(mongoDatabase.getCollection("adrs")).thenReturn(adrCollection);
-        mongoAdrStore = new MongoAdrStore(mongoClient, counterStore, namespaceStore);
+        mongoAdrStore = new MongoAdrStore(mongoDatabase, counterStore, namespaceStore);
 
         this.objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
