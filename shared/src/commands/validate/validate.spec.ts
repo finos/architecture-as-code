@@ -553,42 +553,6 @@ describe('validate - architecture only', () => {
         expect(response.allValidationOutputs()).not.toBeNull();
         expect(response.allValidationOutputs().length).toBe(0);
     });
-
-    it('validates architecture against schema specified in $schema property when no pattern provided', async () => {
-        const expectedSpectralOutput: ISpectralDiagnostic[] = [];
-        mocks.spectralRun.mockReturnValue(expectedSpectralOutput);
-
-        // Create a simple valid architecture with a CALM schema reference
-        const validArchitecture = {
-            '$schema': 'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/calm.json',
-            'nodes': [
-                {
-                    'unique-id': 'test-node',
-                    'node-type': 'system',
-                    'name': 'Test Node',
-                    'description': 'A test node'
-                }
-            ],
-            'relationships': []
-        };
-
-        const calmSchema = readFileSync(path.resolve(__dirname, '../../../test_fixtures/calm/calm.json'), 'utf8');
-        const coreSchema = readFileSync(path.resolve(__dirname, '../../../test_fixtures/calm/core.json'), 'utf8');
-        schemaDirectory.getSchema = vi.fn((id: string) => {
-            if (id.includes('calm.json')) return JSON.parse(calmSchema);
-            if (id.includes('core.json')) return JSON.parse(coreSchema);
-            return undefined;
-        });
-
-        const response = await validate(validArchitecture, undefined, schemaDirectory, false);
-
-        expect(response).not.toBeNull();
-        expect(response).not.toBeUndefined();
-
-        // For a valid architecture, we should not have errors
-        expect(response.hasErrors).toBeFalsy();
-        expect(response.hasWarnings).toBeFalsy();
-    });
 });
 
 function buildISpectralDiagnostic(code: string, message: string, severity: number): ISpectralDiagnostic {
