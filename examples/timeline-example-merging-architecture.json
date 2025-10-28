@@ -1,0 +1,134 @@
+{
+    "$schema": "./timeline-schema.json",
+    "unique-id": "timeline-example",
+    "name": "Timeline Example",
+    "description": "An example demonstrating the timeline feature in CALM.",
+    "metadata": {
+        "version": "1.0.0",
+        "author": "FINOS",
+        "created": "2024-06-15"
+    },
+    "elements": [
+        {
+            "details": [
+                {
+                    "unique-id": "architecture-a-start",
+                    "type": "architecture",
+                    "name": "Architecture A - Start",
+                    "description": "The initial state of Architecture A.",
+                    "details": "https://example.com/architecture-a-start-diagram"
+                },
+                {
+                    "unique-id": "architecture-b-start",
+                    "type": "architecture",
+                    "name": "Architecture B - Start",
+                    "description": "The initial state of Architecture B.",
+                    "details": "https://example.com/architecture-b-start-diagram"
+                }
+            ],
+            "metadata": {
+                "valid_from": "2024-01-01",
+                "valid_to": "2024-03-31",
+                "adrs": [
+                    {
+                        "adr-id": "ADR-001",
+                        "title": "Initial Architecture Decision for A and B",
+                        "status": "Accepted",
+                        "date": "2024-01-01",
+                        "details": "https://example.com/adr-001"
+                    }
+                ]
+            }
+        },
+        {
+            "details": [
+                {
+                    "unique-id": "architecture-a-start",
+                    "type": "architecture",
+                    "name": "Architecture A - Start",
+                    "description": "The initial state of Architecture A.",
+                    "details": "https://example.com/architecture-a-start-diagram"
+                },
+                {
+                    "unique-id": "architecture-b-end",
+                    "type": "architecture",
+                    "name": "Architecture B - End",
+                    "description": "The final state of Architecture B.",
+                    "details": "https://example.com/architecture-b-end-diagram"
+                },
+                {
+                    "unique-id": "architecture-c-start",
+                    "type": "architecture",
+                    "name": "Architecture C - Start",
+                    "description": "The initial state of Architecture C.",
+                    "details": "https://example.com/architecture-c-start-diagram"
+                }
+            ],
+            "metadata": {
+                "valid_from": "2024-03-31",
+                "valid_to": "2024-07-31",
+                "adrs": [
+                    {
+                        "adr-id": "ADR-002",
+                        "title": "Merge Architecture B into C",
+                        "status": "Accepted",
+                        "date": "2024-07-31",
+                        "details": "https://example.com/adr-002"
+                    }
+                ]
+            }
+        },
+        {
+            "details": [
+                {
+                    "unique-id": "architecture-a-end",
+                    "type": "architecture",
+                    "name": "Architecture A - End",
+                    "description": "The final state of Architecture A.",
+                    "details": "https://example.com/architecture-a-end-diagram"
+                },
+                {
+                    "unique-id": "architecture-c-combined",
+                    "type": "architecture",
+                    "name": "Architecture C - Combined",
+                    "description": "The combined state of Architecture C.",
+                    "details": "https://example.com/architecture-c-combined-diagram"
+                }
+            ],
+            "metadata": {
+                "valid_from": "2024-07-31",
+                "valid_to": "2024-10-31",
+                "adrs": [
+                    {
+                        "adr-id": "ADR-003",
+                        "title": "Merge Architecture A into C",
+                        "status": "Accepted",
+                        "date": "2024-07-31",
+                        "details": "https://example.com/adr-003"
+                    }
+                ]
+            }
+        },
+        {
+            "details": {
+                "unique-id": "architecture-c-combined-current",
+                "type": "architecture",
+                "name": "Architecture C - Current",
+                "description": "The current state of Architecture C.",
+                "details": "https://example.com/architecture-c-current-diagram"
+            },
+            "metadata": {
+                "valid_from": "2024-10-31",
+                "adrs": [
+                    {
+                        "adr-id": "ADR-004",
+                        "title": "Merge All into C",
+                        "status": "Accepted",
+                        "date": "2024-10-31",
+                        "details": "https://example.com/adr-004"
+                    }
+                ]
+            }
+        }
+    ]
+}

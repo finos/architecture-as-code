@@ -1,0 +1,57 @@
+{
+    "$schema": "./timeline-schema.json",
+    "unique-id": "timeline-example",
+    "name": "Timeline Example",
+    "description": "An example demonstrating the timeline feature in CALM.",
+    "metadata": {
+        "version": "1.0.0",
+        "author": "FINOS",
+        "created": "2024-06-15"
+    },
+    "elements": [
+        {
+            "details": {
+                "unique-id": "architecture-a-start",
+                "type": "architecture",
+                "name": "Architecture A - Start",
+                "description": "The initial state of Architecture A.",
+                "details": "https://example.com/architecture-a-start-diagram"
+            },
+            "metadata": {
+                "valid_from": "2024-01-01",
+                "valid_to": "2024-03-31",
+                "adrs": [
+                    {
+                        "adr-id": "ADR-001",
+                        "title": "Initial Architecture Decision for A",
+                        "status": "Accepted",
+                        "date": "2024-01-01",
+                        "details": "https://example.com/adr-001"
+                    }
+                ]
+            }
+        },
+        {
+            "details": {
+                "unique-id": "architecture-a-end",
+                "type": "architecture",
+                "name": "Architecture A - End",
+                "description": "The initial state of Architecture A.",
+                "details": "https://example.com/architecture-a-end-diagram"
+            },
+            "metadata": {
+                "valid_from": "2024-03-31",
+                "valid_to": "2024-07-31",
+                "adrs": [
+                    {
+                        "adr-id": "ADR-002",
+                        "title": "Finalize architecture A",
+                        "status": "Accepted",
+                        "date": "2024-07-31",
+                        "details": "https://example.com/adr-002"
+                    }
+                ]
+            }
+        }
+    ]
+}

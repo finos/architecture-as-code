@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/release/1.0/meta/timeline.json",
+  "title": "Common Architecture Language Model (CALM) Timeline Schema",
+  "description": "Schema for modeling architecture evolution timelines, showing how architectures change over time with ADRs and metadata tracking.",
+  "type": "object",
+  "properties": {
+    "unique-id": {
+      "type": "string",
+      "description": "Unique identifier for the timeline"
+    },
+    "name": {
+      "type": "string",
+      "description": "Descriptive name for the architecture timeline"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of what this timeline represents"
+    },
+    "metadata": {
+      "$ref": "#/defs/timeline-metadata",
+      "description": "General metadata about the entire timeline"
+    },
+    "elements": {
+      "type": "array",
+      "description": "Chronologically ordered array of timeline elements representing different time periods",
+      "items": {
+        "$ref": "#/defs/timeline-element"
+      },
+      "minItems": 1
+    }
+  },
+  "required": [
+    "unique-id",
+    "name",
+    "description",
+    "elements"
+  ],
+  "additionalProperties": false,
+  "defs": {
+    "timeline-element": {
+      "type": "object",
+      "description": "A single point or period in the timeline containing architecture states and metadata",
+      "properties": {
+        "details": {
+          "oneOf": [
+            {
+              "type": "array",
+              "description": "Multiple architecture states active during this timeline period",
+              "items": {
+                "$ref": "#/defs/architecture-state"
+              },
+              "minItems": 1
+            },
+            {
+              "$ref": "#/defs/architecture-state",
+              "description": "Single architecture state for this timeline period"
+            }
+          ]
+        },
+        "metadata": {
+          "$ref": "#/defs/timeline-element-metadata",
+          "description": "Metadata specific to this timeline element including validity periods and ADRs"
+        }
+      },
+      "required": [
+        "details",
+        "metadata"
+      ],
+      "additionalProperties": false
+    },
+    "architecture-state": {
+      "type": "object",
+      "description": "Represents a specific architecture state at a point in time",
+      "properties": {
+        "unique-id": {
+          "type": "string",
+          "description": "Unique identifier for this architecture state"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "architecture"
+          ],
+          "description": "Type identifier - currently only 'architecture' is supported"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable name for this architecture state"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of this architecture state"
+        },
+        "details": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL or reference to detailed architecture documentation, diagrams, or CALM files"
+        }
+      },
+      "required": [
+        "unique-id",
+        "type",
+        "name",
+        "description"
+      ],
+      "additionalProperties": false
+    },
+    "timeline-metadata": {
+      "type": "object",
+      "description": "General metadata for the entire timeline",
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "Version of this timeline document"
+        },
+        "author": {
+          "type": "string",
+          "description": "Author or organization that created this timeline"
+        },
+        "created": {
+          "type": "string",
+          "format": "date",
+          "description": "Date when this timeline was created"
+        },
+        "updated": {
+          "type": "string",
+          "format": "date",
+          "description": "Date when this timeline was last updated"
+        }
+      },
+      "additionalProperties": true
+    },
+    "timeline-element-metadata": {
+      "type": "object",
+      "description": "Metadata for a specific timeline element",
+      "properties": {
+        "valid_from": {
+          "type": "string",
+          "format": "date",
+          "description": "Start date when this timeline element becomes valid (ISO 8601 format)"
+        },
+        "valid_to": {
+          "type": "string",
+          "format": "date",
+          "description": "End date when this timeline element is no longer valid (ISO 8601 format). Omit for current/ongoing states."
+        },
+        "adrs": {
+          "type": "array",
+          "description": "Architecture Decision Records associated with this timeline element",
+          "items": {
+            "$ref": "#/defs/adr"
+          }
+        }
+      },
+      "required": [
+        "valid_from"
+      ],
+      "additionalProperties": true
+    },
+    "adr": {
+      "type": "object",
+      "description": "Architecture Decision Record reference following CALM patterns",
+      "properties": {
+        "adr-id": {
+          "type": "string",
+          "description": "Unique identifier for the ADR"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the architecture decision"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "Proposed",
+            "Accepted",
+            "Rejected",
+            "Deprecated",
+            "Superseded"
+          ],
+          "description": "Current status of the ADR"
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "Date when the ADR was made or last updated"
+        },
+        "details": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL or reference to the full ADR document"
+        }
+      },
+      "required": [
+        "adr-id",
+        "title",
+        "status",
+        "date"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
