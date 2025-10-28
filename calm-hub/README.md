@@ -131,7 +131,7 @@ Create certs for KeyCloak:
   openssl req -x509 -newkey rsa:2048 \
     -keyout ./certs/key.pem \
     -out ./certs/cert.pem -days 90 -nodes \
-    -subj "/C=GB/ST=England/L=Manchester/O=finos/OU=Technology/CN=idp.finos.org"
+    -subj "/C=GB/ST=England/L=Manchester/O=finos/OU=Technology/CN=calm-hub.finos.org"
 ```
 
 Launch KeyCloak:
@@ -142,7 +142,7 @@ docker-compose up
 - Open KeyCloak UI: https://localhost:9443, login with admin user.
 - Switch realm from `master` to `calm-hub-realm`.
 - You can find a `demo` user with a temporary credentials under `calm-hub-realm` realm.
-- During the local development, the `demo` user you can use to authenticate with `keycloak-dev` when you integrate the `calm-ui` with `authorization-code` flow type.
+- During local development, you can use the `demo` user to authenticate with `keycloak-dev` when integrating calm-ui using the `authorization code flow`.
 
 #### Server Side with secure profile
 
@@ -156,7 +156,10 @@ From the `calm-hub` directory
     ```
 2. `../mvnw package`
 3. `../mvnw quarkus:dev -Dquarkus.profile=secure`
-4. Open Calm UI: https://localhost:8443
+4. Match with x509 certificate CN/SAN name, that means access the calm-ui with CN/SAN that is specified in self-signed
+   1. Add a host entry in `/etc/hosts`, `127.0.0.1 calm-hub.finos.org` to avoid `No name matching localhost found` CertificateException in backend.
+   2. Other option is create the self-signed certificate with localhost CN name.
+5. Open Calm UI: https://calm-hub.finos.org:8443 or https://localhost:8443 based on the self-signed CN value.
 
 ### UI with hot reload (from src/main/webapp)
 

@@ -1,7 +1,7 @@
 import { UserManager, Log, User } from 'oidc-client';
 
 const config = {
-    authority: 'https://localhost:9443/realms/calm-hub-realm',
+    authority: 'https://calm-hub.finos.org:9443/realms/calm-hub-realm',
     client_id: 'calm-hub-authz-code',
     redirect_uri: window.location.origin,
     response_type: 'code',
@@ -12,9 +12,20 @@ const config = {
     loadUserInfo: true,
 };
 
+//Set AUTH_SERVICE_OIDC_ENABLE to true, when backend running with secure profile.
+export const AUTH_SERVICE_OIDC_ENABLE: boolean = false;
 let userManager: UserManager | null = null;
-const isHttps = window.location.protocol === 'https:';
-if (isHttps) {
+
+export function isAuthServiceEnabled(): boolean {
+    const oidcEnabled = AUTH_SERVICE_OIDC_ENABLE;
+    const isHttps =
+        typeof window !== 'undefined' &&
+        typeof window.location !== 'undefined' &&
+        window.location.protocol === 'https:';
+    return Boolean(oidcEnabled && isHttps);
+}
+
+if (isAuthServiceEnabled()) {
     userManager = new UserManager(config);
     Log.logger = console;
     Log.level = Log.INFO;
@@ -56,7 +67,7 @@ export async function clearSession(): Promise<void> {
 }
 
 export async function getToken(): Promise<string> {
-    if (!isHttps) {
+    if (!AUTH_SERVICE_OIDC_ENABLE) {
         return '';
     }
     const user = await userManager?.getUser();
@@ -76,6 +87,15 @@ export async function getToken(): Promise<string> {
     return '';
 }
 
+export async function getAuthHeaders(): Promise<HeadersInit> {
+    const accessToken = await getToken();
+    const headers: HeadersInit = {};
+    if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+    return headers;
+}
+
 export async function checkAuthorityService(): Promise<boolean> {
     try {
         const response = await fetch(config.authority, { method: 'HEAD' });
@@ -93,4 +113,6 @@ export const authService = {
     logout,
     clearSession,
     getToken,
+    getAuthHeaders,
+    isAuthServiceEnabled,
 };
