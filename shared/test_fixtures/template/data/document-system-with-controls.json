@@ -1,4 +1,5 @@
 {
+  "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
   "nodes": [
     {
       "unique-id": "document-system",
@@ -93,8 +94,6 @@
   ],
   "flows": [
     {
-      "$schema": "https://calm.finos.org/release/1.0/meta/flow.json",
-      "$id": "https://calm.finos.org/docuflow/flow/document-upload",
       "unique-id": "flow-document-upload",
       "name": "Document Upload Flow",
       "description": "Flow for uploading a document and storing metadata securely in the DocuFlow system.",
