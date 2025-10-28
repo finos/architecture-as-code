@@ -124,7 +124,7 @@ From the `calm-hub` directory
 
 From the `keycloak-dev` directory in `calm-hub`
 
-Create certs for KeyCloak:
+Create self-signed X.509 certificate for Keycloak:
 
 ```shell
   mkdir ./certs &&
@@ -147,7 +147,7 @@ docker-compose up
 #### Server Side with secure profile
 
 From the `calm-hub` directory
-1. Create a server side certificates
+1. Create a server-side certificate
     ```shell
     openssl req -x509 -newkey rsa:2048 \
       -keyout ./src/main/resources/key.pem \
@@ -156,10 +156,10 @@ From the `calm-hub` directory
     ```
 2. `../mvnw package`
 3. `../mvnw quarkus:dev -Dquarkus.profile=secure`
-4. Match with x509 certificate CN/SAN name, that means access the calm-ui with CN/SAN that is specified in self-signed
-   1. Add a host entry in `/etc/hosts`, `127.0.0.1 calm-hub.finos.org` to avoid `No name matching localhost found` CertificateException in backend.
-   2. Other option is create the self-signed certificate with localhost CN name.
-5. Open Calm UI: https://calm-hub.finos.org:8443 or https://localhost:8443 based on the self-signed CN value.
+4. When using a self-signed certificate, you have two options to avoid the `No name matching localhost found` CertificateException in the backend.
+   1. Add a host entry in `/etc/hosts` file, for example `127.0.0.1 calm-hub.finos.org`
+   2. Alternatively, create the self-signed certificate with localhost as the CN or SAN.
+5. Open Calm UI at the URL matching your self-signed certificate’s CN: https://calm-hub.finos.org:8443 or https://localhost:8443.
 
 ### UI with hot reload (from src/main/webapp)
 
