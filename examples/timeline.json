@@ -1,0 +1,37 @@
+{
+  "$schema": "https://calm.finos.org/releases/1.0/meta/timeline.json",
+  "unique-id": "timeline-of-hill-valley",
+  "moments" : [
+    {
+      "unique-id": "arch-1855",
+      "detail": "https://hillvalley.com/1855-1.json",
+      "valid-from": "1855-09-05", // when did this architecture come into effect. Tooling could use this for a timeline view.
+      "adrs" : [
+        "https://clock-tower.md"
+      ]
+    },
+    {
+      "unique-id": "arch-1955",
+      "detail": "https://hillvalley.com/1955-1.json",
+      "valid-from": "1955-11-12",
+      "adrs" : [
+        "https://lightning-bolt.md"
+      ]
+    },
+    {
+      "unique-id": "arch-1985",
+      "detail": "https://hillvalley.com/1985-1.json",
+      "valid-from": "1985-08-26",
+      "adrs" : [
+        "https://time-machine.md"
+      ]
+    },
+    {
+      "unique-id": "arch-2015",
+      "detail": "https://hillvalley.com/2015-1.json",
+      "adrs" : [
+        "https://flyingcar.md"
+      ]
+    }
+  ]
+}

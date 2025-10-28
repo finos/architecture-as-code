@@ -1,0 +1,17 @@
+{
+  "$schema": "https://calm.finos.org/draft/1762/meta/calm-timeline.json",
+  "$id": "https://calm.finos.org/draft/1762/prototype/arch-timeline/timeline.json",
+  "moments": [
+    {
+      "unique-id": "insecure",
+      "detail": "https://calm.finos.org/draft/1762/prototype/arch-timeline/arch-insecure.json"
+    },
+    {
+      "unique-id": "secure",
+      "detail": "https://calm.finos.org/draft/1762/prototype/arch-timeline/arch-secure.json",
+      "adrs": [
+        "https://calm.finos.org/draft/1762/prototype/adrs/add-security.md"
+      ]
+    }
+  ]
+}
