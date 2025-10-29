@@ -10,7 +10,8 @@
         "cli",
         "docs",
         "calm-hub-ui",
-        "calm-plugins/vscode"
+        "calm-plugins/vscode",
+        "calm-visualizer"
     ],
     "scripts": {
         "build": "npm run build --workspaces --if-present",
@@ -35,6 +36,9 @@
         "link:cli": "npm link --workspace cli",
         "calm-hub-ui:run": "npm run start --workspace calm-hub-ui",
         "calm-hub-ui:prod": "npm run prod --workspace calm-hub-ui",
+        "build:calm-visualizer": "npm run build --workspace calm-visualizer",
+        "test:calm-visualizer": "npm run test:run --workspace calm-visualizer",
+        "lint:calm-visualizer": "npm run lint --workspace calm-visualizer",
         "prepare": "husky"
     },
     "devDependencies": {
