@@ -1,0 +1,143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 220 25% 10%;
+    --foreground: 210 100% 98%;
+
+    --card: 220 20% 14%;
+    --card-foreground: 210 100% 98%;
+
+    --popover: 220 20% 14%;
+    --popover-foreground: 210 100% 98%;
+
+    --primary: 250 80% 65%;
+    --primary-foreground: 210 100% 98%;
+
+    --secondary: 220 18% 20%;
+    --secondary-foreground: 210 100% 98%;
+
+    --muted: 220 18% 20%;
+    --muted-foreground: 215 15% 65%;
+
+    --accent: 180 75% 55%;
+    --accent-foreground: 220 25% 10%;
+
+    --destructive: 0 70% 60%;
+    --destructive-foreground: 210 100% 98%;
+
+    --border: 220 15% 25%;
+    --input: 220 15% 25%;
+    --ring: 250 80% 65%;
+
+    --radius: 0.75rem;
+
+    --gradient-primary: linear-gradient(135deg, hsl(250 80% 65%), hsl(280 75% 60%));
+    --gradient-accent: linear-gradient(135deg, hsl(180 75% 55%), hsl(200 70% 60%));
+    --glow-primary: 0 0 40px hsl(250 80% 65% / 0.3);
+    --glow-accent: 0 0 30px hsl(180 75% 55% / 0.25);
+
+    /* Control-specific colors for FINOS AIGF */
+    --control-preventative: 142 71% 45%;  /* Green */
+    --control-detective: 217 71% 53%;     /* Blue */
+    --control-risk: 48 96% 53%;           /* Yellow */
+    --control-border-width: 3px;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .react-flow__edge-labels {
+    z-index: 60 !important;
+  }
+
+  .react-flow__node-group {
+    z-index: -1 !important;
+  }
+
+  .react-flow__node-custom {
+    z-index: 1 !important;
+  }
+
+  /* Monaco Editor jump-to-definition highlighting */
+  .highlighted-definition {
+    background-color: hsl(var(--accent) / 0.15);
+    border: 2px solid hsl(var(--accent));
+    animation: pulse-highlight 0.6s ease-in-out;
+  }
+
+  @keyframes pulse-highlight {
+    0%, 100% {
+      background-color: hsl(var(--accent) / 0.15);
+    }
+    50% {
+      background-color: hsl(var(--accent) / 0.3);
+    }
+  }
+
+  /* Vertical text for collapsed panels */
+  .writing-mode-vertical {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+
+  /* Control visualizations */
+  .control-badge-preventative {
+    background-color: hsl(var(--control-preventative));
+  }
+
+  .control-badge-detective {
+    background-color: hsl(var(--control-detective));
+  }
+
+  .control-badge-risk {
+    background-color: hsl(var(--control-risk));
+  }
+
+  /* Fade-in animation for hover states */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(-5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.2s ease-out;
+  }
+
+  /* Pulse animation for control indicators */
+  @keyframes pulse-control {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.05);
+    }
+  }
+
+  .animate-pulse-control {
+    animation: pulse-control 2s ease-in-out infinite;
+  }
+}

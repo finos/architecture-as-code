@@ -1,0 +1,1309 @@
+{
+  "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+  "metadata": {
+    "name": "General Purpose AI Agent Architecture with FINOS AIGF Controls",
+    "version": "1.0.0",
+    "owners": [
+      "ai-governance@finos.org",
+      "agent-architecture@finos.org"
+    ],
+    "tags": [
+      "ai-agent",
+      "agentic-system",
+      "mcp",
+      "rag",
+      "finos-aigf",
+      "multi-agent",
+      "golden-path"
+    ],
+    "description": "A General Purpose AI Agent architecture with embedded FINOS AI Governance Framework (AIGF) risks and mitigations. This specification serves as a 'golden path' for secure agentic systems, defining trust boundaries and governance controls at each interaction point.",
+    "aigf-governance": {
+      "framework": "FINOS AIGF",
+      "version": "1.0",
+      "reference": "https://air-governance-framework.finos.org/",
+      "purpose": "Golden path architecture for secure agentic AI systems",
+      "mitigations": [
+        {
+          "id": "M18",
+          "name": "Agent Authority Least Privilege Framework",
+          "description": "The agent must only process inputs it is explicitly authorized to handle.",
+          "category": "Preventative",
+          "reference": "https://air-governance-framework.finos.org/mitigations/m-18"
+        },
+        {
+          "id": "M19",
+          "name": "Tool Chain Validation and Sanitization",
+          "description": "All inputs to tools must be strictly validated and sanitized to prevent injection attacks.",
+          "category": "Preventative",
+          "reference": "https://air-governance-framework.finos.org/mitigations/m-19"
+        },
+        {
+          "id": "M20",
+          "name": "MCP Server Security Governance",
+          "description": "All outbound MCP traffic must adhere to strict security and data governance policies, ensuring no sensitive context is leaked.",
+          "category": "Preventative",
+          "reference": "https://air-governance-framework.finos.org/mitigations/m-20"
+        },
+        {
+          "id": "M21",
+          "name": "Agent Decision Audit and Explainability",
+          "description": "The raw input and the agent's initial interpretation must be logged for audit and explainability.",
+          "category": "Detective",
+          "reference": "https://air-governance-framework.finos.org/mitigations/m-21"
+        },
+        {
+          "id": "M22",
+          "name": "Multi-Agent Isolation and Segmentation",
+          "description": "The agent must treat input from other agents as untrusted and process it in an isolated manner.",
+          "category": "Preventative",
+          "reference": "https://air-governance-framework.finos.org/mitigations/m-22"
+        },
+        {
+          "id": "M23",
+          "name": "Agentic System Credential Protection Framework",
+          "description": "The agent's credentials for accessing tools must be securely managed and scoped.",
+          "category": "Preventative",
+          "reference": "https://air-governance-framework.finos.org/mitigations/m-23"
+        }
+      ],
+      "risks": [
+        {
+          "id": "R24",
+          "name": "Agent Action Authorization Bypass",
+          "description": "The agent might attempt to use a tool in an unauthorized way.",
+          "category": "Security",
+          "severity": "high",
+          "reference": "https://air-governance-framework.finos.org/risks/r-24"
+        },
+        {
+          "id": "R25",
+          "name": "Tool Chain Manipulation and Injection",
+          "description": "The agent could be tricked into crafting malicious payloads for a tool.",
+          "category": "Security",
+          "severity": "high",
+          "reference": "https://air-governance-framework.finos.org/risks/r-25"
+        },
+        {
+          "id": "R26",
+          "name": "MCP Server Supply Chain Compromise",
+          "description": "The outbound MCP communication could be intercepted or manipulated.",
+          "category": "Security",
+          "severity": "high",
+          "reference": "https://air-governance-framework.finos.org/risks/r-26"
+        },
+        {
+          "id": "R27",
+          "name": "Agent State Persistence Poisoning",
+          "description": "Malicious data could be written to memory, compromising the agent's future behavior.",
+          "category": "Security",
+          "severity": "critical",
+          "reference": "https://air-governance-framework.finos.org/risks/r-27"
+        },
+        {
+          "id": "R28",
+          "name": "Multi-Agent Trust Boundary Violations",
+          "description": "An external agent could be malicious or compromised.",
+          "category": "Security",
+          "severity": "critical",
+          "reference": "https://air-governance-framework.finos.org/risks/r-28"
+        },
+        {
+          "id": "R29",
+          "name": "Agent-Mediated Credential Discovery and Harvesting",
+          "description": "Input channels could be used to harvest sensitive information.",
+          "category": "Security",
+          "severity": "high",
+          "reference": "https://air-governance-framework.finos.org/risks/r-29"
+        }
+      ],
+      "trust-boundaries": [
+        {
+          "name": "Input Boundary",
+          "description": "Critical boundary for managing trust and preventing malicious input from various sources.",
+          "components": ["text-input", "audio-input", "image-input", "ai-agent-core"],
+          "risk-level": "high"
+        },
+        {
+          "name": "Agent-to-Agent Boundary",
+          "description": "High-risk trust boundary for MCP communication between agents.",
+          "components": ["agent-input", "ai-agent-core"],
+          "risk-level": "critical"
+        },
+        {
+          "name": "Tool Invocation Boundary",
+          "description": "Primary point of control for the agent's capabilities and external actions.",
+          "components": ["ai-agent-core", "rag-service", "search-service", "api-service", "mcp-server"],
+          "risk-level": "high"
+        },
+        {
+          "name": "MCP Outbound Boundary",
+          "description": "Governed boundary for agent communication with external agents.",
+          "components": ["mcp-server", "external-agents"],
+          "risk-level": "high"
+        }
+      ]
+    }
+  },
+  "controls": {
+    "input-authorization-control": {
+      "description": "Least privilege framework ensuring the agent only processes authorized inputs.",
+      "requirements": [
+        {
+          "requirement-url": "https://controls.finos.org/aigf/m18-agent-authority-least-privilege",
+          "config": {
+            "appliesTo": {
+              "nodes": ["text-input", "audio-input", "image-input", "ai-agent-core"],
+              "relationships": ["text-to-agent", "audio-to-agent", "image-to-agent"]
+            },
+            "inputValidation": true,
+            "authorizationModel": "explicit-allow-list",
+            "defaultDeny": true
+          }
+        }
+      ],
+      "aigf-mitigations": ["M18"],
+      "aigf-risks": ["R29"]
+    },
+    "input-audit-control": {
+      "description": "Audit and explainability logging for all agent inputs and initial interpretations.",
+      "requirements": [
+        {
+          "requirement-url": "https://controls.finos.org/aigf/m21-agent-decision-audit",
+          "config": {
+            "appliesTo": {
+              "nodes": ["ai-agent-core"],
+              "relationships": ["text-to-agent", "audio-to-agent", "image-to-agent"]
+            },
+            "logRawInput": true,
+            "logInterpretation": true,
+            "logDecisions": true,
+            "format": "structured-json",
+            "retention": "audit-trail-compliant"
+          }
+        }
+      ],
+      "aigf-mitigations": ["M21"],
+      "aigf-risks": ["R29"]
+    },
+    "multi-agent-isolation-control": {
+      "description": "Isolation and segmentation for processing untrusted agent-to-agent communication.",
+      "requirements": [
+        {
+          "requirement-url": "https://controls.finos.org/aigf/m22-multi-agent-isolation",
+          "config": {
+            "appliesTo": {
+              "nodes": ["agent-input", "ai-agent-core"],
+              "relationships": ["agent-to-agent"]
+            },
+            "isolationMode": "sandboxed-execution",
+            "trustLevel": "untrusted",
+            "inputSanitization": true,
+            "contextIsolation": true
+          }
+        }
+      ],
+      "aigf-mitigations": ["M22"],
+      "aigf-risks": ["R28"]
+    },
+    "memory-protection-control": {
+      "description": "Protection against state persistence poisoning in agent memory.",
+      "requirements": [
+        {
+          "requirement-url": "https://controls.finos.org/aigf/memory-protection",
+          "config": {
+            "appliesTo": {
+              "nodes": ["ai-agent-core", "memory"],
+              "relationships": ["agent-to-memory", "memory-to-agent"]
+            },
+            "dataValidation": true,
+            "integrityChecking": true,
+            "versionControl": true,
+            "rollbackCapability": true
+          }
+        }
+      ],
+      "aigf-risks": ["R27"]
+    },
+    "tool-chain-validation-control": {
+      "description": "Strict validation and sanitization of all tool inputs to prevent injection attacks.",
+      "requirements": [
+        {
+          "requirement-url": "https://controls.finos.org/aigf/m19-tool-chain-validation",
+          "config": {
+            "appliesTo": {
+              "nodes": ["ai-agent-core", "rag-service", "search-service", "api-service", "mcp-server"],
+              "relationships": ["agent-to-rag", "agent-to-search", "agent-to-api", "agent-to-mcp-server"]
+            },
+            "inputValidation": "strict",
+            "sanitization": true,
+            "parameterTypeChecking": true,
+            "injectionPrevention": ["sql", "command", "prompt"],
+            "outputValidation": true
+          }
+        }
+      ],
+      "aigf-mitigations": ["M19"],
+      "aigf-risks": ["R25"]
+    },
+    "credential-protection-control": {
+      "description": "Secure management and scoping of agent credentials for tool access.",
+      "requirements": [
+        {
+          "requirement-url": "https://controls.finos.org/aigf/m23-credential-protection",
+          "config": {
+            "appliesTo": {
+              "nodes": ["ai-agent-core", "rag-service", "search-service", "api-service", "mcp-server"],
+              "relationships": ["agent-to-rag", "agent-to-search", "agent-to-api", "agent-to-mcp-server"]
+            },
+            "credentialStorage": "vault-backed",
+            "credentialScoping": "least-privilege",
+            "credentialRotation": true,
+            "rotationFrequency": "30-days",
+            "noHardcodedSecrets": true,
+            "runtimeInjection": true
+          }
+        }
+      ],
+      "aigf-mitigations": ["M23"],
+      "aigf-risks": ["R24"]
+    },
+    "tool-authorization-control": {
+      "description": "Authorization framework preventing unauthorized tool usage by the agent.",
+      "requirements": [
+        {
+          "requirement-url": "https://controls.finos.org/aigf/tool-authorization",
+          "config": {
+            "appliesTo": {
+              "nodes": ["ai-agent-core", "rag-service", "search-service", "api-service", "mcp-server"],
+              "relationships": ["agent-to-rag", "agent-to-search", "agent-to-api", "agent-to-mcp-server"]
+            },
+            "authorizationModel": "RBAC",
+            "policyEngine": "OPA-or-Cedar",
+            "toolAllowlist": true,
+            "perToolPermissions": true,
+            "auditAllAttempts": true
+          }
+        }
+      ],
+      "aigf-risks": ["R24"]
+    },
+    "mcp-outbound-governance-control": {
+      "description": "Security and data governance policies for outbound MCP communications.",
+      "requirements": [
+        {
+          "requirement-url": "https://controls.finos.org/aigf/m20-mcp-security-governance",
+          "config": {
+            "appliesTo": {
+              "nodes": ["mcp-server"],
+              "relationships": ["mcp-to-external-agents"]
+            },
+            "dataGovernance": true,
+            "sensitiveDataDetection": true,
+            "dataLeakagePrevention": true,
+            "contextFiltering": true,
+            "encryptionInTransit": true,
+            "recipientValidation": true,
+            "auditOutbound": true
+          }
+        }
+      ],
+      "aigf-mitigations": ["M20"],
+      "aigf-risks": ["R26"]
+    }
+  },
+  "nodes": [
+    {
+      "unique-id": "text-input",
+      "node-type": "interface",
+      "name": "Text Input",
+      "description": "Channel for receiving text-based communication from users or external systems.",
+      "interfaces": [
+        {
+          "unique-id": "text-input-interface"
+        }
+      ],
+      "metadata": {
+        "input-type": "text",
+        "trust-boundary": "Input Boundary",
+        "aigf": {
+          "risks": ["R29"],
+          "mitigations": ["M18", "M21"],
+          "risk-level": "high"
+        }
+      }
+    },
+    {
+      "unique-id": "audio-input",
+      "node-type": "interface",
+      "name": "Audio Input",
+      "description": "Channel for receiving audio-based communication, requiring transcription and processing.",
+      "interfaces": [
+        {
+          "unique-id": "audio-input-interface"
+        }
+      ],
+      "metadata": {
+        "input-type": "audio",
+        "trust-boundary": "Input Boundary",
+        "aigf": {
+          "risks": ["R29"],
+          "mitigations": ["M18", "M21"],
+          "risk-level": "high"
+        }
+      }
+    },
+    {
+      "unique-id": "image-input",
+      "node-type": "interface",
+      "name": "Image Input",
+      "description": "Channel for receiving image-based communication, requiring vision processing.",
+      "interfaces": [
+        {
+          "unique-id": "image-input-interface"
+        }
+      ],
+      "metadata": {
+        "input-type": "image",
+        "trust-boundary": "Input Boundary",
+        "aigf": {
+          "risks": ["R29"],
+          "mitigations": ["M18", "M21"],
+          "risk-level": "high"
+        }
+      }
+    },
+    {
+      "unique-id": "agent-input",
+      "node-type": "interface",
+      "name": "Agent Input (MCP)",
+      "description": "Channel for receiving Model Context Protocol (MCP) communication from other AI agents. This is a high-risk trust boundary.",
+      "interfaces": [
+        {
+          "unique-id": "agent-mcp-input-interface"
+        }
+      ],
+      "metadata": {
+        "input-type": "mcp",
+        "protocol": "https://modelcontextprotocol.io/specification/",
+        "trust-boundary": "Agent-to-Agent Boundary",
+        "aigf": {
+          "framework": "FINOS AIGF",
+          "risks": ["R28"],
+          "mitigations": ["M22"],
+          "risk-level": "critical",
+          "note": "External agents must be treated as untrusted"
+        }
+      }
+    },
+    {
+      "unique-id": "ai-agent-core",
+      "node-type": "service",
+      "name": "AI Agent Core",
+      "description": "The central processing unit of the system, orchestrating all internal processes and external tool interactions. This is the heart of the agentic system.",
+      "details": {
+        "detailed-architecture": "/agent-internal-architecture.json"
+      },
+      "interfaces": [
+        {
+          "unique-id": "agent-core-interface"
+        }
+      ],
+      "metadata": {
+        "role": "orchestrator",
+        "capabilities": [
+          "input-processing",
+          "reasoning",
+          "planning",
+          "tool-invocation",
+          "memory-management"
+        ],
+        "aigf": {
+          "framework": "FINOS AIGF",
+          "risks": ["R24", "R25", "R27", "R28", "R29"],
+          "mitigations": ["M18", "M19", "M21", "M22", "M23"],
+          "risk-level": "critical",
+          "note": "Central component requiring comprehensive governance"
+        }
+      }
+    },
+    {
+      "unique-id": "nlp-engine",
+      "node-type": "service",
+      "name": "NLP Engine",
+      "description": "Internal component responsible for natural language processing, including understanding and generation.",
+      "interfaces": [
+        {
+          "unique-id": "nlp-interface"
+        }
+      ],
+      "metadata": {
+        "component-type": "internal-process",
+        "capabilities": ["language-understanding", "language-generation"],
+        "aigf": {
+          "risk-level": "medium"
+        }
+      }
+    },
+    {
+      "unique-id": "reasoning-engine",
+      "node-type": "service",
+      "name": "Reasoning Engine",
+      "description": "Internal component responsible for logical deduction, problem-solving, and inference.",
+      "interfaces": [
+        {
+          "unique-id": "reasoning-interface"
+        }
+      ],
+      "metadata": {
+        "component-type": "internal-process",
+        "capabilities": ["logical-deduction", "problem-solving", "inference"],
+        "aigf": {
+          "risk-level": "medium"
+        }
+      }
+    },
+    {
+      "unique-id": "planning-engine",
+      "node-type": "service",
+      "name": "Planning Engine",
+      "description": "Internal component responsible for creating and managing action plans, including task decomposition and sequencing.",
+      "interfaces": [
+        {
+          "unique-id": "planning-interface"
+        }
+      ],
+      "metadata": {
+        "component-type": "internal-process",
+        "capabilities": ["action-planning", "task-decomposition", "sequencing"],
+        "aigf": {
+          "risk-level": "medium"
+        }
+      }
+    },
+    {
+      "unique-id": "intelligence-store",
+      "node-type": "datastore",
+      "name": "Intelligence Store",
+      "description": "The internal knowledge base or state derived from processing. Contains insights, intermediate results, and working memory.",
+      "interfaces": [
+        {
+          "unique-id": "intelligence-store-interface"
+        }
+      ],
+      "metadata": {
+        "component-type": "internal-process",
+        "storage-type": "in-memory",
+        "capabilities": ["knowledge-storage", "state-management"],
+        "aigf": {
+          "risk-level": "medium"
+        }
+      }
+    },
+    {
+      "unique-id": "memory",
+      "node-type": "datastore",
+      "name": "Memory",
+      "description": "A persistent storage component for long-term memory, state, and context. Critical for agent continuity and learning.",
+      "interfaces": [
+        {
+          "unique-id": "memory-interface"
+        }
+      ],
+      "metadata": {
+        "storage-type": "persistent",
+        "capabilities": ["long-term-storage", "context-persistence", "state-continuity"],
+        "aigf": {
+          "risks": ["R27"],
+          "risk-level": "critical",
+          "note": "Memory poisoning can compromise future agent behavior"
+        }
+      }
+    },
+    {
+      "unique-id": "rag-service",
+      "node-type": "service",
+      "name": "RAG Service",
+      "description": "A Retrieval-Augmented Generation tool for accessing vectorized knowledge from external or internal knowledge bases.",
+      "interfaces": [
+        {
+          "unique-id": "rag-interface"
+        }
+      ],
+      "metadata": {
+        "tool-type": "rag",
+        "trust-boundary": "Tool Invocation Boundary",
+        "capabilities": ["vector-search", "knowledge-retrieval", "context-augmentation"],
+        "aigf": {
+          "risks": ["R24", "R25"],
+          "mitigations": ["M19", "M23"],
+          "risk-level": "high"
+        }
+      }
+    },
+    {
+      "unique-id": "search-service",
+      "node-type": "service",
+      "name": "Search Service",
+      "description": "A tool for executing external web or database searches. Provides access to real-time information.",
+      "interfaces": [
+        {
+          "unique-id": "search-interface"
+        }
+      ],
+      "metadata": {
+        "tool-type": "search",
+        "trust-boundary": "Tool Invocation Boundary",
+        "capabilities": ["web-search", "database-query"],
+        "aigf": {
+          "risks": ["R24", "R25"],
+          "mitigations": ["M19", "M23"],
+          "risk-level": "high"
+        }
+      }
+    },
+    {
+      "unique-id": "api-service",
+      "node-type": "service",
+      "name": "API Service",
+      "description": "A generic tool for interacting with external third-party APIs. Enables agent actions in external systems.",
+      "interfaces": [
+        {
+          "unique-id": "api-interface"
+        }
+      ],
+      "metadata": {
+        "tool-type": "api-integration",
+        "trust-boundary": "Tool Invocation Boundary",
+        "capabilities": ["api-calls", "external-system-integration"],
+        "aigf": {
+          "risks": ["R24", "R25"],
+          "mitigations": ["M19", "M23"],
+          "risk-level": "high"
+        }
+      }
+    },
+    {
+      "unique-id": "mcp-server",
+      "node-type": "service",
+      "name": "MCP Server",
+      "description": "A tool for sending structured context to other AI agents via Model Context Protocol. Enables agent-to-agent communication.",
+      "interfaces": [
+        {
+          "unique-id": "mcp-server-interface"
+        },
+        {
+          "unique-id": "mcp-outbound-interface"
+        }
+      ],
+      "metadata": {
+        "tool-type": "mcp-communication",
+        "protocol": "https://modelcontextprotocol.io/specification/",
+        "trust-boundary": "MCP Outbound Boundary",
+        "capabilities": ["agent-to-agent-communication", "context-sharing"],
+        "aigf": {
+          "framework": "FINOS AIGF",
+          "risks": ["R24", "R25", "R26"],
+          "mitigations": ["M19", "M20", "M23"],
+          "risk-level": "critical",
+          "note": "Outbound MCP traffic must be governed to prevent data leakage"
+        }
+      }
+    },
+    {
+      "unique-id": "external-agents",
+      "node-type": "external-service",
+      "name": "External Agents",
+      "description": "Logical representation of other AI agents that this agent communicates with via MCP.",
+      "interfaces": [
+        {
+          "unique-id": "external-agents-interface"
+        }
+      ],
+      "metadata": {
+        "entity-type": "external",
+        "trust-level": "untrusted",
+        "aigf": {
+          "risks": ["R26", "R28"],
+          "risk-level": "critical",
+          "note": "External agents must be treated as potentially malicious"
+        }
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "text-to-agent",
+      "description": "Text input flows to AI Agent Core. Critical input boundary requiring authorization and audit.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "text-input",
+            "interfaces": ["text-input-interface"]
+          },
+          "destination": {
+            "node": "ai-agent-core",
+            "interfaces": ["agent-core-interface"]
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "metadata": {
+        "trust-boundary": "Input Boundary",
+        "data-flow": "user-to-agent",
+        "aigf": {
+          "framework": "FINOS AIGF",
+          "mitigations": [
+            {
+              "id": "M18",
+              "name": "Agent Authority Least Privilege Framework",
+              "description": "The agent must only process inputs it is explicitly authorized to handle"
+            },
+            {
+              "id": "M21",
+              "name": "Agent Decision Audit and Explainability",
+              "description": "The raw input and the agent's initial interpretation must be logged for audit"
+            }
+          ],
+          "risks": [
+            {
+              "id": "R29",
+              "name": "Agent-Mediated Credential Discovery and Harvesting",
+              "description": "Input channels could be used to harvest sensitive information"
+            }
+          ],
+          "controls-applied": ["input-authorization-control", "input-audit-control"]
+        }
+      }
+    },
+    {
+      "unique-id": "audio-to-agent",
+      "description": "Audio input flows to AI Agent Core after transcription. Critical input boundary requiring authorization and audit.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "audio-input",
+            "interfaces": ["audio-input-interface"]
+          },
+          "destination": {
+            "node": "ai-agent-core",
+            "interfaces": ["agent-core-interface"]
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "metadata": {
+        "trust-boundary": "Input Boundary",
+        "data-flow": "user-to-agent",
+        "processing": "transcription-required",
+        "aigf": {
+          "framework": "FINOS AIGF",
+          "mitigations": [
+            {
+              "id": "M18",
+              "name": "Agent Authority Least Privilege Framework"
+            },
+            {
+              "id": "M21",
+              "name": "Agent Decision Audit and Explainability"
+            }
+          ],
+          "risks": [
+            {
+              "id": "R29",
+              "name": "Agent-Mediated Credential Discovery and Harvesting"
+            }
+          ],
+          "controls-applied": ["input-authorization-control", "input-audit-control"]
+        }
+      }
+    },
+    {
+      "unique-id": "image-to-agent",
+      "description": "Image input flows to AI Agent Core after vision processing. Critical input boundary requiring authorization and audit.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "image-input",
+            "interfaces": ["image-input-interface"]
+          },
+          "destination": {
+            "node": "ai-agent-core",
+            "interfaces": ["agent-core-interface"]
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "metadata": {
+        "trust-boundary": "Input Boundary",
+        "data-flow": "user-to-agent",
+        "processing": "vision-processing-required",
+        "aigf": {
+          "framework": "FINOS AIGF",
+          "mitigations": [
+            {
+              "id": "M18",
+              "name": "Agent Authority Least Privilege Framework"
+            },
+            {
+              "id": "M21",
+              "name": "Agent Decision Audit and Explainability"
+            }
+          ],
+          "risks": [
+            {
+              "id": "R29",
+              "name": "Agent-Mediated Credential Discovery and Harvesting"
+            }
+          ],
+          "controls-applied": ["input-authorization-control", "input-audit-control"]
+        }
+      }
+    },
+    {
+      "unique-id": "agent-to-agent",
+      "description": "Agent-to-agent MCP communication. High-risk trust boundary requiring isolation and segmentation.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "agent-input",
+            "interfaces": ["agent-mcp-input-interface"]
+          },
+          "destination": {
+            "node": "ai-agent-core",
+            "interfaces": ["agent-core-interface"]
+          }
+        }
+      },
+      "protocol": "MCP over HTTPS",
+      "metadata": {
+        "trust-boundary": "Agent-to-Agent Boundary",
+        "data-flow": "agent-to-agent",
+        "aigf": {
+          "framework": "FINOS AIGF",
+          "mitigations": [
+            {
+              "id": "M22",
+              "name": "Multi-Agent Isolation and Segmentation",
+              "description": "The agent must treat input from other agents as untrusted and process it in an isolated manner"
+            }
+          ],
+          "risks": [
+            {
+              "id": "R28",
+              "name": "Multi-Agent Trust Boundary Violations",
+              "description": "An external agent could be malicious or compromised"
+            }
+          ],
+          "controls-applied": ["multi-agent-isolation-control"],
+          "risk-level": "critical"
+        }
+      }
+    },
+    {
+      "unique-id": "agent-to-nlp",
+      "description": "AI Agent Core invokes NLP Engine for language processing.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-agent-core"
+          },
+          "destination": {
+            "node": "nlp-engine",
+            "interfaces": ["nlp-interface"]
+          }
+        }
+      },
+      "protocol": "Internal API",
+      "metadata": {
+        "flow-type": "internal",
+        "data-flow": "processing"
+      }
+    },
+    {
+      "unique-id": "agent-to-reasoning",
+      "description": "AI Agent Core invokes Reasoning Engine for logical processing.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-agent-core"
+          },
+          "destination": {
+            "node": "reasoning-engine",
+            "interfaces": ["reasoning-interface"]
+          }
+        }
+      },
+      "protocol": "Internal API",
+      "metadata": {
+        "flow-type": "internal",
+        "data-flow": "processing"
+      }
+    },
+    {
+      "unique-id": "agent-to-planning",
+      "description": "AI Agent Core invokes Planning Engine for action planning.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-agent-core"
+          },
+          "destination": {
+            "node": "planning-engine",
+            "interfaces": ["planning-interface"]
+          }
+        }
+      },
+      "protocol": "Internal API",
+      "metadata": {
+        "flow-type": "internal",
+        "data-flow": "processing"
+      }
+    },
+    {
+      "unique-id": "agent-to-intelligence-store",
+      "description": "AI Agent Core reads from and writes to Intelligence Store.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-agent-core"
+          },
+          "destination": {
+            "node": "intelligence-store",
+            "interfaces": ["intelligence-store-interface"]
+          }
+        }
+      },
+      "protocol": "Internal API",
+      "metadata": {
+        "flow-type": "internal",
+        "data-flow": "bidirectional",
+        "operations": ["read", "write"]
+      }
+    },
+    {
+      "unique-id": "agent-to-memory",
+      "description": "AI Agent Core writes to persistent Memory. Risk of state persistence poisoning.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-agent-core"
+          },
+          "destination": {
+            "node": "memory",
+            "interfaces": ["memory-interface"]
+          }
+        }
+      },
+      "protocol": "Database Protocol",
+      "metadata": {
+        "flow-type": "persistence",
+        "data-flow": "write",
+        "operations": ["write"],
+        "aigf": {
+          "framework": "FINOS AIGF",
+          "risks": [
+            {
+              "id": "R27",
+              "name": "Agent State Persistence Poisoning",
+              "description": "Malicious data could be written to memory, compromising the agent's future behavior"
+            }
+          ],
+          "controls-applied": ["memory-protection-control"],
+          "risk-level": "critical"
+        }
+      }
+    },
+    {
+      "unique-id": "memory-to-agent",
+      "description": "AI Agent Core reads from persistent Memory to restore state and context.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "memory",
+            "interfaces": ["memory-interface"]
+          },
+          "destination": {
+            "node": "ai-agent-core"
+          }
+        }
+      },
+      "protocol": "Database Protocol",
+      "metadata": {
+        "flow-type": "persistence",
+        "data-flow": "read",
+        "operations": ["read"],
+        "aigf": {
+          "framework": "FINOS AIGF",
+          "risks": [
+            {
+              "id": "R27",
+              "name": "Agent State Persistence Poisoning"
+            }
+          ],
+          "controls-applied": ["memory-protection-control"]
+        }
+      }
+    },
+    {
+      "unique-id": "agent-to-rag",
+      "description": "AI Agent Core invokes RAG Service for knowledge retrieval. Tool invocation boundary requiring validation and credential protection.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-agent-core"
+          },
+          "destination": {
+            "node": "rag-service",
+            "interfaces": ["rag-interface"]
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "metadata": {
+        "trust-boundary": "Tool Invocation Boundary",
+        "data-flow": "tool-invocation",
+        "aigf": {
+          "framework": "FINOS AIGF",
+          "mitigations": [
+            {
+              "id": "M19",
+              "name": "Tool Chain Validation and Sanitization",
+              "description": "All inputs to tools must be strictly validated and sanitized to prevent injection attacks"
+            },
+            {
+              "id": "M23",
+              "name": "Agentic System Credential Protection Framework",
+              "description": "The agent's credentials for accessing tools must be securely managed and scoped"
+            }
+          ],
+          "risks": [
+            {
+              "id": "R24",
+              "name": "Agent Action Authorization Bypass",
+              "description": "The agent might attempt to use a tool in an unauthorized way"
+            },
+            {
+              "id": "R25",
+              "name": "Tool Chain Manipulation and Injection",
+              "description": "The agent could be tricked into crafting malicious payloads for a tool"
+            }
+          ],
+          "controls-applied": [
+            "tool-chain-validation-control",
+            "credential-protection-control",
+            "tool-authorization-control"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "agent-to-search",
+      "description": "AI Agent Core invokes Search Service for external searches. Tool invocation boundary requiring validation and credential protection.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-agent-core"
+          },
+          "destination": {
+            "node": "search-service",
+            "interfaces": ["search-interface"]
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "metadata": {
+        "trust-boundary": "Tool Invocation Boundary",
+        "data-flow": "tool-invocation",
+        "aigf": {
+          "framework": "FINOS AIGF",
+          "mitigations": [
+            {
+              "id": "M19",
+              "name": "Tool Chain Validation and Sanitization"
+            },
+            {
+              "id": "M23",
+              "name": "Agentic System Credential Protection Framework"
+            }
+          ],
+          "risks": [
+            {
+              "id": "R24",
+              "name": "Agent Action Authorization Bypass"
+            },
+            {
+              "id": "R25",
+              "name": "Tool Chain Manipulation and Injection"
+            }
+          ],
+          "controls-applied": [
+            "tool-chain-validation-control",
+            "credential-protection-control",
+            "tool-authorization-control"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "agent-to-api",
+      "description": "AI Agent Core invokes API Service for external system integration. Tool invocation boundary requiring validation and credential protection.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-agent-core"
+          },
+          "destination": {
+            "node": "api-service",
+            "interfaces": ["api-interface"]
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "metadata": {
+        "trust-boundary": "Tool Invocation Boundary",
+        "data-flow": "tool-invocation",
+        "aigf": {
+          "framework": "FINOS AIGF",
+          "mitigations": [
+            {
+              "id": "M19",
+              "name": "Tool Chain Validation and Sanitization"
+            },
+            {
+              "id": "M23",
+              "name": "Agentic System Credential Protection Framework"
+            }
+          ],
+          "risks": [
+            {
+              "id": "R24",
+              "name": "Agent Action Authorization Bypass"
+            },
+            {
+              "id": "R25",
+              "name": "Tool Chain Manipulation and Injection"
+            }
+          ],
+          "controls-applied": [
+            "tool-chain-validation-control",
+            "credential-protection-control",
+            "tool-authorization-control"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "agent-to-mcp-server",
+      "description": "AI Agent Core invokes MCP Server for agent-to-agent communication. Tool invocation boundary requiring validation and credential protection.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-agent-core"
+          },
+          "destination": {
+            "node": "mcp-server",
+            "interfaces": ["mcp-server-interface"]
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "metadata": {
+        "trust-boundary": "Tool Invocation Boundary",
+        "data-flow": "tool-invocation",
+        "aigf": {
+          "framework": "FINOS AIGF",
+          "mitigations": [
+            {
+              "id": "M19",
+              "name": "Tool Chain Validation and Sanitization"
+            },
+            {
+              "id": "M23",
+              "name": "Agentic System Credential Protection Framework"
+            }
+          ],
+          "risks": [
+            {
+              "id": "R24",
+              "name": "Agent Action Authorization Bypass"
+            },
+            {
+              "id": "R25",
+              "name": "Tool Chain Manipulation and Injection"
+            }
+          ],
+          "controls-applied": [
+            "tool-chain-validation-control",
+            "credential-protection-control",
+            "tool-authorization-control"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "mcp-to-external-agents",
+      "description": "MCP Server sends context to external agents. Outbound MCP boundary requiring governance to prevent data leakage.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "mcp-server",
+            "interfaces": ["mcp-outbound-interface"]
+          },
+          "destination": {
+            "node": "external-agents",
+            "interfaces": ["external-agents-interface"]
+          }
+        }
+      },
+      "protocol": "MCP over HTTPS",
+      "metadata": {
+        "trust-boundary": "MCP Outbound Boundary",
+        "data-flow": "outbound-agent-communication",
+        "aigf": {
+          "framework": "FINOS AIGF",
+          "mitigations": [
+            {
+              "id": "M20",
+              "name": "MCP Server Security Governance",
+              "description": "All outbound MCP traffic must adhere to strict security and data governance policies, ensuring no sensitive context is leaked"
+            }
+          ],
+          "risks": [
+            {
+              "id": "R26",
+              "name": "MCP Server Supply Chain Compromise",
+              "description": "The outbound MCP communication could be intercepted or manipulated"
+            }
+          ],
+          "controls-applied": ["mcp-outbound-governance-control"],
+          "risk-level": "high"
+        }
+      }
+    }
+  ],
+  "flows": [
+    {
+      "unique-id": "user-input-to-agent-response",
+      "name": "User Input to Agent Response Flow",
+      "description": "Complete flow from user input through internal processing to agent response, with embedded AIGF controls at input boundary.",
+      "transitions": [
+        {
+          "relationship-unique-id": "text-to-agent",
+          "sequence-number": 1,
+          "description": "User submits text input to agent with M18 authorization and M21 audit controls."
+        },
+        {
+          "relationship-unique-id": "agent-to-nlp",
+          "sequence-number": 2,
+          "description": "Agent invokes NLP engine for language processing."
+        },
+        {
+          "relationship-unique-id": "agent-to-reasoning",
+          "sequence-number": 3,
+          "description": "Agent invokes reasoning engine for logical processing."
+        },
+        {
+          "relationship-unique-id": "agent-to-planning",
+          "sequence-number": 4,
+          "description": "Agent invokes planning engine to create action plan."
+        },
+        {
+          "relationship-unique-id": "memory-to-agent",
+          "sequence-number": 5,
+          "description": "Agent retrieves relevant context from memory."
+        },
+        {
+          "relationship-unique-id": "agent-to-intelligence-store",
+          "sequence-number": 6,
+          "description": "Agent stores intermediate results in intelligence store."
+        }
+      ],
+      "aigf-governance": {
+        "mitigations-applied": ["M18", "M21"],
+        "risks-addressed": ["R29"],
+        "trust-boundaries-crossed": ["Input Boundary"]
+      }
+    },
+    {
+      "unique-id": "agent-tool-invocation-flow",
+      "name": "Agent Tool Invocation Flow",
+      "description": "Flow showing agent invoking external tools with comprehensive AIGF controls for validation, authorization, and credential protection.",
+      "transitions": [
+        {
+          "relationship-unique-id": "agent-to-rag",
+          "sequence-number": 1,
+          "description": "Agent invokes RAG service with M19 validation, M23 credential protection, addressing R24 and R25."
+        },
+        {
+          "relationship-unique-id": "agent-to-search",
+          "sequence-number": 2,
+          "description": "Agent invokes search service with M19 validation, M23 credential protection, addressing R24 and R25."
+        },
+        {
+          "relationship-unique-id": "agent-to-api",
+          "sequence-number": 3,
+          "description": "Agent invokes API service with M19 validation, M23 credential protection, addressing R24 and R25."
+        }
+      ],
+      "aigf-governance": {
+        "mitigations-applied": ["M19", "M23"],
+        "risks-addressed": ["R24", "R25"],
+        "trust-boundaries-crossed": ["Tool Invocation Boundary"]
+      }
+    },
+    {
+      "unique-id": "agent-to-agent-communication-flow",
+      "name": "Agent-to-Agent Communication Flow (MCP)",
+      "description": "Complete flow for multi-agent communication via MCP, with comprehensive AIGF controls at both inbound and outbound boundaries.",
+      "transitions": [
+        {
+          "relationship-unique-id": "agent-to-mcp-server",
+          "sequence-number": 1,
+          "description": "Agent invokes MCP server with M19 validation and M23 credential protection."
+        },
+        {
+          "relationship-unique-id": "mcp-to-external-agents",
+          "sequence-number": 2,
+          "description": "MCP server sends context to external agent with M20 governance controls to prevent data leakage, addressing R26."
+        },
+        {
+          "relationship-unique-id": "agent-to-agent",
+          "sequence-number": 3,
+          "description": "External agent sends MCP context with M22 isolation controls, addressing R28."
+        }
+      ],
+      "aigf-governance": {
+        "mitigations-applied": ["M19", "M20", "M22", "M23"],
+        "risks-addressed": ["R24", "R25", "R26", "R28"],
+        "trust-boundaries-crossed": ["Tool Invocation Boundary", "MCP Outbound Boundary", "Agent-to-Agent Boundary"]
+      }
+    },
+    {
+      "unique-id": "memory-persistence-flow",
+      "name": "Memory Persistence Flow",
+      "description": "Flow showing memory read/write operations with controls to prevent state persistence poisoning.",
+      "transitions": [
+        {
+          "relationship-unique-id": "memory-to-agent",
+          "sequence-number": 1,
+          "description": "Agent reads from memory to restore context."
+        },
+        {
+          "relationship-unique-id": "agent-to-memory",
+          "sequence-number": 2,
+          "description": "Agent writes to memory with controls to prevent R27 state poisoning."
+        }
+      ],
+      "aigf-governance": {
+        "risks-addressed": ["R27"],
+        "trust-boundaries-crossed": []
+      }
+    }
+  ],
+  "adrs": [
+    "https://air-governance-framework.finos.org/",
+    "https://modelcontextprotocol.io/specification/",
+    "https://www.finos.org/",
+    "https://github.com/finos/ai-governance-framework/pull/218#issuecomment-3296745868"
+  ]
+}

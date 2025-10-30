@@ -18,7 +18,7 @@ jobs:
         strategy:
             matrix:
                 node-version: ['22.x']
-                module-folder: ['cli', 'docs', 'shared']
+                module-folder: ['cli', 'docs', 'shared', 'calm-visualizer']
         steps:
             - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
             - name: Use Node.js ${{ matrix.node-version }}

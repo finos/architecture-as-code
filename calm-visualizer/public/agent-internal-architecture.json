@@ -1,0 +1,87 @@
+{
+  "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+  "metadata": {
+    "name": "AI Agent Core - Internal Architecture",
+    "version": "1.0.0",
+    "description": "Detailed internal architecture of the AI Agent Core component, showing the internal modules and their interactions.",
+    "tags": ["ai-agent", "internal", "detailed"]
+  },
+  "nodes": [
+    {
+      "unique-id": "request-handler",
+      "node-type": "service",
+      "name": "Request Handler",
+      "description": "Receives and validates incoming requests from external interfaces"
+    },
+    {
+      "unique-id": "context-manager",
+      "node-type": "service",
+      "name": "Context Manager",
+      "description": "Manages conversation context and session state"
+    },
+    {
+      "unique-id": "orchestrator",
+      "node-type": "service",
+      "name": "Orchestrator",
+      "description": "Coordinates between NLP, reasoning, and planning engines"
+    },
+    {
+      "unique-id": "response-generator",
+      "node-type": "service",
+      "name": "Response Generator",
+      "description": "Formats and returns responses to the caller"
+    },
+    {
+      "unique-id": "internal-cache",
+      "node-type": "datastore",
+      "name": "Internal Cache",
+      "description": "In-memory cache for frequently accessed data"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "req-to-context",
+      "description": "Request handler passes request to context manager",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "request-handler" },
+          "destination": { "node": "context-manager" }
+        }
+      },
+      "protocol": "Internal API"
+    },
+    {
+      "unique-id": "context-to-orch",
+      "description": "Context manager sends enriched request to orchestrator",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "context-manager" },
+          "destination": { "node": "orchestrator" }
+        }
+      },
+      "protocol": "Internal API"
+    },
+    {
+      "unique-id": "orch-to-response",
+      "description": "Orchestrator sends results to response generator",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "orchestrator" },
+          "destination": { "node": "response-generator" }
+        }
+      },
+      "protocol": "Internal API"
+    },
+    {
+      "unique-id": "context-to-cache",
+      "description": "Context manager reads/writes to internal cache",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "context-manager" },
+          "destination": { "node": "internal-cache" }
+        }
+      },
+      "protocol": "Redis"
+    }
+  ]
+}
