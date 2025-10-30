@@ -532,7 +532,7 @@ const Index = () => {
                 {!isEditorCollapsed && <ResizableHandle withHandle />}
 
                 {/* Graph Visualization - Always visible, takes remaining space */}
-                <ResizablePanel defaultSize={100}>
+                <ResizablePanel>
                   <div className="h-full p-6">
                     <ArchitectureGraph
                       jsonData={parsedData}

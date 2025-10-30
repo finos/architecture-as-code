@@ -63,9 +63,9 @@ export class ControlResolver {
     architecture.nodes?.forEach(node => {
       if (node.controls) {
         Object.values(node.controls).forEach(control => {
-          control.requirements.forEach(req => {
-            allUrls.add(req['config-url']);
-            allUrls.add(req['requirement-url']);
+          control.requirements?.forEach(req => {
+            if (req['config-url']) allUrls.add(req['config-url']);
+            if (req['requirement-url']) allUrls.add(req['requirement-url']);
           });
         });
       }
@@ -75,9 +75,9 @@ export class ControlResolver {
     architecture.relationships?.forEach(rel => {
       if (rel.controls) {
         Object.values(rel.controls).forEach(control => {
-          control.requirements.forEach(req => {
-            allUrls.add(req['config-url']);
-            allUrls.add(req['requirement-url']);
+          control.requirements?.forEach(req => {
+            if (req['config-url']) allUrls.add(req['config-url']);
+            if (req['requirement-url']) allUrls.add(req['requirement-url']);
           });
         });
       }
