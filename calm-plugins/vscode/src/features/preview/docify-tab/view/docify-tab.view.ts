@@ -45,7 +45,7 @@ export class DocifyTabView {
      * Initialize with default state
      */
     public initialize(): void {
-        ;(this.container as any).innerHTML = '<em>Initializing...</em>'
+        (this.container as any).innerHTML = '<em>Initializing...</em>'
     }
 
     /**
@@ -58,11 +58,11 @@ export class DocifyTabView {
         this.cleanupDiagramControls()
 
         if (format === 'html') {
-            ;(this.container as any).innerHTML = content
+            (this.container as any).innerHTML = content
         } else {
             // For markdown, render it through MermaidRenderer with source file path for image resolution
-            const renderedHtml = await this.markdownRenderer.render(content, sourceFile)
-            ;(this.container as any).innerHTML = renderedHtml
+            const renderedHtml = await this.markdownRenderer.render(content, sourceFile);
+            (this.container as any).innerHTML = renderedHtml
 
             // Initialize pan/zoom on all rendered diagrams
             this.initializePanZoomForDiagrams()
@@ -126,18 +126,18 @@ export class DocifyTabView {
             const nodeId = this.extractNodeIdFromMermaidElement(fullId)
             if (!nodeId) return
 
-            console.log(`[docify-tab] Processing node: ${fullId} -> ${nodeId}`)
+            console.log(`[docify-tab] Processing node: ${fullId} -> ${nodeId}`);
 
             // Make the entire node group clickable (includes shape + label)
-            ;(nodeGroup as SVGElement).style.cursor = 'pointer'
-            ;(nodeGroup as SVGElement).style.pointerEvents = 'all'
+            (nodeGroup as SVGElement).style.cursor = 'pointer';
+            (nodeGroup as SVGElement).style.pointerEvents = 'all'
             
             // Prevent text selection cursor on labels
             const labels = nodeGroup.querySelectorAll('text, tspan, foreignObject')
             labels.forEach(label => {
-                ;(label as SVGElement).style.cursor = 'pointer'
-                ;(label as SVGElement).style.userSelect = 'none'
-                ;(label as SVGElement).style.pointerEvents = 'none' // Let clicks bubble to parent group
+                (label as SVGElement).style.cursor = 'pointer';
+                (label as SVGElement).style.userSelect = 'none';
+                (label as SVGElement).style.pointerEvents = 'none' // Let clicks bubble to parent group
             })
 
             // Add click event listener to the entire node group
@@ -162,7 +162,7 @@ export class DocifyTabView {
             const relationshipId = this.extractRelationshipIdFromMermaidElement(fullId)
             if (!relationshipId) return
 
-            console.log(`[docify-tab] Processing edge: ${fullId} -> ${relationshipId}`)
+            console.log(`[docify-tab] Processing edge: ${fullId} -> ${relationshipId}`);
 
             // Find the path element within the edge group
             const path = edgePath.querySelector('path.path')
@@ -172,25 +172,25 @@ export class DocifyTabView {
             }
 
             // Make the path clickable - increase stroke width for easier clicking
-            path.classList.add('clickable-edge')
-            ;(path as SVGElement).style.cursor = 'pointer'
-            ;(path as SVGElement).style.pointerEvents = 'visibleStroke'  // Make the visible stroke area clickable
+            path.classList.add('clickable-edge');
+            (path as SVGElement).style.cursor = 'pointer';
+            (path as SVGElement).style.pointerEvents = 'visibleStroke'  // Make the visible stroke area clickable
             
             // Store original stroke width and increase for clickability
-            const originalStrokeWidth = window.getComputedStyle(path as Element).strokeWidth
+            const originalStrokeWidth = window.getComputedStyle(path as Element).strokeWidth;
             path.setAttribute('data-original-stroke-width', originalStrokeWidth)
             
             // Increase stroke width for better clickability
-            const currentWidth = parseFloat(originalStrokeWidth) || 2
-                ; (path as SVGElement).style.strokeWidth = `${Math.max(currentWidth, MIN_CLICKABLE_STROKE_WIDTH)}px`
+            const currentWidth = parseFloat(originalStrokeWidth) || 2;
+            (path as SVGElement).style.strokeWidth = `${Math.max(currentWidth, MIN_CLICKABLE_STROKE_WIDTH)}px`
             
             // Add hover effect via event listeners instead of CSS (more reliable for SVG)
             path.addEventListener('mouseenter', () => {
-                ; (path as SVGElement).style.strokeWidth = `${HOVER_STROKE_WIDTH}px`
+                (path as SVGElement).style.strokeWidth = `${HOVER_STROKE_WIDTH}px`
             })
             path.addEventListener('mouseleave', () => {
-                const baseWidth = parseFloat(path.getAttribute('data-original-stroke-width') || '2')
-                    ; (path as SVGElement).style.strokeWidth = `${Math.max(baseWidth, MIN_CLICKABLE_STROKE_WIDTH)}px`
+                const baseWidth = parseFloat(path.getAttribute('data-original-stroke-width') || '2');
+                (path as SVGElement).style.strokeWidth = `${Math.max(baseWidth, MIN_CLICKABLE_STROKE_WIDTH)}px`
             })
 
             // Add click event listener to the path
@@ -206,8 +206,17 @@ export class DocifyTabView {
     }
 
     /**
-     * Extract CALM node ID from Mermaid-generated element ID
-     * Mermaid typically generates IDs like "flowchart-node-id-123"
+     * Extract CALM node ID from Mermaid-generated element ID.
+     * 
+     * Expected input format: Mermaid typically generates IDs like "flowchart-conference-website-123".
+     * This function removes the "flowchart-" prefix and the trailing numeric suffix.
+     * 
+     * Example:
+     *   Input:  "flowchart-conference-website-123"
+     *   Output: "conference-website"
+     * 
+     * @param mermaidId The Mermaid-generated element ID string.
+     * @returns The extracted node ID, or null if extraction fails.
      */
     private extractNodeIdFromMermaidElement(mermaidId: string): string | null {
         // Remove common Mermaid prefixes
@@ -254,7 +263,7 @@ export class DocifyTabView {
      * Render docify error
      */
     private renderError(error: string): void {
-        ;(this.container as any).innerHTML = `<div style="color:var(--vscode-editorError-foreground)">Error: ${this.escapeHtml(error)}</div>`
+        (this.container as any).innerHTML = `<div style="color:var(--vscode-editorError-foreground)">Error: ${this.escapeHtml(error)}</div>`
     }
 
     /**
@@ -281,7 +290,7 @@ export class DocifyTabView {
      * Cleanup event listeners
      */
     public dispose(): void {
-        this.cleanupDiagramControls()
-        ;(this.container as any).innerHTML = ''
+        this.cleanupDiagramControls();
+        (this.container as any).innerHTML = ''
     }
 }
