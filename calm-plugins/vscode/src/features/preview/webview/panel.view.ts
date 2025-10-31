@@ -26,7 +26,7 @@ class TabsView {
 
         this.modelTabView = new ModelTabView(tabsViewModel.model, modelContainer)
         this.templateTabView = new TemplateTabView(tabsViewModel.template, templateContainer)
-        this.docifyTabView = new DocifyTabView(tabsViewModel.docify, docifyContainer)
+        this.docifyTabView = new DocifyTabView(tabsViewModel.docify, docifyContainer, tabsViewModel['vscode'])
 
         // Initialize docify tab
         this.docifyTabView.initialize()
@@ -134,6 +134,9 @@ export class PanelView {
 
         // Wire up the show labels checkbox event listener
         this.bindShowLabelsCheckbox()
+        
+        // Wire up the home button event listener
+        this.bindBackButton()
     }
 
     /**
@@ -188,6 +191,30 @@ export class PanelView {
                 this.panelViewModel.tabs['vscode'].postMessage({
                     type: 'runDocify'
                 })
+            })
+        }
+    }
+
+    /**
+     * Wire up the home button to clear selection
+     */
+    private bindBackButton(): void {
+        const backButton = document.getElementById('back-button')
+        if (backButton) {
+            backButton.addEventListener('click', () => {
+                // Clear selection in the ViewModel
+                this.panelViewModel.tabs.model.setSelectedId(undefined)
+                
+                // Send message to backend to clear selection
+                this.panelViewModel.tabs['vscode'].postMessage({
+                    type: 'selected',
+                    id: ''  // Empty string to clear selection
+                })
+                
+                // Refresh all tabs to show full architecture
+                this.panelViewModel.tabs['vscode'].postMessage({ type: 'requestModelData' })
+                this.panelViewModel.tabs['vscode'].postMessage({ type: 'requestTemplateData' })
+                this.panelViewModel.tabs['vscode'].postMessage({ type: 'runDocify' })
             })
         }
     }

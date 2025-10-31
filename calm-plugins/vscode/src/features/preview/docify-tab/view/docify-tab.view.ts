@@ -4,6 +4,10 @@ import { DiagramControls } from '../../webview/diagram-controls'
 
 const DOM_SETTLE_DELAY_MS = 150
 
+interface VsCodeApi {
+    postMessage(message: any): void
+}
+
 /**
  * DocifyTabView - Manages the DOM for the docify tab in the webview  
  * Keeps it simple like the original - just displays docify results
@@ -13,10 +17,12 @@ export class DocifyTabView {
     private container: HTMLElement
     private markdownRenderer = new MermaidRenderer()
     private diagramControls: Map<string, DiagramControls> = new Map()
+    private vscode: VsCodeApi
 
-    constructor(viewModel: DocifyViewModel, container: HTMLElement) {
+    constructor(viewModel: DocifyViewModel, container: HTMLElement, vscode: VsCodeApi) {
         this.viewModel = viewModel
         this.container = container
+        this.vscode = vscode
         this.bindViewModel()
         this.initialize()
     }
@@ -90,8 +96,150 @@ export class DocifyTabView {
                 controls.createControls(container as HTMLElement)
                 this.diagramControls.set(diagramId, controls)
             }
+
+            // Add click event listeners to Mermaid diagram nodes
+            this.addClickHandlersToMermaidDiagram(container as HTMLElement)
             })
         }, DOM_SETTLE_DELAY_MS)
+    }
+
+    /**
+     * Add click event listeners to Mermaid diagram nodes to enable selection
+     */
+    private addClickHandlersToMermaidDiagram(container: HTMLElement): void {
+        const svg = container.querySelector('svg')
+        if (!svg) {
+            console.warn('[docify-tab] No SVG found in container')
+            return
+        }
+
+        console.log('[docify-tab] Setting up click handlers for Mermaid diagram')
+        const nodeGroups = svg.querySelectorAll('g.node')
+        console.log(`[docify-tab] Found ${nodeGroups.length} node groups in diagram`)
+        
+        nodeGroups.forEach(nodeGroup => {
+            // Extract the node ID from the group's ID attribute
+            // Mermaid generates IDs like "flowchart-conference-website-123" for node "conference-website"
+            const fullId = nodeGroup.getAttribute('id')
+            if (!fullId) return
+
+            // Extract the actual node ID by removing the diagram prefix and suffix
+            const nodeId = this.extractNodeIdFromMermaidElement(fullId)
+            if (!nodeId) return
+
+            console.log(`[docify-tab] Processing node: ${fullId} -> ${nodeId}`)
+
+            // Make the entire node group clickable (includes shape + label)
+            ;(nodeGroup as SVGElement).style.cursor = 'pointer'
+            ;(nodeGroup as SVGElement).style.pointerEvents = 'all'
+            
+            // Prevent text selection cursor on labels
+            const labels = nodeGroup.querySelectorAll('text, tspan, foreignObject')
+            labels.forEach(label => {
+                ;(label as SVGElement).style.cursor = 'pointer'
+                ;(label as SVGElement).style.userSelect = 'none'
+                ;(label as SVGElement).style.pointerEvents = 'none' // Let clicks bubble to parent group
+            })
+
+            // Add click event listener to the entire node group
+            nodeGroup.addEventListener('click', (event) => {
+                event.stopPropagation()
+                event.preventDefault()
+                console.log(`[docify-tab] Clicked on node: ${nodeId}`)
+                // Send selection message to the extension
+                this.vscode.postMessage({ type: 'selected', id: nodeId })
+            })
+        })
+
+        // Also handle edge clicks (relationships)
+        const edgePaths = svg.querySelectorAll('g.edgePath')
+        console.log(`[docify-tab] Found ${edgePaths.length} edge paths in diagram`)
+        
+        edgePaths.forEach(edgePath => {
+            const fullId = edgePath.getAttribute('id')
+            if (!fullId) return
+
+            // Edge IDs are typically formatted differently, extract relationship ID
+            const relationshipId = this.extractRelationshipIdFromMermaidElement(fullId)
+            if (!relationshipId) return
+
+            console.log(`[docify-tab] Processing edge: ${fullId} -> ${relationshipId}`)
+
+            // Find the path element within the edge group
+            const path = edgePath.querySelector('path.path')
+            if (!path) {
+                console.warn(`[docify-tab] No path found for edge ${relationshipId}`)
+                return
+            }
+
+            // Make the path clickable - increase stroke width for easier clicking
+            path.classList.add('clickable-edge')
+            ;(path as SVGElement).style.cursor = 'pointer'
+            ;(path as SVGElement).style.pointerEvents = 'visibleStroke'  // Make the visible stroke area clickable
+            
+            // Store original stroke width and increase for clickability
+            const originalStrokeWidth = window.getComputedStyle(path as Element).strokeWidth
+            path.setAttribute('data-original-stroke-width', originalStrokeWidth)
+            
+            // Increase stroke width for better clickability
+            const currentWidth = parseFloat(originalStrokeWidth) || 2
+            ;(path as SVGElement).style.strokeWidth = `${Math.max(currentWidth, 8)}px`
+            
+            // Add hover effect via event listeners instead of CSS (more reliable for SVG)
+            path.addEventListener('mouseenter', () => {
+                ;(path as SVGElement).style.strokeWidth = '12px'
+            })
+            path.addEventListener('mouseleave', () => {
+                const baseWidth = parseFloat(path.getAttribute('data-original-stroke-width') || '2')
+                ;(path as SVGElement).style.strokeWidth = `${Math.max(baseWidth, 8)}px`
+            })
+
+            // Add click event listener to the path
+            path.addEventListener('click', (event) => {
+                event.stopPropagation()
+                event.preventDefault()
+                console.log(`[docify-tab] Clicked on relationship: ${relationshipId}`)
+                this.vscode.postMessage({ type: 'selected', id: relationshipId })
+            })
+        })
+
+        console.log('[docify-tab] Click handlers attached successfully')
+    }
+
+    /**
+     * Extract CALM node ID from Mermaid-generated element ID
+     * Mermaid typically generates IDs like "flowchart-node-id-123"
+     */
+    private extractNodeIdFromMermaidElement(mermaidId: string): string | null {
+        // Remove common Mermaid prefixes
+        let cleaned = mermaidId.replace(/^flowchart-/, '')
+        
+        // Remove trailing numbers (Mermaid appends random numbers)
+        // Match everything except the last segment if it's purely numeric
+        const match = cleaned.match(/^(.+?)-\d+$/)
+        if (match) {
+            return match[1]
+        }
+        
+        // If no numeric suffix, return the cleaned ID
+        return cleaned || null
+    }
+
+    /**
+     * Extract CALM relationship ID from Mermaid-generated edge element ID
+     * Mermaid edge IDs are formatted like "L-node1-node2-0" or similar
+     */
+    private extractRelationshipIdFromMermaidElement(mermaidId: string): string | null {
+        // Mermaid edge IDs often start with "L-" or "LE-"
+        let cleaned = mermaidId.replace(/^L[E]?-/, '')
+        
+        // Remove trailing numbers
+        const match = cleaned.match(/^(.+?)-\d+$/)
+        if (match) {
+            return match[1]
+        }
+        
+        return cleaned || null
     }
 
     /**
