@@ -1,9 +1,11 @@
 import MarkdownIt from 'markdown-it'
 import mermaid from 'mermaid'
+import { PanZoomManager } from './pan-zoom-manager'
 
 export default class MermaidRenderer {
     private md: MarkdownIt
     private mermaidReady = false
+    private panZoomManagers: Map<string, PanZoomManager> = new Map()
 
     constructor() {
         this.md = new MarkdownIt({
@@ -62,8 +64,11 @@ export default class MermaidRenderer {
                     // Render the Mermaid diagram
                     const { svg } = await mermaid.render(diagramId, mermaidCode)
                     
-                    // Replace the code block with the SVG
-                    processedContent = processedContent.replace(match[0], svg)
+                    // Wrap the SVG in a container for pan/zoom controls
+                    const wrappedSvg = this.wrapSvgWithContainer(svg, diagramId)
+
+                    // Replace the code block with the wrapped SVG
+                    processedContent = processedContent.replace(match[0], wrappedSvg)
                 } catch (error) {
                     console.error('Error rendering Mermaid diagram:', error)
                     // Keep the original code block if rendering fails
@@ -84,8 +89,11 @@ export default class MermaidRenderer {
                     // Render the Mermaid diagram
                     const { svg } = await mermaid.render(diagramId, mermaidCode)
 
-                    // Replace the code block with the SVG
-                    html = html.replace(match[0], svg)
+                    // Wrap the SVG in a container for pan/zoom controls
+                    const wrappedSvg = this.wrapSvgWithContainer(svg, diagramId)
+
+                    // Replace the code block with the wrapped SVG
+                    html = html.replace(match[0], wrappedSvg)
                 } catch (error) {
                     console.error('Error rendering HTML Mermaid diagram:', error)
                     // Keep the original code block if rendering fails
@@ -97,5 +105,75 @@ export default class MermaidRenderer {
             console.error('Error rendering markdown:', error)
             return `<div style="color: red;">Error rendering content: ${String(error)}</div>`
         }
+    }
+
+    /**
+     * Wrap SVG in a container with a data attribute for pan/zoom initialization
+     */
+    private wrapSvgWithContainer(svg: string, diagramId: string): string {
+        return `<div class="mermaid-diagram-container" data-diagram-id="${diagramId}">
+            ${svg}
+        </div>`
+    }
+
+    /**
+     * Initialize pan/zoom on a diagram after it's been rendered to the DOM
+     * This should be called from the view after the HTML is inserted
+     */
+    public initializePanZoom(containerId: string, options?: any): PanZoomManager | null {
+        const container = document.querySelector(`[data-diagram-id="${containerId}"]`)
+        if (!container) {
+            console.warn(`Container not found for diagram ID: ${containerId}`)
+            return null
+        }
+
+        const svgElement = container.querySelector('svg')
+        if (!svgElement) {
+            console.warn(`SVG element not found in container: ${containerId}`)
+            return null
+        }
+
+        // Get container dimensions - this is what we want the viewport to be
+        const containerElement = container as HTMLElement
+        const containerWidth = containerElement.clientWidth
+        const containerHeight = containerElement.clientHeight
+
+        // Log parent widths to debug layout
+        const docifyContent = containerElement.parentElement
+        const docifyPanel = docifyContent?.parentElement
+        console.log(`[SVG-PAN-ZOOM] Container: ${containerWidth}x${containerHeight}, Original ViewBox: ${svgElement.getAttribute('viewBox')}`)
+        console.log(`[SVG-PAN-ZOOM] Parent widths: docifyContent=${docifyContent?.clientWidth}, docifyPanel=${docifyPanel?.clientWidth}`)
+
+        // Remove any max-width/max-height constraints from Mermaid
+        svgElement.style.removeProperty('max-width')
+        svgElement.style.removeProperty('max-height')
+
+        // Ensure the SVG fills the container
+        svgElement.style.width = '100%'
+        svgElement.style.height = '100%'
+
+        // Create and initialize pan/zoom manager
+        const panZoomManager = new PanZoomManager()
+        panZoomManager.initialize(svgElement, options)
+
+        // Store for later cleanup
+        this.panZoomManagers.set(containerId, panZoomManager)
+
+        return panZoomManager
+    }
+
+    /**
+     * Clean up all pan/zoom instances
+     */
+    public destroyAllPanZoom(): void {
+        this.panZoomManagers.forEach(manager => manager.destroy())
+        this.panZoomManagers.clear()
+    }
+
+    /**
+     * Get pan/zoom manager for a specific diagram
+     */
+    public getPanZoomManager(diagramId: string): PanZoomManager | undefined {
+        return this.panZoomManagers.get(diagramId)
     }
 }
