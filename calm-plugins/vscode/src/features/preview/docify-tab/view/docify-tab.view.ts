@@ -2,6 +2,8 @@ import type { DocifyViewModel } from '../view-model/docify.view-model'
 import MermaidRenderer from '../../webview/mermaid-renderer'
 import { DiagramControls } from '../../webview/diagram-controls'
 
+const DOM_SETTLE_DELAY_MS = 150
+
 /**
  * DocifyTabView - Manages the DOM for the docify tab in the webview  
  * Keeps it simple like the original - just displays docify results
@@ -71,25 +73,25 @@ export class DocifyTabView {
             const diagramContainers = this.container.querySelectorAll('.mermaid-diagram-container')
 
             diagramContainers.forEach(container => {
-                const diagramId = container.getAttribute('data-diagram-id')
-                if (!diagramId) return
+            const diagramId = container.getAttribute('data-diagram-id')
+            if (!diagramId) return
 
-                // Initialize pan/zoom for this diagram
-                const panZoomManager = this.markdownRenderer.initializePanZoom(diagramId, {
-                    minZoom: 0.1,
-                    maxZoom: 10,
-                    zoomScaleSensitivity: 0.2,
-                    mouseWheelZoomEnabled: true,
-                })
-
-                if (panZoomManager) {
-                    // Create controls for this diagram
-                    const controls = new DiagramControls(panZoomManager)
-                    controls.createControls(container as HTMLElement)
-                    this.diagramControls.set(diagramId, controls)
-                }
+            // Initialize pan/zoom for this diagram
+            const panZoomManager = this.markdownRenderer.initializePanZoom(diagramId, {
+                minZoom: 0.1,
+                maxZoom: 10,
+                zoomScaleSensitivity: 0.2,
+                mouseWheelZoomEnabled: true,
             })
-        }, 150)
+
+            if (panZoomManager) {
+                // Create controls for this diagram
+                const controls = new DiagramControls(panZoomManager)
+                controls.createControls(container as HTMLElement)
+                this.diagramControls.set(diagramId, controls)
+            }
+            })
+        }, DOM_SETTLE_DELAY_MS)
     }
 
     /**

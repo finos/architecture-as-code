@@ -1,6 +1,6 @@
 import MarkdownIt from 'markdown-it'
 import mermaid from 'mermaid'
-import { PanZoomManager } from './pan-zoom-manager'
+import { PanZoomManager, PanZoomOptions } from './pan-zoom-manager'
 
 export default class MermaidRenderer {
     private md: MarkdownIt
@@ -120,7 +120,7 @@ export default class MermaidRenderer {
      * Initialize pan/zoom on a diagram after it's been rendered to the DOM
      * This should be called from the view after the HTML is inserted
      */
-    public initializePanZoom(containerId: string, options?: any): PanZoomManager | null {
+    public initializePanZoom(containerId: string, options?: PanZoomOptions): PanZoomManager | null {
         const container = document.querySelector(`[data-diagram-id="${containerId}"]`)
         if (!container) {
             console.warn(`Container not found for diagram ID: ${containerId}`)
@@ -132,17 +132,6 @@ export default class MermaidRenderer {
             console.warn(`SVG element not found in container: ${containerId}`)
             return null
         }
-
-        // Get container dimensions - this is what we want the viewport to be
-        const containerElement = container as HTMLElement
-        const containerWidth = containerElement.clientWidth
-        const containerHeight = containerElement.clientHeight
-
-        // Log parent widths to debug layout
-        const docifyContent = containerElement.parentElement
-        const docifyPanel = docifyContent?.parentElement
-        console.log(`[SVG-PAN-ZOOM] Container: ${containerWidth}x${containerHeight}, Original ViewBox: ${svgElement.getAttribute('viewBox')}`)
-        console.log(`[SVG-PAN-ZOOM] Parent widths: docifyContent=${docifyContent?.clientWidth}, docifyPanel=${docifyPanel?.clientWidth}`)
 
         // Remove any max-width/max-height constraints from Mermaid
         svgElement.style.removeProperty('max-width')
