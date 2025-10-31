@@ -1,0 +1,46 @@
+{
+  "$schema": "https://calm.finos.org/draft/1762/meta/calm-timeline.json",
+  "$id": "https://calm.finos.org/examples/hill-valley-timeline.json",
+  "metadata": {
+    "name": "Timeline of Hill Valley",
+    "description": "A timeline capturing key architectural moments in the history of Hill Valley.",
+    "authors": [
+      {
+        "name": "Marty McFly"
+      }
+    ]
+  },
+  "moments": [
+    {
+      "unique-id": "arch-1855",
+      "detail": "https://calm.finos.org/examples/hill-valley/1855.json",
+      "valid-from": "1855-09-05",
+      "adrs": [
+        "https://calm.finos.org/examples/hill-valley/adrs/HV-001-city-hall-has-a-clock-tower.md"
+      ]
+    },
+    {
+      "unique-id": "arch-1955",
+      "detail": "https://calm.finos.org/examples/hill-valley/1955-1.json",
+      "valid-from": "1955-11-12",
+      "adrs": [
+        "https://calm.finos.org/examples/hill-valley/adrs/HV-002-lightning-bolt-hit-clock-tower.md"
+      ]
+    },
+    {
+      "unique-id": "arch-1985",
+      "detail": "https://calm.finos.org/examples/hill-valley/1985-1.json",
+      "valid-from": "1985-08-26",
+      "adrs": [
+        "https://calm.finos.org/examples/hill-valley/adrs/HV-003-fit-delorean-with-flux-capacitor-and-time-circuits.md"
+      ]
+    },
+    {
+      "unique-id": "arch-2015",
+      "detail": "https://calm.finos.org/examples/hill-valley/2015-1.json",
+      "adrs": [
+        "https://calm.finos.org/examples/hill-valley/adrs/HV-004-convert-garage-to-support-flying-cars.md"
+      ]
+    }
+  ]
+}
