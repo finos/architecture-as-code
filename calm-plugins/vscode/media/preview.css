@@ -343,4 +343,29 @@ body {
     display: block;
 }
 
+/* Clickable nodes and edges in Mermaid diagrams */
+.clickable-node,
+.clickable-edge {
+    cursor: pointer !important;
+    transition: opacity 0.2s ease;
+}
+
+.clickable-node:hover {
+    opacity: 0.7;
+}
+
+.clickable-edge:hover {
+    opacity: 0.8;
+}
+
+/* Back button styles */
+#back-button:hover {
+    background: var(--vscode-button-secondaryHoverBackground);
+    opacity: 0.9;
+}
+
+#back-button:active {
+    transform: translateY(1px);
+}
+
 /* End of styles */

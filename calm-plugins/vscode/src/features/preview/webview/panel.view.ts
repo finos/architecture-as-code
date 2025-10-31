@@ -1,4 +1,4 @@
-import { PanelViewModel } from './panel.view-model'
+import { PanelViewModel, TabsViewModel } from './panel.view-model'
 import { ModelTabView } from '../model-tab/view/model-tab.view'
 import { TemplateTabView } from '../template-tab/view/template-tab.view'
 import { DocifyTabView } from '../docify-tab/view/docify-tab.view'
@@ -8,14 +8,14 @@ import { DocifyTabView } from '../docify-tab/view/docify-tab.view'
  */
 class TabsView {
     private container: HTMLElement
-    private tabsViewModel: any
+    private tabsViewModel: TabsViewModel
 
     // Child views
     private modelTabView: ModelTabView
     private templateTabView: TemplateTabView
     private docifyTabView: DocifyTabView
 
-    constructor(tabsViewModel: any, container: HTMLElement) {
+    constructor(tabsViewModel: TabsViewModel, container: HTMLElement) {
         this.tabsViewModel = tabsViewModel
         this.container = container
 
@@ -26,7 +26,7 @@ class TabsView {
 
         this.modelTabView = new ModelTabView(tabsViewModel.model, modelContainer)
         this.templateTabView = new TemplateTabView(tabsViewModel.template, templateContainer)
-        this.docifyTabView = new DocifyTabView(tabsViewModel.docify, docifyContainer)
+        this.docifyTabView = new DocifyTabView(tabsViewModel.docify, docifyContainer, tabsViewModel.vscode)
 
         // Initialize docify tab
         this.docifyTabView.initialize()
@@ -134,6 +134,9 @@ export class PanelView {
 
         // Wire up the show labels checkbox event listener
         this.bindShowLabelsCheckbox()
+        
+        // Wire up the home button event listener
+        this.bindBackButton()
     }
 
     /**
@@ -180,14 +183,36 @@ export class PanelView {
                 const isChecked = (event.target as HTMLInputElement).checked
                 this.panelViewModel.tabs.template.setShowLabels(isChecked)
                 // Send message to backend to update showLabels preference
-                this.panelViewModel.tabs['vscode'].postMessage({
+                this.panelViewModel.tabs.vscode.postMessage({
                     type: 'toggleLabels',
                     showLabels: isChecked
                 })
                 // Trigger immediate docify refresh to show the change
-                this.panelViewModel.tabs['vscode'].postMessage({
+                this.panelViewModel.tabs.vscode.postMessage({
                     type: 'runDocify'
                 })
+            })
+        }
+    }
+
+    /**
+     * Wire up the home button to clear selection
+     */
+    private bindBackButton(): void {
+        const backButton = document.getElementById('back-button')
+        if (backButton) {
+            backButton.addEventListener('click', () => {
+                // Clear selection in the ViewModel
+                this.panelViewModel.tabs.model.setSelectedId(undefined)
+                
+                // Send message to backend to clear selection
+                this.panelViewModel.tabs.vscode.postMessage({
+                    type: 'selected',
+                    id: ''  // Empty string to clear selection
+                })
+                
+                // Refresh all tabs to show full architecture
+                this.panelViewModel.tabs.vscode.postMessage({ type: 'refreshAll' })
             })
         }
     }
