@@ -2,7 +2,7 @@ import { CalmModelViewModel } from '../model-tab/view-model/calm-model.view-mode
 import { TemplateViewModel } from '../template-tab/view-model/template.view-model'
 import { DocifyViewModel } from '../docify-tab/view-model/docify.view-model'
 
-interface VsCodeApi {
+export interface VsCodeApi {
     postMessage(msg: any): void;
 }
 

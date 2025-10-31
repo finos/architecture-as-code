@@ -1,12 +1,11 @@
 import type { DocifyViewModel } from '../view-model/docify.view-model'
+import type { VsCodeApi } from '../../webview/panel.view-model'
 import MermaidRenderer from '../../webview/mermaid-renderer'
 import { DiagramControls } from '../../webview/diagram-controls'
 
 const DOM_SETTLE_DELAY_MS = 150
-
-interface VsCodeApi {
-    postMessage(message: any): void
-}
+const MIN_CLICKABLE_STROKE_WIDTH = 8
+const HOVER_STROKE_WIDTH = 12
 
 /**
  * DocifyTabView - Manages the DOM for the docify tab in the webview  
@@ -183,15 +182,15 @@ export class DocifyTabView {
             
             // Increase stroke width for better clickability
             const currentWidth = parseFloat(originalStrokeWidth) || 2
-            ;(path as SVGElement).style.strokeWidth = `${Math.max(currentWidth, 8)}px`
+                ; (path as SVGElement).style.strokeWidth = `${Math.max(currentWidth, MIN_CLICKABLE_STROKE_WIDTH)}px`
             
             // Add hover effect via event listeners instead of CSS (more reliable for SVG)
             path.addEventListener('mouseenter', () => {
-                ;(path as SVGElement).style.strokeWidth = '12px'
+                ; (path as SVGElement).style.strokeWidth = `${HOVER_STROKE_WIDTH}px`
             })
             path.addEventListener('mouseleave', () => {
                 const baseWidth = parseFloat(path.getAttribute('data-original-stroke-width') || '2')
-                ;(path as SVGElement).style.strokeWidth = `${Math.max(baseWidth, 8)}px`
+                    ; (path as SVGElement).style.strokeWidth = `${Math.max(baseWidth, MIN_CLICKABLE_STROKE_WIDTH)}px`
             })
 
             // Add click event listener to the path
