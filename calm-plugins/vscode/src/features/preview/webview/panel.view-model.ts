@@ -9,14 +9,14 @@ interface VsCodeApi {
 /**
  * TabsViewModel - Manages tab selection and coordinates child tab ViewModels
  */
-class TabsViewModel {
+export class TabsViewModel {
     private activeTab: 'docify-panel' | 'template-panel' | 'model-panel' = 'docify-panel'
-    private vscode: VsCodeApi
 
     // Child ViewModels
     public readonly model = new CalmModelViewModel()
     public readonly template = new TemplateViewModel()
     public readonly docify = new DocifyViewModel()
+    public readonly vscode: VsCodeApi
 
     // Observer callback for tab changes
     public onTabChanged: (tabId: string) => void = () => { }
