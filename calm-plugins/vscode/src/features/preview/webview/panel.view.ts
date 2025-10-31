@@ -211,7 +211,7 @@ export class PanelView {
                     id: ''  // Empty string to clear selection
                 })
                 
-                // Refresh all tabs to show full architecture - use single message to avoid race conditions
+                // Refresh all tabs to show full architecture
                 this.panelViewModel.tabs.vscode.postMessage({ type: 'refreshAll' })
             })
         }
