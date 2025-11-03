@@ -19,12 +19,15 @@ export default defineConfig({
         '**/mockData',
         'src/main.tsx',
         'src/components/ui/**', // Exclude shadcn components
+        'dist/**', // Exclude build artifacts
+        '**/monacoeditorwork/**', // Exclude Monaco editor workers
       ],
     },
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'monaco-editor': path.resolve(__dirname, './src/test/__mocks__/monaco-editor.ts'),
     },
   },
 });
