@@ -117,6 +117,17 @@ To modify layout, adjust parameters in `getLayoutedElements()` in ArchitectureGr
 5. Clicking a node calls `onNodeClick` which updates `selectedNode`
 6. NodeDetails panel replaces graph when `selectedNode` is set
 
+## Git Commit Requirements
+
+**CRITICAL**: This repository has CLA (Contributor License Agreement) checks that require commits to be authored by @pmerrison.
+
+- Git is already configured correctly with author: Paul Merrison <paul@tetrate.io>
+- **DO NOT** modify git author configuration
+- **DO NOT** use any other author name or email in commits
+- All commits must pass CLA checks to be accepted into the upstream repository
+
+When creating commits, the configured git author will automatically be used. No additional action is required.
+
 ## Project Configuration
 
 - **Vite**: SWC-based React plugin for fast builds
