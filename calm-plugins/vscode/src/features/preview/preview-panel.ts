@@ -18,6 +18,7 @@ import {
   RunDocifyCmd,
   RequestModelDataCmd,
   RequestTemplateDataCmd,
+  RefreshAllCmd,
   ToggleLabelsCmd,
   LogCmd,
   ErrorCmd,
@@ -140,6 +141,7 @@ export class CalmPreviewPanel {
     this.commands.register(new RunDocifyCmd(this))
     this.commands.register(new RequestModelDataCmd(this))
     this.commands.register(new RequestTemplateDataCmd(this))
+    this.commands.register(new RefreshAllCmd(this))
     this.commands.register(new ToggleLabelsCmd(this))
     this.commands.register(new LogCmd(this))
     this.commands.register(new ErrorCmd(this))
@@ -299,8 +301,15 @@ export class CalmPreviewPanel {
     this.viewModel.handleRequestModelData()
   }
 
-  public async handleRequestTemplateData() {
+  public handleRequestTemplateData() {
     this.viewModel.handleRequestTemplateData()
+  }
+
+  public handleRefreshAll() {
+    this.log.info('[preview] handleRefreshAll() called - refreshing all tabs')
+    this.handleRequestModelData()
+    this.handleRequestTemplateData()
+    this.handleRunDocify()
   }
 
   public async handleToggleLabels(showLabels: boolean) {
