@@ -444,12 +444,19 @@ const Index = () => {
         <div className="flex-1 w-full overflow-hidden min-h-0">
           <ResizablePanelGroup direction="vertical" className="h-full">
             {/* Main content area */}
-            <ResizablePanel defaultSize={hasMetadata && !isMetadataCollapsed ? 70 : 100} minSize={30}>
+            <ResizablePanel
+              id="main-content-panel"
+              order={1}
+              defaultSize={hasMetadata && !isMetadataCollapsed ? 70 : 100}
+              minSize={30}
+            >
               <ResizablePanelGroup direction="horizontal">
                 {/* GitHub File Browser - Collapsible Left Panel */}
                 {hasGithub && (
                   <>
                     <ResizablePanel
+                      id="github-panel"
+                      order={1}
                       defaultSize={isGithubCollapsed ? 4 : 20}
                       minSize={isGithubCollapsed ? 4 : 15}
                       maxSize={isGithubCollapsed ? 4 : 35}
@@ -490,6 +497,8 @@ const Index = () => {
 
                 {/* JSON Editor - Collapsible Center-Left Panel */}
                 <ResizablePanel
+                  id="editor-panel"
+                  order={2}
                   defaultSize={isEditorCollapsed ? 4 : editorSizeBeforeCollapse}
                   minSize={isEditorCollapsed ? 4 : 20}
                   maxSize={isEditorCollapsed ? 4 : 100}
@@ -533,7 +542,10 @@ const Index = () => {
                 {!isEditorCollapsed && <ResizableHandle withHandle />}
 
                 {/* Graph Visualization - Always visible, takes remaining space */}
-                <ResizablePanel>
+                <ResizablePanel
+                  id="visualization-panel"
+                  order={3}
+                >
                   <div className="h-full p-6">
                     <ArchitectureGraph
                       jsonData={parsedData}
@@ -551,7 +563,13 @@ const Index = () => {
             {hasMetadata && !isMetadataCollapsed && (
               <>
                 <ResizableHandle withHandle />
-                <ResizablePanel defaultSize={30} minSize={15} maxSize={50}>
+                <ResizablePanel
+                  id="metadata-panel"
+                  order={2}
+                  defaultSize={30}
+                  minSize={15}
+                  maxSize={50}
+                >
                   <MetadataPanel
                     flows={flows}
                     controls={controls}

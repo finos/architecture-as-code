@@ -34,6 +34,13 @@ export const GitHubConnectDialog = ({ open, onOpenChange, onConnect }: GitHubCon
     onOpenChange(false);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleConnect();
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
@@ -56,6 +63,7 @@ export const GitHubConnectDialog = ({ open, onOpenChange, onConnect }: GitHubCon
               placeholder="e.g., finos"
               value={owner}
               onChange={(e) => setOwner(e.target.value)}
+              onKeyDown={handleKeyDown}
             />
           </div>
 
@@ -66,6 +74,7 @@ export const GitHubConnectDialog = ({ open, onOpenChange, onConnect }: GitHubCon
               placeholder="e.g., architecture-as-code"
               value={repo}
               onChange={(e) => setRepo(e.target.value)}
+              onKeyDown={handleKeyDown}
             />
           </div>
 
@@ -76,6 +85,7 @@ export const GitHubConnectDialog = ({ open, onOpenChange, onConnect }: GitHubCon
               placeholder="e.g., main, calm (leave empty for default)"
               value={branch}
               onChange={(e) => setBranch(e.target.value)}
+              onKeyDown={handleKeyDown}
             />
             <p className="text-xs text-muted-foreground">
               Leave empty to use the repository's default branch
@@ -114,6 +124,7 @@ export const GitHubConnectDialog = ({ open, onOpenChange, onConnect }: GitHubCon
                   placeholder="ghp_xxxxxxxxxxxx"
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
+                  onKeyDown={handleKeyDown}
                 />
                 <p className="text-xs text-muted-foreground">
                   Create a token with <code className="bg-muted px-1 rounded">repo</code> scope at{" "}

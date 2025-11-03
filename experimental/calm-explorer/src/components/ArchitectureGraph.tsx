@@ -29,6 +29,97 @@ interface ArchitectureGraphProps {
   onJumpToNode?: (nodeId: string) => void;
 }
 
+const expandOptionsRelationships = (data: any) => {
+  if (!data || !data.relationships) {
+    console.log('expandOptionsRelationships: No data or relationships');
+    return data;
+  }
+
+  console.log('expandOptionsRelationships: Starting with', data.relationships.length, 'relationships');
+
+  const expandedData = { ...data };
+  const nodesToAdd: any[] = [];
+  const relationshipsToAdd: any[] = [];
+  const relationshipsToRemove: string[] = [];
+
+  // Find all options relationships and expand them
+  data.relationships.forEach((rel: any) => {
+    const options = rel["relationship-type"]?.options;
+
+    if (options && Array.isArray(options)) {
+      console.log('Found options relationship:', rel["unique-id"], 'with', options.length, 'options');
+
+      // Mark this relationship for removal since we're expanding it
+      relationshipsToRemove.push(rel["unique-id"]);
+
+      // For now, expand all options (or we could let user select which option)
+      options.forEach((option: any, idx: number) => {
+        console.log(`  Option ${idx}: ${option.description}`);
+
+        // Get node IDs referenced by this option
+        const optionNodeIds = option.nodes || [];
+        console.log(`    - ${optionNodeIds.length} node references:`, optionNodeIds.slice(0, 3));
+
+        // Get relationship IDs referenced by this option
+        const optionRelationshipIds = option.relationships || [];
+        console.log(`    - ${optionRelationshipIds.length} relationship references:`, optionRelationshipIds.slice(0, 3));
+
+        // Find the actual node definitions and add them if they exist
+        const nodesData = data.nodes || [];
+        optionNodeIds.forEach((nodeId: string) => {
+          const node = nodesData.find((n: any) =>
+            (n["unique-id"] || n.unique_id || n.id) === nodeId
+          );
+          if (node && !nodesToAdd.some(n => (n["unique-id"] || n.unique_id || n.id) === nodeId)) {
+            nodesToAdd.push(node);
+          }
+        });
+
+        // Find the actual relationship definitions and add them
+        optionRelationshipIds.forEach((relId: string) => {
+          const relationship = data.relationships.find((r: any) =>
+            (r["unique-id"] || r.unique_id || r.id) === relId
+          );
+          if (relationship && !relationshipsToAdd.some(r => (r["unique-id"] || r.unique_id || r.id) === relId)) {
+            relationshipsToAdd.push(relationship);
+          }
+        });
+      });
+    }
+  });
+
+  console.log('expandOptionsRelationships: Found', nodesToAdd.length, 'nodes to add');
+  console.log('expandOptionsRelationships: Found', relationshipsToAdd.length, 'relationships to add');
+  console.log('expandOptionsRelationships: Removing', relationshipsToRemove.length, 'options relationships');
+
+  // Create a set of existing node IDs to avoid duplicates
+  const existingNodeIds = new Set(
+    (data.nodes || []).map((n: any) => n["unique-id"] || n.unique_id || n.id)
+  );
+
+  // Add nodes that aren't already in the main nodes array
+  const newNodes = [...(data.nodes || [])];
+  nodesToAdd.forEach(node => {
+    const nodeId = node["unique-id"] || node.unique_id || node.id;
+    if (!existingNodeIds.has(nodeId)) {
+      newNodes.push(node);
+    }
+  });
+
+  // Filter out options relationships and add the expanded relationships
+  const newRelationships = (data.relationships || [])
+    .filter((r: any) => !relationshipsToRemove.includes(r["unique-id"]))
+    .concat(relationshipsToAdd);
+
+  console.log('expandOptionsRelationships: Result -', newNodes.length, 'nodes,', newRelationships.length, 'relationships');
+
+  return {
+    ...expandedData,
+    nodes: newNodes,
+    relationships: newRelationships
+  };
+};
+
 const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
@@ -86,33 +177,81 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick, onJumpTo
     const deploymentMap: Record<string, string[]> = {}; // systemId -> [childNodeIds]
 
     try {
+      // Pre-process options relationships to expand pattern nodes/relationships
+      const expandedData = expandOptionsRelationships(data);
+
+      // First pass: identify container nodes and build parent-child map from relationships
+      const containerNodeIds = new Set<string>();
+      const parentMap = new Map<string, string>(); // childId -> parentId
+      const relationships = expandedData.relationships || [];
+
+      relationships.forEach((rel: any) => {
+        if (rel["relationship-type"]?.["deployed-in"]) {
+          const containerId = rel["relationship-type"]["deployed-in"].container;
+          const childNodeIds = rel["relationship-type"]["deployed-in"].nodes || [];
+          if (containerId) {
+            containerNodeIds.add(containerId);
+            // Map each child to its parent
+            childNodeIds.forEach((childId: string) => {
+              parentMap.set(childId, containerId);
+            });
+          }
+        }
+        if (rel["relationship-type"]?.["composed-of"]) {
+          const containerId = rel["relationship-type"]["composed-of"].container;
+          const childNodeIds = rel["relationship-type"]["composed-of"].nodes || [];
+          if (containerId) {
+            containerNodeIds.add(containerId);
+            // Map each child to its parent
+            childNodeIds.forEach((childId: string) => {
+              parentMap.set(childId, containerId);
+            });
+          }
+        }
+      });
+
+      console.log('parseCALMData: Found', containerNodeIds.size, 'container nodes:', Array.from(containerNodeIds));
+      console.log('parseCALMData: Parent map:', Object.fromEntries(parentMap));
+
       // Parse nodes from CALM structure - handle both array and object formats
-      const nodesData = data.nodes || [];
-      
+      const nodesData = expandedData.nodes || [];
+      console.log('parseCALMData: Processing', nodesData.length, 'nodes');
+
       if (Array.isArray(nodesData)) {
         // Handle FINOS CALM array format
         nodesData.forEach((node: any) => {
           const id = node["unique-id"] || node.unique_id || node.id;
           const nodeType = node["node-type"] || node.node_type || node.type;
-          
+
           if (id) {
-            // Separate system nodes from regular nodes
-            if (nodeType === "system") {
-              systemNodes.push({
+            // Treat as system node if it's declared as "system" OR if it's used as a container
+            const isContainer = containerNodeIds.has(id);
+            const isSystemNode = nodeType === "system" || isContainer;
+
+            if (isSystemNode) {
+              const parentId = parentMap.get(id);
+              const systemNode: any = {
                 id,
                 type: "group",
                 position: { x: 0, y: 0 },
                 style: {
                   zIndex: -1,
                 },
-                data: { 
+                data: {
                   label: node.name || id,
-                  nodeType: "system",
-                  ...node 
+                  nodeType: nodeType || "system",
+                  ...node
                 },
-              });
+              };
+              // If this system node has a parent, set it
+              if (parentId) {
+                systemNode.parentId = parentId;
+                systemNode.expandParent = true;
+              }
+              systemNodes.push(systemNode);
             } else {
-              newNodes.push({
+              const parentId = parentMap.get(id);
+              const regularNode: any = {
                 id,
                 type: "custom",
                 position: { x: 0, y: 0 },
@@ -122,31 +261,50 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick, onJumpTo
                   onShowDetails: onShowDetailsCallback,
                   onJumpToControl: onJumpToControlCallback
                 }
-              });
+              };
+              // If this regular node has a parent, set it
+              if (parentId) {
+                regularNode.parentId = parentId;
+                regularNode.expandParent = true;
+              }
+              newNodes.push(regularNode);
             }
           }
         });
+        console.log('parseCALMData: Created', newNodes.length, 'regular nodes and', systemNodes.length, 'system nodes');
       } else {
         // Handle object format
         Object.entries(nodesData).forEach(([id, node]: [string, any]) => {
           const nodeType = (node as any)["node-type"] || (node as any).node_type || (node as any).type;
-          
-          if (nodeType === "system") {
-            systemNodes.push({
+
+          // Treat as system node if it's declared as "system" OR if it's used as a container
+          const isContainer = containerNodeIds.has(id);
+          const isSystemNode = nodeType === "system" || isContainer;
+
+          if (isSystemNode) {
+            const parentId = parentMap.get(id);
+            const systemNode: any = {
               id,
               type: "group",
               position: { x: 0, y: 0 },
               style: {
                 zIndex: -1,
               },
-              data: { 
+              data: {
                 label: (node as any).name || (node as any).unique_id || id,
-                nodeType: "system",
-                ...node 
+                nodeType: nodeType || "system",
+                ...node
               },
-            });
+            };
+            // If this system node has a parent, set it
+            if (parentId) {
+              systemNode.parentId = parentId;
+              systemNode.expandParent = true;
+            }
+            systemNodes.push(systemNode);
           } else {
-            newNodes.push({
+            const parentId = parentMap.get(id);
+            const regularNode: any = {
               id,
               type: "custom",
               position: { x: 0, y: 0 },
@@ -156,13 +314,19 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick, onJumpTo
                 onShowDetails: onShowDetailsCallback,
                 onJumpToControl: onJumpToControlCallback
               }
-            });
+            };
+            // If this regular node has a parent, set it
+            if (parentId) {
+              regularNode.parentId = parentId;
+              regularNode.expandParent = true;
+            }
+            newNodes.push(regularNode);
           }
         });
       }
 
       // Parse flows to identify bidirectional relationships
-      const flows = data.flows || [];
+      const flows = expandedData.flows || [];
       const flowTransitions = new Map<string, Array<{sequence: number, direction: string, description: string, flowName: string}>>();
 
       flows.forEach((flow: any) => {
@@ -182,7 +346,9 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick, onJumpTo
       });
 
       // Parse relationships/edges - handle FINOS CALM nested format
-      const relationships = data.relationships || [];
+      // Note: relationships already declared above for container detection
+      console.log('parseCALMData: Processing', relationships.length, 'relationships');
+
       relationships.forEach((rel: any, index: number) => {
         // Check for deployed-in or composed-of relationships (both handle container-nodes)
         if (rel["relationship-type"]?.["deployed-in"] || rel["relationship-type"]?.["composed-of"]) {
@@ -383,32 +549,37 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick, onJumpTo
         }
       });
 
-      // Separate nodes into groups
-      const nodesInSystems: Node[] = [];
-      const independentNodes: Node[] = [];
-      
-      newNodes.forEach((node) => {
-        let isInSystem = false;
-        for (const [systemId, childIds] of Object.entries(deploymentMap)) {
-          if (childIds.includes(node.id)) {
-            isInSystem = true;
-            nodesInSystems.push({
-              ...node,
-              parentId: systemId,
-              expandParent: true,
-              position: { x: 0, y: 0 }, // Will be set after layout
-            });
-            break;
-          }
+      console.log('parseCALMData: Created', newEdges.length, 'edges from relationships');
+
+      // Separate nodes into groups based on parentId (already set during node creation)
+      const nodesWithParents: Node[] = []; // All nodes (regular and system) that have parents
+      const nodesWithoutParents: Node[] = []; // Top-level nodes only
+
+      // Check regular nodes
+      newNodes.forEach((node: any) => {
+        if (node.parentId) {
+          nodesWithParents.push(node);
+        } else {
+          nodesWithoutParents.push(node);
         }
-        if (!isInSystem) {
-          independentNodes.push(node);
+      });
+
+      // Check system nodes too - they can also have parents now!
+      const topLevelSystemNodes: Node[] = [];
+      const nestedSystemNodes: Node[] = [];
+      systemNodes.forEach((node: any) => {
+        if (node.parentId) {
+          nodesWithParents.push(node);
+          nestedSystemNodes.push(node);
+        } else {
+          nodesWithoutParents.push(node);
+          topLevelSystemNodes.push(node);
         }
       });
 
       // Step 1: Layout children within each system
       systemNodes.forEach((systemNode) => {
-        const childNodes = nodesInSystems.filter(n => n.parentId === systemNode.id);
+        const childNodes = nodesWithParents.filter(n => n.parentId === systemNode.id);
         
         if (childNodes.length > 0) {
           // Get edges within this system
@@ -448,7 +619,7 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick, onJumpTo
           
           // Update child positions to be relative to system origin with padding
           layoutedChildren.forEach((child, idx) => {
-            const originalChild = nodesInSystems.find(n => n.id === child.id);
+            const originalChild = nodesWithParents.find(n => n.id === child.id);
             if (originalChild) {
               originalChild.position = {
                 x: child.position.x - minX + padding,
@@ -473,23 +644,22 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick, onJumpTo
       });
 
       // Step 2: Create top-level layout
-      // For top-level layout, we need to treat systems as single nodes with their calculated dimensions
-      const systemNodesForLayout = systemNodes.map(s => ({
+      // For top-level layout, we only include top-level system nodes (those without parents)
+      const systemNodesForLayout = topLevelSystemNodes.map(s => ({
         ...s,
-        // Don't include children in top-level layout
-        parentId: undefined,
+        // These already don't have parentId set
       }));
       
       // Get edges that connect independent nodes or cross system boundaries
       const topLevelEdges = newEdges.filter(e => {
-        const sourceInSystem = nodesInSystems.some(n => n.id === e.source);
-        const targetInSystem = nodesInSystems.some(n => n.id === e.target);
+        const sourceInSystem = nodesWithParents.some(n => n.id === e.source);
+        const targetInSystem = nodesWithParents.some(n => n.id === e.target);
         // Include edge if at least one end is independent or they're in different systems
         return !sourceInSystem || !targetInSystem;
       });
       
-      // Combine independent nodes and system nodes for top-level layout
-      const topLevelNodes = [...independentNodes, ...systemNodesForLayout];
+      // Combine independent nodes and top-level system nodes for top-level layout
+      const topLevelNodes = [...nodesWithoutParents, ...systemNodesForLayout];
       
       // Layout with increased spacing to prevent overlap
       const dagreGraph = new dagre.graphlib.Graph();
@@ -516,7 +686,7 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick, onJumpTo
       dagre.layout(dagreGraph);
       
       // Apply top-level positions
-      independentNodes.forEach(node => {
+      nodesWithoutParents.forEach(node => {
         const nodeWithPosition = dagreGraph.node(node.id);
         const width = GRAPH_LAYOUT.NODE_WIDTH;
         const height = GRAPH_LAYOUT.NODE_HEIGHT;
@@ -526,7 +696,8 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick, onJumpTo
         };
       });
 
-      systemNodes.forEach(systemNode => {
+      // Apply positions only to top-level system nodes (nested ones get positioned relative to their parents)
+      topLevelSystemNodes.forEach(systemNode => {
         const nodeWithPosition = dagreGraph.node(systemNode.id);
         const width = (systemNode.style?.width as number) || GRAPH_LAYOUT.SYSTEM_NODE_DEFAULT_WIDTH;
         const height = (systemNode.style?.height as number) || GRAPH_LAYOUT.SYSTEM_NODE_DEFAULT_HEIGHT;
@@ -537,7 +708,10 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick, onJumpTo
       });
 
       // Combine all nodes
-      const allNodes = [...systemNodes, ...independentNodes, ...nodesInSystems];
+      const allNodes = [...topLevelSystemNodes, ...nodesWithoutParents.filter(n => !systemNodes.includes(n)), ...nodesWithParents];
+
+      console.log('parseCALMData: Final result -', allNodes.length, 'nodes,', newEdges.length, 'edges');
+      console.log('parseCALMData: Node breakdown - Top-level systems:', topLevelSystemNodes.length, 'Nested systems:', nestedSystemNodes.length, 'Top-level regular:', nodesWithoutParents.filter(n => !systemNodes.includes(n)).length, 'With parents:', nodesWithParents.length);
 
       return { nodes: allNodes, edges: newEdges };
     } catch (error) {
