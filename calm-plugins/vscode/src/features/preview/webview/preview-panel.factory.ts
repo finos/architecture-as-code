@@ -1,9 +1,5 @@
-import { PanelViewModel } from './panel.view-model'
+import { PanelViewModel, VsCodeApi } from './panel.view-model'
 import { PanelView } from './panel.view'
-
-interface VsCodeApi {
-    postMessage(msg: any): void;
-}
 
 /**
  * PreviewPanelFactory - Creates and wires up the complete panel MVVM structure

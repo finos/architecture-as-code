@@ -2,21 +2,21 @@ import { CalmModelViewModel } from '../model-tab/view-model/calm-model.view-mode
 import { TemplateViewModel } from '../template-tab/view-model/template.view-model'
 import { DocifyViewModel } from '../docify-tab/view-model/docify.view-model'
 
-interface VsCodeApi {
+export interface VsCodeApi {
     postMessage(msg: any): void;
 }
 
 /**
  * TabsViewModel - Manages tab selection and coordinates child tab ViewModels
  */
-class TabsViewModel {
+export class TabsViewModel {
     private activeTab: 'docify-panel' | 'template-panel' | 'model-panel' = 'docify-panel'
-    private vscode: VsCodeApi
 
     // Child ViewModels
     public readonly model = new CalmModelViewModel()
     public readonly template = new TemplateViewModel()
     public readonly docify = new DocifyViewModel()
+    public readonly vscode: VsCodeApi
 
     // Observer callback for tab changes
     public onTabChanged: (tabId: string) => void = () => { }
