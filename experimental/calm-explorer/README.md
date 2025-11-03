@@ -1,5 +1,7 @@
 # CALM Explorer
 
+> **Status**: Experimental - APIs, behavior, and visuals may change. Use at your own risk.
+
 An interactive exploration tool for [FINOS CALM](https://github.com/finos/architecture-as-code) (Common Architecture Language Model) architecture diagrams. This tool provides a real-time graph visualization with an integrated JSON editor, enabling users to explore and understand software architecture definitions with support for AI Governance Framework (AIGF) risk annotations.
 
 ## Features
