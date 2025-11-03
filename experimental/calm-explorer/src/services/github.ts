@@ -40,37 +40,37 @@ export class GitHubService {
   /**
    * Get the file tree for a repository
    */
-  async getRepoTree(owner: string, repo: string, branch: string = 'main'): Promise<GitHubFile[]> {
+  async getRepoTree(owner: string, repo: string, branch?: string): Promise<GitHubFile[]> {
     try {
-      // First, get the default branch if not specified
-      const repoResponse = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}`,
-        { headers: this.getHeaders() }
-      );
+      let targetBranch = branch;
 
-      if (!repoResponse.ok) {
-        // Try 'master' if 'main' fails
-        if (branch === 'main') {
-          return this.getRepoTree(owner, repo, 'master');
+      // If no branch specified, get the default branch
+      if (!targetBranch) {
+        const repoResponse = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}`,
+          { headers: this.getHeaders() }
+        );
+
+        if (!repoResponse.ok) {
+          // Provide user-friendly error messages
+          if (repoResponse.status === 404) {
+            throw new Error(`Repository "${owner}/${repo}" not found. Please check the owner and repository name.`);
+          } else if (repoResponse.status === 403) {
+            throw new Error(`Access denied to "${owner}/${repo}". This may be a private repository - try adding a personal access token.`);
+          } else if (repoResponse.status === 401) {
+            throw new Error(`Authentication failed. Please check your personal access token.`);
+          }
+          throw new Error(`Failed to fetch repository: ${repoResponse.statusText}`);
         }
 
-        // Provide user-friendly error messages
-        if (repoResponse.status === 404) {
-          throw new Error(`Repository "${owner}/${repo}" not found. Please check the owner and repository name.`);
-        } else if (repoResponse.status === 403) {
-          throw new Error(`Access denied to "${owner}/${repo}". This may be a private repository - try adding a personal access token.`);
-        } else if (repoResponse.status === 401) {
-          throw new Error(`Authentication failed. Please check your personal access token.`);
-        }
-        throw new Error(`Failed to fetch repository: ${repoResponse.statusText}`);
+        const repoData = await repoResponse.json();
+        targetBranch = repoData.default_branch;
       }
 
-      const repoData = await repoResponse.json();
-      const defaultBranch = repoData.default_branch;
-
-      // Get the tree
+      // Get the tree using the target branch
+      console.log(`Fetching tree for ${owner}/${repo} on branch: ${targetBranch}`);
       const treeResponse = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`,
+        `https://api.github.com/repos/${owner}/${repo}/git/trees/${targetBranch}?recursive=1`,
         { headers: this.getHeaders() }
       );
 
@@ -80,8 +80,13 @@ export class GitHubService {
 
       const treeData: GitHubTreeResponse = await treeResponse.json();
 
+      // Check if tree was truncated (happens for repos with >100k entries)
+      if (treeData.truncated) {
+        console.warn('Repository tree was truncated by GitHub API. Some deeply nested files may not be visible.');
+      }
+
       // Filter for JSON files and convert to our format
-      return treeData.tree
+      const jsonFiles = treeData.tree
         .filter(item => item.type === 'blob' && item.path.endsWith('.json'))
         .map(item => ({
           path: item.path,
@@ -90,6 +95,10 @@ export class GitHubService {
           size: item.size,
           url: item.url,
         }));
+
+      console.log(`Found ${jsonFiles.length} JSON files in ${owner}/${repo}`);
+
+      return jsonFiles;
     } catch (error) {
       console.error('Error fetching repo tree:', error);
       throw error;

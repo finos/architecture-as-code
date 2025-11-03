@@ -107,32 +107,32 @@ describe('GitHubService', () => {
       );
     });
 
-    it('retries with master branch when main fails', async () => {
-      const mockFailedResponse = {
-        ok: false,
-        status: 404,
-        statusText: 'Not Found',
-      };
-
-      const mockSuccessRepoResponse = {
-        ok: true,
-        json: async () => ({ default_branch: 'master' }),
-      };
-
+    it('uses specified branch when provided', async () => {
       const mockTreeResponse = {
         ok: true,
-        json: async () => ({ tree: [], truncated: false }),
+        json: async () => ({
+          tree: [
+            {
+              path: 'test.json',
+              type: 'blob',
+              sha: 'abc123',
+              size: 1024,
+              url: 'https://api.github.com/test',
+            },
+          ],
+          truncated: false,
+        }),
       };
 
-      (global.fetch as any)
-        .mockResolvedValueOnce(mockFailedResponse)
-        .mockResolvedValueOnce(mockSuccessRepoResponse)
-        .mockResolvedValueOnce(mockTreeResponse);
+      (global.fetch as any).mockResolvedValueOnce(mockTreeResponse);
 
-      await service.getRepoTree('owner', 'repo', 'main');
+      await service.getRepoTree('owner', 'repo', 'custom-branch');
 
-      // Should make 3 calls: first attempt, then retry with master
-      expect(global.fetch).toHaveBeenCalledTimes(3);
+      // Should fetch tree directly with the specified branch, no repo call needed
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://api.github.com/repos/owner/repo/git/trees/custom-branch?recursive=1',
+        expect.any(Object)
+      );
     });
 
     it('throws user-friendly error for 404', async () => {
@@ -144,8 +144,9 @@ describe('GitHubService', () => {
 
       (global.fetch as any).mockResolvedValueOnce(mockResponse);
 
+      // Don't specify branch, so it tries to fetch repo first
       await expect(
-        service.getRepoTree('owner', 'repo', 'master')
+        service.getRepoTree('owner', 'repo')
       ).rejects.toThrow('Repository "owner/repo" not found');
     });
 
@@ -159,7 +160,7 @@ describe('GitHubService', () => {
       (global.fetch as any).mockResolvedValueOnce(mockResponse);
 
       await expect(
-        service.getRepoTree('owner', 'repo', 'master')
+        service.getRepoTree('owner', 'repo')
       ).rejects.toThrow('Access denied to "owner/repo"');
     });
 
@@ -173,7 +174,7 @@ describe('GitHubService', () => {
       (global.fetch as any).mockResolvedValueOnce(mockResponse);
 
       await expect(
-        service.getRepoTree('owner', 'repo', 'master')
+        service.getRepoTree('owner', 'repo')
       ).rejects.toThrow('Authentication failed');
     });
 

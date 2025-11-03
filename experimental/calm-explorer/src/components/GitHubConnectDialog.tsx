@@ -9,12 +9,13 @@ import { toast } from "sonner";
 interface GitHubConnectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConnect: (owner: string, repo: string, token?: string) => void;
+  onConnect: (owner: string, repo: string, branch?: string, token?: string) => void;
 }
 
 export const GitHubConnectDialog = ({ open, onOpenChange, onConnect }: GitHubConnectDialogProps) => {
   const [owner, setOwner] = useState("");
   const [repo, setRepo] = useState("");
+  const [branch, setBranch] = useState("");
   const [token, setToken] = useState("");
   const [usePrivate, setUsePrivate] = useState(false);
 
@@ -29,7 +30,7 @@ export const GitHubConnectDialog = ({ open, onOpenChange, onConnect }: GitHubCon
       return;
     }
 
-    onConnect(owner, repo, usePrivate ? token : undefined);
+    onConnect(owner, repo, branch || undefined, usePrivate ? token : undefined);
     onOpenChange(false);
   };
 
@@ -66,6 +67,19 @@ export const GitHubConnectDialog = ({ open, onOpenChange, onConnect }: GitHubCon
               value={repo}
               onChange={(e) => setRepo(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="branch">Branch (optional)</Label>
+            <Input
+              id="branch"
+              placeholder="e.g., main, calm (leave empty for default)"
+              value={branch}
+              onChange={(e) => setBranch(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Leave empty to use the repository's default branch
+            </p>
           </div>
 
           <div className="border-t pt-4">

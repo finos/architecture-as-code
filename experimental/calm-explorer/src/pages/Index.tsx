@@ -280,7 +280,7 @@ const Index = () => {
     toast.success(`Returned to ${previousLevel.name}`);
   }, [historyStack]);
 
-  const handleConnectGitHub = useCallback(async (owner: string, repo: string, token?: string) => {
+  const handleConnectGitHub = useCallback(async (owner: string, repo: string, branch?: string, token?: string) => {
     try {
       // Save token if provided
       if (token) {
@@ -294,10 +294,11 @@ const Index = () => {
       const service = new GitHubService(token);
       setGithubService(service);
 
+      const branchInfo = branch ? ` (branch: ${branch})` : '';
       toast.promise(
-        service.getRepoTree(owner, repo),
+        service.getRepoTree(owner, repo, branch),
         {
-          loading: `Connecting to ${owner}/${repo}...`,
+          loading: `Connecting to ${owner}/${repo}${branchInfo}...`,
           success: (files) => {
             setGithubRepo({ owner, repo });
             setGithubFiles(files);
