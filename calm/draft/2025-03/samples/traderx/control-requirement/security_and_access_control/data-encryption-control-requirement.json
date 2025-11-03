@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/control-requirement/data-encryption",
+  "title": "Data Encryption Requirement",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "encryption-in-transit": {
+      "enum": [
+        "TLS 1.2",
+        "TLS 1.3"
+      ],
+      "description": "Defines the encryption standard used for securing data in transit."
+    },
+    "encryption-at-rest": {
+      "enum": [
+        "AES-128",
+        "AES-256"
+      ],
+      "description": "Defines the encryption standard used for storing data securely at rest."
+    },
+    "key-management": {
+      "type": "string",
+      "description": "Specifies how encryption keys are managed (e.g., AWS KMS, Azure Key Vault, Hardware Security Module)."
+    }
+  },
+  "required": [
+    "encryption-in-transit",
+    "encryption-at-rest",
+    "key-management"
+  ],
+  "examples": [
+    {
+      "encryption-in-transit": "TLS 1.3",
+      "encryption-at-rest": "AES-256",
+      "key-management": "AWS KMS"
+    },
+    {
+      "encryption-in-transit": "TLS 1.2",
+      "encryption-at-rest": "AES-128",
+      "key-management": "On-Prem HSM"
+    }
+  ]
+}

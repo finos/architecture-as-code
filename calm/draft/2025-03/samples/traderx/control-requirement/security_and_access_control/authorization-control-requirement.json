@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/control-requirement/authorization",
+  "title": "Authorization Requirement",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "role-based-access": {
+      "type": "boolean",
+      "description": "Defines if Role-Based Access Control (RBAC) is required."
+    },
+    "access-levels": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "read",
+          "write",
+          "admin",
+          "execute"
+        ]
+      },
+      "description": "Defines the permitted access levels (e.g., read, write, admin, execute)."
+    }
+  },
+  "required": [
+    "role-based-access",
+    "access-levels"
+  ],
+  "examples": [
+    {
+      "role-based-access": true,
+      "access-levels": ["read", "write", "admin"]
+    },
+    {
+      "role-based-access": false,
+      "access-levels": ["read", "execute"]
+    }
+  ]
+}

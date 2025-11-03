@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/traderx/control-requirement/risk-management",
+  "title": "Risk Management Requirement",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json"
+    }
+  ],
+  "properties": {
+    "risk-level": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "description": "Defines the risk level associated with this system or process."
+    },
+    "mitigation-strategies": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "redundancy",
+          "backup policies",
+          "disaster recovery",
+          "access controls",
+          "vendor assessments",
+          "incident response plan",
+          "encryption policies"
+        ]
+      },
+      "description": "Defines the mitigation strategies required for handling risks."
+    },
+    "risk-review-frequency": {
+      "$ref": "https://calm.finos.org/draft/2025-03/meta/units.json#/defs/time-unit",
+      "description": "Defines how often risk assessments should be conducted."
+    }
+  },
+  "required": [
+    "risk-level",
+    "mitigation-strategies",
+    "risk-review-frequency"
+  ],
+  "examples": [
+    {
+      "risk-level": "low",
+      "mitigation-strategies": ["backup policies", "vendor assessments"],
+      "risk-review-frequency": {
+        "unit": "months",
+        "value": 12
+      }
+    },
+    {
+      "risk-level": "high",
+      "mitigation-strategies": ["access controls", "encryption policies", "incident response plan"],
+      "risk-review-frequency": {
+        "unit": "months",
+        "value": 3
+      }
+    },
+    {
+      "risk-level": "critical",
+      "mitigation-strategies": ["backup policies", "redundancy", "disaster recovery", "encryption policies", "incident response plan"],
+      "risk-review-frequency": {
+        "unit": "weeks",
+        "value": 1
+      }
+    }
+  ]
+}
