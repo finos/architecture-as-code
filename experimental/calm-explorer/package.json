@@ -1,7 +1,7 @@
 {
-  "name": "@finos/calm-visualizer",
+  "name": "@finos/calm-explorer",
   "version": "0.1.0",
-  "description": "Interactive visualization tool for FINOS CALM (Common Architecture Language Model) architecture diagrams",
+  "description": "Interactive exploration tool for FINOS CALM (Common Architecture Language Model) architecture diagrams",
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {

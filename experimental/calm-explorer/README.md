@@ -1,6 +1,6 @@
-# CALM Visualizer
+# CALM Explorer
 
-An interactive visualization tool for [FINOS CALM](https://github.com/finos/architecture-as-code) (Common Architecture Language Model) architecture diagrams. This tool provides a real-time graph visualization with an integrated JSON editor, enabling users to explore and understand software architecture definitions with support for AI Governance Framework (AIGF) risk annotations.
+An interactive exploration tool for [FINOS CALM](https://github.com/finos/architecture-as-code) (Common Architecture Language Model) architecture diagrams. This tool provides a real-time graph visualization with an integrated JSON editor, enabling users to explore and understand software architecture definitions with support for AI Governance Framework (AIGF) risk annotations.
 
 ## Features
 
@@ -52,7 +52,7 @@ brew install node
 
 ```bash
 git clone https://github.com/finos/architecture-as-code.git
-cd architecture-as-code/calm-visualizer
+cd architecture-as-code/experimental/calm-explorer
 ```
 
 ### 2. Install Dependencies
@@ -117,7 +117,7 @@ npm run test:coverage
 
 ## CALM JSON Format
 
-The visualizer expects CALM-compliant JSON with this structure:
+The explorer expects CALM-compliant JSON with this structure:
 
 ```json
 {
