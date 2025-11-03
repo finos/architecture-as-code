@@ -108,12 +108,13 @@ export class GitHubService {
   /**
    * Get the content of a specific file
    */
-  async getFileContent(owner: string, repo: string, path: string): Promise<string> {
+  async getFileContent(owner: string, repo: string, path: string, branch?: string): Promise<string> {
     try {
-      console.log(`Fetching file: ${owner}/${repo}/${path}`);
+      const branchParam = branch ? `?ref=${branch}` : '';
+      console.log(`Fetching file: ${owner}/${repo}/${path}${branch ? ` (branch: ${branch})` : ''}`);
 
       const response = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
+        `https://api.github.com/repos/${owner}/${repo}/contents/${path}${branchParam}`,
         { headers: this.getHeaders() }
       );
 

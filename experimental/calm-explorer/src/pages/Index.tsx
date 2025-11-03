@@ -36,7 +36,7 @@ const Index = () => {
 
   // GitHub integration state
   const [showGitHubDialog, setShowGitHubDialog] = useState(false);
-  const [githubRepo, setGithubRepo] = useState<{ owner: string; repo: string } | null>(null);
+  const [githubRepo, setGithubRepo] = useState<{ owner: string; repo: string; branch?: string } | null>(null);
   const [githubFiles, setGithubFiles] = useState<GitHubFile[]>([]);
   const [selectedGithubFile, setSelectedGithubFile] = useState<string | undefined>();
   const [githubService, setGithubService] = useState<GitHubService | null>(null);
@@ -300,7 +300,7 @@ const Index = () => {
         {
           loading: `Connecting to ${owner}/${repo}${branchInfo}...`,
           success: (files) => {
-            setGithubRepo({ owner, repo });
+            setGithubRepo({ owner, repo, branch });
             setGithubFiles(files);
             setSelectedGithubFile(undefined);
             return `Connected! Found ${files.length} JSON files`;
@@ -327,7 +327,7 @@ const Index = () => {
 
       // Fetch content with loading toast
       toast.loading(`Loading ${file.path}...`);
-      const content = await githubService.getFileContent(githubRepo.owner, githubRepo.repo, file.path);
+      const content = await githubService.getFileContent(githubRepo.owner, githubRepo.repo, file.path, githubRepo.branch);
 
       console.log('Got content from GitHub, type:', typeof content, 'length:', content?.length);
       console.log('Content preview:', typeof content === 'string' ? content.substring(0, 200) : content);
