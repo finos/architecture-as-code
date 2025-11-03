@@ -5,6 +5,16 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.14.0 (2025-11-03)
+
+* chore(deps-dev): bump vite from 7.0.0 to 7.0.8 in the npm_and_yarn group across 1 directory ([a96eff47a0713a005611bd14195bf718e95591ff](https://github.com/finos/architecture-as-code/commit/a96eff47a0713a005611bd14195bf718e95591ff))
+* chore(deps-dev): bump vite in the npm_and_yarn group across 1 directory ([d270e50a58041315a5838b624b04d92623349696](https://github.com/finos/architecture-as-code/commit/d270e50a58041315a5838b624b04d92623349696))
+* ci(cli): release version 1.13.0 ([ae6e75efa8803cc433a3f50a57cbba3f5e170b1e](https://github.com/finos/architecture-as-code/commit/ae6e75efa8803cc433a3f50a57cbba3f5e170b1e))
+* ci(cli): release version 1.13.0 ([9be8ab9963ba05c8860b57d7eced1b8dc8b44397](https://github.com/finos/architecture-as-code/commit/9be8ab9963ba05c8860b57d7eced1b8dc8b44397))
+* feat(vscode): add pan and zoom controls for Mermaid diagrams and update styles ([e09143bf6ba3a3d4c6b86c925310e56db3198796](https://github.com/finos/architecture-as-code/commit/e09143bf6ba3a3d4c6b86c925310e56db3198796))
+* feat(vscode): add pan and zoom controls for Mermaid diagrams and update styles ([f0992a66d108923bd6976cf0277d04bf778c5296](https://github.com/finos/architecture-as-code/commit/f0992a66d108923bd6976cf0277d04bf778c5296))
+* refactor(vscode): address copilot suggestions ([2eac7e3c51ae9a64f7b3d78d2431de671f7c72fd](https://github.com/finos/architecture-as-code/commit/2eac7e3c51ae9a64f7b3d78d2431de671f7c72fd))
+
 ## 1.13.0 (2025-10-29)
 
 *  ([d8f465031c07a2eba55cad70286897ab08f933f9](https://github.com/finos/architecture-as-code/commit/d8f465031c07a2eba55cad70286897ab08f933f9))
