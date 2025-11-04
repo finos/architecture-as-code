@@ -1,7 +1,6 @@
 package org.finos.calm.store.mongo;
 
 import com.mongodb.MongoWriteException;
-import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -34,10 +33,9 @@ public class MongoArchitectureStore implements ArchitectureStore {
     private final MongoCollection<Document> architectureCollection;
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public MongoArchitectureStore(MongoClient mongoClient, MongoCounterStore counterStore, MongoNamespaceStore namespaceStore) {
+    public MongoArchitectureStore(MongoDatabase database, MongoCounterStore counterStore, MongoNamespaceStore namespaceStore) {
         this.counterStore = counterStore;
         this.namespaceStore = namespaceStore;
-        MongoDatabase database = mongoClient.getDatabase("calmSchemas");
         this.architectureCollection = database.getCollection("architectures");
     }
 

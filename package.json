@@ -39,7 +39,7 @@
     },
     "devDependencies": {
         "@commitlint/cli": "^20.0.0",
-        "@commitlint/config-conventional": "^19.0.0",
+        "@commitlint/config-conventional": "^20.0.0",
         "@vitest/coverage-v8": "^3.1.1",
         "@vitest/ui": "^3.1.4",
         "commitizen": "^4.3.0",

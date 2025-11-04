@@ -1,7 +1,6 @@
 package org.finos.calm.store.mongo;
 
 import com.mongodb.MongoWriteException;
-import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -33,10 +32,9 @@ public class MongoFlowStore implements FlowStore {
     private final MongoNamespaceStore namespaceStore;
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public MongoFlowStore(MongoClient mongoClient, MongoCounterStore counterStore, MongoNamespaceStore namespaceStore) {
+    public MongoFlowStore(MongoDatabase database, MongoCounterStore counterStore, MongoNamespaceStore namespaceStore) {
         this.counterStore = counterStore;
         this.namespaceStore = namespaceStore;
-        MongoDatabase database = mongoClient.getDatabase("calmSchemas");
         this.flowCollection = database.getCollection("flows");
     }
 

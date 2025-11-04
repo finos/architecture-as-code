@@ -25,19 +25,17 @@ import static org.mockito.Mockito.when;
 public class TestMongoCoreSchemaStoreShould {
 
     @InjectMock
-    MongoClient mongoClient;
+    MongoDatabase mongoDatabase;
 
     private MongoCollection<Document> schemaCollection;
     private MongoCoreSchemaStore mongoCoreSchemaStore;
 
     @BeforeEach
     public void setup() {
-        MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
         schemaCollection = Mockito.mock(DocumentMongoCollection.class);
 
-        when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
         when(mongoDatabase.getCollection("schemas")).thenReturn(schemaCollection);
-        mongoCoreSchemaStore = new MongoCoreSchemaStore(mongoClient);
+        mongoCoreSchemaStore = new MongoCoreSchemaStore(mongoDatabase);
     }
 
     @Test

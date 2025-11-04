@@ -30,6 +30,7 @@ public class MongoFlowIntegration {
     @BeforeEach
     public void setupFlows() {
         String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
+        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
 
         // Safeguard: Fail fast if URI is not set
         if (mongoUri == null || mongoUri.isBlank()) {
@@ -38,7 +39,7 @@ public class MongoFlowIntegration {
         }
 
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
-            MongoDatabase database = mongoClient.getDatabase("calmSchemas");
+            MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("flows")) {
                 database.createCollection("flows");

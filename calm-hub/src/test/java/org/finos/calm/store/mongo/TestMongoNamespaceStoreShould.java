@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 public class TestMongoNamespaceStoreShould {
 
     @InjectMock
-    MongoClient mongoClient;
+    MongoDatabase mongoDatabase;
 
     private MongoCollection<Document> namespaceCollection;
 
@@ -30,12 +30,10 @@ public class TestMongoNamespaceStoreShould {
 
     @BeforeEach
     void setup() {
-        MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
         namespaceCollection = Mockito.mock(DocumentMongoCollection.class);
 
-        when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
         when(mongoDatabase.getCollection("namespaces")).thenReturn(namespaceCollection);
-        mongoNamespaceStore = new MongoNamespaceStore(mongoClient);
+        mongoNamespaceStore = new MongoNamespaceStore(mongoDatabase);
     }
 
     @Test
