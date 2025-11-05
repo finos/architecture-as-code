@@ -159,7 +159,8 @@ From the `calm-hub` directory
 4. When using a self-signed certificate, you have two options to avoid the `No name matching localhost found` CertificateException in the backend.
    1. Add a host entry in `/etc/hosts` file, for example `127.0.0.1 calm-hub.finos.org`
    2. Alternatively, create the self-signed certificate with localhost as the CN or SAN.
-5. Open Calm UI at the URL matching your self-signed certificate’s CN: https://calm-hub.finos.org:8443 or https://localhost:8443.
+5. Some browsers may block `.well-known` endpoints that use self-signed certificates (e.g., https://calm-hub.finos.org:9443/realms/calm-hub-realm/.well-known/openid-configuration). Ensure these endpoints are accessible in your browser before accessing `calm-hub-ui`.
+6. Open Calm UI at the URL matching your self-signed certificate’s CN: https://calm-hub.finos.org:8443 or https://localhost:8443.
 
 ### UI with hot reload (from src/main/webapp)
 

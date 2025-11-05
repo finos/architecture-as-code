@@ -8,6 +8,10 @@ DEVICE_AUTH_RESPONSE=$(curl --insecure -X POST \
   -d "client_id=$CLIENT_ID" -d "scope=$SCOPE" \
   $DEVICE_AUTH_ENDPOINT)
 
+BLUE="\033[0;34m"
+YELLOW="\033[0;33m"
+NC="\033[0m"
+
 # Extract values from the device auth response.
 DEVICE_CODE=$(echo "$DEVICE_AUTH_RESPONSE" | jq -r '.device_code')
 USER_CODE=$(echo "$DEVICE_AUTH_RESPONSE" | jq -r '.user_code')
@@ -16,7 +20,9 @@ VERIFICATION_URI_COMPLETE=$(echo "$DEVICE_AUTH_RESPONSE" | jq -r '.verification_
 EXPIRES_IN=$(echo "$DEVICE_AUTH_RESPONSE" | jq -r '.expires_in')
 INTERVAL=$(echo "$DEVICE_AUTH_RESPONSE" | jq -r '.interval')
 
-echo -e "\nOpen the link in a browser \033[3m[$VERIFICATION_URI]\033[0m, and authenticate with the UserCode:[$USER_CODE] \n the associated device code for this request will expires in $EXPIRES_IN seconds.\n"
+echo -e "${YELLOW}\nThe user you use to authenticate must have the ${SCOPE} scope; otherwise, calm-hub will respond with a 401 or 403 error. For local development with a secure profile, you can use the *demo_admin* user, which is already created in Keycloak.\n${NC}"
+
+echo -e "\nOpen the link in a browser ${BLUE}[$VERIFICATION_URI]${NC}, and authenticate with the UserCode:[$USER_CODE],the associated device code for this request will expires in ${EXPIRES_IN} seconds.\n"
 
 # Poll the token endpoint
 TOKEN_URL="https://calm-hub.finos.org:9443/realms/calm-hub-realm/protocol/openid-connect/token"
