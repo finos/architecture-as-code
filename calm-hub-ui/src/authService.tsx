@@ -12,7 +12,7 @@ const config = {
     loadUserInfo: true,
 };
 
-//Set AUTH_SERVICE_OIDC_ENABLE to true, when backend running with secure profile.
+//Set AUTH_SERVICE_OIDC_ENABLE to true only when the backend is running with a secure profile and is NOT behind an ADC/Reverse-Proxy that handles user authentication.
 export const AUTH_SERVICE_OIDC_ENABLE: boolean = false;
 let userManager: UserManager | null = null;
 
@@ -22,7 +22,7 @@ export function isAuthServiceEnabled(): boolean {
         typeof window !== 'undefined' &&
         typeof window.location !== 'undefined' &&
         window.location.protocol === 'https:';
-    return Boolean(oidcEnabled && isHttps);
+    return (oidcEnabled && isHttps);
 }
 
 if (isAuthServiceEnabled()) {
