@@ -425,9 +425,9 @@ If you found this demo useful, please consider contributing to the CALM project.
 
 ### 🤝 Join the Community
 
-- **[Monthly Community Meetup](https://github.com/finos/architecture-as-code/issues?q=label%3Ameeting)** - Join our community Zoom meetups on the fourth Tuesday of every month. Perfect for newcomers to learn about the project and meet the team!
+- **[Monthly Community Meetup](https://github.com/finos/architecture-as-code/issues?q=label%3Ameeting)** - Join our community Zoom meetups on the fourth Tuesday of every month. Perfect for newcomers to learn about the project and meet the team! You can also find all FINOS events, including this monthly meeting, on the [FINOS Event Calendar](https://calendar.finos.org).
 
-- **[Weekly Contributor Office Hours](http://calendar.finos.org)** - Active contributors meet every Thursday for office hours. Check the FINOS Event Calendar for meeting details.
+- **[Architecture as Code Office Hours](http://calendar.finos.org)** - Active contributors meet every Thursday for office hours. Check the FINOS Event Calendar for meeting details.
 
 - **[Good First Issues](https://github.com/finos/architecture-as-code/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)** - New to the project? Start here! We've labeled issues that are great for first-time contributors.
 
