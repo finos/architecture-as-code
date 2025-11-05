@@ -1,6 +1,7 @@
 ---
 name: 🚀 Feature Proposal
 about: Suggest a new feature for an existing project in the monorepo
+type: Feature
 ---
 
 ## Feature Proposal

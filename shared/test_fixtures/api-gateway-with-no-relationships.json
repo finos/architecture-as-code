@@ -1,6 +1,6 @@
 {
-  "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/calm.json",
-  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/pattern/api-gateway",
+  "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+  "$id": "https://calm.finos.org/pattern/api-gateway",
   "title": "API Gateway Pattern",
   "type": "object",
   "properties": {
@@ -9,7 +9,7 @@
       "minItems": 3,
       "prefixItems": [
         {
-          "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.0/meta/core.json#/defs/node",
           "properties": {
             "ingress-host": {
               "type": "string"
@@ -40,7 +40,7 @@
           ]
         },
         {
-          "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.0/meta/core.json#/defs/node",
           "properties": {
             "description": {
               "const": "The API Consumer making an authenticated and authorized request"
@@ -57,7 +57,7 @@
           }
         },
         {
-          "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.0/meta/core.json#/defs/node",
           "properties": {
             "host": {
               "type": "string"
@@ -84,7 +84,7 @@
           ]
         },
         {
-          "$ref": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-03/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.0/meta/core.json#/defs/node",
           "properties": {
             "description": {
               "const": "The Identity Provider used to verify the bearer token"
