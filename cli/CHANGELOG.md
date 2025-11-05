@@ -5,6 +5,22 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.15.0 (2025-11-05)
+
+* Add ability to navigate the architecture via the preview pane ([862ad4d3f0e925713d2bfec9791a3f73d9b5c580](https://github.com/finos/architecture-as-code/commit/862ad4d3f0e925713d2bfec9791a3f73d9b5c580))
+* Update calm-plugins/vscode/src/features/preview/webview/panel.view.ts ([e41cf7857de8f5084c50ba2fbfda111352ecc9ab](https://github.com/finos/architecture-as-code/commit/e41cf7857de8f5084c50ba2fbfda111352ecc9ab))
+* chore(deps): update semgrep/semgrep docker digest to e2a7ca8 ([4a124e70ef82744ab848968130544d51acc31ad6](https://github.com/finos/architecture-as-code/commit/4a124e70ef82744ab848968130544d51acc31ad6))
+* chore(deps): update semgrep/semgrep docker digest to e2a7ca8 ([6b5bc26925031856b13f55d2021512faade4704e](https://github.com/finos/architecture-as-code/commit/6b5bc26925031856b13f55d2021512faade4704e))
+* chore(issue-templates): standardize issue template metadata by adding type and labels ([091984f1ac8ce158be3c8e56029c80496bd95065](https://github.com/finos/architecture-as-code/commit/091984f1ac8ce158be3c8e56029c80496bd95065))
+* chore(issue-templates): standardize issue template metadata by adding type and labels ([bc4992d7c0fe2ac0cf09e64fdbe43e72e22c15cf](https://github.com/finos/architecture-as-code/commit/bc4992d7c0fe2ac0cf09e64fdbe43e72e22c15cf))
+* chore(vscode): bump version to 0.0.8 ([62826d2fe6ef034371c1c1ebc6127dfda5b5ef82](https://github.com/finos/architecture-as-code/commit/62826d2fe6ef034371c1c1ebc6127dfda5b5ef82))
+* ci(cli): release version 1.14.0 ([147aa31ab916a55c25bc2ecc8ba61e91e589f9e7](https://github.com/finos/architecture-as-code/commit/147aa31ab916a55c25bc2ecc8ba61e91e589f9e7))
+* ci(cli): release version 1.14.0 ([a738e0a7c64eff7abbc2a4eae98ff463db02b960](https://github.com/finos/architecture-as-code/commit/a738e0a7c64eff7abbc2a4eae98ff463db02b960))
+* feat(vscode): add clickable nodes and edges in Mermaid diagrams, implement home button functionality ([c49b7594e5b9671381ac8928b0a392a332eeec3d](https://github.com/finos/architecture-as-code/commit/c49b7594e5b9671381ac8928b0a392a332eeec3d))
+* refactor(vscode): add refreshAll command and improve tab refresh logic ([17b51165af2b87abc7052ffc322a9d131cc69633](https://github.com/finos/architecture-as-code/commit/17b51165af2b87abc7052ffc322a9d131cc69633))
+* refactor(vscode): remove unnecessary semicolons and improve code consistency in DocifyTabView ([22a576e12cbd14f6da5eecc52368db19a3fec5b5](https://github.com/finos/architecture-as-code/commit/22a576e12cbd14f6da5eecc52368db19a3fec5b5))
+* refactor(vscode): update TabsViewModel and TabsView to use explicit types for better clarity ([53767592e57b083cbcecdff3cf265dc72d16f60f](https://github.com/finos/architecture-as-code/commit/53767592e57b083cbcecdff3cf265dc72d16f60f))
+
 ## 1.14.0 (2025-11-03)
 
 * chore(deps-dev): bump vite from 7.0.0 to 7.0.8 in the npm_and_yarn group across 1 directory ([a96eff47a0713a005611bd14195bf718e95591ff](https://github.com/finos/architecture-as-code/commit/a96eff47a0713a005611bd14195bf718e95591ff))
