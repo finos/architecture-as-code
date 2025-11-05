@@ -8,8 +8,7 @@ Unchanged.
 
 ## Timeline Schema Concepts
 
-**Moments** - Time-based architecture snapshots with optional `valid-from` dates, enabling historical views of
-architecture changes over time.
+**Moments** - Time-based architecture snapshots, enabling historical views of architecture changes over time.
 
 ## Question and Feedback
 
