@@ -4,6 +4,10 @@
   "title": "Common Architecture Language Model (CALM) Timelines Vocab",
   "type" : "object",
   "properties": {
+    "current-moment": {
+      "type": "string",
+      "description": "The unique-id of the current architecture moment within the timeline."
+    },
     "moments": {
       "type": "array",
       "items": {
@@ -23,9 +27,36 @@
         "unique-id": {
           "type": "string"
         },
-        "detail": {
+        "name": {
           "type": "string",
-          "description": "A link to an architecture or sub-timeline document."
+          "description": "A human-readable name for this architecture moment."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the architecture state at this moment."
+        },
+        "details": {
+          "type": "object",
+          "properties": {
+            "detail": {
+              "type": "string",
+              "format": "uri",
+              "description": "A link to an architecture or sub-timeline document."
+            },
+            "detail-type": {
+              "type": "string",
+              "description": "The type of document the detail-url is pointing to (e.g., 'architecture-document', 'sub-timeline').",
+              "enum": [
+                "architecture",
+                "sub-timeline"
+              ]
+            }
+          },
+          "required": [
+            "detail",
+            "detail-type"
+          ],
+          "additionalProperties": false
         },
         "valid-from": {
           "type": "string",
@@ -45,9 +76,9 @@
       },
       "required": [
         "unique-id",
+        "name",
         "detail"
-      ],
-      "additionalProperties": false
+      ]
     }
   }
 }

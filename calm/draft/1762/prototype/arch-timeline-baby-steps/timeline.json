@@ -17,8 +17,8 @@
       "unique-id": "secure",
       "name": "Enhanced design with security measures",
       "details": {
-        "detail": "https://calm.finos.org/draft/1762/prototype/arch-timeline/arch-secure.json",
-        "detail-type": "architecture"
+        "detail": "https://calm.finos.org/draft/1762/prototype/arch-timeline/timeline-baby.json",
+        "detail-type": "sub-timeline"
       },
       "adrs": [
         "https://calm.finos.org/draft/1762/prototype/adrs/add-security.md"
