@@ -1,4 +1,4 @@
-name: Build CALM Visualizer
+name: Build CALM Explorer
 
 permissions:
     contents: read
@@ -12,8 +12,8 @@ on:
             - 'main'
 
 jobs:
-    calm-visualizer:
-        name: Build, Test, and Lint CALM Visualizer
+    calm-explorer:
+        name: Build, Test, and Lint CALM Explorer
         runs-on: ubuntu-latest
 
         steps:
@@ -29,10 +29,10 @@ jobs:
               run: npm ci
 
             - name: Lint Module
-              run: npm run lint --workspace=calm-visualizer
+              run: npm run lint --workspace=experimental/calm-explorer
 
             - name: Build workspace
-              run: npm run build --workspace=calm-visualizer
+              run: npm run build --workspace=experimental/calm-explorer
 
             - name: Run tests
-              run: npm run test:run --workspace=calm-visualizer
+              run: npm run test:run --workspace=experimental/calm-explorer
