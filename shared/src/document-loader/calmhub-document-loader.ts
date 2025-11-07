@@ -49,7 +49,7 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         const url = new URL(documentId);
         const protocol = url.protocol;
         if (protocol !== CALM_HUB_PROTO) {
-            throw new Error(`CalmHubDocumentLoader only loads documents with protocol '${CALM_HUB_PROTO}'. Skipping. (Requested: ${protocol})`);
+            throw new Error(`CalmHubDocumentLoader only loads documents with protocol '${CALM_HUB_PROTO}'. (Requested: ${protocol})`);
         }
         const path = url.pathname;
 
