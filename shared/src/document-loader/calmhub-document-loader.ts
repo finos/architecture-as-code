@@ -1,6 +1,6 @@
 import axios, { Axios } from 'axios';
 import { SchemaDirectory } from '../schema-directory';
-import { CalmDocumentType, DocumentLoader } from './document-loader';
+import { CalmDocumentType, DocumentLoader, CALM_HUB_PROTO } from './document-loader';
 import { initLogger, Logger } from '../logger';
 
 export class CalmHubDocumentLoader implements DocumentLoader {
@@ -47,6 +47,10 @@ export class CalmHubDocumentLoader implements DocumentLoader {
 
     async loadMissingDocument(documentId: string, _: CalmDocumentType): Promise<object> {
         const url = new URL(documentId);
+        const protocol = url.protocol;
+        if (protocol !== CALM_HUB_PROTO) {
+            throw new Error(`CalmHubDocumentLoader only loads documents with protocol '${CALM_HUB_PROTO}'. (Requested: ${protocol})`);
+        }
         const path = url.pathname;
 
         this.logger.debug(`Loading CALM schema from ${this.calmHubUrl}${path}`);
