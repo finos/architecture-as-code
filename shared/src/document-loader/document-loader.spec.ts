@@ -33,26 +33,24 @@ describe('DocumentLoader', () => {
         vi.resetModules();
     });
 
-    it('should create a FileSystemDocumentLoader when loadMode is "filesystem"', () => {
+    it('should create a FileSystemDocumentLoader', () => {
 
         const docLoaderOpts: DocumentLoaderOptions = {
-            loadMode: 'filesystem',
             schemaDirectoryPath: 'schemas'
         };
 
-        buildDocumentLoader(docLoaderOpts, false);
+        buildDocumentLoader(docLoaderOpts);
 
         expect(mocks.fsDocLoader).toHaveBeenCalledWith([CALM_META_SCHEMA_DIRECTORY, 'schemas'], false);
     });
 
-    it('should create a CalmHubDocumentLoader when loadMode is "calmhub"', () => {
+    it('should create a CalmHubDocumentLoader when calmHubUrl is defined in loader options', () => {
 
         const docLoaderOpts: DocumentLoaderOptions = {
-            loadMode: 'calmhub',
             calmHubUrl: 'https://example.com'
         };
 
-        buildDocumentLoader(docLoaderOpts, false);
+        buildDocumentLoader(docLoaderOpts);
 
         expect(mocks.calmHubDocLoader).toHaveBeenCalledWith('https://example.com', false);
     });
