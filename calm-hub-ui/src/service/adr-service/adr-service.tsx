@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { getToken } from '../../authService.js';
+import { getAuthHeaders } from '../../authService.js';
 import { CalmAdrMeta } from '@finos/calm-shared/src/view-model/adr.js';
 
 export class AdrService {
@@ -16,11 +16,10 @@ export class AdrService {
      * Fetch adr IDs for a given namespace and set them using the provided setter function.
      */
     async fetchAdrIDs(namespace: string) : Promise<number[]> {
+        const headers = await getAuthHeaders();
         return this.ax
             .get(`/calm/namespaces/${namespace}/adrs`, {
-                headers: {
-                    Authorization: `Bearer ${await getToken()}`,
-                },
+                headers,
             })
             .then((res) => res.data.values)
             .catch((error) => {
@@ -34,11 +33,10 @@ export class AdrService {
      * Fetch revisions for a given namespace and adr ID and set them using the provided setter function.
      */
     async fetchAdrRevisions(namespace: string, adrID: string): Promise<number[]> {
+        const headers = await getAuthHeaders();
         return this.ax
             .get(`/calm/namespaces/${namespace}/adrs/${adrID}/revisions`, {
-                headers: {
-                    Authorization: `Bearer ${await getToken()}`,
-                },
+                headers,
             })
             .then((res) => res.data.values)
             .catch((error) => {
@@ -52,11 +50,10 @@ export class AdrService {
      * Fetch a specific adr by namespace, adr ID, and revision, and set it using the provided setter function.
      */
     async fetchAdr(namespace: string, adrID: string, revision: string): Promise<CalmAdrMeta> {
+        const headers = await getAuthHeaders();
         return this.ax
             .get(`/calm/namespaces/${namespace}/adrs/${adrID}/revisions/${revision}`, {
-                headers: {
-                    Authorization: `Bearer ${await getToken()}`,
-                },
+                headers,
             })
             .then((res) => res.data)
             .catch((error) => {
