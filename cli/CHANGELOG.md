@@ -5,6 +5,25 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## <small>1.15.1 (2025-11-10)</small>
+
+*  ([f6011727d58d5c0fb779f13a772df73f44d22731](https://github.com/finos/architecture-as-code/commit/f6011727d58d5c0fb779f13a772df73f44d22731))
+*  ([0444f730285e33823fa203f1eddcc041c8ae8c11](https://github.com/finos/architecture-as-code/commit/0444f730285e33823fa203f1eddcc041c8ae8c11))
+*  ([153d0fac750e93f7ddfe6f7017bfa0316b471df9](https://github.com/finos/architecture-as-code/commit/153d0fac750e93f7ddfe6f7017bfa0316b471df9))
+* Update Governance.md ([4f5aa284930abc46356413293896b238c16706b8](https://github.com/finos/architecture-as-code/commit/4f5aa284930abc46356413293896b238c16706b8))
+* chore(calm): Delete old drafts (#1761) ([6acbc6d75b0d45b4658c450d771e9fd1abea2914](https://github.com/finos/architecture-as-code/commit/6acbc6d75b0d45b4658c450d771e9fd1abea2914)), closes [#1761](https://github.com/finos/architecture-as-code/issues/1761)
+* chore(deps): update actions/setup-node action to v6 ([32f97def17bcf0a0e303efcea2a25bfa91f3d99a](https://github.com/finos/architecture-as-code/commit/32f97def17bcf0a0e303efcea2a25bfa91f3d99a))
+* chore(deps): update actions/setup-node action to v6 ([3ffe589d9168a123d186f62e1e30d7ebee2fb9bb](https://github.com/finos/architecture-as-code/commit/3ffe589d9168a123d186f62e1e30d7ebee2fb9bb))
+* docs: add contribution links to QuickStart guide ([07c70c367a423a809e58aa82e8e66a3cc359cef6](https://github.com/finos/architecture-as-code/commit/07c70c367a423a809e58aa82e8e66a3cc359cef6))
+* docs: add contribution links to QuickStart guide ([72f04244d12ba545eea5dd2aa79aad69b0d97292](https://github.com/finos/architecture-as-code/commit/72f04244d12ba545eea5dd2aa79aad69b0d97292)), closes [#1721](https://github.com/finos/architecture-as-code/issues/1721)
+* docs: add governance policies for the project ([6ef2270db5e31635f2442a798e1d8bd2c119e64d](https://github.com/finos/architecture-as-code/commit/6ef2270db5e31635f2442a798e1d8bd2c119e64d))
+* docs: add governance policies for the project ([d080da7ac8fabec98e9139c434137d0c9565fa89](https://github.com/finos/architecture-as-code/commit/d080da7ac8fabec98e9139c434137d0c9565fa89))
+* docs: update community engagement section with event calendar links ([96ab932028729420e9dc3e6785032b1494cfb917](https://github.com/finos/architecture-as-code/commit/96ab932028729420e9dc3e6785032b1494cfb917)), closes [#1721](https://github.com/finos/architecture-as-code/issues/1721)
+* fix(shared): clarify test descriptions and error message ([355dd5924dd5958f604b1eff948d9a638480aba9](https://github.com/finos/architecture-as-code/commit/355dd5924dd5958f604b1eff948d9a638480aba9))
+* fix(shared): only access CalmHub when the URL prefix is calm: not every protocol ([1006d441cd7b0931dd2b47d4cd709533883f6c57](https://github.com/finos/architecture-as-code/commit/1006d441cd7b0931dd2b47d4cd709533883f6c57))
+* refactor(calm-hub-ui): improve authorization header handling when hosted behind ADC/reverse proxy (#1780) ([298507070f37246d4b4c55706428bc6ec29f3e70](https://github.com/finos/architecture-as-code/commit/298507070f37246d4b4c55706428bc6ec29f3e70)), closes [#1780](https://github.com/finos/architecture-as-code/issues/1780)
+* test(shared): remove invalid options and arguments from document-loader tests ([357ae879b27f7a705159458acf22638ab97944fd](https://github.com/finos/architecture-as-code/commit/357ae879b27f7a705159458acf22638ab97944fd))
+
 ## 1.14.0 (2025-11-03)
 
 * chore(deps-dev): bump vite from 7.0.0 to 7.0.8 in the npm_and_yarn group across 1 directory ([a96eff47a0713a005611bd14195bf718e95591ff](https://github.com/finos/architecture-as-code/commit/a96eff47a0713a005611bd14195bf718e95591ff))
