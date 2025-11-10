@@ -1,6 +1,6 @@
 import { CalmHubCustomDocumentLoader } from './calmhub-custom-document-loader';
 import { SchemaDirectory } from '../schema-directory';
-import {execFileSync} from "child_process";
+import { execFileSync } from 'child_process';
 import { constants } from 'os';
 import { Mock } from 'vitest';
 
