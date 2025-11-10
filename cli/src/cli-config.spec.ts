@@ -15,6 +15,9 @@ const exampleConfig = {
     calmHubUrl: 'https://example.com/calmhub'
 };
 
+const exampleConfig2 = {
+    calmHubPlugin: '/my/plugin/script'
+};
 
 describe('cli-config', () => {
     beforeEach(() => {
@@ -31,6 +34,14 @@ describe('cli-config', () => {
         });
         const config = await loadCliConfig();
         expect(config).toEqual(exampleConfig);
+    });
+
+    it('loads second user config from .calm.json in home dir', async () => {
+        vol.fromJSON({
+            '/home/user/.calm.json': JSON.stringify(exampleConfig2)
+        });
+        const config = await loadCliConfig();
+        expect(config).toEqual(exampleConfig2);
     });
 
     it('returns null when .calm.json does not exist', async () => {
