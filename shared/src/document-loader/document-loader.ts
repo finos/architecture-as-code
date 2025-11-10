@@ -7,6 +7,8 @@ import { MultiStrategyDocumentLoader } from './multi-strategy-document-loader';
 
 export type CalmDocumentType = 'architecture' | 'pattern' | 'schema';
 
+export const CALM_HUB_PROTO = 'calm:';
+
 export interface DocumentLoader {
     initialise(schemaDirectory: SchemaDirectory): Promise<void>;
     loadMissingDocument(documentId: string, type: CalmDocumentType): Promise<object>;
