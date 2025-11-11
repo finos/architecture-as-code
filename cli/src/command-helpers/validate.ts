@@ -17,6 +17,8 @@ export interface ValidateOptions {
     strict: boolean;
     outputFormat: ValidateOutputFormat;
     outputPath: string;
+    calmHubUrl?: string;
+    calmHubPlugin?: string;
 }
 
 export async function runValidate(options: ValidateOptions) {

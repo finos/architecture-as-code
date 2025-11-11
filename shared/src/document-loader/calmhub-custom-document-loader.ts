@@ -27,7 +27,7 @@ export class CalmHubCustomDocumentLoader implements DocumentLoader {
         }
         const path = url.pathname;
 
-        this.logger.debug(`Loading CALM from ${this.calmHubUrl}${path}`);
+        this.logger.info(`Loading CALM from ${this.calmHubUrl}${path}`);
 
         try {
             const response = execFileSync(this.wrapper, ['--method', 'GET', this.baseURL + path], {

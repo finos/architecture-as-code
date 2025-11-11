@@ -82,7 +82,9 @@ export function setupCLI(program: Command) {
                 verbose: !!options.verbose,
                 strict: options.strict,
                 outputFormat: options.format,
-                outputPath: options.output
+                outputPath: options.output,
+                calmHubUrl: options.calmHubUrl,
+                calmHubPlugin: options.calmHubPlugin
             });
         });
 
