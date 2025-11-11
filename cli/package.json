@@ -1,6 +1,6 @@
 {
     "name": "@finos/calm-cli",
-    "version": "1.14.0",
+    "version": "1.14.1",
     "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
     "homepage": "https://calm.finos.org",
     "repository": {
