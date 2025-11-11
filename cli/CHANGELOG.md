@@ -5,6 +5,11 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.1] - 2025-11-11
+
+### Changed
+- Manual release triggered
+
 ## 1.14.0 (2025-11-03)
 
 * chore(deps-dev): bump vite from 7.0.0 to 7.0.8 in the npm_and_yarn group across 1 directory ([a96eff47a0713a005611bd14195bf718e95591ff](https://github.com/finos/architecture-as-code/commit/a96eff47a0713a005611bd14195bf718e95591ff))
