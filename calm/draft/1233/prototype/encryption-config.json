@@ -1,6 +1,0 @@
-{
-  "encryption-algorithm": "AES-256",
-  "key-rotation-period": "90-days",
-  "data-at-rest": true,
-  "data-in-transit": true
-}

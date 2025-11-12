@@ -1,15 +1,15 @@
 import { Data } from '../model/calm.js';
-import { getToken } from '../authService.js';
+import { getAuthHeaders } from '../authService.js';
 
 /**
  * Fetch namespaces and set them using the provided setter function.
  */
 export async function fetchNamespaces(setNamespaces: (namespaces: string[]) => void) {
     try {
-        const accessToken = await getToken();
+        const headers = await getAuthHeaders();
         const res = await fetch('/calm/namespaces', {
             method: 'GET',
-            headers: { Authorization: `Bearer ${accessToken}` },
+            headers,
         });
         const data = await res.json();
         setNamespaces(data.values);
@@ -26,10 +26,10 @@ export async function fetchPatternIDs(
     setPatternIDs: (patternIDs: string[]) => void
 ) {
     try {
-        const accessToken = await getToken();
+        const headers = await getAuthHeaders();
         const res = await fetch(`/calm/namespaces/${namespace}/patterns`, {
             method: 'GET',
-            headers: { Authorization: `Bearer ${accessToken}` },
+            headers,
         });
         const data = await res.json();
         setPatternIDs(data.values.map((num: number) => num.toString()));
@@ -43,10 +43,10 @@ export async function fetchPatternIDs(
  */
 export async function fetchFlowIDs(namespace: string, setFlowIDs: (flowIDs: string[]) => void) {
     try {
-        const accessToken = await getToken();
+        const headers = await getAuthHeaders();
         const res = await fetch(`/calm/namespaces/${namespace}/flows`, {
             method: 'GET',
-            headers: { Authorization: `Bearer ${accessToken}` },
+            headers,
         });
         const data = await res.json();
         setFlowIDs(data.values.map((id: number) => id.toString()));
@@ -64,10 +64,10 @@ export async function fetchPatternVersions(
     setVersions: (versions: string[]) => void
 ) {
     try {
-        const accessToken = await getToken();
+        const headers = await getAuthHeaders();
         const res = await fetch(`/calm/namespaces/${namespace}/patterns/${patternID}/versions`, {
             method: 'GET',
-            headers: { Authorization: `Bearer ${accessToken}` },
+            headers,
         });
         const data = await res.json();
         setVersions(data.values);
@@ -85,10 +85,10 @@ export async function fetchFlowVersions(
     setFlowVersions: (flowVersions: string[]) => void
 ) {
     try {
-        const accessToken = await getToken();
+        const headers = await getAuthHeaders();
         const res = await fetch(`/calm/namespaces/${namespace}/flows/${flowID}/versions`, {
             method: 'GET',
-            headers: { Authorization: `Bearer ${accessToken}` },
+            headers,
         });
         const data = await res.json();
         setFlowVersions(data.values);
@@ -107,12 +107,12 @@ export async function fetchPattern(
     setPattern: (pattern: Data) => void
 ) {
     try {
-        const accessToken = await getToken();
+        const headers = await getAuthHeaders();
         const res = await fetch(
             `/calm/namespaces/${namespace}/patterns/${patternID}/versions/${version}`,
             {
                 method: 'GET',
-                headers: { Authorization: `Bearer ${accessToken}` },
+                headers,
             }
         );
         const response = await res.json();
@@ -142,12 +142,12 @@ export async function fetchFlow(
     setFlow: (flow: Data) => void
 ) {
     try {
-        const accessToken = await getToken();
+        const headers = await getAuthHeaders();
         const res = await fetch(
             `/calm/namespaces/${namespace}/flows/${flowID}/versions/${version}`,
             {
                 method: 'GET',
-                headers: { Authorization: `Bearer ${accessToken}` },
+                headers,
             }
         );
         const response = await res.json();
@@ -175,10 +175,10 @@ export async function fetchArchitectureIDs(
     setArchitectureIDs: (architectureIDs: string[]) => void
 ) {
     try {
-        const accessToken = await getToken();
+        const headers = await getAuthHeaders();
         const res = await fetch(`/calm/namespaces/${namespace}/architectures`, {
             method: 'GET',
-            headers: { Authorization: `Bearer ${accessToken}` },
+            headers,
         });
         const data = await res.json();
         setArchitectureIDs(data.values.map((id: number) => id.toString()));
@@ -196,12 +196,12 @@ export async function fetchArchitectureVersions(
     setVersions: (versions: string[]) => void
 ) {
     try {
-        const accessToken = await getToken();
+        const headers = await getAuthHeaders();
         const res = await fetch(
             `/calm/namespaces/${namespace}/architectures/${architectureID}/versions`,
             {
                 method: 'GET',
-                headers: { Authorization: `Bearer ${accessToken}` },
+                headers,
             }
         );
         const data = await res.json();
@@ -221,12 +221,12 @@ export async function fetchArchitecture(
     setArchitecture: (architecture: Data) => void
 ) {
     try {
-        const accessToken = await getToken();
+        const headers = await getAuthHeaders();
         const res = await fetch(
             `/calm/namespaces/${namespace}/architectures/${architectureID}/versions/${version}`,
             {
                 method: 'GET',
-                headers: { Authorization: `Bearer ${accessToken}` },
+                headers,
             }
         );
         const response = await res.json();
