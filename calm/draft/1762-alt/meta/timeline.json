@@ -37,12 +37,8 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to why the architecture changed."
-        }
-      },
-      "propertyNames" : {
-        "not" : {
-          "const": "interfaces"
-        }
+        },
+        "interfaces": false
       }
     }
   }
