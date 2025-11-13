@@ -3,6 +3,8 @@ import { SchemaDirectory } from '../schema-directory';
 import { execFileSync } from 'child_process';
 import { constants } from 'os';
 import { Mock } from 'vitest';
+import { CALM_AUTH_PLUGIN_DIRECTORY } from '../consts';
+import path from 'path';
 
 const calmHubBaseUrl = 'http://local-calmhub';
 
@@ -33,7 +35,7 @@ describe('calmhub-custom-document-loader', () => {
         const document = await calmHubDocumentLoader.loadMissingDocument(calmHubUrl, 'schema');
         expect(document).toEqual(JSON.parse(mockResponse));
         expect(execFileSyncMock).toHaveBeenCalledExactlyOnceWith(
-            'my-calmhub-wrapper',
+            path.resolve(CALM_AUTH_PLUGIN_DIRECTORY, 'my-calmhub-wrapper'),
             ['--method', 'GET', calmHubBaseUrl + '/schemas/2025-03/meta/core.json'],
             { 'stdio': 'pipe', 'shell': true, 'encoding': 'utf-8', 'timeout': 30000 });
     });
@@ -50,7 +52,7 @@ describe('calmhub-custom-document-loader', () => {
 
         await expect(calmHubDocumentLoader.loadMissingDocument(calmHubUrl, 'schema')).rejects.toThrow();
         expect(execFileSyncMock).toHaveBeenCalledExactlyOnceWith(
-            'my-calmhub-wrapper',
+            path.resolve(CALM_AUTH_PLUGIN_DIRECTORY, 'my-calmhub-wrapper'),
             ['--method', 'GET', calmHubBaseUrl + '/schemas/2025-03/meta/nonexistent.json'],
             { 'stdio': 'pipe', 'shell': true, 'encoding': 'utf-8', 'timeout': 30000 });
     });

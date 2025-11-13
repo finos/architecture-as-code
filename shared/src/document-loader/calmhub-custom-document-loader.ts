@@ -2,6 +2,8 @@ import { execFileSync } from 'child_process';
 import { SchemaDirectory } from '../schema-directory';
 import { CalmDocumentType, DocumentLoader, CALM_HUB_PROTO } from './document-loader';
 import { initLogger, Logger } from '../logger';
+import path from 'path';
+import { CALM_AUTH_PLUGIN_DIRECTORY } from '../consts';
 
 export class CalmHubCustomDocumentLoader implements DocumentLoader {
     private readonly logger: Logger;
@@ -10,9 +12,10 @@ export class CalmHubCustomDocumentLoader implements DocumentLoader {
 
     constructor(private calmHubUrl: string, calmHubWrapper: string, debug: boolean) {
         this.baseURL = calmHubUrl;
-        this.wrapper = calmHubWrapper;
+        this.wrapper = path.resolve(CALM_AUTH_PLUGIN_DIRECTORY, calmHubWrapper);
         this.logger = initLogger(debug, 'calmhub-custom-document-loader');
         this.logger.info('Configuring CALMHub custom document loader with base URL: ' + calmHubUrl);
+        this.logger.info('Configuring CALMHub custom document loader with plugin: ' + this.wrapper);
     }
 
     async initialise(_: SchemaDirectory): Promise<void> {
