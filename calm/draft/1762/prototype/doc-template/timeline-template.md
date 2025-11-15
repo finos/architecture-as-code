@@ -1,4 +1,0 @@
-# Timeline Template
-
-{{json-viewer}}
-

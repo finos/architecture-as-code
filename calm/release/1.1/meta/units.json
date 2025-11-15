@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://calm.finos.org/release/1.0/meta/units.json",
+  "$id": "https://calm.finos.org/release/1.1/meta/units.json",
   "title": "Common Architecture Language Model Units",
   "defs": {
     "time-unit": {

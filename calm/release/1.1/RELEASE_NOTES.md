@@ -1,6 +1,6 @@
-# CALM Schema DRAFT 1762 Release Notes
+# CALM Schema v1.1 Release Notes
 
-CALM Draft 1762 introduces timelines.
+CALM v1.1 builds on v1.0 to introduce architecture timelines.
 
 ## Core Schema Concepts
 
@@ -8,7 +8,7 @@ Unchanged.
 
 ## Timeline Schema Concepts
 
-**Moments** - Time-based architecture snapshots, enabling historical views of
+**Moments** - Time-based architecture snapshots, enabling views of
 architecture changes over time.
 
 ## Question and Feedback
