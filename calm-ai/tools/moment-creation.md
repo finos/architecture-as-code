@@ -1,28 +1,49 @@
-# CALM Node Creation Guide
+# CALM Moment Creation Guide
 
 ## Critical Requirements
 
-⚠️ **ALWAYS call the node creation tool before creating any nodes**
-⚠️ **ALWAYS call the interface creation tool before adding interfaces to nodes**
+⚠️ **ALWAYS call the moment creation tool before creating any moment**
+⚠️ **ALWAYS call the control creation tool before adding controls to a moment**
 
-## What Are Nodes?
+## What Are Moments?
 
-Nodes represent the "boxes" in a typical architecture diagram and are the fundamental building blocks of any CALM architecture. They provide several key capabilities:
+Moments represent the "major stages" an architecture progresses through over time. A moment represents a single point in time, and the architecture at that moment. They provide several key capabilities:
 
-- **Multi-Level Representation**: Nodes can represent an architecture at different levels of fidelity. For example, one node could represent an entire system, while other nodes may represent the individual services, databases, and components that make up that system.
+- **Time-Based Modeling**: Capture how an architecture evolves over time, including changes to nodes, interfaces, and controls.
+- 
+- **Non-Functional Requirements**: Controls can be added to moments to specify non-functional requirements such as security policies, compliance controls, and operational constraints governing the change to an architecture.
 
-- **Functional Interfaces**: Interfaces can be added to nodes to expose the functions and capabilities that a given node offers to other parts of the architecture.
-
-- **Non-Functional Requirements**: Controls can be added to nodes to specify non-functional requirements such as security policies, compliance controls, and operational constraints.
-
-- **Flexible Granularity**: The level of detail you choose for nodes depends on your architectural modeling needs - from high-level system boundaries down to individual microservices and infrastructure components.
+- **Architecture Decision Records**: Moments can have one or more architecture decision records (ADRs) associated with them, documenting key decisions made to reach that moment.
 
 ## Official JSON Schema Definition
 
-The complete node schema from the FINOS CALM v1.1 specification:
+The complete moment schema from the FINOS CALM v1.1 specification:
 
 ```json
 {
+    "node-moment": {
+      "required": [
+        "details"
+      ],
+      "properties": {
+        "node-type": {
+          "const": "moment"
+        },
+        "valid-from": {
+          "type": "string",
+          "format": "date",
+          "description": "The date when this architecture moment came into effect."
+        },
+        "adrs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to why the architecture changed."
+        },
+        "interfaces": false
+      }
+    },
     "node": {
         "type": "object",
         "properties": {
@@ -108,33 +129,20 @@ The complete node schema from the FINOS CALM v1.1 specification:
 
 ## Required Properties
 
-Every node MUST have:
+Every moment MUST conform to both the `node` and `node-moment` schemas.
+
+Every moment MUST have:
 
 - `unique-id` (string)
-- `node-type` (from allowed enum values)
+- `node-type` (the constant value `moment`)
 - `name` (string)
 - `description` (string)
-
-## Node Types
-
-Available node-type values:
-
-- `actor` - External systems or users
-- `ecosystem` - High-level system boundaries
-- `system` - Business systems
-- `service` - Microservices or APIs
-- `database` - Data storage systems
-- `network` - Network infrastructure
-- `ldap` - Directory services
-- `webclient` - Web applications or frontends
-- `data-asset` - Data files or datasets
-
-**Note**: The schema also allows custom string values beyond the standard enum.
+- `details` - MUST be present. Object with `detailed-architecture` or `required-pattern` properties
 
 ## Optional Properties
 
-- `interfaces` - Communication endpoints (array) - Use interface creation tool for details
-- `details` - Object with `detailed-architecture` or `required-pattern` properties
+- `valid-from` - Date string (YYYY-MM-DD) indicating when this moment came into effect. It is ONLY permitted on past or current moments.
+- `interfaces` - is NOT permitted on a moment
 - `controls` - Compliance controls (see control creation tool)
 - `metadata` - Additional information (see metadata creation tool for details)
 
@@ -188,16 +196,17 @@ Critical: Metadata can be either an array OR an object (see metadata creation to
 }
 ```
 
-## Example Nodes
-
-### Basic Service Node
+## Example Moment
 
 ```json
 {
-    "unique-id": "trading-api",
-    "node-type": "service",
-    "name": "Trading API Service",
-    "description": "Core API for processing trading requests",
+    "unique-id": "trading-api-stage-1",
+    "node-type": "moment",
+    "name": "Trading API Service Initial Release",
+    "description": "First design of trading API",
+    "details": {
+        "detailed-architecture": "https://calm.company.com/architectures/trading-api-v1.architecture.json"
+    },
     "metadata": [
         {
             "version": "2.1.0",
@@ -208,49 +217,17 @@ Critical: Metadata can be either an array OR an object (see metadata creation to
 }
 ```
 
-### Node with Details
-
-```json
-{
-    "unique-id": "payment-system",
-    "node-type": "system",
-    "name": "Payment Processing System",
-    "description": "Handles all payment transactions and reconciliation",
-    "details": {
-        "detailed-architecture": "https://calm.company.com/architectures/payment-system-v2.architecture.json",
-        "required-pattern": "https://calm.company.com/patterns/pci-security.pattern.json"
-    },
-    "metadata": {
-        "compliance": "PCI-DSS Level 1",
-        "criticality": "high"
-    }
-}
-```
-
-### Database Node
-
-```json
-{
-    "unique-id": "user-database",
-    "node-type": "database",
-    "name": "User Database",
-    "description": "Primary database storing user account information"
-}
-```
-
 ## Schema Validation Rules
 
-1. **Required Properties**: Must include `unique-id`, `node-type`, `name`, `description`
-2. **Node Type**: Must be from enum or custom string
+1. **Required Properties**: Must include `unique-id`, `node-type`, `name`, `description1`, `details`.
+2. **Node Type**: Must be `moment`
 3. **Details Object**: Only allows `detailed-architecture` and `required-pattern` properties
 4. **Metadata**: Can be array of objects OR single object (see metadata creation tool)
 5. **Additional Properties**: Schema allows additional properties at node level (`"additionalProperties": true`)
-6. **Interfaces**: Must follow interface schema (use interface creation tool)
 
 ## Key Reminders
 
-- Always use the node creation tool before creating nodes
-- Reference the interface creation tool for interface details
+- Always use the moment creation tool before creating moments
 - Reference the metadata creation tool for metadata structure guidance
 - The schema is authoritative - follow it exactly
-- Node unique-ids must be unique across the entire architecture
+- Node unique-ids must be unique across the entire timeline
