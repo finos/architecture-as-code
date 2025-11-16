@@ -1,7 +1,7 @@
 import { CalmNodeDetails } from './node.js';
 import { CalmMomentSchema } from '../types';
 import { ResolvableAndAdaptable } from './resolvable';
-import { CalmMoment } from "./moment";
+import { CalmMoment } from './moment';
 import { CalmCore } from './core.js';
 
 describe('CalmMoment', () => {

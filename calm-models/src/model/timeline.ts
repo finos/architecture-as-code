@@ -18,7 +18,7 @@ export class CalmTimeline implements CalmAdaptable<CalmTimelineSchema, CalmTimel
         return {
             moments: this.moments.map(moment => moment.toCanonicalSchema()),
             metadata: this.metadata ? this.metadata.toCanonicalSchema() : undefined,
-            "current-moment": this.currentMoment ? this.currentMoment : undefined
+            'current-moment': this.currentMoment ? this.currentMoment : undefined
         };
     }
 
@@ -27,7 +27,7 @@ export class CalmTimeline implements CalmAdaptable<CalmTimelineSchema, CalmTimel
             schema,
             schema.moments.map(CalmMoment.fromSchema),
             schema.metadata ? CalmMetadata.fromSchema(schema.metadata) : undefined,
-            schema["current-moment"]
+            schema['current-moment']
         );
     }
 
