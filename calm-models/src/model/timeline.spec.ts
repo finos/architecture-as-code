@@ -81,7 +81,7 @@ describe('CalmTimeline', () => {
         const canonical = core.toCanonicalSchema();
         expect(canonical.moments[0]['unique-id']).toBe('v1');
         expect(canonical.metadata).toBeDefined();
-        expect(canonical["current-moment"]).toEqual('v1');
+        expect(canonical['current-moment']).toEqual('v1');
     });
 
     it('should return the original schema with toSchema()', () => {

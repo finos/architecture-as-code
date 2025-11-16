@@ -4,7 +4,7 @@ import { CalmNodeDetails } from './node.js';
 import { CalmMomentSchema } from '../types';
 import { CalmAdaptable } from './adaptable.js';
 import { CalmMomentCanonicalModel } from '../canonical/template-models.js';
-import { CalmNode } from "./node";
+import { CalmNode } from './node';
 
 export class CalmMoment extends CalmNode implements CalmAdaptable<CalmMomentSchema, CalmMomentCanonicalModel> {
     constructor(
@@ -25,9 +25,9 @@ export class CalmMoment extends CalmNode implements CalmAdaptable<CalmMomentSche
     }
 
     toCanonicalSchema(): CalmMomentCanonicalModel {
-        let moment: CalmMomentCanonicalModel = super.toCanonicalSchema();
+        const moment: CalmMomentCanonicalModel = super.toCanonicalSchema();
         moment.adrs = this.adrs;
-        moment["valid-from"] = this.validFrom;
+        moment['valid-from'] = this.validFrom;
         return moment;
     }
 
@@ -36,7 +36,7 @@ export class CalmMoment extends CalmNode implements CalmAdaptable<CalmMomentSche
             'unique-id': uniqueId,
             name,
             description,
-            'node-type': nodeType, // will be 'moment'
+            'node-type': _, // will be 'moment'
             'valid-from': validFrom,
             details,
             controls,
