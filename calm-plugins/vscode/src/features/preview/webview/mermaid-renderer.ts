@@ -119,12 +119,12 @@ export default class MermaidRenderer {
     }
 
     /**
-     * Decode HTML entities from markdown-it output
+     * Decode HTML entities from markdown-it output using DOMParser for security
      */
     private decodeHtmlEntities(text: string): string {
-        const textarea = document.createElement('textarea')
-        textarea.innerHTML = text
-        return textarea.value
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(text, 'text/html')
+        return doc.body.textContent || ''
     }
 
     /**

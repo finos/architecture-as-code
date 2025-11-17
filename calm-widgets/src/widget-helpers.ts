@@ -1,3 +1,5 @@
+import { mermaidId as mermaidIdImpl } from './widgets/block-architecture/core/utils';
+
 export function registerGlobalTemplateHelpers(): Record<string, (...args: unknown[]) => unknown> {
     return {
         eq: (a: unknown, b: unknown): boolean => a === b,
@@ -22,8 +24,10 @@ export function registerGlobalTemplateHelpers(): Record<string, (...args: unknow
                 'style', 'linkStyle', 'direction', 'TB', 'BT', 'RL', 'LR', 'TD', 'BR'];
 
             // Check if any reserved word appears as a complete word in the ID
+            // Word boundaries are: start of string, end of string, or delimiters (-, _, ., :)
             for (const reserved of reservedWords) {
                 // Create regex to match the reserved word at word boundaries
+                // \b doesn't work well with hyphens, so we explicitly check boundaries
                 const pattern = new RegExp(
                     `(^|[-_.:])${reserved.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[-_.:])`,
                     'i'
