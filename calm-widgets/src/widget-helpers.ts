@@ -1,5 +1,3 @@
-import { mermaidId as mermaidIdImpl } from './widgets/block-architecture/core/utils';
-
 export function registerGlobalTemplateHelpers(): Record<string, (...args: unknown[]) => unknown> {
     return {
         eq: (a: unknown, b: unknown): boolean => a === b,
