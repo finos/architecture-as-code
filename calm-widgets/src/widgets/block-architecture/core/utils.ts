@@ -18,6 +18,40 @@ export const prettyLabel = (id: string) =>
 export const sanitizeId = (s: string) => s.replace(new RegExp(String.raw`[^\w\-:.]`, 'g'), '_');
 
 /**
+ * Sanitize an identifier for safe use in Mermaid diagrams.
+ * Replaces special characters and prefixes reserved words to avoid conflicts.
+ * Checks if any reserved word appears as a word boundary within the ID.
+ * 
+ * Note: Implementation is in widget-helpers.ts as it's also used as a Handlebars helper.
+ * This re-export provides a TypeScript-friendly interface for programmatic use.
+ */
+export const mermaidId = (s: string): string => {
+    if (!s) return 'node_empty';
+
+    // Sanitize: replace non-word chars (except hyphen, colon, dot) with underscore
+    const sanitized = sanitizeId(s);
+
+    // Mermaid reserved words that need prefixing
+    const reservedWords = ['graph', 'subgraph', 'end', 'click', 'call', 'class', 'classDef',
+        'style', 'linkStyle', 'direction', 'TB', 'BT', 'RL', 'LR', 'TD', 'BR'];
+
+    // Check if any reserved word appears as a complete word in the ID
+    for (const reserved of reservedWords) {
+        // Create regex to match the reserved word at word boundaries
+        const pattern = new RegExp(
+            `(^|[-_.:])${reserved.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[-_.:])`,
+            'i'
+        );
+
+        if (pattern.test(sanitized)) {
+            return `node_${sanitized}`;
+        }
+    }
+
+    return sanitized;
+};
+
+/**
  * Build a unique id for a node-interface pair. Combines the node id and interface key using a stable separator and sanitizes
  * the interface key portion so the resulting id is safe for use in DOM/keys.
  */
