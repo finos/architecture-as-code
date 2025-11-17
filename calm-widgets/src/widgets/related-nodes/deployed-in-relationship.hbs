@@ -2,18 +2,18 @@
   {{!-- Path 1: Show what's deployed in this container (when viewing from container perspective) --}}
   {{#if (eq container ../id)}}
     {{#each nodes}}
-{{this}} -- Deployed In --> {{../container}};
+{{{mermaidId this}}} -- Deployed In --> {{{mermaidId ../container}}};
     {{/each}}
   {{/if}}
   {{!-- Path 2: Show what container this node is deployed IN (when viewing from node perspective) --}}
   {{#each nodes}}
     {{#if (eq this ../../id)}}
-{{this}} -- Deployed In --> {{../container}};
+{{{mermaidId this}}} -- Deployed In --> {{{mermaidId ../container}}};
     {{/if}}
   {{/each}}
 {{else}}
   {{!-- Path 3: Show all deployment relationships (no specific focus) --}}
   {{#each nodes}}
-{{this}} -- Deployed In --> {{../container}};
+{{{mermaidId this}}} -- Deployed In --> {{{mermaidId ../container}}};
   {{/each}}
 {{/if}}
