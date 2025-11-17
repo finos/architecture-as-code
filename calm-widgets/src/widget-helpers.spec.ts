@@ -89,6 +89,45 @@ describe('Widget Helpers', () => {
         });
     });
 
+    describe('mermaidId helper', () => {
+        it('returns sanitized identifiers for Mermaid', () => {
+            expect(helpers.mermaidId('my-node')).toBe('my-node');
+            expect(helpers.mermaidId('service')).toBe('service');
+        });
+
+        it('prefixes IDs that are exactly reserved words', () => {
+            expect(helpers.mermaidId('end')).toBe('node_end');
+            expect(helpers.mermaidId('graph')).toBe('node_graph');
+            expect(helpers.mermaidId('subgraph')).toBe('node_subgraph');
+            expect(helpers.mermaidId('END')).toBe('node_END');
+        });
+
+        it('prefixes IDs that contain reserved words at word boundaries', () => {
+            expect(helpers.mermaidId('end-user')).toBe('node_end-user');
+            expect(helpers.mermaidId('my-end-service')).toBe('node_my-end-service');
+            expect(helpers.mermaidId('graph-node')).toBe('node_graph-node');
+            expect(helpers.mermaidId('node-end')).toBe('node_node-end');
+        });
+
+        it('does not prefix IDs where reserved word is part of a larger word', () => {
+            expect(helpers.mermaidId('endpoint')).toBe('endpoint');
+            expect(helpers.mermaidId('backend')).toBe('backend');
+            expect(helpers.mermaidId('graphql')).toBe('graphql');
+        });
+
+        it('sanitizes special characters', () => {
+            expect(helpers.mermaidId('my/node')).toBe('my_node');
+            expect(helpers.mermaidId('node with spaces')).toBe('node_with_spaces');
+        });
+
+        it('handles non-string input', () => {
+            expect(helpers.mermaidId(null)).toBe('node_empty');
+            expect(helpers.mermaidId(undefined)).toBe('node_empty');
+            expect(helpers.mermaidId(123)).toBe('node_empty');
+            expect(helpers.mermaidId('')).toBe('node_empty');
+        });
+    });
+
     describe('instanceOf helper', () => {
         it('returns true for matching constructor names', () => {
             const obj = new Date();
