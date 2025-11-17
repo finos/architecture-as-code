@@ -82,6 +82,12 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
 
 
     registerTemplateHelpers(): Record<string, (...args: unknown[]) => unknown> {
+        // Mermaid reserved words that need to be prefixed
+        const MERMAID_RESERVED_WORDS = [
+            'graph', 'subgraph', 'end', 'click', 'call', 'class', 'classDef', 'style',
+            'linkStyle', 'direction', 'TB', 'BT', 'RL', 'LR', 'TD', 'BR'
+        ];
+
         return {
             eq: (a, b) => a === b,
             lookup: (obj, key: any) => obj?.[key],
@@ -98,6 +104,27 @@ export default class DocusaurusTransformer implements CalmTemplateTransformer {
                 .replace(/^-+|-+$/g, ''), // Remove leading or trailing hyphens
             isObject: (value: unknown) => typeof value === 'object' && value !== null && !Array.isArray(value),
             isArray: (value: unknown) => Array.isArray(value),
+            mermaidId: (s: unknown) => {
+                if (typeof s !== 'string' || !s) return 'node_empty';
+                
+                // Sanitize special characters
+                const sanitized = s.replace(/[^a-zA-Z0-9_\-.:]/g, '_');
+                
+                // Check if any reserved word appears at word boundaries
+                for (const reserved of MERMAID_RESERVED_WORDS) {
+                    const lowerReserved = reserved.toLowerCase();
+                    const pattern = new RegExp(
+                        `(^|[-_.:])${lowerReserved.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[-_.:])`,
+                        'i'
+                    );
+                    
+                    if (pattern.test(sanitized)) {
+                        return `node_${sanitized}`;
+                    }
+                }
+                
+                return sanitized;
+            },
             notEmpty: (value: unknown): boolean => {
                 if (value == null) return false;
 

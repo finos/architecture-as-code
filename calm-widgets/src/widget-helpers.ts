@@ -11,6 +11,33 @@ export function registerGlobalTemplateHelpers(): Record<string, (...args: unknow
             return undefined;
         },
         json: (obj: unknown): string => JSON.stringify(obj, null, 2),
+        mermaidId: (id: unknown): string => {
+            if (typeof id !== 'string' || !id) return 'node_empty';
+
+            // Sanitize: replace non-word chars (except hyphen, colon, dot) with underscore
+            const sanitized = id.replace(/[^\w\-:.]/g, '_');
+
+            // Mermaid reserved words that need prefixing
+            const reservedWords = ['graph', 'subgraph', 'end', 'click', 'call', 'class', 'classDef',
+                'style', 'linkStyle', 'direction', 'TB', 'BT', 'RL', 'LR', 'TD', 'BR'];
+
+            // Check if any reserved word appears as a complete word in the ID
+            // Word boundaries are: start of string, end of string, or delimiters (-, _, ., :)
+            for (const reserved of reservedWords) {
+                // Create regex to match the reserved word at word boundaries
+                // \b doesn't work well with hyphens, so we explicitly check boundaries
+                const pattern = new RegExp(
+                    `(^|[-_.:])${reserved.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[-_.:])`,
+                    'i'
+                );
+
+                if (pattern.test(sanitized)) {
+                    return `node_${sanitized}`;
+                }
+            }
+
+            return sanitized;
+        },
         instanceOf: (value: unknown, className: unknown): boolean =>
             typeof className === 'string' &&
             typeof value === 'object' &&
