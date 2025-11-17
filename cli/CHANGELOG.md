@@ -5,6 +5,27 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## <small>1.15.2 (2025-11-17)</small>
+
+*  ([5bbef53698f44693809dd1f34f3c17b6aabe5e98](https://github.com/finos/architecture-as-code/commit/5bbef53698f44693809dd1f34f3c17b6aabe5e98))
+* Doc load logs ([c5cac3761512caaca93a8da6493ce473c60047c9](https://github.com/finos/architecture-as-code/commit/c5cac3761512caaca93a8da6493ce473c60047c9))
+* chore(calm): lockfile ([7d59fb547a759fba5188bbada4b779934d29fb4e](https://github.com/finos/architecture-as-code/commit/7d59fb547a759fba5188bbada4b779934d29fb4e))
+* chore(calm): lockfile ([2f6730418d713b5eb78aa23a045a09a3bfc9f734](https://github.com/finos/architecture-as-code/commit/2f6730418d713b5eb78aa23a045a09a3bfc9f734))
+* chore(calm): lockfile (again) ([4012bb15033db8f2585d6dc0b1454f94b847b62d](https://github.com/finos/architecture-as-code/commit/4012bb15033db8f2585d6dc0b1454f94b847b62d))
+* chore(deps): update actions/upload-artifact action to v5 ([21588b97c6838a11f4ba90a6f63f920d62a815b6](https://github.com/finos/architecture-as-code/commit/21588b97c6838a11f4ba90a6f63f920d62a815b6))
+* chore(deps): update actions/upload-artifact action to v5 ([a0133cb8f655641ae61379b770ba25e6a3bedd4c](https://github.com/finos/architecture-as-code/commit/a0133cb8f655641ae61379b770ba25e6a3bedd4c))
+* chore(deps): update docker/metadata-action digest to 318604b ([58c9e928b4e53ace30bc192c570e6934d628d041](https://github.com/finos/architecture-as-code/commit/58c9e928b4e53ace30bc192c570e6934d628d041))
+* chore(deps): update docker/metadata-action digest to 318604b ([757408d10925996b80454daa1381c79809ed5f83](https://github.com/finos/architecture-as-code/commit/757408d10925996b80454daa1381c79809ed5f83))
+* chore(deps): update semgrep/semgrep docker digest to 142b5fb ([d52ab5c5664fda7fc92ad103aaea6c6c4f50d6e7](https://github.com/finos/architecture-as-code/commit/d52ab5c5664fda7fc92ad103aaea6c6c4f50d6e7))
+* chore(deps): update semgrep/semgrep docker digest to 142b5fb ([15573c364b2941934600d6d7e479994729eb7413](https://github.com/finos/architecture-as-code/commit/15573c364b2941934600d6d7e479994729eb7413))
+* chore(deps): update step-security/harden-runner digest to 95d9a5d ([2e6d2897b6f9b963dd83844a54f8d734df8453ab](https://github.com/finos/architecture-as-code/commit/2e6d2897b6f9b963dd83844a54f8d734df8453ab))
+* chore(deps): update step-security/harden-runner digest to 95d9a5d ([5809adeb88f90e63ca21126a98f6b53b91a9a74c](https://github.com/finos/architecture-as-code/commit/5809adeb88f90e63ca21126a98f6b53b91a9a74c))
+* ci(cli): release version 1.14.1 ([68b5945e2b10c8d27cd4aa33b1540a1d1cd5f517](https://github.com/finos/architecture-as-code/commit/68b5945e2b10c8d27cd4aa33b1540a1d1cd5f517))
+* ci(cli): release version 1.14.1 ([ac7a710887246d64039b05c71f43ef3f3c45c34e](https://github.com/finos/architecture-as-code/commit/ac7a710887246d64039b05c71f43ef3f3c45c34e))
+* docs: add explicit CALM validation instructions to architecture creation guide ([6333ec2229a7ab91b83d6c618ed8acb00034018a](https://github.com/finos/architecture-as-code/commit/6333ec2229a7ab91b83d6c618ed8acb00034018a)), closes [#1793](https://github.com/finos/architecture-as-code/issues/1793)
+* docs: add explicit CALM validation instructions to chat mode ([8a67913501d59746323987de93aa51f853b6befe](https://github.com/finos/architecture-as-code/commit/8a67913501d59746323987de93aa51f853b6befe))
+* fix(shared): improve doc loading ([56514875c70c7fdbea613982ebbac17c18b39ddb](https://github.com/finos/architecture-as-code/commit/56514875c70c7fdbea613982ebbac17c18b39ddb))
+
 ## [1.14.1] - 2025-11-11
 
 ### Changed
