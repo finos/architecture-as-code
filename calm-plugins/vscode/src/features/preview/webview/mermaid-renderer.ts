@@ -81,7 +81,9 @@ export default class MermaidRenderer {
             // Finally, check for any remaining HTML-encoded Mermaid blocks
             const htmlMermaidRegex = /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g
             while ((match = htmlMermaidRegex.exec(html)) !== null) {
-                const mermaidCode = match[1].trim()
+                // Decode HTML entities before rendering
+                const encodedCode = match[1].trim()
+                const mermaidCode = this.decodeHtmlEntities(encodedCode)
                 try {
                     // Generate a unique ID for this diagram
                     const diagramId = `mermaid-${Math.random().toString(36).substr(2, 9)}`
@@ -114,6 +116,15 @@ export default class MermaidRenderer {
         return `<div class="mermaid-diagram-container" data-diagram-id="${diagramId}">
             ${svg}
         </div>`
+    }
+
+    /**
+     * Decode HTML entities from markdown-it output
+     */
+    private decodeHtmlEntities(text: string): string {
+        const textarea = document.createElement('textarea')
+        textarea.innerHTML = text
+        return textarea.value
     }
 
     /**

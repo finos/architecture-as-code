@@ -3,39 +3,39 @@
 {{#with (lookup @root.nodeTypeMap nodeType)}}
 {{!-- Use the mapped type for rendering --}}
 {{#if (eq this 'actor')}}
-{{../id}}([👤 {{../label}}]):::actor
+{{{mermaidId ../id}}}([👤 {{../label}}]):::actor
 {{else if (eq this 'database')}}
-{{../id}}[(🗄️ {{../label}})]:::database
+{{{mermaidId ../id}}}[(🗄️ {{../label}})]:::database
 {{else if (eq this 'webclient')}}
-{{../id}}[[💻 {{../label}}]]:::webclient
+{{{mermaidId ../id}}}[[💻 {{../label}}]]:::webclient
 {{else if (eq this 'messagebus')}}
-{{../id}}@{shape: h-cyl, label: "📨 {{../label}}"}
-class {{../id}} messagebus
+{{{mermaidId ../id}}}@{shape: h-cyl, label: "📨 {{../label}}"}
+class {{{mermaidId ../id}}} messagebus
 {{else if (eq this 'service')}}
-{{../id}}[/"⚙️ {{../label}}"/]:::service
+{{{mermaidId ../id}}}[/"⚙️ {{../label}}"/]:::service
 {{else if (eq this 'system')}}
-{{../id}}[🏢 {{../label}}]:::system
+{{{mermaidId ../id}}}[🏢 {{../label}}]:::system
 {{else}}
 {{!-- Unknown mapped type, use default --}}
-{{../id}}["{{../label}}"]:::node
+{{{mermaidId ../id}}}["{{../label}}"]:::node
 {{/if}}
 {{else}}
 {{!-- No mapping, use direct node type or default --}}
 {{#if (eq nodeType 'actor')}}
-{{id}}([👤 {{label}}]):::actor
+{{{mermaidId id}}}([👤 {{label}}]):::actor
 {{else if (eq nodeType 'database')}}
-{{id}}[(🗄️ {{label}})]:::database
+{{{mermaidId id}}}[(🗄️ {{label}})]:::database
 {{else if (eq nodeType 'webclient')}}
-{{id}}[[💻 {{label}}]]:::webclient
+{{{mermaidId id}}}[[💻 {{label}}]]:::webclient
 {{else if (eq nodeType 'messagebus')}}
-{{id}}@{shape: h-cyl, label: "📨 {{label}}"}
-class {{id}} messagebus
+{{{mermaidId id}}}@{shape: h-cyl, label: "📨 {{label}}"}
+class {{{mermaidId id}}} messagebus
 {{else if (eq nodeType 'service')}}
-{{id}}[/"⚙️ {{label}}"/]:::service
+{{{mermaidId id}}}[/"⚙️ {{label}}"/]:::service
 {{else if (eq nodeType 'system')}}
-{{id}}[🏢 {{label}}]:::system
+{{{mermaidId id}}}[🏢 {{label}}]:::system
 {{else}}
 {{!-- Default rectangle for unknown types --}}
-{{id}}["{{label}}"]:::node
+{{{mermaidId id}}}["{{label}}"]:::node
 {{/if}}
 {{/with}}

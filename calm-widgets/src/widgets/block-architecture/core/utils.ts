@@ -18,6 +18,45 @@ export const prettyLabel = (id: string) =>
 export const sanitizeId = (s: string) => s.replace(new RegExp(String.raw`[^\w\-:.]`, 'g'), '_');
 
 /**
+ * Set of Mermaid reserved words that cannot be used as node identifiers
+ */
+const MERMAID_RESERVED_WORDS = [
+    'graph', 'subgraph', 'end', 'click', 'call', 'class', 'classDef', 'style', 'linkStyle',
+    'direction', 'TB', 'BT', 'RL', 'LR', 'TD', 'BR'
+];
+
+/**
+ * Sanitize an identifier for safe use in Mermaid diagrams.
+ * Replaces special characters and prefixes reserved words to avoid conflicts.
+ * Checks if any reserved word appears as a word boundary within the ID.
+ */
+export const mermaidId = (s: string) => {
+    if (!s) return 'node_empty';
+
+    // First sanitize special characters
+    const sanitized = sanitizeId(s);
+
+    // Check if any reserved word appears as a complete word in the ID
+    // Word boundaries are: start of string, end of string, or delimiters (-, _, ., :)
+    for (const reserved of MERMAID_RESERVED_WORDS) {
+        const lowerReserved = reserved.toLowerCase();
+
+        // Create regex to match the reserved word at word boundaries
+        // \b doesn't work well with hyphens, so we explicitly check boundaries
+        const pattern = new RegExp(
+            `(^|[-_.:])${lowerReserved.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[-_.:])`,
+            'i'
+        );
+
+        if (pattern.test(sanitized)) {
+            return `node_${sanitized}`;
+        }
+    }
+
+    return sanitized;
+};
+
+/**
  * Build a unique id for a node-interface pair. Combines the node id and interface key using a stable separator and sanitizes
  * the interface key portion so the resulting id is safe for use in DOM/keys.
  */
