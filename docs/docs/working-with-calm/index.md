@@ -1,7 +1,7 @@
 ---
 id: working-with-calm-index
 title: Working with CALM
-sidebar_position: 1
+sidebar_position: 3
 ---
 
 # Working with CALM
