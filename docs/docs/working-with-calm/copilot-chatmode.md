@@ -48,14 +48,9 @@ This command creates a `.github/chatmodes/CALM.chatmode.md` configuration file i
 
 The chatmode setup provides GitHub Copilot with:
 
-### Schema-Accurate Guidance
-Complete JSON schema definitions for all CALM components ensure that suggestions follow the official CALM specification.
-
-### Critical Validation Requirements
-Emphasis on important constraints like `oneOf` requirements for interfaces and proper relationship structures.
-
-### Best Practice Enforcement
-Guidance on naming conventions, relationship patterns, and proper architecture structure.
+- **Schema-Accurate Guidance**: Complete JSON schema definitions for all CALM components ensure that suggestions follow the official CALM specification.
+- **Critical Validation Requirements**: Emphasis on important constraints like `oneOf` requirements for interfaces and proper relationship structures.
+- **Best Practice Enforcement**: Guidance on naming conventions, relationship patterns, and proper architecture structure.
 
 ### Specialized Tools
 
@@ -103,48 +98,6 @@ What's the recommended way to model a database relationship?
 Generate documentation for my CALM architecture
 ```
 
-## Benefits
-
-### Intelligent Assistance
-Get context-aware suggestions that understand CALM schema requirements and validation rules.
-
-### Faster Development
-Reduce the time spent looking up schema definitions and validation requirements.
-
-### Error Prevention
-Catch common mistakes before validation by following AI-recommended best practices.
-
-### Learning Tool
-Understand CALM concepts better through interactive explanations and examples.
-
-## Troubleshooting
-
-### Chatmode Not Appearing
-
-If the CALM chatmode doesn't appear in VS Code:
-
-1. Verify the `.github/chatmodes/CALM.chatmode.md` file exists in your repository
-2. Restart VS Code to reload chatmode configurations
-3. Ensure GitHub Copilot Chat extension is enabled and up to date
-4. Check that you're using VS Code 1.94 or later
-
-### Copilot Doesn't Understand CALM
-
-If Copilot provides generic responses instead of CALM-specific guidance:
-
-1. Ensure you've selected the **CALM** chatmode (not the default chat)
-2. Verify the tool prompt files exist in `.github/chatmodes/calm-prompts/`
-3. Try restarting the GitHub Copilot service in VS Code
-4. Re-run `calm copilot-chatmode` to refresh the configuration
-
-### Permission Issues
-
-If you encounter permission errors when creating the chatmode files:
-
-1. Ensure you have write permissions in the project directory
-2. Check that `.github/chatmodes/` directory can be created
-3. Run with appropriate permissions (avoid using `sudo` if possible)
-
 ## Updating Chatmode Configuration
 
 If you update the CALM CLI or want to refresh the chatmode configuration:
@@ -158,5 +111,3 @@ This will update the chatmode files with the latest tool prompts and guidance.
 ## Next Steps
 
 - Learn about [Voice Mode](voice-mode) for hands-free architecture modeling
-- Explore the [Generate](generate) command to create architectures from patterns
-- Use [Validate](validate) to ensure your architecture meets pattern requirements
