@@ -1,0 +1,25 @@
+{
+  "$schema": "https://calm.finos.org/release/1.1/meta/calm-timeline.json",
+  "current-moment": "api-gateway-v1",
+  "moments": [
+    {
+      "unique-id": "api-gateway-v1",
+      "node-type": "moment",
+      "name": "API Gateway v1",
+      "description": "First version of the API Gateway",
+      "details": {
+        "detailed-architecture": "api-gateway-architecture.json"
+      }
+    },
+    {
+      "unique-id": "api-gateway-v2",
+      "node-type": "moment",
+      "name": "API Gateway v2",
+      "description": "Second version of the API Gateway",
+      "valid-from": "2030-13-01",
+      "details": {
+        "detailed-architecture": "api-gateway-architecture.json"
+      }
+    }
+  ]
+}

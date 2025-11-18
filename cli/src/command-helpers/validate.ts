@@ -12,6 +12,7 @@ import { Logger } from '@finos/calm-shared/dist/logger';
 export interface ValidateOptions {
     patternPath?: string;
     architecturePath?: string;
+    timelinePath?: string;
     metaSchemaPath: string;
     verbose: boolean;
     strict: boolean;
@@ -27,14 +28,32 @@ export async function runValidate(options: ValidateOptions) {
         const schemaDirectory = await buildSchemaDirectory(docLoader, options.verbose);
         await schemaDirectory.loadSchemas();
 
-        const { architecture, pattern } = await loadArchitectureAndPattern(
-            options.architecturePath,
-            options.patternPath,
-            docLoader,
-            schemaDirectory,
-            logger
-        );
-        const outcome = await validate(architecture, pattern, schemaDirectory, options.verbose);
+        let architecture: object;
+        let pattern: object;
+        let timeline: object;
+
+        if (options.timelinePath) {
+            const result = await loadTimeline(
+                options.timelinePath,
+                docLoader,
+                schemaDirectory,
+                logger
+            );
+            timeline = result.timeline;
+            pattern = result.pattern;
+        }
+        else {
+            const result = await loadArchitectureAndPattern(
+                options.architecturePath,
+                options.patternPath,
+                docLoader,
+                schemaDirectory,
+                logger
+            );
+            architecture = result.architecture;
+            pattern = result.pattern;
+        }
+        const outcome = await validate(architecture, pattern, timeline, schemaDirectory, options.verbose);
         const content = getFormattedOutput(outcome, options.outputFormat);
         writeOutputFile(options.outputPath, content);
         exitBasedOffOfValidationOutcome(outcome, options.strict);
@@ -98,6 +117,13 @@ async function loadArchitecture(architecturePath: string, docLoader: DocumentLoa
     return arch;
 }
 
+async function loadTimeline(timelinePath: string, docLoader: DocumentLoader, schemaDirectory: SchemaDirectory, logger: Logger): Promise<{ timeline: object, pattern: object }> {
+    const timeline = await docLoader.loadMissingDocument(timelinePath, 'timeline');
+    logger.debug(`Loaded timeline from ${timelinePath}`);
+
+    return { timeline, pattern: await loadPatternFromArchitectureIfPresent(timeline, docLoader, schemaDirectory, logger) };
+}
+
 
 export function writeOutputFile(output: string, validationsOutput: string) {
     if (output) {
@@ -110,8 +136,12 @@ export function writeOutputFile(output: string, validationsOutput: string) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function checkValidateOptions(program: Command, options: any, patternOption: string, architectureOption: string) {
-    if (!options.pattern && !options.architecture) {
-        program.error(`error: one of the required options '${patternOption}' or '${architectureOption}' was not specified`);
+export function checkValidateOptions(program: Command, options: any, patternOption: string, architectureOption: string,
+                                     timelineOption: string) {
+    if (options.timeline && (options.pattern || options.architecture)) {
+        program.error(`error: the option '${timelineOption}' cannot be used with either of the options '${patternOption}' or '${architectureOption}'`);
+    }
+    if (!options.pattern && !options.architecture && !options.timeline) {
+        program.error(`error: one of the required options '${patternOption}', '${architectureOption}' or '${timelineOption}' was not specified`);
     }
 }

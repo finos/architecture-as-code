@@ -3,6 +3,7 @@ import { Spectral, ISpectralDiagnostic, RulesetDefinition } from '@stoplight/spe
 
 import validationRulesForPattern from '../../spectral/rules-pattern';
 import validationRulesForArchitecture from '../../spectral/rules-architecture';
+import validationRulesForTimeline from '../../spectral/rules-timeline';
 import { DiagnosticSeverity } from '@stoplight/types';
 import { initLogger, Logger } from '../../logger.js';
 import { ValidationOutput, ValidationOutcome } from './validation.output.js';
@@ -86,28 +87,36 @@ async function runSpectralValidations(
  * Validation - with simple input parameters and output validation outcomes.
  * @param architecture The architecture as a JS object
  * @param pattern The pattern as a JS object
- * @param metaSchemaPath File path to meta schema directory
+ * @param timeline The timeline as a JS object
+ * @param schemaDirectory SchemaDirectory instance for schema resolution
  * @param debug Whether to log at debug level
  * @returns Validation report
  */
 export async function validate(
     architecture: object,
     pattern: object,
+    timeline: object,
     schemaDirectory?: SchemaDirectory,
     debug: boolean = false
 ): Promise<ValidationOutcome> {
     logger = initLogger(debug, 'calm-validate');
 
     try {
-        if (architecture && pattern) {
+        if (timeline) {
+            if (architecture) {
+                logger.debug('You cannot provide an architecture when validating a timeline');
+                throw new Error('You cannot provide an architecture when validating a timeline');
+            }
+            return await validateTimelineAgainstPattern(timeline, pattern, schemaDirectory, debug);
+        } else if (architecture && pattern) {
             return await validateArchitectureAgainstPattern(architecture, pattern, schemaDirectory, debug);
         } else if (pattern) {
             return await validatePatternOnly(pattern, schemaDirectory, debug);
         } else if (architecture) {
             return await validateArchitectureOnly(architecture);
         } else {
-            logger.debug('You must provide at least an architecture or a pattern');
-            throw new Error('You must provide at least an architecture or a pattern');
+            logger.debug('You must provide an architecture, a pattern, or a timeline');
+            throw new Error('You must provide an architecture, a pattern, or a timeline');
         }
     } catch (error) {
         logger.error('An error occured:' + error);
@@ -198,6 +207,38 @@ async function validateArchitectureOnly(architecture: object): Promise<Validatio
 
     logger.debug(`Returning validation outcome with ${jsonSchemaValidations.length} JSON schema validations, errors: ${errors}`);
     return new ValidationOutcome(jsonSchemaValidations, spectralResultForArchitecture.spectralIssues, errors, warnings);
+}
+
+/**
+ * Run validations for a timeline.
+ * This essentially runs the spectral validations and tries to compile the timeline.
+ *
+ * @param timeline - the timeline to validate.
+ * @param pattern - the pattern to validate against. This will likely be the timeline's schema.
+ * @param schemaDirectory - the SchemaDirectory instance to use for schema resolution.
+ * @param debug - the flag to enable debug logging.
+ * @returns the validation outcome with the results of the spectral validation and the timeline compilation.
+ */
+async function validateTimelineAgainstPattern(timeline: object, pattern: object, schemaDirectory: SchemaDirectory, debug: boolean): Promise<ValidationOutcome> {
+    logger.debug('Timeline will be validated');
+    const spectralValidationResults: SpectralResult = await runSpectralValidations(stripRefs(timeline), validationRulesForTimeline);
+
+    let errors = spectralValidationResults.errors;
+    const warnings = spectralValidationResults.warnings;
+
+    const jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, pattern, debug);
+    await jsonSchemaValidator.initialize();
+
+    let jsonSchemaValidations = [];
+
+    const schemaErrors = jsonSchemaValidator.validate(timeline);
+    if (schemaErrors.length > 0) {
+        logger.debug(`JSON Schema validation raw output: ${prettifyJson(schemaErrors)}`);
+        errors = true;
+        jsonSchemaValidations = convertJsonSchemaIssuesToValidationOutputs(schemaErrors);
+    }
+
+    return new ValidationOutcome(jsonSchemaValidations, spectralValidationResults.spectralIssues, errors, warnings);// added spectral to return object
 }
 
 /**

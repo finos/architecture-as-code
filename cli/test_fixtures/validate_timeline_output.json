@@ -1,0 +1,26 @@
+{
+    "jsonSchemaValidationOutputs": [
+      {
+        "code": "json-schema",
+        "message": "must match format \"date\"",
+        "path": "/moments/1/valid-from",
+        "schemaPath": "#/defs/node-moment/properties/valid-from/format",
+        "severity": "error"
+      }
+    ],
+    "spectralSchemaValidationOutputs": [
+        {
+            "code": "moments-after-current-moment-may-not-have-valid-from",
+            "severity": "warning",
+            "message": "Moment with unique-id \"api-gateway-v2\" is after current-moment \"api-gateway-v1\" but has a valid-from.",
+            "path": "/current-moment",
+            "schemaPath": "",
+            "line_start": 0,
+            "line_end": 0,
+            "character_start": 89,
+            "character_end": 105
+        }
+    ],
+    "hasErrors": true,
+    "hasWarnings": true
+}
