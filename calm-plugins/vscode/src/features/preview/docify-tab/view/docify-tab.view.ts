@@ -211,9 +211,15 @@ export class DocifyTabView {
      * Expected input format: Mermaid typically generates IDs like "flowchart-conference-website-123".
      * This function removes the "flowchart-" prefix and the trailing numeric suffix.
      * 
+     * For nodes with reserved words, the ID may be prefixed with "node_" to avoid Mermaid conflicts.
+     * This function removes that prefix to get the original CALM node ID.
+     * 
      * Example:
      *   Input:  "flowchart-conference-website-123"
      *   Output: "conference-website"
+     *   
+     *   Input:  "flowchart-node_end-user-456"
+     *   Output: "end-user"
      * 
      * @param mermaidId The Mermaid-generated element ID string.
      * @returns The extracted node ID, or null if extraction fails.
@@ -226,9 +232,12 @@ export class DocifyTabView {
         // Match everything except the last segment if it's purely numeric
         const match = cleaned.match(/^(.+?)-\d+$/)
         if (match) {
-            return match[1]
+            cleaned = match[1]
         }
         
+        // Remove the node_ prefix if it was added to avoid Mermaid reserved words
+        cleaned = cleaned.replace(/^node_/, '')
+
         // If no numeric suffix, return the cleaned ID
         return cleaned || null
     }
