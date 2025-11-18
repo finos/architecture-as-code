@@ -1,0 +1,10 @@
+{
+  "unique-id": "rel-003",
+  "description": "Example relationship with no protocol property",
+  "relationship-type": {
+    "connects": {
+      "source": "service-c:api",
+      "destination": "service-d:api"
+    }
+  }
+}
