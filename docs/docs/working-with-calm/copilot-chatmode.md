@@ -1,7 +1,7 @@
 ---
 id: copilot-chatmode
 title: CALM Copilot Chatmode
-sidebar_position: 5
+sidebar_position: 6
 ---
 
 # CALM Copilot Chatmode
