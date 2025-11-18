@@ -275,8 +275,53 @@ jobs:
             git commit -m "ci(cli): release version ${{ needs.analyze.outputs.next-version }}"
             git push origin "release/cli-v${{ needs.analyze.outputs.next-version }}"
           else
-            # Use semantic-release for automatic releases
-            npm run semantic-release
+            echo "🤖 Preparing automated release artifacts without tagging"
+            NEXT_VERSION="${{ needs.analyze.outputs.next-version }}"
+            RELEASE_DATE=$(date +%Y-%m-%d)
+            
+            # Update package.json version
+            npm version "$NEXT_VERSION" --no-git-tag-version
+            
+            # Generate release notes via semantic-release dry run (no tags)
+            node -e "const fs=require('fs');const semanticRelease=require('semantic-release');(async()=>{try{const result=await semanticRelease({ci:false,dryRun:true});const notes=result&&result.nextRelease&&result.nextRelease.notes?result.nextRelease.notes.trim():'';fs.writeFileSync('release-notes.md',notes?notes+'\\n':'');}catch(error){console.error('Failed to generate release notes via semantic-release dry run');console.error(error);fs.writeFileSync('release-notes.md','');}})();"
+            
+            # Build changelog entry with generated notes (fallback to simple entry)
+            cat > temp_changelog.md << EOF
+          # Changelog
+          
+          All notable changes to the CALM CLI will be documented in this file.
+          
+          The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+          and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+          
+          ## [$NEXT_VERSION] - $RELEASE_DATE
+          
+          EOF
+            
+            if [ -s "release-notes.md" ]; then
+              cat release-notes.md >> temp_changelog.md
+              echo "" >> temp_changelog.md
+            else
+              cat >> temp_changelog.md <<'EOF'
+          ### Changed
+          - Automated release
+          
+          EOF
+            fi
+            
+            if [ -f "CHANGELOG.md" ]; then
+              tail -n +8 CHANGELOG.md >> temp_changelog.md
+            fi
+            mv temp_changelog.md CHANGELOG.md
+            rm -f release-notes.md
+            
+            # Create release branch
+            git checkout -b "release/cli-v$NEXT_VERSION"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add CHANGELOG.md package.json
+            git commit -m "ci(cli): release version $NEXT_VERSION"
+            git push origin "release/cli-v$NEXT_VERSION"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.SRB_TOKEN }}
@@ -338,8 +383,8 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
         run: |
           cd  cli
-          # Generate release notes  
-          npx semantic-release > release-output.txt 2>&1 || true
+          # Generate release notes without creating tags
+          npx semantic-release --dry-run --ci false > release-output.txt 2>&1 || true
           
           cat > release-notes.md << EOF
           ## 🚨 Major Version Release
