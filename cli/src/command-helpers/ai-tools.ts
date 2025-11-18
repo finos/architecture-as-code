@@ -142,7 +142,8 @@ async function createToolPrompts(chatmodesDir: string, logger: Logger): Promise<
         'control-creation.md',
         'flow-creation.md',
         'pattern-creation.md',
-        'documentation-creation.md'
+        'documentation-creation.md',
+        'calm-cli-instructions.md'
     ];
 
     let successCount = 0;
