@@ -2,16 +2,16 @@
 {{#if id}}
     {{!-- Generate click for the node itself --}}
     {{#if (lookup linkMap id)}}
-click {{id}} "{{lookup linkMap id}}" "Jump to {{label}}"
+click {{{mermaidId id}}} "{{lookup linkMap id}}" "Jump to {{label}}"
     {{else if linkPrefix}}
-click {{id}} "{{linkPrefix}}{{id}}" "Jump to {{label}}"
+click {{{mermaidId id}}} "{{linkPrefix}}{{id}}" "Jump to {{label}}"
     {{/if}}
     {{!-- Generate clicks for interfaces --}}
     {{#each interfaces}}
         {{#if (lookup ../linkMap id)}}
-click {{id}} "{{lookup ../linkMap id}}" "Jump to {{label}}"
+click {{{mermaidId id}}} "{{lookup ../linkMap id}}" "Jump to {{label}}"
         {{else if ../linkPrefix}}
-click {{id}} "{{../linkPrefix}}{{id}}" "Jump to {{label}}"
+click {{{mermaidId id}}} "{{../linkPrefix}}{{id}}" "Jump to {{label}}"
         {{/if}}
     {{/each}}
 {{/if}}
@@ -19,15 +19,15 @@ click {{id}} "{{../linkPrefix}}{{id}}" "Jump to {{label}}"
 {{!-- Handle container with nodes array --}}
 {{#each nodes}}
     {{#if (lookup ../linkMap id)}}
-click {{id}} "{{lookup ../linkMap id}}" "Jump to {{label}}"
+click {{{mermaidId id}}} "{{lookup ../linkMap id}}" "Jump to {{label}}"
     {{else if ../linkPrefix}}
-click {{id}} "{{../linkPrefix}}{{id}}" "Jump to {{label}}"
+click {{{mermaidId id}}} "{{../linkPrefix}}{{id}}" "Jump to {{label}}"
     {{/if}}
     {{#each interfaces}}
         {{#if (lookup ../../linkMap id)}}
-click {{id}} "{{lookup ../../linkMap id}}" "Jump to {{label}}"
+click {{{mermaidId id}}} "{{lookup ../../linkMap id}}" "Jump to {{label}}"
         {{else if ../../linkPrefix}}
-click {{id}} "{{../../linkPrefix}}{{id}}" "Jump to {{label}}"
+click {{{mermaidId id}}} "{{../../linkPrefix}}{{id}}" "Jump to {{label}}"
         {{/if}}
     {{/each}}
 {{/each}}

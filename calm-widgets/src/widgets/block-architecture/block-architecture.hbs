@@ -24,26 +24,26 @@ classDef system fill:#fff8e1,stroke:#f9a825,stroke-width:2px,color:#000;
     {{#if ../renderNodeTypeShapes}}
     {{> typed-node.hbs}}
     {{else}}
-    {{id}}["{{label}}"]:::node
+    {{{mermaidId id}}}["{{label}}"]:::node
     {{/if}}
     {{#each interfaces}}
-        {{id}}["{{label}}"]:::iface
+        {{{mermaidId id}}}["{{label}}"]:::iface
     {{/each}}
 {{/each}}
 
 {{!-- Edges --}}
 {{#each edges}}
-    {{source}} -->{{#if label}}|{{label}}|{{/if}} {{target}}
+    {{{mermaidId source}}} -->{{#if label}}|{{label}}|{{/if}} {{{mermaidId target}}}
 {{/each}}
 
 {{!-- Dotted attachments (node -> interface) --}}
 {{#each attachments}}
-    {{from}} -.- {{to}}
+    {{{mermaidId from}}} -.- {{{mermaidId to}}}
 {{/each}}
 
 {{!-- Highlights --}}
 {{#each highlightNodeIds}}
-    class {{this}} highlight
+    class {{{mermaidId this}}} highlight
 {{/each}}
 {{!-- Clickable links for containers + loose nodes --}}
 {{#if linkPrefix}}
