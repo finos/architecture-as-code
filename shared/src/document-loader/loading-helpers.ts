@@ -19,6 +19,13 @@ export async function loadArchitectureAndPattern(architecturePath: string, patte
     return { architecture, pattern: await loadPatternFromArchitectureIfPresent(architecture, architecturePath, docLoader, schemaDirectory, logger) };
 }
 
+export async function loadTimeline(timelinePath: string, docLoader: DocumentLoader, schemaDirectory: SchemaDirectory, logger: Logger): Promise<{ timeline: object, pattern: object }> {
+    const timeline = await docLoader.loadMissingDocument(timelinePath, 'timeline');
+    logger.debug(`Loaded timeline from ${timelinePath}`);
+
+    return { timeline, pattern: await loadPatternFromArchitectureIfPresent(timeline, timelinePath, docLoader, schemaDirectory, logger) };
+}
+
 export function resolveSchemaRef(schemaRef: string, architecturePath: string, logger: Logger): string {
     // If it's an absolute URL (http, https, file) or calm: protocol, use as-is
     if (schemaRef.startsWith('http://') || schemaRef.startsWith('https://') || schemaRef.startsWith('file://') || schemaRef.startsWith(CALM_HUB_PROTO)) {

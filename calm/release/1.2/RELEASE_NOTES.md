@@ -15,3 +15,11 @@ architecture changes over time.
 
 For questions or feedback, please engage with the CALM community through the
 appropriate channels.
+
+## Change Log
+### 2025-11-18
+Added CALM timeline schema, chatmode, models, and support for `calm validate --timeline` CLI command.
+
+### 2025-11-17
+Initial creation of release-1.2 schema to manage proposed changes, only change is schema reference from 1.1 -> 1.2
+>>>>>>> 3a244a66 (feat(cli): update RELEASE_NOTES.md)

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
   "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/pattern/api-gateway",
   "title": "API Gateway Pattern",
   "type": "object",
@@ -127,7 +127,7 @@
               "const": "api-consumer-api-gateway"
             },
             "description": {
-                "const": "Issue calculation request"
+              "const": "Issue calculation request"
             },
             "relationship-type": {
               "const": {
@@ -160,7 +160,7 @@
               "const": "api-gateway-idp"
             },
             "description": {
-                "const": "Validate bearer token"
+              "const": "Validate bearer token"
             },
             "relationship-type": {
               "const": {
@@ -186,7 +186,7 @@
               "const": "api-gateway-api-producer"
             },
             "description": {
-                "const": "Forward request"
+              "const": "Forward request"
             },
             "relationship-type": {
               "const": {
@@ -209,31 +209,31 @@
           }
         },
         {
-            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
-            "properties": {
-              "unique-id": {
-                "const": "api-consumer-idp"
-              },
-              "description": {
-                  "const": "Acquire a bearer token"
-              },
-              "relationship-type": {
-                "const": {
-                  "connects": {
-                    "source": {
-                      "node": "api-consumer"
-                    },
-                    "destination": {
-                      "node": "idp"
-                    }
+          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
+          "properties": {
+            "unique-id": {
+              "const": "api-consumer-idp"
+            },
+            "description": {
+              "const": "Acquire a bearer token"
+            },
+            "relationship-type": {
+              "const": {
+                "connects": {
+                  "source": {
+                    "node": "api-consumer"
+                  },
+                  "destination": {
+                    "node": "idp"
                   }
                 }
-              },
-              "protocol": {
-                "const": "HTTPS"
               }
+            },
+            "protocol": {
+              "const": "HTTPS"
             }
           }
+        }
       ]
     }
   },
