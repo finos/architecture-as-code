@@ -26,13 +26,22 @@
       "automergeType": "pr",
       "groupName": "lockfile maintenance"
     },
-    {
-      "description": "Group Java dependencies",
-      "matchManagers": ["maven"],
-      "groupName": "Java dependencies",
-      "separateMultipleMajor": true,
-      "separateMinorPatch": false
-    },
+        {
+            "description": "Group Java dependencies",
+            "matchManagers": ["maven"],
+            "groupName": "Java dependencies",
+            "separateMultipleMajor": true,
+            "separateMinorPatch": false
+        },
+        {
+            "description": "Keep Quarkus BOM and JaCoCo plugin in sync",
+            "matchManagers": ["maven"],
+            "matchPackageNames": [
+                "io.quarkus.platform:quarkus-bom",
+                "org.jacoco:jacoco-maven-plugin"
+            ],
+            "groupName": "quarkus+jacoco"
+        },
     {
       "description": "Group JavaScript/TypeScript dependencies by ecosystem",
       "matchManagers": ["npm"],
