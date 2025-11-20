@@ -1,13 +1,52 @@
 {
   "name": "@finos/calm-explorer",
+  "displayName": "CALM Explorer",
   "version": "0.1.0",
   "description": "Interactive exploration tool for FINOS CALM (Common Architecture Language Model) architecture diagrams",
+  "publisher": "finos",
   "license": "Apache-2.0",
-  "type": "module",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:json",
+    "onCommand:calmExplorer.openViewer"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "calmExplorer.openViewer",
+        "title": "Open CALM Viewer",
+        "category": "CALM"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "calmExplorer.viewer",
+        "displayName": "CALM Viewer",
+        "selector": [
+          {
+            "filenamePattern": "*.calm.json"
+          }
+        ],
+        "priority": "option"
+      }
+    ]
+  },
   "scripts": {
     "dev": "NODE_OPTIONS='--no-deprecation' vite",
-    "build": "vite build",
+    "build": "npm run build:extension && npm run build:webview",
+    "build:extension": "tsc -p tsconfig.extension.json",
+    "build:webview": "vite build",
     "build:dev": "vite build --mode development",
+    "watch:extension": "tsc -watch -p tsconfig.extension.json",
+    "watch:webview": "vite build --watch",
+    "package": "vsce package",
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
     "preview": "vite preview",
@@ -83,8 +122,10 @@
     "@types/node": "^22.16.5",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
+    "@types/vscode": "^1.105.0",
     "@vitejs/plugin-react-swc": "^3.11.0",
     "@vitest/ui": "^3.2.4",
+    "@vscode/vsce": "^2.32.0",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
