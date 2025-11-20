@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { CalmArchitectureSchema } from '../../../../../calm-models/src/types/core-types.js';
+import { CalmArchitectureSchema, CalmPatternSchema } from '../../../../../calm-models/src/types/core-types.js';
 import { CytoscapeNode, CytoscapeEdge } from '../../contracts/contracts.js';
 import { VisualizerContainer } from '../visualizer-container/VisualizerContainer.js';
 import { Data } from '../../../model/calm.js';
 import { useDropzone } from 'react-dropzone';
 import { convertCalmToCytoscape } from '../../services/calm-to-cytoscape-converter.js';
 import { Sidebar } from '../sidebar/Sidebar.js';
+import { convertCalmPatternToCalm, isCalmPatternSchema } from '../../services/calm-pattern-to-cytoscape-converter.js';
 
 interface DrawerProps {
     data?: Data; // Optional data prop passed in from CALM Hub if user navigates from there
@@ -13,7 +14,7 @@ interface DrawerProps {
 
 export function Drawer({ data }: DrawerProps) {
     const [title, setTitle] = useState<string>('');
-    const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
+    const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | CalmPatternSchema | undefined>(undefined);
     const [fileInstance, setFileInstance] = useState<string | undefined>(undefined);
     const [selectedItem, setSelectedItem] = useState<CytoscapeNode | CytoscapeEdge | null>(null);
 
@@ -32,7 +33,7 @@ export function Drawer({ data }: DrawerProps) {
         if (data?.name && data?.id && data?.version) {
             setTitle(data.name + '/' + data.id + '/' + data.version);
         }
-        setCALMInstance((fileInstance as CalmArchitectureSchema) ?? data?.data);
+        setCALMInstance((fileInstance as CalmArchitectureSchema | CalmPatternSchema) ?? data?.data);
     }, [fileInstance, data]);
 
     function closeSidebar() {
@@ -46,7 +47,8 @@ export function Drawer({ data }: DrawerProps) {
         return `${data.name}/${data.calmType}/${data.id}/${data.version}`;
     }
 
-    const { edges, nodes } = convertCalmToCytoscape(calmInstance);
+    const { edges, nodes } = convertCalmToCytoscape(isCalmPatternSchema(calmInstance) ? convertCalmPatternToCalm(calmInstance) : calmInstance as CalmArchitectureSchema);
+
 
     return (
         <div {...getRootProps()} className="flex-1 flex overflow-hidden h-screen">
