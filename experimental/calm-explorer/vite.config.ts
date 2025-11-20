@@ -53,5 +53,4 @@ export default defineConfig({
     // Increase chunk size warning limit for monaco editor
     chunkSizeWarningLimit: 1000,
   },
-};
 });
