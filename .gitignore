@@ -13,6 +13,8 @@ docs/contributing.md
 
 # We use YARN
 website/package-lock.json
+package-lock.json
+experimental/calm-explorer/package-lock.json
 /.idea/
 
 **/.vscode/
