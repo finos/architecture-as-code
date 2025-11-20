@@ -1,20 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import type { Plugin } from 'vite';
-
-// Dynamic import for monaco editor plugin to handle ESM/CJS compatibility
-async function getMonacoPlugin(): Promise<Plugin> {
-  const monaco = await import('vite-plugin-monaco-editor');
-  const plugin = monaco.default || monaco;
-  return (typeof plugin === 'function' ? plugin : (plugin as any).default)({});
-}
-
 // https://vitejs.dev/config/
-export default defineConfig(async ({ mode }) => {
-  const monacoPlugin = await getMonacoPlugin();
-
-  return {
+export default defineConfig({
   server: {
     host: "::",
     port: 8080,
@@ -43,8 +31,7 @@ export default defineConfig(async ({ mode }) => {
   },
   plugins: [
     react(),
-    monacoPlugin,
-  ].filter(Boolean),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
