@@ -1,11 +1,20 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
-import monacoEditorPlugin from 'vite-plugin-monaco-editor';
+import type { Plugin } from 'vite';
+
+// Dynamic import for monaco editor plugin to handle ESM/CJS compatibility
+async function getMonacoPlugin(): Promise<Plugin> {
+  const monaco = await import('vite-plugin-monaco-editor');
+  const plugin = monaco.default || monaco;
+  return (typeof plugin === 'function' ? plugin : (plugin as any).default)({});
+}
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(async ({ mode }) => {
+  const monacoPlugin = await getMonacoPlugin();
+
+  return {
   server: {
     host: "::",
     port: 8080,
@@ -34,8 +43,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    monacoEditorPlugin.default({}),
-    mode === "development" && componentTagger()
+    monacoPlugin,
   ].filter(Boolean),
   resolve: {
     alias: {
@@ -46,4 +54,17 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "d3-selection", "d3-drag", "d3-zoom"],
   },
-}));
+  build: {
+    outDir: 'dist',
+    rollupOptions: {
+      output: {
+        entryFileNames: 'index.js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]'
+      }
+    },
+    // Increase chunk size warning limit for monaco editor
+    chunkSizeWarningLimit: 1000,
+  },
+};
+});
