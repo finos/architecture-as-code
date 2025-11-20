@@ -40,7 +40,7 @@
   },
   "scripts": {
     "dev": "NODE_OPTIONS='--no-deprecation' vite",
-    "build": "npm run build:extension && npm run build:webview",
+    "build": "npm run build:webview",
     "build:extension": "tsc -p tsconfig.extension.json",
     "build:webview": "vite build",
     "build:dev": "vite build --mode development",
