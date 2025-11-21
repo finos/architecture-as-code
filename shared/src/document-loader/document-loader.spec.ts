@@ -10,6 +10,10 @@ const mocks = vi.hoisted(() => {
         calmHubDocLoader: vi.fn(() => ({
             initialise: vi.fn(),
             loadMissingDocument: vi.fn()
+        })),
+        calmHubCustomDocLoader: vi.fn(() => ({
+            initialise: vi.fn(),
+            loadMissingDocument: vi.fn()
         }))
     };
 });
@@ -24,6 +28,12 @@ vi.mock('./file-system-document-loader', () => {
 vi.mock('./calmhub-document-loader', () => {
     return {
         CalmHubDocumentLoader: mocks.calmHubDocLoader
+    };
+});
+
+vi.mock('./calmhub-custom-document-loader', () => {
+    return {
+        CalmHubCustomDocumentLoader: mocks.calmHubCustomDocLoader
     };
 });
 
@@ -53,5 +63,29 @@ describe('DocumentLoader', () => {
         buildDocumentLoader(docLoaderOpts);
 
         expect(mocks.calmHubDocLoader).toHaveBeenCalledWith('https://example.com', false);
+        expect(mocks.calmHubCustomDocLoader).not.toHaveBeenCalled();
+    });
+
+    it('should create a CalmHubCustomDocumentLoader when calmHubUrl and calmHubPlugin are defined in loader options', () => {
+        const docLoaderOpts: DocumentLoaderOptions = {
+            calmHubUrl: 'https://example.com',
+            calmHubPlugin: 'my-calmhub-plugin'
+        };
+
+        buildDocumentLoader(docLoaderOpts);
+
+        expect(mocks.calmHubDocLoader).not.toHaveBeenCalled();
+        expect(mocks.calmHubCustomDocLoader).toHaveBeenCalledWith('https://example.com', 'my-calmhub-plugin', false);
+    });
+
+    it('should not create a CalmHubDocumentLoader or CalmHubCustomDocumentLoader if calmHubUrl is not defined in loader options', () => {
+        const docLoaderOpts: DocumentLoaderOptions = {
+            calmHubPlugin: 'my-calmhub-plugin'
+        };
+
+        buildDocumentLoader(docLoaderOpts);
+
+        expect(mocks.calmHubDocLoader).not.toHaveBeenCalled();
+        expect(mocks.calmHubCustomDocLoader).not.toHaveBeenCalled();
     });
 });

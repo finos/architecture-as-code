@@ -4,7 +4,8 @@ import { homedir } from 'os';
 import { join } from 'path';
 
 export interface CLIConfig {
-    calmHubUrl?: string
+    calmHubUrl?: string,
+    calmHubPlugin?: string
 }
 
 function getUserConfigLocation(): string {

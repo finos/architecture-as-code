@@ -1,6 +1,7 @@
 import { CALM_META_SCHEMA_DIRECTORY } from '../consts';
 import { SchemaDirectory } from '../schema-directory';
 import { CalmHubDocumentLoader } from './calmhub-document-loader';
+import { CalmHubCustomDocumentLoader } from './calmhub-custom-document-loader';
 import { FileSystemDocumentLoader } from './file-system-document-loader';
 import { DirectUrlDocumentLoader } from './direct-url-document-loader';
 import { MultiStrategyDocumentLoader } from './multi-strategy-document-loader';
@@ -16,6 +17,7 @@ export interface DocumentLoader {
 
 export type DocumentLoaderOptions = {
     calmHubUrl?: string;
+    calmHubPlugin?: string;
     schemaDirectoryPath?: string;
     debug?: boolean;
 };
@@ -25,7 +27,11 @@ export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions): Docum
     const debug = docLoaderOpts.debug ?? false;
 
     if (docLoaderOpts.calmHubUrl) {
-        loaders.push(new CalmHubDocumentLoader(docLoaderOpts.calmHubUrl, debug));
+        if (docLoaderOpts.calmHubPlugin) {
+            loaders.push(new CalmHubCustomDocumentLoader(docLoaderOpts.calmHubUrl, docLoaderOpts.calmHubPlugin, debug));
+        } else {
+            loaders.push(new CalmHubDocumentLoader(docLoaderOpts.calmHubUrl, debug));
+        }
     }
 
     // Always configure FileSystemDocumentLoader with CALM_META_SCHEMA_DIRECTORY

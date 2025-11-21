@@ -14,7 +14,9 @@ let serverModule: typeof import('./server/cli-server');
 let templateModule: typeof import('./command-helpers/template');
 let optionsModule: typeof import('./command-helpers/generate-options');
 let fileSystemDocLoaderModule: typeof import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
+let cliConfigModule: typeof import('./cli-config');
 let setupCLI: typeof import('./cli').setupCLI;
+let parseDocumentLoaderConfig: typeof import('./cli').parseDocumentLoaderConfig;
 
 describe('CLI Commands', () => {
     let program: Command;
@@ -22,6 +24,7 @@ describe('CLI Commands', () => {
     beforeEach(async () => {
         vi.resetModules();
         vi.clearAllMocks();
+        vi.unstubAllEnvs();
 
         calmShared = await import('@finos/calm-shared');
         validateModule = await import('./command-helpers/validate');
@@ -29,6 +32,7 @@ describe('CLI Commands', () => {
         templateModule = await import('./command-helpers/template');
         optionsModule = await import('./command-helpers/generate-options');
         fileSystemDocLoaderModule = await import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
+        cliConfigModule = await import('./cli-config');
 
         vi.spyOn(calmShared, 'runGenerate').mockResolvedValue(undefined);
         vi.spyOn(calmShared.TemplateProcessor.prototype, 'processTemplate').mockResolvedValue(undefined);
@@ -45,8 +49,11 @@ describe('CLI Commands', () => {
         vi.spyOn(fileSystemDocLoaderModule, 'FileSystemDocumentLoader').mockImplementation(vi.fn());
         vi.spyOn(fileSystemDocLoaderModule.FileSystemDocumentLoader.prototype, 'loadMissingDocument').mockResolvedValue({});
 
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockImplementation(vi.fn());
+
         const cliModule = await import('./cli');
         setupCLI = cliModule.setupCLI;
+        parseDocumentLoaderConfig = cliModule.parseDocumentLoaderConfig;
 
         program = new Command();
         setupCLI(program);
@@ -337,4 +344,69 @@ describe('CLI Commands', () => {
         });
     });
 
+    describe('Document Loader options', () => {
+        it('config when no options selected', async () => {
+            const config = await parseDocumentLoaderConfig({
+            });
+            expect(config.calmHubUrl).toBeUndefined();
+            expect(config.calmHubPlugin).toBeUndefined();
+            expect(config.schemaDirectoryPath).toBeUndefined();
+            expect(config.debug).toBeFalsy();
+        });
+
+        it('config with CalmHub defined in config file', async () => {
+            vi.spyOn(cliConfigModule, 'loadCliConfig').mockImplementation(() => {
+                return {
+                    calmHubUrl: 'calmhub.local',
+                    calmHubPlugin: 'plugin-name'
+                };
+            });
+
+            const config = await parseDocumentLoaderConfig({});
+            expect(config.calmHubUrl).toBe('calmhub.local');
+            expect(config.calmHubPlugin).toBe('plugin-name');
+        });
+
+        it('config with CalmHub defined in config file overridden by options', async () => {
+            vi.spyOn(cliConfigModule, 'loadCliConfig').mockImplementation(() => {
+                return {
+                    calmHubUrl: 'calmhub.local',
+                    calmHubPlugin: 'plugin-name'
+                };
+            });
+
+            const config = await parseDocumentLoaderConfig({
+                calmHubUrl: 'override.local',
+                calmHubPlugin: 'override-plugin'
+            });
+            expect(config.calmHubUrl).toBe('override.local');
+            expect(config.calmHubPlugin).toBe('override-plugin');
+        });
+
+        it('config with CalmHub defined in config file overridden by environment', async () => {
+            vi.spyOn(cliConfigModule, 'loadCliConfig').mockImplementation(() => {
+                return {
+                    calmHubUrl: 'calmhub.local',
+                    calmHubPlugin: 'plugin-name'
+                };
+            });
+
+            vi.stubEnv('CALM_HUB_URL', 'env.local');
+            vi.stubEnv('CALM_HUB_PLUGIN', 'env-plugin');
+            const config = await parseDocumentLoaderConfig({});
+            expect(config.calmHubUrl).toBe('env.local');
+            expect(config.calmHubPlugin).toBe('env-plugin');
+        });
+
+        it('config with CalmHub defined in environment overridden by options', async () => {
+            vi.stubEnv('CALM_HUB_URL', 'env.local');
+            vi.stubEnv('CALM_HUB_PLUGIN', 'env-plugin');
+            const config = await parseDocumentLoaderConfig({
+                calmHubUrl: 'calmhub.local',
+                calmHubPlugin: 'plugin-name'
+            });
+            expect(config.calmHubUrl).toBe('calmhub.local');
+            expect(config.calmHubPlugin).toBe('plugin-name');
+        });
+    });
 });
