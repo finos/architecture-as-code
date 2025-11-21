@@ -344,9 +344,9 @@ describe('CLI Commands', () => {
 describe('parseDocumentLoaderConfig', () => {
     it('should parse calmhub url when provided', async () => {
         const options = await parseDocumentLoaderConfig({
-            calmHubUrl: "calmhub"
-        })
-        expect(options.calmHubUrl).toEqual("calmhub")
+            calmHubUrl: 'calmhub'
+        });
+        expect(options.calmHubUrl).toEqual('calmhub');
     });
 
     it('should override calmhub url in file when provided', async () => {
@@ -354,28 +354,28 @@ describe('parseDocumentLoaderConfig', () => {
         vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({ calmHubUrl: 'calmhub-file' });
 
         const options = await parseDocumentLoaderConfig({
-            calmHubUrl: "calmhub-cli"
-        })
-        expect(options.calmHubUrl).toEqual("calmhub-cli")
+            calmHubUrl: 'calmhub-cli'
+        });
+        expect(options.calmHubUrl).toEqual('calmhub-cli');
     });
 
     it('should parse schemaDirectoryPath when provided', async () => {
         const options = await parseDocumentLoaderConfig({
-            schemaDirectory: "path"
+            schemaDirectory: 'path'
         });
-        expect(options.schemaDirectoryPath).toEqual("path")
+        expect(options.schemaDirectoryPath).toEqual('path');
     });
 
     it('should set debug to true when verbose passed along', async () => {
         const options = await parseDocumentLoaderConfig({
             verbose: true
-        })
+        });
         expect(options.debug).toBeTruthy();
     });
 
     it('should default debug to false', async () => {
         const options = await parseDocumentLoaderConfig({
-        })
+        });
         expect(options.debug).toBeFalsy();
     });
-})
+});
