@@ -39,11 +39,7 @@
                 "redhat.vscode-yaml",
                 "tintinweb.graphviz-interactive-preview",
                 "unifiedjs.vscode-mdx",
-                "vscjava.vscode-gradle",
-                "vscjava.vscode-java-debug",
-                "vscjava.vscode-java-dependency",
                 "vscjava.vscode-java-pack",
-                "vscjava.vscode-java-test",
                 "vscjava.vscode-java-upgrade",
                 "vscjava.vscode-maven"
             ]
