@@ -13,6 +13,7 @@ export interface ValidateOptions {
     patternPath?: string;
     architecturePath?: string;
     metaSchemaPath: string;
+    calmHubUrl?: string;
     verbose: boolean;
     strict: boolean;
     outputFormat: ValidateOutputFormat;
