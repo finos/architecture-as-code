@@ -1,0 +1,11 @@
+{
+  "unique-id": "rel-001",
+  "description": "Example relationship with extensible protocol",
+  "relationship-type": {
+    "connects": {
+      "source": "service-a:api",
+      "destination": "service-b:api"
+    }
+  },
+  "protocol": "GraphQL"
+}
