@@ -15,38 +15,38 @@ describe('idsAreUnique', () => {
     });
 
     it('should return an empty array when there are no duplicate IDs', () => {
-    const input = {};
-    const context = {
-        document: {
-            data: {
-                moments: [
-                    {'unique-id': 'node1'},
-                    {'unique-id': 'node2'},
-                ]
+        const input = {};
+        const context = {
+            document: {
+                data: {
+                    moments: [
+                        {'unique-id': 'node1'},
+                        {'unique-id': 'node2'},
+                    ]
+                }
             }
-        }
-    };
+        };
 
-    const result = idsAreUnique(input, null, context);
-    expect(result).toEqual([]);
-  });
+        const result = idsAreUnique(input, null, context);
+        expect(result).toEqual([]);
+    });
 
-  it('should return messages for duplicate IDs', () => {
-    const input = {};
-    const context = {
-        document: {
-            data: {
-                moments: [
-                    {'unique-id': 'node1'},
-                    {'unique-id': 'node2'},
-                    {'unique-id': 'node1'}, // duplicate
-                ]
+    it('should return messages for duplicate IDs', () => {
+        const input = {};
+        const context = {
+            document: {
+                data: {
+                    moments: [
+                        {'unique-id': 'node1'},
+                        {'unique-id': 'node2'},
+                        {'unique-id': 'node1'}, // duplicate
+                    ]
+                }
             }
-        }
-    };
+        };
 
-    const result = idsAreUnique(input, null, context);
-    expect(result.length).toBeGreaterThan(0);
-    expect(result[0].message).toContain('Duplicate unique-id detected. ID: node1, path: /moments/2/unique-id');
-  });
+        const result = idsAreUnique(input, null, context);
+        expect(result.length).toBeGreaterThan(0);
+        expect(result[0].message).toContain('Duplicate unique-id detected. ID: node1, path: /moments/2/unique-id');
+    });
 });
