@@ -219,7 +219,7 @@ Critical: Metadata can be either an array OR an object (see metadata creation to
 
 ## Schema Validation Rules
 
-1. **Required Properties**: Must include `unique-id`, `node-type`, `name`, `description1`, `details`.
+1. **Required Properties**: Must include `unique-id`, `node-type`, `name`, `description`, `details`.
 2. **Node Type**: Must be `moment`
 3. **Details Object**: Only allows `detailed-architecture` and `required-pattern` properties
 4. **Metadata**: Can be array of objects OR single object (see metadata creation tool)
