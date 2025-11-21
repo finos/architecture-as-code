@@ -3,6 +3,7 @@
   "$id": "https://calm.finos.org/release/1.1/meta/timeline.json",
   "title": "Common Architecture Language Model (CALM) Timelines Vocab",
   "type" : "object",
+  "required": ["moments"],
   "properties": {
     "current-moment": {
       "type": "string",
@@ -21,7 +22,6 @@
     "metadata": {
       "$ref": "core.json#/defs/metadata"
     }
-
   },
   "defs": {
     "node-moment": {
