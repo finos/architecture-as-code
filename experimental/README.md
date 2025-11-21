@@ -2,13 +2,18 @@
 
 This folder contains experimental modules and features for CALM.
 
-**These modules and features are not considered stable, and may be subject to change or removal without notice**.
+These modules and features:
 
-**They are intended for testing and feedback purposes only, and should not be used in production environments.**
+- Are not considered stable
+- Are subject to change or removal without notice
+- Intended for testing and feedback purposes only
+- Should not be used in production environments.
+- May not be fully documented
+- May have limited support.
 
-**They may not be fully documented, and may have limited support.**
-
-Also note that some experimental feature may reside in other parts of the codebase, and not necessarily in this folder.
+Also note that some experimental features may reside in other parts of the codebase, and not necessarily in this folder.
+This should only be the case for legacy experimental features that have not yet been removed/promoted, or where
+separation of code is not practical.
 
 ## Feedback and acceptance process
 
@@ -29,7 +34,7 @@ This is to encourage:
   publicised at.
 
 The Issue should be publicised at:
-- mandatorily, a Monthly Working Group Meeting (this is the starting point for measuring the Feedback Period), ideally the first such meeting after the experimental module or feature is merged.
+- a Monthly Working Group Meeting (this is the starting point for measuring the Feedback Period), ideally the first such meeting after the experimental module or feature is merged.
 - the next Weekly Office Hours meeting.
 - the Architecture as Code mailing list.
 
