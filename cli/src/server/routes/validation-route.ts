@@ -57,7 +57,7 @@ export class ValidationRouter {
         }
         try {
 
-            const outcome = await validate(architecture, foundSchema, this.schemaDirectory, true);
+            const outcome = await validate(architecture, foundSchema, undefined, this.schemaDirectory, true);
             return res.status(201).type('json').send(outcome);
         } catch (error) {
             return res.status(500).type('json').send(new ErrorResponse(error.message));

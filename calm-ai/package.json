@@ -1,6 +1,6 @@
 {
     "name": "@finos/calm-ai",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "AI tools and prompts for FINOS CALM architecture modeling",
     "private": true,
     "main": "index.js",

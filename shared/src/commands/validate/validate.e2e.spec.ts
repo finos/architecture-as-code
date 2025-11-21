@@ -25,7 +25,7 @@ describe('validate E2E', () => {
 
         const inputPattern = JSON.parse(readFileSync(inputPatternPath, 'utf-8'));
         const inputArch = JSON.parse(readFileSync(inputArchPath, 'utf-8'));
-        const response = await validate(inputArch, inputPattern, schemaDirectory, true);
+        const response = await validate(inputArch, inputPattern, undefined, schemaDirectory, true);
 
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
