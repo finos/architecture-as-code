@@ -1,0 +1,8 @@
+{
+  "https://calm.finos.org/getting-started/controls/micro-segmentation.requirement.json": "../../../calm/getting-started/controls/micro-segmentation.requirement.json",
+  "https://calm.finos.org/getting-started/controls/micro-segmentation.config.json": "../../../calm/getting-started/controls/micro-segmentation.config.json",
+  "https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json": "../../../calm/getting-started/controls/permitted-connection.requirement.json",
+  "https://calm.finos.org/getting-started/controls/permitted-connection-http.config.json": "../../../calm/getting-started/controls/permitted-connection-http.config.json",
+  "https://calm.finos.org/getting-started/controls/permitted-connection-jdbc.config.json": "../../../calm/getting-started/controls/permitted-connection-jdbc.config.json",
+  "https://calm.finos.org/getting-started/conference-signup.pattern.json": "../../../calm/getting-started/conference-signup.pattern.json"
+}

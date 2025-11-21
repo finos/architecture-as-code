@@ -1,5 +1,5 @@
 import { execSync } from 'child_process';
-import path, { join } from 'path';
+import path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { execa } from 'execa';
@@ -7,11 +7,20 @@ import { parseStringPromise } from 'xml2js';
 import axios from 'axios';
 import { expectDirectoryMatch, expectFilesMatch } from '@finos/calm-shared';
 import { spawn } from 'node:child_process';
+import { STATIC_GETTING_STARTED_MAPPING_PATH } from './test_helpers/getting-started-url-mapping';
 
 const millisPerSecond = 1000;
 const integrationTestPrefix = 'calm-consumer-test';
 let tempDir: string;
 const repoRoot = path.resolve(__dirname);
+const GETTING_STARTED_DIR = path.resolve(
+    __dirname,
+    '../../calm/getting-started'
+);
+const GETTING_STARTED_TEST_FIXTURES_DIR = path.resolve(
+    __dirname,
+    '../test_fixtures/getting-started'
+);
 
 function run(file: string, args: string[]) {
     const cp = execa(file, args, { cwd: tempDir });
@@ -438,22 +447,17 @@ describe('CLI Integration Tests', () => {
 
         await expectDirectoryMatch(expectedOutputDir, actualOutputDir);
     });
-
-
+    // Docify widget rendering verifies every template keeps working with the
+    // getting-started assets bundled in the repo, so we use the static mapping
+    // to avoid hitting the public site during CI.
     describe('calm docify command - widget rendering', () => {
         function runTemplateWidgetTest(templateName: string, outputName: string) {
             return async () => {
-
-                const GETTING_STARTED_TEST_FIXTURES_DIR = join(
-                    __dirname,
-                    '../../cli/test_fixtures/getting-started'
-                );
 
                 const testModelPath = path.resolve(
                     GETTING_STARTED_TEST_FIXTURES_DIR,
                     'STEP-3/conference-signup-with-flow.arch.json'
                 );
-
                 const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
                 const templatePath = path.join(fixtureDir, `widget-tests/${templateName}`);
                 const expectedOutputPath = path.join(fixtureDir, `expected-output/widget-tests/${outputName}`);
@@ -461,7 +465,17 @@ describe('CLI Integration Tests', () => {
                 const outputFile = path.join(outputDir, outputName);
 
                 await run(
-                    calm(), ['docify', '--architecture', testModelPath, '--template', templatePath, '--output', outputFile]
+                    calm(), [
+                        'docify',
+                        '--architecture',
+                        testModelPath,
+                        '--template',
+                        templatePath,
+                        '--output',
+                        outputFile,
+                        '--url-to-local-file-mapping',
+                        STATIC_GETTING_STARTED_MAPPING_PATH,
+                    ]
                 );
 
                 expect(fs.existsSync(outputFile)).toBe(true);
@@ -488,15 +502,8 @@ describe('CLI Integration Tests', () => {
 
 
     test('Getting Started Verification - CLI Steps', async () => {
-        const GETTING_STARTED_DIR = join(
-            __dirname,
-            '../../calm/getting-started'
-        );
-        const GETTING_STARTED_TEST_FIXTURES_DIR = join(
-            __dirname,
-            '../../cli/test_fixtures/getting-started'
-        );
-
+        // This flow mirrors the public Getting Started guide to ensure the
+        // documentation actually works when the CLI resolves URLs locally.
         //STEP 1: Generate Architecture From Pattern
         const inputPattern = path.resolve(
             GETTING_STARTED_DIR,
@@ -517,7 +524,15 @@ describe('CLI Integration Tests', () => {
         //STEP 2: Generate Docify Website From Architecture
         const outputWebsite = path.resolve(tempDir, 'website');
         await run(
-            calm(), ['docify', '--architecture', outputArchitecture, '--output', outputWebsite]
+            calm(), [
+                'docify',
+                '--architecture',
+                outputArchitecture,
+                '--output',
+                outputWebsite,
+                '--url-to-local-file-mapping',
+                STATIC_GETTING_STARTED_MAPPING_PATH,
+            ]
         );
 
         const expectedOutputDocifyWebsite = path.resolve(
@@ -570,7 +585,15 @@ describe('CLI Integration Tests', () => {
             'website-with-flow'
         );
         await run(
-            calm(), ['docify', '--architecture', outputArchitecture, '--output', outputWebsiteWithFlow]
+            calm(), [
+                'docify',
+                '--architecture',
+                outputArchitecture,
+                '--output',
+                outputWebsiteWithFlow,
+                '--url-to-local-file-mapping',
+                STATIC_GETTING_STARTED_MAPPING_PATH,
+            ]
         );
 
         const expectedOutputDocifyWebsiteWithFLow = path.resolve(
