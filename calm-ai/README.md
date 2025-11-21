@@ -10,14 +10,15 @@ The CALM AI tools provide specialized prompts and guidance for AI assistants to 
 
 - `tools/` - Individual tool prompt files
     - `architecture-creation.md` - Guide for creating CALM architecture documents
-    - `node-creation.md` - Guide for creating nodes with proper validation
-    - `relationship-creation.md` - Guide for creating relationships between nodes
+    - `calm-cli-instructions.md` - Summary of CALM CLI commands and usage flags
+    - `control-creation.md` - Guide for control requirements and configurations
+    - `documentation-creation.md` - Guide for generating documentation
+    - `flow-creation.md` - Guide for business process flows
     - `interface-creation.md` - Critical guidance for interface oneOf constraints
     - `metadata-creation.md` - Guide for metadata array requirements
-    - `control-creation.md` - Guide for control requirements and configurations
-    - `flow-creation.md` - Guide for business process flows
+    - `node-creation.md` - Guide for creating nodes with proper validation
     - `pattern-creation.md` - Guide for reusable architectural patterns
-    - `documentation-creation.md` - Guide for generating documentation
+    - `relationship-creation.md` - Guide for creating relationships between nodes
 
 ## Usage
 

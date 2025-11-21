@@ -469,13 +469,6 @@
       {
         "npmPublish": false
       }
-    ],
-    [
-      "@semantic-release/exec",
-      {
-        "prepareCmd": "echo 'Preparing release ${nextRelease.version}'",
-        "successCmd": "git checkout -b release/cli-v${nextRelease.version} && git add CHANGELOG.md package.json && git commit -m 'ci(cli): release version ${nextRelease.version}' && git push origin release/cli-v${nextRelease.version}"
-      }
     ]
   ]
 }

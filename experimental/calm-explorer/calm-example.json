@@ -1,0 +1,271 @@
+{
+  "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+  "metadata": {
+    "name": "MCP Server Architecture Example with FINOS AIGF Controls",
+    "version": "1.0.0",
+    "description": "Example architecture demonstrating MCP client-server pattern with FINOS AI Governance Framework controls"
+  },
+  "nodes": [
+    {
+      "unique-id": "mcp-client",
+      "name": "Claude",
+      "description": "MCP Client for querying for reports",
+      "node-type": "mcp-client"
+    },
+    {
+      "unique-id": "mcp-server",
+      "name": "Reports MCP Server",
+      "description": "MCP Server that presents tools for reviewing operational reports for the week",
+      "node-type": "service",
+      "interfaces": [
+        {
+          "unique-id": "mcp-server-image",
+          "image": "jpgough/mcp-server"
+        },
+        {
+          "unique-id": "mcp-server-port",
+          "port": 8080
+        }
+      ],
+      "controls": {
+        "mcp-security-governance": {
+          "description": "MCP Server Security Governance - Establishes comprehensive security controls for the MCP server including supply chain verification, secure communication, and continuous monitoring",
+          "requirements": [
+            {
+              "requirement-url": "https://air-governance-framework.finos.org/mitigations/mi-20",
+              "config": {
+                "tier": "tier-1",
+                "architecture": "centralized-proxy",
+                "pre-approved-servers": true,
+                "tls-encryption": "required",
+                "logging": "basic-connection-logging",
+                "mitigates-risks": ["RI-26"]
+              }
+            }
+          ]
+        },
+        "tool-chain-validation": {
+          "description": "Tool Chain Validation and Sanitization - Validates tool selection and sanitizes API parameters to prevent manipulation and injection attacks",
+          "requirements": [
+            {
+              "requirement-url": "https://air-governance-framework.finos.org/mitigations/mi-19",
+              "config": {
+                "input-validation": "strict",
+                "parameter-sanitization": true,
+                "tool-allowlist": ["get-reports", "get-report-details"],
+                "injection-prevention": ["sql", "command", "prompt"],
+                "mitigates-risks": ["RI-25"]
+              }
+            }
+          ]
+        },
+        "credential-protection": {
+          "description": "Agentic System Credential Protection - Protects credentials used by the MCP server to access backend APIs through secure storage and rotation",
+          "requirements": [
+            {
+              "requirement-url": "https://air-governance-framework.finos.org/mitigations/mi-23",
+              "config": {
+                "credential-storage": "vault-backed",
+                "credential-scoping": "least-privilege",
+                "rotation-frequency": "30-days",
+                "no-hardcoded-secrets": true,
+                "mitigates-risks": ["RI-29"]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "reports-api",
+      "name": "Reports API",
+      "description": "API for accessing operational reports raised by the team",
+      "node-type": "service",
+      "interfaces": [
+        {
+          "unique-id": "reports-api-image",
+          "image": "jpgough/details-jvm"
+        },
+        {
+          "unique-id": "reports-api-port",
+          "port": 8080
+        }
+      ]
+    },
+    {
+      "unique-id": "secret-api",
+      "name": "Secret API",
+      "description": "Deployed API that should not be available to the MCP Server",
+      "node-type": "service",
+      "interfaces": [
+        {
+          "unique-id": "secret-api-image",
+          "image": "jpgough/internal-api"
+        },
+        {
+          "unique-id": "secret-api-port",
+          "port": 8080
+        }
+      ],
+      "controls": {
+        "security": {
+          "description": "Lock down an individual POD workload",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json",
+              "config-url": "https://calm.finos.org/workshop/controls/micro-segmentation.config.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "k8s-cluster",
+      "name": "Kubernetes Cluster",
+      "description": "Kubernetes Cluster with network policy rules enabled",
+      "node-type": "system"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "mcp-client-mcp-server",
+      "description": "Interactions with MCP client and the MCP server",
+      "protocol": "HTTPS",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "mcp-client"
+          },
+          "destination": {
+            "node": "mcp-server"
+          }
+        }
+      },
+      "controls": {
+        "secure-mcp-communication": {
+          "description": "Secure MCP Communication - Ensures all MCP protocol communications use TLS 1.3+ with proper certificate validation",
+          "requirements": [
+            {
+              "requirement-url": "https://air-governance-framework.finos.org/mitigations/mi-20#secure-communication",
+              "config": {
+                "tls-version": "1.3+",
+                "certificate-validation": "required",
+                "mutual-authentication": false,
+                "protocol-monitoring": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "mcp-server-reports-api",
+      "description": "Requests report data from the API on behalf of the tool",
+      "protocol": "mTLS",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "mcp-server"
+          },
+          "destination": {
+            "node": "reports-api"
+          }
+        }
+      },
+      "controls": {
+        "api-authentication": {
+          "description": "API Authentication and Authorization - Ensures MCP server uses secure authentication with least-privilege access to the Reports API",
+          "requirements": [
+            {
+              "requirement-url": "https://air-governance-framework.finos.org/mitigations/mi-23#api-authentication",
+              "config": {
+                "authentication-method": "mtls",
+                "certificate-rotation": "30-days",
+                "least-privilege": true,
+                "audit-all-requests": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "deployed-in-k8s-cluster",
+      "description": "Components deployed on the k8s cluster",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "k8s-cluster",
+          "nodes": [
+            "mcp-server",
+            "reports-api",
+            "secret-api"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": [
+    {
+      "kubernetes": {
+        "namespace": "conference"
+      }
+    }
+  ],
+  "flows": [
+    {
+      "unique-id": "report-query-flow",
+      "name": "Report Query Flow",
+      "description": "End-to-end flow for querying operational reports through the MCP server, demonstrating the complete data flow from client to backend API with security controls applied at each step.",
+      "transitions": [
+        {
+          "relationship-unique-id": "mcp-client-mcp-server",
+          "sequence-number": 1,
+          "description": "Claude (MCP client) sends a request to the MCP Server to query reports. Secure MCP communication control applies here with TLS 1.3+ encryption.",
+          "direction": "source-to-destination"
+        },
+        {
+          "relationship-unique-id": "mcp-server-reports-api",
+          "sequence-number": 2,
+          "description": "MCP Server authenticates using mTLS credentials and forwards the request to the Reports API. Tool chain validation and credential protection controls apply here.",
+          "direction": "source-to-destination"
+        },
+        {
+          "relationship-unique-id": "mcp-server-reports-api",
+          "sequence-number": 3,
+          "description": "Reports API returns the operational report data to the MCP Server.",
+          "direction": "destination-to-source"
+        },
+        {
+          "relationship-unique-id": "mcp-client-mcp-server",
+          "sequence-number": 4,
+          "description": "MCP Server returns the report data to Claude for presentation to the user.",
+          "direction": "destination-to-source"
+        }
+      ],
+      "controls": {
+        "end-to-end-flow-security": {
+          "description": "Comprehensive security controls applied across the entire report query flow, ensuring secure communication and proper authorization at each hop",
+          "requirements": [
+            {
+              "requirement-url": "https://air-governance-framework.finos.org/flows/secure-data-flow",
+              "config": {
+                "encryption-in-transit": true,
+                "authentication-required": true,
+                "authorization-checks": ["mcp-client", "mcp-server"],
+                "audit-logging": true,
+                "mitigates-risks": ["RI-26", "RI-29"]
+              }
+            }
+          ]
+        }
+      },
+      "metadata": {
+        "aigf": {
+          "mitigations-applied": ["MI-20", "MI-23"],
+          "risks-addressed": ["RI-26", "RI-25", "RI-29"],
+          "trust-boundaries-crossed": ["MCP Client-Server Boundary", "MCP Server-API Boundary"]
+        }
+      }
+    }
+  ]
+}

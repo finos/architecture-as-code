@@ -11,8 +11,8 @@ website/node_modules/
 # Generated docs
 docs/contributing.md
 
-# We use YARN
-website/package-lock.json
+# We use YARN (but also need package-lock.json for CI)
+# website/package-lock.json
 /.idea/
 
 **/.vscode/
