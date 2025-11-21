@@ -34,6 +34,7 @@ export function loadGettingStartedMapping(
             `Failed to read or parse JSON from mapping file "${mappingPath}": ${err instanceof Error ? err.message : String(err)}`
         );
     }
+}
 
 export function resolveLocalPathForUrl(
     url: string,
