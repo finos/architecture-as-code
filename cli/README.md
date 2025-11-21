@@ -50,6 +50,7 @@ Options:
   -p, --pattern <file>          Path to the pattern file to use. May be a file path or a URL.
   -o, --output <file>           Path location at which to output the generated file. (default: "architecture.json")
   -s, --schema-directory <path>  Path to the directory containing the meta schemas to use. (default: "../calm/release")
+  -c, --calm-hub-url <url>      URL to CalmHub to use when loading documents.
   -v, --verbose                 Enable verbose logging. (default: false)
   -h, --help                    display help for command
 ```
@@ -75,7 +76,8 @@ Options:
   -p, --pattern <file>          Path to the pattern file to use. May be a file path or a URL.
   -a, --architecture <file>     Path to the pattern architecture file to use. May be a file path or a URL.
   -s, --schema-directory <path> Path to the directory containing the meta schemas to use. (default: "../calm/release")
-      --strict                  When run in strict mode, the CLI will fail if any warnings are reported. (default: false)
+  -c, --calm-hub-url <url>      URL to CalmHub to use when loading documents.
+  --strict                  When run in strict mode, the CLI will fail if any warnings are reported. (default: false)
   -f, --format <format>         The format of the output (choices: "json", "junit", default: "json")
   -o, --output <file>           Path location at which to output the generated file.
   -v, --verbose                 Enable verbose logging. (default: false)
@@ -167,11 +169,13 @@ This isn't a full break, but it implies that you've forgotten to fill out a deta
 ## Calm CLI server (Experimental)
 
 It may be required to have the operations of the CALM CLI available over rest.
-The `validate` command has been made available over an API
+The `validate` command has been made available over an API.
 
 ```shell
 calm server --schema-directory calm
 ```
+
+Note that CalmHub can be used by setting the `-c, --calm-hub-url` argument.
 
 ```shell
 curl http://127.0.0.1:3000/health
