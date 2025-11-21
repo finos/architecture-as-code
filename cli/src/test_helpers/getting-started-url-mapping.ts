@@ -13,15 +13,27 @@ export function collectGettingStartedUrlsFromFile(
     filePath: string,
     urls: Set<string>
 ): void {
-    const architecture = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    let architecture;
+    try {
+        architecture = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    } catch (err) {
+        throw new Error(
+            `Failed to read or parse JSON from file "${filePath}": ${err instanceof Error ? err.message : String(err)}`
+        );
+    }
     collectGettingStartedUrls(architecture, urls);
 }
 
 export function loadGettingStartedMapping(
     mappingPath: string = STATIC_GETTING_STARTED_MAPPING_PATH
 ): Record<string, string> {
-    return JSON.parse(fs.readFileSync(mappingPath, 'utf8'));
-}
+    try {
+        return JSON.parse(fs.readFileSync(mappingPath, 'utf8'));
+    } catch (err) {
+        throw new Error(
+            `Failed to read or parse JSON from mapping file "${mappingPath}": ${err instanceof Error ? err.message : String(err)}`
+        );
+    }
 
 export function resolveLocalPathForUrl(
     url: string,
