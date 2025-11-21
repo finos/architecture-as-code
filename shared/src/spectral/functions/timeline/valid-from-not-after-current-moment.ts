@@ -1,7 +1,7 @@
 import { JSONPath } from 'jsonpath-plus';
 
 /**
- * Checks that the input value exists as an interface with matching unique ID defined under a node in the document.
+ * Checks that the current-moment has no moments after it with a valid-from date.
  */
 export function validFromNotAfterCurrentMoment(input, _, context) {
     if (!input) {

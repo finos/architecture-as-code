@@ -2,7 +2,7 @@ import { JSONPath } from 'jsonpath-plus';
 import { detectDuplicates } from '../helper-functions';
 
 /**
- * Checks that the input value exists as a moment with a matching unique ID.
+ * Checks that unique-id is unique across all moments in the timeline.
  */
 export function idsAreUnique(input, _, context) {
     if (!input) {
