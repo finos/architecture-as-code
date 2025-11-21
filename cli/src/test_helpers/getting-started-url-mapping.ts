@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import path from 'node:path';
+import path from 'path';
 
 const GETTING_STARTED_URL_PREFIX = 'https://calm.finos.org/getting-started/';
 const OPTIONAL_RELATIVE_PREFIXES = ['flows/'];
