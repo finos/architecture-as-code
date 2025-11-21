@@ -30,3 +30,4 @@ node_modules/
 coverage/
 /cli/test/template-bundles/
 .github/chatmodes
+shared/test-output/
