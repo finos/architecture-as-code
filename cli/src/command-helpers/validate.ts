@@ -136,8 +136,7 @@ export function writeOutputFile(output: string, validationsOutput: string) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function checkValidateOptions(program: Command, options: any, patternOption: string, architectureOption: string,
-                                     timelineOption: string) {
+export function checkValidateOptions(program: Command, options: any, patternOption: string, architectureOption: string, timelineOption: string) {
     if (options.timeline && (options.pattern || options.architecture)) {
         program.error(`error: the option '${timelineOption}' cannot be used with either of the options '${patternOption}' or '${architectureOption}'`);
     }
