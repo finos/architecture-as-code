@@ -49,7 +49,7 @@ describe('validate E2E', () => {
         const badPattern = JSON.parse(readFileSync(badPatternPath, 'utf-8'));
         const inputArch = JSON.parse(readFileSync(inputArchPath, 'utf-8'));
 
-        const response = await validate(inputArch, badPattern, schemaDirectory, false);
+        const response = await validate(inputArch, badPattern, undefined, schemaDirectory, false);
 
         expect(response.hasErrors).toBeTruthy();
         expect(response.jsonSchemaValidationOutputs).toHaveLength(1);
