@@ -1,0 +1,332 @@
+{
+  "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+  "metadata": {
+    "name": "MCP Server Architecture with Envoy AI Gateway (After Gateway)",
+    "version": "2.0.0",
+    "description": "Architecture demonstrating MCP client-server pattern with centralized Envoy AI Gateway enforcing FINOS AIGF MI-20 Tier 2 controls, restricting access to only pre-approved MCP servers"
+  },
+  "nodes": [
+    {
+      "unique-id": "mcp-client",
+      "name": "Claude",
+      "description": "MCP Client for querying reports and analytics",
+      "node-type": "actor"
+    },
+    {
+      "unique-id": "envoy-ai-gateway",
+      "name": "Envoy AI Gateway",
+      "description": "Centralized MCP proxy enforcing FINOS AIGF MI-20 Tier 2 controls including pre-approved server access, TLS enforcement, and connection logging",
+      "node-type": "service",
+      "interfaces": [
+        {
+          "unique-id": "ai-gateway-image",
+          "image": "envoyproxy/ai-gateway"
+        },
+        {
+          "unique-id": "ai-gateway-port",
+          "port": 8443
+        }
+      ],
+      "controls": {
+        "mcp-security-governance": {
+          "description": "MCP Server Security Governance (MI-20 Tier 2) - Centralized proxy enforcing connections only to pre-approved MCP servers with TLS encryption and logging",
+          "requirements": [
+            {
+              "requirement-url": "https://ai-governance-framework.finos.org/mitigations/mi-20",
+              "config": {
+                "tier": "tier-2",
+                "architecture": "centralized-proxy",
+                "implementation": "envoy-ai-gateway",
+                "pre-approved-servers": ["reports-mcp-server"],
+                "server-vetting": "basic-security-review",
+                "tls-encryption": "required",
+                "logging": "basic-connection-logging",
+                "enforcement-point": "gateway",
+                "bypass-prevention": true,
+                "mitigates-risks": ["RI-26"],
+                "_mapping": {
+                  "_note": "This section documents how CALM config maps to Envoy Gateway implementation",
+                  "pre-approved-servers": "MCPRoute.spec.backendRefs[].name",
+                  "tls-encryption": "Gateway.spec.listeners[].tls.mode: Terminate",
+                  "logging": "SecurityPolicy.spec.observability.accessLog.enabled",
+                  "bypass-prevention": "NetworkPolicy.spec.ingress[].from[] (gateway only)"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "mcp-server",
+      "name": "Reports MCP Server",
+      "description": "MCP Server that presents tools for reviewing operational reports for the week (pre-approved and trusted)",
+      "node-type": "service",
+      "interfaces": [
+        {
+          "unique-id": "mcp-server-image",
+          "image": "jpgough/mcp-server"
+        },
+        {
+          "unique-id": "mcp-server-port",
+          "port": 8080
+        }
+      ]
+    },
+    {
+      "unique-id": "untrusted-mcp-server",
+      "name": "Untrusted MCP Server",
+      "description": "MCP Server providing analytics and data visualization tools (NOT pre-approved - blocked by gateway)",
+      "node-type": "service",
+      "interfaces": [
+        {
+          "unique-id": "untrusted-mcp-server-image",
+          "image": "external/analytics-mcp-server"
+        },
+        {
+          "unique-id": "untrusted-mcp-server-port",
+          "port": 8080
+        }
+      ]
+    },
+    {
+      "unique-id": "reports-api",
+      "name": "Reports API",
+      "description": "API for accessing operational reports raised by the team",
+      "node-type": "service",
+      "interfaces": [
+        {
+          "unique-id": "reports-api-image",
+          "image": "jpgough/details-jvm"
+        },
+        {
+          "unique-id": "reports-api-port",
+          "port": 8080
+        }
+      ]
+    },
+    {
+      "unique-id": "analytics-api",
+      "name": "Analytics API",
+      "description": "API for accessing analytics data and metrics",
+      "node-type": "service",
+      "interfaces": [
+        {
+          "unique-id": "analytics-api-image",
+          "image": "external/analytics-api"
+        },
+        {
+          "unique-id": "analytics-api-port",
+          "port": 8080
+        }
+      ]
+    },
+    {
+      "unique-id": "k8s-cluster",
+      "name": "Kubernetes Cluster",
+      "description": "Kubernetes Cluster with network policy rules enabled",
+      "node-type": "system"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "mcp-client-ai-gateway",
+      "description": "MCP client connects to centralized AI Gateway for all MCP server access",
+      "protocol": "HTTPS",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "mcp-client"
+          },
+          "destination": {
+            "node": "envoy-ai-gateway"
+          }
+        }
+      },
+      "controls": {
+        "client-gateway-tls": {
+          "description": "Secure MCP Communication - Client to Gateway uses TLS 1.3+ with certificate validation",
+          "requirements": [
+            {
+              "requirement-url": "https://ai-governance-framework.finos.org/mitigations/mi-20#secure-communication",
+              "config": {
+                "tls-version": "1.3+",
+                "certificate-validation": "required",
+                "mutual-authentication": false,
+                "protocol-monitoring": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "ai-gateway-mcp-server",
+      "description": "AI Gateway proxies requests to pre-approved Reports MCP Server with logging",
+      "protocol": "HTTPS",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "envoy-ai-gateway"
+          },
+          "destination": {
+            "node": "mcp-server"
+          }
+        }
+      },
+      "controls": {
+        "gateway-server-enforcement": {
+          "description": "Gateway enforces pre-approved server list and comprehensive logging",
+          "requirements": [
+            {
+              "requirement-url": "https://ai-governance-framework.finos.org/mitigations/mi-20#centralized-proxy",
+              "config": {
+                "server-allowlist-enforcement": true,
+                "connection-logging": true,
+                "tls-version": "1.3+",
+                "bypass-prevention": "network-policy"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "ai-gateway-untrusted-mcp-server",
+      "description": "AI Gateway has network connectivity to Untrusted MCP Server but blocks all requests (not in pre-approved list)",
+      "protocol": "HTTPS",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "envoy-ai-gateway"
+          },
+          "destination": {
+            "node": "untrusted-mcp-server"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "mcp-server-reports-api",
+      "description": "Requests report data from the API on behalf of the tool",
+      "protocol": "mTLS",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "mcp-server"
+          },
+          "destination": {
+            "node": "reports-api"
+          }
+        }
+      },
+      "controls": {
+        "api-authentication": {
+          "description": "API Authentication and Authorization - Ensures MCP server uses secure authentication with least-privilege access to the Reports API",
+          "requirements": [
+            {
+              "requirement-url": "https://ai-governance-framework.finos.org/mitigations/mi-23#api-authentication",
+              "config": {
+                "authentication-method": "mtls",
+                "certificate-rotation": "30-days",
+                "least-privilege": true,
+                "audit-all-requests": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "untrusted-mcp-server-analytics-api",
+      "description": "Requests analytics data from the API on behalf of the tool",
+      "protocol": "mTLS",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "untrusted-mcp-server"
+          },
+          "destination": {
+            "node": "analytics-api"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "deployed-in-k8s-cluster",
+      "description": "Components deployed on the k8s cluster",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "k8s-cluster",
+          "nodes": [
+            "envoy-ai-gateway",
+            "mcp-server",
+            "untrusted-mcp-server",
+            "reports-api",
+            "analytics-api"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": [
+    {
+      "kubernetes": {
+        "namespace": "conference"
+      }
+    }
+  ],
+  "flows": [
+    {
+      "unique-id": "report-query-flow",
+      "name": "Report Query Flow via AI Gateway",
+      "description": "End-to-end flow for querying operational reports through the centralized Envoy AI Gateway, demonstrating how MI-20 Tier 2 controls are enforced at the gateway layer to restrict access to only pre-approved MCP servers.",
+      "transitions": [
+        {
+          "relationship-unique-id": "mcp-client-ai-gateway",
+          "sequence-number": 1,
+          "description": "Claude (MCP client) sends MCP request to the Envoy AI Gateway over TLS 1.3+. The gateway is the only entry point for MCP server access.",
+          "direction": "source-to-destination"
+        },
+        {
+          "relationship-unique-id": "ai-gateway-mcp-server",
+          "sequence-number": 2,
+          "description": "AI Gateway validates the target server is pre-approved (Reports MCP Server is in the allowlist), logs the connection, and proxies to the Reports MCP Server.",
+          "direction": "source-to-destination"
+        },
+        {
+          "relationship-unique-id": "mcp-server-reports-api",
+          "sequence-number": 3,
+          "description": "Reports MCP Server authenticates using mTLS credentials and forwards the request to the Reports API.",
+          "direction": "source-to-destination"
+        },
+        {
+          "relationship-unique-id": "mcp-server-reports-api",
+          "sequence-number": 4,
+          "description": "Reports API returns the operational report data to the Reports MCP Server.",
+          "direction": "destination-to-source"
+        },
+        {
+          "relationship-unique-id": "ai-gateway-mcp-server",
+          "sequence-number": 5,
+          "description": "Reports MCP Server returns the report data through the AI Gateway, which logs the response.",
+          "direction": "destination-to-source"
+        },
+        {
+          "relationship-unique-id": "mcp-client-ai-gateway",
+          "sequence-number": 6,
+          "description": "AI Gateway returns the report data to Claude for presentation to the user.",
+          "direction": "destination-to-source"
+        }
+      ],
+      "metadata": {
+        "aigf": {
+          "mitigations-applied": ["MI-20", "MI-23"],
+          "risks-addressed": ["RI-26"],
+          "trust-boundaries-crossed": ["MCP Client-Gateway Boundary", "Gateway-MCP Server Boundary", "MCP Server-API Boundary"],
+          "enforcement-layer": "centralized-gateway"
+        }
+      }
+    }
+  ]
+}

@@ -44,12 +44,12 @@ jobs:
       next-version: ${{ steps.check.outputs.next-version }}
       current-version: ${{ steps.check.outputs.current-version }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
         with:
           node-version: 22
 
@@ -222,12 +222,12 @@ jobs:
     runs-on: ubuntu-latest
     if: needs.analyze.outputs.should-release == 'true' && needs.analyze.outputs.release-type != 'major'
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
           token: ${{ secrets.SRB_TOKEN }}
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
         with:
           node-version: 22
 
@@ -275,8 +275,53 @@ jobs:
             git commit -m "ci(cli): release version ${{ needs.analyze.outputs.next-version }}"
             git push origin "release/cli-v${{ needs.analyze.outputs.next-version }}"
           else
-            # Use semantic-release for automatic releases
-            npm run semantic-release
+            echo "🤖 Preparing automated release artifacts without tagging"
+            NEXT_VERSION="${{ needs.analyze.outputs.next-version }}"
+            RELEASE_DATE=$(date +%Y-%m-%d)
+            
+            # Update package.json version
+            npm version "$NEXT_VERSION" --no-git-tag-version
+            
+            # Generate release notes via semantic-release dry run (no tags)
+            node -e "const fs=require('fs');const {default: semanticRelease}=await import('semantic-release');(async()=>{try{const result=await semanticRelease({ci:false,dryRun:true});const notes=result&&result.nextRelease&&result.nextRelease.notes?result.nextRelease.notes.trim():'';fs.writeFileSync('release-notes.md',notes?notes+'\\n':'');}catch(error){console.error('Failed to generate release notes via semantic-release dry run');console.error(error);fs.writeFileSync('release-notes.md','');}})();"
+            
+            # Build changelog entry with generated notes (fallback to simple entry)
+            cat > temp_changelog.md << EOF
+          # Changelog
+          
+          All notable changes to the CALM CLI will be documented in this file.
+          
+          The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+          and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+          
+          ## [$NEXT_VERSION] - $RELEASE_DATE
+          
+          EOF
+            
+            if [ -s "release-notes.md" ]; then
+              cat release-notes.md >> temp_changelog.md
+              echo "" >> temp_changelog.md
+            else
+              cat >> temp_changelog.md <<'EOF'
+          ### Changed
+          - Automated release
+          
+          EOF
+            fi
+            
+            if [ -f "CHANGELOG.md" ]; then
+              tail -n +8 CHANGELOG.md >> temp_changelog.md
+            fi
+            mv temp_changelog.md CHANGELOG.md
+            rm -f release-notes.md
+            
+            # Create release branch
+            git checkout -b "release/cli-v$NEXT_VERSION"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add CHANGELOG.md package.json
+            git commit -m "ci(cli): release version $NEXT_VERSION"
+            git push origin "release/cli-v$NEXT_VERSION"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.SRB_TOKEN }}
@@ -321,12 +366,12 @@ jobs:
     runs-on: ubuntu-latest
     if: needs.analyze.outputs.should-release == 'true' && needs.analyze.outputs.release-type == 'major'
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
         with:
           node-version: 22
 
@@ -338,8 +383,8 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
         run: |
           cd  cli
-          # Generate release notes  
-          npx semantic-release > release-output.txt 2>&1 || true
+          # Generate release notes without creating tags
+          npx semantic-release --dry-run --ci false > release-output.txt 2>&1 || true
           
           cat > release-notes.md << EOF
           ## 🚨 Major Version Release
@@ -379,19 +424,19 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'automated-release')
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2
+        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2
         with:
           egress-policy: audit
 
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: main
 
       - name: Setup Node.js
-        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
         with:
           node-version: 22
 

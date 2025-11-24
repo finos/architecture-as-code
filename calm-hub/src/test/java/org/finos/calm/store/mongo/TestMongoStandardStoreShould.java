@@ -4,7 +4,6 @@ import com.mongodb.MongoWriteException;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteError;
 import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -42,7 +41,7 @@ import static org.mockito.Mockito.when;
 public class TestMongoStandardStoreShould {
 
     @InjectMock
-    MongoClient mongoClient;
+    MongoDatabase mongoDatabase;
 
     @InjectMock
     MongoCounterStore counterStore;
@@ -56,12 +55,10 @@ public class TestMongoStandardStoreShould {
 
     @BeforeEach
     void setup() {
-        MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
         standardCollection = Mockito.mock(DocumentMongoCollection.class);
 
-        when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
         when(mongoDatabase.getCollection("standards")).thenReturn(standardCollection);
-        mongoStandardStore = new MongoStandardStore(mongoClient, counterStore, namespaceStore);
+        mongoStandardStore = new MongoStandardStore(mongoDatabase, counterStore, namespaceStore);
     }
 
     @Test
@@ -317,7 +314,7 @@ public class TestMongoStandardStoreShould {
         CreateStandardRequest standard = standardToStore();
 
         WriteError writeError = new WriteError(2, "The positional operator did not find the match needed from the query", new BsonDocument());
-        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress());
+        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
         when(standardCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class))).thenThrow(mongoWriteException);
 
         assertThrows(StandardNotFoundException.class, () -> mongoStandardStore.createStandardForVersion(standard, "finos", 50, "1.0.1"));

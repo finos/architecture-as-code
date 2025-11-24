@@ -135,10 +135,19 @@ async function validateArchitectureAgainstPattern(architecture: object, pattern:
 
     const patternResolved = applyArchitectureOptionsToPattern(architecture, pattern, debug);
 
-    const jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, patternResolved, debug);
-    await jsonSchemaValidator.initialize();
-
     let jsonSchemaValidations = [];
+    let jsonSchemaValidator: JsonSchemaValidator;
+    try {
+        jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, patternResolved, debug);
+        await jsonSchemaValidator.initialize();
+    } catch (error) {
+        const errorMessage = toErrorMessage(error);
+        logger.error(`JSON Schema compilation failed: ${errorMessage}`);
+        jsonSchemaValidations = [
+            new ValidationOutput('json-schema', 'error', errorMessage, '/')
+        ];
+        return new ValidationOutcome(jsonSchemaValidations, spectralResult.spectralIssues, true, warnings);
+    }
 
     const schemaErrors = jsonSchemaValidator.validate(architecture);
     if (schemaErrors.length > 0) {
@@ -170,10 +179,11 @@ async function validatePatternOnly(pattern: object, schemaDirectory: SchemaDirec
 
     try {
         // Compile pattern as a schema to check if it's valid
-        new JsonSchemaValidator(schemaDirectory, pattern, debug);
+        const jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, pattern, debug);
+        await jsonSchemaValidator.initialize();
     } catch (error) {
         errors = true;
-        jsonSchemaErrors.push(new ValidationOutput('json-schema', 'error', error.message, '/'));
+        jsonSchemaErrors.push(new ValidationOutput('json-schema', 'error', toErrorMessage(error), '/'));
     }
 
     return new ValidationOutcome(jsonSchemaErrors, spectralValidationResults.spectralIssues, errors, warnings);// added spectral to return object
@@ -245,6 +255,20 @@ function getRuleNamesFromRuleset(ruleset: RulesetDefinition): string[] {
 
 function prettifyJson(json) {
     return JSON.stringify(json, null, 4);
+}
+
+function toErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+        return error.message;
+    }
+    if (typeof error === 'string') {
+        return error;
+    }
+    try {
+        return JSON.stringify(error);
+    } catch {
+        return 'Unknown error';
+    }
 }
 
 export function stripRefs(obj: object): string {

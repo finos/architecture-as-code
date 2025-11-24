@@ -12,7 +12,8 @@
     <properties>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
-        <quarkus.platform.version>3.28.2</quarkus.platform.version>
+        <quarkus.platform.version>3.29.4</quarkus.platform.version>
+        <jacoco.version>0.8.14</jacoco.version>
     </properties>
 
     <modules>

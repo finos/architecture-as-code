@@ -10,7 +10,8 @@
         "cli",
         "docs",
         "calm-hub-ui",
-        "calm-plugins/vscode"
+        "calm-plugins/vscode",
+        "experimental/calm-explorer"
     ],
     "scripts": {
         "build": "npm run build --workspaces --if-present",
@@ -35,11 +36,14 @@
         "link:cli": "npm link --workspace cli",
         "calm-hub-ui:run": "npm run start --workspace calm-hub-ui",
         "calm-hub-ui:prod": "npm run prod --workspace calm-hub-ui",
+        "build:calm-explorer": "npm run build --workspace experimental/calm-explorer",
+        "test:calm-explorer": "npm run test:run --workspace experimental/calm-explorer",
+        "lint:calm-explorer": "npm run lint --workspace experimental/calm-explorer",
         "prepare": "husky"
     },
     "devDependencies": {
         "@commitlint/cli": "^20.0.0",
-        "@commitlint/config-conventional": "^19.0.0",
+        "@commitlint/config-conventional": "^20.0.0",
         "@vitest/coverage-v8": "^3.1.1",
         "@vitest/ui": "^3.1.4",
         "commitizen": "^4.3.0",

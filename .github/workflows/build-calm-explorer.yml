@@ -1,0 +1,38 @@
+name: Build CALM Explorer
+
+permissions:
+    contents: read
+
+on:
+    pull_request:
+        branches:
+            - 'main'
+    push:
+        branches:
+            - 'main'
+
+jobs:
+    calm-explorer:
+        name: Build, Test, and Lint CALM Explorer
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout PR Branch
+              uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+            - name: Setup Node.js
+              uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+              with:
+                  node-version: v22
+
+            - name: Install workspace
+              run: npm ci
+
+            - name: Lint Module
+              run: npm run lint --workspace=experimental/calm-explorer
+
+            - name: Build workspace
+              run: npm run build --workspace=experimental/calm-explorer
+
+            - name: Run tests
+              run: npm run test:run --workspace=experimental/calm-explorer

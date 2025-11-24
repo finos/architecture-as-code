@@ -28,7 +28,7 @@ import static org.mockito.Mockito.*;
 public class TestMongoUserAccessStoreShould {
 
     @InjectMock
-    MongoClient mongoClient;
+    MongoDatabase mongoDatabase;
     @InjectMock
     MongoNamespaceStore namespaceStore;
     @InjectMock
@@ -39,12 +39,10 @@ public class TestMongoUserAccessStoreShould {
 
     @BeforeEach
     void setup() {
-        MongoDatabase mongoDatabase = Mockito.mock(MongoDatabase.class);
         userAccessCollection = Mockito.mock(DocumentMongoCollection.class);
 
-        when(mongoClient.getDatabase("calmSchemas")).thenReturn(mongoDatabase);
         when(mongoDatabase.getCollection("userAccess")).thenReturn(userAccessCollection);
-        mongoUserAccessStore = new MongoUserAccessStore(mongoClient, namespaceStore, counterStore);
+        mongoUserAccessStore = new MongoUserAccessStore(mongoDatabase, namespaceStore, counterStore);
     }
 
     @Test

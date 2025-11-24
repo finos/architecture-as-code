@@ -1,4 +1,5 @@
 {
+  "$schema": "calm.finos.org/release/1.0/meta/calm.json",
   "$id": "docuflow-architecture",
   "title": "DocuFlow System",
   "description": "DocuFlow is a document management system that allows users to upload, process, and store documents securely.",
@@ -74,8 +75,6 @@
   ],
   "flows": [
     {
-      "$schema": "https://calm.finos.org/draft/2024-12/meta/flow.json",
-      "$id": "https://calm.finos.org/docuflow/flow/document-upload",
       "unique-id": "flow-document-upload",
       "name": "Document Upload Flow",
       "description": "Flow for uploading a document and storing metadata securely in the DocuFlow system.",
