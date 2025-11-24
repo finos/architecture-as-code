@@ -162,20 +162,7 @@
       "additionalProperties": true
     },
     "protocol": {
-      "enum": [
-        "HTTP",
-        "HTTPS",
-        "FTP",
-        "SFTP",
-        "JDBC",
-        "WebSocket",
-        "SocketIO",
-        "LDAP",
-        "AMQP",
-        "TLS",
-        "mTLS",
-        "TCP"
-      ]
+      "type": "string"
     },
     "node-type-definition": {
       "anyOf": [

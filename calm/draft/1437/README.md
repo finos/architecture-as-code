@@ -1,16 +1,16 @@
 # Draft 1437: Relationship protocol updates
 
 Proposal:
-- Make protocol extensible like node-type: allow either a value from the existing enum or any string.
-- Remove protocol from the relationship schema properties. Because relationships allow additionalProperties, models that include protocol will still validate.
+- Make protocol free-form (simple string) rather than constrained to a predefined enum.
+- Keep the `protocol` property on relationships optional but explicitly referencing the shared definition when present.
 
 Rationale:
 - Supports emerging protocols (e.g., GraphQL, gRPC) without requiring a schema release.
-- Decouples schema from optional field usage; tools can still read protocol if present.
+- Retains schema guidance for producers/consumers by keeping the `protocol` property defined while still optional.
 
 Schema changes (in core.json):
-- defs.protocol now uses anyOf: [enum | string].
-- defs.relationship no longer declares a protocol property; required remains ["unique-id", "relationship-type"].
+- defs.protocol is now simply `{ "type": "string" }`.
+- defs.relationship continues to declare `protocol` referencing the shared definition; the field remains optional because it is not listed in `required`.
 
 Examples (prototype/):
 - relationship-example-enum.json: uses an enum value (HTTPS).
@@ -21,4 +21,4 @@ Compatibility:
 - No breaking change: existing models with or without protocol continue to validate.
 
 Adoption:
-- If accepted, mirror these changes into the next release schema and update downstream tooling that relied on relationship.properties.protocol being declared.
+- If accepted, mirror these changes into the next release schema and update downstream tooling to treat protocol as an optional free-form string.
