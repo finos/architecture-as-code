@@ -2,6 +2,9 @@ import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
 import { JsonSchemaValidator } from './json-schema-validator';
 import Ajv2020 from 'ajv/dist/2020.js';
 import { SchemaDirectory } from '../../schema-directory.js';
+import { FileSystemDocumentLoader } from '../../document-loader/file-system-document-loader.js';
+import path from 'path';
+import { readFileSync } from 'fs';
 
 describe('JsonSchemaValidator', () => {
     let schemaDirectory: SchemaDirectory;
@@ -59,5 +62,19 @@ describe('JsonSchemaValidator', () => {
     it('validate throws if not initialized', () => {
         const validator = new JsonSchemaValidator(schemaDirectory, pattern);
         expect(() => validator.validate({})).toThrowError('Validator has not been initialized. Call initialize() before validating.');
+    });
+});
+
+describe('JsonSchemaValidator integration', () => {
+    const schemaDir = path.join(__dirname, '../../../../calm/release/1.0/meta/');
+    const badPatternPath = path.join(__dirname, '../../../test_fixtures/bad-schema/bad-json-schema.json');
+
+    it('throws when compiling the bad-json-schema fixture', async () => {
+        const schemaDirectory = new SchemaDirectory(new FileSystemDocumentLoader([schemaDir], true));
+        await schemaDirectory.loadSchemas();
+        const badPattern = JSON.parse(readFileSync(badPatternPath, 'utf-8'));
+        const validator = new JsonSchemaValidator(schemaDirectory, badPattern);
+
+        await expect(validator.initialize()).rejects.toThrow(/type/i);
     });
 });
