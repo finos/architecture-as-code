@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { convertCalmPatternToCalm, isCalmPatternSchema } from "./calm-pattern-to-cytoscape-converter.js";
+import { CalmPatternSchema } from "../contracts/calm-pattern-contracts.js";
 
 describe('isCalmPatternSchema', () => {
     it('should return true for a valid CalmPatternSchema', () => {
@@ -98,7 +99,7 @@ describe('isCalmPatternSchema', () => {
 
     describe('convertCalmPatternToCalm', () => {
         it('should default an undefined pattern correctly', () => {
-            expect(convertCalmPatternToCalm(undefined as any)).toEqual({
+            expect(convertCalmPatternToCalm(undefined)).toEqual({
                 nodes: undefined,
                 relationships: undefined,
                 metadata: undefined,
@@ -201,8 +202,8 @@ describe('isCalmPatternSchema', () => {
                         prefixItems: []
                     }
                 }
-            } as any;
-            const calmArchitecture = convertCalmPatternToCalm(calmPattern);
+            };
+            const calmArchitecture = convertCalmPatternToCalm(calmPattern as unknown as CalmPatternSchema);
             expect(calmArchitecture.nodes).toHaveLength(2);
             expect(calmArchitecture.nodes?.[0]).toEqual({
                 controls: undefined,
@@ -336,8 +337,8 @@ describe('isCalmPatternSchema', () => {
                         ]
                     }
                 }
-            } as any;
-            const calmArchitecture = convertCalmPatternToCalm(calmPattern);
+            };
+            const calmArchitecture = convertCalmPatternToCalm(calmPattern as unknown as CalmPatternSchema);
             expect(calmArchitecture.relationships).toHaveLength(2);
             expect(calmArchitecture.relationships?.[0]).toEqual({
                 controls: {
@@ -419,8 +420,8 @@ describe('isCalmPatternSchema', () => {
 
                     }
                 }
-            } as any;
-            const calmArchitecture = convertCalmPatternToCalm(calmPattern);
+            };
+            const calmArchitecture = convertCalmPatternToCalm(calmPattern as unknown as CalmPatternSchema);
             expect(calmArchitecture.metadata).toEqual([
                 {
                     kubernetes: {
@@ -464,8 +465,8 @@ describe('isCalmPatternSchema', () => {
                         }]
                     }
                 }
-            } as any;
-            const calmArchitecture = convertCalmPatternToCalm(calmPattern);
+            };
+            const calmArchitecture = convertCalmPatternToCalm(calmPattern as unknown as CalmPatternSchema);
             expect(calmArchitecture.controls).toEqual([
                 {
                     governance: {
@@ -473,6 +474,259 @@ describe('isCalmPatternSchema', () => {
                     }
                 }
             ]);
+        });
+
+        it('should handle oneOf structures correctly', () => {
+            const calmPattern = {
+                title: "Application A/B/C + Database Pattern",
+                type: "object",
+                properties: {
+                    nodes: {
+                        type: "array",
+                        minItems: 3,
+                        maxItems: 3,
+                        prefixItems: [
+                            {
+                                oneOf: [
+                                    {
+                                        type: "object",
+                                        properties: {
+                                            'unique-id': {
+                                                const: "application-a"
+                                            },
+                                            name: {
+                                                const: "Application A"
+                                            },
+                                            description: {
+                                                const: "Application A, optionally used in this architecture"
+                                            },
+                                            'node-type': {
+                                                const: "service"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        type: "object",
+                                        properties: {
+                                            'unique-id': {
+                                                const: "application-b"
+                                            },
+                                            name: {
+                                                const: "Application B"
+                                            },
+                                            description: {
+                                                const: "Application B, optionally used in this architecture"
+                                            },
+                                            'node-type': {
+                                                const: "service"
+                                            }
+                                        }
+                                    }
+                                ]
+                            },
+                        ]
+                    },
+                    "relationships": {
+                        type: "array",
+                        minItems: 3,
+                        maxItems: 3,
+                        prefixItems: [
+                            {
+                                oneOf: [
+                                    {
+                                        type: "object",
+                                        properties: {
+                                            'unique-id': {
+                                                const: "application-a-to-c"
+                                            },
+                                            description: {
+                                                const: "Application A connects to Application C"
+                                            },
+                                            'relationship-type': {
+                                                const: {
+                                                    connects: {
+                                                        source: { node: "application-a" },
+                                                        destination: { node: "application-c" }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        type: "object",
+                                        properties: {
+                                            'unique-id': {
+                                                const: "application-b-to-c"
+                                            },
+                                            description: {
+                                                const: "Application B connects to Application C"
+                                            },
+                                            'relationship-type': {
+                                                const: {
+                                                    connects: {
+                                                        source: { node: "application-b" },
+                                                        destination: { node: "application-c" }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                required: [
+                    "nodes",
+                    "relationships"
+                ]
+            };
+            const calmArchitecture = convertCalmPatternToCalm(calmPattern);
+            expect(calmArchitecture.nodes).toHaveLength(1);
+            expect(calmArchitecture.nodes?.[0]).toEqual({
+                'unique-id': 'application-a',
+                name: 'Application A',
+                description: 'Application A, optionally used in this architecture',
+                'node-type': 'service',
+            });
+            expect(calmArchitecture.relationships).toHaveLength(1);
+            expect(calmArchitecture.relationships?.[0]).toEqual({
+                'unique-id': 'application-a-to-c',
+                description: 'Application A connects to Application C',
+                'relationship-type': {
+                    connects: {
+                        source: { node: 'application-a' },
+                        destination: { node: 'application-c' },
+                    },
+                },
+            });
+        });
+
+        it('should handle anyOf structures correctly', () => {
+            const calmPattern = {
+                title: "Application + Database A and/or B Pattern",
+                type: "object",
+                properties: {
+                    nodes: {
+                        type: "array",
+                        minItems: 1,
+                        maxItems: 3,
+                        prefixItems: [
+                            {
+                                anyOf: [
+                                    {
+                                        type: "object",
+                                        properties: {
+                                            'unique-id': {
+                                                const: "database-a"
+                                            },
+                                            name: {
+                                                const: "Database A"
+                                            },
+                                            description: {
+                                                const: "Database A, optionally used in this architecture"
+                                            },
+                                            'node-type': {
+                                                const: "database"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        type: "object",
+                                        properties: {
+                                            'unique-id': {
+                                                const: "database-b"
+                                            },
+                                            name: {
+                                                const: "Database B"
+                                            },
+                                            description: {
+                                                const: "Database B, optionally used in this architecture"
+                                            },
+                                            'node-type': {
+                                                const: "database"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    relationships: {
+                        type: "array",
+                        minItems: 1,
+                        maxItems: 3,
+                        prefixItems: [
+                            {
+                                anyOf: [
+                                    {
+                                        type: "object",
+                                        properties: {
+                                            'unique-id': {
+                                                const: "application-database-a"
+                                            },
+                                            description: {
+                                                const: "Application connects to Database A"
+                                            },
+                                            'relationship-type': {
+                                                const: {
+                                                    connects: {
+                                                        source: { node: "application" },
+                                                        destination: { node: "database-a" }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        type: "object",
+                                        properties: {
+                                            'unique-id': {
+                                                const: "application-database-b"
+                                            },
+                                            description: {
+                                                const: "Application connects to Database B"
+                                            },
+                                            'relationship-type': {
+                                                const: {
+                                                    connects: {
+                                                        source: { node: "application" },
+                                                        destination: { node: "database-b" }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                required: [
+                    "nodes",
+                    "relationships"
+                ]
+            }
+
+            const calmArchitecture = convertCalmPatternToCalm(calmPattern);
+            expect(calmArchitecture.nodes).toHaveLength(1);
+            expect(calmArchitecture.nodes?.[0]).toEqual({
+                'unique-id': 'database-a',
+                name: 'Database A',
+                description: 'Database A, optionally used in this architecture',
+                'node-type': 'database',
+            });
+            expect(calmArchitecture.relationships).toHaveLength(1);
+            expect(calmArchitecture.relationships?.[0]).toEqual({
+                'unique-id': 'application-database-a',
+                description: 'Application connects to Database A',
+                'relationship-type': {
+                    connects: {
+                        source: { node: 'application' },
+                        destination: { node: 'database-a' }
+                    },
+                },
+            });
         });
     });
 });

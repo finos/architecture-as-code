@@ -1,13 +1,17 @@
-/*
-    These types capture the structure of CALM Pattern JSON Schemas. They may not be perfect as
-    I based them of examples in the codebase, please advise on how I can improve the types.
-*/
+export type IndividualPrefixItem<P extends Record<string, unknown> = Record<string, unknown>> = {
+    type: string;
+    properties: P;
+};
 
-
-export type PrefixItem = {
-    type: string,
-    properties: any,
+type AnyOfPrefixItem<T extends Record<string, unknown> = Record<string, unknown>> = {
+    anyOf: IndividualPrefixItem<T>[];
 }
+
+type OneOfPrefixItem<T extends Record<string, unknown> = Record<string, unknown>> = {
+    oneOf: IndividualPrefixItem<T>[];
+};
+
+export type PrefixItem<T extends Record<string, unknown> = Record<string, unknown>> = IndividualPrefixItem<T> | AnyOfPrefixItem<T> | OneOfPrefixItem<T>;
 
 type PatternProperties<T = PrefixItem> = {
     type: string,
@@ -16,25 +20,24 @@ type PatternProperties<T = PrefixItem> = {
     prefixItems: T[],
 };
 
-export type NodePrefixItem = {
-    type: string,
-    properties: {
-        "unique-id": {
-            const: string
-        },
-        name: {
-            const: string
-        },
-        description: {
-            const: string
-        },
-        "node-type": {
-            const: string
-        },
-        interfaces?: PatternProperties,
-        controls?: PrefixItem,
-    }
-};
+export type NodeProperties = {
+    "unique-id": {
+        const: string
+    },
+    name: {
+        const: string
+    },
+    description: {
+        const: string
+    },
+    "node-type": {
+        const: string
+    },
+    interfaces?: PatternProperties,
+    controls?: IndividualPrefixItem,
+}
+
+export type NodePrefixItem = PrefixItem<NodeProperties>;
 
 type RelationshipTypeDescription = {
     connects?: {
@@ -49,29 +52,33 @@ type RelationshipTypeDescription = {
         actor: string,
         nodes: string[]
     },
-    'deployed-in'?: any,
-    'composed-of'?: any,
-    options?: any,
+    'deployed-in'?: {
+        container: string,
+        nodes: string[]
+    },
+    'composed-of'?: {
+        container: string,
+        nodes: string[]
+    },
 }
 
-export type RelationshipPrefixItem = {
-    type: string,
-    properties: {
-        "unique-id": {
-            const: string
-        },
-        description: {
-            const: string
-        },
-        protocol?: {
-            const: string
-        },
-        'relationship-type': {
-            const: RelationshipTypeDescription,
-        },
-        controls?: PrefixItem,
-    }
+export type RelationshipProperties = {
+    "unique-id": {
+        const: string
+    },
+    description: {
+        const: string
+    },
+    protocol?: {
+        const: string
+    },
+    'relationship-type': {
+        const: RelationshipTypeDescription,
+    },
+    controls?: PrefixItem,
 }
+
+export type RelationshipPrefixItem = PrefixItem<RelationshipProperties>;
 
 export type CalmPatternSchema = {
     type: string,
