@@ -3,6 +3,7 @@ import { Spectral, ISpectralDiagnostic, RulesetDefinition } from '@stoplight/spe
 
 import validationRulesForPattern from '../../spectral/rules-pattern';
 import validationRulesForArchitecture from '../../spectral/rules-architecture';
+import validationRulesForTimeline from '../../spectral/rules-timeline';
 import { DiagnosticSeverity } from '@stoplight/types';
 import { initLogger, Logger } from '../../logger.js';
 import { ValidationOutput, ValidationOutcome } from './validation.output.js';
@@ -85,32 +86,45 @@ async function runSpectralValidations(
 /**
  * Validation - with simple input parameters and output validation outcomes.
  * @param architecture The architecture as a JS object
- * @param pattern The pattern as a JS object
- * @param metaSchemaPath File path to meta schema directory
+ * @param patternOrSchema The pattern (or schema) as a JS object
+ * @param timeline The timeline as a JS object
+ * @param schemaDirectory SchemaDirectory instance for schema resolution
  * @param debug Whether to log at debug level
  * @returns Validation report
  */
 export async function validate(
     architecture: object,
-    pattern: object,
+    patternOrSchema: object,
+    timeline: object,
     schemaDirectory?: SchemaDirectory,
     debug: boolean = false
 ): Promise<ValidationOutcome> {
     logger = initLogger(debug, 'calm-validate');
 
     try {
-        if (architecture && pattern) {
-            return await validateArchitectureAgainstPattern(architecture, pattern, schemaDirectory, debug);
-        } else if (pattern) {
-            return await validatePatternOnly(pattern, schemaDirectory, debug);
+        if (timeline) {
+            if (architecture) {
+                logger.debug('You cannot provide an architecture when validating a timeline');
+                throw new Error('You cannot provide an architecture when validating a timeline');
+            }
+            // It is acceptable, in fact desired, for `patternOrSchema` to be set, and be the CALM timeline schema.
+            return await validateTimeline(timeline, patternOrSchema, schemaDirectory, debug);
+        } else if (architecture && patternOrSchema) {
+            // Note that patternOrSchema may be a CALM pattern, or might be the CALM core schema.
+            // The caller is responsible for honoring the architecture's `$schema`, or using an explicitly provided pattern.
+            // In either case, we validate the architecture against it.
+            return await validateArchitectureAgainstPattern(architecture, patternOrSchema, schemaDirectory, debug);
+        } else if (patternOrSchema) {
+            // `patternOrSchema` should really be a CALM pattern in this case.
+            return await validatePatternOnly(patternOrSchema, schemaDirectory, debug);
         } else if (architecture) {
             return await validateArchitectureOnly(architecture);
         } else {
-            logger.debug('You must provide at least an architecture or a pattern');
-            throw new Error('You must provide at least an architecture or a pattern');
+            logger.debug('You must provide an architecture, a pattern, or a timeline');
+            throw new Error('You must provide an architecture, a pattern, or a timeline');
         }
     } catch (error) {
-        logger.error('An error occured:' + error);
+        logger.error('An error occurred:' + error);
         throw error;
     }
 }
@@ -184,7 +198,7 @@ async function validatePatternOnly(pattern: object, schemaDirectory: SchemaDirec
  * Note that if only the architecture is provided, the CLI tool will attempt to validate the architecture against its specified CALM schema.
  * i.e. the validateArchitectureAgainstPattern method will be called instead of this method.
  * 
- * @param architectureSchemaLocation - The location of the architecture document.
+ * @param architecture - The architecture, as a JS object.
  * @returns the validation outcome with the results of the spectral validation 
  **/
 async function validateArchitectureOnly(architecture: object): Promise<ValidationOutcome> {
@@ -201,11 +215,44 @@ async function validateArchitectureOnly(architecture: object): Promise<Validatio
 }
 
 /**
+ * Run validations for a timeline.
+ * This essentially runs the spectral validations and tries to compile the timeline.
+ *
+ * @param timeline - the timeline to validate.
+ * @param schema - the schema to validate against. This should be the CALM timeline schema.
+ * @param schemaDirectory - the SchemaDirectory instance to use for schema resolution.
+ * @param debug - the flag to enable debug logging.
+ * @returns the validation outcome with the results of the spectral validation and the timeline compilation.
+ */
+async function validateTimeline(timeline: object, schema: object, schemaDirectory: SchemaDirectory, debug: boolean): Promise<ValidationOutcome> {
+    logger.debug('Timeline will be validated');
+    const spectralValidationResults: SpectralResult = await runSpectralValidations(stripRefs(timeline), validationRulesForTimeline);
+
+    let errors = spectralValidationResults.errors;
+    const warnings = spectralValidationResults.warnings;
+
+    const jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, schema, debug);
+    await jsonSchemaValidator.initialize();
+
+    let jsonSchemaValidations = [];
+
+    const schemaErrors = jsonSchemaValidator.validate(timeline);
+    if (schemaErrors.length > 0) {
+        logger.debug(`JSON Schema validation raw output: ${prettifyJson(schemaErrors)}`);
+        errors = true;
+        jsonSchemaValidations = convertJsonSchemaIssuesToValidationOutputs(schemaErrors);
+    }
+
+    return new ValidationOutcome(jsonSchemaValidations, spectralValidationResults.spectralIssues, errors, warnings);// added spectral to return object
+}
+
+/**
  * If a pattern contains objects, we need to apply the chosen options recorded
  * in the architecture to the pattern to produce a JSON schema pattern that can
  * be used for validation.
  * @param architecture Architecture which may contain options.
  * @param pattern Pattern which may contain options.
+ * @param debug - the flag to enable debug logging.
  * @returns Pattern with options applied and flattened.
  */
 export function applyArchitectureOptionsToPattern(architecture: object, pattern: object, debug: boolean): object {

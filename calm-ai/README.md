@@ -39,6 +39,6 @@ Tool prompts should:
 
 - Include critical validation requirements
 - Provide working examples
-- Reference CALM schema v1.0
+- Reference CALM schema v1.1
 - Emphasize common pitfalls and solutions
 - Follow consistent markdown formatting
