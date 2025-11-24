@@ -10,6 +10,7 @@ import { loadCliConfig } from './cli-config';
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
 const OUTPUT_OPTION = '-o, --output <file>';
 const SCHEMAS_OPTION = '-s, --schema-directory <path>';
+const TIMELINE_OPTION = '--timeline <file>';
 const VERBOSE_OPTION = '-v, --verbose';
 
 // Generate command options
@@ -56,9 +57,17 @@ export function setupCLI(program: Command) {
 
     program
         .command('validate')
-        .description('Validate that an architecture conforms to a given CALM pattern.')
+        .description('Validate a CALM document.')
+        .addHelpText('after', `
+
+Validation requires:
+  - an architecture:             to validate against CALM schema
+  - an architecture and pattern: to validate the architecture against the CALM pattern
+  - a pattern:                   to validate the pattern against CALM schema
+  - a timeline:                  to validate the timeline against CALM timeline schema`)
         .option(PATTERN_OPTION, 'Path to the pattern file to use. May be a file path or a URL.')
         .option(ARCHITECTURE_OPTION, 'Path to the architecture file to use. May be a file path or a URL.')
+        .option(TIMELINE_OPTION, 'Path to the timeline file to validate. May be a file path or a URL.')
         .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.', CALM_META_SCHEMA_DIRECTORY)
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(STRICT_OPTION, 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
@@ -71,10 +80,11 @@ export function setupCLI(program: Command) {
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
             const { checkValidateOptions, runValidate } = await import('./command-helpers/validate');
-            checkValidateOptions(program, options, PATTERN_OPTION, ARCHITECTURE_OPTION);
+            checkValidateOptions(program, options, PATTERN_OPTION, ARCHITECTURE_OPTION, TIMELINE_OPTION);
             await runValidate({
                 architecturePath: options.architecture,
                 patternPath: options.pattern,
+                timelinePath: options.timeline,
                 metaSchemaPath: options.schemaDirectory,
                 calmHubUrl: options.calmHubUrl,
                 verbose: !!options.verbose,

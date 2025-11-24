@@ -18,6 +18,18 @@ export type CalmNodeCanonicalModel = {
     metadata?: CalmMetadataCanonicalModel;
 } & Record<string, unknown>;
 
+export type CalmTimelineCanonicalModel = {
+    'current-moment'?: string;
+    moments: CalmMomentCanonicalModel[];
+    metadata?: CalmMetadataCanonicalModel;
+}
+
+export type CalmMomentCanonicalModel =
+    CalmNodeCanonicalModel & {
+        'valid-from'?: string;
+        adrs?: string[];
+}
+
 export type CalmDecisionCanonicalModel = {
     description: string;
     nodes: string[];

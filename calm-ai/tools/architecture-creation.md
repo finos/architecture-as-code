@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide provides instructions for creating complete CALM architecture documents that comply with the FINOS CALM v1.0 schema.
+This guide provides instructions for creating complete CALM architecture documents that comply with the FINOS CALM v1.1 schema.
 
 ## Required Schema Structure
 
@@ -10,7 +10,7 @@ Every CALM architecture MUST include:
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+    "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
     "unique-id": "string",
     "name": "string",
     "description": "string"
@@ -31,7 +31,7 @@ Every CALM architecture MUST include:
 
 ## Architecture Creation Checklist
 
-- [ ] Include required $schema reference to CALM v1.0
+- [ ] Include required $schema reference to CALM v1.1
 - [ ] Provide unique-id (kebab-case recommended)
 - [ ] Add descriptive name and description
 - [ ] Name file with `.architecture.json` suffix
@@ -59,7 +59,7 @@ Every CALM architecture MUST include:
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+    "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
     "unique-id": "example-trading-system",
     "name": "Example Trading System",
     "description": "A simple trading system architecture",

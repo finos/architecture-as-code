@@ -1,4 +1,5 @@
 import Ajv2020, { ErrorObject, ValidateFunction } from 'ajv/dist/2020.js';
+import addFormats from 'ajv-formats';
 import { SchemaDirectory } from '../../schema-directory.js';
 import { initLogger, Logger } from '../../logger.js';
 
@@ -26,6 +27,7 @@ export class JsonSchemaValidator {
                 }
             }
         });
+        addFormats(this.ajv);
     }
 
     async initialize(): Promise<void> {
