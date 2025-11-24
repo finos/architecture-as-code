@@ -44,7 +44,7 @@ jobs:
       next-version: ${{ steps.check.outputs.next-version }}
       current-version: ${{ steps.check.outputs.current-version }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -222,7 +222,7 @@ jobs:
     runs-on: ubuntu-latest
     if: needs.analyze.outputs.should-release == 'true' && needs.analyze.outputs.release-type != 'major'
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
           token: ${{ secrets.SRB_TOKEN }}
@@ -283,7 +283,7 @@ jobs:
             npm version "$NEXT_VERSION" --no-git-tag-version
             
             # Generate release notes via semantic-release dry run (no tags)
-            node -e "const fs=require('fs');const semanticRelease=require('semantic-release');(async()=>{try{const result=await semanticRelease({ci:false,dryRun:true});const notes=result&&result.nextRelease&&result.nextRelease.notes?result.nextRelease.notes.trim():'';fs.writeFileSync('release-notes.md',notes?notes+'\\n':'');}catch(error){console.error('Failed to generate release notes via semantic-release dry run');console.error(error);fs.writeFileSync('release-notes.md','');}})();"
+            node -e "const fs=require('fs');const {default: semanticRelease}=await import('semantic-release');(async()=>{try{const result=await semanticRelease({ci:false,dryRun:true});const notes=result&&result.nextRelease&&result.nextRelease.notes?result.nextRelease.notes.trim():'';fs.writeFileSync('release-notes.md',notes?notes+'\\n':'');}catch(error){console.error('Failed to generate release notes via semantic-release dry run');console.error(error);fs.writeFileSync('release-notes.md','');}})();"
             
             # Build changelog entry with generated notes (fallback to simple entry)
             cat > temp_changelog.md << EOF
@@ -366,7 +366,7 @@ jobs:
     runs-on: ubuntu-latest
     if: needs.analyze.outputs.should-release == 'true' && needs.analyze.outputs.release-type == 'major'
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -429,7 +429,7 @@ jobs:
           egress-policy: audit
 
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}

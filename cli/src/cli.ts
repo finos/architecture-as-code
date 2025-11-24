@@ -69,6 +69,7 @@ Validation requires:
         .option(ARCHITECTURE_OPTION, 'Path to the architecture file to use. May be a file path or a URL.')
         .option(TIMELINE_OPTION, 'Path to the timeline file to validate. May be a file path or a URL.')
         .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.', CALM_META_SCHEMA_DIRECTORY)
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(STRICT_OPTION, 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
         .addOption(
             new Option(FORMAT_OPTION, 'The format of the output')
@@ -85,6 +86,7 @@ Validation requires:
                 patternPath: options.pattern,
                 timelinePath: options.timeline,
                 metaSchemaPath: options.schemaDirectory,
+                calmHubUrl: options.calmHubUrl,
                 verbose: !!options.verbose,
                 strict: options.strict,
                 outputFormat: options.format,
@@ -98,6 +100,7 @@ Validation requires:
         .option(PORT_OPTION, 'Port to run the server on', '3000')
         .requiredOption(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .action(async (options) => {
             const { startServer } = await import('./server/cli-server');
             const debug = !!options.verbose;

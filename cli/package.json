@@ -50,7 +50,7 @@
         "@semantic-release/changelog": "^6.0.3",
         "@semantic-release/exec": "^7.1.0",
         "@semantic-release/git": "^10.0.1",
-        "@semantic-release/github": "^11.0.0",
+        "@semantic-release/github": "^12.0.0",
         "@types/json-pointer": "^1.0.34",
         "@types/junit-report-builder": "^3.0.2",
         "@types/lodash": "^4.17.16",

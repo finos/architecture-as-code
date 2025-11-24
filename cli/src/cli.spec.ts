@@ -7,6 +7,7 @@ import {
 } from '@finos/calm-shared';
 import { Command } from 'commander';
 import { MockInstance } from 'vitest';
+import { parseDocumentLoaderConfig } from './cli';
 
 let calmShared: typeof import('@finos/calm-shared');
 let validateModule: typeof import('./command-helpers/validate');
@@ -15,6 +16,7 @@ let templateModule: typeof import('./command-helpers/template');
 let optionsModule: typeof import('./command-helpers/generate-options');
 let fileSystemDocLoaderModule: typeof import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
 let setupCLI: typeof import('./cli').setupCLI;
+let cliConfigModule: typeof import('./cli-config');
 
 describe('CLI Commands', () => {
     let program: Command;
@@ -337,4 +339,43 @@ describe('CLI Commands', () => {
         });
     });
 
+});
+
+describe('parseDocumentLoaderConfig', () => {
+    it('should parse calmhub url when provided', async () => {
+        const options = await parseDocumentLoaderConfig({
+            calmHubUrl: 'calmhub'
+        });
+        expect(options.calmHubUrl).toEqual('calmhub');
+    });
+
+    it('should override calmhub url in file when provided', async () => {
+        cliConfigModule = await import('./cli-config');
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({ calmHubUrl: 'calmhub-file' });
+
+        const options = await parseDocumentLoaderConfig({
+            calmHubUrl: 'calmhub-cli'
+        });
+        expect(options.calmHubUrl).toEqual('calmhub-cli');
+    });
+
+    it('should parse schemaDirectoryPath when provided', async () => {
+        const options = await parseDocumentLoaderConfig({
+            schemaDirectory: 'path'
+        });
+        expect(options.schemaDirectoryPath).toEqual('path');
+    });
+
+    it('should set debug to true when verbose passed along', async () => {
+        const options = await parseDocumentLoaderConfig({
+            verbose: true
+        });
+        expect(options.debug).toBeTruthy();
+    });
+
+    it('should default debug to false', async () => {
+        const options = await parseDocumentLoaderConfig({
+        });
+        expect(options.debug).toBeFalsy();
+    });
 });

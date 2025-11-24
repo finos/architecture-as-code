@@ -14,6 +14,7 @@ export interface ValidateOptions {
     architecturePath?: string;
     timelinePath?: string;
     metaSchemaPath: string;
+    calmHubUrl?: string;
     verbose: boolean;
     strict: boolean;
     outputFormat: ValidateOutputFormat;
