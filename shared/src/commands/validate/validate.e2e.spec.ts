@@ -13,6 +13,10 @@ const inputPatternPath = path.join(
     __dirname,
     '../../../test_fixtures/command/validate/options/pattern.json'
 );
+const badPatternPath = path.join(
+    __dirname,
+    '../../../test_fixtures/bad-schema/bad-json-schema.json'
+);
 
 const schemaDir = path.join(__dirname, '../../../../calm/release/1.0/meta/');
 
@@ -36,6 +40,21 @@ describe('validate E2E', () => {
         expect(response.spectralSchemaValidationOutputs).toHaveLength(2);
         expect(response.spectralSchemaValidationOutputs[0].path).toBe('/nodes/0/description');
         expect(response.spectralSchemaValidationOutputs[1].path).toBe('/nodes/1/description');
+    });
+
+    it('reports json schema compilation errors for bad-json-schema fixture', async () => {
+        schemaDirectory = new SchemaDirectory(new FileSystemDocumentLoader([schemaDir], true));
+        await schemaDirectory.loadSchemas();
+
+        const badPattern = JSON.parse(readFileSync(badPatternPath, 'utf-8'));
+        const inputArch = JSON.parse(readFileSync(inputArchPath, 'utf-8'));
+
+        const response = await validate(inputArch, badPattern, undefined, schemaDirectory, false);
+
+        expect(response.hasErrors).toBeTruthy();
+        expect(response.jsonSchemaValidationOutputs).toHaveLength(1);
+        expect(response.jsonSchemaValidationOutputs[0].message).toContain('type');
+        expect(response.jsonSchemaValidationOutputs[0].path).toBe('/');
     });
 
     describe('applyArchitectureOptionsToPattern', () => {
