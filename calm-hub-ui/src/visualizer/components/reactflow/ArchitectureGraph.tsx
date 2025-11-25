@@ -215,6 +215,9 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
                     zIndex: -1,
                   },
                   data: {
+                    // Include id and type for Sidebar compatibility
+                    id,
+                    type: nodeType || 'system',
                     label: node.name || id,
                     nodeType: nodeType || 'system',
                     ...node,
@@ -232,6 +235,9 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
                   type: 'custom',
                   position: { x: 0, y: 0 },
                   data: {
+                    // Include id and type for Sidebar compatibility
+                    id,
+                    type: nodeType,
                     label: node.name || id,
                     ...node,
                     onShowDetails: onShowDetailsCallback,
@@ -291,8 +297,9 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
             const label = rel.description || 'interacts';
 
             targetNodeIds.forEach((targetId: string, targetIndex: number) => {
+              const edgeId = `edge-${index}-${targetIndex}`;
               newEdges.push({
-                id: `edge-${index}-${targetIndex}`,
+                id: edgeId,
                 source: actorId,
                 target: targetId,
                 sourceHandle: 'source',
@@ -311,6 +318,11 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
                   height: 25,
                 },
                 data: {
+                  // Include id, source, target for Sidebar compatibility
+                  id: edgeId,
+                  source: actorId,
+                  target: targetId,
+                  label: label,
                   description: label,
                   protocol: rel.protocol || '',
                   metadata: rel.metadata || {},
@@ -339,9 +351,12 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
 
               // If we have bidirectional flow, create two parallel edges
               if (forwardTransitions.length > 0 && backwardTransitions.length > 0) {
+                const forwardEdgeId = `edge-${index}-forward`;
+                const backwardEdgeId = `edge-${index}-backward`;
+
                 // Forward edge
                 newEdges.push({
-                  id: `edge-${index}-forward`,
+                  id: forwardEdgeId,
                   source: sourceId,
                   target: targetId,
                   sourceHandle: 'source',
@@ -359,6 +374,11 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
                     height: 25,
                   },
                   data: {
+                    // Include id, source, target for Sidebar compatibility
+                    id: forwardEdgeId,
+                    source: sourceId,
+                    target: targetId,
+                    label: label,
                     description: label,
                     protocol: rel.protocol || '',
                     metadata: rel.metadata || {},
@@ -371,7 +391,7 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
 
                 // Backward edge
                 newEdges.push({
-                  id: `edge-${index}-backward`,
+                  id: backwardEdgeId,
                   source: sourceId,
                   target: targetId,
                   sourceHandle: 'source',
@@ -391,6 +411,11 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
                     orient: 'auto-start-reverse' as any,
                   },
                   data: {
+                    // Include id, source, target for Sidebar compatibility
+                    id: backwardEdgeId,
+                    source: sourceId,
+                    target: targetId,
+                    label: label,
                     description: label,
                     protocol: rel.protocol || '',
                     metadata: rel.metadata || {},
@@ -402,8 +427,9 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
                 });
               } else {
                 // Single direction edge
+                const edgeId = `edge-${index}`;
                 newEdges.push({
-                  id: `edge-${index}`,
+                  id: edgeId,
                   source: sourceId,
                   target: targetId,
                   sourceHandle: 'source',
@@ -421,6 +447,11 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
                     height: 25,
                   },
                   data: {
+                    // Include id, source, target for Sidebar compatibility
+                    id: edgeId,
+                    source: sourceId,
+                    target: targetId,
+                    label: label,
                     description: label,
                     protocol: rel.protocol || '',
                     metadata: rel.metadata || {},
@@ -439,8 +470,9 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
             const label = rel.relationship_type || rel.type || rel.label || '';
 
             if (sourceId && targetId) {
+              const edgeId = `edge-${index}`;
               newEdges.push({
-                id: `edge-${index}`,
+                id: edgeId,
                 source: sourceId,
                 target: targetId,
                 sourceHandle: 'source',
@@ -458,6 +490,11 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
                   height: 25,
                 },
                 data: {
+                  // Include id, source, target for Sidebar compatibility
+                  id: edgeId,
+                  source: sourceId,
+                  target: targetId,
+                  label: label,
                   description: label,
                   protocol: rel.protocol || '',
                   metadata: rel.metadata || {},
