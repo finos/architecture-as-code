@@ -16,9 +16,8 @@ vi.mock('../sidebar/Sidebar.js', () => ({
     ),
 }));
 vi.mock('../reactflow/ReactFlowVisualizer.js', () => ({
-    ReactFlowVisualizer: ({ title, calmData }: ReactFlowVisualizerProps) => (
+    ReactFlowVisualizer: ({ calmData }: ReactFlowVisualizerProps) => (
         <div data-testid="reactflow-visualizer">
-            <div>{title}</div>
             <div data-testid="node-count">{calmData?.nodes?.length ?? 0}</div>
             <div data-testid="relationship-count">{calmData?.relationships?.length ?? 0}</div>
         </div>
@@ -98,7 +97,6 @@ describe('Drawer', () => {
         expect(screen.getByTestId('reactflow-visualizer')).toBeInTheDocument();
         expect(screen.getByTestId('node-count')).toHaveTextContent('2');
         expect(screen.getByTestId('relationship-count')).toHaveTextContent('2');
-        expect(screen.getByText('Test CALM/123/1.0')).toBeInTheDocument();
     });
 
     it('shows sidebar when selectedNode is set', () => {

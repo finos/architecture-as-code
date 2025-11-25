@@ -65,67 +65,9 @@ describe('ReactFlowVisualizer', () => {
         vi.clearAllMocks();
     });
 
-    it('renders with title', () => {
-        render(
-            <ReactFlowVisualizer
-                title="Test Architecture"
-                calmData={mockCalmData}
-            />
-        );
-        expect(screen.getByText('Test Architecture')).toBeInTheDocument();
-    });
-
-    it('renders default title when none provided', () => {
-        render(
-            <ReactFlowVisualizer
-                title=""
-                calmData={mockCalmData}
-            />
-        );
-        expect(screen.getByText('Architecture Diagram')).toBeInTheDocument();
-    });
-
-    it('renders control panel with checkboxes', () => {
-        render(
-            <ReactFlowVisualizer
-                title="Test"
-                calmData={mockCalmData}
-            />
-        );
-        expect(screen.getByText('Node descriptions')).toBeInTheDocument();
-        expect(screen.getByText('Connection descriptions')).toBeInTheDocument();
-    });
-
-    it('toggles node descriptions checkbox', () => {
-        render(
-            <ReactFlowVisualizer
-                title="Test"
-                calmData={mockCalmData}
-            />
-        );
-        const nodeCheckbox = screen.getByRole('checkbox', { name: /node descriptions/i });
-        expect(nodeCheckbox).toBeChecked();
-        fireEvent.click(nodeCheckbox);
-        expect(nodeCheckbox).not.toBeChecked();
-    });
-
-    it('toggles connection descriptions checkbox', () => {
-        render(
-            <ReactFlowVisualizer
-                title="Test"
-                calmData={mockCalmData}
-            />
-        );
-        const connectionCheckbox = screen.getByRole('checkbox', { name: /connection descriptions/i });
-        expect(connectionCheckbox).toBeChecked();
-        fireEvent.click(connectionCheckbox);
-        expect(connectionCheckbox).not.toBeChecked();
-    });
-
     it('renders ArchitectureGraph with calmData', () => {
         render(
             <ReactFlowVisualizer
-                title="Test"
                 calmData={mockCalmData}
             />
         );
@@ -136,7 +78,6 @@ describe('ReactFlowVisualizer', () => {
     it('calls onNodeClick when node is clicked', () => {
         render(
             <ReactFlowVisualizer
-                title="Test"
                 calmData={mockCalmData}
                 onNodeClick={mockOnNodeClick}
             />
@@ -150,7 +91,6 @@ describe('ReactFlowVisualizer', () => {
     it('calls onEdgeClick when edge is clicked', () => {
         render(
             <ReactFlowVisualizer
-                title="Test"
                 calmData={mockCalmData}
                 onEdgeClick={mockOnEdgeClick}
             />
@@ -164,7 +104,6 @@ describe('ReactFlowVisualizer', () => {
     it('has correct test id for component identification', () => {
         render(
             <ReactFlowVisualizer
-                title="Test"
                 calmData={mockCalmData}
             />
         );

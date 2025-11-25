@@ -30,7 +30,6 @@ function extractId(item: CalmNodeSchema | CalmRelationshipSchema): string {
 }
 
 export function Drawer({ data }: DrawerProps) {
-    const [title, setTitle] = useState<string>('');
     const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
     const [fileInstance, setFileInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
     const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
@@ -41,7 +40,6 @@ export function Drawer({ data }: DrawerProps) {
 
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
         if (acceptedFiles[0]) {
-            setTitle(acceptedFiles[0].name);
             const fileText = await acceptedFiles[0].text();
             setFileInstance(JSON.parse(fileText));
         }
@@ -50,10 +48,6 @@ export function Drawer({ data }: DrawerProps) {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
     useEffect(() => {
-        // Only update title from data if data exists and title wasn't already set by file upload
-        if (data?.name && data?.id && data?.version) {
-            setTitle(data.name + '/' + data.id + '/' + data.version);
-        }
         setCALMInstance(fileInstance ?? data?.data);
     }, [fileInstance, data]);
 
@@ -187,7 +181,6 @@ export function Drawer({ data }: DrawerProps) {
                                 }}
                             >
                                 <ReactFlowVisualizer
-                                    title={title}
                                     calmData={calmInstance}
                                     onNodeClick={handleNodeClick}
                                     onEdgeClick={handleEdgeClick}

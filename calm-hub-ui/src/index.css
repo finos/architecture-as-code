@@ -120,6 +120,7 @@ code {
 }
 
 .react-flow__edge-labels {
+    /* stylelint-disable-next-line declaration-no-important -- edge labels must appear above nodes */
     z-index: 60 !important;
 }
 
