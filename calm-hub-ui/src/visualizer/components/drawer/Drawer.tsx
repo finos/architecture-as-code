@@ -1,10 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useState } from 'react';
 import { CalmArchitectureSchema } from '../../../../../calm-models/src/types/core-types.js';
-import { CytoscapeNode, CytoscapeEdge } from '../../contracts/contracts.js';
-import { VisualizerContainer } from '../visualizer-container/VisualizerContainer.js';
 import { Data } from '../../../model/calm.js';
 import { useDropzone } from 'react-dropzone';
-import { convertCalmToCytoscape } from '../../services/calm-to-cytoscape-converter.js';
+import { ReactFlowVisualizer } from '../reactflow/ReactFlowVisualizer.js';
 import { Sidebar } from '../sidebar/Sidebar.js';
 
 interface DrawerProps {
@@ -14,8 +13,8 @@ interface DrawerProps {
 export function Drawer({ data }: DrawerProps) {
     const [title, setTitle] = useState<string>('');
     const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
-    const [fileInstance, setFileInstance] = useState<string | undefined>(undefined);
-    const [selectedItem, setSelectedItem] = useState<CytoscapeNode | CytoscapeEdge | null>(null);
+    const [fileInstance, setFileInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
+    const [selectedItem, setSelectedItem] = useState<{ data: any } | null>(null);
 
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
         if (acceptedFiles[0]) {
@@ -32,21 +31,12 @@ export function Drawer({ data }: DrawerProps) {
         if (data?.name && data?.id && data?.version) {
             setTitle(data.name + '/' + data.id + '/' + data.version);
         }
-        setCALMInstance((fileInstance as CalmArchitectureSchema) ?? data?.data);
+        setCALMInstance(fileInstance ?? data?.data);
     }, [fileInstance, data]);
 
     function closeSidebar() {
         setSelectedItem(null);
     }
-
-    function createStorageKey(title: string, data?: Data): string {
-        if (!data || !data.name || !data.calmType || !data.id || !data.version) {
-            return title;
-        }
-        return `${data.name}/${data.calmType}/${data.id}/${data.version}`;
-    }
-
-    const { edges, nodes } = convertCalmToCytoscape(calmInstance);
 
     return (
         <div {...getRootProps()} className="flex-1 flex overflow-hidden h-full">
@@ -59,17 +49,14 @@ export function Drawer({ data }: DrawerProps) {
                     checked={!!selectedItem}
                     onChange={closeSidebar}
                 />
-                <div className="drawer-content">
+                <div className="drawer-content h-full">
                     {calmInstance ? (
-                        <VisualizerContainer
+                        <ReactFlowVisualizer
                             title={title}
-                            nodes={nodes}
-                            edges={edges}
-                            calmKey={createStorageKey(title, data)}
-                            nodeClickedCallback={(nodeData) => setSelectedItem({ data: nodeData })}
-                            edgeClickedCallback={(edgeData) => setSelectedItem({ data: edgeData })}
-                            backgroundClickedCallback={closeSidebar}
-                            selectedItemId={selectedItem?.data?.id}
+                            calmData={calmInstance}
+                            onNodeClick={(nodeData) => setSelectedItem({ data: nodeData })}
+                            onEdgeClick={(edgeData) => setSelectedItem({ data: edgeData })}
+                            onBackgroundClick={closeSidebar}
                         />
                     ) : (
                         <div className="flex justify-center items-center h-full w-full">

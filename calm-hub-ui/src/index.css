@@ -25,3 +25,53 @@ body {
 code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
+
+/* ReactFlow style overrides for light theme */
+.react-flow__background {
+    background-color: #ffffff;
+}
+
+.react-flow__edge-labels {
+    z-index: 60 !important;
+}
+
+.react-flow__node-group {
+    z-index: -1 !important;
+}
+
+.react-flow__node-custom {
+    z-index: 1 !important;
+}
+
+.react-flow__controls {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    border-radius: 8px;
+}
+
+.react-flow__controls-button {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    color: #64748b;
+}
+
+.react-flow__controls-button:hover {
+    background: #f1f5f9;
+}
+
+.react-flow__controls-button svg {
+    fill: #64748b;
+}
+
+.react-flow__minimap {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.react-flow__attribution {
+    background: transparent;
+}
+
+.react-flow__attribution a {
+    color: #94a3b8;
+}
