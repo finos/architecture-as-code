@@ -53,10 +53,8 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
             setNodes((nds) =>
                 nds.map((n) => ({
                     ...n,
-                    style: {
-                        ...n.style,
-                        zIndex: n.id === node.id && n.type !== 'group' ? 1000 : n.type === 'group' ? -1 : 1,
-                    },
+                    // zIndex must be a direct property on the node, not in style
+                    zIndex: n.id === node.id && n.type !== 'group' ? 1000 : n.type === 'group' ? -1 : 1,
                 }))
             );
         },
@@ -67,10 +65,8 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
         setNodes((nds) =>
             nds.map((n) => ({
                 ...n,
-                style: {
-                    ...n.style,
-                    zIndex: n.type === 'group' ? -1 : 1,
-                },
+                // Reset zIndex to default values
+                zIndex: n.type === 'group' ? -1 : 1,
             }))
         );
     }, [setNodes]);
