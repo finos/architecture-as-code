@@ -3,10 +3,98 @@
     themes: light --default;
 }
 
-[data-theme='light'] {
+/*
+ * Theme CSS Variables
+ *
+ * These values are the single source of truth for CSS.
+ * They should stay in sync with src/theme/colors.ts
+ *
+ * We keep DaisyUI for its component classes (btn, navbar, etc.)
+ * while also providing custom theme classes for flexibility.
+ */
+:root {
+    /* Brand colors */
     --color-primary: #000063;
     --color-accent: #007dff;
     --color-accent-light: #b2d8f5;
+
+    /* Background colors */
+    --color-bg-base: #ffffff;
+    --color-bg-secondary: #f8fafc;
+    --color-bg-tertiary: #f1f5f9;
+    --color-bg-card: #ffffff;
+
+    /* Text colors */
+    --color-text-primary: #1e293b;
+    --color-text-secondary: #64748b;
+    --color-text-muted: #94a3b8;
+
+    /* Border colors */
+    --color-border: #e2e8f0;
+    --color-border-dark: #cbd5e1;
+
+    /* Status colors */
+    --color-success: #16a34a;
+    --color-warning: #ca8a04;
+    --color-error: #dc2626;
+    --color-info: #0284c7;
+
+    /* Feedback colors */
+    --color-positive: #16a34a;
+    --color-negative: #dc2626;
+}
+
+/*
+ * Custom Utility Classes
+ *
+ * These replace DaisyUI semantic classes with our theme colors
+ */
+
+/* Backgrounds */
+.bg-theme-base {
+    background-color: var(--color-bg-base);
+}
+.bg-theme-secondary {
+    background-color: var(--color-bg-secondary);
+}
+.bg-theme-tertiary {
+    background-color: var(--color-bg-tertiary);
+}
+.bg-theme-card {
+    background-color: var(--color-bg-card);
+}
+.bg-theme-accent {
+    background-color: var(--color-accent);
+}
+
+/* Text */
+.text-theme-primary {
+    color: var(--color-text-primary);
+}
+.text-theme-secondary {
+    color: var(--color-text-secondary);
+}
+.text-theme-muted {
+    color: var(--color-text-muted);
+}
+.text-theme-accent {
+    color: var(--color-accent);
+}
+
+/* Borders */
+.border-theme {
+    border-color: var(--color-border);
+}
+.border-theme-dark {
+    border-color: var(--color-border-dark);
+}
+
+/* Hover states */
+.hover\:bg-theme-secondary:hover {
+    background-color: var(--color-bg-secondary);
+}
+.hover\:bg-theme-tertiary:hover {
+    background-color: var(--color-bg-tertiary);
 }
 
 #root {
@@ -26,9 +114,9 @@ code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
-/* ReactFlow style overrides for light theme */
+/* ReactFlow style overrides */
 .react-flow__background {
-    background-color: #ffffff;
+    background-color: var(--color-bg-base);
 }
 
 .react-flow__edge-labels {
@@ -49,22 +137,22 @@ code {
 }
 
 .react-flow__controls-button {
-    background: #ffffff;
-    border-color: #e2e8f0;
-    color: #64748b;
+    background: var(--color-bg-base);
+    border-color: var(--color-border);
+    color: var(--color-text-secondary);
 }
 
 .react-flow__controls-button:hover {
-    background: #f1f5f9;
+    background: var(--color-bg-tertiary);
 }
 
 .react-flow__controls-button svg {
-    fill: #64748b;
+    fill: var(--color-text-secondary);
 }
 
 .react-flow__minimap {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
     border-radius: 8px;
 }
 
@@ -73,5 +161,20 @@ code {
 }
 
 .react-flow__attribution a {
-    color: #94a3b8;
+    color: var(--color-text-muted);
+}
+
+/* ADR marker styles */
+.marker-negative::before {
+    content: '- ';
+    font-size: 100%;
+    font-weight: bold;
+    color: var(--color-negative);
+}
+
+.marker-positive::before {
+    content: '+ ';
+    font-size: 100%;
+    font-weight: bold;
+    color: var(--color-positive);
 }

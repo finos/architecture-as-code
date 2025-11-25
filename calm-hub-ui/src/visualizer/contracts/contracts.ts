@@ -1,50 +1,30 @@
-import cytoscape from 'cytoscape';
 import { CalmInterfaceSchema, CalmControlsSchema } from '@finos/calm-models/types';
 
-export type CytoscapeNode = {
-    classes?: string;
-    data: CytoscapeNodeData & {
-        cytoscapeProps: {
-            labelWithDescription: string;
-            labelWithoutDescription: string;
-        };
-    };
-};
-
-export type CytoscapeNodeData = {
+/**
+ * Data structure for node details displayed in the Sidebar
+ * Compatible with CalmNodeSchema data passed from ReactFlow
+ */
+export type NodeData = {
     id: string;
-    description: string;
+    description?: string;
     type: string;
-    name: string;
+    name?: string;
     interfaces?: CalmInterfaceSchema[];
     controls?: CalmControlsSchema;
-    parent?: string;
+    [key: string]: unknown;
 };
 
-export type CytoscapeEdge = {
-    data: {
-        id: string;
-        label: string;
-        source: string;
-        target: string;
-        [idx: string]: string;
-    };
-};
-
-export type BoundingBox = cytoscape.BoundingBox12 & cytoscape.BoundingBoxWH;
-
-export type IdAndBoundingBox = {
-    nodeId: string;
-    boundingBox: BoundingBox;
-};
-
-export type NodeLayoutViolations = {
-    shouldBeInside: IdAndBoundingBox[];
-    shouldBeOutside: IdAndBoundingBox[];
-    nodeBoundingBox: BoundingBox;
-};
-
-export type IdAndPosition = {
-    nodeId: string;
-    position: cytoscape.Position;
+/**
+ * Data structure for edge/relationship details displayed in the Sidebar
+ * Compatible with relationship data passed from ReactFlow
+ */
+export type EdgeData = {
+    id: string;
+    label?: string;
+    source: string;
+    target: string;
+    description?: string;
+    protocol?: string;
+    controls?: CalmControlsSchema;
+    [key: string]: unknown;
 };
