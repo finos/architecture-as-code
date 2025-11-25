@@ -124,11 +124,11 @@ code {
 }
 
 .react-flow__node-group {
-    z-index: -1 !important;
+    z-index: -1;
 }
 
 .react-flow__node-custom {
-    z-index: 1 !important;
+    /* z-index is dynamically set via JS for hover behavior - don't use !important */
 }
 
 .react-flow__controls {

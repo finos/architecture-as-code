@@ -163,8 +163,9 @@ export function parseCALMData(
                             id,
                             type: 'group',
                             position: { x: 0, y: 0 },
-                            // zIndex must be a direct property on the node for ReactFlow
-                            zIndex: -1,
+                            style: {
+                                zIndex: -1,
+                            },
                             data: {
                                 // Include id and type for Sidebar compatibility
                                 id,
@@ -182,8 +183,6 @@ export function parseCALMData(
                             id,
                             type: 'custom',
                             position: { x: 0, y: 0 },
-                            // Default zIndex for regular nodes
-                            zIndex: 1,
                             data: {
                                 // Include id and type for Sidebar compatibility
                                 id,
