@@ -1,0 +1,67 @@
+{
+  "adr": {
+    "consideredOptions": [
+      {
+        "description": "Lorem ipsum dolor sit amet, **consectetur adipiscing elit**, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. \nUt enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex *ea commodo consequat*. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
+        "name": "Making a table to display the considered options",
+        "negativeConsequences": [
+          "Very little reusable code",
+          "Have to set the border of each cell",
+          "Both the positive and negative consequesnces are both lists so this will not display nicely"
+        ],
+        "positiveConsequences": [
+          "Is compact",
+          "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor"
+        ]
+      },
+      {
+        "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+        "name": "Using a collapsible list to display the considered options",
+        "negativeConsequences": [
+          "Daisy UI will not play ball"
+        ],
+        "positiveConsequences": [
+          "Looks much better than current design",
+          "Screen will look less cluttered"
+        ]
+      }
+    ],
+    "contextAndProblemStatement": "Lorem ipsum dolor sit amet",
+    "creationDateTime": "2025-04-29T12:44:25.465265627",
+    "decisionDrivers": [
+      "Lorem ipsum dolor sit amet.",
+      "Consectetur adipiscing elit.",
+      "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+    ],
+    "decisionOutcome": {
+      "chosenOption": {
+        "description": "Lorem ipsum dolor sit amet, **consectetur adipiscing elit, sed do eiusmod tempor incididunt** ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+        "name": "Using a collapsible list  to display the considered options",
+        "negativeConsequences": [
+          "Daisy UI will not play ball"
+        ],
+        "positiveConsequences": [
+          "Looks much better than current design",
+          "Screen will look less cluttered"
+        ]
+      },
+      "rationale": "It looks much nicer than the current design and allows users to collapse and exand options at will"
+    },
+    "links": [
+      {
+        "href": "http://my-link.com",
+        "rel": "Daisy UI"
+      },
+      {
+        "href": "http://my-link.com",
+        "rel": "Suggested table design"
+      }
+    ],
+    "status": "draft",
+    "title": "Example ADR",
+    "updateDateTime": "2025-05-29T12:10:00.465338085"
+  },
+  "id": 1,
+  "namespace": "finos",
+  "revision": 1
+}

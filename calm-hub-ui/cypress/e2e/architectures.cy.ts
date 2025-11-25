@@ -23,13 +23,30 @@ describe('Architecture Tests', () => {
         cy.findByText(/node descriptions/i).should("exist");
 
         cy.findByRole("tab", { name: /json/i}).click();
-        cy.contains(/web-client/i);
-        cy.fixture('three-tier-calm').then(data => {
-            cy.contains(/\$schema/i)
-            cy.contains(data.$schema)
 
-            cy.contains(/nodes/i);
-            cy.get('[data-cy="json-renderer"]').scrollTo("bottom")
+        cy.fixture('three-tier-calm').then(data => {
+            cy.contains(/\$schema/i).should("exist");
+            cy.contains(data.$schema).should("exist");
+            cy.contains(/id/i).should("exist");
+
+            cy.contains(/nodes/i).should("exist");
+
+            Object.entries(data.nodes[0]).forEach(([key, value]) => {
+                cy.contains(key).should("exist");
+                cy.contains(value as string).should("exist");
+            })
+
+            cy.contains(/unique-id/i).should("exist");
+            cy.contains(data.nodes[0]["unique-id"]).should("exist");
+
+            cy.contains(/name/i).should("exist");
+            cy.contains(data.nodes[0]["name"]).should("exist");
+
+            cy.contains(/description/i).should("exist");
+            cy.contains(data.nodes[0]["description"]).should("exist");
+
+            cy.contains(/node-type/i).should("exist");
+            cy.contains(data.nodes[0]["node-type"]).should("exist");
         });
     })
 })

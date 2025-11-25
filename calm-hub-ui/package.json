@@ -13,7 +13,8 @@
         "watch-test": "vitest watch",
         "lint": "eslint .",
         "format": "prettier --write .",
-        "copy-public": "copyfiles -u 1 ../brand/**/* public/"
+        "copy-public": "copyfiles -u 1 ../brand/**/* public/",
+        "start-cypress": "npx cypress open"
     },
     "dependencies": {
         "@monaco-editor/react": "^4.7.0",

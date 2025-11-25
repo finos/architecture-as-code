@@ -1,6 +1,5 @@
 import {namespaces, resourceTypes} from "../fixtures/constants.js";
 
-
 describe('Home page tests', () => {
   beforeEach(() => {
     cy.intercept("/calm/namespaces", {"values": namespaces})
