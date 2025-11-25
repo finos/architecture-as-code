@@ -113,18 +113,26 @@ export const CustomNode = ({ data }: NodeProps) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
-        background: THEME.colors.card,
-        border: `2px solid ${borderColor}`,
-        borderRadius: '12px',
-        padding: '16px',
-        minWidth: isHovered ? '300px' : '220px',
-        color: THEME.colors.foreground,
-        fontSize: '14px',
-        fontWeight: 500,
-        boxShadow: isHovered ? THEME.shadows.lg : THEME.shadows.sm,
-        transition: 'all 0.3s ease-in-out',
+        // Fixed width so hover expansion doesn't affect ReactFlow layout/parent bounds
+        width: '220px',
+        position: 'relative',
       }}
     >
+      {/* Base node - always visible, fixed size */}
+      <div
+        style={{
+          background: THEME.colors.card,
+          border: `2px solid ${borderColor}`,
+          borderRadius: '12px',
+          padding: '16px',
+          width: '100%',
+          color: THEME.colors.foreground,
+          fontSize: '14px',
+          fontWeight: 500,
+          boxShadow: isHovered ? THEME.shadows.lg : THEME.shadows.sm,
+          transition: 'box-shadow 0.3s ease-in-out',
+        }}
+      >
       {/* Hidden handles to satisfy React Flow; floating edge computes actual attachment */}
       <Handle type="source" position={Position.Right} id="source" style={{ opacity: 0 }} />
       <Handle type="target" position={Position.Left} id="target" style={{ opacity: 0 }} />
@@ -198,9 +206,25 @@ export const CustomNode = ({ data }: NodeProps) => {
           </div>
         )}
       </div>
+      </div>
 
+      {/* Hover details panel - absolutely positioned to float over other elements */}
       {isHovered && (
-        <div style={{ marginTop: '8px' }}>
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            marginTop: '4px',
+            minWidth: '300px',
+            background: THEME.colors.card,
+            border: `2px solid ${borderColor}`,
+            borderRadius: '12px',
+            padding: '16px',
+            boxShadow: THEME.shadows.lg,
+            zIndex: 1000,
+          }}
+        >
           <div style={{ borderTop: `1px solid ${THEME.colors.border}`, paddingTop: '8px' }}>
             <div style={{ fontSize: '12px', color: THEME.colors.muted, marginBottom: '4px' }}>Type:</div>
             <div style={{ fontSize: '12px', fontWeight: 500, color: THEME.colors.accent }}>{nodeType}</div>

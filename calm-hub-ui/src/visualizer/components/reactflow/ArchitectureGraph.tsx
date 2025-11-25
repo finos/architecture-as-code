@@ -7,6 +7,7 @@ import ReactFlow, {
     MiniMap,
     useNodesState,
     useEdgesState,
+    NodeChange,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { FloatingEdge } from './FloatingEdge';
@@ -14,6 +15,7 @@ import { CustomNode } from './CustomNode';
 import { SystemGroupNode } from './SystemGroupNode';
 import { THEME } from './theme';
 import { parseCALMData } from './utils/calmTransformer';
+import { GRAPH_LAYOUT } from './utils/constants';
 import {
     CalmArchitectureSchema,
     CalmNodeSchema,
@@ -26,8 +28,41 @@ interface ArchitectureGraphProps {
     onEdgeClick?: (edge: CalmRelationshipSchema) => void;
 }
 
+/**
+ * Calculate the minimum bounds for a group node based on its children
+ */
+function calculateGroupBounds(
+    groupId: string,
+    allNodes: Node[]
+): { width: number; height: number } | null {
+    const children = allNodes.filter((n) => n.parentId === groupId);
+    if (children.length === 0) {
+        return null;
+    }
+
+    const padding = GRAPH_LAYOUT.SYSTEM_NODE_PADDING;
+    const nodeWidth = GRAPH_LAYOUT.NODE_WIDTH;
+    const nodeHeight = GRAPH_LAYOUT.NODE_HEIGHT;
+
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    children.forEach((child) => {
+        const childRight = child.position.x + nodeWidth;
+        const childBottom = child.position.y + nodeHeight;
+        maxX = Math.max(maxX, childRight);
+        maxY = Math.max(maxY, childBottom);
+    });
+
+    // Add padding on the right and bottom
+    return {
+        width: maxX + padding,
+        height: maxY + padding,
+    };
+}
+
 export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: ArchitectureGraphProps) => {
-    const [nodes, setNodes, onNodesChange] = useNodesState([]);
+    const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
     const edgeTypes = useMemo(() => ({ custom: FloatingEdge }), []);
@@ -38,6 +73,55 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
         setNodes(parsedNodes);
         setEdges(parsedEdges);
     }, [jsonData, setNodes, setEdges, onNodeClick]);
+
+    // Custom onNodesChange that recalculates group bounds after node movements
+    const onNodesChange = useCallback(
+        (changes: NodeChange[]) => {
+            // Apply the base changes first
+            onNodesChangeBase(changes);
+
+            // Check if any position changes occurred (from dragging)
+            const hasPositionChanges = changes.some(
+                (change) => change.type === 'position' && change.dragging === false
+            );
+
+            if (hasPositionChanges) {
+                // Recalculate group bounds after drag completes
+                setNodes((currentNodes) => {
+                    let updated = false;
+
+                    const newNodes = currentNodes.map((node) => {
+                        if (node.type !== 'group') return node;
+
+                        const bounds = calculateGroupBounds(node.id, currentNodes);
+                        if (!bounds) return node;
+
+                        const currentWidth = (node.style?.width as number) || node.width || 0;
+                        const currentHeight = (node.style?.height as number) || node.height || 0;
+
+                        // Only update if bounds have changed
+                        if (bounds.width !== currentWidth || bounds.height !== currentHeight) {
+                            updated = true;
+                            return {
+                                ...node,
+                                width: bounds.width,
+                                height: bounds.height,
+                                style: {
+                                    ...node.style,
+                                    width: bounds.width,
+                                    height: bounds.height,
+                                },
+                            };
+                        }
+                        return node;
+                    });
+
+                    return updated ? newNodes : currentNodes;
+                });
+            }
+        },
+        [onNodesChangeBase, setNodes]
+    );
 
     const handleNodeClick = useCallback(
         (_event: React.MouseEvent, node: Node) => {
