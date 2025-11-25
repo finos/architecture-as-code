@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Drawer } from './Drawer.js';
 import { Data } from '../../../model/calm.js';
-import { VisualizerContainerProps } from '../visualizer-container/VisualizerContainer.js';
+import { ReactFlowVisualizerProps } from '../reactflow/ReactFlowVisualizer.js';
 import { SidebarProps } from '../sidebar/Sidebar.js';
 import { DropzoneOptions } from 'react-dropzone';
 
@@ -15,13 +15,12 @@ vi.mock('../sidebar/Sidebar.js', () => ({
         </div>
     ),
 }));
-vi.mock('../visualizer-container/VisualizerContainer.js', () => ({
-    VisualizerContainer: ({ title, nodes, edges, calmKey }: VisualizerContainerProps) => (
-        <div data-testid="visualizer-container">
+vi.mock('../reactflow/ReactFlowVisualizer.js', () => ({
+    ReactFlowVisualizer: ({ title, calmData }: ReactFlowVisualizerProps) => (
+        <div data-testid="reactflow-visualizer">
             <div>{title}</div>
-            <div>{nodes?.length}</div>
-            <div>{edges?.length}</div>
-            <div>{calmKey}</div>
+            <div data-testid="node-count">{calmData?.nodes?.length ?? 0}</div>
+            <div data-testid="relationship-count">{calmData?.relationships?.length ?? 0}</div>
         </div>
     ),
 }));
@@ -94,12 +93,12 @@ describe('Drawer', () => {
         expect(screen.getByText(/Browse/i)).toBeInTheDocument();
     });
 
-    it('renders VisualizerContainer when data is provided', () => {
+    it('renders ReactFlowVisualizer when data is provided', () => {
         render(<Drawer data={calmData as unknown as Data} />);
-        expect(screen.getByTestId('visualizer-container')).toBeInTheDocument();
-        expect(screen.getByText('2')).toBeInTheDocument();
-        expect(screen.getByText('1')).toBeInTheDocument();
-        expect(screen.getByText('Test CALM/arch/123/1.0')).toBeInTheDocument();
+        expect(screen.getByTestId('reactflow-visualizer')).toBeInTheDocument();
+        expect(screen.getByTestId('node-count')).toHaveTextContent('2');
+        expect(screen.getByTestId('relationship-count')).toHaveTextContent('2');
+        expect(screen.getByText('Test CALM/123/1.0')).toBeInTheDocument();
     });
 
     it('shows sidebar when selectedNode is set', () => {
