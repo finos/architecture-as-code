@@ -7,6 +7,7 @@ function App() {
         <Router>
             <Routes>
                 <Route path="/" element={<Hub />} />
+                <Route path="/artifacts/:namespace?/:type?/:id?/:version?" element={<Hub />} />
                 <Route path="/visualizer" element={<Visualizer />} />
             </Routes>
         </Router>
