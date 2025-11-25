@@ -223,7 +223,7 @@ export function parseCALMData(
         parseRelationships(relationships, newEdges, flowTransitions);
 
         // Apply layout to nodes
-        return applyLayout(newNodes, systemNodes, newEdges, parentMap);
+        return applyLayout(newNodes, systemNodes, newEdges);
     } catch (error) {
         console.error('Error parsing CALM data:', error);
         return { nodes: [], edges: [] };
@@ -357,8 +357,7 @@ function parseRelationships(
 function applyLayout(
     newNodes: Node[],
     systemNodes: Node[],
-    newEdges: Edge[],
-    parentMap: Map<string, string>
+    newEdges: Edge[]
 ): ParsedCALMData {
     // Separate nodes into groups based on parentId
     const nodesWithParents: Node[] = [];

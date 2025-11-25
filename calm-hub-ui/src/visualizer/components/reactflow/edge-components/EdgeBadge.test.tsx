@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, fireEvent } from '@testing-library/react';
 import { EdgeBadge, getBadgeStyle } from './EdgeBadge';
 import { THEME } from '../theme';
 

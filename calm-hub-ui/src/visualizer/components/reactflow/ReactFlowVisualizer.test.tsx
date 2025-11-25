@@ -60,7 +60,6 @@ const mockCalmData: CalmArchitectureSchema = {
 describe('ReactFlowVisualizer', () => {
     const mockOnNodeClick = vi.fn();
     const mockOnEdgeClick = vi.fn();
-    const mockOnBackgroundClick = vi.fn();
 
     beforeEach(() => {
         vi.clearAllMocks();
