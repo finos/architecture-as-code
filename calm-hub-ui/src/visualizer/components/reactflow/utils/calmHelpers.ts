@@ -1,38 +1,42 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import {
+  CalmNodeSchema,
+  CalmRelationshipSchema,
+  CalmRelationshipTypeSchema,
+} from '../../../../../../calm-models/src/types/core-types.js';
+
 /**
  * Utility functions for working with CALM (Common Architecture Language Model) data
- * These handle the various ID and type naming conventions that appear in CALM specifications
+ *
+ * These functions extract properties from CALM objects following the schema conventions.
+ * The CALM schema uses kebab-case property names (e.g., 'unique-id', 'node-type').
  */
 
 /**
- * Extracts an ID from a CALM object, handling multiple naming conventions
- * Priority: 'unique-id' > 'unique_id' > 'id'
+ * Extracts the unique-id from a CALM object (node or relationship)
  *
- * @param obj - Any CALM object (node, relationship, etc.)
- * @returns The ID string if found, undefined otherwise
+ * @param obj - A CALM node or relationship object
+ * @returns The unique-id string if found, undefined otherwise
  */
-export function extractId(obj: any): string | undefined {
-  return obj?.['unique-id'] ?? obj?.unique_id ?? obj?.id;
+export function extractId(obj: CalmNodeSchema | CalmRelationshipSchema | null | undefined): string | undefined {
+  return obj?.['unique-id'];
 }
 
 /**
- * Extracts a node type from a CALM node object, handling multiple naming conventions
- * Priority: 'node-type' > 'node_type' > 'type'
+ * Extracts the node-type from a CALM node object
  *
  * @param node - A CALM node object
- * @returns The node type string if found, undefined otherwise
+ * @returns The node-type string if found, undefined otherwise
  */
-export function extractNodeType(node: any): string | undefined {
-  return node?.['node-type'] ?? node?.node_type ?? node?.type;
+export function extractNodeType(node: CalmNodeSchema | null | undefined): string | undefined {
+  return node?.['node-type'];
 }
 
 /**
- * Extracts a relationship type property from a CALM relationship object
- * Priority: 'relationship-type' > 'relationship_type'
+ * Extracts the relationship-type property from a CALM relationship object
  *
  * @param relationship - A CALM relationship object
- * @returns The relationship type object if found, undefined otherwise
+ * @returns The relationship-type object if found, undefined otherwise
  */
-export function extractRelationshipType(relationship: any): any | undefined {
-  return relationship?.['relationship-type'] ?? relationship?.relationship_type;
+export function extractRelationshipType(relationship: CalmRelationshipSchema | null | undefined): CalmRelationshipTypeSchema | undefined {
+  return relationship?.['relationship-type'];
 }

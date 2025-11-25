@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo } from 'react';
 import ReactFlow, {
   Node,
@@ -18,25 +17,101 @@ import { SystemGroupNode } from './SystemGroupNode';
 import { extractId } from './utils/calmHelpers';
 import { GRAPH_LAYOUT } from './utils/constants';
 import { THEME } from './theme';
+import {
+  CalmArchitectureSchema,
+  CalmNodeSchema,
+  CalmRelationshipSchema,
+} from '../../../../../calm-models/src/types/core-types.js';
 
 interface ArchitectureGraphProps {
-  jsonData: any;
-  onNodeClick?: (node: any) => void;
-  onEdgeClick?: (edge: any) => void;
+  jsonData: CalmArchitectureSchema;
+  onNodeClick?: (node: CalmNodeSchema) => void;
+  onEdgeClick?: (edge: CalmRelationshipSchema) => void;
 }
 
-const expandOptionsRelationships = (data: any) => {
+// Flow transition type for tracking bidirectional flows
+interface FlowTransition {
+  sequence: number;
+  direction: string;
+  description: string;
+  flowName: string;
+}
+
+// Edge configuration for creating consistent edges
+interface EdgeConfig {
+  id: string;
+  source: string;
+  target: string;
+  label: string;
+  color: string;
+  animated?: boolean;
+  dashed?: boolean;
+  markerPosition?: 'end' | 'start';
+  data: Record<string, unknown>;
+}
+
+/**
+ * Creates a ReactFlow edge with consistent styling
+ */
+function createEdge(config: EdgeConfig): Edge {
+  const { id, source, target, label, color, animated = true, dashed = false, markerPosition = 'end', data } = config;
+
+  const edge: Edge = {
+    id,
+    source,
+    target,
+    sourceHandle: 'source',
+    targetHandle: 'target',
+    type: 'custom',
+    animated,
+    style: {
+      stroke: color,
+      strokeWidth: dashed ? 2 : 2.5,
+      ...(dashed && { strokeDasharray: '5,5' }),
+    },
+    data: {
+      id,
+      source,
+      target,
+      label,
+      description: label,
+      ...data,
+    },
+  };
+
+  if (markerPosition === 'end') {
+    edge.markerEnd = {
+      type: MarkerType.ArrowClosed,
+      color,
+      width: 25,
+      height: 25,
+    };
+  } else {
+    edge.markerStart = {
+      type: MarkerType.ArrowClosed,
+      color,
+      width: 25,
+      height: 25,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      orient: 'auto-start-reverse' as any,
+    };
+  }
+
+  return edge;
+}
+
+const expandOptionsRelationships = (data: CalmArchitectureSchema): CalmArchitectureSchema => {
   if (!data || !data.relationships) {
     return data;
   }
 
   const expandedData = { ...data };
-  const nodesToAdd: any[] = [];
-  const relationshipsToAdd: any[] = [];
+  const nodesToAdd: CalmNodeSchema[] = [];
+  const relationshipsToAdd: CalmRelationshipSchema[] = [];
   const relationshipsToRemove: string[] = [];
 
   // Find all options relationships and expand them
-  data.relationships.forEach((rel: any) => {
+  data.relationships.forEach((rel) => {
     const options = rel['relationship-type']?.options;
 
     if (options && Array.isArray(options)) {
@@ -44,7 +119,7 @@ const expandOptionsRelationships = (data: any) => {
       relationshipsToRemove.push(rel['unique-id']);
 
       // For now, expand all options
-      options.forEach((option: any) => {
+      options.forEach((option) => {
         // Get node IDs referenced by this option
         const optionNodeIds = option.nodes || [];
 
@@ -54,23 +129,16 @@ const expandOptionsRelationships = (data: any) => {
         // Find the actual node definitions and add them if they exist
         const nodesData = data.nodes || [];
         optionNodeIds.forEach((nodeId: string) => {
-          const node = nodesData.find(
-            (n: any) => (n['unique-id'] || n.unique_id || n.id) === nodeId
-          );
-          if (node && !nodesToAdd.some((n) => (n['unique-id'] || n.unique_id || n.id) === nodeId)) {
+          const node = nodesData.find((n) => n['unique-id'] === nodeId);
+          if (node && !nodesToAdd.some((n) => n['unique-id'] === nodeId)) {
             nodesToAdd.push(node);
           }
         });
 
         // Find the actual relationship definitions and add them
         optionRelationshipIds.forEach((relId: string) => {
-          const relationship = data.relationships.find(
-            (r: any) => (r['unique-id'] || r.unique_id || r.id) === relId
-          );
-          if (
-            relationship &&
-            !relationshipsToAdd.some((r) => (r['unique-id'] || r.unique_id || r.id) === relId)
-          ) {
+          const relationship = data.relationships?.find((r) => r['unique-id'] === relId);
+          if (relationship && !relationshipsToAdd.some((r) => r['unique-id'] === relId)) {
             relationshipsToAdd.push(relationship);
           }
         });
@@ -79,22 +147,19 @@ const expandOptionsRelationships = (data: any) => {
   });
 
   // Create a set of existing node IDs to avoid duplicates
-  const existingNodeIds = new Set(
-    (data.nodes || []).map((n: any) => n['unique-id'] || n.unique_id || n.id)
-  );
+  const existingNodeIds = new Set((data.nodes || []).map((n) => n['unique-id']));
 
   // Add nodes that aren't already in the main nodes array
   const newNodes = [...(data.nodes || [])];
   nodesToAdd.forEach((node) => {
-    const nodeId = node['unique-id'] || node.unique_id || node.id;
-    if (!existingNodeIds.has(nodeId)) {
+    if (!existingNodeIds.has(node['unique-id'])) {
       newNodes.push(node);
     }
   });
 
   // Filter out options relationships and add the expanded relationships
   const newRelationships = (data.relationships || [])
-    .filter((r: any) => !relationshipsToRemove.includes(r['unique-id']))
+    .filter((r) => !relationshipsToRemove.includes(r['unique-id']))
     .concat(relationshipsToAdd);
 
   return {
@@ -153,7 +218,7 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
   const nodeTypes = useMemo(() => ({ custom: CustomNode, group: SystemGroupNode }), []);
 
   const parseCALMData = useCallback(
-    (data: any, onShowDetailsCallback?: (nodeData: any) => void) => {
+    (data: CalmArchitectureSchema, onShowDetailsCallback?: (nodeData: CalmNodeSchema) => void) => {
       if (!data) return { nodes: [], edges: [] };
 
       const newNodes: Node[] = [];
@@ -170,7 +235,7 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
         const parentMap = new Map<string, string>();
         const relationships = expandedData.relationships || [];
 
-        relationships.forEach((rel: any) => {
+        relationships.forEach((rel) => {
           if (rel['relationship-type']?.['deployed-in']) {
             const containerId = rel['relationship-type']['deployed-in'].container;
             const childNodeIds = rel['relationship-type']['deployed-in'].nodes || [];
@@ -197,9 +262,9 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
         const nodesData = expandedData.nodes || [];
 
         if (Array.isArray(nodesData)) {
-          nodesData.forEach((node: any) => {
-            const id = node['unique-id'] || node.unique_id || node.id;
-            const nodeType = node['node-type'] || node.node_type || node.type;
+          nodesData.forEach((node) => {
+            const id = node['unique-id'];
+            const nodeType = node['node-type'];
 
             if (id) {
               const isContainer = containerNodeIds.has(id);
@@ -207,7 +272,7 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
 
               if (isSystemNode) {
                 const parentId = parentMap.get(id);
-                const systemNode: any = {
+                const systemNode: Node = {
                   id,
                   type: 'group',
                   position: { x: 0, y: 0 },
@@ -222,15 +287,12 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
                     nodeType: nodeType || 'system',
                     ...node,
                   },
+                  ...(parentId && { parentId, expandParent: true }),
                 };
-                if (parentId) {
-                  systemNode.parentId = parentId;
-                  systemNode.expandParent = true;
-                }
                 systemNodes.push(systemNode);
               } else {
                 const parentId = parentMap.get(id);
-                const regularNode: any = {
+                const regularNode: Node = {
                   id,
                   type: 'custom',
                   position: { x: 0, y: 0 },
@@ -242,11 +304,8 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
                     ...node,
                     onShowDetails: onShowDetailsCallback,
                   },
+                  ...(parentId && { parentId, expandParent: true }),
                 };
-                if (parentId) {
-                  regularNode.parentId = parentId;
-                  regularNode.expandParent = true;
-                }
                 newNodes.push(regularNode);
               }
             }
@@ -255,18 +314,15 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
 
         // Parse flows to identify bidirectional relationships
         const flows = expandedData.flows || [];
-        const flowTransitions = new Map<
-          string,
-          Array<{ sequence: number; direction: string; description: string; flowName: string }>
-        >();
+        const flowTransitions = new Map<string, FlowTransition[]>();
 
-        flows.forEach((flow: any) => {
+        flows.forEach((flow) => {
           const flowName = flow.name || 'Unnamed Flow';
           const transitions = flow.transitions || [];
-          transitions.forEach((transition: any) => {
+          transitions.forEach((transition) => {
             const relId = transition['relationship-unique-id'];
             const direction = transition.direction || 'source-to-destination';
-            const sequence = transition['sequence-number'] || transition.sequence_number || 0;
+            const sequence = transition['sequence-number'] || 0;
             const description = transition.description || '';
 
             if (!flowTransitions.has(relId)) {
@@ -277,16 +333,19 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
         });
 
         // Parse relationships/edges
-        relationships.forEach((rel: any, index: number) => {
+        relationships.forEach((rel, index: number) => {
           // Check for deployed-in or composed-of relationships
           if (rel['relationship-type']?.['deployed-in'] || rel['relationship-type']?.['composed-of']) {
             const containerRel =
               rel['relationship-type']['deployed-in'] || rel['relationship-type']['composed-of'];
-            const containerId = containerRel.container;
-            const childNodeIds = containerRel.nodes || [];
 
-            if (containerId && childNodeIds.length > 0) {
-              deploymentMap[containerId] = childNodeIds;
+            if (containerRel) {
+              const containerId = containerRel.container;
+              const childNodeIds = containerRel.nodes || [];
+
+              if (containerId && childNodeIds.length > 0) {
+                deploymentMap[containerId] = childNodeIds;
+              }
             }
           }
           // Handle interacts relationships
@@ -297,39 +356,21 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
             const label = rel.description || 'interacts';
 
             targetNodeIds.forEach((targetId: string, targetIndex: number) => {
-              const edgeId = `edge-${index}-${targetIndex}`;
-              newEdges.push({
-                id: edgeId,
+              newEdges.push(createEdge({
+                id: `edge-${index}-${targetIndex}`,
                 source: actorId,
                 target: targetId,
-                sourceHandle: 'source',
-                targetHandle: 'target',
-                type: 'custom',
+                label,
+                color: THEME.colors.edge.interacts,
                 animated: false,
-                style: {
-                  stroke: THEME.colors.edge.interacts,
-                  strokeWidth: 2,
-                  strokeDasharray: '5,5',
-                },
-                markerEnd: {
-                  type: MarkerType.ArrowClosed,
-                  color: THEME.colors.edge.interacts,
-                  width: 25,
-                  height: 25,
-                },
+                dashed: true,
                 data: {
-                  // Include id, source, target for Sidebar compatibility
-                  id: edgeId,
-                  source: actorId,
-                  target: targetId,
-                  label: label,
-                  description: label,
                   protocol: rel.protocol || '',
                   metadata: rel.metadata || {},
                   'unique-id': extractId(rel),
                   relationshipType: 'interacts',
                 },
-              });
+              }));
             });
           }
           // Handle regular connections
@@ -349,167 +390,70 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
                 (t) => t.direction === 'destination-to-source'
               );
 
+              // Common edge data for this relationship
+              const commonData = {
+                protocol: rel.protocol || '',
+                metadata: rel.metadata || {},
+                'unique-id': relId,
+                controls: rel.controls,
+              };
+
               // If we have bidirectional flow, create two parallel edges
               if (forwardTransitions.length > 0 && backwardTransitions.length > 0) {
-                const forwardEdgeId = `edge-${index}-forward`;
-                const backwardEdgeId = `edge-${index}-backward`;
-
                 // Forward edge
-                newEdges.push({
-                  id: forwardEdgeId,
+                newEdges.push(createEdge({
+                  id: `edge-${index}-forward`,
                   source: sourceId,
                   target: targetId,
-                  sourceHandle: 'source',
-                  targetHandle: 'target',
-                  type: 'custom',
-                  animated: true,
-                  style: {
-                    stroke: THEME.colors.accent,
-                    strokeWidth: 2.5,
-                  },
-                  markerEnd: {
-                    type: MarkerType.ArrowClosed,
-                    color: THEME.colors.accent,
-                    width: 25,
-                    height: 25,
-                  },
+                  label,
+                  color: THEME.colors.accent,
                   data: {
-                    // Include id, source, target for Sidebar compatibility
-                    id: forwardEdgeId,
-                    source: sourceId,
-                    target: targetId,
-                    label: label,
-                    description: label,
-                    protocol: rel.protocol || '',
-                    metadata: rel.metadata || {},
-                    'unique-id': relId,
+                    ...commonData,
                     flowTransitions: forwardTransitions,
                     direction: 'forward',
-                    controls: rel.controls,
                   },
-                });
+                }));
 
                 // Backward edge
-                newEdges.push({
-                  id: backwardEdgeId,
+                newEdges.push(createEdge({
+                  id: `edge-${index}-backward`,
                   source: sourceId,
                   target: targetId,
-                  sourceHandle: 'source',
-                  targetHandle: 'target',
-                  type: 'custom',
-                  animated: true,
-                  style: {
-                    stroke: THEME.colors.edge.backward,
-                    strokeWidth: 2.5,
-                    strokeDasharray: '5,5',
-                  },
-                  markerStart: {
-                    type: MarkerType.ArrowClosed,
-                    color: THEME.colors.edge.backward,
-                    width: 25,
-                    height: 25,
-                    orient: 'auto-start-reverse' as any,
-                  },
+                  label,
+                  color: THEME.colors.edge.backward,
+                  dashed: true,
+                  markerPosition: 'start',
                   data: {
-                    // Include id, source, target for Sidebar compatibility
-                    id: backwardEdgeId,
-                    source: sourceId,
-                    target: targetId,
-                    label: label,
-                    description: label,
-                    protocol: rel.protocol || '',
-                    metadata: rel.metadata || {},
-                    'unique-id': relId,
+                    ...commonData,
                     flowTransitions: backwardTransitions,
                     direction: 'backward',
-                    controls: rel.controls,
                   },
-                });
+                }));
               } else {
                 // Single direction edge
-                const edgeId = `edge-${index}`;
-                newEdges.push({
-                  id: edgeId,
+                newEdges.push(createEdge({
+                  id: `edge-${index}`,
                   source: sourceId,
                   target: targetId,
-                  sourceHandle: 'source',
-                  targetHandle: 'target',
-                  type: 'custom',
-                  animated: true,
-                  style: {
-                    stroke: THEME.colors.accent,
-                    strokeWidth: 2.5,
-                  },
-                  markerEnd: {
-                    type: MarkerType.ArrowClosed,
-                    color: THEME.colors.accent,
-                    width: 25,
-                    height: 25,
-                  },
+                  label,
+                  color: THEME.colors.accent,
                   data: {
-                    // Include id, source, target for Sidebar compatibility
-                    id: edgeId,
-                    source: sourceId,
-                    target: targetId,
-                    label: label,
-                    description: label,
-                    protocol: rel.protocol || '',
-                    metadata: rel.metadata || {},
-                    'unique-id': relId,
+                    ...commonData,
                     flowTransitions: transitions,
-                    controls: rel.controls,
                   },
-                });
+                }));
               }
             }
           }
-          // Fallback to simple formats
-          else {
-            const sourceId = rel.source || rel.from || rel.source_id;
-            const targetId = rel.target || rel.to || rel.target_id;
-            const label = rel.relationship_type || rel.type || rel.label || '';
-
-            if (sourceId && targetId) {
-              const edgeId = `edge-${index}`;
-              newEdges.push({
-                id: edgeId,
-                source: sourceId,
-                target: targetId,
-                sourceHandle: 'source',
-                targetHandle: 'target',
-                type: 'custom',
-                animated: true,
-                style: {
-                  stroke: THEME.colors.accent,
-                  strokeWidth: 2.5,
-                },
-                markerEnd: {
-                  type: MarkerType.ArrowClosed,
-                  color: THEME.colors.accent,
-                  width: 25,
-                  height: 25,
-                },
-                data: {
-                  // Include id, source, target for Sidebar compatibility
-                  id: edgeId,
-                  source: sourceId,
-                  target: targetId,
-                  label: label,
-                  description: label,
-                  protocol: rel.protocol || '',
-                  metadata: rel.metadata || {},
-                  'unique-id': extractId(rel),
-                },
-              });
-            }
-          }
+          // Unrecognized relationship type - skip
+          // All valid CALM relationships should be handled above (deployed-in, composed-of, interacts, connects)
         });
 
         // Separate nodes into groups based on parentId
         const nodesWithParents: Node[] = [];
         const nodesWithoutParents: Node[] = [];
 
-        newNodes.forEach((node: any) => {
+        newNodes.forEach((node) => {
           if (node.parentId) {
             nodesWithParents.push(node);
           } else {
@@ -519,7 +463,7 @@ export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: Archit
 
         const topLevelSystemNodes: Node[] = [];
         const nestedSystemNodes: Node[] = [];
-        systemNodes.forEach((node: any) => {
+        systemNodes.forEach((node) => {
           if (node.parentId) {
             nodesWithParents.push(node);
             nestedSystemNodes.push(node);

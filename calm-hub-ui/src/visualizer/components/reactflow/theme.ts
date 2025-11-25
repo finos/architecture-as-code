@@ -1,14 +1,31 @@
 /**
- * Blue/white theme colors for ReactFlow graph
- * Matches calm-hub-ui's DaisyUI light theme
+ * Theme constants for ReactFlow graph visualization
+ *
+ * NOTE: The primary, accent, and accentLight colors are defined in src/index.css
+ * as CSS variables. These hex values MUST be kept in sync with:
+ *   --color-primary: #000063
+ *   --color-accent: #007dff
+ *   --color-accent-light: #b2d8f5
+ *
+ * We use hex values here instead of CSS variables because:
+ * 1. ReactFlow and inline styles need direct color values
+ * 2. We need to create transparent variants (e.g., `${color}20`)
+ * 3. These are used in SVG markers which don't support CSS variables
  */
 
+// Import the CSS variable values - keep these in sync with src/index.css
+const CSS_COLORS = {
+  primary: '#000063',      // --color-primary
+  accent: '#007dff',       // --color-accent
+  accentLight: '#b2d8f5',  // --color-accent-light
+} as const;
+
 export const THEME = {
-  // Base colors (matching calm-hub-ui CSS variables)
   colors: {
-    primary: '#000063',        // Dark navy - primary accent (--color-primary)
-    accent: '#007dff',         // Bright blue - interactive elements (--color-accent)
-    accentLight: '#b2d8f5',    // Pale blue - selections/highlights (--color-accent-light)
+    // Brand colors (from CSS variables in src/index.css)
+    primary: CSS_COLORS.primary,
+    accent: CSS_COLORS.accent,
+    accentLight: CSS_COLORS.accentLight,
 
     // Background colors
     background: '#ffffff',
@@ -57,7 +74,7 @@ export const THEME = {
     // Edge colors
     edge: {
       default: '#94a3b8',        // slate-400
-      selected: '#007dff',       // accent
+      selected: CSS_COLORS.accent,
       interacts: '#8b5cf6',      // violet-500
       backward: '#a855f7',       // purple-500
     },
