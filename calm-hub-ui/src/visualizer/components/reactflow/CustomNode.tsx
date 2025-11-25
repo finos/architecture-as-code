@@ -1,24 +1,41 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import {
-  Shield,
-  AlertTriangle,
-  AlertCircle,
-  User,
-  Globe,
-  Box,
-  Cog,
-  Database,
-  Network,
-  Users,
-  Globe2,
-  FileText,
-  ZoomIn,
-  Info,
+    Shield,
+    AlertTriangle,
+    AlertCircle,
+    User,
+    Globe,
+    Box,
+    Cog,
+    Database,
+    Network,
+    Users,
+    Globe2,
+    FileText,
+    ZoomIn,
+    Info,
 } from 'lucide-react';
 import { extractId, extractNodeType } from './utils/calmHelpers';
 import { THEME, getNodeTypeColor, getRiskLevelColor } from './theme';
+
+// Types for AIGF risk and mitigation data
+interface RiskItem {
+    id?: string;
+    name?: string;
+    description?: string;
+}
+
+interface MitigationItem {
+    id?: string;
+    name?: string;
+    description?: string;
+}
+
+interface ControlItem {
+    description?: string;
+    [key: string]: unknown;
+}
 
 export const CustomNode = ({ data }: NodeProps) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -31,19 +48,19 @@ export const CustomNode = ({ data }: NodeProps) => {
   const nodeType = extractNodeType(data) || 'Unknown';
   const detailedArchitecture = data.details?.['detailed-architecture'];
 
-  // Extract AIGF data (if present in node metadata)
-  const aigf = data.metadata?.aigf;
-  const riskLevel = aigf?.['risk-level'] || null;
-  const risks = aigf?.risks || [];
-  const mitigations = aigf?.mitigations || [];
+    // Extract AIGF data (if present in node metadata)
+    const aigf = data.metadata?.aigf;
+    const riskLevel = aigf?.['risk-level'] || null;
+    const risks: (string | RiskItem)[] = aigf?.risks || [];
+    const mitigations: (string | MitigationItem)[] = aigf?.mitigations || [];
 
-  const riskCount = risks.length;
-  const mitigationCount = mitigations.length;
+    const riskCount = risks.length;
+    const mitigationCount = mitigations.length;
 
-  // Extract controls from node (CALM spec compliant)
-  const nodeControls = data.controls || {};
-  const controlEntries = Object.entries(nodeControls);
-  const controlCount = controlEntries.length;
+    // Extract controls from node (CALM spec compliant)
+    const nodeControls: Record<string, ControlItem> = data.controls || {};
+    const controlEntries = Object.entries(nodeControls);
+    const controlCount = controlEntries.length;
 
   // Get icon and color for node type
   const getNodeTypeStyle = () => {
@@ -203,9 +220,9 @@ export const CustomNode = ({ data }: NodeProps) => {
             <div style={{ borderTop: `1px solid ${THEME.colors.border}`, paddingTop: '8px', marginTop: '8px' }}>
               <div style={{ fontSize: '12px', color: THEME.colors.muted, marginBottom: '4px' }}>Risks:</div>
               <div style={{ fontSize: '12px', color: THEME.colors.foreground }}>
-                {risks.map((risk: any, idx: number) => (
+                {risks.map((risk, idx) => (
                   <div key={idx} style={{ marginBottom: '4px' }}>
-                    {typeof risk === 'string' ? risk : JSON.stringify(risk)}
+                    {typeof risk === 'string' ? risk : (risk.name || risk.id || JSON.stringify(risk))}
                   </div>
                 ))}
               </div>
@@ -215,9 +232,9 @@ export const CustomNode = ({ data }: NodeProps) => {
             <div style={{ borderTop: `1px solid ${THEME.colors.border}`, paddingTop: '8px', marginTop: '8px' }}>
               <div style={{ fontSize: '12px', color: THEME.colors.muted, marginBottom: '4px' }}>Mitigations:</div>
               <div style={{ fontSize: '12px', color: THEME.colors.foreground }}>
-                {mitigations.map((mitigation: any, idx: number) => (
+                {mitigations.map((mitigation, idx) => (
                   <div key={idx} style={{ marginBottom: '4px' }}>
-                    {typeof mitigation === 'string' ? mitigation : JSON.stringify(mitigation)}
+                    {typeof mitigation === 'string' ? mitigation : (mitigation.name || mitigation.id || JSON.stringify(mitigation))}
                   </div>
                 ))}
               </div>
@@ -227,7 +244,7 @@ export const CustomNode = ({ data }: NodeProps) => {
             <div style={{ borderTop: `1px solid ${THEME.colors.border}`, paddingTop: '8px', marginTop: '8px' }}>
               <div style={{ fontSize: '12px', color: THEME.colors.muted, marginBottom: '4px' }}>Controls:</div>
               <div style={{ fontSize: '12px', color: THEME.colors.foreground }}>
-                {controlEntries.map(([controlId, control]: [string, any], idx: number) => {
+                {controlEntries.map(([controlId, control], idx) => {
                   const nodeId = extractId(data);
                   const controlKey = `${nodeId}/${controlId}`;
 

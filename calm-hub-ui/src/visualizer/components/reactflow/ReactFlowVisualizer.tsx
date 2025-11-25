@@ -1,13 +1,17 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { ArchitectureGraph } from './ArchitectureGraph';
 import { THEME } from './theme';
+import {
+  CalmArchitectureSchema,
+  CalmNodeSchema,
+  CalmRelationshipSchema,
+} from '../../../../../calm-models/src/types/core-types.js';
 
 export interface ReactFlowVisualizerProps {
   title: string;
-  calmData: any; // Raw CALM architecture data
-  onNodeClick?: (nodeData: any) => void;
-  onEdgeClick?: (edgeData: any) => void;
+  calmData: CalmArchitectureSchema;
+  onNodeClick?: (nodeData: CalmNodeSchema) => void;
+  onEdgeClick?: (edgeData: CalmRelationshipSchema) => void;
   onBackgroundClick?: () => void;
 }
 
