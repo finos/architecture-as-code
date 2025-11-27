@@ -159,7 +159,7 @@ Every relationship MUST have:
 - `unique-id` (string)
 - `relationship-type` (object with exactly one type using oneOf constraint)
 
-**Note**: The schema shows `description` is optional, not required as commonly assumed.
+
 
 ## Relationship Types
 
@@ -171,6 +171,17 @@ The relationship-type must contain exactly ONE of these types (enforced by oneOf
 - **interacts**: Use for actor-to-system interactions (user interacts with application, external system interacts with API)
 - **deployed-in**: Use for deployment containment (service deployed in container, container deployed in cluster)
 - **composed-of**: Use for logical composition (system composed of microservices, application composed of modules)
+
+## Descriptions
+
+**Note**: The schema shows `description` is optional, not required as commonly assumed.  However it is highly recommended to include
+them as they convey rich information about how the overall architecture actually works.
+
+Descriptions should be concise but clarify the _intent_ of the relationship.  The preferred style is to omit the source and
+destination node names, but be very clear as to the directionality.  Examples:
+- "Reads customer information from and writes to" (e.g. a service querying a database)
+- "Sends traansactions to" (e.g. one service sending to another via a message queue)
+- "Reviews trade summaries using" (e.g. a human interacting with a UI)
 
 ### Available Protocol Values
 
@@ -247,7 +258,7 @@ Composition relationships:
 ```json
 {
     "unique-id": "attendees-attendees-store",
-    "description": "Store or request attendee details",
+    "description": "Stores and requests attendee details in",
     "relationship-type": {
         "connects": {
             "source": {

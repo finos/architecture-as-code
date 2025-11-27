@@ -15,7 +15,7 @@ docs/contributing.md
 # website/package-lock.json
 /.idea/
 
-**/.vscode/
+**/.vscode**/
 
 node_modules/
 **/dist/
