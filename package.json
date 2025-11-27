@@ -54,7 +54,8 @@
         "vitest": "^3.1.1"
     },
     "overrides": {
-        "on-headers": "^1.1.0"
+        "on-headers": "^1.1.0",
+        "node-forge": "^1.3.2"
     },
     "dependencies": {
         "@finos/calm-shared": "^0.2.2",
