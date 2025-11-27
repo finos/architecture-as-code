@@ -7,7 +7,7 @@ import org.owasp.html.PolicyFactory;
 public class TestSanitizationSecurityShould {
 
     @Test
-    public void withstand_noscript_style_injection_attack() {
+    public void withstandNoscriptStyleInjectionAttack() {
         // This test verifies the fix for the specific vulnerability where allowTextIn("style") 
         // combined with noscript tags could lead to XSS.
         // The application uses a strict policy that should NOT be vulnerable.
@@ -30,7 +30,7 @@ public class TestSanitizationSecurityShould {
     }
     
     @Test
-    public void act_as_strict_policy() {
+    public void actAsStrictPolicy() {
         PolicyFactory policy = ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
         
         String input = "<div><b>bold</b><script>alert('xss')</script></div>";
