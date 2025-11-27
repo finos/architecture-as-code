@@ -110,5 +110,29 @@ describe('validate E2E', () => {
 
             expect(response.hasErrors).toBeFalsy();
         });
+
+        it('error in flow with non-unique sequence numbers', async () => {
+            const inputArch = JSON.parse(readFileSync(path.join(flowsDir, 'flows-spectral-sequence-non-unique.json'), 'utf-8'));
+            const schema = await schemaDirectory.getSchema(inputArch['$schema']);
+
+            const response = await validate(inputArch, schema, schemaDirectory, false);
+
+            expect(response.hasErrors).toBeTruthy();
+            expect(response.spectralSchemaValidationOutputs).toHaveLength(1);
+            expect(response.spectralSchemaValidationOutputs[0].message).toContain('sequence-number');
+            expect(response.spectralSchemaValidationOutputs[0].path).toBe('/flows/0/transitions');
+        });
+
+        it('error in flow with unknown relationship', async () => {
+            const inputArch = JSON.parse(readFileSync(path.join(flowsDir, 'flows-spectral-unknown-relationship.json'), 'utf-8'));
+            const schema = await schemaDirectory.getSchema(inputArch['$schema']);
+
+            const response = await validate(inputArch, schema, schemaDirectory, false);
+
+            expect(response.hasErrors).toBeTruthy();
+            expect(response.spectralSchemaValidationOutputs).toHaveLength(1);
+            expect(response.spectralSchemaValidationOutputs[0].message).toContain('does not refer to the unique-id');
+            expect(response.spectralSchemaValidationOutputs[0].path).toBe('/flows/0/transitions/0/relationship-unique-id');
+        });
     });
 });

@@ -15,7 +15,7 @@ Specific changes are:
 * Flows may not have any additional properties beyond those defined in the schema.
   * Users may make use of metadata for extensibility.
 * Flow transitions MUST contain `relationship-unique-id`, `sequence-number`, and `description` properties.
-  * This requirement was incorrect coded in the 1.0 schema.
+  * This requirement was incorrectly coded in the 1.0 schema.
 
 ## Question and Feedback
 
