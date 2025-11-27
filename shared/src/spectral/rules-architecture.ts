@@ -27,11 +27,11 @@ const architectureRules: RulesetDefinition = {
             ],
         },
 
-        'architecture-has-no-empty-properties': {
-            description: 'Must not contain string properties set to the empty string or numerical properties set to zero',
-            message: 'All properties must be set to a nonempty, nonzero value.',
+        'architecture-has-no-empty-string-properties': {
+            description: 'Must not contain string properties set to the empty string',
+            message: 'All properties must be set to a nonempty value.',
             severity: 'error',
-            given: '$..*',
+            given: '$..*@string()',
             then: {
                 function: truthy,
             },

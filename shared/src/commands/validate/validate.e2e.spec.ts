@@ -17,11 +17,15 @@ const badPatternPath = path.join(
     __dirname,
     '../../../test_fixtures/bad-schema/bad-json-schema.json'
 );
+const validationPath = path.join(
+    __dirname,
+    '../../../test_fixtures/command/validate/'
+);
 
 const schemaDir = path.join(__dirname, '../../../../calm/release/1.0/meta/');
 
 describe('validate E2E', () => {
-    let schemaDirectory;
+    let schemaDirectory: SchemaDirectory;
 
     it('validates architecture against pattern with options', async () => {
         schemaDirectory = new SchemaDirectory(new FileSystemDocumentLoader([schemaDir], true));
@@ -55,6 +59,47 @@ describe('validate E2E', () => {
         expect(response.jsonSchemaValidationOutputs).toHaveLength(1);
         expect(response.jsonSchemaValidationOutputs[0].message).toContain('type');
         expect(response.jsonSchemaValidationOutputs[0].path).toBe('/');
+    });
+
+    it('reports spectral issue for architecture with empty string property', async () => {
+        schemaDirectory = new SchemaDirectory(new FileSystemDocumentLoader([schemaDir], true));
+        await schemaDirectory.loadSchemas();
+
+        const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'empty-string-property.json'), 'utf-8'));
+        const pattern = schemaDirectory.getSchema(inputArch['$schema']);
+
+        const response = await validate(inputArch, pattern, schemaDirectory, false);
+
+        expect(response.hasErrors).toBeTruthy();
+        expect(response.spectralSchemaValidationOutputs).toHaveLength(1);
+        expect(response.spectralSchemaValidationOutputs[0].message).toContain('nonempty value');
+        expect(response.spectralSchemaValidationOutputs[0].path).toBe('/nodes/0/description');
+    });
+
+    it('does not report spectral issue for architecture with false boolean property', async () => {
+        // If we prohibit false, then there is no way to represent a boolean property set to false in the architecture.
+        schemaDirectory = new SchemaDirectory(new FileSystemDocumentLoader([schemaDir], true));
+        await schemaDirectory.loadSchemas();
+
+        const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'false-boolean-property.json'), 'utf-8'));
+        const pattern = await schemaDirectory.getSchema(inputArch['$schema']);
+
+        const response = await validate(inputArch, pattern, schemaDirectory, false);
+
+        expect(response.hasErrors).toBeFalsy();
+    });
+
+    it('does not report spectral issue for architecture with zero integer property', async () => {
+        // If we prohibit false, then there is no way to represent the number zero in the architecture.
+        schemaDirectory = new SchemaDirectory(new FileSystemDocumentLoader([schemaDir], true));
+        await schemaDirectory.loadSchemas();
+
+        const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'zero-integer-property.json'), 'utf-8'));
+        const pattern = await schemaDirectory.getSchema(inputArch['$schema']);
+
+        const response = await validate(inputArch, pattern, schemaDirectory, false);
+
+        expect(response.hasErrors).toBeFalsy();
     });
 
     describe('applyArchitectureOptionsToPattern', () => {
