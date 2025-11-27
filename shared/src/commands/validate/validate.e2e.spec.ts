@@ -33,7 +33,7 @@ describe('validate E2E', () => {
         documentLoader = new FileSystemDocumentLoader([schemaDir_10, schemaDir_11], true);
         schemaDirectory = new SchemaDirectory(documentLoader);
         await schemaDirectory.loadSchemas();
-    })
+    });
 
     it('validates architecture against pattern with options', async () => {
         const inputPattern = JSON.parse(readFileSync(inputPatternPath, 'utf-8'));
