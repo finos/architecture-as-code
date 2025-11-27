@@ -17,8 +17,8 @@ public class TestSanitizationSecurityShould {
         String pocPayload1 = "<noscript><style></noscript><script>alert(1)</script>";
         String sanitized1 = policy.sanitize(pocPayload1);
         
-        // The strict policy (default factory) should strip everything not whitelisted. 
-        // Since nothing is whitelisted, it should ideally be empty or just text content if any remains valid text.
+        // The strict policy (default factory) should strip everything not allowed. 
+        // Since nothing is allowed, it should ideally be empty or just text content if any remains valid text.
         // But definitively NO <script> tags should survive.
         Assertions.assertFalse(sanitized1.contains("<script>"), "Sanitized output should not contain script tags: " + sanitized1);
         Assertions.assertFalse(sanitized1.contains("alert(1)"), "Sanitized output should not contain executable code: " + sanitized1);
