@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/release/1.1/meta/decorators.json",
+  "title": "Common Architecture Language Model Decorators",
+  "description": "Decorators attach supplementary information to multiple nodes and relationships simultaneously, enabling cross-cutting concerns like guides, threat models, business context, and deployment information",
+  "defs": {
+    "decorator": {
+      "type": "object",
+      "properties": {
+        "unique-id": {
+          "type": "string",
+          "description": "Unique identifier for this decorator"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "enum": ["guide", "business", "threat-model", "security", "deployment"]
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Type of decorator - predefined types or custom string"
+        },
+        "applies-to": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "Array of unique-ids referencing nodes, relationships, flows, or other architecture elements"
+        },
+        "data": {
+          "type": "object",
+          "description": "Free-form JSON object containing the decorator's data"
+        }
+      },
+      "required": ["unique-id", "type", "applies-to", "data"],
+      "additionalProperties": false
+    },
+    "decorators": {
+      "type": "array",
+      "items": {
+        "$ref": "#/defs/decorator"
+      }
+    }
+  }
+}
