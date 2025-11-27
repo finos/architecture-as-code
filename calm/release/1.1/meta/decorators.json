@@ -14,7 +14,15 @@
         "type": {
           "anyOf": [
             {
-              "enum": ["guide", "business", "threat-model", "security", "deployment"]
+              "enum": [
+                "guide",
+                "business",
+                "threat-model",
+                "security",
+                "deployment",
+                "operational",
+                "observability"
+              ]
             },
             {
               "type": "string"
@@ -35,7 +43,12 @@
           "description": "Free-form JSON object containing the decorator's data"
         }
       },
-      "required": ["unique-id", "type", "applies-to", "data"],
+      "required": [
+        "unique-id",
+        "type",
+        "applies-to",
+        "data"
+      ],
       "additionalProperties": false
     },
     "decorators": {
