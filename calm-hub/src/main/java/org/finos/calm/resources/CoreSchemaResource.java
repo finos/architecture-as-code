@@ -14,9 +14,7 @@ import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.CoreSchemaStore;
-
 import org.owasp.html.PolicyFactory;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
