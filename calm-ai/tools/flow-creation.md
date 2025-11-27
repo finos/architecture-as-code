@@ -43,7 +43,8 @@ The complete flow schema from the FINOS CALM v1.0 specification:
                 "$ref": "core.json#/defs/metadata"
             }
         },
-        "required": ["unique-id", "name", "description", "transitions"]
+        "required": ["unique-id", "name", "description", "transitions"],
+        "additionalProperties": false
     },
     "transition": {
         "type": "object",
