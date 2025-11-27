@@ -1,5 +1,8 @@
 name: Validate Renovate Configuration
 
+permissions:
+  contents: read
+
 on:
   push:
     paths:
