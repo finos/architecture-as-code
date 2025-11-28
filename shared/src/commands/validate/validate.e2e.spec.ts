@@ -135,7 +135,7 @@ describe('validate E2E', () => {
         });
 
         it('accepts good flows for schema 1.1', async () => {
-            const inputArch = JSON.parse(readFileSync(path.join(flowsDir, 'flows-1.1-good.json'), 'utf-8'));
+            const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'flows/flows-1.1-good.json'), 'utf-8'));
             const schema = await schemaDirectory.getSchema(inputArch['$schema']);
 
             const response = await validate(inputArch, schema, schemaDirectory, false);
@@ -144,7 +144,7 @@ describe('validate E2E', () => {
         });
 
         it('error in flow with non-unique sequence numbers', async () => {
-            const inputArch = JSON.parse(readFileSync(path.join(flowsDir, 'flows-spectral-sequence-non-unique.json'), 'utf-8'));
+            const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'flows/flows-spectral-sequence-non-unique.json'), 'utf-8'));
             const schema = await schemaDirectory.getSchema(inputArch['$schema']);
 
             const response = await validate(inputArch, schema, schemaDirectory, false);
@@ -156,7 +156,7 @@ describe('validate E2E', () => {
         });
 
         it('error in flow with unknown relationship', async () => {
-            const inputArch = JSON.parse(readFileSync(path.join(flowsDir, 'flows-spectral-unknown-relationship.json'), 'utf-8'));
+            const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'flows/flows-spectral-unknown-relationship.json'), 'utf-8'));
             const schema = await schemaDirectory.getSchema(inputArch['$schema']);
 
             const response = await validate(inputArch, schema, schemaDirectory, false);
