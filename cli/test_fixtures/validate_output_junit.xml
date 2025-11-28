@@ -7,7 +7,7 @@
     <testsuite name="Spectral Suite" tests="31"
         failures="0" errors="0" skipped="0">
         <testcase name="architecture-has-nodes-relationships" />
-        <testcase name="architecture-has-no-empty-properties" />
+        <testcase name="architecture-has-no-empty-string-properties" />
         <testcase
             name="architecture-has-no-placeholder-properties-numerical" />
         <testcase name="architecture-has-no-placeholder-properties-string" />
