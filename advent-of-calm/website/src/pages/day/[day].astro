@@ -26,7 +26,7 @@ const nextUnlocked = nextDay && isUnlocked(nextDay);
   <nav class="day-nav">
     <div class="nav-left">
       {prevDay && (
-        <a href={`/day/${prevDay}`} class="nav-button prev">
+        <a href={`${prevDay}`} class="nav-button prev">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M15 18l-6-6 6-6"/>
           </svg>
@@ -35,11 +35,11 @@ const nextUnlocked = nextDay && isUnlocked(nextDay);
       )}
     </div>
     <div class="nav-center">
-      <a href="/" class="nav-button home">Calendar</a>
+      <a href="../" class="nav-button home">Calendar</a>
     </div>
     <div class="nav-right">
       {nextDay && nextUnlocked && (
-        <a href={`/day/${nextDay}`} class="nav-button next">
+        <a href={`${nextDay}`} class="nav-button next">
           Day {nextDay}
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 18l6-6-6-6"/>
@@ -65,7 +65,7 @@ const nextUnlocked = nextDay && isUnlocked(nextDay);
   <nav class="day-nav bottom">
     <div class="nav-left">
       {prevDay && (
-        <a href={`/day/${prevDay}`} class="nav-button prev">
+        <a href={`${prevDay}`} class="nav-button prev">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M15 18l-6-6 6-6"/>
           </svg>
@@ -74,11 +74,11 @@ const nextUnlocked = nextDay && isUnlocked(nextDay);
       )}
     </div>
     <div class="nav-center">
-      <a href="/" class="nav-button home">Back to Calendar</a>
+      <a href="../" class="nav-button home">Back to Calendar</a>
     </div>
     <div class="nav-right">
       {nextDay && nextUnlocked && (
-        <a href={`/day/${nextDay}`} class="nav-button next">
+        <a href={`${nextDay}`} class="nav-button next">
           Day {nextDay}
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 18l6-6-6-6"/>
