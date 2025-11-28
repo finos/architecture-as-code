@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites tests="30" failures="0" errors="0" skipped="0">
+<testsuites tests="32" failures="0" errors="0" skipped="0">
     <testsuite name="JSON Schema Validation" tests="1" failures="0"
         errors="0" skipped="0">
         <testcase name="JSON Schema Validation succeeded" />
     </testsuite>
-    <testsuite name="Spectral Suite" tests="29"
+    <testsuite name="Spectral Suite" tests="31"
         failures="0" errors="0" skipped="0">
         <testcase name="architecture-has-nodes-relationships" />
         <testcase name="architecture-has-no-empty-properties" />
@@ -21,6 +21,8 @@
         <testcase name="architecture-nodes-must-be-referenced" />
         <testcase
             name="unique-ids-must-be-unique-in-architecture" />
+        <testcase name="flow-transitions-references-existing-relationship-in-architecture" />
+        <testcase name="flow-transitions-have-unique-sequence-numbers" />
         <testcase name="pattern-has-nodes-relationships" />
         <testcase name="pattern-has-no-empty-properties" />
         <testcase name="pattern-has-no-placeholder-properties-numerical" />

@@ -6,6 +6,8 @@ import { nodeIdExists } from './functions/architecture/node-id-exists';
 import { interfaceIdExists } from './functions/architecture/interface-id-exists';
 import { nodeHasRelationship } from './functions/architecture/node-has-relationship';
 import { interfaceIdExistsOnNode } from './functions/architecture/interface-id-exists-on-node';
+import { relationshipIdExists } from './functions/architecture/relationship-id-exists';
+import { sequenceNumbersAreUnique } from './functions/architecture/sequence-numbers-are-unique';
 
 const architectureRules: RulesetDefinition = {
     rules: {
@@ -149,6 +151,27 @@ const architectureRules: RulesetDefinition = {
             then: {
                 function: idsAreUnique
             },
+        },
+
+        'flow-transitions-references-existing-relationship-in-architecture': {
+            description: 'Flow transitions must reference existing relationships',
+            severity: 'error',
+            message: '{{error}}',
+            given: '$.flows[*].transitions[*]',
+            then: {
+                field: 'relationship-unique-id',
+                function: relationshipIdExists
+            }
+        },
+
+        'flow-transitions-have-unique-sequence-numbers': {
+            description: 'Flows must have unique sequence numbers',
+            severity: 'error',
+            message: '{{error}}',
+            given: '$.flows[*].transitions',
+            then: {
+                function: sequenceNumbersAreUnique
+            }
         }
     }
 };
