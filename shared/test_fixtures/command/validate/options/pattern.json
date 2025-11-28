@@ -1,5 +1,5 @@
 {
-    "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+    "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
     "$id": "https://calm.finos.org/draft/2025-03/prototype/anyof/pattern.json",
     "title": "Pattern Options Issue",
     "type": "object",
@@ -11,7 +11,7 @@
                 {
                     "anyOf": [
                         {
-                            "$ref": "https://calm.finos.org/release/1.0/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": {
@@ -26,7 +26,7 @@
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/release/1.0/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": {
@@ -50,7 +50,7 @@
             "maxItems": 1,
             "prefixItems": [
                 {
-                    "$ref": "https://calm.finos.org/release/1.0/meta/core.json#/defs/relationship",
+                    "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship",
                     "type": "object",
                     "properties": {
                         "unique-id": {
@@ -70,7 +70,7 @@
                                         {
                                             "oneOf": [
                                                 {
-                                                    "$ref": "https://calm.finos.org/release/1.0/meta/core.json#/defs/decision",
+                                                    "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/decision",
                                                     "type": "object",
                                                     "properties": {
                                                         "description": {
@@ -85,7 +85,7 @@
                                                     }
                                                 },
                                                 {
-                                                    "$ref": "https://calm.finos.org/release/1.0/meta/core.json#/defs/decision",
+                                                    "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/decision",
                                                     "type": "object",
                                                     "properties": {
                                                         "description": {

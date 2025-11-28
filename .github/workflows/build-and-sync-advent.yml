@@ -1,0 +1,42 @@
+name: Build and Sync Advent of CALM
+
+permissions:
+    contents: read
+
+on:
+    workflow_dispatch: {}
+    push:
+        branches: ['main']
+        paths: ['advent-of-calm/**']
+
+jobs:
+    build-and-sync:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+            - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+              with:
+                  node-version: 22
+
+            - name: Install dependencies
+              run: npm ci
+              working-directory: "advent-of-calm/website"
+              
+            - name: Build website
+              run: npm run build
+              working-directory: "advent-of-calm/website"
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@00943011d9042930efac3dcd3a170e4273319bc8 # v5
+              with:
+                  aws-access-key-id: ${{ secrets.AWS_S3_ACCESS_KEY }}
+                  aws-secret-access-key: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+                  aws-region: us-east-1
+
+            - name: Sync to S3
+              run: |
+                  aws s3 sync dist s3://${{ vars.AWS_S3_BUCKET }}/advent/ --delete
+              working-directory: "advent-of-calm/website"
