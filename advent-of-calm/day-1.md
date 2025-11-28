@@ -82,7 +82,6 @@ Create `.gitignore`:
 node_modules/
 .DS_Store
 *.log
-docs/generated/
 .vscode/settings.json
 **/.docusaurus/
 ```
