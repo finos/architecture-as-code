@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { TreeNavigation } from './TreeNavigation.js';
+import { MemoryRouter } from 'react-router-dom';
 
 // Mock the service functions
 vi.mock('../../../service/calm-service.js', () => ({
@@ -34,7 +35,9 @@ describe('TreeNavigation', () => {
     });
 
     it('renders the tree navigation component', () => {
-        render(<TreeNavigation {...mockProps} />);
+        render(<MemoryRouter initialEntries={["/"]}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
         
         expect(screen.getByText('Namespaces')).toBeInTheDocument();
         expect(screen.getByText('test-namespace')).toBeInTheDocument();
@@ -42,7 +45,9 @@ describe('TreeNavigation', () => {
     });
 
     it('shows resource types only when namespace is selected', () => {
-        render(<TreeNavigation {...mockProps} />);
+        render(<MemoryRouter initialEntries={["/"]}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
         
         // Initially, resource types should not be visible since no namespace is selected
         expect(screen.queryByText('Architectures')).not.toBeInTheDocument();
@@ -52,7 +57,9 @@ describe('TreeNavigation', () => {
     });
 
     it('handles initial state correctly', () => {
-        render(<TreeNavigation {...mockProps} />);
+        render(<MemoryRouter initialEntries={["/"]}>
+            <TreeNavigation {...mockProps} />
+        </MemoryRouter>);
         
         expect(screen.getByText('Namespaces')).toBeInTheDocument();
         expect(screen.getByText('test-namespace')).toBeInTheDocument();

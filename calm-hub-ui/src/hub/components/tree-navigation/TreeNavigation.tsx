@@ -14,6 +14,10 @@ import {
 } from '../../../service/calm-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
 import { Data, Adr } from '../../../model/calm.js';
+import { useNavigate, useParams } from 'react-router-dom';
+import { HubParams } from '../../../visualizer/contracts/contracts.js';
+
+const basePath = '/artifacts';
 
 interface TreeNavigationProps {
     onDataLoad: (data: Data) => void;
@@ -201,11 +205,29 @@ function NamespaceItem({
 }
 
 export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
+    const params = useParams<HubParams>();
+    const navigate = useNavigate();
+    
     const [namespaces, setNamespaces] = useState<string[]>([]);
-    const [selectedNamespace, setSelectedNamespace] = useState<string>('');
-    const [selectedType, setSelectedType] = useState<string>('');
-    const [selectedResourceID, setSelectedResourceID] = useState<string>('');
-    const [selectedVersion, setSelectedVersion] = useState<string>('');
+    const [selectedNamespace, setSelectedNamespace] = useState<string>(() => params.namespace ?? '');
+    const [selectedType, setSelectedType] = useState<string>(() => params.type ?? '');
+    const [selectedResourceID, setSelectedResourceID] = useState<string>(() => params.id ?? '');
+    const [selectedVersion, setSelectedVersion] = useState<string>(() => params.version ?? '');
+
+    useEffect(() => {
+        if (params.namespace && params.namespace.length > 0) {
+            prepareNamespace(params.namespace);
+            if (params.type && ['Architectures', 'Patterns', 'Flows', 'ADRs'].includes(params.type)) {
+                prepareType(params.type);
+                if (params.id && params.id.length > 0) {
+                    setSelectedResourceID(params.id);
+                    if (params.version && params.version.length > 0) {
+                        setSelectedVersion(params.version);
+                    }
+                }
+            }
+        }
+    }, [params.namespace, params.type, params.id, params.version]);
 
     const [architectureIDs, setArchitectureIDs] = useState<string[]>([]);
     const [patternIDs, setPatternIDs] = useState<string[]>([]);
@@ -223,7 +245,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
         fetchNamespaces(setNamespaces);
     }, []);
 
-    const handleNamespaceClick = (namespace: string) => {
+    const prepareNamespace = (namespace: string) => {
         if (selectedNamespace === namespace) {
             setSelectedNamespace('');
         } else {
@@ -232,9 +254,14 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
         setSelectedType('');
         setSelectedResourceID('');
         setSelectedVersion('');
+    }
+
+    const handleNamespaceClick = (namespace: string) => {
+        prepareNamespace(namespace);
+        navigate(`${basePath}/${namespace}`);
     };
 
-    const handleTypeClick = (type: string) => {
+    const prepareType = (type: string) => {
         if (selectedType === type) {
             setSelectedType('');
         } else {
@@ -255,7 +282,12 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
         setSelectedVersion('');
     };
 
-    const handleResourceClick = (resourceID: string, type: string) => {
+    const handleTypeClick = (type: string) => {
+        prepareType(type);
+        navigate(`${basePath}/${selectedNamespace}/${type}`);
+    };
+
+    const prepareResource = (resourceID: string, type: string) => {
         setSelectedResourceID(resourceID);
         setSelectedVersion('');
 
@@ -270,9 +302,14 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
                 .fetchAdrRevisions(selectedNamespace, resourceID)
                 .then((revisions) => setAdrRevisions(revisions.map((rev) => rev.toString())));
         }
+    }
+
+    const handleResourceClick = (resourceID: string, type: string) => {
+        prepareResource(resourceID, type);
+        navigate(`${basePath}/${selectedNamespace}/${type}/${resourceID}`);
     };
 
-    const handleVersionClick = (version: string, type: string) => {
+    const prepareVersion = (version: string, type: string) => {
         setSelectedVersion(version);
 
         if (type === 'Architectures') {
@@ -284,6 +321,11 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
         } else if (type === 'ADRs') {
             adrService.fetchAdr(selectedNamespace, selectedResourceID, version).then(onAdrLoad);
         }
+    }
+
+    const handleVersionClick = (version: string, type: string) => {
+        prepareVersion(version, type);
+        navigate(`${basePath}/${selectedNamespace}/${type}/${selectedResourceID}/${version}`);
     };
 
     const getResourceIDs = (type: string): string[] => {
