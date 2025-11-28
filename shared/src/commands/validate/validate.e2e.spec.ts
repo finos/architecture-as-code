@@ -65,7 +65,7 @@ describe('validate E2E', () => {
 
     it('reports spectral issue for architecture with empty string property', async () => {
         const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'empty-string-property.json'), 'utf-8'));
-        const pattern = schemaDirectory.getSchema(inputArch['$schema']);
+        const pattern = await schemaDirectory.getSchema(inputArch['$schema']);
 
         const response = await validate(inputArch, pattern, schemaDirectory, false);
 
