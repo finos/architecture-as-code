@@ -19,6 +19,7 @@ The CALM AI tools provide specialized prompts and guidance for AI assistants to 
     - `node-creation.md` - Guide for creating nodes with proper validation
     - `pattern-creation.md` - Guide for reusable architectural patterns
     - `relationship-creation.md` - Guide for creating relationships between nodes
+    - `standards-creation.md` - Guide for creating JSON Schema Standards that extend CALM components with organizational requirements
 
 ## Usage
 
