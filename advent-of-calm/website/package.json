@@ -11,8 +11,8 @@
     "copy:content": "mkdir -p src/content/days && cp ../day-*.md src/content/days/ && cp ../home.md src/"
   },
   "dependencies": {
-    "astro": "^4.16.18",
-    "@astrojs/check": "^0.9.4",
+    "@astrojs/check": "^0.9.6",
+    "astro": "^5.16.2",
     "typescript": "^5.6.3"
   },
   "devDependencies": {
