@@ -148,7 +148,7 @@ Total Nodes: {{nodes.length}}
 ## {{this.name}}
 
 **ID:** `{{this.unique-id}}`  
-**Type:** {{this.node-type.name}}  
+**Type:** {{this.node-type}}  
 **Description:** {{this.description}}
 
 {{#if this.interfaces}}
