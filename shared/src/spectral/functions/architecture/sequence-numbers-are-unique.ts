@@ -7,8 +7,6 @@ export function sequenceNumbersAreUnique(input, _, context) {
     if (!input) {
         return [];
     }
-    console.log(JSON.stringify(input));
-    console.log('context' + JSON.stringify(context.path));
     // get sequence-number of all transitions
     const sequenceNumbers = JSONPath({path: '$[*].sequence-number', json: input, resultType: 'all'});
 
