@@ -63,7 +63,8 @@ async function validateBundledResources(logger: Logger): Promise<void> {
         'tools/flow-creation.md',
         'tools/pattern-creation.md',
         'tools/documentation-creation.md',
-        'tools/standards-creation.md'
+        'tools/standards-creation.md',
+        'tools/calm-cli-instructions.md'
     ];
 
     const missingFiles: string[] = [];
