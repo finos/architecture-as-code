@@ -303,6 +303,6 @@ Use `allOf` to compose your Standard with core CALM schemas:
 - **Create**: Develop Standards for your organization's needs  
 - **Validate**: Test your Standards with `calm validate`
 - **Contribute**: Share useful Standards with the FINOS community
-- **Learn More**: See [Controls](controls) for how Standards integrate with compliance frameworks
+- **Learn More**: See [Controls](../core-concepts/controls) for how Standards integrate with compliance frameworks
 
 Standards enable CALM to scale from individual architectures to organization-wide modeling practices while maintaining consistency and enforcing important requirements.
