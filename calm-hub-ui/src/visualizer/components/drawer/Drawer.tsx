@@ -33,6 +33,7 @@ export function Drawer({ data }: DrawerProps) {
     const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
     const [fileInstance, setFileInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
     const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
+    const [title, setTitle] = useState<string>('');
     // Default to collapsed as per user request
     const [isMetadataCollapsed, setIsMetadataCollapsed] = useState(true);
     // Height of the metadata panel when expanded (in pixels)
@@ -42,6 +43,7 @@ export function Drawer({ data }: DrawerProps) {
         if (acceptedFiles[0]) {
             const fileText = await acceptedFiles[0].text();
             setFileInstance(JSON.parse(fileText));
+            setTitle(acceptedFiles[0].name);
         }
     }, []);
 
@@ -49,6 +51,10 @@ export function Drawer({ data }: DrawerProps) {
 
     useEffect(() => {
         setCALMInstance(fileInstance ?? data?.data);
+        // Set title from CALM Hub data if available
+        if (data?.name && data?.id && data?.version) {
+            setTitle(`${data.name}/${data.id}/${data.version}`);
+        }
     }, [fileInstance, data]);
 
     // Extract flows from CALM data
@@ -171,6 +177,21 @@ export function Drawer({ data }: DrawerProps) {
                 <div className="drawer-content h-full flex flex-col">
                     {calmInstance ? (
                         <>
+                            {title && (
+                                <div
+                                    style={{
+                                        padding: '8px 16px',
+                                        borderBottom: '1px solid #e2e8f0',
+                                        backgroundColor: '#f8fafc',
+                                        fontSize: '14px',
+                                        fontWeight: 500,
+                                        color: '#1e293b',
+                                        flexShrink: 0,
+                                    }}
+                                >
+                                    {title}
+                                </div>
+                            )}
                             <div
                                 style={{
                                     flex: 1,

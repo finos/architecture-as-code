@@ -19,25 +19,33 @@ import {
 import { extractId, extractNodeType } from './utils/calmHelpers';
 import { THEME, getNodeTypeColor, getRiskLevelColor } from './theme';
 
-// Types for AIGF risk and mitigation data
+/**
+ * AIGF risk item - all fields optional as CALM data may have partial info
+ */
 interface RiskItem {
     id?: string;
     name?: string;
     description?: string;
 }
 
+/**
+ * AIGF mitigation item - all fields optional as CALM data may have partial info
+ */
 interface MitigationItem {
     id?: string;
     name?: string;
     description?: string;
 }
 
+/**
+ * Control item - flexible structure to accommodate various control types
+ */
 interface ControlItem {
     description?: string;
     [key: string]: unknown;
 }
 
-export const CustomNode = ({ data }: NodeProps) => {
+export function CustomNode({ data }: NodeProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   // Get callbacks from data

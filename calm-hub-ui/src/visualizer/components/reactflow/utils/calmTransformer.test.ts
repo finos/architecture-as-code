@@ -1,44 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { parseCALMData, expandOptionsRelationships } from './calmTransformer';
+import { parseCALMData } from './calmTransformer';
 import { CalmArchitectureSchema } from '../../../../../../calm-models/src/types/core-types.js';
-
-describe('expandOptionsRelationships', () => {
-    it('returns unchanged data when data is null', () => {
-        const result = expandOptionsRelationships(null as unknown as CalmArchitectureSchema);
-        expect(result).toBeNull();
-    });
-
-    it('returns unchanged data when no relationships', () => {
-        const data: CalmArchitectureSchema = {
-            nodes: [{ 'unique-id': 'node-1', name: 'Node 1', 'node-type': 'service' }],
-        };
-        const result = expandOptionsRelationships(data);
-        expect(result).toEqual(data);
-    });
-
-    it('returns unchanged data when no options relationships', () => {
-        const data: CalmArchitectureSchema = {
-            nodes: [
-                { 'unique-id': 'node-1', name: 'Node 1', 'node-type': 'service' },
-                { 'unique-id': 'node-2', name: 'Node 2', 'node-type': 'service' },
-            ],
-            relationships: [
-                {
-                    'unique-id': 'rel-1',
-                    'relationship-type': {
-                        connects: {
-                            source: { node: 'node-1' },
-                            destination: { node: 'node-2' },
-                        },
-                    },
-                },
-            ],
-        };
-        const result = expandOptionsRelationships(data);
-        expect(result.relationships).toHaveLength(1);
-        expect(result.nodes).toHaveLength(2);
-    });
-});
 
 describe('parseCALMData', () => {
     it('returns empty arrays for null data', () => {

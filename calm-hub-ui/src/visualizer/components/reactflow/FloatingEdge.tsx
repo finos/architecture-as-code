@@ -4,6 +4,10 @@ import { getEdgeParams } from './utils/floatingEdges';
 import { EdgeBadge, EdgeTooltip, getBadgeStyle } from './edge-components';
 import type { FlowTransition, EdgeControl, Mitigation, Risk } from './edge-components';
 
+/**
+ * Edge data from CALM relationships - all fields optional as different
+ * relationship types have different data (connects, interacts, etc.)
+ */
 interface EdgeData {
     description?: string;
     protocol?: string;
@@ -19,7 +23,7 @@ interface EdgeData {
     };
 }
 
-export const FloatingEdge = ({
+export function FloatingEdge({
     id,
     source,
     target,
@@ -27,7 +31,7 @@ export const FloatingEdge = ({
     markerEnd,
     markerStart,
     data,
-}: EdgeProps<EdgeData>) => {
+}: EdgeProps<EdgeData>) {
     const [isHovered, setIsHovered] = useState(false);
 
     const sourceNode = useStore(useCallback((store) => store.nodeInternals.get(source), [source]));

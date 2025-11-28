@@ -1,7 +1,7 @@
 import { NodeProps, Handle, Position } from 'reactflow';
 import { THEME } from './theme';
 
-export const SystemGroupNode = ({ data }: NodeProps) => {
+export function SystemGroupNode({ data }: NodeProps) {
   return (
     <div
       style={{

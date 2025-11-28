@@ -61,7 +61,7 @@ function calculateGroupBounds(
     };
 }
 
-export const ArchitectureGraph = ({ jsonData, onNodeClick, onEdgeClick }: ArchitectureGraphProps) => {
+export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick }: ArchitectureGraphProps) {
     const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
