@@ -376,7 +376,7 @@ Add a new array called `flows` with a single flow in, we've provided you with it
   ],
   "flows": [
     {
-      "$schema": "https://calm.finos.org/release/1.0-rc1/meta/flow.json",
+      "$schema": "https://calm.finos.org/release/1.1/meta/flow.json",
       "$id": "https://calm.finos.org/getting-started/flows/conference-signup.flow.json",
       "unique-id": "flow-conference-signup",
       "name": "Conference Signup Flow",
@@ -385,17 +385,17 @@ Add a new array called `flows` with a single flow in, we've provided you with it
         {
           "relationship-unique-id": "conference-website-load-balancer",
           "sequence-number": 1,
-          "summary": "User submits sign-up form via Conference Website to Load Balancer"
+          "description": "User submits sign-up form via Conference Website to Load Balancer"
         },
         {
           "relationship-unique-id": "load-balancer-attendees",
           "sequence-number": 2,
-          "summary": "Load Balancer forwards request to Attendees Service"
+          "description": "Load Balancer forwards request to Attendees Service"
         },
         {
           "relationship-unique-id": "attendees-attendees-store",
           "sequence-number": 3,
-          "summary": "Attendees Service stores attendee info in the Attendees Store"
+          "description": "Attendees Service stores attendee info in the Attendees Store"
         }
       ]
     }

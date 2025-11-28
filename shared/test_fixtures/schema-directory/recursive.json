@@ -1,5 +1,5 @@
 {
-  "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+  "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
   "$id": "https://calm.com/recursive.json",
   "title": "API Gateway Pattern",
   "type": "object",

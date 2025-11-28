@@ -194,7 +194,7 @@ describe('validation support functions', () => {
             const given: ErrorObject[] = [
                 {
                     'instancePath': '/nodes/0/interfaces/0/port',
-                    'schemaPath': 'https://calm.finos.org/release/1.0/meta/interface.json#/defs/host-port-interface/properties/port/type',
+                    'schemaPath': 'https://calm.finos.org/release/1.1/meta/interface.json#/defs/host-port-interface/properties/port/type',
                     'keyword': 'type',
                     'params': {
                         'type': 'integer'
@@ -209,7 +209,7 @@ describe('validation support functions', () => {
                     'error',
                     'must be integer',
                     '/nodes/0/interfaces/0/port',
-                    'https://calm.finos.org/release/1.0/meta/interface.json#/defs/host-port-interface/properties/port/type'
+                    'https://calm.finos.org/release/1.1/meta/interface.json#/defs/host-port-interface/properties/port/type'
                 )
             ];
 
