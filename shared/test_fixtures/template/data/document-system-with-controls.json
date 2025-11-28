@@ -93,7 +93,7 @@
   ],
   "flows": [
     {
-      "$schema": "https://calm.finos.org/release/1.0/meta/flow.json",
+      "$schema": "https://calm.finos.org/release/1.1/meta/flow.json",
       "$id": "https://calm.finos.org/docuflow/flow/document-upload",
       "unique-id": "flow-document-upload",
       "name": "Document Upload Flow",

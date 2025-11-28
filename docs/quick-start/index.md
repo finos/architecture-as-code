@@ -376,7 +376,7 @@ Add a new array called `flows` with a single flow in, we've provided you with it
   ],
   "flows": [
     {
-      "$schema": "https://calm.finos.org/release/1.0-rc1/meta/flow.json",
+      "$schema": "https://calm.finos.org/release/1.1/meta/flow.json",
       "$id": "https://calm.finos.org/getting-started/flows/conference-signup.flow.json",
       "unique-id": "flow-conference-signup",
       "name": "Conference Signup Flow",
