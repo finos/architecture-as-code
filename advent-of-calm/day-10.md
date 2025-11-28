@@ -1,7 +1,7 @@
 # Day 10: Link to an ADR
 
 ## Overview
-Connect architectural decisions to your CALM architecture by linking Architecture Decision Records.
+Connect architectural decisions to your CALM architecture by linking [Architecture Decision](https://adr.github.io/) Records.
 
 ## Objective and Rationale
 - **Objective:** Create ADR documents and link them to your architecture using the `adrs` property
@@ -20,7 +20,7 @@ Architecture Decision Records (ADRs) capture significant architectural decisions
 - This flexibility means you can link to existing ADR repositories if you already have them
 
 **ADR Formats:**
-There are several popular ADR formats. We'll use **MADR (Markdown Any Decision Records)** which includes:
+There are several popular ADR formats. We'll use **[MADR (Markdown Any Decision Records)](https://adr.github.io/madr)** which includes:
 - Title and date
 - Status (Proposed, Accepted, Deprecated, Superseded)
 - Context (the situation and problem)
