@@ -74,7 +74,7 @@ Handlebars templates allow custom documentation formats.
 This architecture contains **{{nodes.length}}** nodes:
 
 {{#each nodes}}
-- **{{this.name}}** ({{this.node-type.name}}): {{this.description}}
+- **{{this.name}}** ({{this.node-type}}): {{this.description}}
 {{/each}}
 
 ## Integrations
@@ -83,7 +83,7 @@ This architecture has **{{relationships.length}}** connections:
 
 {{#each relationships}}
 - {{this.description}}
-  - Protocol: {{this.relationship-type.connects.protocol}}
+  - Protocol: {{this.protocol}}
 {{/each}}
 
 ## Flows
@@ -95,7 +95,7 @@ This architecture has **{{relationships.length}}** connections:
 
 Steps:
 {{#each this.transitions}}
-{{this.sequence-number}}. {{this.summary}}
+{{this.sequence-number}}. {{this.description}}
 {{/each}}
 
 {{/each}}
@@ -116,7 +116,7 @@ No controls defined yet.
 {{/if}}
 
 ---
-*Generated from CALM architecture on {{metadata.timestamp}}*
+*Generated from CALM architecture on {{metadata.created}}*
 ```
 
 ### 6. Generate Documentation Using Custom Template
