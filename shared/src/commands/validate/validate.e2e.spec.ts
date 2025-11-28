@@ -22,15 +22,20 @@ const validationPath = path.join(
     '../../../test_fixtures/command/validate/'
 );
 
-const schemaDir = path.join(__dirname, '../../../../calm/release/1.0/meta/');
+const schemaDir_10 = path.join(__dirname, '../../../../calm/release/1.0/meta/');
+const schemaDir_11 = path.join(__dirname, '../../../../calm/release/1.1/meta/');
 
 describe('validate E2E', () => {
+    let documentLoader: FileSystemDocumentLoader;
     let schemaDirectory: SchemaDirectory;
 
-    it('validates architecture against pattern with options', async () => {
-        schemaDirectory = new SchemaDirectory(new FileSystemDocumentLoader([schemaDir], true));
+    beforeEach(async () => {
+        documentLoader = new FileSystemDocumentLoader([schemaDir_10, schemaDir_11], true);
+        schemaDirectory = new SchemaDirectory(documentLoader);
         await schemaDirectory.loadSchemas();
+    });
 
+    it('validates architecture against pattern with options', async () => {
         const inputPattern = JSON.parse(readFileSync(inputPatternPath, 'utf-8'));
         const inputArch = JSON.parse(readFileSync(inputArchPath, 'utf-8'));
         const response = await validate(inputArch, inputPattern, schemaDirectory, true);
@@ -47,9 +52,6 @@ describe('validate E2E', () => {
     });
 
     it('reports json schema compilation errors for bad-json-schema fixture', async () => {
-        schemaDirectory = new SchemaDirectory(new FileSystemDocumentLoader([schemaDir], true));
-        await schemaDirectory.loadSchemas();
-
         const badPattern = JSON.parse(readFileSync(badPatternPath, 'utf-8'));
         const inputArch = JSON.parse(readFileSync(inputArchPath, 'utf-8'));
 
@@ -62,9 +64,6 @@ describe('validate E2E', () => {
     });
 
     it('reports spectral issue for architecture with empty string property', async () => {
-        schemaDirectory = new SchemaDirectory(new FileSystemDocumentLoader([schemaDir], true));
-        await schemaDirectory.loadSchemas();
-
         const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'empty-string-property.json'), 'utf-8'));
         const pattern = schemaDirectory.getSchema(inputArch['$schema']);
 
@@ -78,9 +77,6 @@ describe('validate E2E', () => {
 
     it('does not report spectral issue for architecture with false boolean property', async () => {
         // If we prohibit false, then there is no way to represent a boolean property set to false in the architecture.
-        schemaDirectory = new SchemaDirectory(new FileSystemDocumentLoader([schemaDir], true));
-        await schemaDirectory.loadSchemas();
-
         const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'false-boolean-property.json'), 'utf-8'));
         const pattern = await schemaDirectory.getSchema(inputArch['$schema']);
 
@@ -90,10 +86,7 @@ describe('validate E2E', () => {
     });
 
     it('does not report spectral issue for architecture with zero integer property', async () => {
-        // If we prohibit false, then there is no way to represent the number zero in the architecture.
-        schemaDirectory = new SchemaDirectory(new FileSystemDocumentLoader([schemaDir], true));
-        await schemaDirectory.loadSchemas();
-
+        // If we prohibit 0, then there is no way to represent the number zero in the architecture.
         const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'zero-integer-property.json'), 'utf-8'));
         const pattern = await schemaDirectory.getSchema(inputArch['$schema']);
 
@@ -116,6 +109,62 @@ describe('validate E2E', () => {
 
             const newPattern = applyArchitectureOptionsToPattern(architecture, pattern, false);
             expect(newPattern).toStrictEqual(expectedResult);
+        });
+    });
+
+    describe('schema specific validations', () => {
+        it('fails to report bad flows for schema 1.0', async () => {
+            const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'flows/flows-1.0-bad.json'), 'utf-8'));
+            const schema = await schemaDirectory.getSchema(inputArch['$schema']);
+
+            const response = await validate(inputArch, schema, schemaDirectory, false);
+
+            expect(response.hasErrors).toBeFalsy(); // schema 1.0 has a bug in flow definition
+        });
+
+        it('reports bad flows for schema 1.1', async () => {
+            const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'flows/flows-1.1-bad.json'), 'utf-8'));
+            const schema = await schemaDirectory.getSchema(inputArch['$schema']);
+
+            const response = await validate(inputArch, schema, schemaDirectory, false);
+
+            expect(response.hasErrors).toBeTruthy();
+            expect(response.jsonSchemaValidationOutputs).toHaveLength(3);
+            expect(response.jsonSchemaValidationOutputs[0].message).toContain('relationship-unique-id');
+            expect(response.jsonSchemaValidationOutputs[0].path).toBe('/flows/0/transitions/0');
+        });
+
+        it('accepts good flows for schema 1.1', async () => {
+            const inputArch = JSON.parse(readFileSync(path.join(flowsDir, 'flows-1.1-good.json'), 'utf-8'));
+            const schema = await schemaDirectory.getSchema(inputArch['$schema']);
+
+            const response = await validate(inputArch, schema, schemaDirectory, false);
+
+            expect(response.hasErrors).toBeFalsy();
+        });
+
+        it('error in flow with non-unique sequence numbers', async () => {
+            const inputArch = JSON.parse(readFileSync(path.join(flowsDir, 'flows-spectral-sequence-non-unique.json'), 'utf-8'));
+            const schema = await schemaDirectory.getSchema(inputArch['$schema']);
+
+            const response = await validate(inputArch, schema, schemaDirectory, false);
+
+            expect(response.hasErrors).toBeTruthy();
+            expect(response.spectralSchemaValidationOutputs).toHaveLength(1);
+            expect(response.spectralSchemaValidationOutputs[0].message).toContain('sequence-number');
+            expect(response.spectralSchemaValidationOutputs[0].path).toBe('/flows/0/transitions');
+        });
+
+        it('error in flow with unknown relationship', async () => {
+            const inputArch = JSON.parse(readFileSync(path.join(flowsDir, 'flows-spectral-unknown-relationship.json'), 'utf-8'));
+            const schema = await schemaDirectory.getSchema(inputArch['$schema']);
+
+            const response = await validate(inputArch, schema, schemaDirectory, false);
+
+            expect(response.hasErrors).toBeTruthy();
+            expect(response.spectralSchemaValidationOutputs).toHaveLength(1);
+            expect(response.spectralSchemaValidationOutputs[0].message).toContain('does not refer to the unique-id');
+            expect(response.spectralSchemaValidationOutputs[0].path).toBe('/flows/0/transitions/0/relationship-unique-id');
         });
     });
 });
