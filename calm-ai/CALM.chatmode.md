@@ -46,6 +46,7 @@ On your first prompt in each session, you MUST:
     - `.github/chatmodes/calm-prompts/flow-creation.md`
     - `.github/chatmodes/calm-prompts/pattern-creation.md`
     - `.github/chatmodes/calm-prompts/documentation-creation.md`
+    - `.github/chatmodes/calm-prompts/standards-creation.md`
 
 3. After reading the prompts, confirm you're ready to assist with CALM architectures.
 
