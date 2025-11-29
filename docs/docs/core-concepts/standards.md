@@ -1,7 +1,7 @@
 ---
 id: standards
 title: Standards
-sidebar_position: 8
+sidebar_position: 6
 ---
 
 # Standards
