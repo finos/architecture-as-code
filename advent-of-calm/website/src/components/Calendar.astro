@@ -7,7 +7,7 @@ const days = getAllDays();
 <div class="calendar-grid" id="calendar-grid">
   {days.map(({ day, unlocked, title }) => (
     <a 
-      href={unlocked ? `./day/${day}` : '#'}
+      href={unlocked ? `day/${day}/` : '#'}
       class:list={['calendar-day', { locked: !unlocked, unlocked }]}
       title={unlocked ? title : `Unlocks December ${day}`}
       aria-disabled={!unlocked}
@@ -117,7 +117,7 @@ const days = getAllDays();
         const dayElement = day as HTMLElement;
         dayElement.classList.remove('locked');
         dayElement.classList.add('unlocked');
-        dayElement.setAttribute('href', `./day/${dayNumber}`);
+        dayElement.setAttribute('href', `day/${dayNumber}/`);
         dayElement.removeAttribute('aria-disabled');
         dayElement.style.pointerEvents = 'auto';
         dayElement.style.cursor = 'pointer';
