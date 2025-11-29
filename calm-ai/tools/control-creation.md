@@ -64,6 +64,50 @@ The complete control schema from the FINOS CALM v1.0 specification:
 
 Controls in CALM represent compliance policies, governance rules, and enforcement mechanisms applied to architecture elements.
 
+## Standards Integration
+
+**Most controls in CALM use Standards to define their requirements and specifications.** This creates points of consistency across a given domain and enables reusable control patterns.
+
+### How Controls Use Standards
+
+Controls work with Standards in the following way:
+
+1. **Requirement Files**: The `requirement-url` points to a requirement.json file that defines what the control expects
+2. **Configuration Files**: The `config-url` points to a configuration.json file that provides the actual configuration data
+3. **Standards as Base Schemas**: Requirements may optionally use Standards as their base JSON schema to ensure consistency
+
+**Example - NIST Control with Standard-based Requirement**:
+
+```json
+{
+    "nist-access-control": {
+        "description": "NIST 800-53 Access Control requirements for system authentication",
+        "requirements": [
+            {
+                "requirement-url": "https://requirements.company.com/nist-ac2-requirement.json",
+                "config": {
+                    "documentNumber": "NIST SP 800-53",
+                    "title": "Security and Privacy Controls for Federal Information Systems",
+                    "status": "Final",
+                    "seriesName": "Special Publication",
+                    "controlFamily": "AC - Access Control",
+                    "controlId": "AC-2"
+                }
+            }
+        ]
+    }
+}
+```
+
+In this example, the `requirement-url` points to a requirement.json file. That requirement file may optionally use a NIST Document Standard as its JSON schema base to ensure all NIST controls follow consistent structure.
+
+### Benefits of Standards with Controls
+
+- **Consistency**: All requirement files using the same Standard follow identical structure
+- **Validation**: Standards provide automatic schema validation for requirement file structure
+- **Reusability**: Standards can be shared across multiple requirement files and organizations  
+- **Compliance**: Industry frameworks like NIST, ISO 27001, SOC 2 can be modeled as Standards for requirement files
+
 ## Where Controls Can Be Applied
 
 Controls can be applied at multiple levels within a CALM architecture:
@@ -331,3 +375,19 @@ Each requirement MUST have exactly ONE of:
 - Structure requirements to be independently verifiable
 - Document the relationship between requirement schemas and configurations
 - Regular review and updates for compliance changes
+
+## Cross-References
+
+- **Standards Creation**: See standards creation tool for creating requirement Standards that controls reference
+- **Node Creation**: Understand how controls are applied to individual nodes
+- **Flow Creation**: Learn how controls work with business processes and flows
+- **Architecture Creation**: See how controls are structured at the architecture document level
+- **Pattern Creation**: Use controls in reusable architectural patterns
+
+## Key Reminders
+
+- Most controls reference requirement files that may use Standards as their base schemas
+- Controls can be applied at architecture, node, and flow levels
+- Each control must have both description and requirements properties
+- Use Standards for consistency in requirement files across compliance frameworks like NIST, ISO 27001, SOC 2
+- Reference the standards creation tool when creating base schemas for requirement files
