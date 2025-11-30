@@ -1,21 +1,17 @@
 import { IoCloseOutline } from 'react-icons/io5';
-import { CytoscapeNodeData, CytoscapeEdge } from '../../contracts/contracts.js';
+import { NodeData, EdgeData } from '../../contracts/contracts.js';
 import { JsonRenderer } from '../../../hub/components/json-renderer/JsonRenderer.js';
 
 export interface SidebarProps {
-    selectedData: CytoscapeNodeData | CytoscapeEdge['data'];
+    selectedData: NodeData | EdgeData;
     closeSidebar: () => void;
 }
 
-function isCALMNodeData(
-    data: CytoscapeNodeData | CytoscapeEdge['data']
-): data is CytoscapeNodeData {
-    return data.id != null && data.type != null;
+function isNodeData(data: NodeData | EdgeData): data is NodeData {
+    return data.id != null && 'type' in data && data.type != null;
 }
 
-function isCALMEdgeData(
-    data: CytoscapeNodeData | CytoscapeEdge['data']
-): data is CytoscapeEdge['data'] {
+function isEdgeData(data: NodeData | EdgeData): data is EdgeData {
     return (
         'source' in data &&
         'target' in data &&
@@ -26,8 +22,8 @@ function isCALMEdgeData(
 }
 
 export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
-    const isCALMNode = isCALMNodeData(selectedData);
-    const isCALMEdge = isCALMEdgeData(selectedData);
+    const isCALMNode = isNodeData(selectedData);
+    const isCALMEdge = isEdgeData(selectedData);
 
     return (
         <div className="fixed right-0 h-full w-96 bg-base-200 shadow-2xl flex flex-col">

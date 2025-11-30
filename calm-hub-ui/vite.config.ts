@@ -6,6 +6,12 @@ import tailwindcss from '@tailwindcss/vite';
 // https://vitejs.dev/config/
 export default defineConfig({
     plugins: [react(), tailwindcss()],
+    resolve: {
+        dedupe: ['d3-selection', 'd3-transition', 'd3-zoom', 'd3-drag'],
+    },
+    optimizeDeps: {
+        include: ['reactflow'],
+    },
     test: {
         globals: true,
         environment: 'jsdom',
