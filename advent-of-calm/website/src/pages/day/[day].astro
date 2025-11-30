@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { isUnlocked, getDayTitle } from '../../utils/calendar';
+import { getDayTitle } from '../../utils/calendar';
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
@@ -19,7 +19,6 @@ const dayNum = parseInt(entry.slug.replace('day-', ''));
 const title = getDayTitle(dayNum);
 const prevDay = dayNum > 1 ? dayNum - 1 : null;
 const nextDay = dayNum < 24 ? dayNum + 1 : null;
-const nextUnlocked = nextDay && isUnlocked(nextDay);
 ---
 
 <Layout title={`Day ${dayNum}: ${title}`} description={title}>
@@ -37,19 +36,14 @@ const nextUnlocked = nextDay && isUnlocked(nextDay);
     <div class="nav-center">
       <a href="../../" class="nav-button home">Calendar</a>
     </div>
-    <div class="nav-right">
-      {nextDay && nextUnlocked && (
-        <a href={`../${nextDay}/`} class="nav-button next">
+    <div class="nav-right" data-next-day={nextDay}>
+      {nextDay && (
+        <span class="nav-button next locked next-day-nav" data-day={nextDay} title={`Unlocks December ${nextDay}`}>
           Day {nextDay}
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="icon-arrow" style="display: none;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 18l6-6-6-6"/>
           </svg>
-        </a>
-      )}
-      {nextDay && !nextUnlocked && (
-        <span class="nav-button next locked" title={`Unlocks December ${nextDay}`}>
-          Day {nextDay}
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="icon-lock" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
           </svg>
@@ -76,19 +70,14 @@ const nextUnlocked = nextDay && isUnlocked(nextDay);
     <div class="nav-center">
       <a href="../../" class="nav-button home">Back to Calendar</a>
     </div>
-    <div class="nav-right">
-      {nextDay && nextUnlocked && (
-        <a href={`../${nextDay}/`} class="nav-button next">
+    <div class="nav-right" data-next-day={nextDay}>
+      {nextDay && (
+        <span class="nav-button next locked next-day-nav" data-day={nextDay} title={`Unlocks December ${nextDay}`}>
           Day {nextDay}
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="icon-arrow" style="display: none;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 18l6-6-6-6"/>
           </svg>
-        </a>
-      )}
-      {nextDay && !nextUnlocked && (
-        <span class="nav-button next locked" title={`Unlocks December ${nextDay}`}>
-          Day {nextDay}
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="icon-lock" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
           </svg>
@@ -295,3 +284,57 @@ const nextUnlocked = nextDay && isUnlocked(nextDay);
     }
   }
 </style>
+
+<script>
+  // Client-side unlock for next day navigation based on user's local date
+  function isUnlocked(day: number): boolean {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const unlockDate = new Date(currentYear, 11, day); // Month 11 = December
+    return now >= unlockDate;
+  }
+
+  function unlockNextDayNav() {
+    const params = new URLSearchParams(window.location.search);
+    const debugMode = params.has('debug');
+    
+    const nextDayNavs = document.querySelectorAll('.next-day-nav');
+    nextDayNavs.forEach((el) => {
+      const span = el as HTMLElement;
+      const dayNum = parseInt(span.dataset.day || '0');
+      
+      if (debugMode || isUnlocked(dayNum)) {
+        // Replace span with anchor, preserving Astro's scoped style attributes
+        const anchor = document.createElement('a');
+        anchor.href = `../${dayNum}/`;
+        anchor.className = 'nav-button next';
+        
+        // Copy all data-astro-cid-* attributes for scoped CSS
+        Array.from(span.attributes).forEach(attr => {
+          if (attr.name.startsWith('data-astro-cid')) {
+            anchor.setAttribute(attr.name, attr.value);
+          }
+        });
+        
+        anchor.innerHTML = `Day ${dayNum}
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>`;
+        
+        // Copy astro attributes to SVG as well
+        const svg = anchor.querySelector('svg');
+        if (svg) {
+          Array.from(span.attributes).forEach(attr => {
+            if (attr.name.startsWith('data-astro-cid')) {
+              svg.setAttribute(attr.name, attr.value);
+            }
+          });
+        }
+        
+        span.parentNode?.replaceChild(anchor, span);
+      }
+    });
+  }
+
+  unlockNextDayNav();
+</script>
