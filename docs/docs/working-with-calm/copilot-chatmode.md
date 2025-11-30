@@ -64,6 +64,7 @@ The chatmode includes separate tools for each CALM component:
 - **Flow Creation**: Business process flows and transitions
 - **Pattern Creation**: Reusable architectural patterns using JSON schema
 - **Metadata Creation**: Metadata structure and requirements
+- **Standards Creation**: JSON Schema 2020-12 Standards for extending CALM components with organizational requirements
 - **Documentation Creation**: Generating documentation from CALM models
 
 ## Using CALM Copilot Chat

@@ -241,6 +241,7 @@ The chatmode includes specialized tools for each CALM component:
 - **Flow Creation**: Guide for business process flows and transitions
 - **Pattern Creation**: Guide for reusable architectural patterns using JSON schema constructs
 - **Metadata Creation**: Guide for metadata structure options (single object vs. array)
+- **Standards Creation**: Guide for creating JSON Schema 2020-12 Standards that extend CALM components with organizational requirements
 
 Each tool includes complete schema definitions, validation rules, realistic examples, and cross-references to related tools.
 
