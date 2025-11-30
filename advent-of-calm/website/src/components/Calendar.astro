@@ -1,29 +1,31 @@
 ---
-import { getAllDays } from '../utils/calendar';
+import { getDayTitle } from '../utils/calendar';
 
-const days = getAllDays();
+const days = Array.from({ length: 24 }, (_, i) => ({
+  day: i + 1,
+  title: getDayTitle(i + 1)
+}));
 ---
 
 <div class="calendar-grid" id="calendar-grid">
-  {days.map(({ day, unlocked, title }) => (
+  {days.map(({ day, title }) => (
     <a 
-      href={unlocked ? `day/${day}/` : '#'}
-      class:list={['calendar-day', { locked: !unlocked, unlocked }]}
-      title={unlocked ? title : `Unlocks December ${day}`}
-      aria-disabled={!unlocked}
+      href="#"
+      class:list={['calendar-day', 'locked']}
+      data-day={day}
+      data-title={title}
+      title={`Unlocks December ${day}`}
+      aria-disabled="true"
     >
       <div class="day-number">{day}</div>
       <div class="day-icon">
-        {unlocked ? (
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M5 13l4 4L19 7" />
-          </svg>
-        ) : (
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
-        )}
+        <svg class="icon-unlocked" style="display: none;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 13l4 4L19 7" />
+        </svg>
+        <svg class="icon-locked" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
       </div>
     </a>
   ))}
@@ -106,22 +108,43 @@ const days = getAllDays();
 </style>
 
 <script>
-  // Client-side debug mode
-  const params = new URLSearchParams(window.location.search);
-  if (params.has('debug')) {
+  // Client-side unlock based on user's local date
+  function isUnlocked(day: number): boolean {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const unlockDate = new Date(currentYear, 11, day); // Month 11 = December
+    return now >= unlockDate;
+  }
+
+  function unlockDays() {
+    const params = new URLSearchParams(window.location.search);
+    const debugMode = params.has('debug');
+    
     const calendar = document.getElementById('calendar-grid');
     if (calendar) {
       const days = calendar.querySelectorAll('.calendar-day');
-      days.forEach((day, index) => {
-        const dayNumber = index + 1;
-        const dayElement = day as HTMLElement;
-        dayElement.classList.remove('locked');
-        dayElement.classList.add('unlocked');
-        dayElement.setAttribute('href', `day/${dayNumber}/`);
-        dayElement.removeAttribute('aria-disabled');
-        dayElement.style.pointerEvents = 'auto';
-        dayElement.style.cursor = 'pointer';
+      days.forEach((dayElement) => {
+        const el = dayElement as HTMLAnchorElement;
+        const dayNum = parseInt(el.dataset.day || '0');
+        const title = el.dataset.title || '';
+        
+        if (debugMode || isUnlocked(dayNum)) {
+          el.classList.remove('locked');
+          el.classList.add('unlocked');
+          el.setAttribute('href', `day/${dayNum}/`);
+          el.setAttribute('title', title);
+          el.removeAttribute('aria-disabled');
+          el.style.pointerEvents = 'auto';
+          el.style.cursor = 'pointer';
+          
+          const unlockedIcon = el.querySelector('.icon-unlocked') as HTMLElement;
+          const lockedIcon = el.querySelector('.icon-locked') as HTMLElement;
+          if (unlockedIcon) unlockedIcon.style.display = 'block';
+          if (lockedIcon) lockedIcon.style.display = 'none';
+        }
       });
     }
   }
+
+  unlockDays();
 </script>
