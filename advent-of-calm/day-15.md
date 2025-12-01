@@ -79,14 +79,17 @@ mkdir -p standards
 
 ### 6. Create Your First Standard
 
-Create a Company Node Standard that enforces organisational requirements on all nodes.
+Create a Company Node Standard that extends the core CALM node with organisational requirements.
 
 **File:** `standards/company-node-standard.json`
 
 **Prompt:**
 ```text
-Create a JSON Schema 2020-12 Standard at standards/company-node-standard.json that requires the following properties on CALM nodes:
+Create a CALM Standard at standards/company-node-standard.json that extends the core CALM node definition.
 
+The Standard should use allOf to compose the base CALM node with additional company requirements:
+
+Additional properties to require:
 1. costCenter - a string that must match the pattern CC- followed by exactly 4 digits (e.g., CC-1234)
 2. owner - a string for the team or individual responsible
 3. environment - must be one of: development, staging, or production
@@ -94,22 +97,15 @@ Create a JSON Schema 2020-12 Standard at standards/company-node-standard.json th
 Make costCenter and owner required. Include helpful descriptions for each property.
 ```
 
-Review the generated file - it should follow the JSON Schema 2020-12 structure with `$schema`, `title`, `type`, `properties`, and `required` fields.
+Review the generated file - it should use `allOf` to reference the base CALM node schema and add your organisation's properties on top.
 
-### 7. Understand Schema Composition
+### 7. Understand What the Standard Does
 
-Standards compose with core CALM schemas using `allOf`:
+The generated Standard composes two schemas together:
+1. **Base CALM node** - provides `unique-id`, `node-type`, `name`, `description`
+2. **Your extensions** - adds `costCenter`, `owner`, `environment`
 
-```json
-{
-  "allOf": [
-    { "$ref": "https://calm.finos.org/schemas/core.json#/defs/node" },
-    { "$ref": "https://company.com/standards/company-node-standard.json" }
-  ]
-}
-```
-
-This says: "This node must satisfy BOTH the core CALM node requirements AND our company's additional requirements."
+When you use this Standard, nodes must satisfy BOTH sets of requirements. This is the power of Standards - you extend CALM without modifying it.
 
 ### 8. Understand the Value of Standards
 
@@ -132,11 +128,10 @@ This says: "This node must satisfy BOTH the core CALM node requirements AND our 
 ```text
 Create standards/README.md that documents:
 
-1. What Standards are and how they extend CALM
-2. Our company's standard requirements (cost centre, owner, environment)
-3. How to use Standards in architectures
-4. How Standards differ from Patterns
-5. Links to the CALM Standards documentation
+1. What Standards are and how they extend CALM using allOf composition
+2. Our company's standard node requirements (cost centre, owner, environment)
+3. How the company-node-standard.json works
+4. Links to the CALM Standards documentation
 ```
 
 ### 10. Commit Your Work
