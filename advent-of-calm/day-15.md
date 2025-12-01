@@ -77,44 +77,24 @@ Set up a place for your organisation's Standards:
 mkdir -p standards
 ```
 
-### 6. Examine a Simple Standard
+### 6. Create Your First Standard
 
-Here's an example of a Company Node Standard that requires cost centre and owner:
+Create a Company Node Standard that enforces organisational requirements on all nodes.
 
 **File:** `standards/company-node-standard.json`
 
-**Content:**
-```json
-{
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
-  "title": "Company Node Standard",
-  "description": "Organisational requirements for all CALM nodes",
-  "type": "object",
-  "properties": {
-    "costCenter": {
-      "type": "string",
-      "pattern": "^CC-[0-9]{4}$",
-      "description": "Company cost centre code (format: CC-XXXX)"
-    },
-    "owner": {
-      "type": "string",
-      "description": "Team or individual responsible for this component"
-    },
-    "environment": {
-      "type": "string",
-      "enum": ["development", "staging", "production"],
-      "description": "Deployment environment classification"
-    }
-  },
-  "required": ["costCenter", "owner"],
-  "additionalProperties": false
-}
-```
-
 **Prompt:**
 ```text
-Create the file standards/company-node-standard.json with the content shown above.
+Create a JSON Schema 2020-12 Standard at standards/company-node-standard.json that requires the following properties on CALM nodes:
+
+1. costCenter - a string that must match the pattern CC- followed by exactly 4 digits (e.g., CC-1234)
+2. owner - a string for the team or individual responsible
+3. environment - must be one of: development, staging, or production
+
+Make costCenter and owner required. Include helpful descriptions for each property.
 ```
+
+Review the generated file - it should follow the JSON Schema 2020-12 structure with `$schema`, `title`, `type`, `properties`, and `required` fields.
 
 ### 7. Understand Schema Composition
 
