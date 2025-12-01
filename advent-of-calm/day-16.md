@@ -25,7 +25,7 @@ A pattern can reference your Standards in its node and relationship definitions:
 
 ```json
 {
-  "$schema": "https://calm.finos.org/release/1.1/meta/pattern.json",
+  "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
   "properties": {
     "nodes": {
       "type": "array",
@@ -48,7 +48,7 @@ This pattern says: "Every node in an architecture validated against this pattern
 Create a CALM pattern at patterns/company-base-pattern.json that enforces our company Standards.
 
 The pattern should:
-1. Use the CALM pattern schema (https://calm.finos.org/release/1.1/meta/pattern.json)
+1. Use the CALM schema (https://calm.finos.org/release/1.1/meta/calm.json)
 2. Have a title "Company Base Pattern" and description explaining it enforces organisational standards
 3. Define that all nodes must comply with our company-node-standard.json
 4. Define that all relationships must comply with our company-relationship-standard.json
@@ -62,7 +62,7 @@ The pattern should look something like:
 
 ```json
 {
-  "$schema": "https://calm.finos.org/release/1.1/meta/pattern.json",
+  "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
   "title": "Company Base Pattern",
   "description": "Enforces company Standards on all nodes and relationships",
   "type": "object",
