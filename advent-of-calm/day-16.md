@@ -39,13 +39,7 @@ A pattern can reference your Standards in its node and relationship definitions:
 
 This pattern says: "Every node in an architecture validated against this pattern must satisfy the company-node-standard."
 
-### 3. Create a Patterns Directory
-
-```bash
-mkdir -p patterns
-```
-
-### 4. Create the Company Base Pattern
+### 3. Create the Company Base Pattern
 
 **File:** `patterns/company-base-pattern.json`
 
@@ -62,7 +56,7 @@ The pattern should:
 Use $ref to reference the Standards files. The pattern should not constrain specific node IDs or counts - it should only enforce that whatever nodes/relationships exist must follow our Standards.
 ```
 
-### 5. Review the Generated Pattern
+### 4. Review the Generated Pattern
 
 The pattern should look something like:
 
@@ -89,7 +83,7 @@ The pattern should look something like:
 }
 ```
 
-### 6. Test with a Non-Compliant Architecture
+### 5. Test with a Non-Compliant Architecture
 
 Your existing e-commerce architecture probably doesn't have the required Standard properties. Let's verify:
 
@@ -99,7 +93,7 @@ calm validate -p patterns/company-base-pattern.json -a architectures/ecommerce-p
 
 This should **fail** because the nodes don't have `costCenter`, `owner`, etc.
 
-### 7. Create a Compliant Test Architecture
+### 6. Create a Compliant Test Architecture
 
 **File:** `architectures/compliant-test.json`
 
@@ -117,7 +111,7 @@ Create a simple test architecture at architectures/compliant-test.json with:
 This is a minimal architecture to test our company base pattern.
 ```
 
-### 8. Validate the Compliant Architecture
+### 7. Validate the Compliant Architecture
 
 ```bash
 calm validate -p patterns/company-base-pattern.json -a architectures/compliant-test.json
@@ -125,7 +119,7 @@ calm validate -p patterns/company-base-pattern.json -a architectures/compliant-t
 
 This should **pass** ✅
 
-### 9. Understand the Enforcement Flow
+### 8. Understand the Enforcement Flow
 
 ```
 Standards (define properties)
@@ -137,7 +131,7 @@ Architecture (validated against pattern)
 
 **The key insight:** The pattern is the enforcement mechanism. Standards alone are just definitions - patterns make them mandatory.
 
-### 10. Document the Pattern
+### 9. Document the Pattern
 
 **File:** `patterns/README.md`
 
@@ -152,7 +146,7 @@ Create patterns/README.md that documents:
 5. What happens when validation fails
 ```
 
-### 11. Plan for Specific Patterns
+### 10. Plan for Specific Patterns
 
 The Company Base Pattern is generic - it enforces Standards but doesn't define specific architecture structures.
 
@@ -164,7 +158,7 @@ This gives you layered governance:
 - **Layer 1**: Company Base Pattern - "all nodes need costCenter and owner"
 - **Layer 2**: Specific Pattern (e.g., e-commerce) - "must have api-gateway, order-service, etc."
 
-### 12. Commit Your Work
+### 11. Commit Your Work
 
 ```bash
 git add patterns/ architectures/compliant-test.json
