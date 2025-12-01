@@ -1,114 +1,117 @@
-# Day 18: Create Your First Pattern
+# Day 18: Create Your First Specific Pattern
 
 ## Overview
-Create a CALM Pattern that instantly generates architecture scaffolds AND enforces governance rules - CALM's dual superpower.
+Create a Web Application Pattern that enforces both your organisational Standards AND specific architectural structure.
 
 ## Objective and Rationale
-- **Objective:** Create a simple pattern for a web application architecture that can generate scaffolds and validate compliance
-- **Rationale:** Patterns are CALM's superpower - one pattern does two things: (1) Generate compliant architecture in seconds (productivity), (2) Validate architectures follow standards (governance). Learn how `const`, `prefixItems`, and JSON Schema constraints enable both.
+- **Objective:** Create a pattern that generates and validates a specific architecture type while inheriting your Company Standards
+- **Rationale:** The Company Base Pattern ensures all nodes have required properties, but doesn't define what nodes must exist. Specific patterns add structural requirements - "you must have these exact nodes" - on top of the Standards enforcement.
 
 ## Requirements
 
-### 1. Understand CALM's Dual Superpower
+### 1. Understand Layered Patterns
 
-**One Pattern = Two Powers:**
+You now have:
+- **Standards** - Define required properties (costCenter, owner, etc.)
+- **Company Base Pattern** - Enforces Standards on all architectures
 
-**Power 1 - Productivity (Generation):**
-```bash
-calm generate -p my-pattern.json -o new-service.json
+Today you'll add:
+- **Specific Pattern** - Defines required structure AND inherits Standard requirements
+
+**The pattern hierarchy:**
 ```
-Result: Instant architecture scaffold with all best practices baked in
-
-**Power 2 - Governance (Validation):**
-```bash
-calm validate -p my-pattern.json -a existing-service.json
+Specific Pattern (e.g., web-app-pattern)
+    └── References Standards
+        └── Standards reference core CALM
 ```
-Result: Automated compliance checking against your standards
 
-**How the same pattern does both:**
-- **`const: "api-gateway"`** → Generation: creates node with ID "api-gateway" | Validation: requires ID must be "api-gateway"
-- **`minItems: 3`** → Generation: creates 3 items | Validation: requires at least 3 items
-- **`prefixItems: [...]`** → Generation: creates these exact items | Validation: checks these items exist
+### 2. Understand Pattern Capabilities
 
-### 2. Create a Simple Web Application Pattern
+Patterns have a dual superpower:
 
-You'll create a pattern for a standard 3-tier web app:
-- Frontend (webclient)
-- API Service (service) 
-- Database (database)
+**Power 1 - Generation:**
+```bash
+calm generate -p my-pattern.json -o new-architecture.json
+```
+Creates an architecture scaffold with required nodes, relationships, and properties.
+
+**Power 2 - Validation:**
+```bash
+calm validate -p my-pattern.json -a existing-architecture.json
+```
+Checks that an architecture has the required structure and properties.
+
+### 3. Create a Web Application Pattern
+
+Create a pattern for a standard 3-tier web application that includes your Standards.
 
 **File:** `patterns/web-app-pattern.json`
 
 **Prompt:**
 ```text
-Create a new file at patterns/web-app-pattern.json
+Create a CALM pattern at patterns/web-app-pattern.json for a 3-tier web application.
 
-This pattern defines a standard 3-tier web application architecture.
+The pattern should:
+1. Use the CALM pattern schema
+2. Define exactly 3 required nodes using prefixItems:
+   - "web-frontend" (node-type: webclient)
+   - "api-service" (node-type: service)
+   - "app-database" (node-type: database)
+3. Each node must include our Standard properties with placeholder values:
+   - costCenter: "CC-0000"
+   - owner: "team-name"
+   - environment: "development"
+4. Define exactly 2 required relationships:
+   - frontend-to-api: connects web-frontend to api-service
+   - api-to-database: connects api-service to app-database
+5. Each relationship must include our Standard properties:
+   - dataClassification: "internal"
+   - encrypted: true
 
-The pattern should have:
-
-1. Schema setup:
-   - $schema: "https://calm.finos.org/release/1.1/meta/calm.json"
-   - $id: "https://example.com/patterns/web-app.json"
-   - title: "Standard Web Application Pattern"
-   - description: "Three-tier web application with frontend, API, and database"
-   - type: "object"
-
-2. Exactly 3 nodes using prefixItems (with minItems: 3, maxItems: 3):
-   - Node 1: unique-id "web-frontend", node-type "webclient", name "Web Frontend", description "User-facing web application"
-   - Node 2: unique-id "api-service", node-type "service", name "API Service", description "Backend API service"  
-   - Node 3: unique-id "app-database", node-type "database", name "Application Database", description "Primary data storage"
-
-3. Exactly 2 relationships using prefixItems (with minItems: 2, maxItems: 2):
-   - Relationship 1: unique-id "frontend-to-api", connects web-frontend to api-service, protocol "HTTPS", description "Frontend calls API"
-   - Relationship 2: unique-id "api-to-database", connects api-service to app-database, protocol "JDBC", description "API stores data"
-
-Use const for all unique-id, name, description, node-type properties.
-Use const for the entire relationship-type object.
-Each node and relationship must reference the base CALM schema using $ref.
-Set required: ["nodes", "relationships"] at the top level.
-Set required: ["description"] on each relationship.
+Use const for structural values (unique-id, node-type, name) but not for Standard properties so users can customize them.
 ```
 
-### 3. Test Generation
+### 4. Test Generation
 
 Generate an architecture from your pattern:
 
 ```bash
-mkdir -p patterns
 calm generate -p patterns/web-app-pattern.json -o architectures/generated-webapp.json
 ```
 
-Open `architectures/generated-webapp.json` and observe:
-- ✅ Has exactly 3 nodes with the IDs, names, descriptions from your pattern
-- ✅ Has exactly 2 relationships connecting them
-- ✅ Ready for enhancement with interfaces and metadata
+Open `architectures/generated-webapp.json` and verify:
+- ✅ Has exactly 3 nodes with correct IDs and types
+- ✅ Has exactly 2 relationships
+- ✅ All nodes have Standard properties (costCenter, owner, environment)
+- ✅ All relationships have Standard properties (dataClassification, encrypted)
 
-### 4. Visualize the Generated Architecture
+### 5. Customize the Generated Architecture
 
-**Steps:**
-1. Open `architectures/generated-webapp.json` in VSCode
-2. Open preview (Ctrl+Shift+C / Cmd+Shift+C)
-3. See the 3-tier architecture visualized
-4. **Take a screenshot** of the generated architecture
-
-This shows how patterns create instant, visual architectures!
-
-### 5. Enhance the Generated Architecture
-
-The generated architecture has the basic structure, but you can enhance it:
+The generated architecture has placeholder values. Update them:
 
 **Prompt:**
 ```text
-Update architectures/generated-webapp.json to add:
-- Interfaces to the service and database nodes with realistic host, port values
-- Metadata at the architecture level with owner, version, created date
-- Standard-compliant properties (owner, costCenter, criticality) on each node
+Update architectures/generated-webapp.json to replace placeholder values with realistic ones:
 
-Keep the unique-ids, names, and core descriptions as they are (from the pattern).
+For web-frontend:
+- costCenter: "CC-1001"
+- owner: "frontend-team"
+- environment: "production"
+
+For api-service:
+- costCenter: "CC-1002"
+- owner: "api-team"
+- environment: "production"
+
+For app-database:
+- costCenter: "CC-1003"
+- owner: "data-team"
+- environment: "production"
+
+Update relationship dataClassification values appropriately (api-to-database should be "confidential").
 ```
 
-### 6. Test Validation
+### 6. Validate Against the Pattern
 
 ```bash
 calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json
@@ -116,11 +119,17 @@ calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp
 
 Should pass! ✅
 
-**Test Governance by Breaking Rules**
+### 7. Test Governance - Break the Structure
+
+Create a broken version to prove the pattern catches violations:
 
 **Prompt:**
 ```text
-Create architectures/broken-webapp.json by copying generated-webapp.json and changing the unique-id of "web-frontend" to "my-custom-frontend"
+Create architectures/broken-webapp.json by copying generated-webapp.json and:
+1. Remove the app-database node entirely
+2. Remove the api-to-database relationship
+
+This should fail pattern validation because the required structure is missing.
 ```
 
 Validate:
@@ -128,33 +137,61 @@ Validate:
 calm validate -p patterns/web-app-pattern.json -a architectures/broken-webapp.json
 ```
 
-Should fail! ❌ The pattern catches the violation.
+Should fail! ❌ The pattern catches the missing node.
 
-Delete the broken file:
+Clean up:
 ```bash
 rm architectures/broken-webapp.json
 ```
 
-### 7. Document the Pattern
+### 8. Test Governance - Break the Standards
 
-**File:** `patterns/README.md`
+Try removing a Standard property:
 
 **Prompt:**
 ```text
-Create patterns/README.md explaining:
-
-1. What Patterns are and how they differ from Standards
-2. The Dual Superpower: Patterns both generate AND validate
-3. How to use web-app-pattern.json for generation and validation
-4. What the pattern enforces and why
-5. Time savings example (instant scaffold vs manual creation)
+Create architectures/broken-standards.json by copying generated-webapp.json and removing the costCenter property from web-frontend.
 ```
 
-### 8. Commit Your Work
+Validate:
+```bash
+calm validate -p patterns/web-app-pattern.json -a architectures/broken-standards.json
+```
+
+Should fail! ❌ The pattern catches the missing Standard property.
+
+Clean up:
+```bash
+rm architectures/broken-standards.json
+```
+
+### 9. Visualize the Generated Architecture
+
+**Steps:**
+1. Open `architectures/generated-webapp.json` in VSCode
+2. Open preview (Ctrl+Shift+C / Cmd+Shift+C)
+3. See the 3-tier architecture visualized
+4. Click nodes to verify Standard properties are present
+5. **Take a screenshot**
+
+### 10. Update Pattern Documentation
+
+**Prompt:**
+```text
+Update patterns/README.md to add documentation for web-app-pattern.json:
+
+1. What the pattern enforces (structure + Standards)
+2. The required nodes and relationships
+3. How to generate from this pattern
+4. How to validate against this pattern
+5. How it differs from company-base-pattern.json (specific vs generic)
+```
+
+### 11. Commit Your Work
 
 ```bash
-git add patterns/ architectures/generated-webapp.json README.md
-git commit -m "Day 18: Create web app pattern with generation and validation superpower"
+git add patterns/web-app-pattern.json architectures/generated-webapp.json patterns/README.md README.md
+git commit -m "Day 18: Create web app pattern with Standards enforcement"
 git tag day-18
 ```
 
@@ -163,9 +200,9 @@ git tag day-18
 Your Day 18 submission should include a commit tagged `day-18` containing:
 
 ✅ **Required Files:**
-- `patterns/web-app-pattern.json` - Pattern defining 3-tier web app
-- `architectures/generated-webapp.json` - Architecture generated from pattern
-- `patterns/README.md` - Documentation
+- `patterns/web-app-pattern.json` - Pattern with structure and Standards
+- `architectures/generated-webapp.json` - Generated and customized architecture
+- Updated `patterns/README.md` - Documentation
 - Updated `README.md` - Day 18 marked as complete
 
 ✅ **Validation:**
@@ -173,13 +210,11 @@ Your Day 18 submission should include a commit tagged `day-18` containing:
 # Pattern exists
 test -f patterns/web-app-pattern.json
 
-# Generated architecture exists
-test -f architectures/generated-webapp.json
+# Generated architecture exists and has Standard properties
+grep -q "costCenter" architectures/generated-webapp.json
+grep -q "dataClassification" architectures/generated-webapp.json
 
-# Generation works
-calm generate -p patterns/web-app-pattern.json -o /tmp/test-webapp.json
-
-# Validation works
+# Validation passes
 calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json
 
 # Check tag
@@ -194,22 +229,19 @@ git tag | grep -q "day-18"
 
 ## Tips
 
-- Start with structure first (IDs, types), then add constraints
-- Use `const` for values that MUST be exactly as specified
-- Use `minItems`/`maxItems` to enforce exact counts
-- Test both generation AND validation - a good pattern works for both
-- Keep patterns focused - one pattern per architectural style
+- Use `const` for values that MUST be exactly as specified (IDs, types)
+- Leave Standard properties without `const` so they can be customized
+- Test both generation AND validation
+- Placeholder values should be obviously placeholder (e.g., "CC-0000", "team-name")
 
-## Standards vs Patterns Summary
+## Pattern Types Summary
 
-| Aspect | Standards | Patterns |
-|--------|-----------|----------|
-| Purpose | Define required properties | Define required structure |
-| Example | "Every node needs an owner" | "Must have api-gateway node" |
-| Values | No specific values | Specific values via const |
-| Usage | Validation only | Generation AND validation |
-| Scope | Organisation-wide | Specific architecture type |
+| Pattern | Purpose | Enforces |
+|---------|---------|----------|
+| **Company Base Pattern** | Generic Standards enforcement | Properties only |
+| **Web App Pattern** | Specific 3-tier structure | Structure + Properties |
+| **E-Commerce Pattern** | Specific e-commerce structure | Structure + Properties |
 
 ## Next Steps
 
-Tomorrow (Day 19) you'll learn how to use your Standard types within Patterns for combined governance!
+Tomorrow (Day 19) you'll create an E-Commerce Pattern by combining Standards with the structure from your existing architecture!

@@ -1,261 +1,174 @@
-# Day 16: Creating Node and Relationship Standards
+# Day 16: Creating a Company Base Pattern
 
 ## Overview
-Create custom node and relationship Standards that extend core CALM components with your organisation's requirements.
+Create a Company Base Pattern that enforces your Standards across all architectures.
 
 ## Objective and Rationale
-- **Objective:** Build reusable Standards for nodes and relationships that enforce organisational requirements
-- **Rationale:** Yesterday you learned what Standards are. Today you'll create practical Standards that can be used across all your architectures, ensuring every service has proper ownership, every relationship has security classification, and your organisation's governance requirements are consistently applied.
+- **Objective:** Build a pattern that requires all nodes and relationships to comply with your organisational Standards
+- **Rationale:** Standards define WHAT properties are required, but they don't enforce themselves. A Base Pattern acts as the enforcement mechanism - any architecture validated against it must use your Standard-compliant nodes and relationships.
 
 ## Requirements
 
-### 1. Review Your Organisation's Requirements
+### 1. Understand the Enforcement Problem
 
-Before creating Standards, identify what your organisation needs:
+Yesterday you created:
+- `standards/company-node-standard.json` - extends CALM nodes with costCenter, owner, environment
+- `standards/company-relationship-standard.json` - extends CALM relationships with dataClassification, encrypted
 
-**Common Node Requirements:**
-- Owner/team responsible
-- Cost centre for billing
-- Environment classification
-- Criticality level
-- Compliance tags
+**But how do you enforce their use?**
 
-**Common Relationship Requirements:**
-- Security classification
-- Data sensitivity level
-- Approval status
-- Monitoring requirements
+If an architect creates an architecture using plain CALM nodes, your Standards are ignored. You need a pattern that says "all nodes in this architecture must comply with our company node Standard."
 
-### 2. Create an Enhanced Node Standard
+### 2. Understand How Patterns Enforce Standards
 
-**File:** `standards/service-node-standard.json`
-
-This Standard extends the base CALM node with service-specific requirements:
-
-**Prompt:**
-```text
-Create standards/service-node-standard.json with the following structure:
-
-{
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
-  "title": "Service Node Standard",
-  "description": "Organisational requirements for service nodes",
-  "type": "object",
-  "properties": {
-    "owner": {
-      "type": "string",
-      "description": "Team responsible for this service"
-    },
-    "costCenter": {
-      "type": "string",
-      "pattern": "^CC-[0-9]{4}$",
-      "description": "Cost centre code (format: CC-XXXX)"
-    },
-    "criticality": {
-      "type": "string",
-      "enum": ["low", "medium", "high", "critical"],
-      "description": "Business criticality level"
-    },
-    "environment": {
-      "type": "string",
-      "enum": ["development", "staging", "production"],
-      "description": "Deployment environment"
-    },
-    "repository": {
-      "type": "string",
-      "format": "uri",
-      "description": "Source code repository URL"
-    },
-    "oncallTeam": {
-      "type": "string",
-      "description": "On-call team or Slack channel"
-    }
-  },
-  "required": ["owner", "costCenter", "criticality"],
-  "additionalProperties": true
-}
-```
-
-### 3. Create a Relationship Standard
-
-**File:** `standards/connection-standard.json`
-
-This Standard ensures all service connections have proper security and compliance information:
-
-**Prompt:**
-```text
-Create standards/connection-standard.json with the following structure:
-
-{
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
-  "title": "Connection Standard",
-  "description": "Organisational requirements for service connections",
-  "type": "object",
-  "properties": {
-    "dataClassification": {
-      "type": "string",
-      "enum": ["public", "internal", "confidential", "restricted"],
-      "description": "Classification of data flowing through this connection"
-    },
-    "encrypted": {
-      "type": "boolean",
-      "description": "Whether the connection is encrypted"
-    },
-    "authRequired": {
-      "type": "boolean",
-      "description": "Whether authentication is required"
-    },
-    "approvedBy": {
-      "type": "string",
-      "description": "Security team member who approved this connection"
-    },
-    "approvalDate": {
-      "type": "string",
-      "format": "date",
-      "description": "Date the connection was approved"
-    }
-  },
-  "required": ["dataClassification", "encrypted"],
-  "additionalProperties": true
-}
-```
-
-### 4. Create a Database Node Standard
-
-**File:** `standards/database-node-standard.json`
-
-Databases have additional requirements around data protection:
-
-**Prompt:**
-```text
-Create standards/database-node-standard.json with:
-
-{
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
-  "title": "Database Node Standard",
-  "description": "Organisational requirements for database nodes",
-  "type": "object",
-  "properties": {
-    "owner": {
-      "type": "string",
-      "description": "Team responsible for this database"
-    },
-    "costCenter": {
-      "type": "string",
-      "pattern": "^CC-[0-9]{4}$",
-      "description": "Cost centre code"
-    },
-    "dataClassification": {
-      "type": "string",
-      "enum": ["public", "internal", "confidential", "restricted"],
-      "description": "Highest classification of data stored"
-    },
-    "backupSchedule": {
-      "type": "string",
-      "description": "Backup frequency (e.g., 'daily', 'hourly')"
-    },
-    "retentionPeriod": {
-      "type": "string",
-      "description": "Data retention period (e.g., '7 years')"
-    },
-    "encryptionAtRest": {
-      "type": "boolean",
-      "description": "Whether data is encrypted at rest"
-    },
-    "dbaContact": {
-      "type": "string",
-      "description": "DBA team contact"
-    }
-  },
-  "required": ["owner", "costCenter", "dataClassification", "encryptionAtRest"],
-  "additionalProperties": true
-}
-```
-
-### 5. Understand How Standards Compose with CALM
-
-Standards work with core CALM schemas using `allOf`:
+A pattern can reference your Standards in its node and relationship definitions:
 
 ```json
 {
-  "allOf": [
-    { "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node" },
-    { "$ref": "./standards/service-node-standard.json" }
-  ]
-}
-```
-
-This composition means a node must satisfy BOTH:
-1. The core CALM node requirements (unique-id, node-type, name, description)
-2. Your organisation's additional requirements (owner, costCenter, criticality)
-
-### 6. Create a Standards Usage Example
-
-**File:** `standards/examples/standard-service-node.json`
-
-Show how a node would look when following your Standard:
-
-**Prompt:**
-```text
-Create standards/examples/standard-service-node.json showing a node that follows the service-node-standard:
-
-{
-  "unique-id": "order-service",
-  "node-type": "service",
-  "name": "Order Service",
-  "description": "Handles order processing and management",
-  "owner": "orders-team",
-  "costCenter": "CC-4521",
-  "criticality": "high",
-  "environment": "production",
-  "repository": "https://github.com/company/order-service",
-  "oncallTeam": "#orders-oncall"
-}
-```
-
-### 7. Create a Standards Usage Example for Relationships
-
-**File:** `standards/examples/standard-connection.json`
-
-**Prompt:**
-```text
-Create standards/examples/standard-connection.json showing a relationship that follows the connection-standard:
-
-{
-  "unique-id": "order-to-payment",
-  "relationship-type": {
-    "connects": {
-      "source": { "node": "order-service" },
-      "destination": { "node": "payment-service" }
+  "$schema": "https://calm.finos.org/release/1.1/meta/pattern.json",
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "./standards/company-node-standard.json"
+      }
     }
-  },
-  "description": "Order service calls payment service for payment processing",
-  "dataClassification": "confidential",
-  "encrypted": true,
-  "authRequired": true,
-  "approvedBy": "security-team",
-  "approvalDate": "2025-01-15"
+  }
 }
 ```
 
-### 8. Update Standards Documentation
+This pattern says: "Every node in an architecture validated against this pattern must satisfy the company-node-standard."
 
-**Prompt:**
-```text
-Update standards/README.md to document:
-
-1. The three Standards we've created (service-node, database-node, connection)
-2. What each Standard requires and why
-3. Example usage for each Standard
-4. How Standards compose with core CALM using allOf
-5. Benefits of using these Standards across all architectures
-```
-
-### 9. Commit Your Work
+### 3. Create a Patterns Directory
 
 ```bash
-git add standards/
-git commit -m "Day 16: Create node and relationship Standards for organisational governance"
+mkdir -p patterns
+```
+
+### 4. Create the Company Base Pattern
+
+**File:** `patterns/company-base-pattern.json`
+
+**Prompt:**
+```text
+Create a CALM pattern at patterns/company-base-pattern.json that enforces our company Standards.
+
+The pattern should:
+1. Use the CALM pattern schema (https://calm.finos.org/release/1.1/meta/pattern.json)
+2. Have a title "Company Base Pattern" and description explaining it enforces organisational standards
+3. Define that all nodes must comply with our company-node-standard.json
+4. Define that all relationships must comply with our company-relationship-standard.json
+
+Use $ref to reference the Standards files. The pattern should not constrain specific node IDs or counts - it should only enforce that whatever nodes/relationships exist must follow our Standards.
+```
+
+### 5. Review the Generated Pattern
+
+The pattern should look something like:
+
+```json
+{
+  "$schema": "https://calm.finos.org/release/1.1/meta/pattern.json",
+  "title": "Company Base Pattern",
+  "description": "Enforces company Standards on all nodes and relationships",
+  "type": "object",
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "../standards/company-node-standard.json"
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "$ref": "../standards/company-relationship-standard.json"
+      }
+    }
+  }
+}
+```
+
+### 6. Test with a Non-Compliant Architecture
+
+Your existing e-commerce architecture probably doesn't have the required Standard properties. Let's verify:
+
+```bash
+calm validate -p patterns/company-base-pattern.json -a architectures/ecommerce-platform.json
+```
+
+This should **fail** because the nodes don't have `costCenter`, `owner`, etc.
+
+### 7. Create a Compliant Test Architecture
+
+**File:** `architectures/compliant-test.json`
+
+**Prompt:**
+```text
+Create a simple test architecture at architectures/compliant-test.json with:
+
+1. Two nodes:
+   - A service node "test-service" with all company Standard properties (costCenter: "CC-1234", owner: "test-team", environment: "development")
+   - A database node "test-database" with all company Standard properties
+
+2. One relationship:
+   - Connects test-service to test-database with company relationship Standard properties (dataClassification: "internal", encrypted: true)
+
+This is a minimal architecture to test our company base pattern.
+```
+
+### 8. Validate the Compliant Architecture
+
+```bash
+calm validate -p patterns/company-base-pattern.json -a architectures/compliant-test.json
+```
+
+This should **pass** ✅
+
+### 9. Understand the Enforcement Flow
+
+```
+Standards (define properties)
+    ↓
+Company Base Pattern (enforces Standards)
+    ↓
+Architecture (validated against pattern)
+```
+
+**The key insight:** The pattern is the enforcement mechanism. Standards alone are just definitions - patterns make them mandatory.
+
+### 10. Document the Pattern
+
+**File:** `patterns/README.md`
+
+**Prompt:**
+```text
+Create patterns/README.md that documents:
+
+1. What the Company Base Pattern does
+2. How it enforces Standards via $ref
+3. How to validate architectures against it
+4. The validation flow: Standards → Pattern → Architecture
+5. What happens when validation fails
+```
+
+### 11. Plan for Specific Patterns
+
+The Company Base Pattern is generic - it enforces Standards but doesn't define specific architecture structures.
+
+For specific architectures (like e-commerce), you'll create patterns that:
+1. Extend or reference the Company Base Pattern
+2. Add specific structural requirements (required nodes, relationships)
+
+This gives you layered governance:
+- **Layer 1**: Company Base Pattern - "all nodes need costCenter and owner"
+- **Layer 2**: Specific Pattern (e.g., e-commerce) - "must have api-gateway, order-service, etc."
+
+### 12. Commit Your Work
+
+```bash
+git add patterns/ architectures/compliant-test.json
+git commit -m "Day 16: Create Company Base Pattern to enforce Standards"
 git tag day-16
 ```
 
@@ -264,18 +177,18 @@ git tag day-16
 Your Day 16 submission should include a commit tagged `day-16` containing:
 
 ✅ **Required Files:**
-- `standards/service-node-standard.json` - Service node requirements
-- `standards/database-node-standard.json` - Database node requirements
-- `standards/connection-standard.json` - Relationship requirements
-- `standards/examples/standard-service-node.json` - Example compliant node
-- `standards/examples/standard-connection.json` - Example compliant relationship
-- Updated `standards/README.md` - Documentation
+- `patterns/company-base-pattern.json` - Pattern enforcing Standards
+- `patterns/README.md` - Documentation
+- `architectures/compliant-test.json` - Test architecture that passes validation
 - Updated `README.md` - Day 16 marked as complete
 
 ✅ **Validation:**
 ```bash
-# Verify all Standards are valid JSON
-for f in standards/*.json; do cat "$f" | jq . > /dev/null && echo "✅ $f"; done
+# Pattern exists
+test -f patterns/company-base-pattern.json
+
+# Compliant architecture passes
+calm validate -p patterns/company-base-pattern.json -a architectures/compliant-test.json
 
 # Check tag
 git tag | grep -q "day-16"
@@ -283,19 +196,26 @@ git tag | grep -q "day-16"
 
 ## Resources
 
-- [JSON Schema 2020-12 Reference](https://json-schema.org/draft/2020-12/json-schema-core.html)
-- [JSON Schema Formats](https://json-schema.org/understanding-json-schema/reference/string.html#format)
-- [CALM Core Schema](https://github.com/finos/architecture-as-code/tree/main/calm)
+- [CALM Pattern Documentation](https://github.com/finos/architecture-as-code/tree/main/calm/pattern)
+- [JSON Schema $ref](https://json-schema.org/understanding-json-schema/structuring#dollarref)
+- Your Standards in `standards/`
 
 ## Tips
 
-- Start with required fields that your organisation genuinely enforces
-- Use `enum` for fields with fixed valid values
-- Use `pattern` for fields with specific formats (like cost centre codes)
-- Set `additionalProperties: true` to allow extra fields beyond your requirements
-- Document each property with clear descriptions
-- Consider creating Standards for different node types (service vs database)
+- The base pattern should be permissive about structure but strict about properties
+- Don't set minItems/maxItems in the base pattern - that's for specific patterns
+- Test with both compliant and non-compliant architectures
+- Keep the pattern simple - it should only enforce Standards, nothing else
+
+## The Complete Picture
+
+| Layer | Purpose | Example |
+|-------|---------|---------|
+| **Standards** | Define required properties | costCenter, owner, encrypted |
+| **Base Pattern** | Enforce Standards on all architectures | company-base-pattern.json |
+| **Specific Pattern** | Define specific architecture structure | ecommerce-pattern.json (Day 18) |
+| **Architecture** | Actual system definition | ecommerce-platform.json |
 
 ## Next Steps
 
-Tomorrow (Day 17) you'll apply these Standards to the e-commerce architecture you built earlier!
+Tomorrow (Day 17) you'll update your e-commerce architecture to comply with the Standards and validate it against the Company Base Pattern!
