@@ -5,7 +5,7 @@ Set up your CALM workspace with AI-powered assistance and establish the foundati
 
 ## Prerequisites
 
-Ensure you have all the [prerequisites installed](../).
+Ensure you have all the [prerequisites installed](../../).
 
 ## Objective and Rationale
 - **Objective:** Install the CALM CLI, create a git repository, and enable GitHub Copilot assistance for architecture development
