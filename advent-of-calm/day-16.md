@@ -49,9 +49,10 @@ Create a CALM pattern at patterns/company-base-pattern.json that enforces our co
 
 The pattern should:
 1. Use the CALM schema (https://calm.finos.org/release/1.1/meta/calm.json)
-2. Have a title "Company Base Pattern" and description explaining it enforces organisational standards
-3. Define that all nodes must comply with our company-node-standard.json
-4. Define that all relationships must comply with our company-relationship-standard.json
+2. Have a unique $id (e.g., https://example.com/patterns/company-base-pattern.json)
+3. Have a title "Company Base Pattern" and description explaining it enforces organisational standards
+4. Define that all nodes must comply with our company-node-standard.json
+5. Define that all relationships must comply with our company-relationship-standard.json
 
 Use $ref to reference the Standards files. The pattern should not constrain specific node IDs or counts - it should only enforce that whatever nodes/relationships exist must follow our Standards.
 ```
@@ -63,6 +64,7 @@ The pattern should look something like:
 ```json
 {
   "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+  "$id": "https://example.com/patterns/company-base-pattern.json",
   "title": "Company Base Pattern",
   "description": "Enforces company Standards on all nodes and relationships",
   "type": "object",
