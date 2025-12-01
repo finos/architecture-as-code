@@ -5,6 +5,17 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.19.1] - 2025-12-01
+
+## <small>1.19.1 (2025-12-01)</small>
+
+*  ([eee42fc384847689a45125739538a71ee80683c4](https://github.com/finos/architecture-as-code/commit/eee42fc384847689a45125739538a71ee80683c4))
+* fix(advent): correct site URL for base path resolution (#1894) ([01c2a6d9268b67675d3c1962f77e88cda9b5c1fe](https://github.com/finos/architecture-as-code/commit/01c2a6d9268b67675d3c1962f77e88cda9b5c1fe)), closes [#1894](https://github.com/finos/architecture-as-code/issues/1894)
+* fix(aoc): update day unlocking logic and navigation for December days ([05d64a675083f9158ed35fcc43b75b65e5fad5d5](https://github.com/finos/architecture-as-code/commit/05d64a675083f9158ed35fcc43b75b65e5fad5d5))
+* fix(aoc): update day unlocking logic and navigation for December days ([ccb3669460424abf2711ab40bc782e0230f1a726](https://github.com/finos/architecture-as-code/commit/ccb3669460424abf2711ab40bc782e0230f1a726))
+* refactor(docs): move Standards from working-with-calm to core-concepts ([14e10faf5ea491a1833a0fee07b7d53b9324c4e7](https://github.com/finos/architecture-as-code/commit/14e10faf5ea491a1833a0fee07b7d53b9324c4e7))
+* refactor(docs): move Standards from working-with-calm to core-concepts ([0c2368f2d16133a31d66ab53179704d3129faad7](https://github.com/finos/architecture-as-code/commit/0c2368f2d16133a31d66ab53179704d3129faad7))
+
 ## [1.19.0] - 2025-11-29
 
 ### Changed
