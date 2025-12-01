@@ -1,528 +1,215 @@
-# Day 18: Automate Validation in CI/CD
+# Day 18: Create Your First Pattern
 
 ## Overview
-Set up automated CALM validation in GitHub Actions to ensure architecture quality on every commit.
+Create a CALM Pattern that instantly generates architecture scaffolds AND enforces governance rules - CALM's dual superpower.
 
 ## Objective and Rationale
-- **Objective:** Create a GitHub Actions workflow that validates CALM architectures on every push and pull request
-- **Rationale:** Architecture as Code means architecture in version control with automated validation. Catch schema errors, pattern violations, and broken references before they reach main. Make architecture quality a first-class citizen in your CI/CD pipeline.
+- **Objective:** Create a simple pattern for a web application architecture that can generate scaffolds and validate compliance
+- **Rationale:** Patterns are CALM's superpower - one pattern does two things: (1) Generate compliant architecture in seconds (productivity), (2) Validate architectures follow standards (governance). Learn how `const`, `prefixItems`, and JSON Schema constraints enable both.
 
 ## Requirements
 
-### 1. Create GitHub Actions Workflow Directory
+### 1. Understand CALM's Dual Superpower
+
+**One Pattern = Two Powers:**
+
+**Power 1 - Productivity (Generation):**
+```bash
+calm generate -p my-pattern.json -o new-service.json
+```
+Result: Instant architecture scaffold with all best practices baked in
+
+**Power 2 - Governance (Validation):**
+```bash
+calm validate -p my-pattern.json -a existing-service.json
+```
+Result: Automated compliance checking against your standards
+
+**How the same pattern does both:**
+- **`const: "api-gateway"`** → Generation: creates node with ID "api-gateway" | Validation: requires ID must be "api-gateway"
+- **`minItems: 3`** → Generation: creates 3 items | Validation: requires at least 3 items
+- **`prefixItems: [...]`** → Generation: creates these exact items | Validation: checks these items exist
+
+### 2. Create a Simple Web Application Pattern
+
+You'll create a pattern for a standard 3-tier web app:
+- Frontend (webclient)
+- API Service (service) 
+- Database (database)
+
+**File:** `patterns/web-app-pattern.json`
+
+**Prompt:**
+```text
+Create a new file at patterns/web-app-pattern.json
+
+This pattern defines a standard 3-tier web application architecture.
+
+The pattern should have:
+
+1. Schema setup:
+   - $schema: "https://calm.finos.org/release/1.1/meta/calm.json"
+   - $id: "https://example.com/patterns/web-app.json"
+   - title: "Standard Web Application Pattern"
+   - description: "Three-tier web application with frontend, API, and database"
+   - type: "object"
+
+2. Exactly 3 nodes using prefixItems (with minItems: 3, maxItems: 3):
+   - Node 1: unique-id "web-frontend", node-type "webclient", name "Web Frontend", description "User-facing web application"
+   - Node 2: unique-id "api-service", node-type "service", name "API Service", description "Backend API service"  
+   - Node 3: unique-id "app-database", node-type "database", name "Application Database", description "Primary data storage"
+
+3. Exactly 2 relationships using prefixItems (with minItems: 2, maxItems: 2):
+   - Relationship 1: unique-id "frontend-to-api", connects web-frontend to api-service, protocol "HTTPS", description "Frontend calls API"
+   - Relationship 2: unique-id "api-to-database", connects api-service to app-database, protocol "JDBC", description "API stores data"
+
+Use const for all unique-id, name, description, node-type properties.
+Use const for the entire relationship-type object.
+Each node and relationship must reference the base CALM schema using $ref.
+Set required: ["nodes", "relationships"] at the top level.
+Set required: ["description"] on each relationship.
+```
+
+### 3. Test Generation
+
+Generate an architecture from your pattern:
 
 ```bash
-mkdir -p .github/workflows
+mkdir -p patterns
+calm generate -p patterns/web-app-pattern.json -o architectures/generated-webapp.json
 ```
 
-### 2. Create CALM Validation Workflow
+Open `architectures/generated-webapp.json` and observe:
+- ✅ Has exactly 3 nodes with the IDs, names, descriptions from your pattern
+- ✅ Has exactly 2 relationships connecting them
+- ✅ Ready for enhancement with interfaces and metadata
 
-**File:** `.github/workflows/validate-calm.yml`
+### 4. Visualize the Generated Architecture
 
-**Content:**
-```yaml
-name: Validate CALM Architectures
+**Steps:**
+1. Open `architectures/generated-webapp.json` in VSCode
+2. Open preview (Ctrl+Shift+C / Cmd+Shift+C)
+3. See the 3-tier architecture visualized
+4. **Take a screenshot** of the generated architecture
 
-on:
-  push:
-    branches: [ main, develop ]
-    paths:
-      - 'architectures/**/*.json'
-      - 'patterns/**/*.json'
-  pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'architectures/**/*.json'
-      - 'patterns/**/*.json'
+This shows how patterns create instant, visual architectures!
 
-jobs:
-  validate:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-    
-    - name: Install CALM CLI
-      run: npm install -g @finos/calm-cli
-    
-    - name: Validate all architectures
-      run: |
-        echo "🔍 Validating CALM architectures..."
-        for arch in architectures/*.json; do
-          echo "Validating $arch"
-          calm validate -a "$arch"
-        done
-    
-    - name: Validate patterns
-      run: |
-        echo "🔍 Validating CALM patterns..."
-        for pattern in patterns/*.json; do
-          echo "Validating pattern $pattern"
-          # Basic JSON schema validation
-          calm validate -p "$pattern" -a "architectures/ecommerce-platform.json" || true
-        done
-      
-    - name: Report success
-      run: echo "✅ All CALM validations passed!"
+### 5. Enhance the Generated Architecture
+
+The generated architecture has the basic structure, but you can enhance it:
+
+**Prompt:**
+```text
+Update architectures/generated-webapp.json to add:
+- Interfaces to the service and database nodes with realistic host, port values
+- Metadata at the architecture level with owner, version, created date
+- Standard-compliant properties (owner, costCenter, criticality) on each node
+
+Keep the unique-ids, names, and core descriptions as they are (from the pattern).
 ```
 
-### 3. Create Enhanced Workflow with Pattern Checking
-
-**File:** `.github/workflows/calm-quality-gate.yml`
-
-**Content:**
-```yaml
-name: CALM Architecture Quality Gate
-
-on:
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  validate-and-check:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-    
-    - name: Install CALM CLI
-      run: npm install -g @finos/calm-cli
-    
-    - name: Validate schema compliance
-      id: validate
-      run: |
-        FAILED=0
-        for arch in architectures/*.json; do
-          echo "::group::Validating $arch"
-          if calm validate -a "$arch"; then
-            echo "✅ $arch is valid"
-          else
-            echo "❌ $arch validation failed"
-            FAILED=1
-          fi
-          echo "::endgroup::"
-        done
-        exit $FAILED
-    
-    - name: Check against governance patterns
-      run: |
-        if [ -f "patterns/ecommerce-platform-pattern.json" ]; then
-          echo "::group::Checking pattern compliance"
-          calm validate \
-            -p patterns/ecommerce-platform-pattern.json \
-            -a architectures/ecommerce-platform.json
-          echo "::endgroup::"
-        fi
-    
-    - name: Check for required metadata
-      run: |
-        echo "::group::Checking metadata completeness"
-        for arch in architectures/*.json; do
-          echo "Checking $arch for required metadata..."
-          
-          # Check for owner
-          if ! grep -q '"owner"' "$arch"; then
-            echo "⚠️  Warning: $arch missing owner metadata"
-          fi
-          
-          # Check for version
-          if ! grep -q '"version"' "$arch"; then
-            echo "⚠️  Warning: $arch missing version metadata"
-          fi
-          
-          # Check for description at top level
-          if ! grep -q '"description"' "$arch"; then
-            echo "⚠️  Warning: $arch missing description"
-          fi
-        done
-        echo "::endgroup::"
-    
-    - name: Check for security controls
-      run: |
-        echo "::group::Checking security controls"
-        for arch in architectures/*.json; do
-          if grep -q '"controls"' "$arch"; then
-            echo "✅ $arch has security controls defined"
-          else
-            echo "⚠️  Warning: $arch has no security controls"
-          fi
-        done
-        echo "::endgroup::"
-    
-    - name: Generate validation report
-      if: always()
-      run: |
-        echo "## CALM Validation Report" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Architectures Checked" >> $GITHUB_STEP_SUMMARY
-        ls -1 architectures/*.json | wc -l >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Validation Status" >> $GITHUB_STEP_SUMMARY
-        if [ ${{ steps.validate.outcome }} == 'success' ]; then
-          echo "✅ All architectures valid" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ Validation failures detected" >> $GITHUB_STEP_SUMMARY
-        fi
-```
-
-### 4. Create Documentation Generation Workflow
-
-**File:** `.github/workflows/generate-docs.yml`
-
-**Content:**
-```yaml
-name: Generate Architecture Documentation
-
-on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'architectures/**/*.json'
-  workflow_dispatch:
-
-jobs:
-  generate-docs:
-    runs-on: ubuntu-latest
-    
-    permissions:
-      contents: write
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-    
-    - name: Install CALM CLI
-      run: npm install -g @finos/calm-cli
-    
-    - name: Generate documentation
-      run: |
-        echo "📖 Generating documentation from architectures..."
-        
-        # Generate website documentation
-        calm docify \
-          --architecture architectures/ecommerce-platform.json \
-          --output docs/generated/ecommerce-docs
-        
-        # Generate custom template outputs
-        if [ -d "templates/comprehensive-bundle" ]; then
-          calm docify \
-            --architecture architectures/ecommerce-platform.json \
-            --template-dir templates/comprehensive-bundle \
-            --output docs/generated/comprehensive
-        fi
-    
-    - name: Commit generated docs
-      run: |
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
-        git add docs/generated/
-        git diff --staged --quiet || git commit -m "docs: regenerate architecture documentation [skip ci]"
-    
-    - name: Push changes
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        branch: ${{ github.ref }}
-```
-
-### 5. Create Pre-Commit Hook (Local Validation)
-
-**File:** `.husky/pre-commit` (if using Husky) or `scripts/pre-commit-hook.sh`
-
-**Content:**
-```bash
-#!/bin/bash
-
-echo "🔍 Running CALM validation before commit..."
-
-# Check if any CALM files are being committed
-CALM_FILES=$(git diff --cached --name-only | grep -E '(architectures|patterns)/.*\.json$')
-
-if [ -z "$CALM_FILES" ]; then
-  echo "No CALM files to validate"
-  exit 0
-fi
-
-# Validate each file
-FAILED=0
-for file in $CALM_FILES; do
-  echo "Validating $file..."
-  if ! calm validate -a "$file" 2>/dev/null; then
-    echo "❌ $file validation failed"
-    FAILED=1
-  else
-    echo "✅ $file is valid"
-  fi
-done
-
-if [ $FAILED -eq 1 ]; then
-  echo ""
-  echo "❌ CALM validation failed. Fix errors before committing."
-  echo "   Run: calm validate -a <file>"
-  exit 1
-fi
-
-echo "✅ All CALM files validated successfully"
-exit 0
-```
-
-Make it executable:
-```bash
-chmod +x scripts/pre-commit-hook.sh
-```
-
-To use as a git hook:
-```bash
-ln -s ../../scripts/pre-commit-hook.sh .git/hooks/pre-commit
-```
-
-### 6. Create CI/CD Documentation
-
-**File:** `docs/ci-cd-guide.md`
-
-**Content:**
-```markdown
-# CALM CI/CD Integration
-
-## Overview
-
-This repository uses automated validation to ensure architecture quality.
-
-## Workflows
-
-### 1. validate-calm.yml
-
-**Trigger:** Push or PR to main/develop affecting architecture files  
-**Purpose:** Validate all architectures against CALM schema
-
-**What it checks:**
-- JSON schema validity
-- CALM specification compliance
-- All architectures can be parsed
-
-### 2. calm-quality-gate.yml
-
-**Trigger:** Pull requests to main  
-**Purpose:** Comprehensive quality checks
-
-**What it checks:**
-- ✅ Schema validation
-- ✅ Pattern compliance
-- ✅ Required metadata (owner, version)
-- ✅ Security controls presence
-
-### 3. generate-docs.yml
-
-**Trigger:** Push to main affecting architectures  
-**Purpose:** Auto-generate and commit documentation
-
-**What it does:**
-- Generates HTML documentation
-- Generates custom template outputs
-- Commits to repository (skips CI with `[skip ci]`)
-
-## Local Validation
-
-### Pre-Commit Hook
-
-Install the pre-commit hook:
-
-\`\`\`bash
-ln -s ../../scripts/pre-commit-hook.sh .git/hooks/pre-commit
-\`\`\`
-
-This validates architectures before allowing commit.
-
-### Manual Validation
-
-\`\`\`bash
-# Validate single file
-calm validate -a architectures/ecommerce-platform.json
-
-# Validate against pattern
-calm validate -p patterns/ecommerce-platform-pattern.json -a architectures/ecommerce-platform.json
-
-# Validate all architectures
-for arch in architectures/*.json; do calm validate -a "$arch"; done
-\`\`\`
-
-## Pull Request Process
-
-1. Create branch: `git checkout -b feature/new-architecture`
-2. Make changes to architectures
-3. Pre-commit hook validates locally
-4. Push: `git push origin feature/new-architecture`
-5. Create PR
-6. CI runs `validate-calm.yml` and `calm-quality-gate.yml`
-7. Review CI results in PR checks
-8. Merge when CI passes
-
-## Quality Gates
-
-### Blocking (Must Pass)
-- ✅ Schema validation
-- ✅ Pattern compliance (if pattern specified)
-
-### Non-Blocking (Warnings)
-- ⚠️  Missing metadata
-- ⚠️  No security controls
-- ⚠️  No flows defined
-
-## Continuous Documentation
-
-Documentation is automatically regenerated on merge to main:
-- `docs/generated/` updated with latest architecture
-- Committed automatically by GitHub Actions
-- Always in sync with architecture files
-
-## Benefits
-
-1. **Quality Assurance:** Catch errors before merge
-2. **Consistency:** Enforce standards automatically
-3. **Documentation:** Always up-to-date
-4. **Collaboration:** Clear feedback on PRs
-5. **Confidence:** Deploy architecture changes safely
-
-## Customization
-
-### Add Custom Checks
-
-Edit `.github/workflows/calm-quality-gate.yml`:
-
-\`\`\`yaml
-- name: Custom check
-  run: |
-    # Your validation logic
-\`\`\`
-
-### Modify Quality Gates
-
-Adjust what's required vs. warning in `calm-quality-gate.yml`.
-
-### Change Triggers
-
-Modify `on:` section to change when workflows run.
-```
-
-### 7. Test Workflows Locally (Optional)
-
-Install `act` to test GitHub Actions locally:
+### 6. Test Validation
 
 ```bash
-# Install act (https://github.com/nektos/act)
-# Then test validation workflow
-act pull_request -W .github/workflows/validate-calm.yml
+calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json
 ```
 
-### 8. Create CI/CD Status Badge
+Should pass! ✅
 
-Add to your README.md:
+**Test Governance by Breaking Rules**
 
-```markdown
-## CI/CD Status
-
-[![Validate CALM](https://github.com/YOUR-USERNAME/advent-of-calm-2025/actions/workflows/validate-calm.yml/badge.svg)](https://github.com/YOUR-USERNAME/advent-of-calm-2025/actions/workflows/validate-calm.yml)
+**Prompt:**
+```text
+Create architectures/broken-webapp.json by copying generated-webapp.json and changing the unique-id of "web-frontend" to "my-custom-frontend"
 ```
 
-### 9. Test Pre-Commit Hook Locally
+Validate:
+```bash
+calm validate -p patterns/web-app-pattern.json -a architectures/broken-webapp.json
+```
+
+Should fail! ❌ The pattern catches the violation.
+
+Delete the broken file:
+```bash
+rm architectures/broken-webapp.json
+```
+
+### 7. Document the Pattern
+
+**File:** `patterns/README.md`
+
+**Prompt:**
+```text
+Create patterns/README.md explaining:
+
+1. What Patterns are and how they differ from Standards
+2. The Dual Superpower: Patterns both generate AND validate
+3. How to use web-app-pattern.json for generation and validation
+4. What the pattern enforces and why
+5. Time savings example (instant scaffold vs manual creation)
+```
+
+### 8. Commit Your Work
 
 ```bash
-# Make a change to an architecture
-echo ' ' >> architectures/ecommerce-platform.json
-
-# Try to commit (should validate first)
-git add architectures/ecommerce-platform.json
-git commit -m "test: trigger pre-commit hook"
-
-# Undo test change
-git reset HEAD~1
-git checkout architectures/ecommerce-platform.json
-```
-
-### 10. Document Workflow in README
-
-Update your main README.md to include CI/CD information.
-
-### 11. Update Your README Checklist
-
-Before committing, ensure the README progress tracker marks Day 18 complete and that the CI/CD section mentions the new workflows, pre-commit hook, and badge you added.
-
-### 12. Commit CI/CD Setup
-
-```bash
-git add .github/workflows scripts/pre-commit-hook.sh docs/ci-cd-guide.md README.md
-git commit -m "Day 18: Add automated CALM validation in CI/CD"
+git add patterns/ architectures/generated-webapp.json README.md
+git commit -m "Day 18: Create web app pattern with generation and validation superpower"
 git tag day-18
 ```
 
-### 13. Push and Verify (If Using GitHub)
+## Deliverables / Validation Criteria
 
-```bash
-git push origin main --tags
-```
+Your Day 18 submission should include a commit tagged `day-18` containing:
 
-Then check GitHub Actions tab to see workflows running!
-
-## Deliverables
-
-✅ **Required:**
-- `.github/workflows/validate-calm.yml` - Basic validation workflow
-- `.github/workflows/calm-quality-gate.yml` - Comprehensive quality checks
-- `.github/workflows/generate-docs.yml` - Auto-documentation
-- `scripts/pre-commit-hook.sh` - Local validation hook
-- `docs/ci-cd-guide.md` - CI/CD documentation
-- Updated `README.md` with CI/CD status and info
-- Day 18 marked complete in README
+✅ **Required Files:**
+- `patterns/web-app-pattern.json` - Pattern defining 3-tier web app
+- `architectures/generated-webapp.json` - Architecture generated from pattern
+- `patterns/README.md` - Documentation
+- Updated `README.md` - Day 18 marked as complete
 
 ✅ **Validation:**
 ```bash
-# Verify workflows exist
-test -f .github/workflows/validate-calm.yml
-test -f .github/workflows/calm-quality-gate.yml
-test -f .github/workflows/generate-docs.yml
+# Pattern exists
+test -f patterns/web-app-pattern.json
 
-# Verify pre-commit hook
-test -x scripts/pre-commit-hook.sh
+# Generated architecture exists
+test -f architectures/generated-webapp.json
 
-# Test pre-commit hook locally
-./scripts/pre-commit-hook.sh
+# Generation works
+calm generate -p patterns/web-app-pattern.json -o /tmp/test-webapp.json
 
-# Verify documentation
-test -f docs/ci-cd-guide.md
+# Validation works
+calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json
 
 # Check tag
 git tag | grep -q "day-18"
 ```
 
 ## Resources
-- [GitHub Actions Documentation](https://docs.github.com/en/actions)
-- [Git Hooks](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks)
-- [Act - Local GitHub Actions](https://github.com/nektos/act)
+
+- [CALM Pattern Documentation](https://github.com/finos/architecture-as-code/tree/main/calm/pattern)
+- [JSON Schema prefixItems](https://json-schema.org/understanding-json-schema/reference/array#tupleValidation)
+- [JSON Schema const](https://json-schema.org/understanding-json-schema/reference/const)
 
 ## Tips
-- Start with basic validation, add complexity over time
-- Use branch protection rules to require CI passing
-- Non-blocking warnings inform without blocking
-- Auto-generating docs keeps them fresh
-- Pre-commit hooks catch issues earliest
-- Use workflow badges to show project health
+
+- Start with structure first (IDs, types), then add constraints
+- Use `const` for values that MUST be exactly as specified
+- Use `minItems`/`maxItems` to enforce exact counts
+- Test both generation AND validation - a good pattern works for both
+- Keep patterns focused - one pattern per architectural style
+
+## Standards vs Patterns Summary
+
+| Aspect | Standards | Patterns |
+|--------|-----------|----------|
+| Purpose | Define required properties | Define required structure |
+| Example | "Every node needs an owner" | "Must have api-gateway node" |
+| Values | No specific values | Specific values via const |
+| Usage | Validation only | Generation AND validation |
+| Scope | Organisation-wide | Specific architecture type |
 
 ## Next Steps
-Tomorrow (Day 19) you'll model your actual system architecture with 10+ nodes!
+
+Tomorrow (Day 19) you'll learn how to use your Standard types within Patterns for combined governance!

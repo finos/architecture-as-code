@@ -1,160 +1,172 @@
-# Day 15: Create Your First Pattern - CALM's Superpower
+# Day 15: Using Standards for Your Organisation
 
 ## Overview
-Create a CALM pattern that instantly generates architecture scaffolds AND enforces governance rules - CALM's dual superpower.
+Learn how CALM Standards extend the flexible core schema with your organisation's specific requirements, enabling consistent governance across all architectures.
 
 ## Objective and Rationale
-- **Objective:** Create a simple pattern for a web application architecture that can generate scaffolds and validate compliance
-- **Rationale:** Patterns are CALM's superpower - one pattern does two things: (1) Generate compliant architecture in seconds (productivity), (2) Validate architectures follow standards (governance). Learn how `const`, `prefixItems`, and JSON Schema constraints enable both.
+- **Objective:** Understand how Standards work as JSON Schema extensions that add organisation-specific constraints to CALM components
+- **Rationale:** The CALM Schema is intentionally unopinionated and open for extension. Standards allow organisations to add consistency and constraints without modifying the core schema. This enables company-wide governance while maintaining CALM's flexibility.
 
 ## Requirements
 
-### 1. Understand CALM's Dual Superpower
+### 1. Understand What Standards Are
 
-**One Pattern = Two Powers:**
+**The Problem Standards Solve:**
+- CALM's core schema is flexible - it doesn't mandate cost centres, owners, or compliance tags
+- Your organisation likely has requirements: "Every service must have an owner" or "All nodes need a cost centre code"
+- You don't want to modify CALM's core schema - you want to extend it
 
-**Power 1 - Productivity (Generation):**
-```bash
-calm generate -p my-pattern.json -o new-service.json
-```
-Result: Instant architecture scaffold with all best practices baked in
+**The Solution:**
+Standards are JSON Schema 2020-12 documents that compose with core CALM schemas using `$ref` and `allOf`. They add your organisation's requirements on top of CALM's foundation.
 
-**Power 2 - Governance (Validation):**
-```bash
-calm validate -p my-pattern.json -a existing-service.json
-```
-Result: Automated compliance checking against your standards
+### 2. Review the Standards Documentation
 
-**How the same pattern does both:**
-- **`const: "api-gateway"`** → Generation: creates node with ID "api-gateway" | Validation: requires ID must be "api-gateway"
-- **`minItems: 3`** → Generation: creates 3 items | Validation: requires exactly 3 items
-- **`prefixItems: [...]`** → Generation: creates these exact items | Validation: checks these items exist
-
-### 2. Create a Simple Web Application Pattern
-
-You'll create a pattern for a standard 3-tier web app:
-- Frontend (webclient)
-- API Service (service) 
-- Database (database)
-
-**File:** `patterns/web-app-pattern.json`
+Before creating Standards, familiarise yourself with the concept:
 
 **Prompt:**
 ```text
-Create a new file at patterns/web-app-pattern.json
-
-This pattern defines a standard 3-tier web application architecture.
-
-The pattern should have:
-
-1. Schema setup:
-   - $schema: "https://calm.finos.org/release/1.0/meta/calm.json"
-   - $id: "https://example.com/patterns/web-app.json"
-   - title: "Standard Web Application Pattern"
-   - description: "Three-tier web application with frontend, API, and database"
-   - type: "object"
-
-2. Exactly 3 nodes using prefixItems (with minItems: 3, maxItems: 3):
-   - Node 1: unique-id "web-frontend", node-type "webclient", name "Web Frontend", description "User-facing web application"
-   - Node 2: unique-id "api-service", node-type "service", name "API Service", description "Backend API service"  
-   - Node 3: unique-id "app-database", node-type "database", name "Application Database", description "Primary data storage"
-
-3. Exactly 2 relationships using prefixItems (with minItems: 2, maxItems: 2):
-   - Relationship 1: unique-id "frontend-to-api", connects web-frontend to api-service, protocol "HTTPS", description "Frontend calls API"
-   - Relationship 2: unique-id "api-to-database", connects api-service to app-database, protocol "JDBC", description "API stores data"
-
-Use const for all unique-id, name, description, node-type properties.
-Use const for the entire relationship-type object.
-Each node and relationship must reference the base CALM schema using $ref.
-Set required: ["nodes", "relationships"] at the top level.
-Set required: ["description"] on each relationship.
-
-Refer to the pattern-creation.md guide in .github/chatmodes/CALM.chatmode.md for detailed pattern structure examples.
+Explain the key concepts from the CALM Standards documentation:
+1. What are Standards and how do they differ from Patterns?
+2. How do Standards use JSON Schema 2020-12?
+3. What CALM components can Standards extend?
+4. How do Standards integrate with validation?
 ```
 
-### 3. Test Generation
+### 3. Understand the Standards Structure
 
-Generate an architecture from your pattern:
+Every Standard follows this base structure:
+
+```json
+{
+  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "title": "Your Standard Title",
+  "type": "object",
+  "properties": {
+    // Your additional properties here
+  },
+  "required": ["requiredProperty1", "requiredProperty2"],
+  "additionalProperties": false
+}
+```
+
+**Key Characteristics:**
+- Follow JSON Schema 2020-12 specification
+- Reference core CALM schemas using `$ref`
+- Add organisation or domain-specific properties
+- Integrate seamlessly with `calm validate`
+- Can be shared across teams, organisations, or the community
+
+### 4. Explore Common Use Cases
+
+**Organisation-Level Extensions:**
+- **Company Node Requirements**: Cost centres, ownership, compliance tags
+- **Interface Specifications**: Authentication requirements, rate limiting
+- **Relationship Policies**: Approval workflows, security zones
+- **Control Requirements**: Organisational compliance frameworks
+
+**Industry Standards:**
+- **Financial Services**: Regulatory compliance, risk classifications
+- **Healthcare**: HIPAA compliance, patient data handling
+- **Government**: Security clearances, classification levels
+
+### 5. Create a Standards Directory
+
+Set up a place for your organisation's Standards:
 
 ```bash
-calm generate -p patterns/web-app-pattern.json -o architectures/generated-webapp.json
+mkdir -p standards
 ```
 
-Open `architectures/generated-webapp.json` and observe:
-- ✅ Has exactly 3 nodes with the IDs, names, descriptions from your pattern
-- ✅ Has exactly 2 relationships connecting them
-- ✅ Ready for enhancement with interfaces and metadata
+### 6. Examine a Simple Standard
 
-### 4. Visualize the Generated Architecture
+Here's an example of a Company Node Standard that requires cost centre and owner:
 
-**Steps:**
-1. Open `architectures/generated-webapp.json` in VSCode
-2. Open preview (Ctrl+Shift+C / Cmd+Shift+C)
-3. See the 3-tier architecture visualized
-4. **Take a screenshot** of the generated architecture
+**File:** `standards/company-node-standard.json`
 
-This shows how patterns create instant, visual architectures!
-
-### 5. Enhance the Generated Architecture
-
-The generated architecture has the basic structure, but you can enhance it:
+**Content:**
+```json
+{
+  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "title": "Company Node Standard",
+  "description": "Organisational requirements for all CALM nodes",
+  "type": "object",
+  "properties": {
+    "costCenter": {
+      "type": "string",
+      "pattern": "^CC-[0-9]{4}$",
+      "description": "Company cost centre code (format: CC-XXXX)"
+    },
+    "owner": {
+      "type": "string",
+      "description": "Team or individual responsible for this component"
+    },
+    "environment": {
+      "type": "string",
+      "enum": ["development", "staging", "production"],
+      "description": "Deployment environment classification"
+    }
+  },
+  "required": ["costCenter", "owner"],
+  "additionalProperties": false
+}
+```
 
 **Prompt:**
 ```text
-Update architectures/generated-webapp.json to add:
-- Interfaces to the service and database nodes with realistic host, port values
-- Metadata at the architecture level with owner, version, created date
-- Any additional properties that make it production-ready
-
-Keep the unique-ids, names, and core descriptions as they are (from the pattern).
+Create the file standards/company-node-standard.json with the content shown above.
 ```
 
-### 6. Test Validation
+### 7. Understand Schema Composition
 
-```bash
-calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json
+Standards compose with core CALM schemas using `allOf`:
+
+```json
+{
+  "allOf": [
+    { "$ref": "https://calm.finos.org/schemas/core.json#/defs/node" },
+    { "$ref": "https://company.com/standards/company-node-standard.json" }
+  ]
+}
 ```
 
-Should pass! ✅
+This says: "This node must satisfy BOTH the core CALM node requirements AND our company's additional requirements."
 
-**Test Governance by Breaking Rules**
+### 8. Review Standards vs Patterns
+
+**Standards** define WHAT properties must exist:
+- "Every node must have a costCenter and owner"
+- "All interfaces must specify authentication type"
+- Pure schema validation - no specific values
+
+**Patterns** define WHAT specific values must be:
+- "The node unique-id must be 'api-gateway'"
+- "There must be exactly 3 nodes with these specific names"
+- Used for generation and compliance checking
+
+**Together they provide:**
+- Standards: Organisation-wide consistency
+- Patterns: Specific architectural templates
+
+### 9. Document Your Standards Strategy
+
+**File:** `standards/README.md`
 
 **Prompt:**
 ```text
-Create architectures/broken-webapp.json by copying generated-webapp.json and changing the unique-id of "web-frontend" to "my-custom-frontend"
+Create standards/README.md that documents:
+
+1. What Standards are and how they extend CALM
+2. Our company's standard requirements (cost centre, owner, environment)
+3. How to use Standards in architectures
+4. How Standards differ from Patterns
+5. Links to the CALM Standards documentation
 ```
 
-Validate:
-```bash
-calm validate -p patterns/web-app-pattern.json -a architectures/broken-webapp.json
-```
-
-Should fail! ❌ The pattern catches the violation.
-
-Delete the broken file:
-```bash
-rm architectures/broken-webapp.json
-```
-
-### 7. Document the Superpower
-
-**File:** `patterns/README.md`
-
-**Prompt:**
-```text
-Create patterns/README.md explaining:
-
-1. The Dual Superpower: Patterns both generate AND validate
-2. How to use web-app-pattern.json for generation and validation
-3. What it enforces and why
-4. Time savings example
-```
-
-### 8. Commit Your Work
+### 10. Commit Your Work
 
 ```bash
-git add patterns/web-app-pattern.json architectures/generated-webapp.json patterns/README.md docs/screenshots/day-15-pattern.png README.md
-git commit -m "Day 14: Create web app pattern - generation and validation superpower"
+git add standards/
+git commit -m "Day 15: Introduce CALM Standards for organisational requirements"
 git tag day-15
 ```
 
@@ -163,16 +175,36 @@ git tag day-15
 Your Day 15 submission should include a commit tagged `day-15` containing:
 
 ✅ **Required Files:**
-- `patterns/web-app-pattern.json` - Pattern defining 3-tier web app
-- `architectures/generated-webapp.json` - Architecture generated from pattern
-- `patterns/README.md` - Documentation
-- `docs/screenshots/day-15-pattern.png` - Visualization
-- Updated `README.md` - Day 14 marked as complete
+- `standards/company-node-standard.json` - Example company node Standard
+- `standards/README.md` - Documentation explaining Standards
+- Updated `README.md` - Day 15 marked as complete
+
+✅ **Validation:**
+```bash
+# Verify standards directory exists
+ls standards/
+
+# Verify Standard is valid JSON Schema
+cat standards/company-node-standard.json | jq .
+
+# Check tag
+git tag | grep -q "day-15"
+```
 
 ## Resources
 
-- [CALM Pattern Documentation](https://github.com/finos/architecture-as-code/tree/main/calm/pattern)
-- [JSON Schema prefixItems](https://json-schema.org/understanding-json-schema/reference/array#tupleValidation)
+- [CALM Standards Documentation](https://calm.finos.org/docs/core-concepts/standards)
+- [JSON Schema 2020-12 Specification](https://json-schema.org/draft/2020-12/json-schema-core.html)
+- [CALM Standards Creation Guide](https://github.com/finos/architecture-as-code/tree/main/calm-ai/tools/standards-creation.md)
+
+## Tips
+
+- Start simple - add complexity as your organisation's needs become clearer
+- Standards should focus on properties that genuinely need consistency
+- Document why each required property matters
+- Consider starting with just `owner` before adding more requirements
+- Standards work best when they're adopted organisation-wide
 
 ## Next Steps
-Tomorrow (Day 16) you'll reverse-engineer your e-commerce architecture into a pattern!
+
+Tomorrow (Day 16) you'll create node and relationship Standards that can be used in place of regular CALM components!

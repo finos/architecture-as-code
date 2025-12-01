@@ -1,454 +1,220 @@
-# Day 19: Model Your Actual System Architecture
+# Day 19: Using Standard Types in a Pattern
 
 ## Overview
-Apply everything you've learned to create a production-ready CALM architecture for a real system you work on.
+Combine the power of Standards and Patterns by creating a pattern that references your organisational Standards.
 
 ## Objective and Rationale
-- **Objective:** Create a comprehensive CALM architecture for an actual system with 10+ nodes, representing real production infrastructure
-- **Rationale:** Move from learning exercises to practical application. This becomes a living document for your team, supporting onboarding, planning, and governance. Create real value from your CALM knowledge.
+- **Objective:** Create a pattern that generates architectures with Standard-compliant properties built in
+- **Rationale:** Standards define WHAT properties are required. Patterns define WHAT structure is required. Together, they ensure generated architectures are both structurally correct AND organisationally compliant from the start.
 
 ## Requirements
 
-### 1. Choose Your System
+### 1. Understand the Power of Combination
 
-Select a real system to model:
-- **Option A:** Production system you currently work on
-- **Option B:** Well-known open-source system (Kubernetes, GitLab, WordPress, etc.)
-- **Option C:** Realistic fictional system based on your domain expertise
+**Standards alone:** Validate that properties exist, but don't generate them
+**Patterns alone:** Generate structure, but don't enforce organisational properties
+**Together:** Generate Standard-compliant architectures that pass all validation
 
-**Criteria:**
-- At least 10 distinct components
-- Multiple integration types (APIs, databases, message queues)
-- Real deployment considerations
-- Actual or realistic security requirements
+### 2. Review Your Standards
 
-### 2. Plan Your Architecture
+Check what your Standards require:
 
-Before creating the JSON, sketch out:
-
-**File:** `docs/architecture-planning.md`
-
-**Content:**
-```markdown
-# Architecture Planning: [System Name]
-
-## System Overview
-
-**Purpose:** [What does this system do?]  
-**Scale:** [Users, requests/day, data volume]  
-**Team:** [Who owns/maintains it?]
-
-## Components Inventory
-
-| Component | Type | Purpose | Dependencies |
-|-----------|------|---------|--------------|
-| [Name] | service | [Purpose] | [What it connects to] |
-| ... | ... | ... | ... |
-
-## Integration Points
-
-| From | To | Protocol | Purpose |
-|------|-----|----------|---------|
-| ... | ... | ... | ... |
-
-## Security Considerations
-
-- Authentication: [Method]
-- Data classification: [Public/Internal/Confidential]
-- Compliance: [Standards that apply]
-
-## Deployment Topology
-
-- Cloud provider: [AWS/Azure/GCP/On-prem]
-- Regions: [List]
-- Networks: [VPCs, subnets]
-
-## Critical Flows
-
-1. [Primary user flow]
-2. [Data processing flow]
-3. [Background job flow]
+```bash
+cat standards/service-node-standard.json | jq '.required'
+cat standards/database-node-standard.json | jq '.required'
 ```
 
-### 3. Create the Architecture File
+These are the properties that should be in every generated architecture.
 
-**File:** `architectures/production-[system-name].json`
+### 3. Create a Standard-Aware Pattern
 
-**Minimum Requirements:**
-- ✅ 10+ nodes covering all major components
-- ✅ All nodes have complete metadata (owner, team, sla-tier, etc.)
-- ✅ 15+ relationships showing all integrations
-- ✅ All connects relationships reference specific interfaces
-- ✅ Multiple interface types (APIs, databases, message queues, etc.)
-- ✅ At least 3 security or compliance controls
-- ✅ At least 2 business flows
-- ✅ Top-level metadata with comprehensive documentation
+**File:** `patterns/standard-webapp-pattern.json`
 
-**Node Types to Include:**
-- `service`: Backend services, APIs
-- `webclient`: Frontend applications
-- `database`: Data stores
-- `system`: Infrastructure (load balancers, message queues, caches)
-- `actor`: External users, systems
+This pattern will generate a web app with all Standard-required properties:
 
 **Prompt:**
 ```text
-Create a comprehensive CALM architecture file at architectures/production-[system-name].json
+Create patterns/standard-webapp-pattern.json that extends web-app-pattern.json to include Standard-compliant properties.
 
-System description: [Describe your system in detail]
+The pattern should:
 
-Include:
+1. Have the same 3-tier structure (frontend, API, database)
 
-1. Top-level metadata:
-   - title, description, version, owner
-   - team contact information
-   - adrs array (can be empty for now)
+2. For each service node (web-frontend, api-service), include:
+   - All core CALM properties (unique-id, node-type, name, description)
+   - Standard properties with placeholder values:
+     - owner: "team-name"
+     - costCenter: "CC-0000"
+     - criticality: "medium"
+     - environment: "development"
 
-2. At least 10 nodes representing:
-   - Frontend applications
-   - Backend services
-   - Databases (specify type: PostgreSQL, MongoDB, etc.)
-   - Infrastructure components (load balancer, cache, message queue)
-   - External systems/actors
+3. For the database node (app-database), include:
+   - All core CALM properties
+   - Database Standard properties:
+     - owner: "dba-team"
+     - costCenter: "CC-0000"
+     - dataClassification: "internal"
+     - encryptionAtRest: true
+     - backupSchedule: "daily"
 
-3. Each node must have:
-   - Descriptive name and description
-   - Appropriate node-type
-   - Complete metadata (owner, team, sla-tier, environment)
-   - Interfaces (host-port or url interfaces)
-   - Controls where applicable (especially for data stores and external-facing services)
+4. For relationships, include:
+   - Connection Standard properties:
+     - dataClassification: "internal"
+     - encrypted: true
 
-4. Relationships:
-   - Use connects for technical integrations
-   - Use interacts for user interactions
-   - Reference specific interfaces
-   - Specify accurate protocols
-
-5. Security controls:
-   - Architecture-level: authentication, encryption
-   - Node-level: compliance for regulated components (PCI-DSS, GDPR, HIPAA, etc.)
-
-6. Business flows:
-   - Primary user flow
-   - Critical business process
-   - Use actual relationship unique-ids
-
-Make this production-quality and realistic.
+The pattern should use const for structural values (IDs, types, names) 
+but NOT for Standard properties (so users can customize them).
 ```
 
-### 4. Add Deployment Topology
+### 4. Generate a Standard-Compliant Architecture
 
-Document where components run:
+```bash
+calm generate -p patterns/standard-webapp-pattern.json -o architectures/standard-webapp.json
+```
+
+### 5. Verify Standard Properties
+
+Check that generated architecture has Standard properties:
+
+```bash
+cat architectures/standard-webapp.json | jq '.nodes[0] | {owner, costCenter, criticality}'
+cat architectures/standard-webapp.json | jq '.nodes[2] | {dataClassification, encryptionAtRest}'
+```
+
+You should see the Standard properties with their placeholder values.
+
+### 6. Customize the Generated Architecture
+
+The generated architecture has placeholder values. Update them with real values:
 
 **Prompt:**
 ```text
-Add deployment topology to architectures/production-[system-name].json
+Update architectures/standard-webapp.json to replace placeholder values with realistic ones:
 
-Create infrastructure nodes:
-- Region/datacenter nodes (node-type: system)
-- Network zones (DMZ, private, data tier)
-- Kubernetes clusters or VM groups
+For web-frontend:
+- owner: "frontend-team"
+- costCenter: "CC-1234"
+- criticality: "high"
+- environment: "production"
 
-Add deployed-in relationships:
-- Each application service deployed-in cluster/zone
-- Each database deployed-in data tier
-- Each frontend deployed-in DMZ
+For api-service:
+- owner: "api-team"
+- costCenter: "CC-1235"
+- criticality: "critical"
+- environment: "production"
 
-This shows the physical deployment structure.
+For app-database:
+- owner: "dba-team"
+- costCenter: "CC-1236"
+- dataClassification: "confidential"
 ```
 
-### 5. Add Comprehensive Metadata
+### 7. Validate Against Both Pattern and Standards
 
-Ensure every node has rich metadata:
+The architecture should now pass pattern validation:
 
-**Metadata Fields to Include:**
-- `team-owner`: Team name
-- `tech-owner`: Person email
-- `sla-tier`: bronze/silver/gold/platinum
-- `cost-center`: For chargeback
-- `repository`: Git repo URL
-- `documentation`: Wiki/docs URL
-- `monitoring`: Dashboard URL
-- `incident-channel`: Slack/Teams channel
+```bash
+calm validate -p patterns/standard-webapp-pattern.json -a architectures/standard-webapp.json
+```
+
+And schema validation:
+
+```bash
+calm validate -a architectures/standard-webapp.json
+```
+
+Both should pass! ✅
+
+### 8. Compare Generation Approaches
+
+Compare the two patterns:
+
+| Aspect | web-app-pattern | standard-webapp-pattern |
+|--------|-----------------|-------------------------|
+| Generates structure | ✅ | ✅ |
+| Generates Standard props | ❌ | ✅ |
+| Compliance-ready | Manual work | Immediate |
+| Time to production | Longer | Shorter |
+
+### 9. Create a Template for Common Customizations
+
+**File:** `patterns/customization-guide.md`
 
 **Prompt:**
 ```text
-Enhance all nodes in architectures/production-[system-name].json with comprehensive metadata:
+Create patterns/customization-guide.md that documents:
 
-For each node, add:
-- team-owner: [appropriate team]
-- tech-owner: [email or username]
-- sla-tier: [based on criticality]
-- repository: [git repo URL]
-- monitoring-dashboard: [URL to metrics]
+1. How to customize generated architectures:
+   - Which values to update (owner, costCenter, etc.)
+   - Which values to keep (unique-id, node-type)
 
-Use realistic values based on the component's role.
+2. Common customization scenarios:
+   - Development environment setup
+   - Production environment setup
+   - Different team ownership
+
+3. Validation checklist after customization
 ```
 
-### 6. Document Integration Patterns
-
-**File:** `docs/integration-catalog-[system-name].md`
-
-**Content:**
-```markdown
-# Integration Catalog: [System Name]
-
-## REST APIs
-
-| Service | Endpoint | Auth | Rate Limit | Documentation |
-|---------|----------|------|------------|---------------|
-| ... | ... | ... | ... | ... |
-
-## Databases
-
-| Database | Type | Purpose | Backup Strategy | Encryption |
-|----------|------|---------|-----------------|------------|
-| ... | ... | ... | ... | ... |
-
-## Message Queues
-
-| Queue | Type | Purpose | Retention | DLQ |
-|-------|------|---------|-----------|-----|
-| ... | ... | ... | ... | ... |
-
-## External Integrations
-
-| System | Protocol | Purpose | SLA | Contact |
-|--------|----------|---------|-----|---------|
-| ... | ... | ... | ... | ... |
-```
-
-### 7. Create System Runbook
-
-**File:** `docs/runbook-[system-name].md`
-
-**Content:**
-```markdown
-# Runbook: [System Name]
-
-## Architecture
-
-See: `architectures/production-[system-name].json`
-
-Visualize: [Link to generated docs]
-
-## Critical Components
-
-### [Component 1]
-- **Purpose:** [What it does]
-- **Location:** [Where deployed]
-- **Monitoring:** [Dashboard URL]
-- **Logs:** [Log aggregation URL]
-- **Alerts:** [Alert channel]
-- **Restart:** [How to restart]
-
-## Common Procedures
-
-### Deploy New Version
-
-\`\`\`bash
-# Steps
-\`\`\`
-
-### Scale Service
-
-\`\`\`bash
-# Steps
-\`\`\`
-
-### Debug Connection Issues
-
-1. Check architecture: [Link to relationship in CALM]
-2. Verify network connectivity
-3. Check firewall rules
-
-## Incident Response
-
-### Database Down
-
-**Impact:** [Which services affected - reference CALM relationships]
-
-**Steps:**
-1. [Response steps]
-
-## Architecture Flows
-
-### Critical Path: [Flow Name]
-
-See flow documentation in CALM architecture.
-
-Components involved:
-- [List from flow transitions]
-
-## Dependencies
-
-External systems this architecture depends on:
-- [List from architecture actors/external systems]
-```
-
-### 8. Validate Everything
+### 10. Commit Your Work
 
 ```bash
-# Validate architecture
-calm validate -a architectures/production-[system-name].json
-
-# If you created a pattern
-calm validate -p patterns/[pattern-name].json -a architectures/production-[system-name].json
-```
-
-### 9. Generate Comprehensive Documentation
-
-```bash
-# Full website
-calm docify --architecture architectures/production-[system-name].json --output docs/generated/production-[system-name]
-
-# Custom templates
-calm docify --architecture architectures/production-[system-name].json --template-dir templates/comprehensive-bundle --output docs/generated/production-[system-name]-bundle
-```
-
-### 10. Create Architecture Visualization
-
-**Steps:**
-1. Open `architectures/production-[system-name].json`
-2. Open preview (Ctrl+Shift+C)
-3. **Take a screenshot** of the full architecture
-4. Save to `docs/screenshots/production-architecture.png`
-
-### 11. Share with Your Team
-
-Create a presentation README:
-
-**File:** `docs/ARCHITECTURE-OVERVIEW-[system-name].md`
-
-**Content:**
-```markdown
-# [System Name] Architecture
-
-## Quick Links
-
-- **Architecture File:** [`architectures/production-[system-name].json`](../architectures/production-[system-name].json)
-- **Generated Docs:** [View Documentation](generated/production-[system-name]/index.html)
-- **Runbook:** [Operational Guide](runbook-[system-name].md)
-
-## Architecture Diagram
-
-![Architecture Diagram](screenshots/production-architecture.png)
-
-## System Metrics
-
-- **Components:** [Count] nodes
-- **Integrations:** [Count] relationships
-- **Business Flows:** [Count] documented flows
-- **Security Controls:** [Count] controls
-
-## Key Components
-
-[Brief description of major components from your architecture]
-
-## Critical Paths
-
-[List of important flows from your architecture]
-
-## Team Ownership
-
-[Reference metadata from your architecture]
-
-## For Developers
-
-### Integration Guide
-
-See: [Generated integration guide](generated/production-[system-name]-bundle/integration-guide.md)
-
-### Adding New Components
-
-1. Add node to `architectures/production-[system-name].json`
-2. Add relationships
-3. Update relevant flows
-4. Regenerate docs: `./scripts/generate-docs.sh`
-5. Submit PR (CI will validate)
-
-## For Operations
-
-### Monitoring
-
-[Dashboard links from node metadata]
-
-### Runbook
-
-See: [Operational runbook](runbook-[system-name].md)
-
-## For Security
-
-### Controls
-
-See: [Security assessment](generated/production-[system-name]-bundle/security-assessment.md)
-
-### Compliance
-
-[List compliance frameworks from controls]
-```
-
-### 12. Update Your README
-
-Capture the highlights from Day 19 in your README before committing: mark the checklist, note the new production architecture file, and link to planning docs, the runbook, and generated documentation so stakeholders know where to look.
-
-### 13. Commit Your Production Architecture
-
-```bash
-git add architectures/production-*.json docs/ README.md
-git commit -m "Day 19: Model production architecture for [system-name]"
+git add patterns/standard-webapp-pattern.json architectures/standard-webapp.json patterns/customization-guide.md README.md
+git commit -m "Day 19: Create Standard-aware pattern for compliant architecture generation"
 git tag day-19
 ```
 
-## Deliverables
+## Deliverables / Validation Criteria
 
-✅ **Required:**
-- `architectures/production-[system-name].json` - 10+ node production architecture
-- `docs/architecture-planning.md` - Planning document
-- `docs/integration-catalog-[system-name].md` - Integration catalog
-- `docs/runbook-[system-name].md` - Operational runbook
-- `docs/ARCHITECTURE-OVERVIEW-[system-name].md` - Team-facing overview
-- `docs/generated/production-[system-name]/` - Generated documentation
-- `docs/screenshots/production-architecture.png` - Architecture visualization
-- Updated `README.md` - Day 19 marked complete
+Your Day 19 submission should include a commit tagged `day-19` containing:
+
+✅ **Required Files:**
+- `patterns/standard-webapp-pattern.json` - Pattern with Standard properties
+- `architectures/standard-webapp.json` - Generated and customized architecture
+- `patterns/customization-guide.md` - Customization documentation
+- Updated `README.md` - Day 19 marked as complete
 
 ✅ **Validation:**
 ```bash
-# Validate architecture
-calm validate -a architectures/production-*.json
+# Pattern exists
+test -f patterns/standard-webapp-pattern.json
 
-# Check minimum node count
-grep -c '"unique-id"' architectures/production-*.json | awk '$1 >= 10'
+# Generated architecture has Standard properties
+grep -q "costCenter" architectures/standard-webapp.json
+grep -q "criticality" architectures/standard-webapp.json
+grep -q "dataClassification" architectures/standard-webapp.json
 
-# Check for controls
-grep -q '"controls"' architectures/production-*.json
-
-# Check for flows
-grep -q '"flows"' architectures/production-*.json
-
-# Verify documentation exists
-test -f docs/runbook-*.md
-test -f docs/ARCHITECTURE-OVERVIEW-*.md
-
-# Check generated docs
-test -f docs/generated/production-*/index.html
+# Validates
+calm validate -a architectures/standard-webapp.json
 
 # Check tag
 git tag | grep -q "day-19"
 ```
 
 ## Resources
-- [CALM Best Practices](https://calm.finos.org/docs/best-practices)
-- [Architecture Documentation Guide](https://c4model.com/)
+
+- [JSON Schema allOf composition](https://json-schema.org/understanding-json-schema/reference/combining#allOf)
+- [CALM Standards Documentation](https://calm.finos.org/docs/core-concepts/standards)
+- Your Standards in `standards/` directory
 
 ## Tips
-- Interview team members to get accurate component details
-- Use actual URLs for repositories, dashboards, docs
-- Capture tribal knowledge in metadata
-- Link to existing ADRs if you have them
-- This architecture will evolve - commit to updating it
-- Share generated docs with non-technical stakeholders
-- Use this as onboarding material for new team members
+
+- Use `const` for structural values that must match exactly
+- Leave Standard properties without `const` so they can be customized
+- Placeholder values should be obviously placeholder (e.g., "CC-0000")
+- Document what needs customization vs what should stay fixed
+- Consider creating patterns for different environments (dev, staging, prod)
+
+## The Combined Workflow
+
+1. **Create Standards** - Define organisational requirements
+2. **Create Standard-Aware Patterns** - Embed Standards in generation
+3. **Generate Architectures** - Instant compliant scaffolds
+4. **Customize** - Fill in environment-specific values
+5. **Validate** - Ensure pattern and schema compliance
+
+This workflow ensures every new architecture starts compliant and stays compliant.
 
 ## Next Steps
-Tomorrow (Day 20) you'll add deployment topology to show where components run!
+
+Tomorrow (Day 20) you'll learn to reverse-engineer patterns from existing architectures!

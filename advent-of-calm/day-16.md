@@ -1,135 +1,281 @@
-# Day 16: Reverse-Engineer a Pattern from Your E-Commerce Architecture
+# Day 16: Creating Node and Relationship Standards
 
 ## Overview
-Transform your existing e-commerce architecture into a reusable pattern that others can use to generate similar systems.
+Create custom node and relationship Standards that extend core CALM components with your organisation's requirements.
 
 ## Objective and Rationale
-- **Objective:** Create a pattern based on your e-commerce architecture from Day 7, then test it by generating and validating new architectures
-- **Rationale:** Patterns don't always start from scratch - often you have a great architecture and want to make it reusable. Learn to reverse-engineer architectures into patterns, enabling teams to share proven designs and enforce consistency.
+- **Objective:** Build reusable Standards for nodes and relationships that enforce organisational requirements
+- **Rationale:** Yesterday you learned what Standards are. Today you'll create practical Standards that can be used across all your architectures, ensuring every service has proper ownership, every relationship has security classification, and your organisation's governance requirements are consistently applied.
 
 ## Requirements
 
-### 1. Understand Pattern Extraction
+### 1. Review Your Organisation's Requirements
 
-Your Day 7 architecture has actual values - to make it a pattern, wrap structural values in `const` and use `prefixItems`.
+Before creating Standards, identify what your organisation needs:
 
-**What to constrain:**
-- ✅ Structure (IDs, node types, relationship connections)
-- ✅ Security defaults (HTTPS protocols, required security metadata)
-- ❌ Deployment details (specific hosts, ports) - let users customize
+**Common Node Requirements:**
+- Owner/team responsible
+- Cost centre for billing
+- Environment classification
+- Criticality level
+- Compliance tags
 
-### 2. Review Your E-Commerce Architecture
+**Common Relationship Requirements:**
+- Security classification
+- Data sensitivity level
+- Approval status
+- Monitoring requirements
 
-Open `architectures/ecommerce-platform.json` from Day 7.
+### 2. Create an Enhanced Node Standard
 
-**Prompt:**
-```text
-Analyze architectures/ecommerce-platform.json and tell me:
+**File:** `standards/service-node-standard.json`
 
-1. How many nodes does it have and what are their unique-ids?
-2. How many relationships and what types?
-3. What structure should I preserve in a pattern (IDs, types, connections)?
-4. What should I leave flexible for customization (hosts, ports, specific metadata)?
-```
-
-### 3. Create the E-Commerce Pattern
-
-**File:** `patterns/ecommerce-platform-pattern.json`
+This Standard extends the base CALM node with service-specific requirements:
 
 **Prompt:**
 ```text
-Create patterns/ecommerce-platform-pattern.json based on architectures/ecommerce-platform.json
+Create standards/service-node-standard.json with the following structure:
 
-Follow the same pattern structure as web-app-pattern.json but with all the nodes and relationships from my e-commerce architecture.
-
-Preserve as const:
-- All unique-ids
-- All names  
-- All node-types
-- All descriptions
-- All relationship-type structures
-- All protocols
-
-Set minItems and maxItems to match the exact counts.
-Use prefixItems to define the exact structure.
+{
+  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "title": "Service Node Standard",
+  "description": "Organisational requirements for service nodes",
+  "type": "object",
+  "properties": {
+    "owner": {
+      "type": "string",
+      "description": "Team responsible for this service"
+    },
+    "costCenter": {
+      "type": "string",
+      "pattern": "^CC-[0-9]{4}$",
+      "description": "Cost centre code (format: CC-XXXX)"
+    },
+    "criticality": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "Business criticality level"
+    },
+    "environment": {
+      "type": "string",
+      "enum": ["development", "staging", "production"],
+      "description": "Deployment environment"
+    },
+    "repository": {
+      "type": "string",
+      "format": "uri",
+      "description": "Source code repository URL"
+    },
+    "oncallTeam": {
+      "type": "string",
+      "description": "On-call team or Slack channel"
+    }
+  },
+  "required": ["owner", "costCenter", "criticality"],
+  "additionalProperties": true
+}
 ```
 
-### 4. Test Generation
+### 3. Create a Relationship Standard
 
-Generate a new architecture from your pattern:
+**File:** `standards/connection-standard.json`
 
-```bash
-calm generate -p patterns/ecommerce-platform-pattern.json -o architectures/ecommerce-variation.json
-```
-
-### 5. Visualize Both Versions
-
-Compare the original and generated:
-
-**Steps:**
-1. Open `architectures/ecommerce-platform.json` and view preview
-2. **Take a screenshot**
-3. Open `architectures/ecommerce-variation.json` and view preview
-4. **Take a screenshot**
-5. Compare - structure should be identical, some values will be placeholders
-
-### 6. Validate Both Against the Pattern
-
-```bash
-calm validate -p patterns/ecommerce-platform-pattern.json -a architectures/ecommerce-platform.json
-calm validate -p patterns/ecommerce-platform-pattern.json -a architectures/ecommerce-variation.json
-```
-
-Both should pass! ✅
-
-### 7. Update Your Pattern to Require Controls
-
-Your e-commerce architecture now has controls from Day 8. Update the pattern to enforce them.
+This Standard ensures all service connections have proper security and compliance information:
 
 **Prompt:**
 ```text
-Update patterns/ecommerce-platform-pattern.json to require the security and performance controls at the architecture level.
+Create standards/connection-standard.json with the following structure:
 
-Add to the pattern's properties section:
-- controls with const value matching the security and performance controls from your architecture
-- Add controls to the required array at top level
+{
+  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "title": "Connection Standard",
+  "description": "Organisational requirements for service connections",
+  "type": "object",
+  "properties": {
+    "dataClassification": {
+      "type": "string",
+      "enum": ["public", "internal", "confidential", "restricted"],
+      "description": "Classification of data flowing through this connection"
+    },
+    "encrypted": {
+      "type": "boolean",
+      "description": "Whether the connection is encrypted"
+    },
+    "authRequired": {
+      "type": "boolean",
+      "description": "Whether authentication is required"
+    },
+    "approvedBy": {
+      "type": "string",
+      "description": "Security team member who approved this connection"
+    },
+    "approvalDate": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the connection was approved"
+    }
+  },
+  "required": ["dataClassification", "encrypted"],
+  "additionalProperties": true
+}
 ```
 
-### 8. Test Pattern Validation with Controls
+### 4. Create a Database Node Standard
 
-```bash
-calm validate -p patterns/ecommerce-platform-pattern.json -a architectures/ecommerce-platform.json
+**File:** `standards/database-node-standard.json`
+
+Databases have additional requirements around data protection:
+
+**Prompt:**
+```text
+Create standards/database-node-standard.json with:
+
+{
+  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "title": "Database Node Standard",
+  "description": "Organisational requirements for database nodes",
+  "type": "object",
+  "properties": {
+    "owner": {
+      "type": "string",
+      "description": "Team responsible for this database"
+    },
+    "costCenter": {
+      "type": "string",
+      "pattern": "^CC-[0-9]{4}$",
+      "description": "Cost centre code"
+    },
+    "dataClassification": {
+      "type": "string",
+      "enum": ["public", "internal", "confidential", "restricted"],
+      "description": "Highest classification of data stored"
+    },
+    "backupSchedule": {
+      "type": "string",
+      "description": "Backup frequency (e.g., 'daily', 'hourly')"
+    },
+    "retentionPeriod": {
+      "type": "string",
+      "description": "Data retention period (e.g., '7 years')"
+    },
+    "encryptionAtRest": {
+      "type": "boolean",
+      "description": "Whether data is encrypted at rest"
+    },
+    "dbaContact": {
+      "type": "string",
+      "description": "DBA team contact"
+    }
+  },
+  "required": ["owner", "costCenter", "dataClassification", "encryptionAtRest"],
+  "additionalProperties": true
+}
 ```
 
-Should pass! ✅
+### 5. Understand How Standards Compose with CALM
+
+Standards work with core CALM schemas using `allOf`:
+
+```json
+{
+  "allOf": [
+    { "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node" },
+    { "$ref": "./standards/service-node-standard.json" }
+  ]
+}
+```
+
+This composition means a node must satisfy BOTH:
+1. The core CALM node requirements (unique-id, node-type, name, description)
+2. Your organisation's additional requirements (owner, costCenter, criticality)
+
+### 6. Create a Standards Usage Example
+
+**File:** `standards/examples/standard-service-node.json`
+
+Show how a node would look when following your Standard:
+
+**Prompt:**
+```text
+Create standards/examples/standard-service-node.json showing a node that follows the service-node-standard:
+
+{
+  "unique-id": "order-service",
+  "node-type": "service",
+  "name": "Order Service",
+  "description": "Handles order processing and management",
+  "owner": "orders-team",
+  "costCenter": "CC-4521",
+  "criticality": "high",
+  "environment": "production",
+  "repository": "https://github.com/company/order-service",
+  "oncallTeam": "#orders-oncall"
+}
+```
+
+### 7. Create a Standards Usage Example for Relationships
+
+**File:** `standards/examples/standard-connection.json`
+
+**Prompt:**
+```text
+Create standards/examples/standard-connection.json showing a relationship that follows the connection-standard:
+
+{
+  "unique-id": "order-to-payment",
+  "relationship-type": {
+    "connects": {
+      "source": { "node": "order-service" },
+      "destination": { "node": "payment-service" }
+    }
+  },
+  "description": "Order service calls payment service for payment processing",
+  "dataClassification": "confidential",
+  "encrypted": true,
+  "authRequired": true,
+  "approvedBy": "security-team",
+  "approvalDate": "2025-01-15"
+}
+```
+
+### 8. Update Standards Documentation
+
+**Prompt:**
+```text
+Update standards/README.md to document:
+
+1. The three Standards we've created (service-node, database-node, connection)
+2. What each Standard requires and why
+3. Example usage for each Standard
+4. How Standards compose with core CALM using allOf
+5. Benefits of using these Standards across all architectures
+```
 
 ### 9. Commit Your Work
 
 ```bash
-git add patterns/ecommerce-platform-pattern.json architectures/ecommerce-variation.json patterns/README.md docs/screenshots README.md
-git commit -m "Day 16: Reverse-engineer e-commerce architecture into reusable pattern"
+git add standards/
+git commit -m "Day 16: Create node and relationship Standards for organisational governance"
 git tag day-16
 ```
 
-## Deliverables
+## Deliverables / Validation Criteria
+
+Your Day 16 submission should include a commit tagged `day-16` containing:
 
 ✅ **Required Files:**
-- `patterns/ecommerce-platform-pattern.json` - Pattern with controls enforcement
-- `architectures/ecommerce-variation.json` - Generated from pattern
-- Screenshots showing both architectures
-- Updated `README.md` - Day 16 marked complete
+- `standards/service-node-standard.json` - Service node requirements
+- `standards/database-node-standard.json` - Database node requirements
+- `standards/connection-standard.json` - Relationship requirements
+- `standards/examples/standard-service-node.json` - Example compliant node
+- `standards/examples/standard-connection.json` - Example compliant relationship
+- Updated `standards/README.md` - Documentation
+- Updated `README.md` - Day 16 marked as complete
 
 ✅ **Validation:**
 ```bash
-# Verify pattern exists
-test -f patterns/ecommerce-platform-pattern.json
-
-# Verify generated architecture
-test -f architectures/ecommerce-variation.json
-
-# Validate both architectures against pattern
-calm validate -p patterns/ecommerce-platform-pattern.json -a architectures/ecommerce-platform.json
-calm validate -p patterns/ecommerce-platform-pattern.json -a architectures/ecommerce-variation.json
+# Verify all Standards are valid JSON
+for f in standards/*.json; do cat "$f" | jq . > /dev/null && echo "✅ $f"; done
 
 # Check tag
 git tag | grep -q "day-16"
@@ -137,15 +283,19 @@ git tag | grep -q "day-16"
 
 ## Resources
 
-- [CALM Pattern Documentation](https://github.com/finos/architecture-as-code/tree/main/calm/pattern)
-- [JSON Schema prefixItems](https://json-schema.org/understanding-json-schema/reference/array#tupleValidation)
+- [JSON Schema 2020-12 Reference](https://json-schema.org/draft/2020-12/json-schema-core.html)
+- [JSON Schema Formats](https://json-schema.org/understanding-json-schema/reference/string.html#format)
+- [CALM Core Schema](https://github.com/finos/architecture-as-code/tree/main/calm)
 
 ## Tips
 
-- Start with structure (IDs, types) as const, leave details flexible
-- Patterns that enforce controls create governance-compliant architectures by default
-- Test both generation and validation to ensure your pattern works both ways
+- Start with required fields that your organisation genuinely enforces
+- Use `enum` for fields with fixed valid values
+- Use `pattern` for fields with specific formats (like cost centre codes)
+- Set `additionalProperties: true` to allow extra fields beyond your requirements
+- Document each property with clear descriptions
+- Consider creating Standards for different node types (service vs database)
 
 ## Next Steps
 
-Tomorrow (Day 17) you'll use advanced AI-powered techniques to refactor and optimize your architecture!
+Tomorrow (Day 17) you'll apply these Standards to the e-commerce architecture you built earlier!

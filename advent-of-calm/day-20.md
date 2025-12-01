@@ -1,393 +1,238 @@
-# Day 20: Add Deployment Topology
+# Day 20: Reverse-Engineering a Pattern from an Existing Architecture
 
 ## Overview
-Model where your components physically run using deployed-in relationships and infrastructure nodes.
+Transform your e-commerce architecture into a reusable pattern that others can use to generate similar systems.
 
 ## Objective and Rationale
-- **Objective:** Extend your production architecture with deployment topology showing regions, networks, clusters, and physical infrastructure
-- **Rationale:** Deployment topology is critical for disaster recovery, capacity planning, security zoning, and operations. Understanding where components run enables multi-region strategies, network isolation policies, and incident response.
+- **Objective:** Create a pattern based on your e-commerce architecture, then test it by generating and validating new architectures
+- **Rationale:** Patterns don't always start from scratch - often you have a proven architecture and want to make it reusable. Learn to reverse-engineer architectures into patterns, enabling teams to share successful designs and enforce consistency.
 
 ## Requirements
 
-### 1. Understand Deployment Topology Modeling
+### 1. Understand Pattern Extraction
 
-Use CALM to model:
-- **Infrastructure nodes:** Regions, availability zones, networks, clusters
-- **deployed-in relationships:** Which components run where
-- **Hierarchical deployment:** Cluster in region, service in cluster, etc.
+Your e-commerce architecture has actual values. To make it a pattern:
+- Wrap structural values in `const` (IDs, types, names)
+- Keep flexibility where customization is needed (hosts, ports, specific metadata)
+- Use `prefixItems` to define the exact structure
 
-**Node types for infrastructure:**
-- `system`: Generic infrastructure (regions, networks, clusters)
-- Specific metadata to indicate infrastructure type
+**What to constrain:**
+- ✅ Structure (IDs, node types, relationship connections)
+- ✅ Security defaults (HTTPS protocols, encryption requirements)
+- ❌ Deployment details (specific hosts, ports) - let users customize
 
-### 2. Plan Your Deployment Layers
+### 2. Review Your E-Commerce Architecture
 
-**File:** `docs/deployment-planning.md`
-
-**Content:**
-```markdown
-# Deployment Topology Planning
-
-## System: [Your Production System]
-
-### Cloud Provider / Infrastructure
-
-- **Provider:** [AWS/Azure/GCP/On-Prem/Hybrid]
-- **Account/Subscription:** [Details]
-
-### Geographic Distribution
-
-| Region | Location | Purpose | Components |
-|--------|----------|---------|------------|
-| [Name] | [Location] | [Primary/DR/Edge] | [List] |
-
-### Network Architecture
-
-| Network Zone | Purpose | CIDR/Range | Access Control |
-|--------------|---------|------------|----------------|
-| DMZ | External-facing | 10.0.1.0/24 | Public internet |
-| Application | Service layer | 10.0.2.0/24 | DMZ only |
-| Data | Databases | 10.0.3.0/24 | Application only |
-
-### Compute Clusters
-
-| Cluster | Type | Region | Node Count | Purpose |
-|---------|------|--------|------------|---------|
-| prod-k8s-east | Kubernetes | us-east-1 | 6 | Main services |
-| prod-k8s-west | Kubernetes | us-west-2 | 6 | DR replica |
-```
-
-### 3. Add Region and Zone Nodes
+Open `architectures/ecommerce-platform.json` from Day 7.
 
 **Prompt:**
 ```text
-Add infrastructure nodes to architectures/production-[system-name].json:
+Analyze architectures/ecommerce-platform.json and identify:
 
-1. Add region nodes (node-type: system):
-   - unique-id: "region-us-east-1", name: "AWS US East 1", description: "Primary region"
-   - unique-id: "region-us-west-2", name: "AWS US West 2", description: "Disaster recovery region"
-
-2. Add availability zone nodes within regions (optional for detail):
-   - unique-id: "az-us-east-1a", description: "Availability Zone 1A"
-   - etc.
-
-Use metadata to indicate:
-   - infrastructure-type: "region" or "availability-zone"
-   - cloud-provider: "aws"
-   - location: "Virginia, USA"
+1. How many nodes does it have and what are their unique-ids?
+2. How many relationships and what types?
+3. What structure should I preserve in a pattern (IDs, types, connections)?
+4. What should I leave flexible for customization (hosts, ports, specific metadata)?
 ```
 
-### 4. Add Network Zone Nodes
+### 3. Create the E-Commerce Pattern
+
+**File:** `patterns/ecommerce-platform-pattern.json`
 
 **Prompt:**
 ```text
-Add network zone nodes to architectures/production-[system-name].json:
+Create patterns/ecommerce-platform-pattern.json based on architectures/ecommerce-platform.json
 
-For each region, add 3 network zones (node-type: system):
-1. DMZ/Public zone:
-   - unique-id: "dmz-[region]"
-   - description: "Public-facing network zone"
-   - metadata: infrastructure-type: "network-zone", security-level: "public"
+Follow the same pattern structure as web-app-pattern.json but with all the nodes and relationships from my e-commerce architecture.
 
-2. Application zone:
-   - unique-id: "app-zone-[region]"
-   - description: "Application service network"
-   - metadata: infrastructure-type: "network-zone", security-level: "internal"
+Preserve as const:
+- All unique-ids
+- All node-types
+- All names
+- All relationship-type structures
+- All protocols (HTTPS, JDBC, etc.)
 
-3. Data zone:
-   - unique-id: "data-zone-[region]"
-   - description: "Database network (highest security)"
-   - metadata: infrastructure-type: "network-zone", security-level: "restricted"
+Include Standard properties with placeholder values:
+- owner, costCenter, criticality for services
+- dataClassification, encryptionAtRest for databases
+- dataClassification, encrypted for relationships
 
-Add composed-of relationships from regions to their zones.
+Set minItems and maxItems to match the exact counts.
+Use prefixItems to define the exact structure.
 ```
 
-### 5. Add Compute Cluster Nodes
+### 4. Test Generation
 
-**Prompt:**
-```text
-Add Kubernetes cluster nodes (or VM groups) to architectures/production-[system-name].json:
-
-For each region, add cluster nodes (node-type: system):
-- unique-id: "k8s-cluster-[region]"
-- name: "Production Kubernetes Cluster"
-- description: "Kubernetes cluster for service workloads"
-- metadata:
-  - infrastructure-type: "kubernetes-cluster"
-  - cluster-version: "1.28"
-  - node-count: 6
-  - instance-type: "m5.xlarge"
-
-Add deployed-in relationships: cluster deployed-in region
-```
-
-### 6. Map Services to Deployment Infrastructure
-
-**Prompt:**
-```text
-Add deployed-in relationships for all application services in architectures/production-[system-name].json:
-
-For each service node:
-1. Add deployed-in relationship to appropriate cluster
-2. Add deployed-in relationship to appropriate network zone (DMZ/app/data)
-
-Example:
-- Frontend services → k8s-cluster-us-east-1 AND dmz-us-east-1
-- Backend services → k8s-cluster-us-east-1 AND app-zone-us-east-1
-- Databases → data-zone-us-east-1 (not in k8s, on dedicated VMs)
-
-This shows both compute and network placement.
-```
-
-### 7. Add Multi-Region Deployment
-
-**Prompt:**
-```text
-For services that have DR replicas in architectures/production-[system-name].json:
-
-1. Create duplicate service nodes with suffix "-dr":
-   - Same configuration
-   - Different deployed-in (west region instead of east)
-   - Metadata: deployment-role: "disaster-recovery"
-
-2. Add connects relationships between primary and DR:
-   - Database replication
-   - Service synchronization
-
-This models active-passive or active-active deployment.
-```
-
-### 8. Create Deployment Topology Diagram
-
-**File:** `docs/deployment-topology.md`
-
-**Content:**
-```markdown
-# Deployment Topology
-
-## Overview
-
-This document describes the physical deployment of [System Name].
-
-## Architecture Reference
-
-See: `architectures/production-[system-name].json`
-
-## Region Distribution
-
-### US East 1 (Primary)
-
-\`\`\`
-Region: us-east-1
-├── Network: DMZ (10.0.1.0/24)
-│   ├── Load Balancer
-│   └── Frontend Services
-├── Network: Application (10.0.2.0/24)
-│   └── Kubernetes Cluster
-│       ├── API Gateway
-│       ├── Order Service
-│       ├── Payment Service
-│       └── User Service
-└── Network: Data (10.0.3.0/24)
-    ├── PostgreSQL Primary
-    └── Redis Cache
-\`\`\`
-
-### US West 2 (DR)
-
-\`\`\`
-Region: us-west-2
-└── Network: Data (10.1.3.0/24)
-    └── PostgreSQL Replica (read-only)
-\`\`\`
-
-## Network Flow
-
-1. **User Request:**
-   - Enters DMZ (public internet)
-   - Hits load balancer in DMZ
-   - Routes to frontend in DMZ
-
-2. **API Request:**
-   - Frontend calls API gateway in app zone
-   - Cross-zone call (DMZ → App)
-   - Firewall rules permit this traffic
-
-3. **Data Access:**
-   - Services in app zone access data zone
-   - Cross-zone call (App → Data)
-   - Private network, no public routing
-
-4. **Replication:**
-   - Primary DB in us-east-1 data zone
-   - Replicates to DR DB in us-west-2 data zone
-   - Cross-region, encrypted tunnel
-
-## Security Boundaries
-
-| Zone | Ingress | Egress |
-|------|---------|--------|
-| DMZ | Internet | App zone only |
-| App | DMZ only | Data zone, external APIs |
-| Data | App only | Cross-region replication |
-
-## Disaster Recovery
-
-### RTO/RPO
-
-- **RTO:** 4 hours (time to failover)
-- **RPO:** 5 minutes (data loss tolerance)
-
-### Failover Procedure
-
-1. Promote DR database to primary
-2. Update DNS to point to us-west-2 load balancer
-3. Scale up us-west-2 application services
-
-### CALM Reference
-
-See deployed-in relationships to understand which components need failover.
-
-## Capacity
-
-| Cluster | Current | Max | Utilization |
-|---------|---------|-----|-------------|
-| k8s-us-east-1 | 6 nodes | 20 nodes | 45% |
-| k8s-us-west-2 | 2 nodes | 20 nodes | 15% (standby) |
-
-## Cloud Resources
-
-[Reference metadata from infrastructure nodes in CALM]
-```
-
-### 9. Create Infrastructure Cost Model
-
-**File:** `docs/infrastructure-costs.md`
-
-**Content:**
-```markdown
-# Infrastructure Cost Model
-
-Based on deployment topology in `architectures/production-[system-name].json`
-
-## Compute Costs
-
-| Resource | Quantity | Unit Cost | Monthly Cost |
-|----------|----------|-----------|--------------|
-| K8s nodes (m5.xlarge) | 6 | $140 | $840 |
-| DR nodes (m5.xlarge) | 2 | $140 | $280 |
-| Database VMs (r5.2xlarge) | 2 | $380 | $760 |
-
-## Network Costs
-
-| Resource | Quantity | Unit Cost | Monthly Cost |
-|----------|----------|-----------|--------------|
-| Load Balancer | 2 | $20 | $40 |
-| Data Transfer (GB) | 5000 | $0.09 | $450 |
-| Cross-region replication | 500 GB | $0.02 | $10 |
-
-## Storage Costs
-
-| Resource | Size | Unit Cost | Monthly Cost |
-|----------|------|-----------|--------------|
-| Database storage | 1 TB | $100 | $100 |
-| Backups | 2 TB | $23 | $46 |
-
-## Total Monthly Cost
-
-**$2,526**
-
-## Cost Optimization Opportunities
-
-1. Right-size K8s nodes based on actual usage
-2. Use spot instances for non-critical workloads
-3. Archive old data to cheaper storage tiers
-```
-
-### 10. Validate Deployment Topology
+Generate a new architecture from your pattern:
 
 ```bash
-calm validate -a architectures/production-[system-name].json
+calm generate -p patterns/ecommerce-platform-pattern.json -o architectures/ecommerce-variation.json
 ```
 
-### 11. Visualize Deployment Topology
+### 5. Compare Generated vs Original
+
+```bash
+# Count nodes
+echo "Generated nodes: $(cat architectures/ecommerce-variation.json | jq '.nodes | length')"
+echo "Original nodes: $(cat architectures/ecommerce-platform.json | jq '.nodes | length')"
+
+# Count relationships
+echo "Generated relationships: $(cat architectures/ecommerce-variation.json | jq '.relationships | length')"
+echo "Original relationships: $(cat architectures/ecommerce-platform.json | jq '.relationships | length')"
+```
+
+The counts should match!
+
+### 6. Visualize Both Versions
 
 **Steps:**
-1. Open `architectures/production-[system-name].json`
-2. Open preview (Ctrl+Shift+C)
-3. View deployed-in relationships showing physical placement
-4. **Take screenshot** showing deployment hierarchy
-5. Save to `docs/screenshots/deployment-topology.png`
+1. Open `architectures/ecommerce-platform.json` and view preview - **take screenshot**
+2. Open `architectures/ecommerce-variation.json` and view preview - **take screenshot**
+3. Compare - structure should be identical
 
-### 12. Generate Deployment Documentation
+### 7. Validate Both Against the Pattern
 
 ```bash
-calm docify --architecture architectures/production-[system-name].json --template templates/comprehensive-bundle/deployment-checklist.hbs --output docs/generated/deployment-checklist.md
+calm validate -p patterns/ecommerce-platform-pattern.json -a architectures/ecommerce-platform.json
+calm validate -p patterns/ecommerce-platform-pattern.json -a architectures/ecommerce-variation.json
 ```
 
-### 13. Update Your README
+Both should pass! ✅
 
-Mark Day 20 complete in the README and summarize the deployment artifacts (planning doc, topology write-up, infrastructure costs, and screenshots) so the topology work is easy to discover later.
+### 8. Test Compliance Enforcement
 
-### 14. Commit Deployment Topology
+Create a "broken" version to prove the pattern catches violations:
+
+**Prompt:**
+```text
+Create architectures/incomplete-ecommerce.json that:
+- Copies the basic structure from ecommerce-platform.json
+- Removes the payment-service node
+- This should fail pattern validation
+```
+
+Validate:
+```bash
+calm validate -p patterns/ecommerce-platform-pattern.json -a architectures/incomplete-ecommerce.json
+```
+
+Should fail! ❌ The pattern detected the missing payment service.
+
+Clean up:
+```bash
+rm architectures/incomplete-ecommerce.json
+rm architectures/ecommerce-variation.json
+```
+
+### 9. Document Pattern Extraction Process
+
+**File:** `patterns/extraction-guide.md`
+
+**Prompt:**
+```text
+Create patterns/extraction-guide.md documenting:
+
+1. When to extract a pattern from an existing architecture
+   - Proven design that should be replicated
+   - Team wants to enforce consistency
+   - Architecture is considered "reference"
+
+2. Step-by-step extraction process
+   - Identify structural elements (const)
+   - Identify flexible elements (no constraint)
+   - Set counts with minItems/maxItems
+   - Test generation and validation
+
+3. Common pitfalls
+   - Over-constraining (too rigid)
+   - Under-constraining (not enough governance)
+   - Forgetting to test both generation and validation
+
+4. Checklist for pattern extraction
+```
+
+### 10. Update Pattern Documentation
+
+**Prompt:**
+```text
+Update patterns/README.md to add documentation for ecommerce-platform-pattern.json:
+
+1. What the pattern enforces
+2. The required nodes and their purposes
+3. The required relationships
+4. How to generate from this pattern
+5. How to validate against this pattern
+6. What flexibility remains
+```
+
+### 11. Commit Your Work
 
 ```bash
-git add architectures/production-*.json docs/deployment-*.md docs/infrastructure-costs.md docs/screenshots README.md
-git commit -m "Day 20: Add deployment topology with regions, networks, and clusters"
+git add patterns/ecommerce-platform-pattern.json patterns/extraction-guide.md patterns/README.md README.md
+git commit -m "Day 20: Reverse-engineer e-commerce architecture into reusable pattern"
 git tag day-20
 ```
 
-## Deliverables
+## Deliverables / Validation Criteria
 
-✅ **Required:**
-- Enhanced `architectures/production-[system-name].json` with:
-  - Region nodes
-  - Network zone nodes
-  - Cluster/infrastructure nodes
-  - deployed-in relationships
-  - Optional: DR replicas
-- `docs/deployment-planning.md` - Deployment planning
-- `docs/deployment-topology.md` - Deployment documentation
-- `docs/infrastructure-costs.md` - Cost model
-- `docs/screenshots/deployment-topology.png` - Topology visualization
-- Updated `README.md` - Day 20 marked complete
+Your Day 20 submission should include a commit tagged `day-20` containing:
+
+✅ **Required Files:**
+- `patterns/ecommerce-platform-pattern.json` - Pattern extracted from architecture
+- `patterns/extraction-guide.md` - Pattern extraction documentation
+- Updated `patterns/README.md` - Documentation
+- Updated `README.md` - Day 20 marked as complete
 
 ✅ **Validation:**
 ```bash
-# Validate architecture
-calm validate -a architectures/production-*.json
+# Pattern exists
+test -f patterns/ecommerce-platform-pattern.json
 
-# Check for infrastructure nodes
-grep -q 'region-' architectures/production-*.json
-grep -q 'infrastructure-type' architectures/production-*.json
+# Original architecture passes pattern
+calm validate -p patterns/ecommerce-platform-pattern.json -a architectures/ecommerce-platform.json
 
-# Check for deployed-in relationships
-grep -q '"deployed-in"' architectures/production-*.json
-
-# Verify documentation
-test -f docs/deployment-topology.md
-test -f docs/infrastructure-costs.md
+# Generation works
+calm generate -p patterns/ecommerce-platform-pattern.json -o /tmp/test-ecommerce.json
 
 # Check tag
 git tag | grep -q "day-20"
 ```
 
 ## Resources
-- [AWS Well-Architected Framework](https://aws.amazon.com/architecture/well-architected/)
-- [Azure Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/)
-- [Google Cloud Architecture Framework](https://cloud.google.com/architecture/framework)
+
+- [JSON Schema const keyword](https://json-schema.org/understanding-json-schema/reference/const)
+- [JSON Schema prefixItems](https://json-schema.org/understanding-json-schema/reference/array#tupleValidation)
+- [CALM Pattern Examples](https://github.com/finos/architecture-as-code/tree/main/calm/pattern)
 
 ## Tips
-- Model actual deployment, not ideal state
-- Include network security boundaries
-- Document DR strategy with deployed-in relationships
-- Use metadata to capture cloud-specific details
-- Deployment topology helps with:
-  - Disaster recovery planning
-  - Network security design
-  - Cost optimization
-  - Capacity planning
-- Keep this updated as deployment changes
+
+- Start by listing what makes your architecture unique and required
+- Use const for IDs - these are the "contract"
+- Leave metadata flexible - implementations will customize
+- The pattern should be strict enough to ensure compatibility, flexible enough to be useful
+- Test by trying to "break" the pattern - missing nodes, wrong relationships
+
+## Week 3 Recap
+
+Congratulations! You've completed Week 3 and learned:
+
+- ✅ **Day 15**: Understanding CALM Standards
+- ✅ **Day 16**: Creating Node and Relationship Standards
+- ✅ **Day 17**: Applying Standards to architectures
+- ✅ **Day 18**: Creating your first Pattern
+- ✅ **Day 19**: Combining Standards with Patterns
+- ✅ **Day 20**: Reverse-engineering Patterns from architectures
+
+You now have:
+- A library of organisational Standards
+- Reusable Patterns for web apps and e-commerce
+- Skills to extract patterns from proven architectures
+- Understanding of the Standards + Patterns workflow
 
 ## Next Steps
-Tomorrow (Day 21) you'll model data lineage to show how data moves through your system!
+
+Week 4 is about community! Starting tomorrow:
+- **Day 21**: Join the CALM community meetings
+- **Day 22**: Contribute to CALM Copilot
+- **Day 23**: Explore community contributions
+- **Day 24**: Review and celebrate!
