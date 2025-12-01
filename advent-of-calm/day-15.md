@@ -26,7 +26,7 @@ Before creating Standards, familiarise yourself with the concept:
 **Prompt:**
 ```text
 Explain the key concepts from the CALM Standards documentation:
-1. What are Standards and how do they differ from Patterns?
+1. What are Standards and why are they useful?
 2. How do Standards use JSON Schema 2020-12?
 3. What CALM components can Standards extend?
 4. How do Standards integrate with validation?
