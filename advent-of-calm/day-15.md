@@ -131,21 +131,18 @@ Standards compose with core CALM schemas using `allOf`:
 
 This says: "This node must satisfy BOTH the core CALM node requirements AND our company's additional requirements."
 
-### 8. Review Standards vs Patterns
+### 8. Understand the Value of Standards
 
-**Standards** define WHAT properties must exist:
-- "Every node must have a costCenter and owner"
-- "All interfaces must specify authentication type"
-- Pure schema validation - no specific values
+**What Standards Give You:**
+- **Consistency**: Every architecture follows the same rules
+- **Discoverability**: Easy to find who owns what
+- **Compliance**: Automated validation of requirements
+- **Onboarding**: New team members understand expectations
 
-**Patterns** define WHAT specific values must be:
-- "The node unique-id must be 'api-gateway'"
-- "There must be exactly 3 nodes with these specific names"
-- Used for generation and compliance checking
-
-**Together they provide:**
-- Standards: Organisation-wide consistency
-- Patterns: Specific architectural templates
+**Example Scenarios:**
+- "Who owns this service?" → Check the `owner` property
+- "What's the cost allocation?" → Check the `costCenter` property
+- "Is this production-ready?" → Check the `criticality` and `environment` properties
 
 ### 9. Document Your Standards Strategy
 
