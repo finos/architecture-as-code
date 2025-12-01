@@ -1,139 +1,175 @@
-# Day 16: Creating a Company Base Pattern
+# Day 16: Introduction to CALM Patterns
 
 ## Overview
-Create a Company Base Pattern that enforces your Standards across all architectures.
+Learn how CALM Patterns enable you to define reusable architecture templates that can both generate new architectures and validate existing ones.
 
 ## Objective and Rationale
-- **Objective:** Build a pattern that requires all nodes and relationships to comply with your organisational Standards
-- **Rationale:** Standards define WHAT properties are required, but they don't enforce themselves. A Base Pattern acts as the enforcement mechanism - any architecture validated against it must use your Standard-compliant nodes and relationships.
+- **Objective:** Understand what Patterns are and create your first Pattern for a simple web application
+- **Rationale:** Patterns are CALM's superpower for reuse and governance. A single Pattern can generate architecture scaffolds instantly AND validate that existing architectures conform to a required structure. This dual capability makes Patterns essential for scaling architecture practices across teams.
 
 ## Requirements
 
-### 1. Understand the Enforcement Problem
+### 1. Understand What Patterns Are
 
-Yesterday you created:
-- `standards/company-node-standard.json` - extends CALM nodes with costCenter, owner, environment
-- `standards/company-relationship-standard.json` - extends CALM relationships with dataClassification, encrypted
+**The Problem Patterns Solve:**
+- Teams keep building similar architectures from scratch
+- No easy way to enforce "all web apps must have these components"
+- Inconsistent structures across projects
 
-**But how do you enforce their use?**
+**The Solution:**
+Patterns are JSON Schema documents that define the required structure of an architecture. They specify what nodes must exist, what relationships must connect them, and what properties they must have.
 
-If an architect creates an architecture using plain CALM nodes, your Standards are ignored. You need a pattern that says "all nodes in this architecture must comply with our company node Standard."
+### 2. Understand the Dual Superpower
 
-### 2. Understand How Patterns Enforce Standards
+**One Pattern = Two Powers:**
 
-A pattern can reference your Standards in its node and relationship definitions:
+**Power 1 - Generation:**
+```bash
+calm generate -p my-pattern.json -o new-architecture.json
+```
+Creates an architecture scaffold with all required nodes and relationships.
 
+**Power 2 - Validation:**
+```bash
+calm validate -p my-pattern.json -a existing-architecture.json
+```
+Checks that an architecture has the required structure.
+
+### 3. Understand How Patterns Work
+
+Patterns use JSON Schema keywords to define requirements:
+
+- **`const`** - Requires an exact value (e.g., `"unique-id": { "const": "api-gateway" }`)
+- **`prefixItems`** - Defines exact items in an array
+- **`minItems`/`maxItems`** - Enforces array length
+- **`$ref`** - References other schemas
+
+**Example: Requiring a specific node**
 ```json
 {
-  "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
-  "properties": {
-    "nodes": {
-      "type": "array",
-      "items": {
-        "$ref": "./standards/company-node-standard.json"
+  "nodes": {
+    "type": "array",
+    "prefixItems": [
+      {
+        "properties": {
+          "unique-id": { "const": "api-gateway" },
+          "node-type": { "const": "service" },
+          "name": { "const": "API Gateway" }
+        }
       }
-    }
+    ],
+    "minItems": 1
   }
 }
 ```
 
-This pattern says: "Every node in an architecture validated against this pattern must satisfy the company-node-standard."
+This pattern requires an architecture to have a node with `unique-id: "api-gateway"`.
 
-### 3. Create the Company Base Pattern
+### 4. Create Your First Pattern
 
-**File:** `patterns/company-base-pattern.json`
+Create a simple pattern for a 3-tier web application.
+
+**File:** `patterns/web-app-pattern.json`
 
 **Prompt:**
 ```text
-Create a CALM pattern at patterns/company-base-pattern.json that enforces our company Standards.
+Create a CALM pattern at patterns/web-app-pattern.json for a 3-tier web application.
 
 The pattern should:
 1. Use the CALM schema (https://calm.finos.org/release/1.1/meta/calm.json)
-2. Have a unique $id (e.g., https://example.com/patterns/company-base-pattern.json)
-3. Have a title "Company Base Pattern" and description explaining it enforces organisational standards
-4. Define that all nodes must comply with our company-node-standard.json
-5. Define that all relationships must comply with our company-relationship-standard.json
+2. Have a unique $id (https://example.com/patterns/web-app-pattern.json)
+3. Have title "Web Application Pattern" and a description
+4. Require exactly 3 nodes using prefixItems:
+   - "web-frontend" (node-type: webclient, name: "Web Frontend")
+   - "api-service" (node-type: service, name: "API Service")
+   - "app-database" (node-type: database, name: "Application Database")
+5. Require exactly 2 relationships using prefixItems:
+   - "frontend-to-api": connects web-frontend to api-service
+   - "api-to-database": connects api-service to app-database
 
-Use $ref to reference the Standards files. The pattern should not constrain specific node IDs or counts - it should only enforce that whatever nodes/relationships exist must follow our Standards.
+Use const for unique-id, node-type, and name properties.
+Set minItems and maxItems to enforce exact counts.
 ```
 
-### 4. Review the Generated Pattern
+### 5. Test Generation
 
-The pattern should look something like:
-
-```json
-{
-  "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
-  "$id": "https://example.com/patterns/company-base-pattern.json",
-  "title": "Company Base Pattern",
-  "description": "Enforces company Standards on all nodes and relationships",
-  "type": "object",
-  "properties": {
-    "nodes": {
-      "type": "array",
-      "items": {
-        "$ref": "../standards/company-node-standard.json"
-      }
-    },
-    "relationships": {
-      "type": "array",
-      "items": {
-        "$ref": "../standards/company-relationship-standard.json"
-      }
-    }
-  }
-}
-```
-
-### 5. Test with a Non-Compliant Architecture
-
-Your existing e-commerce architecture probably doesn't have the required Standard properties. Let's verify:
+Generate an architecture from your pattern:
 
 ```bash
-calm validate -p patterns/company-base-pattern.json -a architectures/ecommerce-platform.json
+calm generate -p patterns/web-app-pattern.json -o architectures/generated-webapp.json
 ```
 
-This should **fail** because the nodes don't have `costCenter`, `owner`, etc.
+Open `architectures/generated-webapp.json` and verify:
+- ✅ Has exactly 3 nodes with the correct IDs, types, and names
+- ✅ Has exactly 2 relationships connecting them
+- ✅ Structure matches what the pattern defined
 
-### 6. Create a Compliant Test Architecture
+### 6. Visualize the Generated Architecture
 
-**File:** `architectures/compliant-test.json`
+**Steps:**
+1. Open `architectures/generated-webapp.json` in VSCode
+2. Open preview (Ctrl+Shift+C / Cmd+Shift+C)
+3. See the 3-tier architecture visualized
+4. **Take a screenshot**
+
+### 7. Test Validation - Passing Case
+
+Your generated architecture should validate against the pattern:
+
+```bash
+calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json
+```
+
+Should pass! ✅
+
+### 8. Test Validation - Failing Case
+
+Create a broken architecture to see validation fail:
 
 **Prompt:**
 ```text
-Create a simple test architecture at architectures/compliant-test.json with:
+Create architectures/broken-webapp.json by copying generated-webapp.json but:
+1. Change the unique-id of "api-service" to "backend-api"
 
-1. Two nodes:
-   - A service node "test-service" with all company Standard properties (costCenter: "CC-1234", owner: "test-team", environment: "development")
-   - A database node "test-database" with all company Standard properties
-
-2. One relationship:
-   - Connects test-service to test-database with company relationship Standard properties (dataClassification: "internal", encrypted: true)
-
-This is a minimal architecture to test our company base pattern.
+This should fail validation because the pattern requires "api-service".
 ```
 
-### 7. Validate the Compliant Architecture
+Validate:
+```bash
+calm validate -p patterns/web-app-pattern.json -a architectures/broken-webapp.json
+```
+
+Should fail! ❌ The pattern catches that "api-service" is missing.
+
+Clean up:
+```bash
+rm architectures/broken-webapp.json
+```
+
+### 9. Enhance the Generated Architecture
+
+The generated architecture has the required structure. Now add details:
+
+**Prompt:**
+```text
+Update architectures/generated-webapp.json to add:
+1. Descriptions for each node explaining their purpose
+2. A description for each relationship
+3. Interfaces on api-service (host, port for HTTPS)
+4. Interfaces on app-database (host, port for PostgreSQL)
+
+Keep the unique-ids, node-types, and names exactly as they are.
+```
+
+### 10. Validate the Enhanced Architecture
 
 ```bash
-calm validate -p patterns/company-base-pattern.json -a architectures/compliant-test.json
+calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json
 ```
 
-This should **pass** ✅
+Still passes! ✅ Adding extra properties doesn't break pattern compliance.
 
-### 8. Understand the Enforcement Flow
-
-```
-Standards (define properties)
-    ↓
-Company Base Pattern (enforces Standards)
-    ↓
-Architecture (validated against pattern)
-```
-
-**The key insight:** The pattern is the enforcement mechanism. Standards alone are just definitions - patterns make them mandatory.
-
-### 9. Document the Pattern
+### 11. Document the Pattern
 
 **File:** `patterns/README.md`
 
@@ -141,30 +177,19 @@ Architecture (validated against pattern)
 ```text
 Create patterns/README.md that documents:
 
-1. What the Company Base Pattern does
-2. How it enforces Standards via $ref
-3. How to validate architectures against it
-4. The validation flow: Standards → Pattern → Architecture
-5. What happens when validation fails
+1. What Patterns are and their dual superpower (generation + validation)
+2. How to use web-app-pattern.json:
+   - Generation: calm generate -p patterns/web-app-pattern.json -o my-app.json
+   - Validation: calm validate -p patterns/web-app-pattern.json -a my-app.json
+3. What the pattern enforces (3 specific nodes, 2 specific relationships)
+4. What's flexible (descriptions, interfaces, metadata)
 ```
 
-### 10. Plan for Specific Patterns
-
-The Company Base Pattern is generic - it enforces Standards but doesn't define specific architecture structures.
-
-For specific architectures (like e-commerce), you'll create patterns that:
-1. Extend or reference the Company Base Pattern
-2. Add specific structural requirements (required nodes, relationships)
-
-This gives you layered governance:
-- **Layer 1**: Company Base Pattern - "all nodes need costCenter and owner"
-- **Layer 2**: Specific Pattern (e.g., e-commerce) - "must have api-gateway, order-service, etc."
-
-### 11. Commit Your Work
+### 12. Commit Your Work
 
 ```bash
-git add patterns/ architectures/compliant-test.json
-git commit -m "Day 16: Create Company Base Pattern to enforce Standards"
+git add patterns/ architectures/generated-webapp.json README.md
+git commit -m "Day 16: Create first CALM pattern for web applications"
 git tag day-16
 ```
 
@@ -173,18 +198,21 @@ git tag day-16
 Your Day 16 submission should include a commit tagged `day-16` containing:
 
 ✅ **Required Files:**
-- `patterns/company-base-pattern.json` - Pattern enforcing Standards
-- `patterns/README.md` - Documentation
-- `architectures/compliant-test.json` - Test architecture that passes validation
+- `patterns/web-app-pattern.json` - Pattern for 3-tier web app
+- `patterns/README.md` - Pattern documentation
+- `architectures/generated-webapp.json` - Generated and enhanced architecture
 - Updated `README.md` - Day 16 marked as complete
 
 ✅ **Validation:**
 ```bash
 # Pattern exists
-test -f patterns/company-base-pattern.json
+test -f patterns/web-app-pattern.json
 
-# Compliant architecture passes
-calm validate -p patterns/company-base-pattern.json -a architectures/compliant-test.json
+# Generation works
+calm generate -p patterns/web-app-pattern.json -o /tmp/test-webapp.json
+
+# Validation works
+calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json
 
 # Check tag
 git tag | grep -q "day-16"
@@ -193,25 +221,27 @@ git tag | grep -q "day-16"
 ## Resources
 
 - [CALM Pattern Documentation](https://github.com/finos/architecture-as-code/tree/main/calm/pattern)
-- [JSON Schema $ref](https://json-schema.org/understanding-json-schema/structuring#dollarref)
-- Your Standards in `standards/`
+- [JSON Schema prefixItems](https://json-schema.org/understanding-json-schema/reference/array#tupleValidation)
+- [JSON Schema const](https://json-schema.org/understanding-json-schema/reference/const)
 
 ## Tips
 
-- The base pattern should be permissive about structure but strict about properties
-- Don't set minItems/maxItems in the base pattern - that's for specific patterns
-- Test with both compliant and non-compliant architectures
-- Keep the pattern simple - it should only enforce Standards, nothing else
+- Use `const` for values that MUST be exactly as specified
+- `prefixItems` defines the exact items required in order
+- `minItems`/`maxItems` together enforce exact array length
+- Patterns only constrain what you specify - extra properties are allowed
+- Test both generation AND validation to ensure the pattern works
 
-## The Complete Picture
+## Key Concepts
 
-| Layer | Purpose | Example |
-|-------|---------|---------|
-| **Standards** | Define required properties | costCenter, owner, encrypted |
-| **Base Pattern** | Enforce Standards on all architectures | company-base-pattern.json |
-| **Specific Pattern** | Define specific architecture structure | ecommerce-pattern.json (Day 18) |
-| **Architecture** | Actual system definition | ecommerce-platform.json |
+| Concept | Purpose | Example |
+|---------|---------|---------|
+| `const` | Require exact value | `"unique-id": { "const": "api-gateway" }` |
+| `prefixItems` | Define required array items | First node must be X, second must be Y |
+| `minItems` | Minimum array length | At least 3 nodes |
+| `maxItems` | Maximum array length | At most 3 nodes |
+| `$ref` | Reference other schemas | Point to node definition |
 
 ## Next Steps
 
-Tomorrow (Day 17) you'll update your e-commerce architecture to comply with the Standards and validate it against the Company Base Pattern!
+Tomorrow (Day 17) you'll learn how Patterns can enforce your organisational Standards, combining structure requirements with property requirements!

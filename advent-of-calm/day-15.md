@@ -29,7 +29,6 @@ Explain the key concepts from the CALM Standards documentation:
 1. What are Standards and why are they useful?
 2. How do Standards use JSON Schema 2020-12?
 3. What CALM components can Standards extend?
-4. How do Standards integrate with validation?
 ```
 
 ### 3. Understand the Standards Structure
@@ -60,7 +59,6 @@ This says: "A node using this Standard must satisfy BOTH the core CALM node requ
 
 **Organisation-Level Extensions:**
 - **Company Node Requirements**: Cost centres, ownership, compliance tags
-- **Interface Specifications**: Authentication requirements, rate limiting
 - **Relationship Policies**: Approval workflows, security zones
 - **Control Requirements**: Organisational compliance frameworks
 
@@ -81,13 +79,9 @@ mkdir -p standards
 
 Create a Company Node Standard that extends the core CALM node with organisational requirements.
 
-**File:** `standards/company-node-standard.json`
-
 **Prompt:**
 ```text
 Create a CALM Standard at standards/company-node-standard.json that extends the core CALM node definition.
-
-The Standard should use allOf to compose the base CALM node (from https://calm.finos.org/release/1.1/meta/core.json#/defs/node) with additional company requirements.
 
 Additional properties to require:
 1. costCenter - a string that must match the pattern CC- followed by exactly 4 digits (e.g., CC-1234)
@@ -103,13 +97,9 @@ Review the generated file - it should use `allOf` to reference the base CALM nod
 
 Create a Standard for relationships that ensures security classification:
 
-**File:** `standards/company-relationship-standard.json`
-
 **Prompt:**
 ```text
 Create a CALM Standard at standards/company-relationship-standard.json that extends the core CALM relationship definition.
-
-The Standard should use allOf to compose the base CALM relationship (from https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship) with additional company requirements.
 
 Additional properties to require:
 1. dataClassification - must be one of: public, internal, confidential, restricted

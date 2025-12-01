@@ -1,197 +1,172 @@
-# Day 18: Create Your First Specific Pattern
+# Day 18: Combining Structure and Standards in Patterns
 
 ## Overview
-Create a Web Application Pattern that enforces both your organisational Standards AND specific architectural structure.
+Create a pattern that enforces both specific architecture structure AND organisational Standards.
 
 ## Objective and Rationale
-- **Objective:** Create a pattern that generates and validates a specific architecture type while inheriting your Company Standards
-- **Rationale:** The Company Base Pattern ensures all nodes have required properties, but doesn't define what nodes must exist. Specific patterns add structural requirements - "you must have these exact nodes" - on top of the Standards enforcement.
+- **Objective:** Create an E-Commerce Pattern that requires specific nodes AND Standard properties on each
+- **Rationale:** Real governance needs both: "You must have these components" (structure) AND "Each component must have these properties" (Standards). By combining them in one pattern, you get complete governance - generated architectures are immediately compliant.
 
 ## Requirements
 
-### 1. Understand Layered Patterns
+### 1. Understand the Complete Picture
 
 You now have:
-- **Standards** - Define required properties (costCenter, owner, etc.)
-- **Company Base Pattern** - Enforces Standards on all architectures
+- **Standards** (Day 15): Define required properties (costCenter, owner, etc.)
+- **Structure Pattern** (Day 16): Enforces specific nodes exist
+- **Base Pattern** (Day 17): Enforces Standards on any architecture
 
-Today you'll add:
-- **Specific Pattern** - Defines required structure AND inherits Standard requirements
+**Today's goal:** Combine structure + Standards in one pattern.
 
-**The pattern hierarchy:**
-```
-Specific Pattern (e.g., web-app-pattern)
-    └── References Standards
-        └── Standards reference core CALM
-```
+### 2. Review Your E-Commerce Architecture
 
-### 2. Understand Pattern Capabilities
+Your e-commerce architecture from Day 7 (updated in Day 17) has:
+- Specific nodes (api-gateway, order-service, etc.)
+- Standard properties (costCenter, owner, dataClassification)
 
-Patterns have a dual superpower:
+Let's create a pattern that requires both.
 
-**Power 1 - Generation:**
-```bash
-calm generate -p my-pattern.json -o new-architecture.json
-```
-Creates an architecture scaffold with required nodes, relationships, and properties.
+### 3. Create the E-Commerce Pattern
 
-**Power 2 - Validation:**
-```bash
-calm validate -p my-pattern.json -a existing-architecture.json
-```
-Checks that an architecture has the required structure and properties.
-
-### 3. Create a Web Application Pattern
-
-Create a pattern for a standard 3-tier web application that includes your Standards.
-
-**File:** `patterns/web-app-pattern.json`
+**File:** `patterns/ecommerce-pattern.json`
 
 **Prompt:**
 ```text
-Create a CALM pattern at patterns/web-app-pattern.json for a 3-tier web application.
+Create a CALM pattern at patterns/ecommerce-pattern.json for e-commerce platforms.
 
 The pattern should:
-1. Use the CALM pattern schema
-2. Define exactly 3 required nodes using prefixItems:
-   - "web-frontend" (node-type: webclient)
-   - "api-service" (node-type: service)
-   - "app-database" (node-type: database)
-3. Each node must include our Standard properties with placeholder values:
-   - costCenter: "CC-0000"
-   - owner: "team-name"
-   - environment: "development"
-4. Define exactly 2 required relationships:
-   - frontend-to-api: connects web-frontend to api-service
-   - api-to-database: connects api-service to app-database
-5. Each relationship must include our Standard properties:
-   - dataClassification: "internal"
-   - encrypted: true
+1. Use the CALM schema (https://calm.finos.org/release/1.1/meta/calm.json)
+2. Have a unique $id (https://example.com/patterns/ecommerce-pattern.json)
+3. Have title "E-Commerce Platform Pattern"
 
-Use const for structural values (unique-id, node-type, name) but not for Standard properties so users can customize them.
+4. Require specific nodes using prefixItems, each with Standard properties:
+   - api-gateway (service) with costCenter, owner, environment
+   - order-service (service) with costCenter, owner, environment
+   - inventory-service (service) with costCenter, owner, environment
+   - payment-service (service) with costCenter, owner, environment
+   - order-database (database) with costCenter, owner, environment
+   - inventory-database (database) with costCenter, owner, environment
+
+5. Require specific relationships with Standard properties:
+   - gateway-to-order: connects api-gateway to order-service, with dataClassification, encrypted
+   - gateway-to-inventory: connects api-gateway to inventory-service
+   - order-to-payment: connects order-service to payment-service
+   - order-to-db: connects order-service to order-database
+   - inventory-to-db: connects inventory-service to inventory-database
+
+Use const for structural values (unique-id, node-type, name).
+Include Standard properties but don't use const for them (allow customization).
 ```
 
 ### 4. Test Generation
 
-Generate an architecture from your pattern:
+Generate an architecture from the pattern:
 
 ```bash
-calm generate -p patterns/web-app-pattern.json -o architectures/generated-webapp.json
+calm generate -p patterns/ecommerce-pattern.json -o architectures/ecommerce-generated.json
 ```
 
-Open `architectures/generated-webapp.json` and verify:
-- ✅ Has exactly 3 nodes with correct IDs and types
-- ✅ Has exactly 2 relationships
-- ✅ All nodes have Standard properties (costCenter, owner, environment)
-- ✅ All relationships have Standard properties (dataClassification, encrypted)
+Review the generated file:
+- ✅ Has all required nodes with correct IDs and types
+- ✅ Has all required relationships
+- ✅ Has Standard property placeholders on every node
+- ✅ Has Standard property placeholders on every relationship
 
 ### 5. Customize the Generated Architecture
 
-The generated architecture has placeholder values. Update them:
-
 **Prompt:**
 ```text
-Update architectures/generated-webapp.json to replace placeholder values with realistic ones:
+Update architectures/ecommerce-generated.json to replace placeholder Standard values:
 
-For web-frontend:
-- costCenter: "CC-1001"
-- owner: "frontend-team"
-- environment: "production"
+Nodes:
+- api-gateway: CC-1001, platform-team, production
+- order-service: CC-2001, orders-team, production
+- inventory-service: CC-2002, inventory-team, production
+- payment-service: CC-3001, payments-team, production
+- order-database: CC-2001, orders-team, production
+- inventory-database: CC-2002, inventory-team, production
 
-For api-service:
-- costCenter: "CC-1002"
-- owner: "api-team"
-- environment: "production"
-
-For app-database:
-- costCenter: "CC-1003"
-- owner: "data-team"
-- environment: "production"
-
-Update relationship dataClassification values appropriately (api-to-database should be "confidential").
+Relationships:
+- All: encrypted true
+- order-to-payment: dataClassification "confidential"
+- Others: dataClassification "internal"
 ```
 
-### 6. Validate Against the Pattern
+### 6. Validate the Generated Architecture
 
 ```bash
-calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json
+calm validate -p patterns/ecommerce-pattern.json -a architectures/ecommerce-generated.json
 ```
 
 Should pass! ✅
 
-### 7. Test Governance - Break the Structure
+### 7. Validate Original Architecture
 
-Create a broken version to prove the pattern catches violations:
+Your original e-commerce architecture should also pass:
+
+```bash
+calm validate -p patterns/ecommerce-pattern.json -a architectures/ecommerce-platform.json
+```
+
+Should pass! ✅ (assuming it has all required nodes and Standard properties)
+
+### 8. Test Governance - Missing Node
+
+```bash
+# Create copy without payment-service
+cat architectures/ecommerce-generated.json | jq 'del(.nodes[] | select(."unique-id" == "payment-service"))' > /tmp/missing-node.json
+
+calm validate -p patterns/ecommerce-pattern.json -a /tmp/missing-node.json
+```
+
+Should fail! ❌ Missing required node.
+
+### 9. Test Governance - Missing Standard Property
+
+```bash
+# Create copy without costCenter on first node
+cat architectures/ecommerce-generated.json | jq '.nodes[0] |= del(.costCenter)' > /tmp/missing-prop.json
+
+calm validate -p patterns/ecommerce-pattern.json -a /tmp/missing-prop.json
+```
+
+Should fail! ❌ Missing required Standard property.
+
+### 10. Compare Pattern Types
+
+You now have three pattern types:
+
+| Pattern | Structure | Standards | Use Case |
+|---------|-----------|-----------|----------|
+| web-app-pattern | ✅ 3 nodes | ❌ | Quick web app scaffold |
+| company-base-pattern | ❌ Any | ✅ | Validate any architecture |
+| ecommerce-pattern | ✅ 6+ nodes | ✅ | Full e-commerce governance |
+
+### 11. Clean Up Test Files
+
+```bash
+rm architectures/ecommerce-generated.json
+```
+
+(Or keep it as an example)
+
+### 12. Update Documentation
 
 **Prompt:**
 ```text
-Create architectures/broken-webapp.json by copying generated-webapp.json and:
-1. Remove the app-database node entirely
-2. Remove the api-to-database relationship
+Update patterns/README.md to add the ecommerce-pattern.json and explain:
 
-This should fail pattern validation because the required structure is missing.
+1. The three pattern types and when to use each
+2. How ecommerce-pattern combines structure + Standards
+3. The complete validation it provides
+4. Example generation and validation commands
 ```
 
-Validate:
-```bash
-calm validate -p patterns/web-app-pattern.json -a architectures/broken-webapp.json
-```
-
-Should fail! ❌ The pattern catches the missing node.
-
-Clean up:
-```bash
-rm architectures/broken-webapp.json
-```
-
-### 8. Test Governance - Break the Standards
-
-Try removing a Standard property:
-
-**Prompt:**
-```text
-Create architectures/broken-standards.json by copying generated-webapp.json and removing the costCenter property from web-frontend.
-```
-
-Validate:
-```bash
-calm validate -p patterns/web-app-pattern.json -a architectures/broken-standards.json
-```
-
-Should fail! ❌ The pattern catches the missing Standard property.
-
-Clean up:
-```bash
-rm architectures/broken-standards.json
-```
-
-### 9. Visualize the Generated Architecture
-
-**Steps:**
-1. Open `architectures/generated-webapp.json` in VSCode
-2. Open preview (Ctrl+Shift+C / Cmd+Shift+C)
-3. See the 3-tier architecture visualized
-4. Click nodes to verify Standard properties are present
-5. **Take a screenshot**
-
-### 10. Update Pattern Documentation
-
-**Prompt:**
-```text
-Update patterns/README.md to add documentation for web-app-pattern.json:
-
-1. What the pattern enforces (structure + Standards)
-2. The required nodes and relationships
-3. How to generate from this pattern
-4. How to validate against this pattern
-5. How it differs from company-base-pattern.json (specific vs generic)
-```
-
-### 11. Commit Your Work
+### 13. Commit Your Work
 
 ```bash
-git add patterns/web-app-pattern.json architectures/generated-webapp.json patterns/README.md README.md
-git commit -m "Day 18: Create web app pattern with Standards enforcement"
+git add patterns/ecommerce-pattern.json patterns/README.md README.md
+git commit -m "Day 18: Create E-Commerce Pattern with structure and Standards"
 git tag day-18
 ```
 
@@ -200,22 +175,20 @@ git tag day-18
 Your Day 18 submission should include a commit tagged `day-18` containing:
 
 ✅ **Required Files:**
-- `patterns/web-app-pattern.json` - Pattern with structure and Standards
-- `architectures/generated-webapp.json` - Generated and customized architecture
-- Updated `patterns/README.md` - Documentation
+- `patterns/ecommerce-pattern.json` - Pattern with structure + Standards
+- Updated `patterns/README.md` - Documentation for all three patterns
 - Updated `README.md` - Day 18 marked as complete
 
 ✅ **Validation:**
 ```bash
 # Pattern exists
-test -f patterns/web-app-pattern.json
+test -f patterns/ecommerce-pattern.json
 
-# Generated architecture exists and has Standard properties
-grep -q "costCenter" architectures/generated-webapp.json
-grep -q "dataClassification" architectures/generated-webapp.json
+# Original e-commerce validates
+calm validate -p patterns/ecommerce-pattern.json -a architectures/ecommerce-platform.json
 
-# Validation passes
-calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json
+# Generation works
+calm generate -p patterns/ecommerce-pattern.json -o /tmp/test-ecommerce.json
 
 # Check tag
 git tag | grep -q "day-18"
@@ -224,24 +197,41 @@ git tag | grep -q "day-18"
 ## Resources
 
 - [CALM Pattern Documentation](https://github.com/finos/architecture-as-code/tree/main/calm/pattern)
-- [JSON Schema prefixItems](https://json-schema.org/understanding-json-schema/reference/array#tupleValidation)
-- [JSON Schema const](https://json-schema.org/understanding-json-schema/reference/const)
+- Your Standards in `standards/`
+- Your existing patterns in `patterns/`
 
 ## Tips
 
-- Use `const` for values that MUST be exactly as specified (IDs, types)
-- Leave Standard properties without `const` so they can be customized
-- Test both generation AND validation
-- Placeholder values should be obviously placeholder (e.g., "CC-0000", "team-name")
+- Include Standard properties in each node/relationship definition
+- Use const for structure, leave Standards flexible
+- Test both structure violations and property violations
+- The combined pattern is the most powerful governance tool
 
-## Pattern Types Summary
+## The Complete Governance Stack
 
-| Pattern | Purpose | Enforces |
-|---------|---------|----------|
-| **Company Base Pattern** | Generic Standards enforcement | Properties only |
-| **Web App Pattern** | Specific 3-tier structure | Structure + Properties |
-| **E-Commerce Pattern** | Specific e-commerce structure | Structure + Properties |
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    E-Commerce Pattern                        │
+│  (Structure + Standards)                                     │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Required Structure:                                        │
+│  ├── api-gateway (service)                                 │
+│  ├── order-service (service)                               │
+│  ├── inventory-service (service)                           │
+│  ├── payment-service (service)                             │
+│  ├── order-database (database)                             │
+│  └── inventory-database (database)                         │
+│                                                             │
+│  Required Properties (from Standards):                      │
+│  ├── Nodes: costCenter, owner, environment                 │
+│  └── Relationships: dataClassification, encrypted          │
+│                                                             │
+│  Result: Complete governance in one pattern                 │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ## Next Steps
 
-Tomorrow (Day 19) you'll create an E-Commerce Pattern by combining Standards with the structure from your existing architecture!
+Tomorrow (Day 19) you'll learn how to extract patterns from existing architectures - turning proven designs into reusable templates!

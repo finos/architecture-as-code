@@ -1,198 +1,184 @@
-# Day 19: Create an E-Commerce Pattern from Your Architecture
+# Day 19: Extracting Patterns from Existing Architectures
 
 ## Overview
-Reverse-engineer your e-commerce architecture into a reusable pattern that others can use to generate compliant systems.
+Learn how to reverse-engineer a pattern from an existing, proven architecture.
 
 ## Objective and Rationale
-- **Objective:** Create a pattern based on your e-commerce architecture that enforces both structure and Standards
-- **Rationale:** Patterns don't always start from scratch - often you have a proven architecture and want to make it reusable. By extracting a pattern from your e-commerce system, you enable teams to generate new instances that follow the same structure and comply with organisational Standards.
+- **Objective:** Extract a reusable pattern from your e-commerce architecture that others can use
+- **Rationale:** Patterns don't always start from scratch. Often you have a successful architecture and want to make it a template for others. Learning to extract patterns from existing work lets you scale proven designs across your organisation.
 
 ## Requirements
 
 ### 1. Understand Pattern Extraction
 
-Your e-commerce architecture from Day 7 (updated in Day 17) has:
-- Specific nodes (api-gateway, order-service, etc.)
-- Specific relationships (connects, interacts, composed-of)
-- Standard properties (costCenter, owner, dataClassification)
+**When to Extract a Pattern:**
+- You have an architecture that works well
+- Other teams want to build similar systems
+- You want to enforce this structure as a standard
 
-To make it a pattern, you'll:
-- Wrap structural values in `const` (IDs, types, names)
-- Include Standard property placeholders
-- Keep flexibility where customization is needed
+**The Process:**
+1. Identify structural elements (nodes, relationships)
+2. Decide what to constrain (IDs, types) vs leave flexible (metadata values)
+3. Add Standard property requirements
+4. Test generation and validation
 
-### 2. Review Your E-Commerce Architecture
+### 2. Analyze Your E-Commerce Architecture
 
 **Prompt:**
 ```text
-Analyze architectures/ecommerce-platform.json and summarize:
+Analyze architectures/ecommerce-platform.json and create a summary:
 
-1. How many nodes and what are their unique-ids and types?
-2. How many relationships and what types (connects, interacts, composed-of)?
+1. List all nodes with their unique-id and node-type
+2. List all relationships with their unique-id and type (connects/interacts/composed-of)
 3. What Standard properties does each node have?
 4. What Standard properties does each relationship have?
+
+This will be the basis for our extracted pattern.
 ```
 
-### 3. Create the E-Commerce Pattern
+### 3. Decide What to Constrain
 
-**File:** `patterns/ecommerce-pattern.json`
+**Constrain (use const):**
+- `unique-id` - These are the contract
+- `node-type` - Must be correct type
+- `name` - Consistent naming
+
+**Leave Flexible:**
+- `description` - Teams can customize
+- Standard property values (costCenter, owner) - Different per team
+- Interfaces - Deployment-specific
+- Additional metadata
+
+### 4. Create the Extracted Pattern
+
+If you created ecommerce-pattern.json on Day 18, compare it with your architecture:
 
 **Prompt:**
 ```text
-Create a CALM pattern at patterns/ecommerce-pattern.json based on architectures/ecommerce-platform.json.
+Compare patterns/ecommerce-pattern.json with architectures/ecommerce-platform.json:
 
-The pattern should:
-1. Use the CALM pattern schema
-2. Require all the same nodes with their exact unique-ids and node-types using const
-3. Require all the same relationships with their exact unique-ids and relationship-types
-4. Include Standard property placeholders on every node:
-   - costCenter: "CC-0000"
-   - owner: "team-name"
-   - environment: "development"
-5. Include Standard property placeholders on every relationship:
-   - dataClassification: "internal"
-   - encrypted: true
-
-Use prefixItems with minItems/maxItems to enforce exact structure.
-Use const for structural values (unique-id, node-type, relationship-type).
-Do not use const for Standard properties - allow customization.
+1. Does the pattern include all nodes from the architecture?
+2. Does the pattern include all relationships?
+3. Are there any nodes/relationships in the architecture not in the pattern?
+4. Update the pattern to match the complete architecture structure if needed.
 ```
 
-### 4. Test Generation
+### 5. Test Round-Trip: Architecture → Pattern → Architecture
 
-Generate a new architecture from your pattern:
+The ultimate test: can you generate an architecture from the pattern that matches the original?
 
 ```bash
-calm generate -p patterns/ecommerce-pattern.json -o architectures/ecommerce-new.json
+# Generate from pattern
+calm generate -p patterns/ecommerce-pattern.json -o /tmp/roundtrip-test.json
+
+# Compare structure
+echo "Original nodes: $(jq '.nodes | length' architectures/ecommerce-platform.json)"
+echo "Generated nodes: $(jq '.nodes | length' /tmp/roundtrip-test.json)"
+
+echo "Original relationships: $(jq '.relationships | length' architectures/ecommerce-platform.json)"
+echo "Generated relationships: $(jq '.relationships | length' /tmp/roundtrip-test.json)"
 ```
 
-### 5. Compare Generated vs Original
+### 6. Validate Both Directions
 
 ```bash
-# Count nodes
-echo "Generated nodes: $(cat architectures/ecommerce-new.json | jq '.nodes | length')"
-echo "Original nodes: $(cat architectures/ecommerce-platform.json | jq '.nodes | length')"
-
-# Count relationships  
-echo "Generated relationships: $(cat architectures/ecommerce-new.json | jq '.relationships | length')"
-echo "Original relationships: $(cat architectures/ecommerce-platform.json | jq '.relationships | length')"
-```
-
-The counts should match!
-
-### 6. Validate Both Architectures
-
-Both your original and generated architectures should pass:
-
-```bash
-# Original passes
+# Original validates against pattern
 calm validate -p patterns/ecommerce-pattern.json -a architectures/ecommerce-platform.json
 
-# Generated passes
-calm validate -p patterns/ecommerce-pattern.json -a architectures/ecommerce-new.json
+# Generated validates against pattern
+calm validate -p patterns/ecommerce-pattern.json -a /tmp/roundtrip-test.json
 ```
 
 Both should pass! ✅
 
-### 7. Customize the Generated Architecture
-
-The generated architecture has placeholders. For a new team using this pattern, they would customize:
-
-**Prompt:**
-```text
-Update architectures/ecommerce-new.json to set realistic Standard property values:
-
-- Use different cost centres than the original (CC-5001, CC-5002, etc.)
-- Use different owner team names (e.g., "new-orders-team")
-- Keep environment as "development" since this is a new instance
-```
-
-### 8. Validate Again
-
-```bash
-calm validate -p patterns/ecommerce-pattern.json -a architectures/ecommerce-new.json
-```
-
-Still passes! ✅ The pattern enforces structure, not specific property values.
-
-### 9. Test Structure Enforcement
-
-Try creating an incomplete e-commerce architecture:
-
-```bash
-# Create a copy missing a required node
-cat architectures/ecommerce-new.json | jq 'del(.nodes[] | select(."unique-id" == "payment-service"))' > /tmp/incomplete.json
-
-# Validate - should fail
-calm validate -p patterns/ecommerce-pattern.json -a /tmp/incomplete.json
-```
-
-Should fail! ❌ The pattern catches the missing payment-service.
-
-### 10. Visualize Both Versions
-
-Compare the two architectures visually:
-
-1. Open both in VSCode
-2. View previews side by side
-3. Structure should be identical
-4. Property values will differ
-
-### 11. Document the Pattern Extraction
+### 7. Document the Extraction Process
 
 **File:** `patterns/extraction-guide.md`
 
 **Prompt:**
 ```text
-Create patterns/extraction-guide.md documenting:
+Create patterns/extraction-guide.md documenting how to extract patterns:
 
-1. When to extract a pattern from an existing architecture
-   - Proven design that should be replicated
-   - Need to enforce consistency across teams
-   - Want to generate new instances quickly
+1. When to Extract a Pattern
+   - Proven architecture that should be replicated
+   - Need consistency across teams
+   - Want to enforce specific structure
 
-2. Step-by-step extraction process
+2. Step-by-Step Process
+   - List all nodes and relationships
    - Identify structural elements (const)
    - Include Standard property placeholders
    - Set counts with minItems/maxItems
    - Test generation and validation
 
-3. What to constrain vs leave flexible
-   - Constrain: IDs, types, names, relationships
-   - Flexible: Standard property values, interfaces, metadata
+3. What to Constrain vs Leave Flexible
+   - Constrain: IDs, types, names, relationship structure
+   - Flexible: descriptions, Standard values, interfaces, metadata
 
-4. Testing checklist
-   - Generation produces correct structure
-   - Original architecture validates
-   - Missing nodes/relationships fail validation
+4. Testing Checklist
+   - Original architecture validates ✓
+   - Generated architecture validates ✓
+   - Missing required node fails validation ✓
+   - Missing Standard property fails validation ✓
 ```
 
-### 12. Update Pattern Documentation
+### 8. Create a Pattern for Another Architecture
+
+Practice extraction with your web-app architecture:
 
 **Prompt:**
 ```text
-Update patterns/README.md to add documentation for ecommerce-pattern.json:
+Review architectures/generated-webapp.json (from Day 16).
 
-1. What structure it enforces (all e-commerce nodes and relationships)
-2. What Standards it includes
-3. How to generate a new e-commerce system
-4. How to validate an existing system
-5. Comparison with web-app-pattern.json
+Update patterns/web-app-pattern.json to include Standard property requirements:
+- Each node should require costCenter, owner, environment
+- Each relationship should require dataClassification, encrypted
+
+This upgrades the simple structure pattern to a full governance pattern.
 ```
 
-### 13. Clean Up Test Files
+### 9. Test the Updated Web App Pattern
 
 ```bash
-rm architectures/ecommerce-new.json
+# Should fail - generated-webapp.json doesn't have Standard properties yet
+calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json
 ```
 
-(Or keep it if you want an example of a generated architecture)
+**Prompt:**
+```text
+Update architectures/generated-webapp.json to add Standard properties:
 
-### 14. Commit Your Work
+Nodes:
+- web-frontend: CC-4001, frontend-team, production
+- api-service: CC-4002, api-team, production
+- app-database: CC-4003, data-team, production
+
+Relationships:
+- All: encrypted true, dataClassification "internal"
+```
 
 ```bash
-git add patterns/ecommerce-pattern.json patterns/extraction-guide.md patterns/README.md README.md
-git commit -m "Day 19: Create e-commerce pattern from existing architecture"
+# Now should pass
+calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json
+```
+
+### 10. Update Pattern Documentation
+
+**Prompt:**
+```text
+Update patterns/README.md to include:
+
+1. Summary of all patterns and their purposes
+2. The extraction process overview
+3. Link to extraction-guide.md for details
+4. Pattern comparison table
+```
+
+### 11. Commit Your Work
+
+```bash
+git add patterns/ architectures/generated-webapp.json README.md
+git commit -m "Day 19: Document pattern extraction and update patterns with Standards"
 git tag day-19
 ```
 
@@ -201,21 +187,22 @@ git tag day-19
 Your Day 19 submission should include a commit tagged `day-19` containing:
 
 ✅ **Required Files:**
-- `patterns/ecommerce-pattern.json` - E-commerce pattern with Standards
 - `patterns/extraction-guide.md` - Pattern extraction documentation
-- Updated `patterns/README.md` - Documentation
+- Updated `patterns/web-app-pattern.json` - Now with Standard requirements
+- Updated `architectures/generated-webapp.json` - With Standard properties
+- Updated `patterns/README.md` - Complete pattern documentation
 - Updated `README.md` - Day 19 marked as complete
 
 ✅ **Validation:**
 ```bash
-# Pattern exists
-test -f patterns/ecommerce-pattern.json
+# Extraction guide exists
+test -f patterns/extraction-guide.md
 
-# Original architecture validates against pattern
+# E-commerce pattern validates architecture
 calm validate -p patterns/ecommerce-pattern.json -a architectures/ecommerce-platform.json
 
-# Generation works
-calm generate -p patterns/ecommerce-pattern.json -o /tmp/test-ecommerce.json
+# Web-app pattern validates architecture
+calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json
 
 # Check tag
 git tag | grep -q "day-19"
@@ -223,28 +210,31 @@ git tag | grep -q "day-19"
 
 ## Resources
 
-- [JSON Schema const keyword](https://json-schema.org/understanding-json-schema/reference/const)
-- [JSON Schema prefixItems](https://json-schema.org/understanding-json-schema/reference/array#tupleValidation)
-- Your architecture at `architectures/ecommerce-platform.json`
+- Your architectures in `architectures/`
+- Your patterns in `patterns/`
+- Your Standards in `standards/`
 
 ## Tips
 
-- Start by listing all unique-ids and types from your architecture
-- Use const for IDs - these are the "contract"
-- Include Standard placeholders even though they're not const
-- Test by trying to "break" the pattern - missing nodes should fail
-- The pattern should be strict on structure, flexible on values
+- Start with the nodes - they're easier to identify
+- Don't forget composed-of relationships for system containers
+- Test incrementally - add one node at a time to the pattern
+- If validation fails, check the error message carefully
 
-## Pattern Library Summary
+## Pattern Extraction Checklist
 
-You now have:
-
-| Pattern | Purpose | Nodes | Standards |
-|---------|---------|-------|-----------|
-| company-base-pattern | Enforce Standards only | Any | Required |
-| web-app-pattern | 3-tier web app | 3 specific | Required |
-| ecommerce-pattern | E-commerce platform | 9 specific | Required |
+- [ ] List all nodes with unique-id and node-type
+- [ ] List all relationships with unique-id and type
+- [ ] Create prefixItems for each node
+- [ ] Use const for unique-id, node-type, name
+- [ ] Include Standard properties without const
+- [ ] Create prefixItems for each relationship
+- [ ] Set minItems/maxItems to match counts
+- [ ] Test: original architecture validates
+- [ ] Test: generated architecture validates
+- [ ] Test: missing node fails validation
+- [ ] Document the pattern
 
 ## Next Steps
 
-Tomorrow (Day 20) is about using these patterns in practice and understanding the complete workflow!
+Tomorrow (Day 20) you'll consolidate everything into a complete workflow guide for your team!

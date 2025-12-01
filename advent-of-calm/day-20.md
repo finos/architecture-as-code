@@ -1,153 +1,96 @@
 # Day 20: The Complete Standards and Patterns Workflow
 
 ## Overview
-Consolidate your learning by understanding the complete workflow from Standards to Patterns to Architectures.
+Consolidate your learning into a complete workflow guide for using Standards and Patterns in your organisation.
 
 ## Objective and Rationale
-- **Objective:** Review and practice the complete governance workflow you've built over the past week
-- **Rationale:** You've created Standards, a Base Pattern, and Specific Patterns. Today you'll see how they all work together and practice the workflow that teams would use day-to-day.
+- **Objective:** Create comprehensive documentation for teams to follow when working with CALM Standards and Patterns
+- **Rationale:** You've built a complete governance system over Days 15-19. Today you'll document the workflow so other teams can use it effectively.
 
 ## Requirements
 
 ### 1. Review What You've Built
 
-Over Days 15-19, you created a complete governance system:
-
 **Standards (Day 15):**
 - `standards/company-node-standard.json` - costCenter, owner, environment
 - `standards/company-relationship-standard.json` - dataClassification, encrypted
 
-**Patterns (Days 16, 18, 19):**
-- `patterns/company-base-pattern.json` - Enforces Standards on any architecture
-- `patterns/web-app-pattern.json` - 3-tier web app with Standards
-- `patterns/ecommerce-pattern.json` - E-commerce platform with Standards
+**Patterns (Days 16-19):**
+- `patterns/web-app-pattern.json` - 3-tier web app structure + Standards
+- `patterns/company-base-pattern.json` - Standards enforcement only
+- `patterns/ecommerce-pattern.json` - E-commerce structure + Standards
 
-**Compliant Architectures (Day 17):**
-- `architectures/ecommerce-platform.json` - Updated with Standard properties
+**Architectures:**
+- `architectures/ecommerce-platform.json` - Complete with Standards
+- `architectures/generated-webapp.json` - Complete with Standards
 
-### 2. Understand the Workflow
+### 2. Understand the Workflow Options
 
-**For a new architecture project:**
-
+**Option A: Start from a Pattern (New Project)**
 ```
-1. Choose a Pattern
-   └── "I'm building a web app" → web-app-pattern.json
-   └── "I'm building e-commerce" → ecommerce-pattern.json
-   └── "I'm building something else" → company-base-pattern.json
-
-2. Generate Scaffold
-   └── calm generate -p patterns/chosen-pattern.json -o my-architecture.json
-
-3. Customize
-   └── Fill in Standard property values (costCenter, owner, etc.)
-   └── Add interfaces, metadata, flows as needed
-
-4. Validate
-   └── calm validate -p patterns/chosen-pattern.json -a my-architecture.json
-
-5. Commit & CI/CD
-   └── Validation runs in CI to catch regressions
+1. Choose pattern → 2. Generate → 3. Customize → 4. Validate
 ```
 
-### 3. Practice: Create a New E-Commerce Instance
-
-Imagine a new team wants to build their own e-commerce platform:
-
-```bash
-# Generate from pattern
-calm generate -p patterns/ecommerce-pattern.json -o architectures/ecommerce-team-b.json
+**Option B: Validate Existing Architecture**
+```
+1. Choose pattern → 2. Validate → 3. Fix issues → 4. Validate again
 ```
 
-**Prompt:**
-```text
-Update architectures/ecommerce-team-b.json with Team B's specific values:
-
-- All nodes: costCenter "CC-7001", owner "team-b", environment "development"
-- Relationships: keep dataClassification as generated, encrypted: true
-
-This represents a new team using the same architecture pattern but with their own ownership.
+**Option C: Create New Pattern (New Architecture Type)**
+```
+1. Build architecture → 2. Extract pattern → 3. Test → 4. Share
 ```
 
-### 4. Validate Team B's Architecture
-
-```bash
-# Validates against specific pattern
-calm validate -p patterns/ecommerce-pattern.json -a architectures/ecommerce-team-b.json
-
-# Also validates against base pattern (because it has Standards)
-calm validate -p patterns/company-base-pattern.json -a architectures/ecommerce-team-b.json
-```
-
-Both should pass! ✅
-
-### 5. Practice: Create a New Web App
-
-Another team is building a simple web app:
-
-```bash
-calm generate -p patterns/web-app-pattern.json -o architectures/webapp-team-c.json
-```
-
-**Prompt:**
-```text
-Update architectures/webapp-team-c.json with Team C's values:
-
-- web-frontend: costCenter "CC-8001", owner "frontend-team-c", environment "staging"
-- api-service: costCenter "CC-8002", owner "api-team-c", environment "staging"
-- app-database: costCenter "CC-8003", owner "data-team-c", environment "staging"
-- All relationships: dataClassification "internal", encrypted true
-```
-
-Validate:
-```bash
-calm validate -p patterns/web-app-pattern.json -a architectures/webapp-team-c.json
-```
-
-### 6. Demonstrate Cross-Team Consistency
-
-Even though Team B and Team C built different systems, they share:
-- Same Standard properties (costCenter, owner, environment)
-- Same relationship security requirements (dataClassification, encrypted)
-- Same validation approach
-
-This is the power of Standards + Patterns!
-
-### 7. Create a Workflow Guide
+### 3. Create the Workflow Guide
 
 **File:** `docs/architecture-workflow.md`
 
 **Prompt:**
 ```text
-Create docs/architecture-workflow.md documenting the complete workflow:
+Create docs/architecture-workflow.md with comprehensive workflow documentation:
 
-1. Before You Start
-   - Understand available patterns
-   - Check if a pattern exists for your architecture type
+# Architecture Workflow Guide
 
-2. Generate Your Architecture
-   - Choose pattern: base, web-app, or ecommerce
-   - Run: calm generate -p pattern.json -o my-arch.json
+## Overview
+How to use CALM Standards and Patterns for architecture governance.
 
-3. Customize Your Architecture
-   - Fill in Standard properties with your team's values
-   - Add interfaces for your specific deployment
-   - Add any additional metadata
+## Quick Start
 
-4. Validate Your Architecture
-   - Run: calm validate -p pattern.json -a my-arch.json
-   - Fix any validation errors
+### I want to create a new web application
+calm generate -p patterns/web-app-pattern.json -o my-app.json
+# Edit my-app.json to fill in Standard property values
+calm validate -p patterns/web-app-pattern.json -a my-app.json
 
-5. Continuous Validation
-   - Add validation to CI/CD pipeline
-   - Validate on every PR
+### I want to create a new e-commerce platform
+calm generate -p patterns/ecommerce-pattern.json -o my-platform.json
+# Edit to fill in Standard property values
+calm validate -p patterns/ecommerce-pattern.json -a my-platform.json
 
-6. Pattern Reference
-   - company-base-pattern.json: Use for non-standard architectures
-   - web-app-pattern.json: Use for 3-tier web applications
-   - ecommerce-pattern.json: Use for e-commerce platforms
+### I want to validate any architecture against company Standards
+calm validate -p patterns/company-base-pattern.json -a my-architecture.json
+
+## Detailed Workflows
+
+### Workflow A: New Project from Pattern
+(Step by step with examples)
+
+### Workflow B: Validating Existing Work
+(Step by step with examples)
+
+### Workflow C: Creating New Patterns
+(Step by step with examples)
+
+## Pattern Reference
+(Table of all patterns with descriptions)
+
+## Standard Properties Reference
+(What properties are required and why)
+
+## Troubleshooting
+(Common validation errors and fixes)
 ```
 
-### 8. Create a Quick Reference Card
+### 4. Create a Quick Reference Card
 
 **File:** `docs/quick-reference.md`
 
@@ -157,48 +100,116 @@ Create docs/quick-reference.md as a one-page cheat sheet:
 
 # CALM Quick Reference
 
-## Generate Architecture
-calm generate -p patterns/<pattern>.json -o architectures/<name>.json
-
-## Validate Architecture  
-calm validate -p patterns/<pattern>.json -a architectures/<name>.json
-calm validate -a architectures/<name>.json  # Schema only
+## Commands
+Generate: calm generate -p <pattern> -o <output>
+Validate: calm validate -p <pattern> -a <architecture>
+Validate schema only: calm validate -a <architecture>
 
 ## Available Patterns
-| Pattern | Use For |
-|---------|---------|
-| company-base-pattern | Any architecture (Standards only) |
-| web-app-pattern | 3-tier web applications |
-| ecommerce-pattern | E-commerce platforms |
+| Pattern | Use For | Enforces |
+| ------- | ------- | -------- |
+| company-base-pattern | Any architecture | Standards only |
+| web-app-pattern | 3-tier web apps | Structure + Standards |
+| ecommerce-pattern | E-commerce platforms | Structure + Standards |
 
-## Required Standard Properties
-### Nodes
-- costCenter: CC-XXXX
-- owner: team-name
+## Required Node Properties
+- costCenter: CC-XXXX (required)
+- owner: team name (required)  
 - environment: development/staging/production
 
-### Relationships
-- dataClassification: public/internal/confidential/restricted
-- encrypted: true/false
+## Required Relationship Properties
+- dataClassification: public/internal/confidential/restricted (required)
+- encrypted: true/false (required)
+
+## Common Validation Errors
+(List with solutions)
+```
+
+### 5. Create a New Team Onboarding Guide
+
+**File:** `docs/onboarding.md`
+
+**Prompt:**
+```text
+Create docs/onboarding.md for new team members:
+
+# Architecture Onboarding Guide
+
+## Welcome
+Introduction to our architecture governance approach.
+
+## What You Need
+- CALM CLI installed
+- VSCode with CALM extension
+- Access to this repository
+
+## Your First Architecture
+Step-by-step guide to create and validate your first architecture.
+
+## Understanding Standards
+Why we require certain properties and what they mean.
 
 ## Getting Help
-- Docs: https://calm.finos.org
-- Issues: https://github.com/finos/architecture-as-code/issues
+Where to find documentation, who to ask, etc.
 ```
 
-### 9. Clean Up Test Architectures
+### 6. Test the Workflows
 
+Practice each workflow to ensure documentation is accurate:
+
+**Workflow A Test:**
 ```bash
-rm architectures/ecommerce-team-b.json architectures/webapp-team-c.json
+calm generate -p patterns/web-app-pattern.json -o /tmp/workflow-test.json
+# Verify it has placeholder values
+cat /tmp/workflow-test.json | jq '.nodes[0].costCenter'
 ```
 
-(These were just for practice)
+**Workflow B Test:**
+```bash
+calm validate -p patterns/company-base-pattern.json -a architectures/ecommerce-platform.json
+# Should pass
+```
 
-### 10. Commit Your Work
+### 7. Create CI/CD Integration Guide
+
+**File:** `docs/ci-cd-integration.md`
+
+**Prompt:**
+```text
+Create docs/ci-cd-integration.md for automated validation:
+
+# CI/CD Integration
+
+## GitHub Actions Example
+Workflow that validates architectures on every PR.
+
+## Pre-commit Hook
+Validate before committing.
+
+## Validation in Pipeline
+Where to add validation in your CI/CD pipeline.
+
+## Handling Failures
+What to do when validation fails in CI.
+```
+
+### 8. Update Main README
+
+**Prompt:**
+```text
+Update the project README.md to include:
+
+1. Quick start section pointing to docs/architecture-workflow.md
+2. Link to docs/quick-reference.md
+3. Overview of available patterns
+4. Link to docs/onboarding.md for new team members
+```
+
+### 9. Commit Your Work
 
 ```bash
-git add docs/architecture-workflow.md docs/quick-reference.md README.md
-git commit -m "Day 20: Document complete Standards and Patterns workflow"
+git add docs/ README.md
+git commit -m "Day 20: Create complete Standards and Patterns workflow documentation"
 git tag day-20
 ```
 
@@ -207,15 +218,20 @@ git tag day-20
 Your Day 20 submission should include a commit tagged `day-20` containing:
 
 ✅ **Required Files:**
-- `docs/architecture-workflow.md` - Complete workflow documentation
-- `docs/quick-reference.md` - Quick reference card
+- `docs/architecture-workflow.md` - Complete workflow guide
+- `docs/quick-reference.md` - One-page cheat sheet
+- `docs/onboarding.md` - New team member guide
+- `docs/ci-cd-integration.md` - CI/CD integration guide
+- Updated `README.md` - Links to documentation
 - Updated `README.md` - Day 20 marked as complete
 
 ✅ **Validation:**
 ```bash
-# Documentation exists
+# All docs exist
 test -f docs/architecture-workflow.md
 test -f docs/quick-reference.md
+test -f docs/onboarding.md
+test -f docs/ci-cd-integration.md
 
 # All patterns still work
 calm validate -p patterns/company-base-pattern.json -a architectures/ecommerce-platform.json
@@ -232,41 +248,34 @@ Congratulations! You've built a complete governance system:
 | Day | What You Built |
 |-----|----------------|
 | 15 | Node and Relationship Standards |
-| 16 | Company Base Pattern (enforces Standards) |
-| 17 | Applied Standards to e-commerce architecture |
-| 18 | Web App Pattern (structure + Standards) |
-| 19 | E-Commerce Pattern (extracted from architecture) |
-| 20 | Workflow documentation |
+| 16 | First Pattern (web-app, structure only) |
+| 17 | Company Base Pattern (Standards enforcement) |
+| 18 | E-Commerce Pattern (structure + Standards) |
+| 19 | Pattern extraction process |
+| 20 | Complete workflow documentation |
 
 **You now have:**
 - ✅ Reusable Standards for organisational requirements
-- ✅ Base Pattern for Standards enforcement
-- ✅ Specific Patterns for common architectures
-- ✅ Documented workflow for teams to follow
-- ✅ Quick reference for daily use
+- ✅ Multiple Patterns for different use cases
+- ✅ Documentation for team adoption
+- ✅ CI/CD integration guidance
 
 ## The Complete Picture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    CALM Governance System                    │
+│                    Governance System                         │
 ├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Standards (what properties)                                │
-│  ├── company-node-standard.json                            │
-│  └── company-relationship-standard.json                    │
-│           │                                                 │
-│           ▼                                                 │
-│  Patterns (what structure + enforce standards)             │
-│  ├── company-base-pattern.json (generic)                   │
-│  ├── web-app-pattern.json (3-tier)                         │
-│  └── ecommerce-pattern.json (e-commerce)                   │
-│           │                                                 │
-│           ▼                                                 │
-│  Architectures (actual systems)                            │
-│  ├── ecommerce-platform.json                               │
-│  └── generated-webapp.json                                 │
-│                                                             │
+│  Standards          │  Patterns           │  Documentation  │
+│  ─────────          │  ────────           │  ─────────────  │
+│  • Node Standard    │  • company-base     │  • Workflow     │
+│  • Relationship     │  • web-app          │  • Quick Ref    │
+│    Standard         │  • ecommerce        │  • Onboarding   │
+│                     │                     │  • CI/CD        │
+├─────────────────────────────────────────────────────────────┤
+│                    Architectures                             │
+│  • ecommerce-platform.json (validated ✓)                    │
+│  • generated-webapp.json (validated ✓)                      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
