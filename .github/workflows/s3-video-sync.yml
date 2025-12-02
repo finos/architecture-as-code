@@ -27,3 +27,7 @@ jobs:
             - name: Sync video folder to S3
               run: |
                   aws s3 sync video s3://${{ vars.AWS_S3_BUCKET }}/video
+
+            - name: Invalidate CloudFront cache
+              run: |
+                  aws cloudfront create-invalidation --distribution-id ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID }} --paths "/video/*"

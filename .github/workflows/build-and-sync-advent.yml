@@ -40,3 +40,7 @@ jobs:
               run: |
                   aws s3 sync dist s3://${{ vars.AWS_S3_BUCKET }}/advent/ --delete
               working-directory: "advent-of-calm/website"
+
+            - name: Invalidate CloudFront cache
+              run: |
+                  aws cloudfront create-invalidation --distribution-id ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID }} --paths "/advent/*"

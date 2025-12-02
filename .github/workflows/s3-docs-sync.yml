@@ -39,3 +39,7 @@ jobs:
               run: |
                   aws s3 sync build s3://calm.finos.org/ --delete --include "*" --exclude "draft/*" --exclude "samples/*" --exclude "video/*" --exclude "release/*" --exclude "getting-started/*" --exclude "workshop/*"
               working-directory: "docs"
+
+            - name: Invalidate CloudFront cache
+              run: |
+                  aws cloudfront create-invalidation --distribution-id ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
