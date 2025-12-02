@@ -30,4 +30,4 @@ jobs:
 
             - name: Invalidate CloudFront cache
               run: |
-                  aws cloudfront create-invalidation --distribution-id ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID }} --paths "/video/*"
+                  aws cloudfront create-invalidation --distribution-id ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID }} --paths "/video/*"
