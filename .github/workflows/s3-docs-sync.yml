@@ -37,7 +37,7 @@ jobs:
 
             - name: Sync docs to S3
               run: |
-                  aws s3 sync build s3://calm.finos.org/ --delete --include "*" --exclude "draft/*" --exclude "samples/*" --exclude "video/*" --exclude "release/*" --exclude "getting-started/*" --exclude "workshop/*"
+                  aws s3 sync build s3://calm.finos.org/ --delete --include "*" --exclude "advent/*" --exclude "controls/*" --exclude "draft/*" --exclude "getting-started/*" --exclude "interfaces/*" --exclude "release/*" --exclude "samples/*" --exclude "video/*" --exclude "workshop/*"
               working-directory: "docs"
 
             - name: Invalidate CloudFront cache
