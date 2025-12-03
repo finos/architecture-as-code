@@ -5,6 +5,26 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.20.0] - 2025-12-03
+
+## 1.20.0 (2025-12-03)
+
+*  ([af8ab3339039dfda853b6cbaf0b38f8d6eddab01](https://github.com/finos/architecture-as-code/commit/af8ab3339039dfda853b6cbaf0b38f8d6eddab01))
+* chore(deps): bump mdast-util-to-hast ([803f6530ffb91bdebe6c2a092fe92025501f7bdd](https://github.com/finos/architecture-as-code/commit/803f6530ffb91bdebe6c2a092fe92025501f7bdd))
+* chore(deps): bump mdast-util-to-hast from 13.2.0 to 13.2.1 in the npm_and_yarn group across 1 directory ([ebf6e8a33f05b31e2e4b64c9df2095b9615e5646](https://github.com/finos/architecture-as-code/commit/ebf6e8a33f05b31e2e4b64c9df2095b9615e5646))
+* chore(deps): bump the npm_and_yarn group across 2 directories with 4 updates ([6cb6c9d65968863f85cc1b74f0ce885587061942](https://github.com/finos/architecture-as-code/commit/6cb6c9d65968863f85cc1b74f0ce885587061942))
+* chore(deps): bump the npm_and_yarn group across 2 directories with 4 updates ([e9eeabdca80226c6516f8aa8ed33dd811d418f73](https://github.com/finos/architecture-as-code/commit/e9eeabdca80226c6516f8aa8ed33dd811d418f73))
+* chore(deps): update aws-actions/configure-aws-credentials digest to 61815dc ([084b43a358f733cd5a0393a83616cb4d56732976](https://github.com/finos/architecture-as-code/commit/084b43a358f733cd5a0393a83616cb4d56732976))
+* chore(deps): update aws-actions/configure-aws-credentials digest to 61815dc ([c06e6d54239ffe1faf5ffab634d05c49cd66bfd0](https://github.com/finos/architecture-as-code/commit/c06e6d54239ffe1faf5ffab634d05c49cd66bfd0))
+* chore(deps): update docker/metadata-action digest to c299e40 ([3c515439ad832edd81473d141473b93f5d39243b](https://github.com/finos/architecture-as-code/commit/3c515439ad832edd81473d141473b93f5d39243b))
+* chore(deps): update docker/metadata-action digest to c299e40 ([8649011f3a180976d5570403a3800a30bf0cef1c](https://github.com/finos/architecture-as-code/commit/8649011f3a180976d5570403a3800a30bf0cef1c))
+* feat: add CloudFront cache invalidation to S3 sync workflows ([282d0260c9911e62b2bdeac78e28d8efd4edb90e](https://github.com/finos/architecture-as-code/commit/282d0260c9911e62b2bdeac78e28d8efd4edb90e))
+* feat: add CloudFront cache invalidation to S3 sync workflows ([3887bb02b3187ccd2f81d8a90dbcfeabaf8a4e5b](https://github.com/finos/architecture-as-code/commit/3887bb02b3187ccd2f81d8a90dbcfeabaf8a4e5b))
+* feat: add CloudFront cache invalidation to S3 sync workflows ([8e683278f1fc80e2cf695d8089fe3f447da9609c](https://github.com/finos/architecture-as-code/commit/8e683278f1fc80e2cf695d8089fe3f447da9609c))
+* fix(aoc): fix link back to pre-requisites from day 1 ([cd2f508b08c2c7acf8145d172988f5d40a712faf](https://github.com/finos/architecture-as-code/commit/cd2f508b08c2c7acf8145d172988f5d40a712faf))
+* fix: use secret instead of var for CloudFront distribution ID ([d78c391f19830d87a00c6e5362fea5c77905699f](https://github.com/finos/architecture-as-code/commit/d78c391f19830d87a00c6e5362fea5c77905699f))
+* fix: use secret instead of var for CloudFront distribution ID ([d3eae4fd224d6f2894a584d93e7bf91c276bd715](https://github.com/finos/architecture-as-code/commit/d3eae4fd224d6f2894a584d93e7bf91c276bd715))
+
 ## [1.19.1] - 2025-12-01
 
 ## <small>1.19.1 (2025-12-01)</small>
