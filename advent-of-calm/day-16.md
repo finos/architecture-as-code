@@ -1,356 +1,180 @@
-# Day 16: Generate Operations Documentation with Docify
+# Day 16: Using Standards for Your Organisation
 
 ## Overview
-
-Use CALM docify to generate support documentation and incident report templates directly from your architecture's operational metadata.
+Learn how CALM Standards extend the flexible core schema with your organisation's specific requirements, enabling consistent governance across all architectures.
 
 ## Objective and Rationale
-
-- **Objective:** Create Handlebars templates that generate runbooks, on-call guides, and incident report templates from your architecture metadata
-- **Rationale:** Yesterday you enriched your architecture with operational metadata (owners, health endpoints, failure modes, escalation paths). Today, use docify to transform that metadata into ready-to-use operations documents. This ensures your support docs always match your actual architecture - no more stale wikis!
+- **Objective:** Understand how Standards work as JSON Schema extensions that add organisation-specific constraints to CALM components
+- **Rationale:** The CALM Schema is intentionally unopinionated and open for extension. Standards allow organisations to add consistency and constraints without modifying the core schema. This enables company-wide governance while maintaining CALM's flexibility.
 
 ## Requirements
 
-### 1. Understand the Ops Documentation Goal
+### 1. Understand What Standards Are
 
-Your Day 13 architecture now contains:
+**The Problem Standards Solve:**
+- CALM's core schema is flexible - it doesn't mandate cost centres, owners, or compliance tags
+- Your organisation likely has requirements: "Every service must have an owner" or "All nodes need a cost centre code"
+- You don't want to modify CALM's core schema - you want to extend it
 
-- Owner and on-call contacts per service
-- Health endpoints and runbook links
-- Failure modes with symptoms and remediation
-- Business impact per flow
-- Monitoring dashboard links
+**The Solution:**
+Standards are JSON Schema 2020-12 documents that compose with core CALM schemas using `allOf`. They add your organisation's requirements on top of CALM's foundation.
 
-Today you'll create templates that extract this into:
+### 2. Review the Standards Documentation
 
-1. **Service Runbook** - Per-service troubleshooting guide
-2. **On-Call Quick Reference** - Single-page contact sheet
-3. **Incident Report Template** - Pre-filled incident form
+Before creating Standards, familiarise yourself with the concept:
 
-### 2. Create the Ops Template Directory
+**Prompt:**
+```text
+Explain the key concepts from the CALM Standards documentation:
+1. What are Standards and why are they useful?
+2. How do Standards use JSON Schema 2020-12?
+3. What CALM components can Standards extend?
+```
+
+### 3. Understand the Standards Structure
+
+Standards extend core CALM definitions using `allOf` composition:
+
+```json
+{
+  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "title": "Company Node Standard",
+  "allOf": [
+    { "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node" },
+    {
+      "type": "object",
+      "properties": {
+        "costCenter": { "type": "string" },
+        "owner": { "type": "string" }
+      },
+      "required": ["costCenter", "owner"]
+    }
+  ]
+}
+```
+
+This says: "A node using this Standard must satisfy BOTH the core CALM node requirements AND our additional properties."
+
+### 4. Explore Common Use Cases
+
+**Organisation-Level Extensions:**
+- **Company Node Requirements**: Cost centres, ownership, compliance tags
+- **Relationship Policies**: Approval workflows, security zones
+- **Control Requirements**: Organisational compliance frameworks
+
+**Industry Standards:**
+- **Financial Services**: Regulatory compliance, risk classifications
+- **Healthcare**: HIPAA compliance, patient data handling
+- **Government**: Security clearances, classification levels
+
+### 5. Create a Standards Directory
+
+Set up a place for your organisation's Standards:
 
 ```bash
-mkdir -p templates/ops
+mkdir -p standards
 ```
 
-### 3. Create the Service Runbook Template
+### 6. Create Your First Node Standard
 
-**File:** `templates/ops/service-runbook.md`
+Create a Company Node Standard that extends the core CALM node with organisational requirements.
 
-**Content:**
+**Prompt:**
+```text
+Create a CALM Standard at standards/company-node-standard.json that extends the core CALM node definition.
 
-```handlebars
-# Service Runbooks
+Additional properties to require:
+1. costCenter - a string that must match the pattern CC- followed by exactly 4 digits (e.g., CC-1234)
+2. owner - a string for the team or individual responsible
+3. environment - must be one of: development, staging, or production
 
-Generated from architecture: {{metadata.name}}
-Generated on: {{now}}
-
----
-
-{{#each nodes}}
-{{#if (eq node-type "service")}}
-## {{name}}
-
-**Unique ID:** `{{unique-id}}`
-**Type:** {{node-type}}
-
-### Ownership
-
-| Field | Value |
-|-------|-------|
-| Owner | {{metadata.owner}} |
-| On-Call Slack | {{metadata.oncall-slack}} |
-| Tier | {{metadata.tier}} |
-| Runbook | {{metadata.runbook}} |
-
-### Health & Monitoring
-
-- **Health Endpoint:** `{{metadata.health-endpoint}}`
-- **Dashboard:** {{metadata.dashboard}}
-- **Log Query:** `{{metadata.log-query}}`
-
-### Dependencies
-
-{{#if metadata.dependencies}}
-This service depends on:
-{{#each metadata.dependencies}}
-- {{this}}
-{{/each}}
-{{else}}
-No dependencies documented.
-{{/if}}
-
-### Known Failure Modes
-
-{{#if metadata.failure-modes}}
-{{#each metadata.failure-modes}}
-#### {{symptom}}
-
-| Aspect | Details |
-|--------|---------|
-| **Likely Cause** | {{likely-cause}} |
-| **How to Check** | {{check}} |
-| **Remediation** | {{remediation}} |
-| **Escalation** | {{escalation}} |
-
-{{/each}}
-{{else}}
-No failure modes documented yet.
-{{/if}}
-
----
-
-{{/if}}
-{{/each}}
-
-## Quick Links
-
-| Service | Health Check | Dashboard | Runbook |
-|---------|--------------|-----------|---------|
-{{#each nodes}}
-{{#if (eq node-type "service")}}
-| {{name}} | `{{metadata.health-endpoint}}` | [Dashboard]({{metadata.dashboard}}) | [Runbook]({{metadata.runbook}}) |
-{{/if}}
-{{/each}}
+Make costCenter and owner required. Include helpful descriptions for each property.
 ```
 
-### 4. Create the On-Call Quick Reference Template
+Review the generated file - it should use `allOf` to reference the base CALM node schema and add your organisation's properties on top.
 
-**File:** `templates/ops/oncall-reference.md`
+### 7. Create a Relationship Standard
 
-**Content:**
+Create a Standard for relationships that ensures security classification:
 
-```handlebars
-# On-Call Quick Reference
+**Prompt:**
+```text
+Create a CALM Standard at standards/company-relationship-standard.json that extends the core CALM relationship definition.
 
-**Architecture:** {{metadata.name}}
-**Generated:** {{now}}
+Additional properties to require:
+1. dataClassification - must be one of: public, internal, confidential, restricted
+2. encrypted - a boolean indicating if the connection is encrypted
 
-## Service Contacts
-
-| Service | Owner | On-Call Channel | Tier |
-|---------|-------|-----------------|------|
-{{#each nodes}}
-{{#if (eq node-type "service")}}
-| {{name}} | {{metadata.owner}} | {{metadata.oncall-slack}} | {{metadata.tier}} |
-{{/if}}
-{{/each}}
-
-## Database Contacts
-
-| Database | DBA Contact | Backup Schedule | Restore Time |
-|----------|-------------|-----------------|--------------|
-{{#each nodes}}
-{{#if (eq node-type "database")}}
-| {{name}} | {{metadata.dba-contact}} | {{metadata.backup-schedule}} | {{metadata.restore-time}} |
-{{/if}}
-{{/each}}
-
-## Critical Flows & Business Impact
-
-{{#each flows}}
-### {{name}}
-
-- **Business Impact:** {{metadata.business-impact}}
-- **SLA:** {{metadata.sla}}
-- **Degraded Behavior:** {{metadata.degraded-behavior}}
-- **Customer Communication:** {{metadata.customer-communication}}
-
-**Flow Path:**
-{{#each transitions}}
-{{@index}}. {{relationship-unique-id}}
-{{/each}}
-
----
-
-{{/each}}
-
-## Monitoring Links
-
-{{#if metadata.monitoring}}
-| Resource | Link |
-|----------|------|
-| Grafana Dashboard | {{metadata.monitoring.grafana-dashboard}} |
-| Kibana Logs | {{metadata.monitoring.kibana-logs}} |
-| PagerDuty | {{metadata.monitoring.pagerduty-service}} |
-| Status Page | {{metadata.monitoring.statuspage}} |
-{{/if}}
-
-## Escalation Matrix
-
-| Tier | Response Time | Escalation Path |
-|------|---------------|-----------------|
-| tier-1 | 15 minutes | Page immediately, all-hands |
-| tier-2 | 30 minutes | Page on-call, notify manager |
-| tier-3 | 2 hours | Slack notification, next business day OK |
+Make both properties required. Include helpful descriptions.
 ```
 
-### 5. Create the Flow Support Guide Template
+### 8. Understand What the Standards Do
 
-Generate support documentation organized by business flows - helping support teams understand end-to-end processes.
+The generated Standards compose two schemas together:
 
-**File:** `templates/ops/flow-support-guide.md`
+**For Nodes:**
+1. **Base CALM node** - provides `unique-id`, `node-type`, `name`, `description`
+2. **Your extensions** - adds `costCenter`, `owner`, `environment`
 
-**Content:**
+**For Relationships:**
+1. **Base CALM relationship** - provides `unique-id`, `relationship-type`, `description`
+2. **Your extensions** - adds `dataClassification`, `encrypted`
 
-```handlebars
-# Business Flow Support Guide
+When you use these Standards, components must satisfy BOTH sets of requirements. This is the power of Standards - you extend CALM without modifying it.
 
-**Architecture:** {{metadata.name}}
-**Generated:** {{now}}
+### 9. Understand the Value of Standards
 
-This guide documents each business flow, the services involved, and troubleshooting steps for support teams.
+**What Standards Give You:**
+- **Consistency**: Every architecture follows the same rules
+- **Discoverability**: Easy to find who owns what
+- **Compliance**: Automated validation of requirements
+- **Onboarding**: New team members understand expectations
 
----
+**Example Scenarios:**
+- "Who owns this service?" → Check the `owner` property
+- "What's the cost allocation?" → Check the `costCenter` property
+- "Is this connection secure?" → Check the `encrypted` and `dataClassification` properties
 
-{{#each flows}}
-## {{name}}
+### 10. Document Your Standards
 
-**Description:** {{description}}
+**File:** `standards/README.md`
 
-### Business Impact
+**Prompt:**
+```text
+Create standards/README.md that documents:
 
-| Aspect | Details |
-|--------|---------|
-| **Impact** | {{metadata.business-impact}} |
-| **SLA** | {{metadata.sla}} |
-| **Degraded Mode** | {{metadata.degraded-behavior}} |
-| **Customer Message** | {{metadata.customer-communication}} |
-
-### Flow Path
-
-This flow traverses the following relationships:
-
-| Step | Relationship | Description |
-|------|--------------|-------------|
-{{#each transitions}}
-| {{sequence-number}} | `{{relationship-unique-id}}` | {{description}} |
-{{/each}}
-
-### Troubleshooting Checklist
-
-When this flow is degraded:
-
-1. Check the health endpoints for each service in the flow
-2. Review circuit breaker status between services
-3. Check message broker queue depths (if async)
-4. Review recent deployments to services in this flow
-5. Check database replication lag
-
-### Escalation
-
-If this flow is critical (tier-1), escalate immediately to the service owners.
-
----
-
-{{/each}}
-
-## Quick Reference: All Flows
-
-| Flow | Business Impact | SLA |
-|------|-----------------|-----|
-{{#each flows}}
-| {{name}} | {{metadata.business-impact}} | {{metadata.sla}} |
-{{/each}}
+1. What Standards are and how they extend CALM using allOf composition
+2. Our company's node standard requirements (cost centre, owner, environment)
+3. Our company's relationship standard requirements (data classification, encrypted)
+4. How these Standards can be enforced via Patterns (referencing the web-app-pattern from Day 15)
 ```
 
-### 6. Generate the Operations Documents
+### 11. Commit Your Work
 
 ```bash
-# Generate service runbooks
-calm docify -a architectures/ecommerce-platform.json \
-  -t templates/ops/service-runbook.md \
-  -o docs/ops/service-runbooks.md
-
-# Generate on-call quick reference
-calm docify -a architectures/ecommerce-platform.json \
-  -t templates/ops/oncall-reference.md \
-  -o docs/ops/oncall-reference.md
-
-# Generate flow support guide
-calm docify -a architectures/ecommerce-platform.json \
-  -t templates/ops/flow-support-guide.md \
-  -o docs/ops/flow-support-guide.md
-```
-
-### 7. Review Generated Documents
-
-Open each generated document and verify:
-
-- Service runbooks contain all your services with their failure modes
-- On-call reference has correct contacts and escalation info
-- Flow support guide documents each business flow with its impact and troubleshooting steps
-
-**Take screenshots** of each generated document for your deliverables.
-
-### 8. Integrate with CI/CD for Always Up-to-Date Docs
-
-Now that you can generate documentation from your architecture, integrate it into your CI/CD pipeline so docs are always current.
-
-**Key insight:** Your architecture is the source of truth. When it changes, your docs should automatically regenerate.
-
-**Options for integration:**
-
-1. **On every PR:** Regenerate docs and commit them back
-2. **On merge to main:** Regenerate and deploy to documentation site
-3. **Scheduled:** Regenerate nightly to catch any drift
-
-**Example GitHub Actions step:**
-
-```yaml
-- name: Generate operations documentation
-  run: |
-    calm docify -a architectures/ecommerce-platform.json \
-      -t templates/ops/service-runbook.md \
-      -o docs/ops/service-runbooks.md
-    calm docify -a architectures/ecommerce-platform.json \
-      -t templates/ops/oncall-reference.md \
-      -o docs/ops/oncall-reference.md
-    calm docify -a architectures/ecommerce-platform.json \
-      -t templates/ops/flow-support-guide.md \
-      -o docs/ops/flow-support-guide.md
-```
-
-**Benefits:**
-- Documentation never goes stale
-- No manual effort to keep docs updated
-- Changes to architecture automatically reflected
-- Single source of truth for both code and docs
-
-### 9. Commit Your Work
-
-```bash
-git add templates/ops/ docs/ops/
-git commit -m "Day 14: Generate operations documentation with docify templates"
+git add standards/
+git commit -m "Day 16: Create CALM Standards for organisational node and relationship requirements"
 git tag day-16
 ```
 
-## Deliverables
+## Deliverables / Validation Criteria
 
-✅ **Required:**
+Your Day 16 submission should include a commit tagged `day-16` containing:
 
-- `templates/ops/service-runbook.md` - Handlebars template for service runbooks
-- `templates/ops/oncall-reference.md` - On-call quick reference template
-- `templates/ops/flow-support-guide.md` - Flow-based support guide template
-- `docs/ops/service-runbooks.md` - Generated service runbooks
-- `docs/ops/oncall-reference.md` - Generated on-call reference
-- `docs/ops/flow-support-guide.md` - Generated flow support guide
-- Screenshots of generated documents
-- Updated `README.md` - Day 16 marked complete
+✅ **Required Files:**
+- `standards/company-node-standard.json` - Node Standard with costCenter, owner, environment
+- `standards/company-relationship-standard.json` - Relationship Standard with dataClassification, encrypted
+- `standards/README.md` - Documentation explaining the Standards
+- Updated `README.md` - Day 16 marked as complete
 
 ✅ **Validation:**
-
 ```bash
-# Verify templates exist
-ls templates/ops/*.md
+# Verify standards directory exists
+ls standards/
 
-# Verify generated docs exist
-ls docs/ops/*.md
-
-# Verify content was generated
-grep -q "failure-modes" docs/ops/service-runbooks.md
-grep -q "On-Call" docs/ops/oncall-reference.md
-grep -q "Business Flow" docs/ops/flow-support-guide.md
+# Verify Standards are valid JSON
+cat standards/company-node-standard.json | jq .
+cat standards/company-relationship-standard.json | jq .
 
 # Check tag
 git tag | grep -q "day-16"
@@ -358,20 +182,18 @@ git tag | grep -q "day-16"
 
 ## Resources
 
-- [Handlebars Templating](https://handlebarsjs.com/guide/)
-- [CALM Docify Documentation](https://github.com/finos/architecture-as-code/tree/main/cli#docify)
-- [Incident Management Templates](https://www.atlassian.com/incident-management/postmortem/templates)
-- [Google SRE Runbook Best Practices](https://sre.google/sre-book/effective-troubleshooting/)
+- [CALM Standards Documentation](https://calm.finos.org/docs/core-concepts/standards)
+- [JSON Schema 2020-12 Specification](https://json-schema.org/draft/2020-12/json-schema-core.html)
+- [JSON Schema allOf](https://json-schema.org/understanding-json-schema/reference/combining#allOf)
 
 ## Tips
 
-- Regenerate docs whenever architecture changes - add to CI/CD
-- Keep templates generic; let architecture metadata provide specifics
-- Add more failure modes as you learn from incidents
-- Link incident reports back to architecture to close the feedback loop
-- Consider templating different formats (HTML, PDF) for different audiences
-- The incident report checkboxes help ensure nothing is missed during stressful incidents
+- Start simple - add complexity as your organisation's needs become clearer
+- Standards should focus on properties that genuinely need consistency
+- Document why each required property matters
+- The `allOf` composition is key - it extends rather than replaces CALM
+- Standards alone don't enforce anything - tomorrow we'll create a pattern that references them to enforce compliance
 
 ## Next Steps
 
-Tomorrow (Day 17) you'll create your first CALM pattern - turning architecture into reusable, enforceable templates!
+Tomorrow (Day 17) you'll create a Company Base Pattern that enforces these Standards across all architectures, combining the structural power of Patterns with the property requirements of Standards!

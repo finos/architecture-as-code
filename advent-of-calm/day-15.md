@@ -1,271 +1,316 @@
-# Day 15: Use CALM as Your Expert Operations Advisor
+# Day 15: Introduction to CALM Patterns
 
 ## Overview
-
-Use CALM Chat mode as an expert operations advisor to troubleshoot issues in your e-commerce platform. With rich metadata, your architecture becomes living support documentation.
+Learn how CALM Patterns enable you to define reusable architecture templates that can both generate new architectures and validate existing ones.
 
 ## Objective and Rationale
-
-- **Objective:** Enrich your architecture with operational metadata and use CALM Chat mode to troubleshoot simulated outages
-- **Rationale:** Traditional support documentation (Confluence, Twikis, runbooks) quickly becomes stale and disconnected from reality. By embedding operational knowledge directly in your architecture model, CALM becomes a queryable operations expert. When an incident occurs, engineers can ask CALM about affected components, dependencies, escalation paths, and troubleshooting steps - all derived from the actual architecture.
+- **Objective:** Understand what Patterns are and create your first Pattern for a simple web application
+- **Rationale:** Patterns are CALM's superpower for reuse and governance. A single Pattern can generate architecture scaffolds instantly AND validate that existing architectures conform to a required structure. This dual capability makes Patterns essential for scaling architecture practices across teams.
 
 ## Requirements
 
-### 1. Understand Architecture as Operations Documentation
+### 1. Understand What Patterns Are
 
-Your CALM architecture already contains:
+**The Problem Patterns Solve:**
+- Teams keep building similar architectures from scratch
+- No easy way to enforce "all web apps must have these components"
+- Inconsistent structures across projects
 
-- **Nodes:** What services exist, their types, and criticality
-- **Relationships:** How services connect and depend on each other
-- **Flows:** Business processes that traverse your system
-- **Controls:** SLAs and compliance requirements
+**The Solution:**
+CALM Patterns pre-define the required structure of an architecture. They specify which nodes must exist, what relationships must connect them, and what properties they must have.
 
-By adding operational metadata, you transform this into queryable support documentation:
+### 2. Understand the Dual Superpower
 
-- Ownership and escalation contacts
-- Health check endpoints
-- Common failure modes and remediation steps
-- Runbook links and troubleshooting guides
+**One Pattern = Two Powers:**
 
-Unlike static wikis, this documentation lives with the architecture and stays in sync.
-
-### 2. Add Operational Metadata to Nodes
-
-Enrich your key services with support information.
-
-**Prompt:**
-
-```text
-Add operational metadata to my e-commerce architecture nodes. For each service (load-balancer, api-gateway-1, api-gateway-2, order-service, inventory-service, payment-service), add metadata including:
-
-1. "owner": team name responsible (e.g., "platform-team", "payments-team")
-2. "oncall-slack": Slack channel for incidents (e.g., "#oncall-platform")
-3. "health-endpoint": Health check URL (e.g., "/health" or "/actuator/health")
-4. "runbook": Link to runbook (e.g., "https://runbooks.example.com/order-service")
-5. "tier": Service tier for prioritization ("tier-1", "tier-2", "tier-3")
-6. "dependencies": Array of critical upstream/downstream services
-
-Also add to the databases:
-1. "backup-schedule": When backups run
-2. "restore-time": Expected restore duration
-3. "dba-contact": DBA team contact
+**Power 1 - Generation:**
+```bash
+calm generate -p my-pattern.json -o new-architecture.json
 ```
+Creates an architecture scaffold with all required nodes and relationships.
 
-### 3. Add Failure Mode Metadata
+**Power 2 - Validation:**
+```bash
+calm validate -p my-pattern.json -a existing-architecture.json
+```
+Checks that an architecture has the required structure.
 
-Document known failure modes and remediation steps.
+### 3. Understand How Patterns Work
 
-**Prompt:**
+Patterns use JSON Schema keywords to define requirements:
 
-```text
-Add failure mode documentation to the order-service node metadata:
+- **`const`** - Requires an exact value (e.g., `"unique-id": { "const": "api-gateway" }`)
+- **`prefixItems`** - Defines exact items in an array
+- **`minItems`/`maxItems`** - Enforces array length
+- **`$ref`** - References other schemas
 
-"failure-modes": [
-  {
-    "symptom": "HTTP 503 errors",
-    "likely-cause": "Database connection pool exhausted",
-    "check": "Check connection pool metrics in Grafana dashboard",
-    "remediation": "Scale up service replicas or increase pool size",
-    "escalation": "If persists > 5min, page DBA team"
-  },
-  {
-    "symptom": "High latency (>2s p99)",
-    "likely-cause": "Payment service degradation",
-    "check": "Check payment-service health and circuit breaker status",
-    "remediation": "Circuit breaker should open automatically; check fallback queue",
-    "escalation": "Contact payments-team if circuit breaker not triggering"
-  },
-  {
-    "symptom": "Order validation failures",
-    "likely-cause": "Inventory service returning stale data",
-    "check": "Verify inventory-service cache TTL and database replication lag",
-    "remediation": "Clear inventory cache; check replica sync status",
-    "escalation": "Contact platform-team for cache issues"
+**Example: Requiring a specific node**
+```json
+{
+  "nodes": {
+    "type": "array",
+    "prefixItems": [
+      {
+        "properties": {
+          "unique-id": { "const": "api-gateway" },
+          "node-type": { "const": "service" },
+          "name": { "const": "API Gateway" }
+        }
+      }
+    ],
+    "minItems": 1
   }
-]
-
-Add similar failure modes for payment-service and inventory-service.
-```
-
-### 4. Add Flow-Level Incident Metadata
-
-Document what business impact each flow has when degraded.
-
-**Prompt:**
-
-```text
-Add incident metadata to my business flows:
-
-For order-processing-flow:
-- "business-impact": "Customers cannot complete purchases - direct revenue loss"
-- "degraded-behavior": "Orders queue in message broker; processed when service recovers"
-- "customer-communication": "Display 'Order processing delayed' message"
-- "sla": "99.9% availability, 30s p99 latency"
-
-For inventory-check-flow:
-- "business-impact": "Stock levels may be inaccurate - risk of overselling"
-- "degraded-behavior": "Fall back to cached inventory; flag orders for manual review"
-- "customer-communication": "Display 'Stock availability being confirmed'"
-- "sla": "99.5% availability, 500ms p99 latency"
-```
-
-### 5. Add Monitoring and Alerting Metadata
-
-Document where to find observability data.
-
-**Prompt:**
-
-```text
-Add monitoring metadata to the architecture level:
-
-"monitoring": {
-  "grafana-dashboard": "https://grafana.example.com/d/ecommerce-overview",
-  "kibana-logs": "https://kibana.example.com/app/discover#/ecommerce-*",
-  "pagerduty-service": "https://pagerduty.example.com/services/ECOMMERCE",
-  "statuspage": "https://status.example.com",
-  "metrics-retention": "30 days",
-  "log-retention": "90 days"
 }
-
-Add service-specific dashboards in each node's metadata:
-- "dashboard": Link to service-specific Grafana dashboard
-- "log-query": Pre-built Kibana query for this service
-- "alerts": Array of PagerDuty alert names that fire for this service
 ```
 
-### 6. Validate the Enriched Architecture
+This pattern requires an architecture to have a node with `unique-id: "api-gateway"`.
+
+### 4. Create Your First Pattern
+
+Create a simple pattern for a 3-tier web application.
+
+**Prompt:**
+```text
+Create a CALM pattern at patterns/web-app-pattern.json for a 3-tier web application.
+
+The pattern should:
+1. Have a unique $id (https://example.com/patterns/web-app-pattern.json)
+2. Have title "Web Application Pattern" and a description
+3. Require exactly 3 nodes using prefixItems:
+   - "web-frontend" (node-type: webclient, name: "Web Frontend")
+   - "api-service" (node-type: service, name: "API Service")
+   - "app-database" (node-type: database, name: "Application Database")
+4. Require exactly 2 relationships:
+   - "frontend-to-api": connects web-frontend to api-service
+   - "api-to-database": connects api-service to app-database
+
+Use const for unique-id, node-type, and name properties.
+Set minItems and maxItems to enforce exact counts.
+```
+
+### 5. Test Generation
+
+Generate an architecture from your pattern:
 
 ```bash
-calm validate -a architectures/ecommerce-platform.json
+calm generate -p patterns/web-app-pattern.json -o architectures/generated-webapp.json
 ```
 
-Metadata doesn't affect validation - it passes through as documentation.
+Open `architectures/generated-webapp.json` and verify:
+- ✅ Has exactly 3 nodes with the correct IDs, types, and names
+- ✅ Has exactly 2 relationships connecting them
+- ✅ Structure matches what the pattern defined
 
-### 7. Simulate an Outage: Payment Service Down
+### 6. Visualize the Generated Architecture
 
-Now use CALM as your operations advisor to troubleshoot!
+**Steps:**
+1. Open `architectures/generated-webapp.json` in VSCode
+2. Open preview (Ctrl+Shift+C / Cmd+Shift+C)
+3. See the 3-tier architecture visualized
+4. **Take a screenshot**
 
-**Scenario:** You receive an alert that order completion rate has dropped 80%. Customers are complaining they can't checkout.
+### 7. Test Validation - Passing Case with Warnings
+
+Your generated architecture should validate against the pattern:
+
+```bash
+calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json
+```
+
+Should pass! ✅ but show some warnings:
+
+```json
+{
+    "jsonSchemaValidationOutputs": [],
+    "spectralSchemaValidationOutputs": [
+        {
+            "code": "architecture-has-no-placeholder-properties-string",
+            "severity": "warning",
+            "message": "String placeholder detected in architecture.",
+            "path": "/nodes/0/description",
+            "schemaPath": "",
+            "line_start": 0,
+            "line_end": 0,
+            "character_start": 98,
+            "character_end": 117
+        },
+        {
+            "code": "architecture-has-no-placeholder-properties-string",
+            "severity": "warning",
+            "message": "String placeholder detected in architecture.",
+            "path": "/nodes/1/description",
+            "schemaPath": "",
+            "line_start": 0,
+            "line_end": 0,
+            "character_start": 203,
+            "character_end": 222
+        },
+        {
+            "code": "architecture-has-no-placeholder-properties-string",
+            "severity": "warning",
+            "message": "String placeholder detected in architecture.",
+            "path": "/nodes/2/description",
+            "schemaPath": "",
+            "line_start": 0,
+            "line_end": 0,
+            "character_start": 319,
+            "character_end": 338
+        }
+    ],
+    "hasErrors": false,
+    "hasWarnings": true
+}%
+```
+
+This is because `description` is a required field of nodes in the calm schema, but because we didn't provide a default description in our pattern, the generate command has put in placeholders which it expects us to fill in after generation.
+
+String placeholders can be identified by two square brackets: `"description": "[[ DESCRIPTION ]]"`. Numeric placeholders will have the value `-1`.
+
+As you will have seen when you visualised the architecture, placeholders don't make the architecture invalid, hence why only warnings are reported, but it allows you to build integration in your own tooling to spot where an architect or engineer you expect to replace those placeholders.
+
+### 8. Test Validation - Failing Case
+
+Create a broken architecture to see validation fail:
+
+1. Create architectures/broken-webapp.json by copying generated-webapp.json
+2. Change the unique-id of "api-service" to "backend-api"
+
+Validate:
+```bash
+calm validate -p patterns/web-app-pattern.json -a architectures/broken-webapp.json
+```
+
+Should fail! ❌ The pattern catches that "api-service" is missing.
+
+```json
+{
+    "jsonSchemaValidationOutputs": [
+        {
+            "code": "json-schema",
+            "severity": "error",
+            "message": "must be equal to constant",
+            "path": "/nodes/1/unique-id",
+            "schemaPath": "#/properties/nodes/prefixItems/1/properties/unique-id/const"
+        }
+    ],
+    "spectralSchemaValidationOutputs": [
+        {
+            "code": "connects-relationship-references-existing-nodes-in-architecture",
+            "severity": "error",
+            "message": "'api-service' does not refer to the unique-id of an existing node.",
+            "path": "/relationships/0/relationship-type/connects/destination/node",
+            "schemaPath": "",
+            "line_start": 0,
+            "line_end": 0,
+            "character_start": 440,
+            "character_end": 453
+        },
+        {
+            "code": "connects-relationship-references-existing-nodes-in-architecture",
+            "severity": "error",
+            "message": "'api-service' does not refer to the unique-id of an existing node.",
+            "path": "/relationships/1/relationship-type/connects/source/node",
+            "schemaPath": "",
+            "line_start": 0,
+            "line_end": 0,
+            "character_start": 539,
+            "character_end": 552
+        },
+        {
+            "code": "architecture-nodes-must-be-referenced",
+            "severity": "warning",
+            "message": "Node with ID 'api-service-1' is not referenced by any relationships.",
+            "path": "/nodes/1/unique-id",
+            "schemaPath": "",
+            "line_start": 0,
+            "line_end": 0,
+            "character_start": 119,
+            "character_end": 134
+        }
+    ],
+    "hasErrors": true,
+    "hasWarnings": true
+}%   
+```
+
+As you can see, not only does the `validate` command identify that it is missing an expected node, but the relationship which was referencing it is also now in error and there is also a warning because we now have a node which is not referenced in any relationships.
+
+### 9. Enhance the Generated Architecture
+
+The generated architecture has the required structure. Now add details:
 
 **Prompt:**
-
 ```text
-I'm receiving alerts that order completion rate has dropped 80%. Customers report checkout failures.
+Update architectures/generated-webapp.json to add:
+1. Descriptions for each node explaining their purpose
+2. A description for each relationship
+3. Interfaces on api-service (host, port for HTTPS)
+4. Interfaces on app-database (host, port for PostgreSQL)
 
-Based on my e-commerce architecture:
-1. What services are involved in the checkout/order flow?
-2. What are the most likely failure points?
-3. What health endpoints should I check first?
-4. Who should I contact if this is a payment issue?
-5. What's the business impact and customer communication plan?
+Keep the unique-ids, node-types, and names exactly as they are.
 ```
 
-CALM should respond using your architecture's metadata, identifying the order-processing-flow, the services involved, health endpoints to check, and escalation contacts.
+### 10. Validate the Enhanced Architecture
 
-**Capture the output** - Take a screenshot or copy CALM's response as evidence of the troubleshooting conversation.
+```bash
+calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json
+```
 
-### 8. Simulate an Outage: Database Latency Spike
+```json
+{
+    "jsonSchemaValidationOutputs": [],
+    "spectralSchemaValidationOutputs": [],
+    "hasErrors": false,
+    "hasWarnings": false
+}%   
+```
 
-**Scenario:** You see order-service latency has spiked to 5 seconds. No errors, just slow.
+It now passes without warnings ✅ and adding extra properties doesn't break pattern compliance. This is how patterns act as the base foundation for new applications that share the same architecture, but aren't the same application. 
+
+Think about how this can help you automate typically time consuming processes such as security review, which rely on certain things following strict convention, but other things being the responsibility of the engineers.
+
+### 11. Document the Pattern
 
 **Prompt:**
-
 ```text
-Order-service latency has spiked to 5 seconds (normally <200ms). No errors in logs.
+Create patterns/README.md that documents:
 
-Using my architecture:
-1. What databases does order-service connect to?
-2. Could this be a database replication issue?
-3. What are the known failure modes for high latency?
-4. What's the remediation steps?
-5. What's the DBA contact for the order database?
+1. What Patterns are and their dual superpower (generation + validation)
+2. How to use web-app-pattern.json:
+   - Generation: calm generate -p patterns/web-app-pattern.json -o my-app.json
+   - Validation: calm validate -p patterns/web-app-pattern.json -a my-app.json
+3. What the pattern enforces (3 specific nodes, 2 specific relationships)
+4. What's flexible (descriptions, interfaces, metadata)
 ```
-
-**Capture the output** - Take a screenshot or copy CALM's response as evidence of the troubleshooting conversation.
-
-### 9. Simulate an Outage: Cascade Failure Investigation
-
-**Scenario:** Multiple services are showing errors. You need to find the root cause.
-
-**Prompt:**
-
-```text
-I'm seeing errors across order-service, inventory-service, and the web-frontend. It started 10 minutes ago.
-
-Analyze my architecture to help identify the root cause:
-1. What's the dependency graph between these services?
-2. What shared infrastructure could cause all three to fail?
-3. Is there a single point of failure that could explain this?
-4. In what order should I investigate?
-5. Based on the flow definitions, which business processes are affected?
-```
-
-CALM should identify the API Gateway or load balancer as potential shared failure points, and walk through the dependency chain.
-
-**Capture the output** - Take a screenshot or copy CALM's response as evidence of the troubleshooting conversation.
-
-### 10. Generate an Incident Summary
-
-After troubleshooting, ask CALM to help document the incident.
-
-**Prompt:**
-
-```text
-We identified the root cause as the load-balancer health check misconfiguration causing api-gateway-2 to be marked unhealthy, putting all traffic on api-gateway-1 which became overloaded.
-
-Generate an incident summary based on my architecture:
-1. Affected services and their tiers
-2. Business flows impacted
-3. Customer impact based on flow metadata
-4. Timeline of dependency failures
-5. Remediation steps taken
-6. Follow-up actions to prevent recurrence
-```
-
-### 11. Compare: Wiki vs Architecture-as-Documentation
-
-| Aspect            | Traditional Wiki      | CALM Architecture                     |
-|-------------------|-----------------------|---------------------------------------|
-| Accuracy          | Often stale           | Always current (lives with code)      |
-| Discoverability   | Search/hope           | Query the model directly              |
-| Dependencies      | Manually maintained   | Derived from relationships            |
-| Impact analysis   | Tribal knowledge      | Computed from flows                   |
-| Escalation paths  | Buried in pages       | Embedded in node metadata             |
-| Troubleshooting   | Static runbooks       | Context-aware AI assistance           |
 
 ### 12. Commit Your Work
 
 ```bash
-git add architectures/ecommerce-platform.json
-git commit -m "Day 13: Add operational metadata for support documentation"
+git add patterns/ architectures/generated-webapp.json README.md
+git commit -m "Day 15: Create first CALM pattern for web applications"
 git tag day-15
 ```
 
-## Deliverables
+## Deliverables / Validation Criteria
 
-✅ **Required:**
+Your Day 15 submission should include a commit tagged `day-15` containing:
 
-- `architectures/ecommerce-platform.json` - With operational metadata:
-  - Owner and on-call contacts per service
-  - Health endpoints and runbook links
-  - Failure modes with symptoms and remediation
-  - Flow-level business impact documentation
-  - Monitoring dashboard links
-- Screenshots of CALM troubleshooting conversations
-- Updated `README.md` - Day 15 marked complete
+✅ **Required Files:**
+- `patterns/web-app-pattern.json` - Pattern for 3-tier web app
+- `patterns/README.md` - Pattern documentation
+- `architectures/generated-webapp.json` - Generated and enhanced architecture
+- Updated `README.md` - Day 15 marked as complete
 
 ✅ **Validation:**
-
 ```bash
-# Verify operational metadata exists
-grep -q 'oncall-slack' architectures/ecommerce-platform.json
-grep -q 'health-endpoint' architectures/ecommerce-platform.json
-grep -q 'failure-modes' architectures/ecommerce-platform.json
-grep -q 'runbook' architectures/ecommerce-platform.json
-grep -q 'business-impact' architectures/ecommerce-platform.json
+# Pattern exists
+test -f patterns/web-app-pattern.json
 
-# Validate architecture
-calm validate -a architectures/ecommerce-platform.json
+# Generation works
+calm generate -p patterns/web-app-pattern.json -o /tmp/test-webapp.json
+
+# Validation works
+calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json
 
 # Check tag
 git tag | grep -q "day-15"
@@ -273,20 +318,35 @@ git tag | grep -q "day-15"
 
 ## Resources
 
-- [Site Reliability Engineering (Google)](https://sre.google/sre-book/table-of-contents/)
-- [Incident Management Best Practices](https://www.atlassian.com/incident-management)
-- [Runbook Documentation](https://www.pagerduty.com/resources/learn/what-is-a-runbook/)
-- [Architecture Decision Records](https://adr.github.io/)
+- [CALM Pattern Documentation](https://github.com/finos/architecture-as-code/tree/main/calm/pattern)
+- [JSON Schema prefixItems](https://json-schema.org/understanding-json-schema/reference/array#tupleValidation)
+- [JSON Schema const](https://json-schema.org/understanding-json-schema/reference/const)
 
 ## Tips
 
-- Keep failure modes updated when you discover new issues in production
-- Link runbooks to specific failure modes, not just services
-- Include both automated remediation steps and manual escalation paths
-- Use CALM during actual incidents - it learns from your architecture
-- The more metadata you add, the better CALM can assist with troubleshooting
-- Consider adding post-incident learnings back into the failure-modes metadata
+- Use `const` for values that MUST be exactly as specified
+- `prefixItems` defines the exact items required in order
+- `minItems`/`maxItems` together enforce exact array length
+- Patterns only constrain what you specify - extra properties are allowed
+- Test both generation AND validation to ensure the pattern works
+
+## Trouble Shooting
+- Remember AI can make mistakes, if for some reason your pattern won't generate a valid architecture ask CALM Chatmode to figure out why not, this prompt may be helpful.
+
+```text
+My pattern doesn't generate a valid architecture when I run the generate command, look at this valid pattern - https://raw.githubusercontent.com/finos/architecture-as-code/refs/heads/main/conferences/osff-ln-2025/workshop/conference-signup.pattern.json - identify the problem. 
+```
+
+## Key Concepts
+
+| Concept | Purpose | Example |
+|---------|---------|---------|
+| `const` | Require exact value | `"unique-id": { "const": "api-gateway" }` |
+| `prefixItems` | Define required array items | First node must be X, second must be Y |
+| `minItems` | Minimum array length | At least 3 nodes |
+| `maxItems` | Maximum array length | At most 3 nodes |
+| `$ref` | Reference other schemas | Point to node definition |
 
 ## Next Steps
 
-Tomorrow (Day 16) you'll use docify to generate operations documentation - runbooks, on-call guides, and incident report templates from your architecture metadata! This shows how the CALM Chatmode and documentation capabilities of CALM all work from the same source of truth, your CALM architecture! 
+Tomorrow (Day 16) you'll learn how to create organisational Standards - JSON Schema extensions that define custom properties like cost centres, owners, and compliance tags that your Patterns can enforce!
