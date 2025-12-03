@@ -29,7 +29,7 @@ jobs:
               working-directory: "docs"
 
             - name: Configure AWS credentials
-              uses: aws-actions/configure-aws-credentials@00943011d9042930efac3dcd3a170e4273319bc8 # v5
+              uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5
               with:
                   aws-access-key-id: ${{ secrets.AWS_S3_ACCESS_KEY }}
                   aws-secret-access-key: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
@@ -37,5 +37,9 @@ jobs:
 
             - name: Sync docs to S3
               run: |
-                  aws s3 sync build s3://calm.finos.org/ --delete --include "*" --exclude "draft/*" --exclude "samples/*" --exclude "video/*" --exclude "release/*" --exclude "getting-started/*" --exclude "workshop/*"
+                  aws s3 sync build s3://calm.finos.org/ --delete --include "*" --exclude "advent/*" --exclude "controls/*" --exclude "draft/*" --exclude "getting-started/*" --exclude "interfaces/*" --exclude "release/*" --exclude "samples/*" --exclude "video/*" --exclude "workshop/*"
               working-directory: "docs"
+
+            - name: Invalidate CloudFront cache
+              run: |
+                  aws cloudfront create-invalidation --distribution-id ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"

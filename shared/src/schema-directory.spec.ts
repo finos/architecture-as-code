@@ -54,8 +54,8 @@ describe('SchemaDirectory', () => {
     it('resolves a reference from a stored schema', async () => {
         const schemaDir = new SchemaDirectory(mockDocLoader);
         
-        const nodeJson = loadSchema(path.join(__dirname, '../../calm/release/1.0/meta/core.json'));
-        const nodeRef = 'https://calm.finos.org/release/1.0/meta/core.json#/defs/node';
+        const nodeJson = loadSchema(path.join(__dirname, '../../calm/release/1.1/meta/core.json'));
+        const nodeRef = 'https://calm.finos.org/release/1.1/meta/core.json#/defs/node';
         
         mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => resolve(nodeJson)));
 

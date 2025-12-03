@@ -1,0 +1,112 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = "A 24-day progressive learning challenge for CALM" } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}brand/2025_CALM_Icon.svg`} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <nav>
+          <a href={import.meta.env.BASE_URL} class="title-link"><h1 class="title">🎄 Advent of CALM 🎄</h1></a>
+          <a href="https://calm.finos.org" target="_blank" rel="noopener noreferrer" class="logo">
+            <img src={`${import.meta.env.BASE_URL}brand/2025_CALM_Horizontal_Navbar_Logo.svg`} alt="CALM Logo" />
+          </a>
+        </nav>
+      </div>
+    </header>
+    
+    <main>
+      <div class="container">
+        <slot />
+      </div>
+    </main>
+    
+    <footer>
+      <div class="container">
+        <p>&copy; 2025 FINOS - Licensed under Apache License 2.0</p>
+        <p>Part of the <a href="https://github.com/finos/architecture-as-code" target="_blank">FINOS Architecture as Code</a> project</p>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  @import '../styles/global.css';
+  
+  header {
+    background: white;
+    color: var(--color-primary);
+    padding: var(--spacing-md) 0;
+    box-shadow: var(--shadow);
+    margin-bottom: var(--spacing-xl);
+    border-bottom: 3px solid var(--color-accent);
+  }
+  
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+  }
+  
+  .logo img {
+    height: 40px;
+    width: auto;
+  }
+  
+  .title-link {
+    text-decoration: none;
+  }
+  
+  .title-link:hover .title {
+    color: var(--color-accent);
+  }
+  
+  .title {
+    color: var(--color-primary);
+    margin: 0;
+    font-size: 1.5rem;
+  }
+  
+  main {
+    flex: 1;
+    padding: var(--spacing-lg) 0;
+  }
+  
+  footer {
+    background: #f9fafb;
+    border-top: 1px solid var(--color-border);
+    padding: var(--spacing-lg) 0;
+    margin-top: var(--spacing-xl);
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--color-text-light);
+  }
+  
+  footer a {
+    color: var(--color-accent);
+  }
+  
+  @media (max-width: 768px) {
+    .logo img {
+      height: 32px;
+    }
+    
+    .title {
+      font-size: 1.2rem;
+    }
+  }
+</style>
