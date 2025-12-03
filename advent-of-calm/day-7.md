@@ -71,7 +71,7 @@ Each node should have:
 - At least one interface where appropriate (services and databases)
 - Metadata (owner, repository placeholder, deployment-type, etc.)
 
-Use the CALM 1.0 schema and ensure it validates.
+Use the CALM 1.1 schema and ensure it validates.
 ```
 
 **Note:** CALM Chat mode is smart and will likely add some relationships automatically based on the node structure, even though you didn't explicitly ask for them. This is helpful AI assistance that saves time, but we want to review what it created before proceeding.
