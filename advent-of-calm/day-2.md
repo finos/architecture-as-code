@@ -47,7 +47,7 @@ The architecture should contain a single node representing [describe a system yo
 
 Use appropriate node-type, and include a meaningful unique-id, name, and description.
 
-Make sure the file includes the correct $schema reference and validates against the CALM 1.0 specification.
+Make sure the file includes the correct $schema reference and validates against the CALM 1.1 specification.
 ```
 
 **Example customized prompt:**
@@ -58,7 +58,7 @@ The architecture should contain a single node representing a customer authentica
 
 Use appropriate node-type, and include a meaningful unique-id, name, and description.
 
-Make sure the file includes the correct $schema reference and validates against the CALM 1.0 specification.
+Make sure the file includes the correct $schema reference and validates against the CALM 1.1 specification.
 ```
 
 ### 4. Review the AI's Output
@@ -66,7 +66,7 @@ Make sure the file includes the correct $schema reference and validates against 
 Copilot will generate the file. **Important:** Don't blindly accept it! Review and verify:
 
 - ✅ File is in the correct location: `architectures/my-first-architecture.json`
-- ✅ Contains `$schema` property pointing to CALM 1.0
+- ✅ Contains `$schema` property pointing to CALM 1.1
 - ✅ Has a `nodes` array with your node
 - ✅ Node has all required properties: `unique-id`, `node-type`, `name`, `description`
 - ✅ The `node-type` is appropriate for what you're modeling
@@ -129,7 +129,7 @@ git tag | grep -q "day-2"
 ```
 
 ## Resources
-- [CALM Schema Core Definition](https://github.com/finos/architecture-as-code/blob/main/calm/release/1.0/meta/core.json)
+- [CALM Schema Core Definition](https://github.com/finos/architecture-as-code/blob/main/calm/release/1.1/meta/core.json)
 - [GitHub Copilot Chat Documentation](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide)
 
 ## Tips
@@ -138,7 +138,7 @@ git tag | grep -q "day-2"
 - If you don't have Copilot access, you can manually create the file following this structure:
   ```json
   {
-    "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+    "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
     "nodes": [
       {
         "unique-id": "your-service-id",
