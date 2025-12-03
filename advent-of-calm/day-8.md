@@ -209,4 +209,4 @@ git tag | grep -q "day-8"
 - NFRs captured in controls help teams understand and validate system quality attributes
 
 ## Next Steps
-Tomorrow (Day 9) you'll create your first CALM pattern - the superpower for generation and validation!
+Tomorrow (Day 9) you'll model business flows through your architecture, connecting business processes to technical components!
