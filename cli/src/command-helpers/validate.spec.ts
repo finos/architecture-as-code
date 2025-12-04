@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { Mock } from 'vitest';
 import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome } from '@finos/calm-shared';
+import { CALM_HUB_PROTO } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
 import path from 'path';
@@ -313,9 +314,9 @@ describe('resolveSchemaRef', () => {
         expect(result).toBe('https://calm.finos.org/schema.json');
     });
 
-    it('should return calm: protocol URLs unchanged', () => {
-        const result = resolveSchemaRef('calm://namespace/schema', '/path/to/arch.json', mockLogger);
-        expect(result).toBe('calm://namespace/schema');
+    it(`should return ${CALM_HUB_PROTO} protocol URLs unchanged`, () => {
+        const result = resolveSchemaRef(`${CALM_HUB_PROTO}//namespace/schema`, '/path/to/arch.json', mockLogger);
+        expect(result).toBe(`${CALM_HUB_PROTO}//namespace/schema`);
     });
 
     it('should return absolute file paths unchanged', () => {

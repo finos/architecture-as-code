@@ -6,7 +6,7 @@ import { writeFileSync } from 'fs';
 import { Command } from 'commander';
 import { ValidateOutputFormat } from '@finos/calm-shared/dist/commands/validate/validate';
 import { buildSchemaDirectory, parseDocumentLoaderConfig } from '../cli';
-import { buildDocumentLoader, DocumentLoader } from '@finos/calm-shared/dist/document-loader/document-loader';
+import { buildDocumentLoader, DocumentLoader, CALM_HUB_PROTO } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { Logger } from '@finos/calm-shared/dist/logger';
 
 export interface ValidateOptions {
@@ -66,7 +66,7 @@ async function loadArchitectureAndPattern(architecturePath: string, patternPath:
 
 export function resolveSchemaRef(schemaRef: string, architecturePath: string, logger: Logger): string {
     // If it's an absolute URL or calm: protocol, use as-is
-    if (schemaRef.startsWith('http://') || schemaRef.startsWith('https://') || schemaRef.startsWith('calm:')) {
+    if (schemaRef.startsWith('http://') || schemaRef.startsWith('https://') || schemaRef.startsWith(CALM_HUB_PROTO)) {
         return schemaRef;
     }
     // If it's an absolute file path, use as-is
