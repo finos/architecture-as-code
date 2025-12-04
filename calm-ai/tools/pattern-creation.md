@@ -542,7 +542,7 @@ The CLI will prompt for choices when encountering `anyOf`/`oneOf` options, or yo
 4. Relationship definitions must use `$ref` to core relationship schema
 5. Use `const` for fixed values, `anyOf`/`oneOf` for options
 6. All constraint properties must be valid JSON schema constructs
-7. Pattern should be testable with `calm validate --pattern`
+7. Pattern should be testable with `calm validate -p <pattern-file>`
 
 ## Best Practices
 
@@ -562,11 +562,13 @@ Test patterns before publishing:
 
 ```bash
 # Validate pattern schema
-calm validate --pattern my-pattern.json
+calm validate -p my-pattern.json
 
 # Generate test architecture from pattern
-calm generate --pattern my-pattern.json --output test-arch.json
+calm generate -p my-pattern.json -o test-arch.json
 
-# Validate generated architecture
-calm validate --architecture test-arch.json
+# Validate architecture against pattern
+calm validate -p my-pattern.json -a test-arch.json
 ```
+
+> **Note:** See **calm-cli-instructions.md** for complete CLI usage, validation modes, and options.
