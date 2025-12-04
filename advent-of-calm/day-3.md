@@ -36,7 +36,7 @@ Update architectures/my-first-architecture.json to add:
 
 The relationship should use the "connects" relationship type with source and destination properties.
 
-Ensure the file still validates against CALM 1.0.
+Ensure the file still validates against CALM 1.1.
 ```
 
 **Review the output:**
@@ -165,7 +165,7 @@ git tag | grep -q "day-3"
 ```
 
 ## Resources
-- [CALM Relationship Types](https://github.com/finos/architecture-as-code/blob/main/calm/release/1.0/meta/core.json#L92-L162)
+- [CALM Relationship Types](https://github.com/finos/architecture-as-code/blob/main/calm/release/1.1/meta/core.json#L92-L162)
 - [Understanding oneOf in JSON Schema](https://json-schema.org/understanding-json-schema/reference/combining#oneOf)
 
 ## Tips

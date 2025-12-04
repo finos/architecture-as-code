@@ -69,7 +69,7 @@ The metadata should include:
 
 Use the object format for metadata.
 
-Ensure the file still validates against CALM 1.0.
+Ensure the file still validates against CALM 1.1.
 ```
 
 **Review the output:**
@@ -80,7 +80,7 @@ Ensure the file still validates against CALM 1.0.
 **Example result:**
 ```json
 {
-  "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+  "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
   "metadata": {
     "owner": "jane.doe@example.com",
     "version": "1.0.0",
@@ -211,7 +211,7 @@ Your Day 6 submission should include a commit tagged `day-6` containing:
 - Updated `README.md` - Day 5 marked as complete
 
 ## Resources
-- [CALM Core Schema - Metadata Definition](https://github.com/finos/architecture-as-code/blob/main/calm/release/1.0/meta/core.json#L309-L322)
+- [CALM Core Schema - Metadata Definition](https://github.com/finos/architecture-as-code/blob/main/calm/release/1.1/meta/core.json#L309-L322)
 - [JSON Schema additionalProperties](https://json-schema.org/understanding-json-schema/reference/object#additionalproperties)
 
 ## Tips
@@ -241,7 +241,7 @@ Your Day 6 submission should include a commit tagged `day-6` containing:
 - Both are valid, but object format is preferred
 
 **"Can I add metadata to interfaces?"**
-- Interfaces don't have a dedicated metadata property in CALM 1.0
+- Interfaces don't have a dedicated metadata property in CALM 1.1
 - But inline interfaces support `additionalProperties: true`, so you can add custom properties directly
 
 **"Should metadata be the same at all levels?"**
