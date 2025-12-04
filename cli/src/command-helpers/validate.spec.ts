@@ -319,6 +319,11 @@ describe('resolveSchemaRef', () => {
         expect(result).toBe(`${CALM_HUB_PROTO}//namespace/schema`);
     });
 
+    it('should return file:// URLs unchanged', () => {
+        const result = resolveSchemaRef('file:///absolute/path/schema.json', '/path/to/arch.json', mockLogger);
+        expect(result).toBe('file:///absolute/path/schema.json');
+    });
+
     it('should return absolute file paths unchanged', () => {
         const result = resolveSchemaRef('/absolute/path/schema.json', '/path/to/arch.json', mockLogger);
         expect(result).toBe('/absolute/path/schema.json');

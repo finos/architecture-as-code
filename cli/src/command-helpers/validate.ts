@@ -65,8 +65,8 @@ async function loadArchitectureAndPattern(architecturePath: string, patternPath:
 }
 
 export function resolveSchemaRef(schemaRef: string, architecturePath: string, logger: Logger): string {
-    // If it's an absolute URL or calm: protocol, use as-is
-    if (schemaRef.startsWith('http://') || schemaRef.startsWith('https://') || schemaRef.startsWith(CALM_HUB_PROTO)) {
+    // If it's an absolute URL (http, https, file) or calm: protocol, use as-is
+    if (schemaRef.startsWith('http://') || schemaRef.startsWith('https://') || schemaRef.startsWith('file://') || schemaRef.startsWith(CALM_HUB_PROTO)) {
         return schemaRef;
     }
     // If it's an absolute file path, use as-is
