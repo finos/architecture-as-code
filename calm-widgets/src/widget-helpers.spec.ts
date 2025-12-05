@@ -128,6 +128,52 @@ describe('Widget Helpers', () => {
         });
     });
 
+    describe('mermaidText helper', () => {
+        it('escapes parentheses', () => {
+            expect(helpers.mermaidText('(RabbitMQ)')).toBe('#40;RabbitMQ#41;');
+            expect(helpers.mermaidText('test (value)')).toBe('test #40;value#41;');
+        });
+
+        it('escapes brackets', () => {
+            expect(helpers.mermaidText('[array]')).toBe('#91;array#93;');
+            expect(helpers.mermaidText('{object}')).toBe('#123;object#125;');
+        });
+
+        it('escapes pipe character', () => {
+            expect(helpers.mermaidText('A | B')).toBe('A #124; B');
+        });
+
+        it('escapes hash and quote characters', () => {
+            expect(helpers.mermaidText('#tag')).toBe('#35;tag');
+            expect(helpers.mermaidText('"quoted"')).toBe('#quot;quoted#quot;');
+        });
+
+        it('passes through HTML special characters unchanged', () => {
+            expect(helpers.mermaidText('<tag>')).toBe('<tag>');
+            expect(helpers.mermaidText('a & b')).toBe('a & b');
+            expect(helpers.mermaidText('x > y')).toBe('x > y');
+        });
+
+        it('handles multiple special characters', () => {
+            expect(helpers.mermaidText('func(a, b) -> [result]')).toBe('func#40;a, b#41; -> #91;result#93;');
+        });
+
+        it('returns empty string for non-string input', () => {
+            expect(helpers.mermaidText(null)).toBe('');
+            expect(helpers.mermaidText(undefined)).toBe('');
+            expect(helpers.mermaidText(123)).toBe('');
+        });
+
+        it('handles empty string', () => {
+            expect(helpers.mermaidText('')).toBe('');
+        });
+
+        it('passes through plain text unchanged', () => {
+            expect(helpers.mermaidText('simple text')).toBe('simple text');
+            expect(helpers.mermaidText('no-special-chars')).toBe('no-special-chars');
+        });
+    });
+
     describe('instanceOf helper', () => {
         it('returns true for matching constructor names', () => {
             const obj = new Date();

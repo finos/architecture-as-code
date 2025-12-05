@@ -38,6 +38,22 @@ export function registerGlobalTemplateHelpers(): Record<string, (...args: unknow
 
             return sanitized;
         },
+        mermaidText: (text: unknown): string => {
+            if (typeof text !== 'string') return '';
+            // Escape characters that have special meaning in Mermaid text/labels
+            // Mermaid uses # followed by character code and semicolon for escaping
+            // See: https://mermaid.js.org/syntax/flowchart.html
+            return text
+                .replace(/#/g, '#35;')
+                .replace(/\(/g, '#40;')
+                .replace(/\)/g, '#41;')
+                .replace(/\[/g, '#91;')
+                .replace(/\]/g, '#93;')
+                .replace(/\{/g, '#123;')
+                .replace(/\}/g, '#125;')
+                .replace(/\|/g, '#124;')
+                .replace(/"/g, '#quot;');
+        },
         instanceOf: (value: unknown, className: unknown): boolean =>
             typeof className === 'string' &&
             typeof value === 'object' &&
