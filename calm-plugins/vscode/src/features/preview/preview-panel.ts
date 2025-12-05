@@ -270,6 +270,8 @@ export class CalmPreviewPanel {
 
   dispose() {
     this.viewModel.setVisible(false)
+    this.viewModel.setReady(false)  // Reset ready state so new panel can trigger state changes
+    this.viewModel.clearCurrentUri()  // Clear URI so reopening will trigger proper data loading
     CalmPreviewPanel.currentPanel = undefined
     while (this.disposables.length) {
       const d = this.disposables.pop()
