@@ -14,6 +14,10 @@ import {
 } from '../../../service/calm-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
 import { Data, Adr } from '../../../model/calm.js';
+import { useNavigate, useParams } from 'react-router-dom';
+import { HubParams } from '../../../visualizer/contracts/contracts.js';
+
+const basePath = '/artifacts';
 
 interface TreeNavigationProps {
     onDataLoad: (data: Data) => void;
@@ -201,11 +205,14 @@ function NamespaceItem({
 }
 
 export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
+    const navigate = useNavigate();
+    const params = useParams<HubParams>();
+    
     const [namespaces, setNamespaces] = useState<string[]>([]);
-    const [selectedNamespace, setSelectedNamespace] = useState<string>('');
-    const [selectedType, setSelectedType] = useState<string>('');
-    const [selectedResourceID, setSelectedResourceID] = useState<string>('');
-    const [selectedVersion, setSelectedVersion] = useState<string>('');
+    const [selectedNamespace, setSelectedNamespace] = useState<string>(params.namespace ?? '');
+    const [selectedType, setSelectedType] = useState<string>(params.type ?? '');
+    const [selectedResourceID, setSelectedResourceID] = useState<string>(params.id ?? '');
+    const [selectedVersion, setSelectedVersion] = useState<string>(params.version ?? '');
 
     const [architectureIDs, setArchitectureIDs] = useState<string[]>([]);
     const [patternIDs, setPatternIDs] = useState<string[]>([]);
@@ -219,46 +226,21 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
 
     const adrService = new AdrService();
 
-    useEffect(() => {
-        fetchNamespaces(setNamespaces);
-    }, []);
-
-    const handleNamespaceClick = (namespace: string) => {
-        if (selectedNamespace === namespace) {
-            setSelectedNamespace('');
-        } else {
-            setSelectedNamespace(namespace);
+    const loadResourceIds = (type: string) => {
+        if (type === 'Architectures') {
+            fetchArchitectureIDs(selectedNamespace, setArchitectureIDs);
+        } else if (type === 'Patterns') {
+            fetchPatternIDs(selectedNamespace, setPatternIDs);
+        } else if (type === 'Flows') {
+            fetchFlowIDs(selectedNamespace, setFlowIDs);
+        } else if (type === 'ADRs') {
+            adrService
+                .fetchAdrIDs(selectedNamespace)
+                .then((ids) => setAdrIDs(ids.map((id) => id.toString())));
         }
-        setSelectedType('');
-        setSelectedResourceID('');
-        setSelectedVersion('');
-    };
+    }
 
-    const handleTypeClick = (type: string) => {
-        if (selectedType === type) {
-            setSelectedType('');
-        } else {
-            setSelectedType(type);
-            if (type === 'Architectures') {
-                fetchArchitectureIDs(selectedNamespace, setArchitectureIDs);
-            } else if (type === 'Patterns') {
-                fetchPatternIDs(selectedNamespace, setPatternIDs);
-            } else if (type === 'Flows') {
-                fetchFlowIDs(selectedNamespace, setFlowIDs);
-            } else if (type === 'ADRs') {
-                adrService
-                    .fetchAdrIDs(selectedNamespace)
-                    .then((ids) => setAdrIDs(ids.map((id) => id.toString())));
-            }
-        }
-        setSelectedResourceID('');
-        setSelectedVersion('');
-    };
-
-    const handleResourceClick = (resourceID: string, type: string) => {
-        setSelectedResourceID(resourceID);
-        setSelectedVersion('');
-
+    const loadVersions = (resourceID: string, type: string) => {
         if (type === 'Architectures') {
             fetchArchitectureVersions(selectedNamespace, resourceID, setArchitectureVersions);
         } else if (type === 'Patterns') {
@@ -270,11 +252,9 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
                 .fetchAdrRevisions(selectedNamespace, resourceID)
                 .then((revisions) => setAdrRevisions(revisions.map((rev) => rev.toString())));
         }
-    };
+    }
 
-    const handleVersionClick = (version: string, type: string) => {
-        setSelectedVersion(version);
-
+    const loadResource = (version: string, type: string) => {
         if (type === 'Architectures') {
             fetchArchitecture(selectedNamespace, selectedResourceID, version, onDataLoad);
         } else if (type === 'Patterns') {
@@ -284,6 +264,56 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
         } else if (type === 'ADRs') {
             adrService.fetchAdr(selectedNamespace, selectedResourceID, version).then(onAdrLoad);
         }
+    }
+
+    useEffect(() => {
+        fetchNamespaces(setNamespaces);
+        if (selectedNamespace !== '' && selectedType !== '') {
+            loadResourceIds(selectedType);
+            if (selectedResourceID !== '') {
+                loadVersions(selectedResourceID, selectedType);
+                if (selectedVersion !== '') {
+                    loadResource(selectedVersion, selectedType);
+                }
+            }
+        }
+    }, []);
+
+    const handleNamespaceClick = (namespace: string) => {
+        if (selectedNamespace === namespace) {
+            setSelectedNamespace('');
+        } else {
+            setSelectedNamespace(namespace);
+        }
+        setSelectedType('');
+        setSelectedResourceID('');
+        setSelectedVersion('');
+        navigate(`${basePath}/${namespace}`);
+    };
+
+    const handleTypeClick = (type: string) => {
+        if (selectedType === type) {
+            setSelectedType('');
+        } else {
+            setSelectedType(type);
+            loadResourceIds(type);
+        }
+        setSelectedResourceID('');
+        setSelectedVersion('');
+        navigate(`${basePath}/${selectedNamespace}/${type}`);
+    };
+
+    const handleResourceClick = (resourceID: string, type: string) => {
+        setSelectedResourceID(resourceID);
+        setSelectedVersion('');
+        loadVersions(resourceID, type);
+        navigate(`${basePath}/${selectedNamespace}/${type}/${resourceID}`);
+    };
+
+    const handleVersionClick = (version: string, type: string) => {
+        setSelectedVersion(version);
+        loadResource(version, type);
+        navigate(`${basePath}/${selectedNamespace}/${type}/${selectedResourceID}/${version}`);
     };
 
     const getResourceIDs = (type: string): string[] => {
