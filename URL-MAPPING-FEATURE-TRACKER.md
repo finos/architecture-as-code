@@ -16,10 +16,11 @@ Enable patterns to reference external Standards files via `$ref`, resolved throu
 - [x] Update `document-loader.spec.ts` with new tests (7 tests, all passing)
 
 ### Phase 3: Update CLI Commands (cli package)
-- [ ] Add `--url-to-local-file-mapping` option to `validate` command
-- [ ] Add `--url-to-local-file-mapping` option to `generate` command
-- [ ] Update `ValidateOptions` interface
-- [ ] Update `runValidate()` to pass mapping and basePath
+- [x] Add `--url-to-local-file-mapping` option to `validate` command
+- [x] Add `--url-to-local-file-mapping` option to `generate` command
+- [x] Update `ValidateOptions` interface
+- [x] Update `runValidate()` to pass mapping and basePath
+- [x] All CLI tests passing (96/96)
 
 ### Phase 4: Export from Shared Package
 - [ ] Add export to `shared/src/index.ts`

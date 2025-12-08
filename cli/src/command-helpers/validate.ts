@@ -14,6 +14,7 @@ export interface ValidateOptions {
     architecturePath?: string;
     metaSchemaPath: string;
     calmHubUrl?: string;
+    urlToLocalFileMapping?: string;
     verbose: boolean;
     strict: boolean;
     outputFormat: ValidateOutputFormat;
@@ -23,7 +24,10 @@ export interface ValidateOptions {
 export async function runValidate(options: ValidateOptions) {
     const logger = initLogger(options.verbose, 'calm-validate');
     try {
-        const docLoaderOpts = await parseDocumentLoaderConfig(options);
+        const { getUrlToLocalFileMap } = await import('./template');
+        const urlToLocalMap = getUrlToLocalFileMap(options.urlToLocalFileMapping);
+        const patternBasePath = options.patternPath ? path.dirname(path.resolve(options.patternPath)) : undefined;
+        const docLoaderOpts = await parseDocumentLoaderConfig(options, urlToLocalMap, patternBasePath);
         const docLoader: DocumentLoader = buildDocumentLoader(docLoaderOpts);
         const schemaDirectory = await buildSchemaDirectory(docLoader, options.verbose);
         await schemaDirectory.loadSchemas();
