@@ -86,22 +86,26 @@ The feature provides two resolution modes:
 - Validate fails for non-compliant architecture (both modes)
 
 ### Documentation Requirements:
-- Update CLI help text for new `-u` option
-- Add example to Advent of CALM Day 17 (Pattern enforcement with Standards)
-- Document the URL mapping JSON file format
+- Update CLI help text for new `-u` option ✅
+- Update `/docs/docs/working-with-calm/validate.md` with URL mapping section ✅
+- Update `/docs/docs/working-with-calm/generate.md` with URL mapping section ✅
+- Update `calm-ai/tools/calm-cli-instructions.md` agent prompt ✅
+- Update `calm-ai/tools/standards-creation.md` with local development workflow ✅
 
 ### Implementation Checklist:
-- [ ] Design reviewed and approved
-- [ ] Implementation completed
-  - [ ] `MappedDocumentLoader` in shared package
-  - [ ] Updated `DocumentLoaderOptions` and factory
-  - [ ] CLI `-u` option for validate command
-  - [ ] CLI `-u` option for generate command
-- [ ] Tests written and passing
-  - [ ] Unit tests for `MappedDocumentLoader`
-  - [ ] Unit tests for factory
-  - [ ] E2E tests for CLI commands
-- [ ] Documentation updated
+- [x] Design reviewed and approved
+- [x] Implementation completed
+  - [x] `MappedDocumentLoader` in shared package
+  - [x] Updated `DocumentLoaderOptions` and factory
+  - [x] CLI `-u` option for validate command
+  - [x] CLI `-u` option for generate command
+- [x] Tests written and passing
+  - [x] Unit tests for `MappedDocumentLoader`
+  - [x] Unit tests for factory
+  - [x] E2E tests for CLI commands
+- [x] Documentation updated
+  - [x] CLI docs (`/docs/docs/working-with-calm/`)
+  - [x] AI agent prompts (`calm-ai/tools/`)
 - [ ] Relevant workflows updated (if needed)
 - [ ] Performance impact assessed
 
