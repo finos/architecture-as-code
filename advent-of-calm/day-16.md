@@ -193,6 +193,30 @@ git tag | grep -q "day-16"
 - The `allOf` composition is key - it extends rather than replaces CALM
 - Standards alone don't enforce anything - tomorrow we'll create a pattern that references them to enforce compliance
 
+## Troubleshooting
+
+### Error: `schema with key or id "https://json-schema.org/draft/2020-12/schema" already exists`
+
+**Cause:** Your Standard uses `http://` instead of `https://` in the `$schema` field.
+
+**Wrong:**
+```json
+{
+  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  ...
+}
+```
+
+**Correct:**
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  ...
+}
+```
+
+The CLI's JSON Schema validator (AJV) has the `https://` version built-in. Using `http://` causes it to try loading a separate schema, which then conflicts with the built-in one.
+
 ## Next Steps
 
 Tomorrow (Day 17) you'll create a Company Base Pattern that enforces these Standards across all architectures, combining the structural power of Patterns with the property requirements of Standards!
