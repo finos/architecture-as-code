@@ -53,7 +53,7 @@ When done, press `Ctrl+C` to stop the server and return to your project root:
 cd ../../..
 ```
 
-### 5. Understand Handlebars Templates
+### 4. Understand Handlebars Templates
 
 Docify uses [Handlebars](https://handlebarsjs.com/) as its templating engine. Handlebars provides a simple way to generate text output from your architecture data using mustache-style `{{expressions}}`.
 
@@ -115,7 +115,7 @@ CALM's docify command registers several custom Handlebars helpers to make templa
 {{/each}}
 ```
 
-### 6. Create a Custom Template
+### 5. Create a Custom Template
 
 Now let's create custom templates using these Handlebars features.
 
@@ -181,7 +181,7 @@ No controls defined yet.
 *Generated from CALM architecture on {{metadata.created}}*
 ```
 
-### 7. Generate Documentation Using Custom Template
+### 6. Generate Documentation Using Custom Template
 
 ```bash
 calm docify \
@@ -192,7 +192,7 @@ calm docify \
 
 Open `docs/generated/architecture-summary.md` - it's a markdown summary!
 
-### 8. Create a Node Catalog Template
+### 7. Create a Node Catalog Template
 
 **File:** `templates/node-catalog.md`
 
@@ -250,7 +250,7 @@ No interfaces defined.
 {{/each}}
 ```
 
-### 9. Generate Node Catalog
+### 8. Generate Node Catalog
 
 ```bash
 calm docify \
@@ -259,11 +259,11 @@ calm docify \
   --output docs/generated/node-catalog.md
 ```
 
-### 10. Update Your README
+### 9. Update Your README
 
 Document Day 11 progress in your README: mark the checklist, describe the new documentation outputs, and link to `docs/generated/README.md` or the screenshots so stakeholders know where to browse the generated sites.
 
-### 11. Commit Your Work
+### 10. Commit Your Work
 
 ```bash
 git add templates/ docs/generated/ README.md
