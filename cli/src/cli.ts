@@ -229,8 +229,14 @@ export function setupCLI(program: Command) {
 
 }
 
+interface ParseDocumentLoaderOptions {
+    verbose?: boolean;
+    calmHubUrl?: string;
+    schemaDirectory?: string;
+}
+
 export async function parseDocumentLoaderConfig(
-    options,
+    options: ParseDocumentLoaderOptions,
     urlToLocalMap?: Map<string, string>,
     basePath?: string
 ): Promise<DocumentLoaderOptions> {
