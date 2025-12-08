@@ -1,0 +1,742 @@
+{
+    "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+    "unique-id": "global-investment-bank-platform",
+    "name": "Global Investment Bank Platform",
+    "description": "A comprehensive investment banking platform architecture with 100 nodes covering trading, risk, compliance, settlement, analytics, and infrastructure",
+    "nodes": [
+        {
+            "unique-id": "trader",
+            "node-type": "actor",
+            "name": "Trader",
+            "description": "Trading desk personnel executing trades"
+        },
+        {
+            "unique-id": "risk-manager",
+            "node-type": "actor",
+            "name": "Risk Manager",
+            "description": "Risk management personnel monitoring exposure"
+        },
+        {
+            "unique-id": "compliance-officer",
+            "node-type": "actor",
+            "name": "Compliance Officer",
+            "description": "Compliance team ensuring regulatory adherence"
+        },
+        {
+            "unique-id": "operations-user",
+            "node-type": "actor",
+            "name": "Operations User",
+            "description": "Back office staff handling settlements"
+        },
+        {
+            "unique-id": "quant-analyst",
+            "node-type": "actor",
+            "name": "Quantitative Analyst",
+            "description": "Quants developing trading models"
+        },
+        {
+            "unique-id": "portfolio-manager",
+            "node-type": "actor",
+            "name": "Portfolio Manager",
+            "description": "Portfolio managers overseeing investments"
+        },
+        {
+            "unique-id": "client",
+            "node-type": "actor",
+            "name": "Institutional Client",
+            "description": "External institutional clients"
+        },
+        {
+            "unique-id": "regulator",
+            "node-type": "actor",
+            "name": "Regulator",
+            "description": "External regulatory bodies"
+        },
+        {
+            "unique-id": "system-admin",
+            "node-type": "actor",
+            "name": "System Administrator",
+            "description": "IT operations staff"
+        },
+        {
+            "unique-id": "data-scientist",
+            "node-type": "actor",
+            "name": "Data Scientist",
+            "description": "Data science team for analytics"
+        },
+        {
+            "unique-id": "trading-ui",
+            "node-type": "webclient",
+            "name": "Trading UI",
+            "description": "Web-based trading interface"
+        },
+        {
+            "unique-id": "risk-dashboard",
+            "node-type": "webclient",
+            "name": "Risk Dashboard",
+            "description": "Real-time risk monitoring dashboard"
+        },
+        {
+            "unique-id": "compliance-portal",
+            "node-type": "webclient",
+            "name": "Compliance Portal",
+            "description": "Compliance monitoring and reporting interface"
+        },
+        {
+            "unique-id": "operations-portal",
+            "node-type": "webclient",
+            "name": "Operations Portal",
+            "description": "Settlement and reconciliation interface"
+        },
+        {
+            "unique-id": "client-portal",
+            "node-type": "webclient",
+            "name": "Client Portal",
+            "description": "External client access portal"
+        },
+        {
+            "unique-id": "analytics-dashboard",
+            "node-type": "webclient",
+            "name": "Analytics Dashboard",
+            "description": "Business intelligence and analytics UI"
+        },
+        {
+            "unique-id": "admin-console",
+            "node-type": "webclient",
+            "name": "Admin Console",
+            "description": "System administration interface"
+        },
+        {
+            "unique-id": "research-portal",
+            "node-type": "webclient",
+            "name": "Research Portal",
+            "description": "Research and analysis platform"
+        },
+        {
+            "unique-id": "api-gateway",
+            "node-type": "service",
+            "name": "API Gateway",
+            "description": "Central API gateway for all services"
+        },
+        {
+            "unique-id": "order-service",
+            "node-type": "service",
+            "name": "Order Management Service",
+            "description": "Order lifecycle management"
+        },
+        {
+            "unique-id": "execution-service",
+            "node-type": "service",
+            "name": "Execution Service",
+            "description": "Trade execution engine"
+        },
+        {
+            "unique-id": "matching-engine",
+            "node-type": "service",
+            "name": "Matching Engine",
+            "description": "Internal order matching system"
+        },
+        {
+            "unique-id": "fx-trading-service",
+            "node-type": "service",
+            "name": "FX Trading Service",
+            "description": "Foreign exchange trading"
+        },
+        {
+            "unique-id": "equity-trading-service",
+            "node-type": "service",
+            "name": "Equity Trading Service",
+            "description": "Equity trading operations"
+        },
+        {
+            "unique-id": "fixed-income-service",
+            "node-type": "service",
+            "name": "Fixed Income Service",
+            "description": "Bond and fixed income trading"
+        },
+        {
+            "unique-id": "derivatives-service",
+            "node-type": "service",
+            "name": "Derivatives Service",
+            "description": "Derivatives trading and pricing"
+        },
+        {
+            "unique-id": "algo-trading-service",
+            "node-type": "service",
+            "name": "Algorithmic Trading Service",
+            "description": "Algorithmic trading strategies"
+        },
+        {
+            "unique-id": "smart-order-router",
+            "node-type": "service",
+            "name": "Smart Order Router",
+            "description": "Intelligent order routing"
+        },
+        {
+            "unique-id": "quote-service",
+            "node-type": "service",
+            "name": "Quote Service",
+            "description": "Quote generation and management"
+        },
+        {
+            "unique-id": "rfq-service",
+            "node-type": "service",
+            "name": "RFQ Service",
+            "description": "Request for quote processing"
+        },
+        {
+            "unique-id": "risk-engine",
+            "node-type": "service",
+            "name": "Risk Calculation Engine",
+            "description": "Core risk calculations"
+        },
+        {
+            "unique-id": "var-service",
+            "node-type": "service",
+            "name": "VaR Service",
+            "description": "Value at Risk calculations"
+        },
+        {
+            "unique-id": "credit-risk-service",
+            "node-type": "service",
+            "name": "Credit Risk Service",
+            "description": "Counterparty credit risk"
+        },
+        {
+            "unique-id": "market-risk-service",
+            "node-type": "service",
+            "name": "Market Risk Service",
+            "description": "Market risk analysis"
+        },
+        {
+            "unique-id": "limit-service",
+            "node-type": "service",
+            "name": "Limit Management Service",
+            "description": "Trading limit enforcement"
+        },
+        {
+            "unique-id": "stress-testing-service",
+            "node-type": "service",
+            "name": "Stress Testing Service",
+            "description": "Portfolio stress testing"
+        },
+        {
+            "unique-id": "collateral-service",
+            "node-type": "service",
+            "name": "Collateral Management Service",
+            "description": "Collateral optimization"
+        },
+        {
+            "unique-id": "margin-service",
+            "node-type": "service",
+            "name": "Margin Service",
+            "description": "Margin calculations"
+        },
+        {
+            "unique-id": "position-service",
+            "node-type": "service",
+            "name": "Position Service",
+            "description": "Real-time position tracking"
+        },
+        {
+            "unique-id": "pnl-service",
+            "node-type": "service",
+            "name": "P&L Service",
+            "description": "Profit and loss calculations"
+        },
+        {
+            "unique-id": "portfolio-service",
+            "node-type": "service",
+            "name": "Portfolio Service",
+            "description": "Portfolio management"
+        },
+        {
+            "unique-id": "pricing-service",
+            "node-type": "service",
+            "name": "Pricing Service",
+            "description": "Real-time pricing engine"
+        },
+        {
+            "unique-id": "valuation-service",
+            "node-type": "service",
+            "name": "Valuation Service",
+            "description": "Asset valuation"
+        },
+        {
+            "unique-id": "attribution-service",
+            "node-type": "service",
+            "name": "Attribution Service",
+            "description": "Performance attribution"
+        },
+        {
+            "unique-id": "settlement-service",
+            "node-type": "service",
+            "name": "Settlement Service",
+            "description": "Trade settlement processing"
+        },
+        {
+            "unique-id": "clearing-service",
+            "node-type": "service",
+            "name": "Clearing Service",
+            "description": "Trade clearing operations"
+        },
+        {
+            "unique-id": "reconciliation-service",
+            "node-type": "service",
+            "name": "Reconciliation Service",
+            "description": "Trade reconciliation"
+        },
+        {
+            "unique-id": "confirmation-service",
+            "node-type": "service",
+            "name": "Confirmation Service",
+            "description": "Trade confirmations"
+        },
+        {
+            "unique-id": "corporate-actions-service",
+            "node-type": "service",
+            "name": "Corporate Actions Service",
+            "description": "Corporate actions processing"
+        },
+        {
+            "unique-id": "custody-service",
+            "node-type": "service",
+            "name": "Custody Service",
+            "description": "Asset custody management"
+        },
+        {
+            "unique-id": "payment-service",
+            "node-type": "service",
+            "name": "Payment Service",
+            "description": "Payment processing"
+        },
+        {
+            "unique-id": "netting-service",
+            "node-type": "service",
+            "name": "Netting Service",
+            "description": "Trade netting calculations"
+        },
+        {
+            "unique-id": "compliance-service",
+            "node-type": "service",
+            "name": "Compliance Service",
+            "description": "Regulatory compliance monitoring"
+        },
+        {
+            "unique-id": "aml-service",
+            "node-type": "service",
+            "name": "AML Service",
+            "description": "Anti-money laundering checks"
+        },
+        {
+            "unique-id": "kyc-service",
+            "node-type": "service",
+            "name": "KYC Service",
+            "description": "Know your customer verification"
+        },
+        {
+            "unique-id": "reporting-service",
+            "node-type": "service",
+            "name": "Reporting Service",
+            "description": "Regulatory reporting"
+        },
+        {
+            "unique-id": "audit-service",
+            "node-type": "service",
+            "name": "Audit Service",
+            "description": "Audit trail management"
+        },
+        {
+            "unique-id": "surveillance-service",
+            "node-type": "service",
+            "name": "Surveillance Service",
+            "description": "Trade surveillance"
+        },
+        {
+            "unique-id": "market-data-service",
+            "node-type": "service",
+            "name": "Market Data Service",
+            "description": "Real-time market data"
+        },
+        {
+            "unique-id": "reference-data-service",
+            "node-type": "service",
+            "name": "Reference Data Service",
+            "description": "Instrument reference data"
+        },
+        {
+            "unique-id": "historical-data-service",
+            "node-type": "service",
+            "name": "Historical Data Service",
+            "description": "Historical market data"
+        },
+        {
+            "unique-id": "analytics-service",
+            "node-type": "service",
+            "name": "Analytics Service",
+            "description": "Business analytics"
+        },
+        {
+            "unique-id": "ml-service",
+            "node-type": "service",
+            "name": "ML Service",
+            "description": "Machine learning predictions"
+        },
+        {
+            "unique-id": "data-lake-service",
+            "node-type": "service",
+            "name": "Data Lake Service",
+            "description": "Data lake access layer"
+        },
+        {
+            "unique-id": "etl-service",
+            "node-type": "service",
+            "name": "ETL Service",
+            "description": "Data transformation pipelines"
+        },
+        {
+            "unique-id": "search-service",
+            "node-type": "service",
+            "name": "Search Service",
+            "description": "Enterprise search"
+        },
+        {
+            "unique-id": "auth-service",
+            "node-type": "service",
+            "name": "Authentication Service",
+            "description": "User authentication"
+        },
+        {
+            "unique-id": "notification-service",
+            "node-type": "service",
+            "name": "Notification Service",
+            "description": "Alerts and notifications"
+        },
+        {
+            "unique-id": "workflow-service",
+            "node-type": "service",
+            "name": "Workflow Service",
+            "description": "Business workflows"
+        },
+        {
+            "unique-id": "scheduler-service",
+            "node-type": "service",
+            "name": "Scheduler Service",
+            "description": "Job scheduling"
+        },
+        {
+            "unique-id": "config-service",
+            "node-type": "service",
+            "name": "Configuration Service",
+            "description": "Centralized configuration"
+        },
+        {
+            "unique-id": "cache-service",
+            "node-type": "service",
+            "name": "Cache Service",
+            "description": "Distributed caching"
+        },
+        {
+            "unique-id": "monitoring-service",
+            "node-type": "service",
+            "name": "Monitoring Service",
+            "description": "System monitoring"
+        },
+        {
+            "unique-id": "secrets-service",
+            "node-type": "service",
+            "name": "Secrets Service",
+            "description": "Secrets management"
+        },
+        {
+            "unique-id": "order-db",
+            "node-type": "database",
+            "name": "Order Database",
+            "description": "Order and execution data"
+        },
+        {
+            "unique-id": "position-db",
+            "node-type": "database",
+            "name": "Position Database",
+            "description": "Position and P&L data"
+        },
+        {
+            "unique-id": "risk-db",
+            "node-type": "database",
+            "name": "Risk Database",
+            "description": "Risk metrics and limits"
+        },
+        {
+            "unique-id": "settlement-db",
+            "node-type": "database",
+            "name": "Settlement Database",
+            "description": "Settlement records"
+        },
+        {
+            "unique-id": "reference-db",
+            "node-type": "database",
+            "name": "Reference Database",
+            "description": "Reference data"
+        },
+        {
+            "unique-id": "audit-db",
+            "node-type": "database",
+            "name": "Audit Database",
+            "description": "Audit logs"
+        },
+        {
+            "unique-id": "analytics-db",
+            "node-type": "database",
+            "name": "Analytics Database",
+            "description": "Analytics data warehouse"
+        },
+        {
+            "unique-id": "timeseries-db",
+            "node-type": "database",
+            "name": "TimeSeries Database",
+            "description": "Time-series market data"
+        },
+        {
+            "unique-id": "document-db",
+            "node-type": "database",
+            "name": "Document Database",
+            "description": "Unstructured documents"
+        },
+        {
+            "unique-id": "graph-db",
+            "node-type": "database",
+            "name": "Graph Database",
+            "description": "Relationship data"
+        },
+        {
+            "unique-id": "cache-db",
+            "node-type": "database",
+            "name": "Redis Cache",
+            "description": "In-memory cache"
+        },
+        {
+            "unique-id": "search-index",
+            "node-type": "database",
+            "name": "Search Index",
+            "description": "Elasticsearch index"
+        },
+        {
+            "unique-id": "exchange-gateway",
+            "node-type": "system",
+            "name": "Exchange Gateway",
+            "description": "FIX gateway to exchanges"
+        },
+        {
+            "unique-id": "swift-gateway",
+            "node-type": "system",
+            "name": "SWIFT Gateway",
+            "description": "SWIFT messaging"
+        },
+        {
+            "unique-id": "bloomberg-feed",
+            "node-type": "system",
+            "name": "Bloomberg Feed",
+            "description": "Bloomberg market data"
+        },
+        {
+            "unique-id": "reuters-feed",
+            "node-type": "system",
+            "name": "Reuters Feed",
+            "description": "Reuters market data"
+        },
+        {
+            "unique-id": "regulatory-gateway",
+            "node-type": "system",
+            "name": "Regulatory Gateway",
+            "description": "Regulatory reporting gateway"
+        },
+        {
+            "unique-id": "ccp-gateway",
+            "node-type": "system",
+            "name": "CCP Gateway",
+            "description": "Central counterparty connection"
+        },
+        {
+            "unique-id": "custodian-gateway",
+            "node-type": "system",
+            "name": "Custodian Gateway",
+            "description": "Custodian bank connection"
+        },
+        {
+            "unique-id": "prime-broker-gateway",
+            "node-type": "system",
+            "name": "Prime Broker Gateway",
+            "description": "Prime broker connection"
+        },
+        {
+            "unique-id": "message-broker",
+            "node-type": "service",
+            "name": "Message Broker",
+            "description": "Kafka event streaming"
+        },
+        {
+            "unique-id": "ldap-server",
+            "node-type": "ldap",
+            "name": "LDAP Directory",
+            "description": "Enterprise directory"
+        },
+        {
+            "unique-id": "k8s-cluster",
+            "node-type": "network",
+            "name": "Kubernetes Cluster",
+            "description": "Container orchestration"
+        },
+        {
+            "unique-id": "load-balancer",
+            "node-type": "network",
+            "name": "Load Balancer",
+            "description": "Traffic distribution"
+        },
+        {
+            "unique-id": "service-mesh",
+            "node-type": "network",
+            "name": "Service Mesh",
+            "description": "Istio service mesh"
+        },
+        {
+            "unique-id": "api-management",
+            "node-type": "network",
+            "name": "API Management",
+            "description": "API gateway management"
+        }
+    ],
+    "relationships": [
+        {"unique-id":"trader-to-ui","description":"Executes trades through","relationship-type":{"interacts":{"actor":"trader","nodes":["trading-ui"]}}},
+        {"unique-id":"risk-mgr-to-dashboard","description":"Monitors risk through","relationship-type":{"interacts":{"actor":"risk-manager","nodes":["risk-dashboard"]}}},
+        {"unique-id":"compliance-to-portal","description":"Reviews compliance through","relationship-type":{"interacts":{"actor":"compliance-officer","nodes":["compliance-portal"]}}},
+        {"unique-id":"ops-to-portal","description":"Manages operations through","relationship-type":{"interacts":{"actor":"operations-user","nodes":["operations-portal"]}}},
+        {"unique-id":"quant-to-research","description":"Develops models through","relationship-type":{"interacts":{"actor":"quant-analyst","nodes":["research-portal"]}}},
+        {"unique-id":"pm-to-analytics","description":"Reviews portfolio through","relationship-type":{"interacts":{"actor":"portfolio-manager","nodes":["analytics-dashboard"]}}},
+        {"unique-id":"client-to-portal","description":"Accesses services through","relationship-type":{"interacts":{"actor":"client","nodes":["client-portal"]}}},
+        {"unique-id":"regulator-to-reporting","description":"Receives reports from","relationship-type":{"interacts":{"actor":"regulator","nodes":["compliance-portal"]}}},
+        {"unique-id":"admin-to-console","description":"Administers system through","relationship-type":{"interacts":{"actor":"system-admin","nodes":["admin-console"]}}},
+        {"unique-id":"ds-to-analytics","description":"Analyzes data through","relationship-type":{"interacts":{"actor":"data-scientist","nodes":["analytics-dashboard","research-portal"]}}},
+        {"unique-id":"trading-ui-to-gw","description":"Sends requests to","relationship-type":{"connects":{"source":{"node":"trading-ui"},"destination":{"node":"api-gateway"}}},"protocol":"HTTPS"},
+        {"unique-id":"risk-dash-to-gw","description":"Fetches data from","relationship-type":{"connects":{"source":{"node":"risk-dashboard"},"destination":{"node":"api-gateway"}}},"protocol":"HTTPS"},
+        {"unique-id":"compliance-to-gw","description":"Sends requests to","relationship-type":{"connects":{"source":{"node":"compliance-portal"},"destination":{"node":"api-gateway"}}},"protocol":"HTTPS"},
+        {"unique-id":"ops-portal-to-gw","description":"Sends requests to","relationship-type":{"connects":{"source":{"node":"operations-portal"},"destination":{"node":"api-gateway"}}},"protocol":"HTTPS"},
+        {"unique-id":"client-portal-to-gw","description":"Sends requests to","relationship-type":{"connects":{"source":{"node":"client-portal"},"destination":{"node":"api-gateway"}}},"protocol":"HTTPS"},
+        {"unique-id":"analytics-to-gw","description":"Fetches analytics from","relationship-type":{"connects":{"source":{"node":"analytics-dashboard"},"destination":{"node":"api-gateway"}}},"protocol":"HTTPS"},
+        {"unique-id":"admin-to-gw","description":"Sends admin requests to","relationship-type":{"connects":{"source":{"node":"admin-console"},"destination":{"node":"api-gateway"}}},"protocol":"HTTPS"},
+        {"unique-id":"research-to-gw","description":"Fetches research data from","relationship-type":{"connects":{"source":{"node":"research-portal"},"destination":{"node":"api-gateway"}}},"protocol":"HTTPS"},
+        {"unique-id":"gw-to-auth","description":"Authenticates with","relationship-type":{"connects":{"source":{"node":"api-gateway"},"destination":{"node":"auth-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"gw-to-order","description":"Routes orders to","relationship-type":{"connects":{"source":{"node":"api-gateway"},"destination":{"node":"order-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"gw-to-position","description":"Routes position queries to","relationship-type":{"connects":{"source":{"node":"api-gateway"},"destination":{"node":"position-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"gw-to-risk","description":"Routes risk queries to","relationship-type":{"connects":{"source":{"node":"api-gateway"},"destination":{"node":"risk-engine"}}},"protocol":"HTTPS"},
+        {"unique-id":"gw-to-settlement","description":"Routes settlement to","relationship-type":{"connects":{"source":{"node":"api-gateway"},"destination":{"node":"settlement-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"gw-to-compliance","description":"Routes compliance to","relationship-type":{"connects":{"source":{"node":"api-gateway"},"destination":{"node":"compliance-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"gw-to-reporting","description":"Routes reports to","relationship-type":{"connects":{"source":{"node":"api-gateway"},"destination":{"node":"reporting-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"gw-to-analytics","description":"Routes analytics to","relationship-type":{"connects":{"source":{"node":"api-gateway"},"destination":{"node":"analytics-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"gw-to-portfolio","description":"Routes portfolio to","relationship-type":{"connects":{"source":{"node":"api-gateway"},"destination":{"node":"portfolio-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"gw-to-market-data","description":"Routes market data to","relationship-type":{"connects":{"source":{"node":"api-gateway"},"destination":{"node":"market-data-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"gw-to-quote","description":"Routes quotes to","relationship-type":{"connects":{"source":{"node":"api-gateway"},"destination":{"node":"quote-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"gw-to-rfq","description":"Routes RFQs to","relationship-type":{"connects":{"source":{"node":"api-gateway"},"destination":{"node":"rfq-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"gw-to-config","description":"Fetches config from","relationship-type":{"connects":{"source":{"node":"api-gateway"},"destination":{"node":"config-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"gw-to-workflow","description":"Routes workflows to","relationship-type":{"connects":{"source":{"node":"api-gateway"},"destination":{"node":"workflow-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"auth-to-ldap","description":"Authenticates against","relationship-type":{"connects":{"source":{"node":"auth-service"},"destination":{"node":"ldap-server"}}},"protocol":"LDAP"},
+        {"unique-id":"order-to-execution","description":"Sends for execution to","relationship-type":{"connects":{"source":{"node":"order-service"},"destination":{"node":"execution-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"order-to-limit","description":"Validates limits with","relationship-type":{"connects":{"source":{"node":"order-service"},"destination":{"node":"limit-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"order-to-compliance","description":"Checks compliance with","relationship-type":{"connects":{"source":{"node":"order-service"},"destination":{"node":"compliance-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"order-to-smart-router","description":"Routes orders through","relationship-type":{"connects":{"source":{"node":"order-service"},"destination":{"node":"smart-order-router"}}},"protocol":"HTTPS"},
+        {"unique-id":"smart-router-to-exchange","description":"Sends to exchange via","relationship-type":{"connects":{"source":{"node":"smart-order-router"},"destination":{"node":"exchange-gateway"}}},"protocol":"TCP"},
+        {"unique-id":"execution-to-matching","description":"Matches orders in","relationship-type":{"connects":{"source":{"node":"execution-service"},"destination":{"node":"matching-engine"}}},"protocol":"HTTPS"},
+        {"unique-id":"execution-to-broker","description":"Publishes executions to","relationship-type":{"connects":{"source":{"node":"execution-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"fx-to-order","description":"Submits FX orders to","relationship-type":{"connects":{"source":{"node":"fx-trading-service"},"destination":{"node":"order-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"equity-to-order","description":"Submits equity orders to","relationship-type":{"connects":{"source":{"node":"equity-trading-service"},"destination":{"node":"order-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"fi-to-order","description":"Submits FI orders to","relationship-type":{"connects":{"source":{"node":"fixed-income-service"},"destination":{"node":"order-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"deriv-to-order","description":"Submits derivatives orders to","relationship-type":{"connects":{"source":{"node":"derivatives-service"},"destination":{"node":"order-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"algo-to-smart-router","description":"Routes algo orders through","relationship-type":{"connects":{"source":{"node":"algo-trading-service"},"destination":{"node":"smart-order-router"}}},"protocol":"HTTPS"},
+        {"unique-id":"quote-to-pricing","description":"Gets prices from","relationship-type":{"connects":{"source":{"node":"quote-service"},"destination":{"node":"pricing-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"rfq-to-quote","description":"Requests quotes from","relationship-type":{"connects":{"source":{"node":"rfq-service"},"destination":{"node":"quote-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"rfq-to-derivatives","description":"Prices derivatives with","relationship-type":{"connects":{"source":{"node":"rfq-service"},"destination":{"node":"derivatives-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"risk-to-var","description":"Calculates VaR with","relationship-type":{"connects":{"source":{"node":"risk-engine"},"destination":{"node":"var-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"risk-to-credit","description":"Calculates credit risk with","relationship-type":{"connects":{"source":{"node":"risk-engine"},"destination":{"node":"credit-risk-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"risk-to-market","description":"Calculates market risk with","relationship-type":{"connects":{"source":{"node":"risk-engine"},"destination":{"node":"market-risk-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"risk-to-stress","description":"Runs stress tests with","relationship-type":{"connects":{"source":{"node":"risk-engine"},"destination":{"node":"stress-testing-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"risk-to-pricing","description":"Gets valuations from","relationship-type":{"connects":{"source":{"node":"risk-engine"},"destination":{"node":"pricing-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"risk-to-position","description":"Gets positions from","relationship-type":{"connects":{"source":{"node":"risk-engine"},"destination":{"node":"position-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"limit-to-risk","description":"Checks limits against","relationship-type":{"connects":{"source":{"node":"limit-service"},"destination":{"node":"risk-engine"}}},"protocol":"HTTPS"},
+        {"unique-id":"collateral-to-margin","description":"Calculates margin with","relationship-type":{"connects":{"source":{"node":"collateral-service"},"destination":{"node":"margin-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"margin-to-risk","description":"Uses risk data from","relationship-type":{"connects":{"source":{"node":"margin-service"},"destination":{"node":"risk-engine"}}},"protocol":"HTTPS"},
+        {"unique-id":"risk-to-broker","description":"Publishes risk events to","relationship-type":{"connects":{"source":{"node":"risk-engine"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"var-to-broker","description":"Publishes VaR to","relationship-type":{"connects":{"source":{"node":"var-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"stress-to-broker","description":"Publishes stress results to","relationship-type":{"connects":{"source":{"node":"stress-testing-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"position-to-broker","description":"Consumes trades from","relationship-type":{"connects":{"source":{"node":"position-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"position-to-pnl","description":"Sends positions to","relationship-type":{"connects":{"source":{"node":"position-service"},"destination":{"node":"pnl-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"pnl-to-pricing","description":"Gets prices from","relationship-type":{"connects":{"source":{"node":"pnl-service"},"destination":{"node":"pricing-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"portfolio-to-position","description":"Aggregates positions from","relationship-type":{"connects":{"source":{"node":"portfolio-service"},"destination":{"node":"position-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"portfolio-to-attribution","description":"Calculates attribution with","relationship-type":{"connects":{"source":{"node":"portfolio-service"},"destination":{"node":"attribution-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"valuation-to-pricing","description":"Uses pricing from","relationship-type":{"connects":{"source":{"node":"valuation-service"},"destination":{"node":"pricing-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"pricing-to-market-data","description":"Gets market data from","relationship-type":{"connects":{"source":{"node":"pricing-service"},"destination":{"node":"market-data-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"pricing-to-ref-data","description":"Gets reference data from","relationship-type":{"connects":{"source":{"node":"pricing-service"},"destination":{"node":"reference-data-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"attribution-to-broker","description":"Publishes attribution to","relationship-type":{"connects":{"source":{"node":"attribution-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"pnl-to-broker","description":"Publishes P&L to","relationship-type":{"connects":{"source":{"node":"pnl-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"settlement-to-broker","description":"Consumes trades from","relationship-type":{"connects":{"source":{"node":"settlement-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"settlement-to-clearing","description":"Sends for clearing to","relationship-type":{"connects":{"source":{"node":"settlement-service"},"destination":{"node":"clearing-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"settlement-to-confirm","description":"Generates confirmations with","relationship-type":{"connects":{"source":{"node":"settlement-service"},"destination":{"node":"confirmation-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"settlement-to-recon","description":"Triggers reconciliation in","relationship-type":{"connects":{"source":{"node":"settlement-service"},"destination":{"node":"reconciliation-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"settlement-to-swift","description":"Sends instructions via","relationship-type":{"connects":{"source":{"node":"settlement-service"},"destination":{"node":"swift-gateway"}}},"protocol":"TCP"},
+        {"unique-id":"clearing-to-ccp","description":"Clears trades via","relationship-type":{"connects":{"source":{"node":"clearing-service"},"destination":{"node":"ccp-gateway"}}},"protocol":"TCP"},
+        {"unique-id":"custody-to-custodian","description":"Manages assets via","relationship-type":{"connects":{"source":{"node":"custody-service"},"destination":{"node":"custodian-gateway"}}},"protocol":"TCP"},
+        {"unique-id":"payment-to-swift","description":"Sends payments via","relationship-type":{"connects":{"source":{"node":"payment-service"},"destination":{"node":"swift-gateway"}}},"protocol":"TCP"},
+        {"unique-id":"netting-to-settlement","description":"Provides netted trades to","relationship-type":{"connects":{"source":{"node":"netting-service"},"destination":{"node":"settlement-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"corp-actions-to-position","description":"Updates positions in","relationship-type":{"connects":{"source":{"node":"corporate-actions-service"},"destination":{"node":"position-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"corp-actions-to-broker","description":"Publishes events to","relationship-type":{"connects":{"source":{"node":"corporate-actions-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"recon-to-broker","description":"Publishes breaks to","relationship-type":{"connects":{"source":{"node":"reconciliation-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"confirm-to-broker","description":"Publishes confirmations to","relationship-type":{"connects":{"source":{"node":"confirmation-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"collateral-to-custody","description":"Manages collateral via","relationship-type":{"connects":{"source":{"node":"collateral-service"},"destination":{"node":"custody-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"margin-to-ccp","description":"Posts margin to","relationship-type":{"connects":{"source":{"node":"margin-service"},"destination":{"node":"ccp-gateway"}}},"protocol":"TCP"},
+        {"unique-id":"compliance-to-surveillance","description":"Monitors with","relationship-type":{"connects":{"source":{"node":"compliance-service"},"destination":{"node":"surveillance-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"compliance-to-aml","description":"Checks AML with","relationship-type":{"connects":{"source":{"node":"compliance-service"},"destination":{"node":"aml-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"compliance-to-kyc","description":"Verifies KYC with","relationship-type":{"connects":{"source":{"node":"compliance-service"},"destination":{"node":"kyc-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"surveillance-to-broker","description":"Consumes trades from","relationship-type":{"connects":{"source":{"node":"surveillance-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"reporting-to-regulatory","description":"Submits reports to","relationship-type":{"connects":{"source":{"node":"reporting-service"},"destination":{"node":"regulatory-gateway"}}},"protocol":"HTTPS"},
+        {"unique-id":"audit-to-broker","description":"Consumes events from","relationship-type":{"connects":{"source":{"node":"audit-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"aml-to-broker","description":"Publishes alerts to","relationship-type":{"connects":{"source":{"node":"aml-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"reporting-to-scheduler","description":"Scheduled by","relationship-type":{"connects":{"source":{"node":"scheduler-service"},"destination":{"node":"reporting-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"compliance-to-broker","description":"Publishes events to","relationship-type":{"connects":{"source":{"node":"compliance-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"kyc-to-ref-data","description":"Gets client data from","relationship-type":{"connects":{"source":{"node":"kyc-service"},"destination":{"node":"reference-data-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"market-data-to-bloomberg","description":"Receives data from","relationship-type":{"connects":{"source":{"node":"market-data-service"},"destination":{"node":"bloomberg-feed"}}},"protocol":"TCP"},
+        {"unique-id":"market-data-to-reuters","description":"Receives data from","relationship-type":{"connects":{"source":{"node":"market-data-service"},"destination":{"node":"reuters-feed"}}},"protocol":"TCP"},
+        {"unique-id":"market-data-to-broker","description":"Publishes data to","relationship-type":{"connects":{"source":{"node":"market-data-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"historical-to-timeseries","description":"Stores data in","relationship-type":{"connects":{"source":{"node":"historical-data-service"},"destination":{"node":"timeseries-db"}}},"protocol":"JDBC"},
+        {"unique-id":"analytics-to-ml","description":"Uses predictions from","relationship-type":{"connects":{"source":{"node":"analytics-service"},"destination":{"node":"ml-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"ml-to-data-lake","description":"Trains on data from","relationship-type":{"connects":{"source":{"node":"ml-service"},"destination":{"node":"data-lake-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"etl-to-data-lake","description":"Loads data to","relationship-type":{"connects":{"source":{"node":"etl-service"},"destination":{"node":"data-lake-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"search-to-search-idx","description":"Indexes in","relationship-type":{"connects":{"source":{"node":"search-service"},"destination":{"node":"search-index"}}},"protocol":"HTTPS"},
+        {"unique-id":"ref-data-to-broker","description":"Publishes updates to","relationship-type":{"connects":{"source":{"node":"reference-data-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"analytics-to-broker","description":"Consumes events from","relationship-type":{"connects":{"source":{"node":"analytics-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"data-lake-to-analytics-db","description":"Exports to","relationship-type":{"connects":{"source":{"node":"data-lake-service"},"destination":{"node":"analytics-db"}}},"protocol":"JDBC"},
+        {"unique-id":"scheduler-to-etl","description":"Triggers ETL in","relationship-type":{"connects":{"source":{"node":"scheduler-service"},"destination":{"node":"etl-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"order-to-order-db","description":"Persists to","relationship-type":{"connects":{"source":{"node":"order-service"},"destination":{"node":"order-db"}}},"protocol":"JDBC"},
+        {"unique-id":"position-to-position-db","description":"Persists to","relationship-type":{"connects":{"source":{"node":"position-service"},"destination":{"node":"position-db"}}},"protocol":"JDBC"},
+        {"unique-id":"risk-to-risk-db","description":"Persists to","relationship-type":{"connects":{"source":{"node":"risk-engine"},"destination":{"node":"risk-db"}}},"protocol":"JDBC"},
+        {"unique-id":"settlement-to-settlement-db","description":"Persists to","relationship-type":{"connects":{"source":{"node":"settlement-service"},"destination":{"node":"settlement-db"}}},"protocol":"JDBC"},
+        {"unique-id":"ref-data-to-ref-db","description":"Persists to","relationship-type":{"connects":{"source":{"node":"reference-data-service"},"destination":{"node":"reference-db"}}},"protocol":"JDBC"},
+        {"unique-id":"audit-to-audit-db","description":"Persists to","relationship-type":{"connects":{"source":{"node":"audit-service"},"destination":{"node":"audit-db"}}},"protocol":"JDBC"},
+        {"unique-id":"analytics-to-analytics-db","description":"Persists to","relationship-type":{"connects":{"source":{"node":"analytics-service"},"destination":{"node":"analytics-db"}}},"protocol":"JDBC"},
+        {"unique-id":"market-data-to-timeseries","description":"Persists to","relationship-type":{"connects":{"source":{"node":"market-data-service"},"destination":{"node":"timeseries-db"}}},"protocol":"JDBC"},
+        {"unique-id":"kyc-to-document-db","description":"Stores documents in","relationship-type":{"connects":{"source":{"node":"kyc-service"},"destination":{"node":"document-db"}}},"protocol":"HTTPS"},
+        {"unique-id":"compliance-to-graph-db","description":"Stores relationships in","relationship-type":{"connects":{"source":{"node":"compliance-service"},"destination":{"node":"graph-db"}}},"protocol":"HTTPS"},
+        {"unique-id":"cache-to-cache-db","description":"Caches in","relationship-type":{"connects":{"source":{"node":"cache-service"},"destination":{"node":"cache-db"}}},"protocol":"TCP"},
+        {"unique-id":"pnl-to-position-db","description":"Reads from","relationship-type":{"connects":{"source":{"node":"pnl-service"},"destination":{"node":"position-db"}}},"protocol":"JDBC"},
+        {"unique-id":"limit-to-risk-db","description":"Reads limits from","relationship-type":{"connects":{"source":{"node":"limit-service"},"destination":{"node":"risk-db"}}},"protocol":"JDBC"},
+        {"unique-id":"recon-to-settlement-db","description":"Reads from","relationship-type":{"connects":{"source":{"node":"reconciliation-service"},"destination":{"node":"settlement-db"}}},"protocol":"JDBC"},
+        {"unique-id":"surveillance-to-order-db","description":"Reads from","relationship-type":{"connects":{"source":{"node":"surveillance-service"},"destination":{"node":"order-db"}}},"protocol":"JDBC"},
+        {"unique-id":"config-to-secrets","description":"Retrieves secrets from","relationship-type":{"connects":{"source":{"node":"config-service"},"destination":{"node":"secrets-service"}}},"protocol":"HTTPS"},
+        {"unique-id":"notification-to-broker","description":"Consumes from","relationship-type":{"connects":{"source":{"node":"notification-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"workflow-to-broker","description":"Publishes to","relationship-type":{"connects":{"source":{"node":"workflow-service"},"destination":{"node":"message-broker"}}},"protocol":"TCP"},
+        {"unique-id":"monitoring-to-gw","description":"Monitors","relationship-type":{"connects":{"source":{"node":"monitoring-service"},"destination":{"node":"api-gateway"}}},"protocol":"HTTPS"},
+        {"unique-id":"lb-to-gw","description":"Routes to","relationship-type":{"connects":{"source":{"node":"load-balancer"},"destination":{"node":"api-gateway"}}},"protocol":"HTTPS"},
+        {"unique-id":"mesh-to-services","description":"Manages traffic for","relationship-type":{"connects":{"source":{"node":"service-mesh"},"destination":{"node":"api-gateway"}}},"protocol":"mTLS"},
+        {"unique-id":"api-mgmt-to-gw","description":"Manages","relationship-type":{"connects":{"source":{"node":"api-management"},"destination":{"node":"api-gateway"}}},"protocol":"HTTPS"},
+        {"unique-id":"prime-broker-to-margin","description":"Provides financing to","relationship-type":{"connects":{"source":{"node":"prime-broker-gateway"},"destination":{"node":"margin-service"}}},"protocol":"TCP"},
+        {"unique-id":"k8s-deployment","description":"Services deployed in Kubernetes","relationship-type":{"deployed-in":{"container":"k8s-cluster","nodes":["api-gateway","order-service","execution-service","risk-engine","position-service","settlement-service","pricing-service","market-data-service","compliance-service","reporting-service","analytics-service","auth-service","notification-service","workflow-service","cache-service","monitoring-service"]}}},
+        {"unique-id":"mesh-deployment","description":"Services managed by service mesh","relationship-type":{"deployed-in":{"container":"service-mesh","nodes":["order-service","execution-service","risk-engine","position-service","pricing-service","settlement-service"]}}}
+    ]
+}
