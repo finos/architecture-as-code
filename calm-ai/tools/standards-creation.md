@@ -343,7 +343,7 @@ The FINOS community creates Standards for common financial services use cases:
 - **Node Creation**: Reference for extending nodes with Standards
 - **Interface Creation**: Guidance for interface-specific Standards
 - **Architecture Creation**: How to structure architectures using Standards
-- **Validation**: Understanding how Standards integrate with `calm validate`
+- **calm-cli-instructions.md**: Complete CLI usage including validation modes and options
 
 ## Key Reminders
 

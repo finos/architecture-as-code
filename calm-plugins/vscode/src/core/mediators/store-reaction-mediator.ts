@@ -32,6 +32,14 @@ export class StoreReactionMediator {
 
     // Subscribe to all store changes and react appropriately
     const unsubscribe = this.store.subscribe((state) => {
+      // React to forceCreatePreview flag (user explicitly requested preview)
+      // This must be checked first and independently of document changes
+      if (state.forceCreatePreview && state.currentDocumentUri) {
+        previousDocument = state.currentDocumentUri
+        this.handleDocumentChange(state.currentDocumentUri)
+        return // handleDocumentChange will clear the flag
+      }
+
       // React to document changes
       if (state.currentDocumentUri !== previousDocument) {
         previousDocument = state.currentDocumentUri

@@ -33,7 +33,7 @@ classDef system fill:#fff8e1,stroke:#f9a825,stroke-width:2px,color:#000;
 
 {{!-- Edges --}}
 {{#each edges}}
-    {{{mermaidId source}}} -->{{#if label}}|{{label}}|{{/if}} {{{mermaidId target}}}
+    {{{mermaidId source}}} -->{{#if label}}|{{{mermaidText label}}}|{{/if}} {{{mermaidId target}}}
 {{/each}}
 
 {{!-- Dotted attachments (node -> interface) --}}
