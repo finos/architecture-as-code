@@ -21,7 +21,7 @@ jobs:
         env:
             SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
         container:
-            image: semgrep/semgrep@sha256:73116c3be6ee3a138acad62b2d26c17fad7f62610c0c9a9d66c61b0c0a5405ef
+            image: semgrep/semgrep@sha256:da5057ac7eea5374f4ceeaef09383d816c302e90a909ec7624a328a22b0aa4d7
         if: (github.actor != 'dependabot[bot]')
         steps:
             - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
