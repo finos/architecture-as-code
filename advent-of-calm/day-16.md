@@ -146,7 +146,6 @@ Create standards/README.md that documents:
 1. What Standards are and how they extend CALM using allOf composition
 2. Our company's node standard requirements (cost centre, owner, environment)
 3. Our company's relationship standard requirements (data classification, encrypted)
-4. How these Standards can be enforced via Patterns (referencing the web-app-pattern from Day 15)
 ```
 
 ### 11. Commit Your Work
