@@ -55,7 +55,7 @@ export class MappedDocumentLoader implements DocumentLoader {
                 this.logger.debug(`Pre-loaded: ${url} -> ${absolutePath}`);
                 
                 // Also store by $id if present and different from URL
-                const docId = document['$id'];
+                const docId = document['$id'] as string | undefined;
                 if (docId && docId !== url) {
                     schemaDirectory.storeDocument(docId, 'schema', document);
                     this.logger.debug(`Also stored by $id: ${docId}`);
