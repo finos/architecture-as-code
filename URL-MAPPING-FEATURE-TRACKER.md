@@ -11,9 +11,9 @@ Enable patterns to reference external Standards files via `$ref`, resolved throu
 - [x] Verify unit tests pass (12/12 passing)
 
 ### Phase 2: Update DocumentLoader Factory (shared package)
-- [ ] Update `DocumentLoaderOptions` in `document-loader.ts`
-- [ ] Update `buildDocumentLoader()` to include MappedDocumentLoader
-- [ ] Update `document-loader.spec.ts` with new tests
+- [x] Update `DocumentLoaderOptions` in `document-loader.ts`
+- [x] Update `buildDocumentLoader()` to include MappedDocumentLoader
+- [x] Update `document-loader.spec.ts` with new tests (7 tests, all passing)
 
 ### Phase 3: Update CLI Commands (cli package)
 - [ ] Add `--url-to-local-file-mapping` option to `validate` command
