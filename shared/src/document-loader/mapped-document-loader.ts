@@ -73,7 +73,7 @@ export class MappedDocumentLoader implements DocumentLoader {
      * 1. Check URL-to-local mapping
      * 2. Check if it's a relative path (resolve against basePath)
      */
-    async loadMissingDocument(documentId: string, type: CalmDocumentType): Promise<object> {
+    async loadMissingDocument(documentId: string, _type: CalmDocumentType): Promise<object> {
         this.logger.debug(`Attempting to load: ${documentId}`);
 
         // 1. Check URL mapping
