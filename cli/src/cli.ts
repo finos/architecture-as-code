@@ -5,6 +5,7 @@ import { promptUserForOptions } from './command-helpers/generate-options';
 import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components/options';
 import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { loadCliConfig } from './cli-config';
+import path from 'path';
 
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -43,10 +44,14 @@ export function setupCLI(program: Command) {
         .requiredOption(OUTPUT_OPTION, 'Path location at which to output the generated file.', 'architecture.json')
         .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
             const debug = !!options.verbose;
-            const docLoaderOpts = await parseDocumentLoaderConfig(options);
+            const { getUrlToLocalFileMap } = await import('./command-helpers/template');
+            const urlToLocalMap = getUrlToLocalFileMap(options.urlToLocalFileMapping);
+            const patternBasePath = options.pattern ? path.dirname(path.resolve(options.pattern)) : undefined;
+            const docLoaderOpts = await parseDocumentLoaderConfig(options, urlToLocalMap, patternBasePath);
             const docLoader = buildDocumentLoader(docLoaderOpts);
             const schemaDirectory = await buildSchemaDirectory(docLoader, debug);
             const pattern: object = await docLoader.loadMissingDocument(options.pattern, 'pattern');
@@ -61,6 +66,7 @@ export function setupCLI(program: Command) {
         .option(ARCHITECTURE_OPTION, 'Path to the architecture file to use. May be a file path or a URL.')
         .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.', CALM_META_SCHEMA_DIRECTORY)
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
         .option(STRICT_OPTION, 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
         .addOption(
             new Option(FORMAT_OPTION, 'The format of the output')
@@ -77,6 +83,7 @@ export function setupCLI(program: Command) {
                 patternPath: options.pattern,
                 metaSchemaPath: options.schemaDirectory,
                 calmHubUrl: options.calmHubUrl,
+                urlToLocalFileMapping: options.urlToLocalFileMapping,
                 verbose: !!options.verbose,
                 strict: options.strict,
                 outputFormat: options.format,
@@ -222,11 +229,23 @@ export function setupCLI(program: Command) {
 
 }
 
-export async function parseDocumentLoaderConfig(options): Promise<DocumentLoaderOptions> {
+interface ParseDocumentLoaderOptions {
+    verbose?: boolean;
+    calmHubUrl?: string;
+    schemaDirectory?: string;
+}
+
+export async function parseDocumentLoaderConfig(
+    options: ParseDocumentLoaderOptions,
+    urlToLocalMap?: Map<string, string>,
+    basePath?: string
+): Promise<DocumentLoaderOptions> {
     const logger = initLogger(options.verbose, 'calm-cli');
     const docLoaderOpts: DocumentLoaderOptions = {
         calmHubUrl: options.calmHubUrl,
         schemaDirectoryPath: options.schemaDirectory,
+        urlToLocalMap: urlToLocalMap,
+        basePath: basePath,
         debug: !!options.verbose
     };
 

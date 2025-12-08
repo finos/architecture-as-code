@@ -180,6 +180,22 @@ Standards work seamlessly with `calm validate`:
 3. **Validation**: Applies standard JSON Schema validation
 4. **Error Reporting**: Clear messages indicate Standard requirement violations
 
+### Local Development with URL Mapping
+
+When developing Standards locally before publishing to a public URL, use the `--url-to-local-file-mapping` option to map canonical URLs to local files:
+
+```bash
+# Create a mapping file (url-mapping.json)
+{
+  "https://company.com/standards/company-node.json": "standards/company-node.json"
+}
+
+# Validate using the mapping
+calm validate -p pattern.json -a architecture.json -u url-mapping.json
+```
+
+This allows patterns and architectures to reference Standards via their canonical URLs while the actual files exist locally. See **calm-cli-instructions.md** for complete URL mapping documentation.
+
 ## Common Standard Examples
 
 ### Company Node Requirements
