@@ -39,9 +39,7 @@ export class MappedDocumentLoader implements DocumentLoader {
         
         for (const [url, localPath] of this.urlToLocalMap) {
             try {
-                const absolutePath = path.isAbsolute(localPath) 
-                    ? localPath 
-                    : path.resolve(this.basePath, localPath);
+                const absolutePath = this.resolveLocalPath(localPath);
                 
                 if (!existsSync(absolutePath)) {
                     this.logger.warn(`Mapped file does not exist: ${absolutePath} (mapped from ${url})`);
@@ -79,9 +77,7 @@ export class MappedDocumentLoader implements DocumentLoader {
         // 1. Check URL mapping
         if (this.urlToLocalMap.has(documentId)) {
             const localPath = this.urlToLocalMap.get(documentId);
-            const absolutePath = path.isAbsolute(localPath) 
-                ? localPath 
-                : path.resolve(this.basePath, localPath);
+            const absolutePath = this.resolveLocalPath(localPath);
             
             this.logger.debug(`Resolved via URL mapping: ${documentId} -> ${absolutePath}`);
             return this.loadDocumentFromPath(absolutePath);
@@ -116,6 +112,15 @@ export class MappedDocumentLoader implements DocumentLoader {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Resolve a local path to an absolute path using basePath
+     */
+    private resolveLocalPath(localPath: string): string {
+        return path.isAbsolute(localPath) 
+            ? localPath 
+            : path.resolve(this.basePath, localPath);
     }
 
     /**
