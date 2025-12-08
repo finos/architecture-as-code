@@ -53,9 +53,71 @@ When done, press `Ctrl+C` to stop the server and return to your project root:
 cd ../../..
 ```
 
-### 5. Create a Custom Template
+### 5. Understand Handlebars Templates
 
-Handlebars templates allow custom documentation formats.
+Docify uses [Handlebars](https://handlebarsjs.com/) as its templating engine. Handlebars provides a simple way to generate text output from your architecture data using mustache-style `{{expressions}}`.
+
+#### Basic Handlebars Syntax
+
+| Syntax | Description | Example |
+|--------|-------------|---------|
+| `{{property}}` | Output a value | `{{metadata.version}}` → `1.0.0` |
+| `{{#each array}}...{{/each}}` | Loop over arrays | `{{#each nodes}}{{this.name}}{{/each}}` |
+| `{{#if condition}}...{{/if}}` | Conditional rendering | `{{#if metadata}}...{{/if}}` |
+| `{{#if condition}}...{{else}}...{{/if}}` | If-else | `{{#if flows}}...{{else}}No flows{{/if}}` |
+| `{{@key}}` | Current key when iterating objects | Used with `{{#each}}` on objects |
+| `{{this}}` | Current item in loop | `{{#each tags}}{{this}}{{/each}}` |
+| `{{this.property}}` | Property of current item | `{{#each nodes}}{{this.name}}{{/each}}` |
+
+#### CALM Docify Helpers
+
+CALM's docify command registers several custom Handlebars helpers to make templating easier:
+
+| Helper | Description | Example |
+|--------|-------------|---------|
+| `eq` | Equality comparison | `{{#if (eq node-type "service")}}...{{/if}}` |
+| `or` | Logical OR | `{{#if (or hasFlows hasControls)}}...{{/if}}` |
+| `json` | Output as JSON | `{{json metadata}}` |
+| `lookup` | Dynamic property access | `{{lookup this propertyName}}` |
+| `kebabCase` | Convert to kebab-case | `{{kebabCase name}}` |
+| `kebabToTitleCase` | Convert kebab to Title Case | `{{kebabToTitleCase node-type}}` |
+| `isObject` | Check if value is object | `{{#if (isObject value)}}...{{/if}}` |
+| `isArray` | Check if value is array | `{{#if (isArray items)}}...{{/if}}` |
+| `notEmpty` | Check if value exists and not empty | `{{#if (notEmpty interfaces)}}...{{/if}}` |
+| `eachInMap` | Iterate over map/object entries | `{{#eachInMap controls}}...{{/eachInMap}}` |
+| `mermaidId` | Sanitize ID for Mermaid diagrams | `{{mermaidId unique-id}}` |
+| `join` | Join array elements | `{{join tags ", "}}` |
+
+#### Common Patterns
+
+**Filter nodes by type:**
+```handlebars
+{{#each nodes}}
+{{#if (eq node-type "service")}}
+- {{this.name}} is a service
+{{/if}}
+{{/each}}
+```
+
+**Handle missing data gracefully:**
+```handlebars
+{{#if metadata.owner}}
+**Owner:** {{metadata.owner}}
+{{else}}
+**Owner:** Not specified
+{{/if}}
+```
+
+**Iterate over object properties:**
+```handlebars
+{{#each metadata}}
+- **{{@key}}:** {{this}}
+{{/each}}
+```
+
+### 6. Create a Custom Template
+
+Now let's create custom templates using these Handlebars features.
 
 **File:** `templates/architecture-summary.md`
 
@@ -119,7 +181,7 @@ No controls defined yet.
 *Generated from CALM architecture on {{metadata.created}}*
 ```
 
-### 6. Generate Documentation Using Custom Template
+### 7. Generate Documentation Using Custom Template
 
 ```bash
 calm docify \
@@ -130,7 +192,7 @@ calm docify \
 
 Open `docs/generated/architecture-summary.md` - it's a markdown summary!
 
-### 7. Create a Node Catalog Template
+### 8. Create a Node Catalog Template
 
 **File:** `templates/node-catalog.md`
 
@@ -188,7 +250,7 @@ No interfaces defined.
 {{/each}}
 ```
 
-### 8. Generate Node Catalog
+### 9. Generate Node Catalog
 
 ```bash
 calm docify \
@@ -197,11 +259,11 @@ calm docify \
   --output docs/generated/node-catalog.md
 ```
 
-### 9. Update Your README
+### 10. Update Your README
 
 Document Day 11 progress in your README: mark the checklist, describe the new documentation outputs, and link to `docs/generated/README.md` or the screenshots so stakeholders know where to browse the generated sites.
 
-### 10. Commit Your Work
+### 11. Commit Your Work
 
 ```bash
 git add templates/ docs/generated/ README.md
