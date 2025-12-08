@@ -61,7 +61,7 @@ export class MappedDocumentLoader implements DocumentLoader {
                     this.logger.debug(`Also stored by $id: ${docId}`);
                 }
             } catch (err) {
-                this.logger.warn(`Failed to pre-load ${url}: ${err.message}`);
+                this.logger.warn(`Failed to pre-load ${url}: ${err instanceof Error ? err.message : String(err)}`);
             }
         }
     }
@@ -135,7 +135,7 @@ export class MappedDocumentLoader implements DocumentLoader {
         } catch (err) {
             throw new DocumentLoadError({
                 name: 'UNKNOWN',
-                message: `Failed to load/parse ${filePath}: ${err.message}`,
+                message: `Failed to load/parse ${filePath}: ${err instanceof Error ? err.message : String(err)}`,
                 cause: err
             });
         }
