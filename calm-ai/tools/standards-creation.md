@@ -24,7 +24,7 @@ All Standards must follow this base structure:
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "[Descriptive Title]",
   "type": "object",
   "properties": {
@@ -67,7 +67,7 @@ For defining reusable schema fragments:
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "NIST Document Standard",
   "type": "object",
   "properties": {
@@ -100,7 +100,7 @@ For extending CALM components directly:
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Company Node Standard",
   "allOf": [
     { "$ref": "https://calm.finos.org/schemas/core.json#/defs/node" },
@@ -202,7 +202,7 @@ This allows patterns and architectures to reference Standards via their canonica
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Company Node Standard",
   "type": "object",
   "properties": {
@@ -226,7 +226,7 @@ This allows patterns and architectures to reference Standards via their canonica
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OAuth Interface Standard",
   "type": "object",
   "properties": {
@@ -252,7 +252,7 @@ This allows patterns and architectures to reference Standards via their canonica
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Security Control Standard",
   "type": "object",
   "properties": {
