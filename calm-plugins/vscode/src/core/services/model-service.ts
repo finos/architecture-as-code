@@ -8,11 +8,27 @@ export class ModelService {
     constructor() { }
 
     /**
-     * Read and parse a model file
+     * Read and parse a model file asynchronously
+     * Prevents blocking the extension host for large files
+     */
+    async readModelAsync(filePath: string): Promise<any> {
+        const content = await fs.promises.readFile(filePath, 'utf8')
+        return this.parseContent(filePath, content)
+    }
+
+    /**
+     * Read and parse a model file synchronously
+     * @deprecated Use readModelAsync for better performance with large files
      */
     readModel(filePath: string): any {
         const content = fs.readFileSync(filePath, 'utf8')
+        return this.parseContent(filePath, content)
+    }
 
+    /**
+     * Parse file content based on file extension
+     */
+    private parseContent(filePath: string, content: string): any {
         if (filePath.endsWith('.json')) {
             return JSON.parse(content)
         }
