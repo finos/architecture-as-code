@@ -22,13 +22,14 @@ Enable patterns to reference external Standards files via `$ref`, resolved throu
 - [x] Update `runValidate()` to pass mapping and basePath
 - [x] All CLI tests passing (96/96)
 
-### Phase 4: Export from Shared Package
-- [ ] Add export to `shared/src/index.ts`
+### Phase 4: Add E2E Tests for New Options
+- [x] Add E2E test for validate with URL mapping file
+- [x] Add E2E test for validate with relative refs (no $id)
+- [x] Add E2E tests for non-compliant validation failures
+- [x] All tests passing (100/100)
 
-### Phase 5: Tests
-- [ ] Add E2E tests for validate with URL mapping
-- [ ] Add E2E tests for validate with relative refs
-- [ ] Add E2E tests for generate with URL mapping
+### Phase 5: Final Cleanup
+- [ ] Remove tracker file
 - [ ] All tests passing
 
 ## Usage Examples

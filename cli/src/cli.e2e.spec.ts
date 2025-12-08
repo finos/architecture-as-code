@@ -240,6 +240,61 @@ describe('CLI Integration Tests', () => {
         expect(parsedOutput).toEqual(expectedOutput);
     });
 
+    describe('validate command with URL mapping', () => {
+        const urlMappingFixtures = path.join(__dirname, '../test_fixtures/url-mapping');
+
+        test('validates with URL mapping file when pattern has $id', async () => {
+            const patternPath = path.join(urlMappingFixtures, 'patterns/pattern-with-id.json');
+            const archPath = path.join(urlMappingFixtures, 'architectures/compliant.json');
+            const mappingPath = path.join(urlMappingFixtures, 'url-mapping.json');
+
+            const { stdout } = await run(
+                calm(), ['validate', '-p', patternPath, '-a', archPath, '-u', mappingPath]
+            );
+            const result = JSON.parse(stdout);
+            expect(result.hasErrors).toBe(false);
+        });
+
+        test('validates with relative refs when pattern has no $id', async () => {
+            const patternPath = path.join(urlMappingFixtures, 'patterns/pattern-without-id.json');
+            const archPath = path.join(urlMappingFixtures, 'architectures/compliant.json');
+
+            const { stdout } = await run(
+                calm(), ['validate', '-p', patternPath, '-a', archPath]
+            );
+            const result = JSON.parse(stdout);
+            expect(result.hasErrors).toBe(false);
+        });
+
+        test('fails validation for non-compliant architecture with relative refs', async () => {
+            const patternPath = path.join(urlMappingFixtures, 'patterns/pattern-without-id.json');
+            const archPath = path.join(urlMappingFixtures, 'architectures/non-compliant.json');
+
+            try {
+                await run(calm(), ['validate', '-p', patternPath, '-a', archPath]);
+                expect.fail('Expected validation to fail');
+            } catch (error) {
+                const result = JSON.parse(error.stdout);
+                expect(result.hasErrors).toBe(true);
+                expect(JSON.stringify(result)).toContain('owner');
+            }
+        });
+
+        test('fails validation for non-compliant architecture with URL mapping', async () => {
+            const patternPath = path.join(urlMappingFixtures, 'patterns/pattern-with-id.json');
+            const archPath = path.join(urlMappingFixtures, 'architectures/non-compliant.json');
+            const mappingPath = path.join(urlMappingFixtures, 'url-mapping.json');
+
+            try {
+                await run(calm(), ['validate', '-p', patternPath, '-a', archPath, '-u', mappingPath]);
+                expect.fail('Expected validation to fail');
+            } catch (error) {
+                const result = JSON.parse(error.stdout);
+                expect(result.hasErrors).toBe(true);
+                expect(JSON.stringify(result)).toContain('owner');
+            }
+        });
+    });
 
 
     test('generate command produces the expected output', async () => {
