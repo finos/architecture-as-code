@@ -18,7 +18,7 @@ Flows consist of:
 - **transitions:** Ordered steps referencing relationships
   - `relationship-unique-id`: Which connection is used
   - `sequence-number`: Order in the flow (1, 2, 3...)
-  - `summary`: What happens in this step
+  - `description`: What happens in this step
   - `direction`: `source-to-destination` or `destination-to-source`
 
 ### 2. Map Your E-Commerce Order Flow
@@ -39,9 +39,9 @@ Create a flow with:
 - name: "Customer Order Processing"
 - description: "End-to-end flow from customer placing an order to payment confirmation"
 - transitions array referencing the ACTUAL relationship unique-ids from my architecture:
-  1. The customer-to-gateway interacts relationship, sequence-number: 1, summary: "Customer submits order via web interface", direction: "source-to-destination"
-  2. The gateway-to-order-service connects relationship, sequence-number: 2, summary: "API Gateway routes order to Order Service", direction: "source-to-destination"  
-  3. The order-service-to-payment-service connects relationship, sequence-number: 3, summary: "Order Service initiates payment processing", direction: "source-to-destination"
+  1. The customer-to-gateway interacts relationship, sequence-number: 1, description: "Customer submits order via web interface", direction: "source-to-destination"
+  2. The gateway-to-order-service connects relationship, sequence-number: 2, description: "API Gateway routes order to Order Service", direction: "source-to-destination"  
+  3. The order-service-to-payment-service connects relationship, sequence-number: 3, description: "Order Service initiates payment processing", direction: "source-to-destination"
 
 Look up the exact relationship unique-ids from my relationships array and use those.
 ```
@@ -198,7 +198,7 @@ git tag | grep -q "day-9"
 - Use bidirectional transitions for request-response patterns
 - Flows can reference the same relationships multiple times
 - Add flow-specific controls for critical business processes
-- Use meaningful summaries that describe business intent, not just technical details
+- Use meaningful descriptions that describe business intent, not just technical details
 
 ## Next Steps
 Tomorrow (Day 10) you'll link your architecture to Architecture Decision Records (ADRs)!
