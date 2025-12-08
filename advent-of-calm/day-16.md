@@ -37,7 +37,7 @@ Standards extend core CALM definitions using `allOf` composition:
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Company Node Standard",
   "allOf": [
     { "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node" },
