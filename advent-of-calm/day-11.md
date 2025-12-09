@@ -141,11 +141,22 @@ This architecture contains **{{nodes.length}}** nodes:
 
 ## Integrations
 
-This architecture has **{{relationships.length}}** connections:
+This architecture has **{{relationships.length}}** relationships:
 
 {{#each relationships}}
-- {{this.description}}
-  - Protocol: {{this.protocol}}
+- **{{this.unique-id}}** ({{#each this.relationship-type}}{{@key}}{{/each}})
+{{#if this.relationship-type.connects}}
+  - {{this.relationship-type.connects.source.node}} → {{this.relationship-type.connects.destination.node}}
+{{/if}}
+{{#if this.relationship-type.interacts}}
+  - Actor: {{this.relationship-type.interacts.actor}} interacts with: {{#each this.relationship-type.interacts.nodes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/if}}
+{{#if this.relationship-type.deployed-in}}
+  - Container: {{this.relationship-type.deployed-in.container}} contains: {{#each this.relationship-type.deployed-in.nodes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/if}}
+{{#if this.relationship-type.composed-of}}
+  - Container: {{this.relationship-type.composed-of.container}} composed of: {{#each this.relationship-type.composed-of.nodes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/if}}
 {{/each}}
 
 ## Flows
