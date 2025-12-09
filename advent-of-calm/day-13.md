@@ -1,217 +1,24 @@
-# Day 13: Advanced Handlebars for Custom Documentation
+# Day 13: Custom Documentation with Handlebars Templates
 
 ## Overview
-Master Handlebars templating to create sophisticated, bespoke documentation outputs from your CALM architectures.
+Create custom documentation outputs using Handlebars templates with the docify command - giving you full control over format and content.
 
 ## Objective and Rationale
-- **Objective:** Learn advanced Handlebars syntax and CALM's custom helpers to create powerful documentation templates
-- **Rationale:** While calm-widgets and simple templates cover most use cases, sometimes you need full control over documentation output. Handlebars gives you the power to create highly customised documents for specific audiences or compliance requirements.
+- **Objective:** Use docify's template mode to create focused, custom documentation from your CALM architecture
+- **Rationale:** While the generated website (Day 11) is great for comprehensive documentation, sometimes you need specific outputs: a markdown summary for a README, a node inventory for compliance, or a relationship table for review. Handlebars templates let you create exactly what you need.
 
 ## Requirements
 
-### 1. Review Handlebars Basics
+### 1. Understand Docify Template Mode
 
-Docify uses [Handlebars](https://handlebarsjs.com/) as its templating engine. If you're new to Handlebars, here's a quick refresher:
+The `calm docify` command has multiple modes:
+- **Website mode (default):** Full HTML website - what you used on Day 11
+- **Template mode:** Single file from a custom template - what we'll use today
+- **Template-dir mode:** Multiple files from a template bundle - for advanced use cases
 
-#### Basic Syntax
+### 2. Create Your First Template
 
-| Syntax | Description | Example |
-|--------|-------------|---------|
-| `{{property}}` | Output a value | `{{metadata.version}}` → `1.0.0` |
-| `{{#each array}}...{{/each}}` | Loop over arrays | `{{#each nodes}}{{this.name}}{{/each}}` |
-| `{{#if condition}}...{{/if}}` | Conditional rendering | `{{#if metadata}}...{{/if}}` |
-| `{{#if condition}}...{{else}}...{{/if}}` | If-else | `{{#if flows}}...{{else}}No flows{{/if}}` |
-| `{{@key}}` | Current key when iterating objects | Used with `{{#each}}` on objects |
-| `{{this}}` | Current item in loop | `{{#each tags}}{{this}}{{/each}}` |
-| `{{this.property}}` | Property of current item | `{{#each nodes}}{{this.name}}{{/each}}` |
-| `{{@index}}` | Current index in loop (0-based) | `{{@index}}. {{this.name}}` |
-| `{{@first}}` / `{{@last}}` | Boolean for first/last item | `{{#unless @last}}, {{/unless}}` |
-
-### 2. CALM Docify Custom Helpers
-
-CALM's docify command registers several custom Handlebars helpers to make templating easier:
-
-| Helper | Description | Example |
-|--------|-------------|---------|
-| `eq` | Equality comparison | `{{#if (eq node-type "service")}}...{{/if}}` |
-| `or` | Logical OR | `{{#if (or hasFlows hasControls)}}...{{/if}}` |
-| `and` | Logical AND | `{{#if (and hasNodes hasRelationships)}}...{{/if}}` |
-| `not` | Logical NOT | `{{#if (not isEmpty)}}...{{/if}}` |
-| `json` | Output as JSON | `{{json metadata}}` |
-| `lookup` | Dynamic property access | `{{lookup this propertyName}}` |
-| `kebabCase` | Convert to kebab-case | `{{kebabCase name}}` |
-| `kebabToTitleCase` | Convert kebab to Title Case | `{{kebabToTitleCase node-type}}` |
-| `isObject` | Check if value is object | `{{#if (isObject value)}}...{{/if}}` |
-| `isArray` | Check if value is array | `{{#if (isArray items)}}...{{/if}}` |
-| `notEmpty` | Check if value exists and not empty | `{{#if (notEmpty interfaces)}}...{{/if}}` |
-| `eachInMap` | Iterate over map/object entries | `{{#eachInMap controls}}...{{/eachInMap}}` |
-| `mermaidId` | Sanitise ID for Mermaid diagrams | `{{mermaidId unique-id}}` |
-| `join` | Join array elements | `{{join tags ", "}}` |
-| `now` | Current timestamp | `Generated: {{now}}` |
-
-### 3. Advanced Pattern: Filtering Nodes by Type
-
-Create a template that groups nodes by their type:
-
-**File:** `templates/nodes-by-type.md`
-
-**Content:**
-```handlebars
-# Architecture Components by Type
-
-{{metadata.title}} - Generated {{now}}
-
-{{#each (groupBy nodes "node-type")}}
-## {{@key}}
-
-{{#each this}}
-- **{{name}}** (`{{unique-id}}`): {{description}}
-{{/each}}
-
-{{/each}}
-```
-
-If `groupBy` isn't available, use this pattern instead:
-
-```handlebars
-# Architecture Components by Type
-
-## Services
-
-{{#each nodes}}
-{{#if (eq node-type "service")}}
-- **{{name}}** (`{{unique-id}}`): {{description}}
-{{/if}}
-{{/each}}
-
-## Databases
-
-{{#each nodes}}
-{{#if (eq node-type "database")}}
-- **{{name}}** (`{{unique-id}}`): {{description}}
-{{/if}}
-{{/each}}
-
-## Systems
-
-{{#each nodes}}
-{{#if (eq node-type "system")}}
-- **{{name}}** (`{{unique-id}}`): {{description}}
-{{/if}}
-{{/each}}
-
-## Other Components
-
-{{#each nodes}}
-{{#unless (or (eq node-type "service") (eq node-type "database") (eq node-type "system"))}}
-- **{{name}}** ({{node-type}}): {{description}}
-{{/unless}}
-{{/each}}
-```
-
-### 4. Advanced Pattern: Handling Relationship Types
-
-Relationships in CALM can have different types. Create a template that handles all of them:
-
-**File:** `templates/comprehensive-relationships.md`
-
-**Content:**
-```handlebars
-# Relationship Documentation
-
-## All Connections
-
-This architecture defines **{{relationships.length}}** relationships.
-
-{{#each relationships}}
-### {{unique-id}}
-
-{{#with relationship-type}}
-{{#if connects}}
-**Type:** Connection
-- **From:** {{connects.source.node}}{{#if connects.source.interface}} ({{connects.source.interface}}){{/if}}
-- **To:** {{connects.destination.node}}{{#if connects.destination.interface}} ({{connects.destination.interface}}){{/if}}
-{{/if}}
-
-{{#if interacts}}
-**Type:** Interaction
-- **Actor:** {{interacts.actor}}
-- **Interacts with:** {{#each interacts.nodes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
-{{/if}}
-
-{{#if composed-of}}
-**Type:** Composition
-- **Container:** {{composed-of.container}}
-- **Contains:** {{#each composed-of.nodes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
-{{/if}}
-
-{{#if deployed-in}}
-**Type:** Deployment
-- **Infrastructure:** {{deployed-in.container}}
-- **Deployed:** {{#each deployed-in.nodes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
-{{/if}}
-{{/with}}
-
-{{#if description}}
-**Description:** {{description}}
-{{/if}}
-
----
-
-{{/each}}
-```
-
-### 5. Advanced Pattern: Generating Mermaid Diagrams
-
-Create a template that generates Mermaid diagram syntax:
-
-**File:** `templates/mermaid-architecture.md`
-
-**Content:**
-```handlebars
-# Architecture Diagram
-
-## System Overview
-
-```mermaid
-graph TD
-{{#each nodes}}
-    {{mermaidId unique-id}}["{{name}}<br/>{{kebabToTitleCase node-type}}"]
-{{/each}}
-
-{{#each relationships}}
-{{#with relationship-type}}
-{{#if connects}}
-    {{mermaidId connects.source.node}} --> {{mermaidId connects.destination.node}}
-{{/if}}
-{{#if interacts}}
-    {{mermaidId interacts.actor}} -.-> {{#each interacts.nodes}}{{mermaidId this}}{{#unless @last}} & {{/unless}}{{/each}}
-{{/if}}
-{{/with}}
-{{/each}}
-```
-
-## Node Styles
-
-```mermaid
-graph TD
-{{#each nodes}}
-{{#if (eq node-type "service")}}
-    style {{mermaidId unique-id}} fill:#90EE90
-{{/if}}
-{{#if (eq node-type "database")}}
-    style {{mermaidId unique-id}} fill:#87CEEB
-{{/if}}
-{{#if (eq node-type "actor")}}
-    style {{mermaidId unique-id}} fill:#FFB6C1
-{{/if}}
-{{/each}}
-```
-```
-
-### 6. Advanced Pattern: Conditional Sections
-
-Create a template with sections that only appear when data exists:
+Create a simple markdown template that summarises your architecture:
 
 **File:** `templates/architecture-summary.md`
 
@@ -224,20 +31,17 @@ Create a template with sections that only appear when data exists:
 {{/if}}
 
 **Version:** {{metadata.version}}
-{{#if metadata.owner}}**Owner:** {{metadata.owner}}{{/if}}
 
----
-
-## Components ({{nodes.length}})
+## Components ({{nodes.length}} total)
 
 {{#each nodes}}
-- **{{name}}** ({{kebabToTitleCase node-type}}): {{description}}
+- **{{name}}** ({{node-type}}): {{description}}
 {{/each}}
 
-## Integrations ({{relationships.length}})
+## Connections ({{relationships.length}} total)
 
 {{#each relationships}}
-- **{{unique-id}}** ({{#with relationship-type}}{{#if connects}}connects{{/if}}{{#if interacts}}interacts{{/if}}{{#if composed-of}}composed-of{{/if}}{{#if deployed-in}}deployed-in{{/if}}{{/with}})
+- **{{unique-id}}**
 {{#if this.relationship-type.connects}}
   - {{this.relationship-type.connects.source.node}} → {{this.relationship-type.connects.destination.node}}
 {{/if}}
@@ -252,101 +56,160 @@ Create a template with sections that only appear when data exists:
 {{/if}}
 {{/each}}
 
-{{#if (notEmpty flows)}}
-## Business Flows ({{flows.length}})
-
-{{#each flows}}
-### {{name}}
-
-{{description}}
-
-| Step | Transition | Description |
-|------|------------|-------------|
-{{#each transitions}}
-| {{sequence-number}} | {{relationship-unique-id}} | {{description}} |
-{{/each}}
-
-{{/each}}
-{{/if}}
-
-{{#if (notEmpty controls)}}
-## Controls
-
-{{#eachInMap controls}}
-### {{@key}}
-
-{{this.description}}
-
-{{#if this.requirements}}
-**Requirements:**
-{{#each this.requirements}}
-- {{this.control-requirement-url}}
-{{/each}}
-{{/if}}
-
-{{/eachInMap}}
-{{/if}}
-
 ---
 *Generated from CALM architecture on {{now}}*
 ```
 
-### 7. Generate All Advanced Templates
+### 3. Generate Documentation from Template
 
 ```bash
-# Generate all templates
-calm docify -a architectures/ecommerce-platform.json -t templates/nodes-by-type.md -o docs/generated/nodes-by-type.md
-calm docify -a architectures/ecommerce-platform.json -t templates/comprehensive-relationships.md -o docs/generated/comprehensive-relationships.md
-calm docify -a architectures/ecommerce-platform.json -t templates/mermaid-architecture.md -o docs/generated/mermaid-architecture.md
+calm docify \
+  --architecture architectures/ecommerce-platform.json \
+  --template templates/architecture-summary.md \
+  --output docs/generated/architecture-summary.md
+```
+
+Open `docs/generated/architecture-summary.md` to see the result.
+
+### 4. Handlebars Basics
+
+Docify uses [Handlebars](https://handlebarsjs.com/) templating. Here's what you need to know:
+
+| Syntax | Description | Example |
+|--------|-------------|---------|
+| `{{property}}` | Output a value | `{{metadata.version}}` |
+| `{{#each array}}...{{/each}}` | Loop over arrays | `{{#each nodes}}{{name}}{{/each}}` |
+| `{{#if condition}}...{{/if}}` | Conditional | `{{#if description}}...{{/if}}` |
+| `{{#unless condition}}...{{/unless}}` | Negative conditional | `{{#unless @last}}, {{/unless}}` |
+| `{{@index}}` | Current index in loop | `{{@index}}. {{name}}` |
+| `{{@last}}` | Is last item in loop | For comma-separated lists |
+| `{{this}}` | Current item | `{{#each tags}}{{this}}{{/each}}` |
+
+### 5. CALM-Specific Helpers
+
+Docify includes custom helpers for common tasks:
+
+| Helper | Description | Example |
+|--------|-------------|---------|
+| `eq` | Equality check | `{{#if (eq node-type "service")}}` |
+| `or` | Logical OR | `{{#if (or hasFlows hasControls)}}` |
+| `now` | Current timestamp | `Generated: {{now}}` |
+| `json` | Output as JSON | `{{json metadata}}` |
+| `kebabToTitleCase` | Format text | `{{kebabToTitleCase node-type}}` |
+| `notEmpty` | Check if has content | `{{#if (notEmpty flows)}}` |
+
+### 6. Create a Node Inventory Template
+
+Create a template focused on nodes:
+
+**File:** `templates/node-inventory.md`
+
+**Content:**
+```handlebars
+# Node Inventory: {{metadata.title}}
+
+Generated: {{now}}
+
+| Name | Type | ID | Description |
+|------|------|-------|-------------|
+{{#each nodes}}
+| {{name}} | {{kebabToTitleCase node-type}} | `{{unique-id}}` | {{description}} |
+{{/each}}
+
+## By Type
+
+### Services
+{{#each nodes}}
+{{#if (eq node-type "service")}}
+- {{name}} (`{{unique-id}}`)
+{{/if}}
+{{/each}}
+
+### Databases
+{{#each nodes}}
+{{#if (eq node-type "database")}}
+- {{name}} (`{{unique-id}}`)
+{{/if}}
+{{/each}}
+
+### Other
+{{#each nodes}}
+{{#unless (or (eq node-type "service") (eq node-type "database"))}}
+- {{name}} ({{node-type}})
+{{/unless}}
+{{/each}}
+```
+
+### 7. Generate Node Inventory
+
+```bash
+calm docify \
+  --architecture architectures/ecommerce-platform.json \
+  --template templates/node-inventory.md \
+  --output docs/generated/node-inventory.md
+```
+
+### 8. Create a Relationship Matrix
+
+**File:** `templates/relationship-matrix.md`
+
+**Content:**
+```handlebars
+# Relationship Matrix: {{metadata.title}}
+
+| ID | Type | Details |
+|----|------|---------|
+{{#each relationships}}
+| `{{unique-id}}` | {{#if relationship-type.connects}}connects{{/if}}{{#if relationship-type.interacts}}interacts{{/if}}{{#if relationship-type.composed-of}}composed-of{{/if}}{{#if relationship-type.deployed-in}}deployed-in{{/if}} | {{#if relationship-type.connects}}{{relationship-type.connects.source.node}} → {{relationship-type.connects.destination.node}}{{/if}}{{#if relationship-type.interacts}}{{relationship-type.interacts.actor}} ↔ {{#each relationship-type.interacts.nodes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}}{{#if relationship-type.composed-of}}{{relationship-type.composed-of.container}} ⊃ {{#each relationship-type.composed-of.nodes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}}{{#if relationship-type.deployed-in}}{{relationship-type.deployed-in.container}} ⊃ {{#each relationship-type.deployed-in.nodes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}} |
+{{/each}}
+```
+
+### 9. Generate All Custom Documents
+
+```bash
 calm docify -a architectures/ecommerce-platform.json -t templates/architecture-summary.md -o docs/generated/architecture-summary.md
+calm docify -a architectures/ecommerce-platform.json -t templates/node-inventory.md -o docs/generated/node-inventory.md
+calm docify -a architectures/ecommerce-platform.json -t templates/relationship-matrix.md -o docs/generated/relationship-matrix.md
 ```
 
-### 8. Review Generated Outputs
+### 10. When to Use Each Approach
 
-Open each generated file and verify:
-- Nodes are correctly grouped and displayed
-- Relationships show proper connection details
-- Mermaid diagrams render correctly (paste into a Mermaid viewer)
-- Conditional sections appear only when data exists
+| Approach | Best For | Effort |
+|----------|----------|--------|
+| Docify Website | Stakeholder browsing, presentations | Low |
+| Markdown Templates | READMEs, wikis, reviews | Low |
+| HTML Templates | Custom dashboards | Medium |
 
-### 9. Create a Template for Your Use Case
+### 11. Update Your README
 
-**Prompt:**
-```text
-Create a Handlebars template for [YOUR USE CASE]. For example:
-- Security review checklist
-- Compliance documentation
-- Developer onboarding guide
-- Executive summary
+Document Day 13 progress: list the templates created and their purposes.
 
-The template should use CALM docify helpers and produce a well-formatted output.
-```
-
-### 10. Commit Your Work
+### 12. Commit Your Work
 
 ```bash
 git add templates/ docs/generated/ README.md
-git commit -m "Day 13: Create advanced Handlebars templates for custom documentation"
+git commit -m "Day 13: Create custom documentation with Handlebars templates"
 git tag day-13
 ```
 
 ## Deliverables
 
 ✅ **Required:**
-- `templates/nodes-by-type.md` - Nodes grouped by type
-- `templates/comprehensive-relationships.md` - Full relationship documentation
-- `templates/mermaid-architecture.md` - Mermaid diagram generator
-- `templates/architecture-summary.md` - Comprehensive summary with conditionals
+- `templates/architecture-summary.md` - Overall summary template
+- `templates/node-inventory.md` - Node-focused template
+- `templates/relationship-matrix.md` - Relationship table template
 - Generated outputs in `docs/generated/`
 - Updated `README.md` - Day 13 marked complete
 
 ✅ **Validation:**
 ```bash
 # Verify templates exist
-ls templates/*.md
+test -f templates/architecture-summary.md
+test -f templates/node-inventory.md
 
 # Verify generated docs
-ls docs/generated/*.md
+test -f docs/generated/architecture-summary.md
+test -f docs/generated/node-inventory.md
 
 # Check tag
 git tag | grep -q "day-13"
@@ -356,23 +219,14 @@ git tag | grep -q "day-13"
 
 - [Handlebars Guide](https://handlebarsjs.com/guide/)
 - [Handlebars Built-in Helpers](https://handlebarsjs.com/guide/builtin-helpers.html)
-- [Mermaid Diagram Syntax](https://mermaid.js.org/syntax/flowchart.html)
-- [CALM Docify Source](https://github.com/finos/architecture-as-code/tree/main/cli/src/commands/docify)
+- [CALM Docify Documentation](https://github.com/finos/architecture-as-code/tree/main/cli#docify)
 
 ## Tips
 
-- Use `{{json variable}}` to debug what data is available
-- Test templates incrementally - add one section at a time
-- The `notEmpty` helper is your friend for conditional sections
-- Mermaid IDs need to be sanitised - use `{{mermaidId}}`
-- Combine templates for a complete documentation suite
-
-## Common Gotchas
-
-1. **Nested properties:** Use `{{#with}}` to change context, or fully qualify paths like `{{this.relationship-type.connects.source.node}}`
-2. **Empty arrays:** Always check with `{{#if}}` or `{{notEmpty}}` before iterating
-3. **Special characters:** Mermaid and some outputs need escaping
-4. **Whitespace:** Handlebars preserves whitespace - use `{{~` and `~}}` to trim
+- Use `{{json variable}}` to debug and see what data is available
+- Start simple and add complexity incrementally
+- Templates can generate any text format (MD, HTML, CSV, etc.)
+- Add template generation to CI/CD for always up-to-date docs
 
 ## Next Steps
-Tomorrow (Day 14) you'll use CALM as an expert architecture advisor to improve your e-commerce platform's resilience!
+Tomorrow (Day 14) you'll use CALM as an expert architecture advisor to improve your architecture's resilience!
