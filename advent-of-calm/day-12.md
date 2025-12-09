@@ -19,7 +19,7 @@ CALM Widgets provide:
 
 - **Pre-built visualisations** - tables, lists, Mermaid diagrams
 - **Architecture-aware helpers** - understand CALM nodes, relationships, and flows
-- **Customisable output** - full control over your documentation format
+- **Customizable output** - full control over your documentation format
 
 ### 2. Explore the Widgets
 
