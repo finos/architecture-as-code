@@ -13,7 +13,7 @@ Use CALM docify to generate support documentation and incident report templates 
 
 ### 1. Understand the Ops Documentation Goal
 
-Your Day 13 architecture now contains:
+Your Day 15 architecture now contains:
 
 - Owner and on-call contacts per service
 - Health endpoints and runbook links
