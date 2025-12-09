@@ -1,83 +1,29 @@
 # Day 13: Custom Documentation with Handlebars Templates
 
 ## Overview
-Create custom documentation outputs using Handlebars templates with the docify command - giving you full control over format and content.
+Extend your documentation with custom Handlebars templates when you need more control than the built-in calm-widgets provide.
 
 ## Objective and Rationale
-- **Objective:** Use docify's template mode to create focused, custom documentation from your CALM architecture
-- **Rationale:** While the generated website (Day 11) is great for comprehensive documentation, sometimes you need specific outputs: a markdown summary for a README, a node inventory for compliance, or a relationship table for review. Handlebars templates let you create exactly what you need.
+- **Objective:** Learn Handlebars templating to create fully customised documentation outputs
+- **Rationale:** On Day 12 you used calm-widgets for quick, powerful documentation. But sometimes you need more control - custom logic, filtering, or output formats the widgets don't cover. Handlebars gives you that flexibility while still being simple enough for non-developers.
 
 ## Requirements
 
-### 1. Understand Docify Template Mode
+### 1. When to Use Raw Handlebars
 
-The `calm docify` command has multiple modes:
-- **Website mode (default):** Full HTML website - what you used on Day 11
-- **Template mode:** Single file from a custom template - what we'll use today
-- **Template-dir mode:** Multiple files from a template bundle - for advanced use cases
+On Day 12 you learned calm-widgets provide ready-made components. Use raw Handlebars when you need to:
+- Create custom filtering logic (e.g., only show nodes of a certain type)
+- Format data in ways widgets don't support
+- Build complex conditional documentation
+- Generate non-markdown outputs (CSV, HTML, etc.)
 
-### 2. Create Your First Template
+### 2. Handlebars Basics
 
-Create a simple markdown template that summarises your architecture:
-
-**File:** `templates/architecture-summary.md`
-
-**Content:**
-```handlebars
-# {{metadata.title}}
-
-{{#if metadata.description}}
-> {{metadata.description}}
-{{/if}}
-
-**Version:** {{metadata.version}}
-
-## Components ({{nodes.length}} total)
-
-{{#each nodes}}
-- **{{name}}** ({{node-type}}): {{description}}
-{{/each}}
-
-## Connections ({{relationships.length}} total)
-
-{{#each relationships}}
-- **{{unique-id}}**
-{{#if this.relationship-type.connects}}
-  - {{this.relationship-type.connects.source.node}} → {{this.relationship-type.connects.destination.node}}
-{{/if}}
-{{#if this.relationship-type.interacts}}
-  - Actor: {{this.relationship-type.interacts.actor}} interacts with: {{#each this.relationship-type.interacts.nodes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
-{{/if}}
-{{#if this.relationship-type.deployed-in}}
-  - Container: {{this.relationship-type.deployed-in.container}} contains: {{#each this.relationship-type.deployed-in.nodes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
-{{/if}}
-{{#if this.relationship-type.composed-of}}
-  - Container: {{this.relationship-type.composed-of.container}} composed of: {{#each this.relationship-type.composed-of.nodes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
-{{/if}}
-{{/each}}
-
----
-*Generated from CALM architecture on {{now}}*
-```
-
-### 3. Generate Documentation from Template
-
-```bash
-calm docify \
-  --architecture architectures/ecommerce-platform.json \
-  --template templates/architecture-summary.md \
-  --output docs/generated/architecture-summary.md
-```
-
-Open `docs/generated/architecture-summary.md` to see the result.
-
-### 4. Handlebars Basics
-
-Docify uses [Handlebars](https://handlebarsjs.com/) templating. Here's what you need to know:
+[Handlebars](https://handlebarsjs.com/) is a simple templating language. Here's what you need to know:
 
 | Syntax | Description | Example |
 |--------|-------------|---------|
-| `{{property}}` | Output a value | `{{metadata.version}}` |
+| `{{property}}` | Output a value | `{{name}}` |
 | `{{#each array}}...{{/each}}` | Loop over arrays | `{{#each nodes}}{{name}}{{/each}}` |
 | `{{#if condition}}...{{/if}}` | Conditional | `{{#if description}}...{{/if}}` |
 | `{{#unless condition}}...{{/unless}}` | Negative conditional | `{{#unless @last}}, {{/unless}}` |
@@ -85,30 +31,33 @@ Docify uses [Handlebars](https://handlebarsjs.com/) templating. Here's what you 
 | `{{@last}}` | Is last item in loop | For comma-separated lists |
 | `{{this}}` | Current item | `{{#each tags}}{{this}}{{/each}}` |
 
-### 5. CALM-Specific Helpers
+### 3. CALM-Specific Helpers
 
-Docify includes custom helpers for common tasks:
+The docify command includes custom helpers:
 
 | Helper | Description | Example |
 |--------|-------------|---------|
 | `eq` | Equality check | `{{#if (eq node-type "service")}}` |
-| `or` | Logical OR | `{{#if (or hasFlows hasControls)}}` |
-| `now` | Current timestamp | `Generated: {{now}}` |
+| `lookup` | Access property by name | `{{lookup this 'unique-id'}}` |
 | `json` | Output as JSON | `{{json metadata}}` |
 | `kebabToTitleCase` | Format text | `{{kebabToTitleCase node-type}}` |
-| `notEmpty` | Check if has content | `{{#if (notEmpty flows)}}` |
+| `kebabCase` | Convert to kebab-case | `{{kebabCase name}}` |
+| `isObject` | Check if object | `{{#if (isObject data)}}` |
+| `isArray` | Check if array | `{{#if (isArray items)}}` |
+| `join` | Join array elements | `{{join tags ", "}}` |
+| `instanceOf` | Type check | `{{instanceOf value "string"}}` |
 
-### 6. Create a Node Inventory Template
+### 4. Create a Node Inventory Template
 
-Create a template focused on nodes:
+Create a template that filters nodes by type - something the widgets don't do directly:
 
 **File:** `templates/node-inventory.md`
 
-**Content:**
 ```handlebars
-# Node Inventory: {{metadata.title}}
-
-Generated: {{now}}
+---
+architecture: ../architectures/ecommerce-platform.json
+---
+# Node Inventory: {{name}}
 
 | Name | Type | ID | Description |
 |------|------|-------|-------------|
@@ -116,75 +65,145 @@ Generated: {{now}}
 | {{name}} | {{kebabToTitleCase node-type}} | `{{unique-id}}` | {{description}} |
 {{/each}}
 
-## By Type
+## Services Only
 
-### Services
 {{#each nodes}}
 {{#if (eq node-type "service")}}
-- {{name}} (`{{unique-id}}`)
+- **{{name}}** (`{{unique-id}}`): {{description}}
 {{/if}}
 {{/each}}
 
-### Databases
+## Databases Only
+
 {{#each nodes}}
 {{#if (eq node-type "database")}}
-- {{name}} (`{{unique-id}}`)
+- **{{name}}** (`{{unique-id}}`): {{description}}
 {{/if}}
 {{/each}}
 
-### Other
+## Actors
+
 {{#each nodes}}
-{{#unless (or (eq node-type "service") (eq node-type "database"))}}
-- {{name}} ({{node-type}})
-{{/unless}}
+{{#if (eq node-type "actor")}}
+- **{{name}}**: {{description}}
+{{/if}}
 {{/each}}
 ```
 
-### 7. Generate Node Inventory
+### 5. Preview in VSCode
+
+Just like Day 12, you can preview this template in VSCode:
+
+1. Open `templates/node-inventory.md` in VSCode
+2. Look for the "Live Docify Mode" badge in the status bar
+3. Open the CALM Preview to see filtered node lists
+
+### 6. Create a Relationship Details Template
+
+Create a template that shows relationship details with custom formatting:
+
+**File:** `templates/relationship-details.md`
+
+```handlebars
+---
+architecture: ../architectures/ecommerce-platform.json
+---
+# Relationship Details: {{name}}
+
+{{#each relationships}}
+### {{unique-id}}
+
+{{#if relationship-type.connects}}
+**Type:** Connection
+
+| Property | Value |
+|----------|-------|
+| Source | `{{relationship-type.connects.source.node}}` |
+| Destination | `{{relationship-type.connects.destination.node}}` |
+{{#if relationship-type.connects.source.interfaces}}
+| Source Interfaces | {{#each relationship-type.connects.source.interfaces}}`{{this}}`{{#unless @last}}, {{/unless}}{{/each}} |
+{{/if}}
+{{#if relationship-type.connects.destination.interfaces}}
+| Dest Interfaces | {{#each relationship-type.connects.destination.interfaces}}`{{this}}`{{#unless @last}}, {{/unless}}{{/each}} |
+{{/if}}
+{{/if}}
+
+{{#if relationship-type.interacts}}
+**Type:** Interaction
+
+- **Actor:** `{{relationship-type.interacts.actor}}`
+- **Interacts with:** {{#each relationship-type.interacts.nodes}}`{{this}}`{{#unless @last}}, {{/unless}}{{/each}}
+{{/if}}
+
+{{#if relationship-type.composed-of}}
+**Type:** Composition
+
+- **Container:** `{{relationship-type.composed-of.container}}`
+- **Contains:** {{#each relationship-type.composed-of.nodes}}`{{this}}`{{#unless @last}}, {{/unless}}{{/each}}
+{{/if}}
+
+---
+{{/each}}
+```
+
+### 7. Generate Static Files with CLI
+
+For CI/CD or static site generation, use the docify CLI:
 
 ```bash
 calm docify \
   --architecture architectures/ecommerce-platform.json \
   --template templates/node-inventory.md \
   --output docs/generated/node-inventory.md
+
+calm docify \
+  --architecture architectures/ecommerce-platform.json \
+  --template templates/relationship-details.md \
+  --output docs/generated/relationship-details.md
 ```
 
-### 8. Create a Relationship Matrix
+### 8. Combining Widgets and Handlebars
 
-**File:** `templates/relationship-matrix.md`
+You can mix calm-widgets with raw Handlebars in the same template:
 
-**Content:**
 ```handlebars
-# Relationship Matrix: {{metadata.title}}
+---
+architecture: ../architectures/ecommerce-platform.json
+---
+# {{name}} - Combined Documentation
 
-| ID | Type | Details |
-|----|------|---------|
-{{#each relationships}}
-| `{{unique-id}}` | {{#if relationship-type.connects}}connects{{/if}}{{#if relationship-type.interacts}}interacts{{/if}}{{#if relationship-type.composed-of}}composed-of{{/if}}{{#if relationship-type.deployed-in}}deployed-in{{/if}} | {{#if relationship-type.connects}}{{relationship-type.connects.source.node}} → {{relationship-type.connects.destination.node}}{{/if}}{{#if relationship-type.interacts}}{{relationship-type.interacts.actor}} ↔ {{#each relationship-type.interacts.nodes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}}{{#if relationship-type.composed-of}}{{relationship-type.composed-of.container}} ⊃ {{#each relationship-type.composed-of.nodes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}}{{#if relationship-type.deployed-in}}{{relationship-type.deployed-in.container}} ⊃ {{#each relationship-type.deployed-in.nodes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}} |
+## Architecture Overview (widget)
+{{block-architecture this}}
+
+## Services Summary (custom Handlebars)
+{{#each nodes}}
+{{#if (eq node-type "service")}}
+### {{name}}
+- **ID:** `{{unique-id}}`
+- **Description:** {{description}}
+{{#if interfaces}}
+- **Interfaces:** {{#each interfaces}}`{{unique-id}}`{{#unless @last}}, {{/unless}}{{/each}}
+{{/if}}
+{{/if}}
 {{/each}}
+
+## All Nodes (widget)
+{{table nodes columns="unique-id,name,node-type"}}
 ```
 
-### 9. Generate All Custom Documents
+### 9. When to Use Each Approach
 
-```bash
-calm docify -a architectures/ecommerce-platform.json -t templates/architecture-summary.md -o docs/generated/architecture-summary.md
-calm docify -a architectures/ecommerce-platform.json -t templates/node-inventory.md -o docs/generated/node-inventory.md
-calm docify -a architectures/ecommerce-platform.json -t templates/relationship-matrix.md -o docs/generated/relationship-matrix.md
-```
+| Approach | Best For |
+|----------|----------|
+| calm-widgets (Day 12) | Quick visualisations, standard documentation |
+| Raw Handlebars (Day 13) | Custom filtering, complex logic, non-standard formats |
+| Combined | Best of both worlds |
 
-### 10. When to Use Each Approach
+### 10. Update Your README
 
-| Approach | Best For | Effort |
-|----------|----------|--------|
-| Docify Website | Stakeholder browsing, presentations | Low |
-| Markdown Templates | READMEs, wikis, reviews | Low |
-| HTML Templates | Custom dashboards | Medium |
+Document Day 13 progress: note that you've learned Handlebars templating for custom documentation.
 
-### 11. Update Your README
-
-Document Day 13 progress: list the templates created and their purposes.
-
-### 12. Commit Your Work
+### 11. Commit Your Work
 
 ```bash
 git add templates/ docs/generated/ README.md
@@ -195,21 +214,15 @@ git tag day-13
 ## Deliverables
 
 ✅ **Required:**
-- `templates/architecture-summary.md` - Overall summary template
-- `templates/node-inventory.md` - Node-focused template
-- `templates/relationship-matrix.md` - Relationship table template
-- Generated outputs in `docs/generated/`
+- `templates/node-inventory.md` - Node filtering template
+- `templates/relationship-details.md` - Relationship details template
 - Updated `README.md` - Day 13 marked complete
 
 ✅ **Validation:**
 ```bash
 # Verify templates exist
-test -f templates/architecture-summary.md
 test -f templates/node-inventory.md
-
-# Verify generated docs
-test -f docs/generated/architecture-summary.md
-test -f docs/generated/node-inventory.md
+test -f templates/relationship-details.md
 
 # Check tag
 git tag | grep -q "day-13"
@@ -219,14 +232,14 @@ git tag | grep -q "day-13"
 
 - [Handlebars Guide](https://handlebarsjs.com/guide/)
 - [Handlebars Built-in Helpers](https://handlebarsjs.com/guide/builtin-helpers.html)
-- [CALM Docify Documentation](https://github.com/finos/architecture-as-code/tree/main/cli#docify)
+- [CALM Widgets Documentation](https://github.com/finos/architecture-as-code/tree/main/calm-widgets)
 
 ## Tips
 
 - Use `{{json variable}}` to debug and see what data is available
 - Start simple and add complexity incrementally
 - Templates can generate any text format (MD, HTML, CSV, etc.)
-- Add template generation to CI/CD for always up-to-date docs
+- Preview in VSCode before generating static files
 
 ## Next Steps
 Tomorrow (Day 14) you'll use CALM as an expert architecture advisor to improve your architecture's resilience!
