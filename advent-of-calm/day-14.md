@@ -2,6 +2,8 @@
 
 ## Overview
 
+The documentation you have created is great, but wouldn't it be amazing to not even need to create documentaiton?
+
 Use CALM Chat mode as an expert architect to analyze and improve your e-commerce architecture for better resilience and performance.
 
 ## Objective and Rationale
