@@ -71,30 +71,7 @@ cd ../../..
 
 **Rule of thumb:** Use VSCode for development, use the website for sharing.
 
-### 5. Enhance Your Architecture Metadata
-
-Good metadata makes the website more useful. Ensure your architecture has descriptive information:
-
-**Prompt:**
-```text
-Update architectures/ecommerce-platform.json to ensure metadata includes:
-- title: A descriptive name for the architecture
-- description: A summary of what this architecture does  
-- version: The current version
-- owner: Who maintains this architecture
-
-This metadata will appear prominently in the generated documentation website.
-```
-
-### 6. Regenerate with Updated Metadata
-
-```bash
-calm docify --architecture architectures/ecommerce-platform.json --output docs/generated/ecommerce-docs
-```
-
-Restart the website to see your metadata displayed prominently.
-
-### 7. Consider Your Publishing Strategy
+### 5. Consider Your Publishing Strategy
 
 Think about how you would publish this website in your organisation:
 
@@ -104,14 +81,14 @@ Think about how you would publish this website in your organisation:
 
 > 💡 **Tip:** Add docify to your CI/CD pipeline so documentation is always up-to-date with your architecture.
 
-### 8. Update Your README
+### 6. Update Your README
 
 Document Day 11 progress in your README: mark the checklist, describe the documentation website, and note where to find the generated site.
 
-### 9. Commit Your Work
+### 7. Commit Your Work
 
 ```bash
-git add docs/generated/ README.md architectures/ecommerce-platform.json
+git add docs/generated/ README.md
 git commit -m "Day 11: Generate shareable documentation website"
 git tag day-11
 ```
