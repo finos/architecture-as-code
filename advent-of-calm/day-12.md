@@ -51,19 +51,23 @@ Create a new template that uses calm-widgets to generate a summary document. Cre
 
 ## Relationships
 
-{{table relationships columns="unique-id,relationship-type,description"}}
-```
+| Source | Target | Type |
+|--------|--------|------|
+{{#each relationships}}
+| {{relationship-source}} | {{relationship-target}} | {{relationship-type}} |
+{{/each}}
 
-> **Note:** The `flow-sequence` widget requires flows to be defined in your architecture. If your architecture includes flows (covered in later days), you can add:
-> ```handlebars
-> {{#if flows}}
-> ## Flows
-> {{#each flows}}
-> ### {{name}}
-> {{flow-sequence flow-id=unique-id}}
-> {{/each}}
-> {{/if}}
-> ```
+{{#if flows}}
+## Flows
+
+{{#each flows}}
+### {{name}}
+
+{{flow-sequence flow-id=unique-id}}
+
+{{/each}}
+{{/if}}
+```
 
 ### 4. Generate Documentation with Your Template
 
