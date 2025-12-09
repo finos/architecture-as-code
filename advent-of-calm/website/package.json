@@ -8,7 +8,7 @@
     "build": "npm run copy:content && astro check && astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "copy:content": "mkdir -p src/content/days && cp ../day-*.md src/content/days/ && cp ../home.md src/"
+    "copy:content": "mkdir -p src/content/days && cp ../day-*.md src/content/days/ && cp ../setup.md src/content/days/ && cp ../home.md src/"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",

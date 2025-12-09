@@ -24,9 +24,9 @@ Each day from December 1st through December 24th, a new challenge unlocks. Each 
 Before you begin, make sure you have:
 - Git installed
 - Node.js (18+) and npm installed
-- VSCode editor (recommended)
+- VSCode editor (106+)
 - GitHub account (recommended for portfolio sharing)
-- GitHub Copilot access (optional but helpful)
+- GitHub Copilot access
 
 ### Your First Steps
 
