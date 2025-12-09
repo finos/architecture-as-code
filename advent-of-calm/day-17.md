@@ -287,19 +287,19 @@ Create patterns/README.md that documents:
 
 ```bash
 git add patterns/ architectures/generated-webapp.json README.md
-git commit -m "Day 15: Create first CALM pattern for web applications"
+git commit -m "Day 17: Create first CALM pattern for web applications"
 git tag day-17
 ```
 
 ## Deliverables / Validation Criteria
 
-Your Day 15 submission should include a commit tagged `day-17` containing:
+Your Day 17 submission should include a commit tagged `day-17` containing:
 
 ✅ **Required Files:**
 - `patterns/web-app-pattern.json` - Pattern for 3-tier web app
 - `patterns/README.md` - Pattern documentation
 - `architectures/generated-webapp.json` - Generated and enhanced architecture
-- Updated `README.md` - Day 15 marked as complete
+- Updated `README.md` - Day 17 marked as complete
 
 ✅ **Validation:**
 ```bash
