@@ -28,6 +28,17 @@ const { title, description = "A 24-day progressive learning challenge for CALM" 
       </div>
     </header>
     
+    <div class="update-banner">
+      <div class="container">
+        <div class="banner-content">
+          <span class="banner-icon">💡</span>
+          <div class="banner-text">
+            <strong>Stay Up to Date!</strong> We make frequent updates. <a href={`${import.meta.env.BASE_URL}setup/`} class="banner-link">See here</a> for how to make sure you're using the latest CALM tools.
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <main>
       <div class="container">
         <slot />
@@ -100,6 +111,55 @@ const { title, description = "A 24-day progressive learning challenge for CALM" 
     color: var(--color-accent);
   }
   
+  .update-banner {
+    background: linear-gradient(135deg, #007dff 0%, #0056b3 100%);
+    color: white;
+    padding: var(--spacing-md) 0;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  }
+  
+  .banner-content {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+  
+  .banner-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+  
+  .banner-text {
+    flex: 1;
+    line-height: 1.6;
+  }
+  
+  .banner-text strong {
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 0.25rem;
+  }
+  
+  .banner-text code {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  }
+  
+  .banner-link {
+    color: white;
+    text-decoration: underline;
+    font-weight: 600;
+  }
+  
+  .banner-link:hover {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+  }
+  
   @media (max-width: 768px) {
     .logo img {
       height: 32px;
@@ -107,6 +167,18 @@ const { title, description = "A 24-day progressive learning challenge for CALM" 
     
     .title {
       font-size: 1.2rem;
+    }
+    
+    .update-banner {
+      padding: var(--spacing-sm) 0;
+    }
+    
+    .banner-icon {
+      font-size: 1.25rem;
+    }
+    
+    .banner-text {
+      font-size: 0.9rem;
     }
   }
 </style>
