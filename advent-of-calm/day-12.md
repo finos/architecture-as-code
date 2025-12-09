@@ -1,151 +1,163 @@
-# Day 12: Understanding CALM Widgets
+# Day 12: Custom Documentation with CALM Widgets
 
 ## Overview
-Learn about calm-widgets - the React component library that powers all CALM visualisations, including the VSCode Extension and the documentation website you created yesterday.
+Learn about calm-widgets - a Handlebars-based widget framework for generating custom Markdown documentation from your CALM architecture data, using the VSCode CALM Preview.
 
 ## Objective and Rationale
-- **Objective:** Understand what calm-widgets are and how they're used to render CALM architecture data
-- **Rationale:** Before creating custom documentation, it's valuable to understand the building blocks. CALM Widgets are the foundation for all CALM visualisations - understanding them helps you appreciate what's possible and prepares you for creating custom documentation in the next days.
+- **Objective:** Understand how to use calm-widgets to create custom documentation templates
+- **Rationale:** While the docify website provides a great out-of-the-box experience, you may need custom documentation formats. CALM Widgets provide reusable Handlebars helpers that make this easy without writing everything from scratch.
 
 ## Requirements
 
 ### 1. What are CALM Widgets?
 
-CALM Widgets is a library of reusable React components designed specifically for visualising CALM architecture data. They provide:
+CALM Widgets is a TypeScript framework built on Handlebars that provides reusable components for generating Markdown documentation. They offer a simpler approach than writing raw Handlebars templates - you get powerful documentation capabilities without needing to learn the intricacies of Handlebars syntax.
 
-- **Consistent visualisation** across all CALM tools
-- **Interactive exploration** of architecture elements
-- **Ready-to-use components** for nodes, relationships, flows, and controls
+**Fun fact:** The visualisations you see in the VSCode CALM extension are built using these same widgets!
 
-**Where you've already seen them:**
-- The **VSCode Extension** preview panel uses calm-widgets
-- The **docify website** you generated yesterday is built entirely with calm-widgets
+CALM Widgets provide:
 
-### 2. Explore the Widgets Project
+- **Pre-built visualisations** - tables, lists, Mermaid diagrams
+- **Architecture-aware helpers** - understand CALM nodes, relationships, and flows
+- **Customisable output** - full control over your documentation format
 
-Let's look at what's available:
+### 2. Explore the Widgets
+
+Review the available widgets in the [calm-widgets README](https://github.com/finos/architecture-as-code/blob/main/calm-widgets/README.md):
+
+| Widget | Purpose | Example Use |
+|--------|---------|-------------|
+| `table` | Render data as Markdown tables | `{{table nodes columns="name,type"}}` |
+| `list` | Render arrays as Markdown lists | `{{list services property="name"}}` |
+| `json-viewer` | Render data as formatted JSON | `{{json-viewer config}}` |
+| `related-nodes` | Render relationships as Mermaid graphs | `{{related-nodes node-id="api-gateway"}}` |
+| `block-architecture` | Render full architecture as Mermaid flowchart | `{{block-architecture this}}` |
+| `flow-sequence` | Render a flow as a Mermaid sequence diagram | `{{flow-sequence this flow-id="my-flow"}}` |
+
+### 3. Create a Custom Template Using Widgets
+
+The easiest way to use calm-widgets is with the **VSCode CALM Preview**. Create a Markdown file with YAML front matter that specifies your architecture, and the preview will render the widgets live.
+
+Create a file called `docs/architecture-summary.md` with the following content:
+
+```markdown
+---
+architecture: ../architectures/ecommerce-platform.json
+---
+
+# Architecture Summary
+
+## System Overview
+
+{{block-architecture this}}
+```
+
+**Understanding the Front Matter:**
+
+The YAML front matter (between the `---` markers) tells the VSCode CALM Preview where to find your architecture data:
+
+- `architecture:` - Path to your CALM architecture JSON file (relative to the template file)
+- `url-to-local-file-mapping:` (optional) - Path to a URL mapping file if your architecture references external schemas
+
+The front matter is processed by the preview but won't appear in your rendered output.
+
+### 4. Preview Your Documentation in VSCode
+
+1. Open the file `docs/architecture-summary.md` in VSCode
+2. Open the Command Palette (Cmd+Shift+P / Ctrl+Shift+P)
+3. Run **"CALM: Open Preview"**
+4. Notice the **"Live Docify Mode"** badge is highlighted in the preview pane
+5. The preview will render your widgets with live data from your architecture
+
+As you edit the template, the preview updates in real-time - no need to run any CLI commands!
+
+### 5. Explore Widget Customization Options
+
+The power of calm-widgets lies in their customization options. With the preview still open, try adding these sections to your document and watch the preview update in real-time:
+
+**Add a nodes table with specific columns:**
+
+```markdown
+## Nodes
+
+{{table nodes columns="unique-id,name,node-type,description"}}
+```
+
+**Focus on a specific flow in the architecture diagram:**
+
+```markdown
+## Order Processing Flow View
+
+{{block-architecture this focus-flows="order-processing-flow"}}
+```
+
+This filters the diagram to show only the nodes and relationships involved in that flow.
+
+**Highlight specific nodes and render node type shapes:**
+
+```markdown
+## Payment Processing Components
+
+{{block-architecture this focus-nodes="payment-service,order-service" highlight-nodes="payment-service" render-node-type-shapes=true}}
+```
+
+**Render a flow as a sequence diagram:**
+
+```markdown
+## Order Processing Sequence
+
+{{flow-sequence this flow-id="order-processing-flow"}}
+```
+
+**Show relationships for a specific node:**
+
+```markdown
+## API Gateway Connections
+
+{{related-nodes node-id="api-gateway"}}
+```
+
+Experiment with different options - the [calm-widgets README](https://github.com/finos/architecture-as-code/blob/main/calm-widgets/README.md) documents all available options for each widget.
+
+**Note:** These same templates work with the CLI `calm docify` command to generate static documentation websites for publishing or sharing.
+
+### 6. Update Your README
+
+Document Day 12 progress: note which widgets you used and how they simplified documentation.
+
+### 7. Commit Your Work
 
 ```bash
-# From the architecture-as-code repo
-ls calm-widgets/src/components/
-```
-
-Review the README to understand the project:
-
-```bash
-cat calm-widgets/README.md
-```
-
-### 3. Available Widget Components
-
-| Widget | Purpose | Where You've Seen It |
-|--------|---------|---------------------|
-| `ArchitectureViewer` | Complete architecture visualisation | VSCode preview, docify website |
-| `NodeCard` | Individual node display | Node details in docify |
-| `RelationshipDiagram` | Visual relationship graph | Architecture overview |
-| `FlowSequenceDiagram` | Sequence diagram for flows | Flow pages in docify |
-| `ControlsPanel` | Security controls display | Controls section |
-| `MetadataPanel` | Architecture metadata | Header of docify site |
-
-### 4. See Widgets in Action
-
-Open your architecture in VSCode and use the preview command (`Ctrl+Shift+C` / `Cmd+Shift+C`):
-
-Notice how the preview renders:
-- Node cards with type icons
-- Relationship connections
-- Flow sequence diagrams
-- Metadata display
-
-Now open the docify website you created yesterday and compare - you'll see the same visual components!
-
-### 5. Understand the Widget Architecture
-
-```
-┌─────────────────────────────────────────┐
-│           Your CALM JSON                │
-│   (architectures/ecommerce-platform)    │
-└────────────────┬────────────────────────┘
-                 │
-                 ▼
-┌─────────────────────────────────────────┐
-│          CALM Widgets                   │
-│   (React components that parse and      │
-│    render CALM data)                    │
-└────────────────┬────────────────────────┘
-                 │
-        ┌────────┼────────┐
-        ▼        ▼        ▼
-   ┌────────┐ ┌────────┐ ┌────────┐
-   │ VSCode │ │ Docify │ │ Custom │
-   │  Ext   │ │Website │ │  Apps  │
-   └────────┘ └────────┘ └────────┘
-```
-
-### 6. Why This Matters
-
-Understanding that calm-widgets power both the VSCode extension and docify website means:
-
-1. **Consistency:** Changes to widgets improve all tools
-2. **Predictability:** What you see in VSCode is what you get in docs
-3. **Extensibility:** You can build custom applications using these widgets
-4. **Customisation:** Tomorrow you'll learn to create custom documentation that complements (or replaces) the default widgets output
-
-### 7. Quick Widget Demo (Optional)
-
-If you want to see widgets in isolation, you can run the widgets storybook:
-
-```bash
-cd calm-widgets
-npm install
-npm run storybook
-```
-
-This opens an interactive gallery showing each widget with sample data.
-
-### 8. Compare VSCode and Docify Output
-
-Take screenshots of:
-1. Your architecture in VSCode preview
-2. The same architecture in the docify website
-
-Note the similarities - both use the same underlying widgets.
-
-### 9. Update Your README
-
-Document Day 12 progress: note what calm-widgets are and where they're used.
-
-### 10. Commit Your Work
-
-```bash
-git add README.md
-git commit -m "Day 12: Learn about calm-widgets foundation"
+git add docs/ README.md
+git commit -m "Day 12: Create custom docs with calm-widgets"
 git tag day-12
 ```
 
 ## Deliverables
 
 ✅ **Required:**
-- Understanding of what calm-widgets are and where they're used
-- Screenshots comparing VSCode preview and docify website
+- `docs/architecture-summary.md` using calm-widgets with front matter
 - Updated `README.md` - Day 12 marked complete
 
 ✅ **Validation:**
 ```bash
+# Check template exists
+ls docs/architecture-summary.md
 # Check tag
 git tag | grep -q "day-12"
 ```
 
 ## Resources
 
-- [CALM Widgets Repository](https://github.com/finos/architecture-as-code/tree/main/calm-widgets)
 - [CALM Widgets README](https://github.com/finos/architecture-as-code/blob/main/calm-widgets/README.md)
+- [Mermaid Documentation](https://mermaid.js.org/)
 
 ## Tips
 
-- The VSCode Extension and docify website share the same visualisation components
-- Understanding widgets helps you know what's possible with custom documentation
-- Widget consistency means your architecture looks the same everywhere
+- Start simple with `{{table nodes}}` and add options gradually
+- The `block-architecture` widget is powerful - experiment with `focus-flows` and `highlight-nodes`
+- Use the VSCode CALM Preview for instant feedback as you build templates
+- Use `{{json-viewer data}}` to debug what data is available in your context
 
 ## Next Steps
-Tomorrow (Day 13) you'll create custom documentation templates using Handlebars - giving you full control over the output format while optionally using the data structures that calm-widgets understand!
+Tomorrow (Day 13) you'll learn to extend these templates with custom Handlebars logic - combining widgets with your own helpers for maximum flexibility!
