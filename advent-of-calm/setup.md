@@ -140,8 +140,4 @@ If you continue to experience issues:
 - Check the [CALM documentation](https://calm.finos.org)
 - Visit the [GitHub repository](https://github.com/finos/architecture-as-code)
 - Open an issue on GitHub
-- Join the FINOS Slack workspace
 
----
-
-**Last Updated:** December 2024
