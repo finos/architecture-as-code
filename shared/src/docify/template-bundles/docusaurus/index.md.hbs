@@ -34,10 +34,10 @@ This documentation is generated from the **CALM Architecture-as-Code** model.
 
 ## Controls
 {{#if (notEmpty controls) }}
-| ID    | Name             | Description                  | Domain    | Scope        | Applied To                |
-|-------|------------------|------------------------------|-----------|--------------|---------------------------|
+| Requirement URL               | Category    | Scope        | Applied To                |
+|-------------------------------|-----------|--------------|---------------------------|
 {{#controls}}
-|{{id}}|{{name}}|{{description}}|{{domain}}|{{scope}}|{{appliedTo}}|
+|{{requirementUrl}}|{{domain}}|{{scope}}|{{appliedTo}}|
 {{/controls}}
 {{else}}
   _No Controls defined._

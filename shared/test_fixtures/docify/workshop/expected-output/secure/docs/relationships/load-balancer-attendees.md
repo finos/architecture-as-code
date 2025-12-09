@@ -24,66 +24,32 @@ load-balancer -- Connects --> attendees;
 
         Security Controls for the connection
 
-            <div className="table-container">
-                <table>
-                    <thead>
-                    <tr>
-                        <th>Key</th>
-                        <th>Value</th>
-                    </tr>
-                    </thead>
-                    <tbody>
+        <div className="table-container">
+            <table>
+                <thead>
+                <tr>
+                    <th>Requirement URL</th>
+                    <th>Config</th>
+                </tr>
+                </thead>
+                <tbody>
                     <tr>
                         <td>
-                            <b>$schema</b>
+                                <a href="https://calm.finos.org/workshop/controls/permitted-connection.requirement.json" target="_blank">
+                                    https://calm.finos.org/workshop/controls/permitted-connection.requirement.json
+                                </a>
                         </td>
+
                         <td>
-                            https://calm.finos.org/workshop/controls/permitted-connection.requirement.json
-                                </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <b>Control Id</b>
+                                <a href="https://calm.finos.org/workshop/controls/permitted-connection-http.config.json" target="_blank">
+                                    https://calm.finos.org/workshop/controls/permitted-connection-http.config.json
+                                </a>
+
                         </td>
-                        <td>
-                            security-002
-                                </td>
                     </tr>
-                    <tr>
-                        <td>
-                            <b>Name</b>
-                        </td>
-                        <td>
-                            Permitted Connection
-                                </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <b>Description</b>
-                        </td>
-                        <td>
-                            Permits a connection on a relationship specified in the architecture
-                                </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <b>Reason</b>
-                        </td>
-                        <td>
-                            Required to enable flow between architecture components
-                                </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <b>Protocol</b>
-                        </td>
-                        <td>
-                            HTTP
-                                </td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
+                </tbody>
+            </table>
+        </div>
 
 
 ## Metadata
