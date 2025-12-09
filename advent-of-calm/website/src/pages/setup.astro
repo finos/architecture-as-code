@@ -3,6 +3,9 @@ import Layout from '../layouts/Layout.astro';
 import { getEntry } from 'astro:content';
 
 const entry = await getEntry('days', 'setup');
+if (!entry) {
+  throw new Error('Setup content not found');
+}
 const { Content } = await entry.render();
 ---
 
