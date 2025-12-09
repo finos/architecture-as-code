@@ -220,7 +220,7 @@ Mark Day 12 as complete in your README checklist and note the AI-assisted archit
 
 ```bash
 git add architectures/ecommerce-platform.json docs/architecture-improvements.md README.md
-git commit -m "Day 12: AI-assisted resilience improvements - LB, replicas, message queue"
+git commit -m "Day 14: AI-assisted resilience improvements - LB, replicas, message queue"
 git tag day-14
 ```
 
