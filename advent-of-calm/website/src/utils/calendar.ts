@@ -6,11 +6,11 @@ export interface DayInfo {
 
 export function getDayTitle(day: number): string {
   const titles: Record<number, string> = {
-    1: "Install CALM CLI and Initialize Repository",
+    1: "Install CALM CLI and Initialize Your Architecture Repository",
     2: "Create Your First Node",
     3: "Connect Nodes with Relationships",
     4: "Install the CALM VSCode Extension",
-    5: "Add Interfaces to Nodes",
+    5: "Add Interfaces to Your Nodes",
     6: "Document with Metadata",
     7: "Build a Complete E-Commerce Microservice Architecture",
     8: "Add Controls for Non-Functional Requirements",
