@@ -4,7 +4,7 @@
 Generate a shareable documentation website from your CALM architecture - making your architecture knowledge accessible to anyone with a browser.
 
 ## Objective and Rationale
-- **Objective:** Use `calm docify` to generate a comprehensive documentation website that can be shared across your organisation
+- **Objective:** Use `calm docify` to generate a comprehensive documentation website that can be shared across your organization
 - **Rationale:** Architecture knowledge locked in JSON files or local tools limits its value. By generating a static website, you can publish your architecture documentation to internal hosting, share it with stakeholders who don't have development tools, and ensure everyone has access to the same source of truth.
 
 ## Requirements
