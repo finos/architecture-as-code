@@ -1,6 +1,4 @@
 /* eslint-disable no-undef */
-import remarkReplaceLinks from './src/remark/remark-replace-links.mjs';
-
 module.exports = {
     title: 'My Docusaurus Docs',
     tagline: 'Generated documentation from CALM',
@@ -37,8 +35,7 @@ module.exports = {
             {
                 docs: {
                     sidebarPath: require.resolve('./sidebars.js'),
-                    routeBasePath: '/',
-                    remarkPlugins: [remarkReplaceLinks]
+                    routeBasePath: '/'
                 },
             },
         ],

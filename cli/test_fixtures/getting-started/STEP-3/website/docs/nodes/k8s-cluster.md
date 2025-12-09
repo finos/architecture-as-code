@@ -34,74 +34,32 @@ classDef highlight fill:#f2bbae;
 
         Security requirements for the Kubernetes cluster
 
-            <div className="table-container">
-                <table>
-                    <thead>
-                    <tr>
-                        <th>Key</th>
-                        <th>Value</th>
-                    </tr>
-                    </thead>
-                    <tbody>
+        <div className="table-container">
+            <table>
+                <thead>
+                <tr>
+                    <th>Requirement URL</th>
+                    <th>Config</th>
+                </tr>
+                </thead>
+                <tbody>
                     <tr>
                         <td>
-                            <b>$schema</b>
+                                <a href="https://calm.finos.org/getting-started/controls/micro-segmentation.requirement.json" target="_blank">
+                                    https://calm.finos.org/getting-started/controls/micro-segmentation.requirement.json
+                                </a>
                         </td>
+
                         <td>
-                            https://calm.finos.org/getting-started/controls/micro-segmentation.requirement.json
-                                </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <b>$id</b>
+                                <a href="https://calm.finos.org/getting-started/controls/micro-segmentation.config.json" target="_blank">
+                                    https://calm.finos.org/getting-started/controls/micro-segmentation.config.json
+                                </a>
+
                         </td>
-                        <td>
-                            https://calm.finos.org/getting-started/controls/micro-segmentation.config.json
-                                </td>
                     </tr>
-                    <tr>
-                        <td>
-                            <b>Control Id</b>
-                        </td>
-                        <td>
-                            security-001
-                                </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <b>Name</b>
-                        </td>
-                        <td>
-                            Micro-segmentation of Kubernetes Cluster
-                                </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <b>Description</b>
-                        </td>
-                        <td>
-                            Micro-segmentation in place to prevent lateral movement outside of permitted flows
-                                </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <b>Permit Ingress</b>
-                        </td>
-                        <td>
-                            true
-                                </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <b>Permit Egress</b>
-                        </td>
-                        <td>
-                            false
-                                </td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
+                </tbody>
+            </table>
+        </div>
 
 
 ## Metadata

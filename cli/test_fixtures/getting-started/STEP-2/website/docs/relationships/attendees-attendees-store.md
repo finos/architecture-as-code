@@ -24,66 +24,32 @@ attendees -- Connects --> attendees-store;
 
         Security Controls for the connection
 
-            <div className="table-container">
-                <table>
-                    <thead>
-                    <tr>
-                        <th>Key</th>
-                        <th>Value</th>
-                    </tr>
-                    </thead>
-                    <tbody>
+        <div className="table-container">
+            <table>
+                <thead>
+                <tr>
+                    <th>Requirement URL</th>
+                    <th>Config</th>
+                </tr>
+                </thead>
+                <tbody>
                     <tr>
                         <td>
-                            <b>$schema</b>
+                                <a href="https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json" target="_blank">
+                                    https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json
+                                </a>
                         </td>
+
                         <td>
-                            https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json
-                                </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <b>Control Id</b>
+                                <a href="https://calm.finos.org/getting-started/controls/permitted-connection-jdbc.config.json" target="_blank">
+                                    https://calm.finos.org/getting-started/controls/permitted-connection-jdbc.config.json
+                                </a>
+
                         </td>
-                        <td>
-                            security-003
-                                </td>
                     </tr>
-                    <tr>
-                        <td>
-                            <b>Name</b>
-                        </td>
-                        <td>
-                            Permitted Connection
-                                </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <b>Description</b>
-                        </td>
-                        <td>
-                            Permits a connection on a relationship specified in the architecture
-                                </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <b>Reason</b>
-                        </td>
-                        <td>
-                            Permitted to allow the connection between application and database
-                                </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <b>Protocol</b>
-                        </td>
-                        <td>
-                            JDBC
-                                </td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
+                </tbody>
+            </table>
+        </div>
 
 
 ## Metadata
