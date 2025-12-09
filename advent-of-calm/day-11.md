@@ -1,22 +1,27 @@
-# Day 11: Generate Documentation with Docify
+# Day 11: Share Your Architecture with a Documentation Website
 
 ## Overview
-Transform your CALM architecture into browsable HTML documentation using the docify command.
+Generate a shareable documentation website from your CALM architecture - making your architecture knowledge accessible to anyone with a browser.
 
 ## Objective and Rationale
-- **Objective:** Use `calm docify` to generate a comprehensive documentation website from your architecture
-- **Rationale:** Machine-readable architecture (JSON) needs human-readable outputs. Docify generates documentation automatically, ensuring docs stay in sync with architecture. Essential for stakeholder communication and onboarding.
+- **Objective:** Use `calm docify` to generate a comprehensive documentation website that can be shared across your organisation
+- **Rationale:** Architecture knowledge locked in JSON files or local tools limits its value. By generating a static website, you can publish your architecture documentation to internal hosting, share it with stakeholders who don't have development tools, and ensure everyone has access to the same source of truth.
 
 ## Requirements
 
-### 1. Understand Docify
+### 1. Understand the Value of Shareable Documentation
 
-The `calm docify` command generates documentation in multiple modes:
-- **Website mode (default):** Full HTML website with navigation - what we'll use today
-- **Template mode:** Single file using custom template - covered in Day 13
-- **Template-dir mode:** Multiple files using template bundle - for advanced use cases
+Until now, viewing your architecture required either:
+- The VSCode Extension (requires VSCode installed)
+- Reading raw JSON (requires technical knowledge)
 
-### 2. Generate Default Documentation Website
+A documentation website solves this by:
+- **Accessibility:** Anyone with a browser can view it
+- **Shareability:** Host on internal servers, GitHub Pages, or any static hosting
+- **Consistency:** Everyone sees the same documentation
+- **Self-serve:** Stakeholders can explore without asking architects
+
+### 2. Generate Your Documentation Website
 
 ```bash
 calm docify --architecture architectures/ecommerce-platform.json --output docs/generated/ecommerce-docs
@@ -25,11 +30,11 @@ calm docify --architecture architectures/ecommerce-platform.json --output docs/g
 This creates a complete HTML website with:
 - Index page with architecture overview
 - Node details pages
-- Relationship visualisation
+- Relationship visualisations  
 - Flow diagrams
 - Control and metadata display
 
-### 3. Install and Run the Documentation Website
+### 3. Run the Documentation Website
 
 The generated website is a self-contained application. Install dependencies and start it:
 
@@ -45,7 +50,7 @@ This will start a local development server. Open the URL shown in your terminal 
 - Navigate through different sections (nodes, relationships, flows, controls)
 - Click on nodes to see their details
 - View flow sequence diagrams
-- **Take screenshots** of the main pages
+- **Take screenshots** of the main pages to share
 
 When done, press `Ctrl+C` to stop the server and return to your project root:
 
@@ -53,49 +58,51 @@ When done, press `Ctrl+C` to stop the server and return to your project root:
 cd ../../..
 ```
 
-### 4. Understand How the Website is Built
+### 4. When to Use the Website vs VSCode Extension
 
-The generated website uses **calm-widgets** - a library of React components specifically designed for rendering CALM architecture data. You'll learn more about calm-widgets tomorrow, but for now understand that:
+| Use Case | Best Tool |
+|----------|-----------|
+| Developing/editing architecture | VSCode Extension |
+| Sharing with non-technical stakeholders | Documentation Website |
+| Architecture review meetings | Documentation Website |
+| Quick local preview while coding | VSCode Extension |
+| Publishing to team wiki/intranet | Documentation Website |
+| Onboarding new team members | Documentation Website |
 
-- The VSCode Extension uses the same calm-widgets under the hood
-- The website provides an interactive way to explore your architecture
-- All visualisations are automatically generated from your architecture JSON
+**Rule of thumb:** Use VSCode for development, use the website for sharing.
 
-### 5. Compare with VSCode Extension
+### 5. Enhance Your Architecture Metadata
 
-Open your `architectures/ecommerce-platform.json` in VSCode and use the preview (Ctrl+Shift+C / Cmd+Shift+C):
-
-| Feature | VSCode Extension | Docify Website |
-|---------|------------------|----------------|
-| Editing | Live edit + preview | Read-only |
-| Sharing | Requires VSCode | Any browser |
-| Hosting | Local only | Can deploy to web |
-| Offline | Always works | Can work offline |
-
-**Use VSCode for development**, **use Docify website for sharing with stakeholders**.
-
-### 6. Customise Website Metadata (Optional)
-
-You can influence what appears in the website by ensuring your architecture has good metadata:
+Good metadata makes the website more useful. Ensure your architecture has descriptive information:
 
 **Prompt:**
 ```text
 Update architectures/ecommerce-platform.json to ensure metadata includes:
 - title: A descriptive name for the architecture
-- description: A summary of what this architecture does
+- description: A summary of what this architecture does  
 - version: The current version
 - owner: Who maintains this architecture
 
 This metadata will appear prominently in the generated documentation website.
 ```
 
-### 7. Regenerate with Updated Metadata
+### 6. Regenerate with Updated Metadata
 
 ```bash
 calm docify --architecture architectures/ecommerce-platform.json --output docs/generated/ecommerce-docs
 ```
 
-Restart the website and see your metadata displayed!
+Restart the website to see your metadata displayed prominently.
+
+### 7. Consider Your Publishing Strategy
+
+Think about how you would publish this website in your organisation:
+
+- **GitHub Pages:** Free, automatic from a branch
+- **Internal static hosting:** Copy the built files to any web server
+- **CI/CD integration:** Regenerate docs automatically when architecture changes
+
+> 💡 **Tip:** Add docify to your CI/CD pipeline so documentation is always up-to-date with your architecture.
 
 ### 8. Update Your README
 
@@ -105,7 +112,7 @@ Document Day 11 progress in your README: mark the checklist, describe the docume
 
 ```bash
 git add docs/generated/ README.md architectures/ecommerce-platform.json
-git commit -m "Day 11: Generate documentation website with docify"
+git commit -m "Day 11: Generate shareable documentation website"
 git tag day-11
 ```
 
@@ -128,7 +135,6 @@ git tag | grep -q "day-11"
 ## Resources
 
 - [Docify Documentation](https://github.com/finos/architecture-as-code/tree/main/cli#docify)
-- [CALM Widgets](https://github.com/finos/architecture-as-code/tree/main/calm-widgets)
 
 ## Tips
 
@@ -138,4 +144,4 @@ git tag | grep -q "day-11"
 - The website works great for architecture reviews and stakeholder presentations
 
 ## Next Steps
-Tomorrow (Day 12) you'll learn about calm-widgets - the building blocks that power both the VSCode extension and the docify website - and create custom documentation using them!
+Tomorrow (Day 12) you'll learn how to create custom documentation using calm-widgets - the building blocks that power this website!
