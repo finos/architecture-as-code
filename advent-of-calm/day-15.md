@@ -237,7 +237,7 @@ Generate an incident summary based on my architecture:
 
 ```bash
 git add architectures/ecommerce-platform.json
-git commit -m "Day 13: Add operational metadata for support documentation"
+git commit -m "Day 15: Add operational metadata for support documentation"
 git tag day-15
 ```
 
