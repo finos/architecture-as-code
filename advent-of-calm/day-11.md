@@ -4,7 +4,7 @@
 Transform your CALM architecture into browsable HTML documentation using the docify command.
 
 ## Objective and Rationale
-- **Objective:** Use `calm docify` to generate comprehensive documentation website from your architecture
+- **Objective:** Use `calm docify` to generate a comprehensive documentation website from your architecture
 - **Rationale:** Machine-readable architecture (JSON) needs human-readable outputs. Docify generates documentation automatically, ensuring docs stay in sync with architecture. Essential for stakeholder communication and onboarding.
 
 ## Requirements
@@ -12,9 +12,9 @@ Transform your CALM architecture into browsable HTML documentation using the doc
 ### 1. Understand Docify
 
 The `calm docify` command generates documentation in multiple modes:
-- **Website mode (default):** Full HTML website with navigation
-- **Template mode:** Single file using custom template
-- **Template-dir mode:** Multiple files using template bundle
+- **Website mode (default):** Full HTML website with navigation - what we'll use today
+- **Template mode:** Single file using custom template - covered in Day 13
+- **Template-dir mode:** Multiple files using template bundle - for advanced use cases
 
 ### 2. Generate Default Documentation Website
 
@@ -25,7 +25,7 @@ calm docify --architecture architectures/ecommerce-platform.json --output docs/g
 This creates a complete HTML website with:
 - Index page with architecture overview
 - Node details pages
-- Relationship visualization
+- Relationship visualisation
 - Flow diagrams
 - Control and metadata display
 
@@ -53,232 +53,59 @@ When done, press `Ctrl+C` to stop the server and return to your project root:
 cd ../../..
 ```
 
-### 4. Understand Handlebars Templates
+### 4. Understand How the Website is Built
 
-Docify uses [Handlebars](https://handlebarsjs.com/) as its templating engine. Handlebars provides a simple way to generate text output from your architecture data using mustache-style `{{expressions}}`.
+The generated website uses **calm-widgets** - a library of React components specifically designed for rendering CALM architecture data. You'll learn more about calm-widgets tomorrow, but for now understand that:
 
-#### Basic Handlebars Syntax
+- The VSCode Extension uses the same calm-widgets under the hood
+- The website provides an interactive way to explore your architecture
+- All visualisations are automatically generated from your architecture JSON
 
-| Syntax | Description | Example |
-|--------|-------------|---------|
-| `{{property}}` | Output a value | `{{metadata.version}}` → `1.0.0` |
-| `{{#each array}}...{{/each}}` | Loop over arrays | `{{#each nodes}}{{this.name}}{{/each}}` |
-| `{{#if condition}}...{{/if}}` | Conditional rendering | `{{#if metadata}}...{{/if}}` |
-| `{{#if condition}}...{{else}}...{{/if}}` | If-else | `{{#if flows}}...{{else}}No flows{{/if}}` |
-| `{{@key}}` | Current key when iterating objects | Used with `{{#each}}` on objects |
-| `{{this}}` | Current item in loop | `{{#each tags}}{{this}}{{/each}}` |
-| `{{this.property}}` | Property of current item | `{{#each nodes}}{{this.name}}{{/each}}` |
+### 5. Compare with VSCode Extension
 
-#### CALM Docify Helpers
+Open your `architectures/ecommerce-platform.json` in VSCode and use the preview (Ctrl+Shift+C / Cmd+Shift+C):
 
-CALM's docify command registers several custom Handlebars helpers to make templating easier:
+| Feature | VSCode Extension | Docify Website |
+|---------|------------------|----------------|
+| Editing | Live edit + preview | Read-only |
+| Sharing | Requires VSCode | Any browser |
+| Hosting | Local only | Can deploy to web |
+| Offline | Always works | Can work offline |
 
-| Helper | Description | Example |
-|--------|-------------|---------|
-| `eq` | Equality comparison | `{{#if (eq node-type "service")}}...{{/if}}` |
-| `or` | Logical OR | `{{#if (or hasFlows hasControls)}}...{{/if}}` |
-| `json` | Output as JSON | `{{json metadata}}` |
-| `lookup` | Dynamic property access | `{{lookup this propertyName}}` |
-| `kebabCase` | Convert to kebab-case | `{{kebabCase name}}` |
-| `kebabToTitleCase` | Convert kebab to Title Case | `{{kebabToTitleCase node-type}}` |
-| `isObject` | Check if value is object | `{{#if (isObject value)}}...{{/if}}` |
-| `isArray` | Check if value is array | `{{#if (isArray items)}}...{{/if}}` |
-| `notEmpty` | Check if value exists and not empty | `{{#if (notEmpty interfaces)}}...{{/if}}` |
-| `eachInMap` | Iterate over map/object entries | `{{#eachInMap controls}}...{{/eachInMap}}` |
-| `mermaidId` | Sanitize ID for Mermaid diagrams | `{{mermaidId unique-id}}` |
-| `join` | Join array elements | `{{join tags ", "}}` |
+**Use VSCode for development**, **use Docify website for sharing with stakeholders**.
 
-#### Common Patterns
+### 6. Customise Website Metadata (Optional)
 
-**Filter nodes by type:**
-```handlebars
-{{#each nodes}}
-{{#if (eq node-type "service")}}
-- {{this.name}} is a service
-{{/if}}
-{{/each}}
+You can influence what appears in the website by ensuring your architecture has good metadata:
+
+**Prompt:**
+```text
+Update architectures/ecommerce-platform.json to ensure metadata includes:
+- title: A descriptive name for the architecture
+- description: A summary of what this architecture does
+- version: The current version
+- owner: Who maintains this architecture
+
+This metadata will appear prominently in the generated documentation website.
 ```
 
-**Handle missing data gracefully:**
-```handlebars
-{{#if metadata.owner}}
-**Owner:** {{metadata.owner}}
-{{else}}
-**Owner:** Not specified
-{{/if}}
-```
-
-**Iterate over object properties:**
-```handlebars
-{{#each metadata}}
-- **{{@key}}:** {{this}}
-{{/each}}
-```
-
-### 5. Create a Custom Template
-
-Now let's create custom templates using these Handlebars features.
-
-**File:** `templates/architecture-summary.md`
-
-**Content:**
-```handlebars
-# {{metadata.title}} Architecture Summary
-
-**Version:** {{metadata.version}}  
-**Owner:** {{metadata.owner}}
-
-## Overview
-{{metadata.description}}
-
-## Components
-
-This architecture contains **{{nodes.length}}** nodes:
-
-{{#each nodes}}
-- **{{this.name}}** ({{this.node-type}}): {{this.description}}
-{{/each}}
-
-## Integrations
-
-This architecture has **{{relationships.length}}** relationships:
-
-{{#each relationships}}
-- **{{this.unique-id}}** ({{#each this.relationship-type}}{{@key}}{{/each}})
-{{#if this.relationship-type.connects}}
-  - {{this.relationship-type.connects.source.node}} → {{this.relationship-type.connects.destination.node}}
-{{/if}}
-{{#if this.relationship-type.interacts}}
-  - Actor: {{this.relationship-type.interacts.actor}} interacts with: {{#each this.relationship-type.interacts.nodes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
-{{/if}}
-{{#if this.relationship-type.deployed-in}}
-  - Container: {{this.relationship-type.deployed-in.container}} contains: {{#each this.relationship-type.deployed-in.nodes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
-{{/if}}
-{{#if this.relationship-type.composed-of}}
-  - Container: {{this.relationship-type.composed-of.container}} composed of: {{#each this.relationship-type.composed-of.nodes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
-{{/if}}
-{{/each}}
-
-## Flows
-
-{{#if flows}}
-{{#each flows}}
-### {{this.name}}
-{{this.description}}
-
-Steps:
-{{#each this.transitions}}
-{{this.sequence-number}}. {{this.description}}
-{{/each}}
-
-{{/each}}
-{{else}}
-No flows defined yet.
-{{/if}}
-
-## Controls
-
-{{#if controls}}
-{{#each controls}}
-### {{@key}}
-{{this.description}}
-
-{{/each}}
-{{else}}
-No controls defined yet.
-{{/if}}
-
----
-*Generated from CALM architecture on {{metadata.created}}*
-```
-
-### 6. Generate Documentation Using Custom Template
+### 7. Regenerate with Updated Metadata
 
 ```bash
-calm docify \
-  --architecture architectures/ecommerce-platform.json \
-  --template templates/architecture-summary.md \
-  --output docs/generated/architecture-summary.md
+calm docify --architecture architectures/ecommerce-platform.json --output docs/generated/ecommerce-docs
 ```
 
-Open `docs/generated/architecture-summary.md` - it's a markdown summary!
+Restart the website and see your metadata displayed!
 
-### 7. Create a Node Catalog Template
+### 8. Update Your README
 
-**File:** `templates/node-catalog.md`
+Document Day 11 progress in your README: mark the checklist, describe the documentation website, and note where to find the generated site.
 
-**Content:**
-```handlebars
-# Node Catalog
-
-## Architecture: {{metadata.title}}
-
-Total Nodes: {{nodes.length}}
-
----
-
-{{#each nodes}}
-## {{this.name}}
-
-**ID:** `{{this.unique-id}}`  
-**Type:** {{this.node-type}}  
-**Description:** {{this.description}}
-
-{{#if this.interfaces}}
-### Interfaces
-{{#each this.interfaces}}
-- **{{this.unique-id}}**
-  {{#if this.host}}
-  - Host: {{this.host}}
-  {{/if}}
-  {{#if this.port}}
-  - Port: {{this.port}}
-  {{/if}}
-  {{#if this.url}}
-  - URL: {{this.url}}
-  {{/if}}
-{{/each}}
-{{else}}
-No interfaces defined.
-{{/if}}
-
-{{#if this.controls}}
-### Controls
-{{#each this.controls}}
-- **{{@key}}:** {{this.description}}
-{{/each}}
-{{/if}}
-
-{{#if this.metadata}}
-### Metadata
-{{#each this.metadata}}
-- **{{@key}}:** {{this}}
-{{/each}}
-{{/if}}
-
----
-
-{{/each}}
-```
-
-### 8. Generate Node Catalog
+### 9. Commit Your Work
 
 ```bash
-calm docify \
-  --architecture architectures/ecommerce-platform.json \
-  --template templates/node-catalog.md \
-  --output docs/generated/node-catalog.md
-```
-
-### 9. Update Your README
-
-Document Day 11 progress in your README: mark the checklist, describe the new documentation outputs, and link to `docs/generated/README.md` or the screenshots so stakeholders know where to browse the generated sites.
-
-### 10. Commit Your Work
-
-```bash
-git add templates/ docs/generated/ README.md
-git commit -m "Day 11: Generate documentation with docify and custom templates"
+git add docs/generated/ README.md architectures/ecommerce-platform.json
+git commit -m "Day 11: Generate documentation website with docify"
 git tag day-11
 ```
 
@@ -286,23 +113,13 @@ git tag day-11
 
 ✅ **Required:**
 - `docs/generated/ecommerce-docs/` - Full website documentation
-- `docs/generated/architecture-summary.md` - Custom summary
-- `docs/generated/node-catalog.md` - Custom node catalog
-- `templates/architecture-summary.md` - Custom template
-- `templates/node-catalog.md` - Custom template
-- Screenshots of generated documentation
+- Screenshots of generated documentation website
 - Updated `README.md` - Day 11 marked complete
 
 ✅ **Validation:**
 ```bash
 # Verify generated documentation exists
 test -d docs/generated/ecommerce-docs
-test -f docs/generated/architecture-summary.md
-test -f docs/generated/node-catalog.md
-
-# Verify templates exist
-test -f templates/architecture-summary.md
-test -f templates/node-catalog.md
 
 # Check tag
 git tag | grep -q "day-11"
@@ -311,16 +128,14 @@ git tag | grep -q "day-11"
 ## Resources
 
 - [Docify Documentation](https://github.com/finos/architecture-as-code/tree/main/cli#docify)
-- [Handlebars Templates](https://handlebarsjs.com/guide/)
-- [CALM Template Examples](https://github.com/finos/architecture-as-code/tree/main/cli/test_fixtures/template)
+- [CALM Widgets](https://github.com/finos/architecture-as-code/tree/main/calm-widgets)
 
 ## Tips
 
 - Regenerate documentation after every architecture change
-- Use custom templates for different audiences (executives vs. developers)
-- Add documentation generation to CI/CD pipeline
-- Templates can access all CALM properties (nodes, relationships, flows, controls)
-- Use `--url-to-local-file-mapping` to make local file references clickable
+- Add documentation generation to CI/CD pipeline for always up-to-date docs
+- Deploy the generated website to your internal hosting for team access
+- The website works great for architecture reviews and stakeholder presentations
 
 ## Next Steps
-Tomorrow (Day 12) you'll use CALM as an expert architecture advisor to improve your e-commerce platform's resilience!
+Tomorrow (Day 12) you'll learn about calm-widgets - the building blocks that power both the VSCode extension and the docify website - and create custom documentation using them!
