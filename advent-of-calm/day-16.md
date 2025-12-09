@@ -321,7 +321,7 @@ Now that you can generate documentation from your architecture, integrate it int
 
 ```bash
 git add templates/ops/ docs/ops/
-git commit -m "Day 14: Generate operations documentation with docify templates"
+git commit -m "Day 16: Generate operations documentation with docify templates"
 git tag day-16
 ```
 
