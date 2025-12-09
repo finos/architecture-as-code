@@ -4,7 +4,7 @@
 Extend your documentation with custom Handlebars templates when you need more control than the built-in calm-widgets provide.
 
 ## Objective and Rationale
-- **Objective:** Learn Handlebars templating to create fully customised documentation outputs
+- **Objective:** Learn Handlebars templating to create fully customized documentation outputs
 - **Rationale:** On Day 12 you used calm-widgets for quick, powerful documentation. But sometimes you need more control - custom logic, filtering, or output formats the widgets don't cover. Handlebars gives you that flexibility while still being simple enough for non-developers.
 
 ## Requirements
