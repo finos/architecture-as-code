@@ -152,19 +152,19 @@ Create standards/README.md that documents:
 
 ```bash
 git add standards/
-git commit -m "Day 16: Create CALM Standards for organisational node and relationship requirements"
+git commit -m "Day 18: Create CALM Standards for organisational node and relationship requirements"
 git tag day-18
 ```
 
 ## Deliverables / Validation Criteria
 
-Your Day 16 submission should include a commit tagged `day-18` containing:
+Your Day 18 submission should include a commit tagged `day-18` containing:
 
 ✅ **Required Files:**
 - `standards/company-node-standard.json` - Node Standard with costCenter, owner, environment
 - `standards/company-relationship-standard.json` - Relationship Standard with dataClassification, encrypted
 - `standards/README.md` - Documentation explaining the Standards
-- Updated `README.md` - Day 16 marked as complete
+- Updated `README.md` - Day 18 marked as complete
 
 ✅ **Validation:**
 ```bash

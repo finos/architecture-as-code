@@ -219,20 +219,20 @@ Update patterns/README.md to add documentation for company-base-pattern.json:
 
 ```bash
 git add url-mapping.json patterns/company-base-pattern.json architectures/ecommerce-platform.json patterns/README.md README.md
-git commit -m "Day 17: Create Company Base Pattern to enforce Standards"
+git commit -m "Day 19: Create Company Base Pattern to enforce Standards"
 git tag day-19
 ```
 
 ## Deliverables / Validation Criteria
 
-Your Day 17 submission should include a commit tagged `day-19` containing:
+Your Day 19 submission should include a commit tagged `day-19` containing:
 
 ✅ **Required Files:**
 - `url-mapping.json` - Maps canonical URLs to local files
 - `patterns/company-base-pattern.json` - Pattern enforcing Standards
 - Updated `architectures/ecommerce-platform.json` - With Standard properties
 - Updated `patterns/README.md` - Documentation for both patterns
-- Updated `README.md` - Day 17 marked as complete
+- Updated `README.md` - Day 19 marked as complete
 
 ✅ **Validation:**
 ```bash
