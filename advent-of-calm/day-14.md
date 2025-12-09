@@ -214,7 +214,7 @@ This document captures architecture improvements made with AI-assisted analysis.
 
 ### 11. Update Your README
 
-Mark Day 12 as complete in your README checklist and note the AI-assisted architecture improvements. Link to `docs/architecture-improvements.md` so collaborators can see the evolution.
+Mark Day 14 as complete in your README checklist and note the AI-assisted architecture improvements. Link to `docs/architecture-improvements.md` so collaborators can see the evolution.
 
 ### 12. Commit Your Work
 
