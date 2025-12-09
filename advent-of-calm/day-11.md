@@ -73,7 +73,7 @@ cd ../../..
 
 ### 5. Consider Your Publishing Strategy
 
-Think about how you would publish this website in your organisation:
+Think about how you would publish this website in your organization:
 
 - **GitHub Pages:** Free, automatic from a branch
 - **Internal static hosting:** Copy the built files to any web server
