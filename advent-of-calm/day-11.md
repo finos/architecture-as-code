@@ -30,7 +30,7 @@ calm docify --architecture architectures/ecommerce-platform.json --output docs/g
 This creates a complete HTML website with:
 - Index page with architecture overview
 - Node details pages
-- Relationship visualisations  
+- Relationship visualizations  
 - Flow diagrams
 - Control and metadata display
 
