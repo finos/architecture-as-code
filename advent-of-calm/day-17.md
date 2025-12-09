@@ -318,7 +318,6 @@ git tag | grep -q "day-17"
 
 ## Resources
 
-- [CALM Pattern Documentation](https://github.com/finos/architecture-as-code/tree/main/calm/pattern)
 - [JSON Schema prefixItems](https://json-schema.org/understanding-json-schema/reference/array#tupleValidation)
 - [JSON Schema const](https://json-schema.org/understanding-json-schema/reference/const)
 
