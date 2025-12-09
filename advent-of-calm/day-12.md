@@ -1,7 +1,7 @@
 # Day 12: Custom Documentation with CALM Widgets
 
 ## Overview
-Learn about calm-widgets - a Handlebars-based widget framework for generating custom Markdown documentation from your CALM architecture data, using the VSCode CALM Preview.
+Learn about calm-widgets - a Handlebars-based widget framework for generating custom Markdown documentation from your CALM architecture data.
 
 ## Objective and Rationale
 - **Objective:** Understand how to use calm-widgets to create custom documentation templates
@@ -30,105 +30,140 @@ Review the available widgets in the [calm-widgets README](https://github.com/fin
 | `table` | Render data as Markdown tables | `{{table nodes columns="name,type"}}` |
 | `list` | Render arrays as Markdown lists | `{{list services property="name"}}` |
 | `json-viewer` | Render data as formatted JSON | `{{json-viewer config}}` |
+| `flow-sequence` | Render flows as Mermaid sequence diagrams | `{{flow-sequence flow-id="order-flow"}}` |
 | `related-nodes` | Render relationships as Mermaid graphs | `{{related-nodes node-id="api-gateway"}}` |
 | `block-architecture` | Render full architecture as Mermaid flowchart | `{{block-architecture this}}` |
-| `flow-sequence` | Render a flow as a Mermaid sequence diagram | `{{flow-sequence this flow-id="my-flow"}}` |
 
 ### 3. Create a Custom Template Using Widgets
 
-The easiest way to use calm-widgets is with the **VSCode CALM Preview**. Create a Markdown file with YAML front matter that specifies your architecture, and the preview will render the widgets live.
+Create a new template that uses calm-widgets to generate a summary document. Create a file called `templates/architecture-summary.md` with the following content:
 
-Create a file called `docs/architecture-summary.md` with the following content:
-
-```markdown
----
-architecture: ../architectures/ecommerce-platform.json
----
-
+```handlebars
 # Architecture Summary
 
 ## System Overview
 
 {{block-architecture this}}
-```
 
-**Understanding the Front Matter:**
-
-The YAML front matter (between the `---` markers) tells the VSCode CALM Preview where to find your architecture data:
-
-- `architecture:` - Path to your CALM architecture JSON file (relative to the template file)
-- `url-to-local-file-mapping:` (optional) - Path to a URL mapping file if your architecture references external schemas
-
-The front matter is processed by the preview but won't appear in your rendered output.
-
-### 4. Preview Your Documentation in VSCode
-
-1. Open the file `docs/architecture-summary.md` in VSCode
-2. Open the Command Palette (Cmd+Shift+P / Ctrl+Shift+P)
-3. Run **"CALM: Open Preview"**
-4. Notice the **"Live Docify Mode"** badge is highlighted in the preview pane
-5. The preview will render your widgets with live data from your architecture
-
-As you edit the template, the preview updates in real-time - no need to run any CLI commands!
-
-### 5. Explore Widget Customization Options
-
-The power of calm-widgets lies in their customization options. With the preview still open, try adding these sections to your document and watch the preview update in real-time:
-
-**Add a nodes table with specific columns:**
-
-```markdown
 ## Nodes
 
 {{table nodes columns="unique-id,name,node-type,description"}}
+
+## Relationships
+
+{{table relationships columns="unique-id,relationship-type,description"}}
 ```
 
-**Focus on a specific flow in the architecture diagram:**
+> **Note:** The `flow-sequence` widget requires flows to be defined in your architecture. If your architecture includes flows (covered in later days), you can add:
+> ```handlebars
+> {{#if flows}}
+> ## Flows
+> {{#each flows}}
+> ### {{name}}
+> {{flow-sequence flow-id=unique-id}}
+> {{/each}}
+> {{/if}}
+> ```
 
-```markdown
-## Order Processing Flow View
+### 4. Generate Documentation with Your Template
 
-{{block-architecture this focus-flows="order-processing-flow"}}
+Use the CALM CLI to generate documentation:
+
+```bash
+calm docify -a architectures/ecommerce-platform.json \
+  -t templates/architecture-summary.md \
+  -o docs/architecture-summary.md
 ```
 
-This filters the diagram to show only the nodes and relationships involved in that flow.
+### 5. Understand the Widget Syntax
 
-**Highlight specific nodes and render node type shapes:**
+Each widget follows the Handlebars helper pattern:
 
-```markdown
-## Payment Processing Components
+```handlebars
+{{!-- Basic table of nodes --}}
+{{table nodes}}
 
-{{block-architecture this focus-nodes="payment-service,order-service" highlight-nodes="payment-service" render-node-type-shapes=true}}
+{{!-- Table with specific columns --}}
+{{table nodes columns="unique-id,name,node-type"}}
+
+{{!-- Block architecture with options --}}
+{{block-architecture this render-node-type-shapes=true}}
+
+{{!-- Flow sequence for a specific flow --}}
+{{flow-sequence flow-id="checkout-flow"}}
+
+{{!-- Related nodes for a specific node --}}
+{{related-nodes node-id="payment-service"}}
 ```
 
-**Render a flow as a sequence diagram:**
+### 6. Explore Widget Options
 
-```markdown
-## Order Processing Sequence
+The `block-architecture` widget has powerful options:
 
-{{flow-sequence this flow-id="order-processing-flow"}}
+```handlebars
+{{!-- Focus on specific nodes --}}
+{{block-architecture this focus-nodes="api-gateway,user-service"}}
+
+{{!-- Highlight specific nodes --}}
+{{block-architecture this highlight-nodes="payment-service"}}
+
+{{!-- Focus on a specific flow --}}
+{{block-architecture this focus-flows="order-flow"}}
+
+{{!-- Hide container boundaries --}}
+{{block-architecture this include-containers="none"}}
+
+{{!-- Show node type shapes --}}
+{{block-architecture this render-node-type-shapes=true}}
 ```
 
-**Show relationships for a specific node:**
+### 7. Create a Node Detail Template
 
-```markdown
-## API Gateway Connections
+Create a file called `templates/node-detail.md` with the following content:
 
-{{related-nodes node-id="api-gateway"}}
+```handlebars
+# Node Details
+
+{{#each nodes}}
+## {{name}}
+
+**Type:** {{node-type}}
+**ID:** {{unique-id}}
+{{#if description}}
+**Description:** {{description}}
+{{/if}}
+
+### Connections
+
+{{related-nodes node-id=unique-id}}
+
+{{#if interfaces}}
+### Interfaces
+
+{{table interfaces columns="unique-id,host,port"}}
+{{/if}}
+
+---
+
+{{/each}}
 ```
 
-Experiment with different options - the [calm-widgets README](https://github.com/finos/architecture-as-code/blob/main/calm-widgets/README.md) documents all available options for each widget.
+### 8. Generate Node Details
 
-**Note:** These same templates work with the CLI `calm docify` command to generate static documentation websites for publishing or sharing.
+```bash
+calm docify -a architectures/ecommerce-platform.json \
+  -t templates/node-detail.md \
+  -o docs/node-details.md
+```
 
-### 6. Update Your README
+### 9. Update Your README
 
 Document Day 12 progress: note which widgets you used and how they simplified documentation.
 
-### 7. Commit Your Work
+### 10. Commit Your Work
 
 ```bash
-git add docs/ README.md
+git add templates/ docs/ README.md
 git commit -m "Day 12: Create custom docs with calm-widgets"
 git tag day-12
 ```
@@ -136,13 +171,17 @@ git tag day-12
 ## Deliverables
 
 ✅ **Required:**
-- `docs/architecture-summary.md` using calm-widgets with front matter
+- `templates/architecture-summary.md` using calm-widgets
+- `templates/node-detail.md` for per-node documentation
+- Generated documentation in `docs/`
 - Updated `README.md` - Day 12 marked complete
 
 ✅ **Validation:**
 ```bash
-# Check template exists
-ls docs/architecture-summary.md
+# Check templates exist
+ls templates/*.md
+# Check generated docs
+ls docs/architecture-summary.md docs/node-details.md
 # Check tag
 git tag | grep -q "day-12"
 ```
@@ -150,13 +189,14 @@ git tag | grep -q "day-12"
 ## Resources
 
 - [CALM Widgets README](https://github.com/finos/architecture-as-code/blob/main/calm-widgets/README.md)
+- [Handlebars Documentation](https://handlebarsjs.com/)
 - [Mermaid Documentation](https://mermaid.js.org/)
 
 ## Tips
 
 - Start simple with `{{table nodes}}` and add options gradually
 - The `block-architecture` widget is powerful - experiment with `focus-flows` and `highlight-nodes`
-- Use the VSCode CALM Preview for instant feedback as you build templates
+- All widgets output valid Markdown that renders in GitHub, VSCode, and documentation sites
 - Use `{{json-viewer data}}` to debug what data is available in your context
 
 ## Next Steps
