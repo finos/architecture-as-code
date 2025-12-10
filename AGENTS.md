@@ -149,18 +149,64 @@ npm run dev                # Test in browser
 
 ## Testing
 
-```bash
-# All tests
-npm test                   # TypeScript packages
-cd calm-hub && ../mvnw test  # Java unit tests
+**CRITICAL**: Before considering any change ready:
+1. **All tests must pass** with coverage enabled
+2. **All new code must have tests** (unit and/or integration)
+3. **Run linting** (see Linting section below)
 
-# Package-specific
+```bash
+# Run ALL tests with coverage (required before committing)
+npm test -- --coverage      # TypeScript packages with coverage
+cd calm-hub && ../mvnw verify  # Java tests with coverage (JaCoCo enabled by default)
+
+# Quick test runs (without coverage reports)
+npm test                    # TypeScript packages
+cd calm-hub && ../mvnw test # Java unit tests (still collects coverage data)
+
+# Package-specific tests
 npm test --workspace cli
 npm test --workspace calm-plugins/vscode
+npm run test:cli            # With dependencies built
+npm run test:shared         # With dependencies built
 
-# With coverage
-npm test -- --coverage
+# Java integration tests (requires Docker)
+cd calm-hub && ../mvnw -P integration verify
 ```
+
+### Test Coverage Requirements
+- All new functions/methods must have tests
+- Aim for >80% coverage on new code
+- Critical paths must have 100% coverage
+- Tests should cover both success and error cases
+
+## Linting
+
+**CRITICAL**: Always run linting after making code changes. Fix all errors before committing.
+
+```bash
+# Lint all workspaces (required before committing)
+npm run lint               # Check all TypeScript/JavaScript code
+
+# Auto-fix issues
+npm run lint-fix           # Fix auto-fixable linting issues
+
+# Package-specific linting
+npm run lint --workspace cli
+npm run lint --workspace calm-plugins/vscode
+```
+
+Linting checks code style, common errors, and best practices.
+
+## Pre-Commit Checklist
+
+Before considering any code change ready:
+
+- [ ] **All tests pass with coverage**: `npm test -- --coverage` AND `cd calm-hub && ../mvnw verify`
+- [ ] **All new code has tests** (unit and/or integration tests)
+- [ ] **Linting passes**: `npm run lint` (0 errors)
+- [ ] **Code builds successfully**: `npm run build` AND `./mvnw clean install`
+- [ ] **Documentation updated** if behavior changed
+- [ ] **Test coverage meets requirements** (>80% for new code)
 
 ## Documentation
 
