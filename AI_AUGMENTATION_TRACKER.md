@@ -13,7 +13,7 @@ Augment the FINOS CALM monorepo with package-specific AGENTS.md files to improve
 - [x] `calm-hub/AGENTS.md` - Java/Quarkus backend guidance
 - [x] `calm-plugins/vscode/AGENTS.md` - VSCode extension guidance
 - [x] `advent-of-calm/AGENTS.md` - Educational content guidance
-- [ ] Root `AGENTS.md` enhancement (evaluated - not needed, OpenSpec reference is sufficient)
+- [x] Root `AGENTS.md` - Monorepo overview and navigation
 
 ### Review & Testing
 - [ ] Review all AGENTS.md files for accuracy
