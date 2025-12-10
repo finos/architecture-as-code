@@ -85,7 +85,7 @@ Create a CALM pattern at patterns/company-base-pattern.json that enforces our co
 The pattern should:
 1. Use the CALM schema (https://calm.finos.org/release/1.1/meta/calm.json)
 2. Have a unique $id (https://example.com/patterns/company-base-pattern.json)
-3. Have title "Company Base Pattern" and description explaining it enforces organisational standards
+3. Have title "Company Base Pattern" and description explaining it enforces organizational standards
 4. Reference the node standard using its $id URL: https://example.com/standards/company-node-standard.json
 5. Reference the relationship standard using its $id URL: https://example.com/standards/company-relationship-standard.json
 
