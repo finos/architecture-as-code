@@ -57,7 +57,7 @@ This says: "A node using this Standard must satisfy BOTH the core CALM node requ
 
 ### 4. Explore Common Use Cases
 
-**Organisation-Level Extensions:**
+**Organization-Level Extensions:**
 - **Company Node Requirements**: Cost centres, ownership, compliance tags
 - **Relationship Policies**: Approval workflows, security zones
 - **Control Requirements**: Organisational compliance frameworks
