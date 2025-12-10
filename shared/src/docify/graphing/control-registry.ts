@@ -9,14 +9,10 @@ export interface ControlRequirementGroup {
 }
 
 export interface ControlConfigurationGroup {
-    id: string;
-    name: string;
-    schema: string;
-    description: string;
     domain: string;
     scope: string;
     appliedTo: string;
-    content: Record<string, unknown>;
+    requirementUrl: string;
 }
 
 export class ControlRegistry {
@@ -106,35 +102,33 @@ export class ControlRegistry {
 
         controlArr.forEach(control => {
             control.requirements.forEach(detail => {
-                let config:Record<string, unknown> = {};
+                let config: Record<string, unknown> = {};
 
-                if (detail.configUrl?.isResolved) {
-                    config = detail.configUrl.value;
+                // Handle resolved and unresolved configs
+                if (detail.configUrl) {
+                    if (detail.configUrl.isResolved) {
+                        config = detail.configUrl.value || {};
+                    } else {
+                        config = { 'config-url': detail.configUrl.reference };
+                    }
                 } else if (detail.config) {
                     config = detail.config;
                 }
 
                 if (config) {
-                    const id = config['control-id'] as string;
-
-                    const existing = this.controlConfigurations[id] ?? [];
+                    const existing = this.controlConfigurations[domain] ?? [];
                     const alreadyPresent = existing.some(
                         cfg => cfg.domain === domain && cfg.scope === scope && cfg.appliedTo === appliedTo
                     );
+
                     if (!alreadyPresent) {
-                        const content = config;
                         const entry: ControlConfigurationGroup = {
-                            id,
-                            name: config.name as string,
-                            schema: config['$schema'] as string,
-                            description: config.description as string ,
                             domain,
                             scope,
                             appliedTo,
-                            content
+                            requirementUrl: detail.requirement?.reference || 'N/A' // Only include requirement-url
                         };
-
-                        this.controlConfigurations[id] = [...existing, entry];
+                        this.controlConfigurations[domain] = [...existing, entry];
                     }
                 }
             });

@@ -5,9 +5,60 @@
 
         {{description}}
 
-        {{#each requirements}}
-            {{> table-template.html data=configUrl._value }}
-        {{/each}}
+        <div className="table-container">
+            <table>
+                <thead>
+                <tr>
+                    <th>Requirement URL</th>
+                    <th>Config</th>
+                </tr>
+                </thead>
+                <tbody>
+                {{#each requirements}}
+                    <tr>
+                        <td>
+                            {{#if requirement.reference}}
+                                <a href="{{requirement.reference}}" target="_blank">
+                                    {{requirement.reference}}
+                                </a>
+                            {{else}}
+                                N/A
+                            {{/if}}
+                        </td>
+
+                        <td>
+                            {{#if configUrl.reference}}
+                                <a href="{{configUrl.reference}}" target="_blank">
+                                    {{configUrl.reference}}
+                                </a>
+
+                            {{else if config}}
+                                <table>
+                                    <thead>
+                                    <tr>
+                                        <th>Key</th>
+                                        <th>Value</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {{#each config}}
+                                        <tr>
+                                            <td>{{@key}}</td>
+                                            <td>{{this}}</td>
+                                        </tr>
+                                    {{/each}}
+                                    </tbody>
+                                </table>
+
+                            {{else}}
+                                N/A
+                            {{/if}}
+                        </td>
+                    </tr>
+                {{/each}}
+                </tbody>
+            </table>
+        </div>
 
     {{/eachInMap}}
 {{else}}
