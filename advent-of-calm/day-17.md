@@ -166,7 +166,7 @@ This is because `description` is a required field of nodes in the calm schema, b
 
 String placeholders can be identified by two square brackets: `"description": "[[ DESCRIPTION ]]"`. Numeric placeholders will have the value `-1`.
 
-As you will have seen when you visualised the architecture, placeholders don't make the architecture invalid, hence why only warnings are reported, but it allows you to build integration in your own tooling to spot where an architect or engineer you expect to replace those placeholders.
+As you will have seen when you visualised the architecture, placeholders don't make the architecture invalid, hence why only warnings are reported, but it allows you to build integration in your own tooling to spot where an architect or engineer is expected to replace those placeholders.
 
 ### 8. Test Validation - Failing Case
 
