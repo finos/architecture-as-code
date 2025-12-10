@@ -23,7 +23,7 @@ export function getDayTitle(day: number): string {
     15: "Use CALM as Your Expert Operations Advisor",
     16: "Generate Operations Documentation with Docify",
     17: "Introduction to CALM Patterns",
-    18: "Using Standards for Your Organisation",
+    18: "Using Standards for Your Organization",
     19: "Enforcing Standards with Patterns",
     20: "Add Deployment Topology",
     21: "Model Data Lineage",

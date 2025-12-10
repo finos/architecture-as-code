@@ -1,7 +1,7 @@
 # Day 19: Enforcing Standards with Patterns
 
 ## Overview
-Learn how Patterns can reference your organisational Standards, ensuring generated and validated architectures comply with company requirements. You'll also learn how to use URL mapping for local development.
+Learn how Patterns can reference your organizational Standards, ensuring generated and validated architectures comply with company requirements. You'll also learn how to use URL mapping for local development.
 
 ## Objective and Rationale
 - **Objective:** Create a Company Base Pattern that enforces your Standards on all nodes and relationships
@@ -11,7 +11,7 @@ Learn how Patterns can reference your organisational Standards, ensuring generat
 
 ### 1. Understand the Gap
 
-Yesterday's web-app-pattern enforces structure:
+Day 17's's web-app-pattern enforces structure:
 - ✅ Must have "api-gateway", "api-service", "app-database" nodes
 - ✅ Must have specific relationships
 

@@ -1,27 +1,27 @@
-# Day 18: Using Standards for Your Organisation
+# Day 18: Using Standards for Your Organization
 
 ## Overview
-Learn how CALM Standards extend the flexible core schema with your organisation's specific requirements, enabling consistent governance across all architectures.
+Learn how CALM Standards extend the flexible core schema with your organization's specific requirements, enabling consistent governance across all architectures.
 
 ## Objective and Rationale
-- **Objective:** Understand how Standards work as JSON Schema extensions that add organisation-specific constraints to CALM components
-- **Rationale:** The CALM Schema is intentionally unopinionated and open for extension. Standards allow organisations to add consistency and constraints without modifying the core schema. This enables company-wide governance while maintaining CALM's flexibility.
+- **Objective:** Understand how Standards work as JSON Schema extensions that add organization-specific constraints to CALM components
+- **Rationale:** The CALM Schema is intentionally unopinionated and open for extension. Standards allow organizations to add consistency and constraints without modifying the core schema. This enables company-wide governance while maintaining CALM's flexibility.
 
 ## Requirements
 
 ### 1. Understand What Standards Are
 
 **The Problem Standards Solve:**
-- CALM's core schema is flexible - it doesn't mandate cost centres, owners, or compliance tags
-- Your organisation likely has requirements: "Every service must have an owner" or "All nodes need a cost centre code"
+- CALM's core schema is flexible - it doesn't mandate cost centers, owners, or compliance tags
+- Your organization likely has requirements: "Every service must have an owner" or "All nodes need a cost center code"
 - You don't want to modify CALM's core schema - you want to extend it
 
 **The Solution:**
-Standards are JSON Schema 2020-12 documents that compose with core CALM schemas using `allOf`. They add your organisation's requirements on top of CALM's foundation.
+Standards are JSON Schema 2020-12 documents that compose with core CALM schemas using `allOf`. They add your organization's requirements on top of CALM's foundation.
 
 ### 2. Review the Standards Documentation
 
-Before creating Standards, familiarise yourself with the concept:
+Before creating Standards, familiarize yourself with the concept:
 
 **Prompt:**
 ```text
@@ -58,7 +58,7 @@ This says: "A node using this Standard must satisfy BOTH the core CALM node requ
 ### 4. Explore Common Use Cases
 
 **Organization-Level Extensions:**
-- **Company Node Requirements**: Cost centres, ownership, compliance tags
+- **Company Node Requirements**: Cost centers, ownership, compliance tags
 - **Relationship Policies**: Approval workflows, security zones
 - **Control Requirements**: Organizational compliance frameworks
 
@@ -69,7 +69,7 @@ This says: "A node using this Standard must satisfy BOTH the core CALM node requ
 
 ### 5. Create a Standards Directory
 
-Set up a place for your organisation's Standards:
+Set up a place for your organization's Standards:
 
 ```bash
 mkdir -p standards
@@ -77,7 +77,7 @@ mkdir -p standards
 
 ### 6. Create Your First Node Standard
 
-Create a Company Node Standard that extends the core CALM node with organisational requirements.
+Create a Company Node Standard that extends the core CALM node with organizational requirements.
 
 **Prompt:**
 ```text
@@ -91,7 +91,7 @@ Additional properties to require:
 Make costCenter and owner required. Include helpful descriptions for each property.
 ```
 
-Review the generated file - it should use `allOf` to reference the base CALM node schema and add your organisation's properties on top.
+Review the generated file - it should use `allOf` to reference the base CALM node schema and add your organization's properties on top.
 
 ### 7. Create a Relationship Standard
 
@@ -144,7 +144,7 @@ When you use these Standards, components must satisfy BOTH sets of requirements.
 Create standards/README.md that documents:
 
 1. What Standards are and how they extend CALM using allOf composition
-2. Our company's node standard requirements (cost centre, owner, environment)
+2. Our company's node standard requirements (cost center, owner, environment)
 3. Our company's relationship standard requirements (data classification, encrypted)
 ```
 
@@ -152,7 +152,7 @@ Create standards/README.md that documents:
 
 ```bash
 git add standards/
-git commit -m "Day 18: Create CALM Standards for organisational node and relationship requirements"
+git commit -m "Day 18: Create CALM Standards for organizational node and relationship requirements"
 git tag day-18
 ```
 

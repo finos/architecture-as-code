@@ -40,7 +40,7 @@ Checks that an architecture has the required structure.
 Patterns use JSON Schema keywords to define requirements:
 
 - **`const`** - Requires an exact value (e.g., `"unique-id": { "const": "api-gateway" }`)
-- **`prefixItems`** - Defines exact items in an array
+- **`prefixItems`** - Defines the first exact items in an array (you can add others)
 - **`minItems`/`maxItems`** - Enforces array length
 - **`$ref`** - References other schemas
 
@@ -166,7 +166,7 @@ This is because `description` is a required field of nodes in the calm schema, b
 
 String placeholders can be identified by two square brackets: `"description": "[[ DESCRIPTION ]]"`. Numeric placeholders will have the value `-1`.
 
-As you will have seen when you visualised the architecture, placeholders don't make the architecture invalid, hence why only warnings are reported, but it allows you to build integration in your own tooling to spot where an architect or engineer is expected to replace those placeholders.
+As you will have seen when you visualized the architecture, placeholders don't make the architecture invalid, hence why only warnings are reported, but it allows you to build integration in your own tooling to spot where an architect or engineer is expected to replace those placeholders.
 
 ### 8. Test Validation - Failing Case
 
@@ -310,7 +310,7 @@ test -f patterns/web-app-pattern.json
 calm generate -p patterns/web-app-pattern.json -o /tmp/test-webapp.json
 
 # Validation works
-calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json
+calm validate -p patterns/web-app-pattern.json -a /tmp/generated-webapp.json
 
 # Check tag
 git tag | grep -q "day-17"
@@ -348,4 +348,4 @@ My pattern doesn't generate a valid architecture when I run the generate command
 
 ## Next Steps
 
-Tomorrow (Day 18) you'll learn how to create organisational Standards - JSON Schema extensions that define custom properties like cost centres, owners, and compliance tags that your Patterns can enforce!
+Tomorrow (Day 18) you'll learn how to create organizational Standards - JSON Schema extensions that define custom properties like cost centers, owners, and compliance tags that your Patterns can enforce!
