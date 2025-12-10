@@ -60,7 +60,7 @@ This says: "A node using this Standard must satisfy BOTH the core CALM node requ
 **Organization-Level Extensions:**
 - **Company Node Requirements**: Cost centres, ownership, compliance tags
 - **Relationship Policies**: Approval workflows, security zones
-- **Control Requirements**: Organisational compliance frameworks
+- **Control Requirements**: Organizational compliance frameworks
 
 **Industry Standards:**
 - **Financial Services**: Regulatory compliance, risk classifications
