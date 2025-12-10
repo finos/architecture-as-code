@@ -197,6 +197,80 @@ npm run lint --workspace calm-plugins/vscode
 
 Linting checks code style, common errors, and best practices.
 
+## Commit Messages
+
+This project uses **Conventional Commits** enforced by **commitlint** and **husky**.
+
+### Commit Message Format
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+**Required**:
+- `type`: One of: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`, `ci`, `build`, `revert`
+- `subject`: Brief description (no period at end)
+
+**Optional**:
+- `scope`: Package affected (`cli`, `shared`, `calm-widgets`, `calm-hub`, `calm-hub-ui`, `docs`, `vscode`, `deps`, `ci`, `release`)
+- `body`: Detailed explanation
+- `footer`: Breaking changes, issue references
+
+### Examples
+
+```bash
+# Good commit messages
+feat(cli): add support for schema validation caching
+fix(calm-hub): resolve MongoDB connection timeout issue
+docs(vscode): update extension installation guide
+test(shared): add unit tests for template processor
+chore(deps): update Quarkus to 3.29.4
+
+# Bad commit messages (will be rejected)
+update stuff                          # Missing type
+Fix: bug in code                      # Type must be lowercase
+feat(cli) added new feature.          # Subject ends with period
+FEAT(cli): new feature                # Type must be lowercase
+```
+
+### Type Guidelines
+
+- **feat**: New feature for users
+- **fix**: Bug fix for users
+- **docs**: Documentation only changes
+- **style**: Code style changes (formatting, no logic change)
+- **refactor**: Code restructuring (no behavior change)
+- **test**: Adding or updating tests
+- **chore**: Maintenance tasks (dependencies, tooling)
+- **perf**: Performance improvements
+- **ci**: CI/CD pipeline changes
+- **build**: Build system changes
+- **revert**: Reverting a previous commit
+
+### Automated Enforcement
+
+**Husky** runs commitlint automatically on every commit. Invalid messages are rejected.
+
+To bypass validation (not recommended):
+```bash
+git commit --no-verify -m "message"
+```
+
+### Using Commitizen (Interactive Helper)
+
+For help crafting valid commits:
+```bash
+npx cz
+# or
+npm run commit  # if configured
+```
+
+This provides an interactive prompt to build a compliant message.
+
 ## Pre-Commit Checklist
 
 Before considering any code change ready:
@@ -207,6 +281,7 @@ Before considering any code change ready:
 - [ ] **Code builds successfully**: `npm run build` AND `./mvnw clean install`
 - [ ] **Documentation updated** if behavior changed
 - [ ] **Test coverage meets requirements** (>80% for new code)
+- [ ] **Commit message follows Conventional Commits** (enforced by husky)
 
 ## Documentation
 
@@ -216,11 +291,42 @@ Before considering any code change ready:
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Follow package-specific guidelines (see AGENTS.md files)
-4. Run tests and linting
-5. Create pull request
+1. **Fork the repository**
+2. **Create a feature branch** with descriptive name (e.g., `feat/add-caching`, `fix/mongodb-timeout`)
+3. **Make your changes** following package-specific guidelines (see AGENTS.md files)
+4. **Write tests** for all new code
+5. **Run the pre-commit checklist** (see above)
+   - Tests with coverage pass
+   - Linting passes (0 errors)
+   - Builds succeed
+6. **Commit with Conventional Commits format**
+   - Example: `feat(cli): add schema validation caching`
+   - Husky will validate your commit message automatically
+7. **Push to your fork** and create a pull request
+8. **Ensure CI passes** on your pull request
+
+### Quick Contribution Workflow
+
+```bash
+# 1. Create feature branch
+git checkout -b feat/my-feature
+
+# 2. Make changes and write tests
+vim src/my-file.ts
+vim src/my-file.spec.ts
+
+# 3. Run pre-commit checks
+npm test -- --coverage
+npm run lint
+npm run build
+
+# 4. Commit with conventional format (husky validates)
+git add .
+git commit -m "feat(cli): add my feature"
+
+# 5. Push and create PR
+git push origin feat/my-feature
+```
 
 ## Getting Help
 
