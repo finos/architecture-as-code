@@ -23,10 +23,10 @@ npm run lint           # ESLint check
 npm run lint-fix       # Auto-fix linting issues
 npm run package        # Create .vsix package for distribution
 
-# Testing Extension
-# 1. Open this folder in VSCode
-# 2. Press F5 to launch Extension Development Host
-# 3. Open a CALM JSON file to activate extension
+# Testing Extension in VSCode
+# 1. Open calm-plugins/vscode/ folder in VSCode (File → Open Folder)
+# 2. Press F5 (or Run → Start Debugging) to launch Extension Development Host
+# 3. In the new Extension Development Host window, open a CALM JSON file to activate extension
 ```
 
 ## Architecture Overview

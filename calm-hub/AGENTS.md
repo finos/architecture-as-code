@@ -220,6 +220,21 @@ CALM Hub is largely independent - it's a standalone REST API server.
 4. **Certificate Issues**: Use exact CN in URLs when using self-signed certs
 5. **Profile Selection**: Remember to pass `-Dquarkus.profile=secure` for secure mode
 
+## Known Issues
+
+### Java 24+ Thread-Local Access Warning
+If using Java 24 or later, you may see thread-local access warnings during tests:
+```
+java.lang.IllegalAccessError: module java.base does not open java.lang to unnamed module
+```
+
+These warnings are harmless and don't affect test results. To suppress them, add JVM options:
+```bash
+../mvnw test -Dquarkus.args="--add-opens java.base/java.lang=ALL-UNNAMED"
+```
+
+**Recommended**: Use Java 21 LTS for development (as specified in pom.xml).
+
 ## Quarkus-Specific Tips
 
 ### Configuration

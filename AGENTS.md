@@ -68,10 +68,18 @@ npm run lint               # Lint all workspaces
 npm run build:cli          # Build CLI and dependencies
 npm run build:shared       # Build shared packages
 
+# Testing specific packages (from root)
+npm run test:cli           # Test CLI only
+npm run test:shared        # Test shared packages
+npm run test:vscode        # Test VSCode extension
+npm run test:models        # Test calm-models
+npm run test:calm-widgets  # Test calm-widgets
+
 # Java/Maven (calm-hub)
 cd calm-hub
 ../mvnw quarkus:dev        # Development mode
 ../mvnw -P integration verify  # Full test suite
+../mvnw test               # Unit tests only
 
 # CLI (from root)
 npm run link:cli           # Link CLI globally for testing
@@ -79,7 +87,9 @@ calm --version             # Test CLI
 
 # Advent of CALM website
 cd advent-of-calm/website
+npm install                # First time setup
 npm run dev                # Dev server with hot reload
+npm run build              # Production build
 ```
 
 ## Build Order Dependencies
