@@ -31,10 +31,13 @@ architecture-as-code/
 - Build: tsup (esbuild), vitest for testing
 - Package manager: npm workspaces
 
-**Java/Maven**:
+**Java/Maven** (Maven reactor build):
+- Root pom.xml defines multi-module reactor
+- Modules: calm-hub (Java/Quarkus), cli, calm, docs, shared (POM modules)
 - calm-hub backend (Quarkus 3.29+)
 - MongoDB/NitriteDB storage
 - TestContainers for integration tests
+- Maven reactor allows building all modules from root: `./mvnw clean install`
 
 **Documentation**:
 - Docusaurus for main docs
@@ -61,12 +64,16 @@ Open the package-specific AGENTS.md when:
 ## Key Commands
 
 ```bash
-# Root-level commands
-npm run build              # Build all workspaces
-npm run test               # Test all workspaces
+# Root-level commands (npm workspaces)
+npm run build              # Build all TypeScript workspaces
+npm run test               # Test all TypeScript workspaces
 npm run lint               # Lint all workspaces
 npm run build:cli          # Build CLI and dependencies
 npm run build:shared       # Build shared packages
+
+# Root-level Maven reactor build
+./mvnw clean install       # Build all Maven modules (mainly calm-hub)
+./mvnw test                # Test all Maven modules (mainly calm-hub)
 
 # Testing specific packages (from root)
 npm run test:cli           # Test CLI only
@@ -75,10 +82,10 @@ npm run test:vscode        # Test VSCode extension
 npm run test:models        # Test calm-models
 npm run test:calm-widgets  # Test calm-widgets
 
-# Java/Maven (calm-hub)
+# Java/Maven (calm-hub specific)
 cd calm-hub
-../mvnw quarkus:dev        # Development mode
-../mvnw -P integration verify  # Full test suite
+../mvnw quarkus:dev        # Development mode with hot reload
+../mvnw -P integration verify  # Full test suite with integration tests
 ../mvnw test               # Unit tests only
 
 # CLI (from root)
@@ -95,14 +102,17 @@ npm run build              # Production build
 ## Build Order Dependencies
 
 ```
-TypeScript packages build in order:
+TypeScript packages (npm workspaces) build in order:
   calm-models → calm-widgets → shared → cli → calm-plugins/vscode
 
-Java packages:
-  calm-hub (independent)
+Maven modules (reactor build):
+  Parent POM → calm-hub (only Java module with code)
+  Other modules (cli, calm, docs, shared) are POM-only placeholders
 ```
 
-**Important**: Always build dependencies before dependent packages.
+**Important**: 
+- Always build dependencies before dependent packages for TypeScript
+- Maven reactor handles build order automatically: `./mvnw clean install`
 
 ## Common Workflows
 
