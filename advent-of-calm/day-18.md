@@ -187,7 +187,7 @@ git tag | grep -q "day-18"
 
 ## Tips
 
-- Start simple - add complexity as your organisation's needs become clearer
+- Start simple - add complexity as your organization's needs become clearer
 - Standards should focus on properties that genuinely need consistency
 - Document why each required property matters
 - The `allOf` composition is key - it extends rather than replaces CALM
