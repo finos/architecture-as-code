@@ -12,6 +12,7 @@ Augment the FINOS CALM monorepo with package-specific AGENTS.md files to improve
 - [x] `cli/AGENTS.md` - CLI package guidance
 - [x] `calm-hub/AGENTS.md` - Java/Quarkus backend guidance
 - [x] `calm-plugins/vscode/AGENTS.md` - VSCode extension guidance
+- [x] `advent-of-calm/AGENTS.md` - Educational content guidance
 - [ ] Root `AGENTS.md` enhancement (evaluated - not needed, OpenSpec reference is sufficient)
 
 ### Review & Testing
@@ -33,6 +34,7 @@ Augment the FINOS CALM monorepo with package-specific AGENTS.md files to improve
 1. **cli/** - Complex TypeScript CLI with multiple commands, Commander.js patterns, schema handling
 2. **calm-hub/** - Different tech stack (Java/Quarkus), REST API, multiple storage modes
 3. **calm-plugins/vscode/** - VSCode extension with MVVM architecture, complex state management
+4. **advent-of-calm/** - Educational content with specific format, testing workflow, content philosophy
 
 **Not creating for:**
 - `calm-models/` - Simple data models, minimal complexity
