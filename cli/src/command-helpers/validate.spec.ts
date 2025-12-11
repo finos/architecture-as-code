@@ -109,7 +109,7 @@ describe('runValidate', () => {
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch.json', 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
         expect(validate).toHaveBeenCalledWith(dummyArch, dummyPattern, expect.anything(), true);
-        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json');
+        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
@@ -133,7 +133,7 @@ describe('runValidate', () => {
         expect(mocks.loadSchemas).toHaveBeenCalled();
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch.json', 'architecture');
         expect(validate).toHaveBeenCalledWith(dummyArch, undefined, expect.anything(), true);
-        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json');
+        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
@@ -161,7 +161,7 @@ describe('runValidate', () => {
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch-of-pattern.json', 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith(resolvedPatternPath, 'pattern');
         expect(validate).toHaveBeenCalledWith(dummyArchOfAPattern, dummyPattern, expect.anything(), true);
-        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json');
+        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
@@ -189,7 +189,7 @@ describe('runValidate', () => {
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch-of-calm.json', 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledOnce();
         expect(validate).toHaveBeenCalledWith(dummyArchOfCalmSchema, dummyCalmSchema, expect.anything(), true);
-        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json');
+        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
@@ -213,7 +213,7 @@ describe('runValidate', () => {
         expect(mocks.loadSchemas).toHaveBeenCalled();
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
         expect(validate).toHaveBeenCalledWith(undefined, dummyPattern, expect.anything(), true);
-        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json');
+        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));

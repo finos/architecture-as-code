@@ -1,4 +1,4 @@
-import { validate, sortSpectralIssueBySeverity, convertSpectralDiagnosticToValidationOutputs, convertJsonSchemaIssuesToValidationOutputs, stripRefs, exitBasedOffOfValidationOutcome, extractChoicesFromArchitecture } from './validate';
+import { validate, sortSpectralIssueBySeverity, convertJsonSchemaIssuesToValidationOutputs, stripRefs, exitBasedOffOfValidationOutcome, extractChoicesFromArchitecture } from './validate';
 import { ISpectralDiagnostic } from '@stoplight/spectral-core';
 import { ValidationOutcome, ValidationOutput } from './validation.output';
 import { ErrorObject } from 'ajv';
@@ -209,11 +209,16 @@ describe('validation support functions', () => {
                     'error',
                     'must be integer',
                     '/nodes/0/interfaces/0/port',
-                    'https://calm.finos.org/release/1.1/meta/interface.json#/defs/host-port-interface/properties/port/type'
+                    'https://calm.finos.org/release/1.1/meta/interface.json#/defs/host-port-interface/properties/port/type',
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    'architecture'
                 )
             ];
 
-            const actual = convertJsonSchemaIssuesToValidationOutputs(given);
+            const actual = convertJsonSchemaIssuesToValidationOutputs(given, 'architecture');
 
             expect(actual).toStrictEqual(expected);
         });
@@ -237,11 +242,16 @@ describe('validation support functions', () => {
                     'error',
                     'must have required property \'nodes\'',
                     '',
-                    '#/required'
+                    '#/required',
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    'architecture'
                 )
             ];
 
-            const actual = convertJsonSchemaIssuesToValidationOutputs(given);
+            const actual = convertJsonSchemaIssuesToValidationOutputs(given, 'architecture');
 
             expect(actual).toStrictEqual(expected);
         });
@@ -249,7 +259,7 @@ describe('validation support functions', () => {
         it('should return an empty array when no JSON Schema issues have been reported', () => {
             const given: ErrorObject[] = [];
             const expected: ValidationOutput[] = [];
-            const actual = convertJsonSchemaIssuesToValidationOutputs(given);
+            const actual = convertJsonSchemaIssuesToValidationOutputs(given, 'architecture');
             expect(actual).toStrictEqual(expected);
         });
 

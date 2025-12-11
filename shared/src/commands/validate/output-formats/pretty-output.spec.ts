@@ -1,99 +1,51 @@
-import prettyFormat from './pretty-output';
-import { ValidationOutcome } from '../validation.output';
+import prettyFormat from './pretty-output.js';
+import { ValidationOutcome } from '../validation.output.js';
+
+const baseOutcome: ValidationOutcome = {
+    hasErrors: false,
+    hasWarnings: false,
+    jsonSchemaValidationOutputs: [],
+    spectralSchemaValidationOutputs: [],
+    allValidationOutputs: vi.fn()
+};
 
 describe('prettyFormat', () => {
-    it('should format validation outcome with errors and warnings', () => {
-        const validationOutcome: ValidationOutcome = {
-            allValidationOutputs: vi.fn().mockReturnValue([
-                { severity: 'error', message: 'Error 1' },
-                { severity: 'warning', message: 'Warning 1' }
-            ]),
+    it('formats errors and warnings with summaries and paths', () => {
+        const outputs = [
+            { severity: 'error', code: 'E1', message: 'Error 1', path: '/one', source: 'architecture' },
+            { severity: 'warning', code: 'W1', message: 'Warning 1', path: '/two', source: 'pattern' }
+        ];
+        const outcome: ValidationOutcome = {
+            ...baseOutcome,
             hasErrors: true,
             hasWarnings: true,
-            jsonSchemaValidationOutputs: [],
-            spectralSchemaValidationOutputs: []
+            allValidationOutputs: vi.fn().mockReturnValue(outputs)
         };
 
-        const result = prettyFormat(validationOutcome);
+        const formatted = prettyFormat(outcome, {
+            documents: {
+                architecture: { id: 'architecture', label: 'arch.json', filePath: '/tmp/arch.json', lines: ['line one'] },
+                pattern: { id: 'pattern', label: 'pattern.json', filePath: '/tmp/pattern.json', lines: ['line two'] }
+            }
+        });
 
-        expect(result).toContain('Issue Type');
-        expect(result).toContain('Issues Found?');
-        expect(result).toContain('Issue Count');
-        expect(result).toContain('Errors');
-        expect(result).toContain('Warnings');
-        expect(result).toContain('true');
-        expect(result).toContain('1');
-        expect(result).toContain('Error 1');
-        expect(result).toContain('Warning 1');
+        expect(formatted).toContain('Summary');
+        expect(formatted).toContain('Errors: yes (1)');
+        expect(formatted).toContain('Warnings: yes (1)');
+        expect(formatted).toContain('ERROR E1: Error 1');
+        expect(formatted).toContain('WARN W1: Warning 1');
+        expect(formatted).toContain('/one');
+        expect(formatted).toContain('/two');
     });
 
-    it('should format validation outcome with only errors', () => {
-        const validationOutcome: ValidationOutcome = {
-            allValidationOutputs: vi.fn().mockReturnValue([
-                { severity: 'error', message: 'Error 1' }
-            ]),
-            hasErrors: true,
-            hasWarnings: false,
-            jsonSchemaValidationOutputs: [],
-            spectralSchemaValidationOutputs: []
+    it('shows friendly message when no issues', () => {
+        const outcome: ValidationOutcome = {
+            ...baseOutcome,
+            allValidationOutputs: vi.fn().mockReturnValue([])
         };
 
-        const result = prettyFormat(validationOutcome);
+        const formatted = prettyFormat(outcome);
 
-        expect(result).toContain('Issue Type');
-        expect(result).toContain('Issues Found?');
-        expect(result).toContain('Issue Count');
-        expect(result).toContain('Errors');
-        expect(result).toContain('Warnings');
-        expect(result).toContain('true');
-        expect(result).toContain('1');
-        expect(result).toContain('Error 1');
-        expect(result).not.toContain('Warning 1');
-    });
-
-    it('should format validation outcome with only warnings', () => {
-        const validationOutcome: ValidationOutcome = {
-            allValidationOutputs: vi.fn().mockReturnValue([
-                { severity: 'warning', message: 'Warning 1' }
-            ]),
-            hasErrors: false,
-            hasWarnings: true,
-            jsonSchemaValidationOutputs: [],
-            spectralSchemaValidationOutputs: []
-        };
-
-        const result = prettyFormat(validationOutcome);
-
-        expect(result).toContain('Issue Type');
-        expect(result).toContain('Issues Found?');
-        expect(result).toContain('Issue Count');
-        expect(result).toContain('Errors');
-        expect(result).toContain('Warnings');
-        expect(result).toContain('true');
-        expect(result).toContain('1');
-        expect(result).not.toContain('Error 1');
-        expect(result).toContain('Warning 1');
-    });
-
-    it('should format validation outcome with no issues', () => {
-        const validationOutcome: ValidationOutcome = {
-            allValidationOutputs: vi.fn().mockReturnValue([]),
-            hasErrors: false,
-            hasWarnings: false,
-            jsonSchemaValidationOutputs: [],
-            spectralSchemaValidationOutputs: []
-        };
-
-        const result = prettyFormat(validationOutcome);
-
-        expect(result).toContain('Issue Type');
-        expect(result).toContain('Issues Found?');
-        expect(result).toContain('Issue Count');
-        expect(result).toContain('Errors');
-        expect(result).toContain('Warnings');
-        expect(result).toContain('false');
-        expect(result).toContain('0');
-        expect(result).not.toContain('Error 1');
-        expect(result).not.toContain('Warning 1');
+        expect(formatted).toContain('No issues found');
     });
 });

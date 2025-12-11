@@ -1,13 +1,14 @@
-import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, SchemaDirectory } from '@finos/calm-shared';
+import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, SchemaDirectory, ValidationFormattingOptions, ValidationOutcome } from '@finos/calm-shared';
 import { initLogger } from '@finos/calm-shared';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
-import { writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { Command } from 'commander';
 import { ValidateOutputFormat } from '@finos/calm-shared/dist/commands/validate/validate';
 import { buildSchemaDirectory, parseDocumentLoaderConfig } from '../cli';
 import { buildDocumentLoader, DocumentLoader, CALM_HUB_PROTO } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { Logger } from '@finos/calm-shared/dist/logger';
+import { parse as parseJsonWithPointers } from 'json-source-map';
 
 export interface ValidateOptions {
     patternPath?: string;
@@ -39,8 +40,10 @@ export async function runValidate(options: ValidateOptions) {
             schemaDirectory,
             logger
         );
+        const documentContexts = buildDocumentContexts(options, logger);
         const outcome = await validate(architecture, pattern, schemaDirectory, options.verbose);
-        const content = getFormattedOutput(outcome, options.outputFormat);
+        enrichWithDocumentPositions(outcome, documentContexts);
+        const content = getFormattedOutput(outcome, options.outputFormat, toFormattingOptions(documentContexts));
         writeOutputFile(options.outputPath, content);
         exitBasedOffOfValidationOutcome(outcome, options.strict);
     }
@@ -140,4 +143,155 @@ export function checkValidateOptions(program: Command, options: any, patternOpti
     if (!options.pattern && !options.architecture) {
         program.error(`error: one of the required options '${patternOption}' or '${architectureOption}' was not specified`);
     }
+}
+
+type JsonPointerPosition = { line: number; column: number };
+type JsonPointerInfo = { value?: JsonPointerPosition; valueEnd?: JsonPointerPosition };
+type JsonPointerMap = Record<string, JsonPointerInfo>;
+
+interface LoadedDocumentContext {
+    id: string;
+    filePath: string;
+    lines: string[];
+    data: unknown;
+    pointers: JsonPointerMap;
+}
+
+function buildDocumentContexts(options: ValidateOptions, logger: Logger): Record<string, LoadedDocumentContext> {
+    const contexts: Record<string, LoadedDocumentContext> = {};
+
+    if (options.architecturePath) {
+        const context = loadDocumentContext(options.architecturePath, 'architecture', logger);
+        if (context) {
+            contexts['architecture'] = context;
+        }
+    }
+
+    if (options.patternPath) {
+        const context = loadDocumentContext(options.patternPath, 'pattern', logger);
+        if (context) {
+            contexts['pattern'] = context;
+        }
+    }
+
+    return contexts;
+}
+
+function loadDocumentContext(filePath: string, id: string, logger: Logger): LoadedDocumentContext | undefined {
+    try {
+        const absolutePath = path.resolve(filePath);
+        const raw = readFileSync(absolutePath, 'utf-8');
+        const parsed = parseJsonWithPointers(raw);
+        return {
+            id,
+            filePath: absolutePath,
+            lines: raw.split(/\r?\n/),
+            data: parsed.data,
+            pointers: parsed.pointers as JsonPointerMap
+        };
+    } catch (error) {
+        logger.debug(`Could not build document context for ${filePath}: ${error}`);
+        return undefined;
+    }
+}
+
+function enrichWithDocumentPositions(outcome: ValidationOutcome, contexts: Record<string, LoadedDocumentContext>): void {
+    if (!outcome?.allValidationOutputs) {
+        return;
+    }
+    const outputs = outcome.allValidationOutputs();
+    outputs.forEach(output => {
+        const source = output.source || inferSourceFromAvailability(contexts);
+        const context = source ? contexts[source] : undefined;
+        if (!context || !output.path) {
+            return;
+        }
+
+        const pointerPath = output.path;
+        const pointer = context.pointers[pointerPath];
+        if (!pointer) {
+            return;
+        }
+
+        if (pointer.value) {
+            output.line_start = pointer.value.line + 1; // store 1-based for user-facing data
+            output.character_start = pointer.value.column;
+        }
+        if (pointer.valueEnd) {
+            output.line_end = pointer.valueEnd.line + 1; // store 1-based for user-facing data
+            output.character_end = pointer.valueEnd.column;
+        }
+        output.source = output.source || source;
+
+        const friendlyPath = rewritePathWithIds(pointerPath, context.data);
+        if (friendlyPath) {
+            output.path = friendlyPath;
+        }
+    });
+}
+
+function inferSourceFromAvailability(contexts: Record<string, LoadedDocumentContext>): string | undefined {
+    if (contexts.architecture) {
+        return 'architecture';
+    }
+    if (contexts.pattern) {
+        return 'pattern';
+    }
+    return undefined;
+}
+
+function rewritePathWithIds(pointerPath: string, data: unknown): string | undefined {
+    if (!pointerPath || data === undefined || data === null) {
+        return undefined;
+    }
+
+    const tokens = pointerPath.split('/').slice(1); // remove leading empty token from JSON pointer
+    const rewritten: string[] = [];
+    let cursor: any = data;
+
+    for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i];
+
+        if (Array.isArray(cursor)) {
+            const index = Number(token);
+            const item = cursor[index];
+            const id = item && typeof item === 'object' && 'unique-id' in item ? (item['unique-id'] as string) : token;
+
+            // If previous segment was a property name leading to this array, keep it and add id as its own segment.
+            if (rewritten.length === 0 || rewritten[rewritten.length - 1] !== token) {
+                rewritten.push(id);
+            } else {
+                rewritten.push(id);
+            }
+
+            cursor = item;
+            continue;
+        }
+
+        if (cursor && typeof cursor === 'object' && token in cursor) {
+            rewritten.push(token);
+            cursor = (cursor as Record<string, unknown>)[token];
+            continue;
+        }
+
+        rewritten.push(token);
+        cursor = undefined;
+    }
+
+    const decorated = rewritten.join('/');
+    return `/${decorated}`;
+}
+
+function toFormattingOptions(contexts: Record<string, LoadedDocumentContext>): ValidationFormattingOptions {
+    const documents: Record<string, { id: string; label: string; filePath: string; lines: string[] }> = {};
+    Object.entries(contexts).forEach(([id, ctx]) => {
+        documents[id] = {
+            id: ctx.id,
+            label: path.basename(ctx.filePath),
+            filePath: ctx.filePath,
+            lines: ctx.lines
+        };
+    });
+
+    return { documents };
 }
