@@ -205,18 +205,10 @@ function enrichWithDocumentPositions(outcome: ValidationOutcome, contexts: Recor
 
         const location = getLocationForPointer(output.path, context);
         if (location?.range) {
-            if (output.line_start === undefined) {
-                output.line_start = location.range.start.line + 1; // store 1-based for user-facing data
-            }
-            if (output.character_start === undefined) {
-                output.character_start = location.range.start.character;
-            }
-            if (output.line_end === undefined) {
-                output.line_end = location.range.end.line + 1; // store 1-based for user-facing data
-            }
-            if (output.character_end === undefined) {
-                output.character_end = location.range.end.character;
-            }
+            output.line_start = location.range.start.line + 1; // store 1-based for user-facing data
+            output.character_start = location.range.start.character;
+            output.line_end = location.range.end.line + 1; // store 1-based for user-facing data
+            output.character_end = location.range.end.character;
         }
         output.source = output.source || source;
 
@@ -241,20 +233,29 @@ function hasProp(obj: unknown, prop: string): obj is Record<string, unknown> {
     return typeof obj === 'object' && obj !== null && prop in obj;
 }
 
+function isRecord(obj: unknown): obj is Record<string, unknown> {
+    return typeof obj === 'object' && obj !== null;
+}
+
 function getLocationForPointer(pointerPath: string, context: LoadedDocumentContext) {
-    const jsonPath = pointerToJsonPath(pointerPath);
+    const jsonPath = pointerToJsonPath(pointerPath, context.data);
     if (!jsonPath) {
         return undefined;
     }
     return getLocationForJsonPath(context.parseResult, jsonPath);
 }
 
-function pointerToJsonPath(pointerPath: string): Array<string | number> | undefined {
+function pointerToJsonPath(pointerPath: string, data?: unknown): Array<string | number> | undefined {
     if (!pointerPath || pointerPath[0] !== '/') {
         return undefined;
     }
-    const tokens = pointerPath.split('/').slice(1);
-    return tokens.map(decodePointerToken);
+    const tokens = pointerPath.split('/').slice(1).map(decodePointerToken);
+
+    if (!data) {
+        return tokens.map(defaultTokenToPathSegment);
+    }
+
+    return tokensToJsonPath(tokens, data);
 }
 
 function decodePointerToken(token: string): string | number {
@@ -264,6 +265,63 @@ function decodePointerToken(token: string): string | number {
         return asNumber;
     }
     return decoded;
+}
+
+function defaultTokenToPathSegment(token: string | number): string | number {
+    if (typeof token === 'number') {
+        return token;
+    }
+    const asNumber = Number.parseInt(token, 10);
+    if (Number.isInteger(asNumber) && String(asNumber) === token) {
+        return asNumber;
+    }
+    return token;
+}
+
+function tokensToJsonPath(tokens: Array<string | number>, data: unknown): Array<string | number> | undefined {
+    const path: Array<string | number> = [];
+    let cursor: unknown = data;
+
+    for (const token of tokens) {
+        if (Array.isArray(cursor)) {
+            const idx = findIndexInArray(cursor, token);
+            if (idx === undefined) {
+                return undefined;
+            }
+            path.push(idx);
+            cursor = cursor[idx];
+            continue;
+        }
+
+        if (isRecord(cursor)) {
+            const key = typeof token === 'number' ? String(token) : token;
+            path.push(key);
+            cursor = cursor[key];
+            continue;
+        }
+
+        return undefined;
+    }
+
+    return path;
+}
+
+function findIndexInArray(arr: unknown[], token: string | number): number | undefined {
+    if (typeof token === 'number') {
+        return token >= 0 && token < arr.length ? token : undefined;
+    }
+
+    const byUniqueId = arr.findIndex(item => isRecord(item) && typeof item['unique-id'] === 'string' && item['unique-id'] === token);
+    if (byUniqueId !== -1) {
+        return byUniqueId;
+    }
+
+    const asNumber = Number.parseInt(token, 10);
+    if (Number.isInteger(asNumber) && asNumber >= 0 && asNumber < arr.length) {
+        return asNumber;
+    }
+
+    return undefined;
 }
 
 function rewritePathWithIds(pointerPath: string, data: unknown): string | undefined {
