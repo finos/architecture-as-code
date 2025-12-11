@@ -95,7 +95,7 @@ architecture: ../architectures/ecommerce-platform.json
 Just like Day 12, you can preview this template in VSCode:
 
 1. Open `templates/node-inventory.md` in VSCode
-2. Open the CALM Preview (Ctrl+Shift+C) to see the rendered output
+2. Open the CALM Preview (Ctrl+Shift+C / Cmd+Shift+C) to see the rendered output
 
 ### 6. Create a Relationship Details Template
 
