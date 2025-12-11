@@ -23,6 +23,15 @@ A documentation website solves this by:
 
 ### 2. Generate Your Documentation Website
 
+Please ensure your CALM CLI version is 1.22.1 or above. You can check your version with:
+
+```bash
+calm --version
+```
+
+Earlier versions have an issue with some links in the generated documentation website.
+
+
 ```bash
 calm docify --architecture architectures/ecommerce-platform.json --output docs/generated/ecommerce-docs
 ```
