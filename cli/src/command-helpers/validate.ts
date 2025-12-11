@@ -6,7 +6,7 @@ import { writeFileSync } from 'fs';
 import { Command } from 'commander';
 import { ValidateOutputFormat } from '@finos/calm-shared/dist/commands/validate/validate';
 import { buildSchemaDirectory, parseDocumentLoaderConfig } from '../cli';
-import { buildDocumentLoader, DocumentLoader } from '@finos/calm-shared/dist/document-loader/document-loader';
+import { buildDocumentLoader, DocumentLoader, CALM_HUB_PROTO } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { Logger } from '@finos/calm-shared/dist/logger';
 
 export interface ValidateOptions {
@@ -14,6 +14,7 @@ export interface ValidateOptions {
     architecturePath?: string;
     metaSchemaPath: string;
     calmHubUrl?: string;
+    urlToLocalFileMapping?: string;
     verbose: boolean;
     strict: boolean;
     outputFormat: ValidateOutputFormat;
@@ -23,7 +24,10 @@ export interface ValidateOptions {
 export async function runValidate(options: ValidateOptions) {
     const logger = initLogger(options.verbose, 'calm-validate');
     try {
-        const docLoaderOpts = await parseDocumentLoaderConfig(options);
+        const { getUrlToLocalFileMap } = await import('./template');
+        const urlToLocalMap = getUrlToLocalFileMap(options.urlToLocalFileMapping);
+        const patternBasePath = options.patternPath ? path.dirname(path.resolve(options.patternPath)) : undefined;
+        const docLoaderOpts = await parseDocumentLoaderConfig(options, urlToLocalMap, patternBasePath);
         const docLoader: DocumentLoader = buildDocumentLoader(docLoaderOpts);
         const schemaDirectory = await buildSchemaDirectory(docLoader, options.verbose);
         await schemaDirectory.loadSchemas();
@@ -61,23 +65,44 @@ async function loadArchitectureAndPattern(architecturePath: string, patternPath:
         return { architecture, pattern };
     }
     // architecture is set, but pattern is not; try to load pattern from architecture if present 
-    return { architecture, pattern: await loadPatternFromArchitectureIfPresent(architecture, docLoader, schemaDirectory, logger) };
+    return { architecture, pattern: await loadPatternFromArchitectureIfPresent(architecture, architecturePath, docLoader, schemaDirectory, logger) };
 }
 
-async function loadPatternFromArchitectureIfPresent(architecture: object, docLoader: DocumentLoader, schemaDirectory: SchemaDirectory, logger: Logger): Promise<object> {
+export function resolveSchemaRef(schemaRef: string, architecturePath: string, logger: Logger): string {
+    // If it's an absolute URL (http, https, file) or calm: protocol, use as-is
+    if (schemaRef.startsWith('http://') || schemaRef.startsWith('https://') || schemaRef.startsWith('file://') || schemaRef.startsWith(CALM_HUB_PROTO)) {
+        return schemaRef;
+    }
+    // If it's an absolute file path, use as-is
+    if (path.isAbsolute(schemaRef)) {
+        return schemaRef;
+    }
+    // It's a relative path - resolve it relative to the architecture file's directory
+    if (architecturePath) {
+        const archDir = path.dirname(path.resolve(architecturePath));
+        const resolved = path.resolve(archDir, schemaRef);
+        logger.debug(`Resolved relative $schema path '${schemaRef}' to: ${resolved}`);
+        return resolved;
+    }
+    logger.warn(`Could not resolve relative $schema path '${schemaRef}' because architecturePath is missing or falsy. Returning unresolved relative path.`);
+    return schemaRef;
+}
+
+async function loadPatternFromArchitectureIfPresent(architecture: object, architecturePath: string, docLoader: DocumentLoader, schemaDirectory: SchemaDirectory, logger: Logger): Promise<object> {
     if (!architecture || !architecture['$schema']) {
         return;
     }
+    const schemaRef = resolveSchemaRef(architecture['$schema'], architecturePath, logger);
     try {
-        const schema = schemaDirectory.getSchema(architecture['$schema']);
-        logger.debug(`Loaded schema from architecture: ${architecture['$schema']}`);
+        const schema = schemaDirectory.getSchema(schemaRef);
+        logger.debug(`Loaded schema from architecture: ${schemaRef}`);
         return schema;
     }
     catch (_) {
-        logger.debug(`Trying to load pattern from architecture schema: ${architecture['$schema']}`);
+        logger.debug(`Trying to load pattern from architecture schema: ${schemaRef}`);
     }
-    const pattern = docLoader.loadMissingDocument(architecture['$schema'], 'pattern');
-    logger.debug(`Loaded pattern from architecture schema: ${architecture['$schema']}`);
+    const pattern = docLoader.loadMissingDocument(schemaRef, 'pattern');
+    logger.debug(`Loaded pattern from architecture schema: ${schemaRef}`);
     return pattern;
 }
 

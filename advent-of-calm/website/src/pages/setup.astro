@@ -1,0 +1,170 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getEntry } from 'astro:content';
+
+const entry = await getEntry('days', 'setup');
+if (!entry) {
+  throw new Error('Setup content not found');
+}
+const { Content } = await entry.render();
+---
+
+<Layout title="Setup - Keeping Your CALM Tools Up to Date" description="Learn how to keep your CALM CLI, VS Code Extension, and Copilot Chatmode up to date">
+  <nav class="day-nav">
+    <div class="nav-center">
+      <a href={import.meta.env.BASE_URL} class="nav-button home">Back to Calendar</a>
+    </div>
+  </nav>
+  
+  <article class="day-content prose">
+    <Content />
+  </article>
+  
+  <nav class="day-nav bottom">
+    <div class="nav-center">
+      <a href={import.meta.env.BASE_URL} class="nav-button home">Back to Calendar</a>
+    </div>
+  </nav>
+</Layout>
+
+<style>
+  .day-nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 2px solid var(--color-border);
+  }
+  
+  .day-nav.bottom {
+    margin-top: var(--spacing-xl);
+    margin-bottom: 0;
+    padding-top: var(--spacing-md);
+    padding-bottom: 0;
+    border-bottom: none;
+    border-top: 2px solid var(--color-border);
+  }
+  
+  .nav-center {
+    display: flex;
+    justify-content: center;
+  }
+  
+  .nav-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: transparent;
+    color: var(--color-accent);
+    border: 1px solid var(--color-accent);
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+  
+  .nav-button:hover {
+    background: var(--color-accent);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+  }
+  
+  .day-content {
+    max-width: 900px;
+  }
+  
+  /* Prose/Typography Styles */
+  .day-content :global(h1) {
+    font-size: 2.25rem;
+    margin-bottom: var(--spacing-md);
+    line-height: 1.2;
+    color: var(--color-primary);
+  }
+  
+  .day-content :global(h2) {
+    font-size: 1.75rem;
+    margin-top: var(--spacing-xl);
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-xs);
+    border-bottom: 2px solid var(--color-accent-light);
+    color: var(--color-primary);
+  }
+  
+  .day-content :global(h3) {
+    font-size: 1.35rem;
+    margin-top: var(--spacing-lg);
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-primary);
+  }
+  
+  .day-content :global(p) {
+    margin-bottom: var(--spacing-md);
+    line-height: 1.7;
+  }
+  
+  .day-content :global(ul),
+  .day-content :global(ol) {
+    margin-bottom: var(--spacing-md);
+    margin-left: var(--spacing-lg);
+    line-height: 1.8;
+  }
+  
+  .day-content :global(li) {
+    margin-bottom: var(--spacing-xs);
+  }
+  
+  .day-content :global(pre) {
+    background: #1f2937;
+    color: #f9fafb;
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    overflow-x: auto;
+    margin: var(--spacing-lg) 0;
+    line-height: 1.5;
+    border-left: 4px solid var(--color-accent);
+  }
+  
+  .day-content :global(pre code) {
+    background: transparent;
+    padding: 0;
+    color: inherit;
+    font-size: 0.9em;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  }
+  
+  .day-content :global(code) {
+    background: #f3f4f6;
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+    font-size: 0.875em;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    color: #1f2937;
+  }
+  
+  .day-content :global(strong) {
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+  
+  .day-content :global(a) {
+    color: var(--color-accent);
+    text-decoration: underline;
+  }
+  
+  .day-content :global(a:hover) {
+    color: var(--color-primary);
+  }
+  
+  @media (max-width: 768px) {
+    .day-content :global(h1) {
+      font-size: 1.75rem;
+    }
+    
+    .day-content :global(h2) {
+      font-size: 1.5rem;
+    }
+  }
+</style>

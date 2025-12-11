@@ -46,12 +46,12 @@ C4Deployment
     - [Conference Signup Flow](flows/flow-conference-signup)
 
 ## Controls
-| ID    | Name             | Description                  | Domain    | Scope        | Applied To                |
-|-------|------------------|------------------------------|-----------|--------------|---------------------------|
-|security-001|Micro-segmentation of Kubernetes Cluster|Micro-segmentation in place to prevent lateral movement outside of permitted flows|security|Node|k8s-cluster|
-|security-002|Permitted Connection|Permits a connection on a relationship specified in the architecture|security|Relationship|conference-website-load-balancer|
-|security-002|Permitted Connection|Permits a connection on a relationship specified in the architecture|security|Relationship|load-balancer-attendees|
-|security-002|Permitted Connection|Permits a connection on a relationship specified in the architecture|security|Relationship|attendees-attendees-store|
+| Requirement URL               | Category    | Scope        | Applied To                |
+|-------------------------------|-----------|--------------|---------------------------|
+|https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json|security|Node|k8s-cluster|
+|https://calm.finos.org/workshop/controls/permitted-connection.requirement.json|security|Relationship|conference-website-load-balancer|
+|https://calm.finos.org/workshop/controls/permitted-connection.requirement.json|security|Relationship|load-balancer-attendees|
+|https://calm.finos.org/workshop/controls/permitted-connection.requirement.json|security|Relationship|attendees-attendees-store|
 
 ## Metadata
   <div className="table-container">

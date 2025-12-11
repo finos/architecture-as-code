@@ -385,7 +385,7 @@ export class TemplatePreprocessor {
             return { decision: { kind: 'leave', seg, reason: 'native-handlebars-path' } };
         }
 
-        const safePath = path.replace(/"/g, '\\"');
+        const safePath = path.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
         const { kvs, positionals } = TemplatePreprocessor.splitExtrasFromString(extras);
         const kvsPart = kvs.length ? ` ${kvs.join(' ')}` : '';
         const posPart = positionals.length ? ` ${positionals.join(' ')}` : '';

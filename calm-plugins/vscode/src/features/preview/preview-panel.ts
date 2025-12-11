@@ -270,6 +270,8 @@ export class CalmPreviewPanel {
 
   dispose() {
     this.viewModel.setVisible(false)
+    this.viewModel.setReady(false)  // Reset ready state so new panel can trigger state changes
+    this.viewModel.clearCurrentUri()  // Clear URI so reopening will trigger proper data loading
     CalmPreviewPanel.currentPanel = undefined
     while (this.disposables.length) {
       const d = this.disposables.pop()
@@ -326,7 +328,7 @@ export class CalmPreviewPanel {
   }
 
   // Implementation methods triggered by ViewModel
-  private handleRequestModelDataImpl() {
+  private async handleRequestModelDataImpl() {
     const uri = this.getCurrentUri()
     if (!uri) { this.post({ type: 'modelData', data: null }); return }
 
@@ -340,7 +342,8 @@ export class CalmPreviewPanel {
 
       this.log.info(`[preview] Reading ${isTemplate ? 'architecture file for template mode' : 'current file'}: ${fileToRead}`)
 
-      const fullModelData = this.modelService.readModel(fileToRead)
+      // Use async file reading for better performance with large files
+      const fullModelData = await this.modelService.readModelAsync(fileToRead)
       const filteredData = this.modelService.filterBySelection(fullModelData, state.selectedId)
       this.post({ type: 'modelData', data: filteredData })
       this.log.info(`[preview] Sent filtered model data for selection: ${state.selectedId || 'none'}`)

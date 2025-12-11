@@ -18,11 +18,10 @@ export function createOpenPreviewCommand(store: ApplicationStoreApi) {
             return
         }
 
-        // Set a flag to indicate this is a user-initiated preview opening
-        // This will trigger the StoreReactionMediator to force-create the panel
         const state = store.getState()
-        state.setForceCreatePreview(true)
         
+        // Set document first, then force flag - order matters because each setter triggers the subscription
+        // The forceCreatePreview check uses currentDocumentUri, so it must be set first
         state.setCurrentDocument(doc.uri)
         
         if (fileInfo.type === FileType.TemplateFile && fileInfo.isValid) {
@@ -32,8 +31,13 @@ export function createOpenPreviewCommand(store: ApplicationStoreApi) {
         }
 
         // If an elementId was provided (from CodeLens), set the selection
-        if (elementId) {
+        // Note: Context menu passes a Uri object, not a string, so we must check the type
+        if (elementId && typeof elementId === 'string') {
             state.setSelectedElement(elementId)
         }
+
+        // Set force flag last - this triggers the StoreReactionMediator to create the panel
+        // with the correct document URI already in place
+        state.setForceCreatePreview(true)
     })
 }

@@ -37,11 +37,15 @@ export class SchemaDirectory {
         await this.documentLoader.initialise(this);
     }
 
-    private async lookupDefinition(schemaId: string, ref: string): Promise<object> {
+    private async lookupDefinition(schemaId: string, ref: string | undefined): Promise<object> {
         const schema = await this.getSchema(schemaId);
         if (!schema) {
             this.logger.warn(`Schema with $id ${schemaId} not found. Returning placeholder with warning message.`);
-            return this.getMissingSchemaPlaceholder(ref);
+            return this.getMissingSchemaPlaceholder(ref || schemaId);
+        }
+        // If no ref (or empty ref), return the whole schema
+        if (!ref || ref === '') {
+            return schema;
         }
         return pointer.get(schema, ref);
     }

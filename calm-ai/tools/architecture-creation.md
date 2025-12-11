@@ -10,7 +10,7 @@ Every CALM architecture MUST include:
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+    "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
     "unique-id": "string",
     "name": "string",
     "description": "string"
@@ -46,6 +46,8 @@ Every CALM architecture MUST include:
 - [ ] **Confirm output shows:** `"hasErrors": false, "hasWarnings": false`
 - [ ] **Document any warnings addressed**
 
+> **Note:** See **calm-cli-instructions.md** for complete CLI usage, validation modes, and options.
+
 ## Best Practices
 
 1. **Naming**: Use descriptive, business-friendly names
@@ -59,7 +61,7 @@ Every CALM architecture MUST include:
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+    "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
     "unique-id": "example-trading-system",
     "name": "Example Trading System",
     "description": "A simple trading system architecture",
