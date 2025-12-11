@@ -241,7 +241,7 @@ describe('validation support functions', () => {
                     'json-schema',
                     'error',
                     'must have required property \'nodes\'',
-                    '',
+                    '/',
                     '#/required',
                     undefined,
                     undefined,
