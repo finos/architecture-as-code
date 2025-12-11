@@ -48,4 +48,34 @@ describe('prettyFormat', () => {
 
         expect(formatted).toContain('No issues found');
     });
+
+    it('renders caret safely on empty lines', () => {
+        const outputs = [
+            {
+                severity: 'error',
+                code: 'E2',
+                message: 'Empty line issue',
+                path: '/',
+                source: 'doc',
+                line_start: 1,
+                character_start: 5,
+                character_end: 10
+            }
+        ];
+
+        const outcome: ValidationOutcome = {
+            ...baseOutcome,
+            hasErrors: true,
+            allValidationOutputs: vi.fn().mockReturnValue(outputs)
+        };
+
+        const formatted = prettyFormat(outcome, {
+            documents: {
+                doc: { id: 'doc', filePath: '/tmp/doc.arch.json', lines: [''] }
+            }
+        });
+
+        expect(formatted).toContain('1 | ');
+        expect(formatted).toContain('| ^');
+    });
 });

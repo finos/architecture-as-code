@@ -115,7 +115,7 @@ function formatLocation(issue: ValidationOutput, docContext?: ValidationDocument
         return docContext?.filePath ? `    file: ${docContext.filePath}` : '';
     }
 
-    const line = issue.line_start !== undefined ? issue.line_start : undefined;
+    const line = issue.line_start;
     const col = issue.character_start !== undefined ? issue.character_start + 1 : undefined;
     const locationParts = [];
     if (line !== undefined) {
@@ -138,6 +138,15 @@ function formatSnippet(issue: ValidationOutput, docContext?: ValidationDocumentC
     const lineText = docContext.lines[lineIndex];
     if (lineText === undefined) {
         return '';
+    }
+
+    // Clamp caret rendering on empty lines to the first column with width 1.
+    if (lineText.length === 0) {
+        const lineNumber = issue.line_start ?? (lineIndex + 1);
+        const gutterWidth = String(lineNumber).length;
+        const snippetLine = `    ${String(lineNumber).padStart(gutterWidth)} | `;
+        const caretLine = `    ${' '.repeat(gutterWidth)} | ^`;
+        return [snippetLine, caretLine].join('\n');
     }
 
     const rawColStart = Math.max(issue.character_start ?? 0, 0);
