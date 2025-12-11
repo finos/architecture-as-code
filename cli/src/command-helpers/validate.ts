@@ -240,6 +240,10 @@ function inferSourceFromAvailability(contexts: Record<string, LoadedDocumentCont
     return undefined;
 }
 
+function hasProp(obj: unknown, prop: string): obj is Record<string, unknown> {
+    return typeof obj === 'object' && obj !== null && prop in obj;
+}
+
 function rewritePathWithIds(pointerPath: string, data: unknown): string | undefined {
     if (!pointerPath || data === undefined || data === null) {
         return undefined;
@@ -247,7 +251,7 @@ function rewritePathWithIds(pointerPath: string, data: unknown): string | undefi
 
     const tokens = pointerPath.split('/').slice(1); // remove leading empty token from JSON pointer
     const rewritten: string[] = [];
-    let cursor: any = data;
+    let cursor: unknown = data;
 
     for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
@@ -255,22 +259,16 @@ function rewritePathWithIds(pointerPath: string, data: unknown): string | undefi
         if (Array.isArray(cursor)) {
             const index = Number(token);
             const item = cursor[index];
-            const id = item && typeof item === 'object' && 'unique-id' in item ? (item['unique-id'] as string) : token;
+            const id = hasProp(item, 'unique-id') && typeof item['unique-id'] === 'string' ? (item['unique-id'] as string) : token;
 
-            // If previous segment was a property name leading to this array, keep it and add id as its own segment.
-            if (rewritten.length === 0 || rewritten[rewritten.length - 1] !== token) {
-                rewritten.push(id);
-            } else {
-                rewritten.push(id);
-            }
-
+            rewritten.push(id);
             cursor = item;
             continue;
         }
 
-        if (cursor && typeof cursor === 'object' && token in cursor) {
+        if (hasProp(cursor, token)) {
             rewritten.push(token);
-            cursor = (cursor as Record<string, unknown>)[token];
+            cursor = cursor[token];
             continue;
         }
 
