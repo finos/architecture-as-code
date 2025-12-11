@@ -1,4 +1,4 @@
-import { validate, sortSpectralIssueBySeverity, convertJsonSchemaIssuesToValidationOutputs, stripRefs, exitBasedOffOfValidationOutcome, extractChoicesFromArchitecture } from './validate';
+import { validate, sortSpectralIssueBySeverity, convertJsonSchemaIssuesToValidationOutputs, convertSpectralDiagnosticToValidationOutputs, stripRefs, exitBasedOffOfValidationOutcome, extractChoicesFromArchitecture } from './validate';
 import { ISpectralDiagnostic } from '@stoplight/spectral-core';
 import { ValidationOutcome, ValidationOutput } from './validation.output';
 import { ErrorObject } from 'ajv';

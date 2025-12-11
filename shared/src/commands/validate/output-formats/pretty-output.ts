@@ -100,7 +100,8 @@ function buildDocumentHeader(documentId: string, context?: ValidationDocumentCon
 function formatIssue(issue: ValidationOutput, docContext?: ValidationDocumentContext): string {
     const code = issue.code ?? 'unknown';
     const message = issue.message ?? '';
-    const messageLine = `  ${formatSeverity(issue.severity)} ${code}: ${message}`;
+    const severityText = formatSeverity(issue.severity).trimEnd();
+    const messageLine = `  ${severityText} ${code}: ${message}`;
     const pathLine = `    path: ${issue.path || '-'}`;
     const schemaLine = issue.schemaPath ? `    schema: ${issue.schemaPath}` : '';
     const locationLine = formatLocation(issue, docContext);

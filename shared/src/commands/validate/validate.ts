@@ -296,7 +296,7 @@ export function sortSpectralIssueBySeverity(issues: ISpectralDiagnostic[]): void
 
 export function convertJsonSchemaIssuesToValidationOutputs(jsonSchemaIssues: ErrorObject[], source: string): ValidationOutput[] {
     return jsonSchemaIssues.map(issue => {
-        const path = issue.instancePath === '' ? '/' : issue.instancePath;
+        const path = issue.instancePath ?? '';
         return new ValidationOutput(
             'json-schema',
             'error',
@@ -324,8 +324,8 @@ export function convertSpectralDiagnosticToValidationOutputs(spectralIssues: ISp
             issue.message,
             '/' + issue.path.join('/'),
             '',
-            startRange.line + 1,
-            endRange.line + 1,
+            startRange.line,
+            endRange.line,
             startRange.character,
             endRange.character,
             source
