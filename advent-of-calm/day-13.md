@@ -57,7 +57,7 @@ Create a template that filters nodes by type - something the widgets don't do di
 ---
 architecture: ../architectures/ecommerce-platform.json
 ---
-# Node Inventory: {{name}}
+# Node Inventory: {{metadata.description}}
 
 | Name | Type | ID | Description |
 |------|------|-------|-------------|
@@ -95,8 +95,7 @@ architecture: ../architectures/ecommerce-platform.json
 Just like Day 12, you can preview this template in VSCode:
 
 1. Open `templates/node-inventory.md` in VSCode
-2. Look for the "Live Docify Mode" badge in the status bar
-3. Open the CALM Preview to see filtered node lists
+2. Open the CALM Preview (Ctrl+Shift+C) to see the rendered output
 
 ### 6. Create a Relationship Details Template
 
@@ -108,7 +107,7 @@ Create a template that shows relationship details with custom formatting:
 ---
 architecture: ../architectures/ecommerce-platform.json
 ---
-# Relationship Details: {{name}}
+# Relationship Details: {{metadata.description}}
 
 {{#each relationships}}
 ### {{unique-id}}
@@ -170,7 +169,7 @@ You can mix calm-widgets with raw Handlebars in the same template:
 ---
 architecture: ../architectures/ecommerce-platform.json
 ---
-# {{name}} - Combined Documentation
+# {{metadata.description}} - Combined Documentation
 
 ## Architecture Overview (widget)
 {{block-architecture this}}
