@@ -8,7 +8,7 @@ import { ValidateOutputFormat } from '@finos/calm-shared/dist/commands/validate/
 import { buildSchemaDirectory, parseDocumentLoaderConfig } from '../cli';
 import { buildDocumentLoader, DocumentLoader, CALM_HUB_PROTO } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { Logger } from '@finos/calm-shared/dist/logger';
-import { parse as parseJsonWithPointers } from 'json-source-map';
+import { getLocationForJsonPath, parseWithPointers } from '@stoplight/json';
 
 export interface ValidateOptions {
     patternPath?: string;
@@ -145,16 +145,12 @@ export function checkValidateOptions(program: Command, options: any, patternOpti
     }
 }
 
-type JsonPointerPosition = { line: number; column: number };
-type JsonPointerInfo = { value?: JsonPointerPosition; valueEnd?: JsonPointerPosition };
-type JsonPointerMap = Record<string, JsonPointerInfo>;
-
 interface LoadedDocumentContext {
     id: string;
     filePath: string;
     lines: string[];
     data: unknown;
-    pointers: JsonPointerMap;
+    parseResult: unknown;
 }
 
 function buildDocumentContexts(options: ValidateOptions, logger: Logger): Record<string, LoadedDocumentContext> {
@@ -181,13 +177,13 @@ function loadDocumentContext(filePath: string, id: string, logger: Logger): Load
     try {
         const absolutePath = path.resolve(filePath);
         const raw = readFileSync(absolutePath, 'utf-8');
-        const parsed = parseJsonWithPointers(raw);
+        const parsed = parseWithPointers(raw);
         return {
             id,
             filePath: absolutePath,
             lines: raw.split(/\r?\n/),
             data: parsed.data,
-            pointers: parsed.pointers as JsonPointerMap
+            parseResult: parsed
         };
     } catch (error) {
         logger.debug(`Could not build document context for ${filePath}: ${error}`);
@@ -207,31 +203,24 @@ function enrichWithDocumentPositions(outcome: ValidationOutcome, contexts: Recor
             return;
         }
 
-        const pointerPath = output.path;
-        const pointer = context.pointers[pointerPath];
-        if (!pointer) {
-            return;
-        }
-
-        if (pointer.value) {
+        const location = getLocationForPointer(output.path, context);
+        if (location?.range) {
             if (output.line_start === undefined) {
-                output.line_start = pointer.value.line + 1; // store 1-based for user-facing data
+                output.line_start = location.range.start.line + 1; // store 1-based for user-facing data
             }
             if (output.character_start === undefined) {
-                output.character_start = pointer.value.column;
+                output.character_start = location.range.start.character;
             }
-        }
-        if (pointer.valueEnd) {
             if (output.line_end === undefined) {
-                output.line_end = pointer.valueEnd.line + 1; // store 1-based for user-facing data
+                output.line_end = location.range.end.line + 1; // store 1-based for user-facing data
             }
             if (output.character_end === undefined) {
-                output.character_end = pointer.valueEnd.column;
+                output.character_end = location.range.end.character;
             }
         }
         output.source = output.source || source;
 
-        const friendlyPath = rewritePathWithIds(pointerPath, context.data);
+        const friendlyPath = rewritePathWithIds(output.path, context.data);
         if (friendlyPath) {
             output.path = friendlyPath;
         }
@@ -250,6 +239,31 @@ function inferSourceFromAvailability(contexts: Record<string, LoadedDocumentCont
 
 function hasProp(obj: unknown, prop: string): obj is Record<string, unknown> {
     return typeof obj === 'object' && obj !== null && prop in obj;
+}
+
+function getLocationForPointer(pointerPath: string, context: LoadedDocumentContext) {
+    const jsonPath = pointerToJsonPath(pointerPath);
+    if (!jsonPath) {
+        return undefined;
+    }
+    return getLocationForJsonPath(context.parseResult as any, jsonPath);
+}
+
+function pointerToJsonPath(pointerPath: string): Array<string | number> | undefined {
+    if (!pointerPath || pointerPath[0] !== '/') {
+        return undefined;
+    }
+    const tokens = pointerPath.split('/').slice(1);
+    return tokens.map(decodePointerToken);
+}
+
+function decodePointerToken(token: string): string | number {
+    const decoded = token.replace(/~1/g, '/').replace(/~0/g, '~');
+    const asNumber = Number.parseInt(decoded, 10);
+    if (Number.isInteger(asNumber) && String(asNumber) === decoded) {
+        return asNumber;
+    }
+    return decoded;
 }
 
 function rewritePathWithIds(pointerPath: string, data: unknown): string | undefined {
