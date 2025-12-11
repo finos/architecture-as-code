@@ -27,7 +27,7 @@ Please ensure your CALM CLI version is 1.22.1 or above. You can check your versi
 
 ```bash
 calm --version
-````
+```
 
 Earlier versions have an issue with some links in the generated documentation website.
 
