@@ -308,3 +308,8 @@ function toFormattingOptions(contexts: Record<string, LoadedDocumentContext>): V
 
     return { documents };
 }
+
+// Expose internals for targeted unit tests.
+export const __test__ = {
+    rewritePathWithIds
+};
