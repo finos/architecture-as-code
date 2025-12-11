@@ -29,6 +29,8 @@ By adding operational metadata, you transform this into queryable support docume
 
 Unlike static wikis, this documentation lives with the architecture and stays in sync.
 
+Side-note: at the moment we are putting a lot of information into the `metadata` section, but there are some more advanced techniques that we won't discuss here but can be used to do this in a more structured way.
+
 ### 2. Add Operational Metadata to Nodes
 
 Enrich your key services with support information.
