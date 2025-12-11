@@ -222,6 +222,16 @@ Generate an incident summary based on my architecture:
 6. Follow-up actions to prevent recurrence
 ```
 
+
+Let's keep that for the future:
+
+```
+Capture the incident report you just created as a markdown document in `docs/load-balancer-incident-report.md`.
+```
+
+To think about: Did you get exactly the same content as when it first generated? Does it depend on which model you used? Does it matter?
+
+
 ### 11. Compare: Wiki vs Architecture-as-Documentation
 
 | Aspect            | Traditional Wiki      | CALM Architecture                     |
@@ -236,7 +246,7 @@ Generate an incident summary based on my architecture:
 ### 12. Commit Your Work
 
 ```bash
-git add architectures/ecommerce-platform.json
+git add architectures/ecommerce-platform.json docs/load-balancer-incident-report.md
 git commit -m "Day 15: Add operational metadata for support documentation"
 git tag day-15
 ```
