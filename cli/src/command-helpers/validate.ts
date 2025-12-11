@@ -265,9 +265,9 @@ function rewritePathWithIds(pointerPath: string, data: unknown): string | undefi
         const token = tokens[i];
 
         if (Array.isArray(cursor)) {
-            const index = Number(token);
-            const item = cursor[index];
-            const id = hasProp(item, 'unique-id') && typeof item['unique-id'] === 'string' ? (item['unique-id'] as string) : token;
+            const index = Number.parseInt(token, 10);
+            const item = Number.isInteger(index) ? cursor[index] : undefined;
+            const id = selectArrayTokenId(item, token);
 
             rewritten.push(id);
             cursor = item;
@@ -286,6 +286,13 @@ function rewritePathWithIds(pointerPath: string, data: unknown): string | undefi
 
     const decorated = rewritten.join('/');
     return `/${decorated}`;
+}
+
+function selectArrayTokenId(item: unknown, fallback: string): string {
+    if (hasProp(item, 'unique-id') && typeof item['unique-id'] === 'string') {
+        return item['unique-id'] as string;
+    }
+    return fallback;
 }
 
 function toFormattingOptions(contexts: Record<string, LoadedDocumentContext>): ValidationFormattingOptions {
