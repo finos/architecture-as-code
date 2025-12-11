@@ -1,6 +1,8 @@
-# CALM VS Code Extension
+# CALM Visual Studio Code Extension
 
-> **Status**: Experimental - APIs, behavior, and visuals may change. Use at your own risk.
+> **Status**: Active - From v0.1.0 (December 2025) the extension has been moved out of experimental status, as it has
+> become a worthy part of the CALM tooling ecosystem. It will continue to be in active development, meaning that APIs, behavior, and visuals
+> will evolve.
 
 Live-visualize CALM architecture models while you edit them. Features an interactive preview, tree navigation, intelligent validation, and documentation generation.
 
