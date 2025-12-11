@@ -150,7 +150,7 @@ interface LoadedDocumentContext {
     filePath: string;
     lines: string[];
     data: unknown;
-    parseResult: unknown;
+    parseResult: ReturnType<typeof parseWithPointers>;
 }
 
 function buildDocumentContexts(options: ValidateOptions, logger: Logger): Record<string, LoadedDocumentContext> {
@@ -246,7 +246,7 @@ function getLocationForPointer(pointerPath: string, context: LoadedDocumentConte
     if (!jsonPath) {
         return undefined;
     }
-    return getLocationForJsonPath(context.parseResult as any, jsonPath);
+    return getLocationForJsonPath(context.parseResult, jsonPath);
 }
 
 function pointerToJsonPath(pointerPath: string): Array<string | number> | undefined {
