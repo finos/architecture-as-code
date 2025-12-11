@@ -28,6 +28,9 @@ heavily in these tests as these help maintainability by organising tests around 
 and not how its implemented. [Cypress and its best practices](https://docs.cypress.io/app/core-concepts/best-practices) are also used in writing and updating
 these tests.
 
+You need to set an environment variable VITE_BASE_URL which should be the address where the vite server is being run
+A default in .env.example has been added. This cant also be set in CI to whatever the intended vite port should be
+
 #### Test Stubbing
 The tests are all stubbed to return desired responses. These will need to be maintained in tandem with 
 calm-hub API. This section can be updated when a different and more reliable integration strategy is devised
