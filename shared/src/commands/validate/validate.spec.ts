@@ -263,6 +263,88 @@ describe('validation support functions', () => {
             expect(actual).toStrictEqual(expected);
         });
 
+        it('appends expected value for const keyword using params', () => {
+            const given: ErrorObject[] = [
+                {
+                    instancePath: '/root/const',
+                    schemaPath: '#/const',
+                    keyword: 'const',
+                    params: { allowedValue: 'hello' },
+                    message: 'must be equal to constant'
+                } as unknown as ErrorObject
+            ];
+
+            const [actual] = convertJsonSchemaIssuesToValidationOutputs(given, 'architecture');
+
+            expect(actual.message).toBe('must be equal to constant (expected "hello")');
+        });
+
+        it('appends expected value for const keyword using schema fallback', () => {
+            const given: ErrorObject[] = [
+                {
+                    instancePath: '/root/const',
+                    schemaPath: '#/const',
+                    keyword: 'const',
+                    params: {},
+                    schema: 42,
+                    message: 'must be equal to constant'
+                } as unknown as ErrorObject
+            ];
+
+            const [actual] = convertJsonSchemaIssuesToValidationOutputs(given, 'architecture');
+
+            expect(actual.message).toBe('must be equal to constant (expected 42)');
+        });
+
+        it('appends expected values for enum keyword using params', () => {
+            const given: ErrorObject[] = [
+                {
+                    instancePath: '/root/enum',
+                    schemaPath: '#/enum',
+                    keyword: 'enum',
+                    params: { allowedValues: ['one', 'two'] },
+                    message: 'must be equal to one of the allowed values'
+                } as unknown as ErrorObject
+            ];
+
+            const [actual] = convertJsonSchemaIssuesToValidationOutputs(given, 'architecture');
+
+            expect(actual.message).toBe('must be equal to one of the allowed values (expected one of ["one","two"])');
+        });
+
+        it('appends expected values for enum keyword using schema fallback', () => {
+            const given: ErrorObject[] = [
+                {
+                    instancePath: '/root/enum',
+                    schemaPath: '#/enum',
+                    keyword: 'enum',
+                    params: {},
+                    schema: ['a', 'b', 'c'],
+                    message: 'must be equal to one of the allowed values'
+                } as unknown as ErrorObject
+            ];
+
+            const [actual] = convertJsonSchemaIssuesToValidationOutputs(given, 'architecture');
+
+            expect(actual.message).toBe('must be equal to one of the allowed values (expected one of ["a","b","c"])');
+        });
+
+        it('returns original message when params are missing', () => {
+            const given: ErrorObject[] = [
+                {
+                    instancePath: '/root/enum',
+                    schemaPath: '#/enum',
+                    keyword: 'enum',
+                    // params intentionally omitted
+                    message: 'must be equal to one of the allowed values'
+                } as unknown as ErrorObject
+            ];
+
+            const [actual] = convertJsonSchemaIssuesToValidationOutputs(given, 'architecture');
+
+            expect(actual.message).toBe('must be equal to one of the allowed values');
+        });
+
     });
 
     describe('extractChoicesFromArchitecture', () => {
