@@ -214,12 +214,20 @@ function enrichWithDocumentPositions(outcome: ValidationOutcome, contexts: Recor
         }
 
         if (pointer.value) {
-            output.line_start = pointer.value.line + 1; // store 1-based for user-facing data
-            output.character_start = pointer.value.column;
+            if (output.line_start === undefined) {
+                output.line_start = pointer.value.line + 1; // store 1-based for user-facing data
+            }
+            if (output.character_start === undefined) {
+                output.character_start = pointer.value.column;
+            }
         }
         if (pointer.valueEnd) {
-            output.line_end = pointer.valueEnd.line + 1; // store 1-based for user-facing data
-            output.character_end = pointer.valueEnd.column;
+            if (output.line_end === undefined) {
+                output.line_end = pointer.valueEnd.line + 1; // store 1-based for user-facing data
+            }
+            if (output.character_end === undefined) {
+                output.character_end = pointer.valueEnd.column;
+            }
         }
         output.source = output.source || source;
 
