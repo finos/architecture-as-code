@@ -39,6 +39,7 @@
     "dependencies": {
         "@apidevtools/json-schema-ref-parser": "^14.0.0",
         "@inquirer/prompts": "^7.4.1",
+        "@stoplight/json": "^3.21.7",
         "commander": "^14.0.0",
         "copyfiles": "^2.4.1",
         "execa": "^9.6.0",

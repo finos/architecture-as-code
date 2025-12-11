@@ -2,6 +2,8 @@ export {
     validate,
     formatOutput as getFormattedOutput,
     exitBasedOffOfValidationOutcome,
+    ValidationFormattingOptions,
+    ValidationDocumentContext,
 } from './commands/validate/validate.js';
 export { OutputFormat } from './commands/validate/validate.js';
 export { runGenerate } from './commands/generate/generate.js';
