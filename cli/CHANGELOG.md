@@ -5,6 +5,50 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.23.0] - 2025-12-12
+
+## 1.23.0 (2025-12-12)
+
+*  ([db176112f04232e591cadf91638f4a7b95dcf602](https://github.com/finos/architecture-as-code/commit/db176112f04232e591cadf91638f4a7b95dcf602))
+*  ([2a9bb34ede6b764f0651d37772eda107eccbf2c4](https://github.com/finos/architecture-as-code/commit/2a9bb34ede6b764f0651d37772eda107eccbf2c4))
+* Update VSCode extension to 0.1.0 and non-experimental status ([aa0e7e63a8c3dece71796bc5201479a1e1d49beb](https://github.com/finos/architecture-as-code/commit/aa0e7e63a8c3dece71796bc5201479a1e1d49beb))
+* Tweak advent text ([da73ca27c7e636340d8b3d2f1baaf4702838c3ee](https://github.com/finos/architecture-as-code/commit/da73ca27c7e636340d8b3d2f1baaf4702838c3ee))
+* Update advent-of-calm/day-13.md ([454374502e042eb7a23a36dab9bbb0baadcb3cd0](https://github.com/finos/architecture-as-code/commit/454374502e042eb7a23a36dab9bbb0baadcb3cd0))
+* Update advent-of-calm/day-17.md ([125ba5e96502f7fe059d11883c2db10a6ff428b3](https://github.com/finos/architecture-as-code/commit/125ba5e96502f7fe059d11883c2db10a6ff428b3))
+* Update advent-of-calm/day-18.md ([dfb4fe0f8cda33df299b64d219ba2893ebb5fc25](https://github.com/finos/architecture-as-code/commit/dfb4fe0f8cda33df299b64d219ba2893ebb5fc25))
+* Update advent-of-calm/day-18.md ([f65afbc28cd44da12619b6f651dbc4f85cd1090b](https://github.com/finos/architecture-as-code/commit/f65afbc28cd44da12619b6f651dbc4f85cd1090b))
+* Update advent-of-calm/day-18.md ([380daf99fcd2e49a52f7fd512647db9ac0e4d532](https://github.com/finos/architecture-as-code/commit/380daf99fcd2e49a52f7fd512647db9ac0e4d532))
+* Update advent-of-calm/day-19.md ([24dd92a0a76260c7b501cba4fa794d9d243ad8e5](https://github.com/finos/architecture-as-code/commit/24dd92a0a76260c7b501cba4fa794d9d243ad8e5))
+* chore(cli): fix lint violation ([bfde260b790f177f487cc7326fdc71e7bcadc998](https://github.com/finos/architecture-as-code/commit/bfde260b790f177f487cc7326fdc71e7bcadc998))
+* chore(cli): replace json-source-map with @stoplight/json for given age of old dependency ([9a0f2fcb112da37b10a55dbf93412de87775ed87](https://github.com/finos/architecture-as-code/commit/9a0f2fcb112da37b10a55dbf93412de87775ed87))
+* docs(advent): add comment around better ways to do metadata ([8897e449f8fe2ef75b727fc0b0e914c8bcf146c1](https://github.com/finos/architecture-as-code/commit/8897e449f8fe2ef75b727fc0b0e914c8bcf146c1))
+* docs(advent): persist the day-15 incident report in Markdown ([296c63d0b14b753c9b83374ba14c4ecba8edfd6b](https://github.com/finos/architecture-as-code/commit/296c63d0b14b753c9b83374ba14c4ecba8edfd6b))
+* feat(advent): Add days 17 - 19 ([dcc2d53eeb4fba2e8829fbde9bfc75d5e9b07677](https://github.com/finos/architecture-as-code/commit/dcc2d53eeb4fba2e8829fbde9bfc75d5e9b07677))
+* feat(advent): add days 17-19 from advent-of-calm-part-2-stacked ([160fc09a80aa693a791cb3f5e3930d51b7f6d7da](https://github.com/finos/architecture-as-code/commit/160fc09a80aa693a791cb3f5e3930d51b7f6d7da))
+* feat(cli): improve validation output formatting ([bab1a107ba856baafbcdb953ff7b3e45bfd0deb9](https://github.com/finos/architecture-as-code/commit/bab1a107ba856baafbcdb953ff7b3e45bfd0deb9))
+* feat(validate): improve validation output formatting ([5b32b8fdd6834eeae4a16573b60a71fbe15e3447](https://github.com/finos/architecture-as-code/commit/5b32b8fdd6834eeae4a16573b60a71fbe15e3447))
+* feat(vscode): Update VSCode extension to 0.1.0 and non-experimental status ([411f5f2380e963fd2772aee2edc8e897a21be8bd](https://github.com/finos/architecture-as-code/commit/411f5f2380e963fd2772aee2edc8e897a21be8bd))
+* fix: address review comments ([232e7cfaea75f1cbd0e6bd4f4f4283aef8c29842](https://github.com/finos/architecture-as-code/commit/232e7cfaea75f1cbd0e6bd4f4f4283aef8c29842))
+* fix(advent): correct day references in days 18 and 19 ([6a95c60bfaa74f7f695447a5a9ff734597fbb9a5](https://github.com/finos/architecture-as-code/commit/6a95c60bfaa74f7f695447a5a9ff734597fbb9a5))
+* fix(advent): correct day-15 references to day-17 in day-17.md ([f9009787d3bd3c3175f065c22c50f95a2070e721](https://github.com/finos/architecture-as-code/commit/f9009787d3bd3c3175f065c22c50f95a2070e721))
+* fix(advent): remove reference to nonexistent CALM pattern documentation ([115677f4e0455683da73b77194729800bcdb314f](https://github.com/finos/architecture-as-code/commit/115677f4e0455683da73b77194729800bcdb314f))
+* fix(advent): update calendar titles for days 17-19 ([d0f76054fdb34739dc69fcea847368d60b66dac5](https://github.com/finos/architecture-as-code/commit/d0f76054fdb34739dc69fcea847368d60b66dac5))
+* fix(aoc): day 11 & 13 updates ([d964ca366b28bbaf18177e9253d693eaddabebed](https://github.com/finos/architecture-as-code/commit/d964ca366b28bbaf18177e9253d693eaddabebed))
+* fix(aoc): day 11 & 13 updates ([f4738fe83157fddd234ab65a4359bda4075764c6](https://github.com/finos/architecture-as-code/commit/f4738fe83157fddd234ab65a4359bda4075764c6))
+* fix(aoc): three ticks. Someone needs to go to $optician ([975a47a0457e0ac1bcfaf143510ab3f62bf6fd55](https://github.com/finos/architecture-as-code/commit/975a47a0457e0ac1bcfaf143510ab3f62bf6fd55))
+* fix(cli): correct output of issue since switch to @spotlight/json ([7f068995296d25044132ae5d23ce0332aa1bd656](https://github.com/finos/architecture-as-code/commit/7f068995296d25044132ae5d23ce0332aa1bd656))
+* fix(cli): preserve spectral positions ([edae343bb8358cc663bcfb773e23d61f0de52bf6](https://github.com/finos/architecture-as-code/commit/edae343bb8358cc663bcfb773e23d61f0de52bf6))
+* fix(cli): update parseResult type in LoadedDocumentContext and improve type safety ([734c7495a446a31c234668a368c8bb42abf03710](https://github.com/finos/architecture-as-code/commit/734c7495a446a31c234668a368c8bb42abf03710))
+* fix(deps): upgrade jws to 3.2.3 to address CVE-2025-65945 ([73c60485fb655329186dcadfe721326e9e769d5a](https://github.com/finos/architecture-as-code/commit/73c60485fb655329186dcadfe721326e9e769d5a))
+* fix(deps): upgrade jws to 3.2.3 to address CVE-2025-65945 ([52bd03e7a51e7492dda521d84738a49323171704](https://github.com/finos/architecture-as-code/commit/52bd03e7a51e7492dda521d84738a49323171704)), closes [#126](https://github.com/finos/architecture-as-code/issues/126)
+* fix(shared): align validation outputs ([4994598d5a41ad025afe22d9f1d9123ec72c51fd](https://github.com/finos/architecture-as-code/commit/4994598d5a41ad025afe22d9f1d9123ec72c51fd))
+* fix(shared): clamp pretty caret ([c5b80b6eada65b2b5eaa1249d3b6e5c5d1032fb8](https://github.com/finos/architecture-as-code/commit/c5b80b6eada65b2b5eaa1249d3b6e5c5d1032fb8))
+* fix(shared): normalize root schema path ([5071d7e34a9d0e2a52a29093604e590726c9e6aa](https://github.com/finos/architecture-as-code/commit/5071d7e34a9d0e2a52a29093604e590726c9e6aa))
+* refactor(cli): simplify path rewrite ([f9ad18d7967d59343b6cc452fdaac7dc2f04ac01](https://github.com/finos/architecture-as-code/commit/f9ad18d7967d59343b6cc452fdaac7dc2f04ac01))
+* refactor(cli): update README examples to use conference pattern and improve output clarity ([545403896ac2c22c347e77ee59a5a34edcdfa0b3](https://github.com/finos/architecture-as-code/commit/545403896ac2c22c347e77ee59a5a34edcdfa0b3))
+* test(cli): cover path rewriting ([d0f5aa41869c553fd0fac8250cba112ecee65d37](https://github.com/finos/architecture-as-code/commit/d0f5aa41869c553fd0fac8250cba112ecee65d37))
+* test(shared): add expected value cases ([a9fe45010c07522a4f972ba5764acedc9d2a377c](https://github.com/finos/architecture-as-code/commit/a9fe45010c07522a4f972ba5764acedc9d2a377c))
+
 ## [1.22.1] - 2025-12-09
 
 ### Changed
