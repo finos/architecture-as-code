@@ -1,13 +1,14 @@
-import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, SchemaDirectory } from '@finos/calm-shared';
+import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, SchemaDirectory, ValidationFormattingOptions, ValidationOutcome } from '@finos/calm-shared';
 import { initLogger } from '@finos/calm-shared';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
-import { writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { Command } from 'commander';
 import { ValidateOutputFormat } from '@finos/calm-shared/dist/commands/validate/validate';
 import { buildSchemaDirectory, parseDocumentLoaderConfig } from '../cli';
 import { buildDocumentLoader, DocumentLoader, CALM_HUB_PROTO } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { Logger } from '@finos/calm-shared/dist/logger';
+import { getLocationForJsonPath, parseWithPointers } from '@stoplight/json';
 
 export interface ValidateOptions {
     patternPath?: string;
@@ -39,8 +40,10 @@ export async function runValidate(options: ValidateOptions) {
             schemaDirectory,
             logger
         );
+        const documentContexts = buildDocumentContexts(options, logger);
         const outcome = await validate(architecture, pattern, schemaDirectory, options.verbose);
-        const content = getFormattedOutput(outcome, options.outputFormat);
+        enrichWithDocumentPositions(outcome, documentContexts);
+        const content = getFormattedOutput(outcome, options.outputFormat, toFormattingOptions(documentContexts));
         writeOutputFile(options.outputPath, content);
         exitBasedOffOfValidationOutcome(outcome, options.strict);
     }
@@ -141,3 +144,244 @@ export function checkValidateOptions(program: Command, options: any, patternOpti
         program.error(`error: one of the required options '${patternOption}' or '${architectureOption}' was not specified`);
     }
 }
+
+interface LoadedDocumentContext {
+    id: string;
+    filePath: string;
+    lines: string[];
+    data: unknown;
+    parseResult: ReturnType<typeof parseWithPointers>;
+}
+
+function buildDocumentContexts(options: ValidateOptions, logger: Logger): Record<string, LoadedDocumentContext> {
+    const contexts: Record<string, LoadedDocumentContext> = {};
+
+    if (options.architecturePath) {
+        const context = loadDocumentContext(options.architecturePath, 'architecture', logger);
+        if (context) {
+            contexts['architecture'] = context;
+        }
+    }
+
+    if (options.patternPath) {
+        const context = loadDocumentContext(options.patternPath, 'pattern', logger);
+        if (context) {
+            contexts['pattern'] = context;
+        }
+    }
+
+    return contexts;
+}
+
+function loadDocumentContext(filePath: string, id: string, logger: Logger): LoadedDocumentContext | undefined {
+    try {
+        const absolutePath = path.resolve(filePath);
+        const raw = readFileSync(absolutePath, 'utf-8');
+        const parsed = parseWithPointers(raw);
+        return {
+            id,
+            filePath: absolutePath,
+            lines: raw.split(/\r?\n/),
+            data: parsed.data,
+            parseResult: parsed
+        };
+    } catch (error) {
+        logger.debug(`Could not build document context for ${filePath}: ${error}`);
+        return undefined;
+    }
+}
+
+function enrichWithDocumentPositions(outcome: ValidationOutcome, contexts: Record<string, LoadedDocumentContext>): void {
+    if (!outcome?.allValidationOutputs) {
+        return;
+    }
+    const outputs = outcome.allValidationOutputs();
+    outputs.forEach(output => {
+        const source = output.source || inferSourceFromAvailability(contexts);
+        const context = source ? contexts[source] : undefined;
+        if (!context || !output.path) {
+            return;
+        }
+
+        const location = getLocationForPointer(output.path, context);
+        if (location?.range) {
+            output.line_start = location.range.start.line + 1; // store 1-based for user-facing data
+            output.character_start = location.range.start.character;
+            output.line_end = location.range.end.line + 1; // store 1-based for user-facing data
+            output.character_end = location.range.end.character;
+        }
+        output.source = output.source || source;
+
+        const friendlyPath = rewritePathWithIds(output.path, context.data);
+        if (friendlyPath) {
+            output.path = friendlyPath;
+        }
+    });
+}
+
+function inferSourceFromAvailability(contexts: Record<string, LoadedDocumentContext>): string | undefined {
+    if (contexts.architecture) {
+        return 'architecture';
+    }
+    if (contexts.pattern) {
+        return 'pattern';
+    }
+    return undefined;
+}
+
+function hasProp(obj: unknown, prop: string): obj is Record<string, unknown> {
+    return typeof obj === 'object' && obj !== null && prop in obj;
+}
+
+function isRecord(obj: unknown): obj is Record<string, unknown> {
+    return typeof obj === 'object' && obj !== null;
+}
+
+function getLocationForPointer(pointerPath: string, context: LoadedDocumentContext) {
+    const jsonPath = pointerToJsonPath(pointerPath, context.data);
+    if (!jsonPath) {
+        return undefined;
+    }
+    return getLocationForJsonPath(context.parseResult, jsonPath);
+}
+
+function pointerToJsonPath(pointerPath: string, data?: unknown): Array<string | number> | undefined {
+    if (!pointerPath || pointerPath[0] !== '/') {
+        return undefined;
+    }
+    const tokens = pointerPath.split('/').slice(1).map(decodePointerToken);
+
+    if (!data) {
+        return tokens.map(defaultTokenToPathSegment);
+    }
+
+    return tokensToJsonPath(tokens, data);
+}
+
+function decodePointerToken(token: string): string | number {
+    const decoded = token.replace(/~1/g, '/').replace(/~0/g, '~');
+    const asNumber = Number.parseInt(decoded, 10);
+    if (Number.isInteger(asNumber) && String(asNumber) === decoded) {
+        return asNumber;
+    }
+    return decoded;
+}
+
+function defaultTokenToPathSegment(token: string | number): string | number {
+    if (typeof token === 'number') {
+        return token;
+    }
+    const asNumber = Number.parseInt(token, 10);
+    if (Number.isInteger(asNumber) && String(asNumber) === token) {
+        return asNumber;
+    }
+    return token;
+}
+
+function tokensToJsonPath(tokens: Array<string | number>, data: unknown): Array<string | number> | undefined {
+    const path: Array<string | number> = [];
+    let cursor: unknown = data;
+
+    for (const token of tokens) {
+        if (Array.isArray(cursor)) {
+            const idx = findIndexInArray(cursor, token);
+            if (idx === undefined) {
+                return undefined;
+            }
+            path.push(idx);
+            cursor = cursor[idx];
+            continue;
+        }
+
+        if (isRecord(cursor)) {
+            const key = typeof token === 'number' ? String(token) : token;
+            path.push(key);
+            cursor = cursor[key];
+            continue;
+        }
+
+        return undefined;
+    }
+
+    return path;
+}
+
+function findIndexInArray(arr: unknown[], token: string | number): number | undefined {
+    if (typeof token === 'number') {
+        return token >= 0 && token < arr.length ? token : undefined;
+    }
+
+    const byUniqueId = arr.findIndex(item => isRecord(item) && typeof item['unique-id'] === 'string' && item['unique-id'] === token);
+    if (byUniqueId !== -1) {
+        return byUniqueId;
+    }
+
+    const asNumber = Number.parseInt(token, 10);
+    if (Number.isInteger(asNumber) && asNumber >= 0 && asNumber < arr.length) {
+        return asNumber;
+    }
+
+    return undefined;
+}
+
+function rewritePathWithIds(pointerPath: string, data: unknown): string | undefined {
+    if (!pointerPath || data === undefined || data === null) {
+        return undefined;
+    }
+
+    const tokens = pointerPath.split('/').slice(1); // remove leading empty token from JSON pointer
+    const rewritten: string[] = [];
+    let cursor: unknown = data;
+
+    for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i];
+
+        if (Array.isArray(cursor)) {
+            const index = Number.parseInt(token, 10);
+            const item = Number.isInteger(index) ? cursor[index] : undefined;
+            const id = selectArrayTokenId(item, token);
+
+            rewritten.push(id);
+            cursor = item;
+            continue;
+        }
+
+        if (hasProp(cursor, token)) {
+            rewritten.push(token);
+            cursor = cursor[token];
+            continue;
+        }
+
+        rewritten.push(token);
+        cursor = undefined;
+    }
+
+    const decorated = rewritten.join('/');
+    return `/${decorated}`;
+}
+
+function selectArrayTokenId(item: unknown, fallback: string): string {
+    if (hasProp(item, 'unique-id') && typeof item['unique-id'] === 'string') {
+        return item['unique-id'] as string;
+    }
+    return fallback;
+}
+
+function toFormattingOptions(contexts: Record<string, LoadedDocumentContext>): ValidationFormattingOptions {
+    const documents: Record<string, { id: string; label: string; filePath: string; lines: string[] }> = {};
+    Object.entries(contexts).forEach(([id, ctx]) => {
+        documents[id] = {
+            id: ctx.id,
+            label: path.basename(ctx.filePath),
+            filePath: ctx.filePath,
+            lines: ctx.lines
+        };
+    });
+
+    return { documents };
+}
+
+// Expose internals for targeted unit tests.
+export const __test__ = {
+    rewritePathWithIds
+};

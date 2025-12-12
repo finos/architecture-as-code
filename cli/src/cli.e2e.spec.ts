@@ -206,13 +206,10 @@ describe('CLI Integration Tests', () => {
         const { stdout } = await run(
             calm(), ['validate', '-p', p, '-a', a, '-f', 'pretty']
         );
-        const expected = fs.readFileSync(
-            path.join(__dirname, '../test_fixtures/validate_output_pretty.txt'),
-            'utf8'
-        );
-        expect(stdout.trim().replace(/\r\n/g, '\n')).toEqual(
-            expected.trim().replace(/\r\n/g, '\n')
-        );
+        expect(stdout).toContain('WARN');
+        expect(stdout).toContain('architecture-has-no-placeholder-properties-numerical');
+        expect(stdout).toContain('/nodes/api-producer/interfaces/producer-ingress/port');
+        expect(stdout).toContain('Numerical placeholder (-1) detected in architecture.');
     });
 
     test('validate command fails when neither architecture nor pattern is provided', async () => {
