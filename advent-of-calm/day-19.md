@@ -147,63 +147,15 @@ You now have two different pattern types:
 | **web-app-pattern** | Specific structure (3 nodes, 2 relationships) | Building a 3-tier web app |
 | **company-base-pattern** | Standard properties only | Any architecture type |
 
-**Key insight:** These can be combined. A specific pattern can reference Standards too!
+**Key insight:** These can be combined! Tomorrow you'll apply Standards to your real e-commerce architecture.
 
-### 10. Update E-Commerce Architecture to Comply
-
-Now let's make your e-commerce architecture comply with Standards:
-
-**Prompt:**
-```text
-Update architectures/ecommerce-platform.json to add Standard-compliant properties to ALL nodes:
-
-For each node, add:
-- costCenter: appropriate CC-XXXX code
-- owner: appropriate team name
-- environment: "production"
-
-Use realistic values:
-- api-gateway: CC-1001, owner "platform-team"
-- order-service: CC-2001, owner "orders-team"
-- inventory-service: CC-2002, owner "inventory-team"
-- payment-service: CC-3001, owner "payments-team"
-- order-database: CC-2001, owner "orders-team"
-- inventory-database: CC-2002, owner "inventory-team"
-- Actors and system: CC-0000, owner "external" or "platform-team"
-```
-
-### 11. Add Standard Properties to Relationships
-
-**Prompt:**
-```text
-Update architectures/ecommerce-platform.json to add Standard-compliant properties to ALL relationships:
-
-For each relationship, add:
-- dataClassification: appropriate level
-- encrypted: true
-
-Use appropriate classifications:
-- Actor to API Gateway: "public"
-- API Gateway to services: "internal"
-- Service to service: "internal" or "confidential" for payment
-- Service to database: "confidential"
-```
-
-### 12. Validate Updated E-Commerce Architecture
-
-```bash
-calm validate -p patterns/company-base-pattern.json -a architectures/ecommerce-platform.json -u url-mapping.json
-```
-
-Should now pass! ✅
-
-### 13. Clean Up Test File
+### 10. Clean Up Test File
 
 ```bash
 rm architectures/compliant-test.json
 ```
 
-### 14. Update Pattern Documentation
+### 11. Update Pattern Documentation
 
 **Prompt:**
 ```text
@@ -215,10 +167,10 @@ Update patterns/README.md to add documentation for company-base-pattern.json:
 4. How to validate any architecture against company Standards using the -u flag
 ```
 
-### 15. Commit Your Work
+### 12. Commit Your Work
 
 ```bash
-git add url-mapping.json patterns/company-base-pattern.json architectures/ecommerce-platform.json patterns/README.md README.md
+git add url-mapping.json patterns/company-base-pattern.json patterns/README.md README.md
 git commit -m "Day 19: Create Company Base Pattern to enforce Standards"
 git tag day-19
 ```
@@ -230,7 +182,6 @@ Your Day 19 submission should include a commit tagged `day-19` containing:
 ✅ **Required Files:**
 - `url-mapping.json` - Maps canonical URLs to local files
 - `patterns/company-base-pattern.json` - Pattern enforcing Standards
-- Updated `architectures/ecommerce-platform.json` - With Standard properties
 - Updated `patterns/README.md` - Documentation for both patterns
 - Updated `README.md` - Day 19 marked as complete
 
@@ -242,12 +193,9 @@ test -f url-mapping.json
 # Pattern exists
 test -f patterns/company-base-pattern.json
 
-# E-commerce architecture now passes (with URL mapping)
+# E-commerce architecture fails (doesn't have Standard properties yet)
 calm validate -p patterns/company-base-pattern.json -a architectures/ecommerce-platform.json -u url-mapping.json
-
-# Check for Standard properties
-grep -q "costCenter" architectures/ecommerce-platform.json
-grep -q "dataClassification" architectures/ecommerce-platform.json
+# Expected: validation errors - this is correct! We'll fix it tomorrow.
 
 # Check tag
 git tag | grep -q "day-19"
@@ -319,4 +267,4 @@ Architectures (actual systems)
 
 ## Next Steps
 
-Tomorrow (Day 20) you'll create a pattern that enforces BOTH structure AND Standards - the complete governance solution!
+Tomorrow (Day 20) you'll apply your Standards to the e-commerce architecture and create a pattern that enforces BOTH structure AND Standards - the complete governance solution!
