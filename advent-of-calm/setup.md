@@ -112,7 +112,7 @@ If you experience issues after updating the CLI:
 
 1. Clear npm cache: `npm cache clean --force`
 2. Reinstall: `npm uninstall -g @finos/calm-cli && npm install -g @finos/calm-cli`
-3. Check Node.js version: `node --version` (Node.js 18+ recommended)
+3. Check Node.js version: `node --version` (Node.js 20+ recommended)
 
 ### VS Code Extension Issues
 
