@@ -267,4 +267,4 @@ Architectures (actual systems)
 
 ## Next Steps
 
-Tomorrow (Day 20) you'll apply your Standards to the e-commerce architecture and create a pattern that enforces BOTH structure AND Standards - the complete governance solution!
+Tomorrow (Day 20) you'll apply your Standards to your generated web application and learn how multi-pattern validation provides complete governance!
