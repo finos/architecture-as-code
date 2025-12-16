@@ -12,10 +12,10 @@ Inspired by "Advent of Code", this challenge provides daily hands-on tasks that 
 
 Each day from December 1st through December 24th, a new challenge unlocks. Each challenge is designed to build on the previous days, teaching you:
 
-- **Week 1 (Days 1-7)**: Foundation & First Steps - Learn CALM basics and create your first complete architecture
-- **Week 2 (Days 8-14)**: Controls, Flows & AI-Assisted Operations - Master governance, business flows, and use AI to analyze and document architectures
-- **Week 3 (Days 15-18)**: Patterns & Automation - Create reusable patterns and integrate with CI/CD
-- **Week 4 (Days 19-24)**: Real-World Application & Community - Apply CALM to real scenarios and contribute back
+- **Week 1 (Days 1-7)**: Foundation & First Steps — Learn CALM basics and create your first complete architecture
+- **Week 2 (Days 8-14)**: Controls, Flows & Documentation — Master governance, business flows, and use AI to analyze and document architectures
+- **Week 3 (Days 15-20)**: Operations & Governance — Use CALM for operational support, then create patterns and standards for enterprise governance
+- **Week 4 (Days 21-24)**: Platform Team Challenge — Apply everything you've learned in a multi-day project simulating real enterprise workflows
 
 ## Getting Started
 
