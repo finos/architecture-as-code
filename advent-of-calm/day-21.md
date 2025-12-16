@@ -225,17 +225,17 @@ git tag | grep -q "day-21"
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    Enterprise Architect Mindset                              │
+│                    Enterprise Architect Mindset                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│   ❌ DON'T think: "How do I build the notification service?"               │
+│   ❌ DON'T think: "How do I build the notification service?"                │
 │                                                                             │
-│   ✅ DO think: "What must ALL notification services have?"                 │
+│   ✅ DO think: "What must ALL notification services have?"                  │
 │                "What properties enable cost tracking?"                      │
 │                "What properties enable incident response?"                  │
-│                "How do I make compliance easy, not painful?"               │
+│                "How do I make compliance easy, not painful?"                │
 │                                                                             │
-│   Your artifacts become the "paved road" that teams follow.                │
+│   Your artifacts become the "paved road" that teams follow.                 │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```

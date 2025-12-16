@@ -233,12 +233,12 @@ git tag | grep -q "day-22"
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    Product Developer Mindset                                 │
+│                    Product Developer Mindset                                │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│   ❌ DON'T think: "These governance requirements are bureaucracy"          │
+│   ❌ DON'T think: "These governance requirements are bureaucracy"           │
 │                                                                             │
-│   ✅ DO think: "The pattern gave me a head start"                          │
+│   ✅ DO think: "The pattern gave me a head start"                           │
 │                "Standards ensure I don't forget important details"          │
 │                "Validation catches mistakes before security review"         │
 │                "My architecture is automatically compliant"                 │
