@@ -5,6 +5,17 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.24.1] - 2025-12-17
+
+## <small>1.24.1 (2025-12-17)</small>
+
+*  ([73640d17acaf91b3ddf9c48462ebd7405b9de7e9](https://github.com/finos/architecture-as-code/commit/73640d17acaf91b3ddf9c48462ebd7405b9de7e9))
+* docs(aoc): Add notice to day-18.md re AI bug ([11c8c130a03c25bc924b92074354668ec57eb1f5](https://github.com/finos/architecture-as-code/commit/11c8c130a03c25bc924b92074354668ec57eb1f5))
+* docs(aoc): Add notice to day-18.md re AI bug ([b363a4635247e6ad26443ff6245505163bd930ef](https://github.com/finos/architecture-as-code/commit/b363a4635247e6ad26443ff6245505163bd930ef))
+* docs(aoc): clarify step 2 of day-17.md ([542b21c47ed3f51ec890ac7798bcc6353a8495ea](https://github.com/finos/architecture-as-code/commit/542b21c47ed3f51ec890ac7798bcc6353a8495ea))
+* fix(ai): fix schema in standards-creation.md ([7f7bc7329fae57f181cb4a8464610c1de729a57f](https://github.com/finos/architecture-as-code/commit/7f7bc7329fae57f181cb4a8464610c1de729a57f))
+* fix(ai): fix schema in standards-creation.md ([16c0f9cb3946bfd7c22aae8f54b45bd0d144f986](https://github.com/finos/architecture-as-code/commit/16c0f9cb3946bfd7c22aae8f54b45bd0d144f986))
+
 ## [1.24.0] - 2025-12-17
 
 ## 1.24.0 (2025-12-17)
