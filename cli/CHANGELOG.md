@@ -5,6 +5,28 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.24.0] - 2025-12-17
+
+## 1.24.0 (2025-12-17)
+
+* AI Augmentation (#1945) ([a81403fe1e508c3b13531f18f16ee70cc4557af9](https://github.com/finos/architecture-as-code/commit/a81403fe1e508c3b13531f18f16ee70cc4557af9)), closes [#1945](https://github.com/finos/architecture-as-code/issues/1945)
+*  ([bd229ecfde06db19b9bb84228724cf9ab5e6877a](https://github.com/finos/architecture-as-code/commit/bd229ecfde06db19b9bb84228724cf9ab5e6877a))
+* Advent of Code: End of Days ([534de27475f4f92e1afa68c8aa2aedece2b565cd](https://github.com/finos/architecture-as-code/commit/534de27475f4f92e1afa68c8aa2aedece2b565cd))
+* Update advent-of-calm/day-19.md ([6e8f8c16f5439e0e010333a4cfd4fd8eefff4b69](https://github.com/finos/architecture-as-code/commit/6e8f8c16f5439e0e010333a4cfd4fd8eefff4b69))
+* chore(deps): update security updates ([1743a1024bad9ea96bb8f1cada6010e26fa5a715](https://github.com/finos/architecture-as-code/commit/1743a1024bad9ea96bb8f1cada6010e26fa5a715))
+* chore(deps): update security updates ([cdaf84c5e7423d303e4955d8ade1a74ca7ace9b8](https://github.com/finos/architecture-as-code/commit/cdaf84c5e7423d303e4955d8ade1a74ca7ace9b8))
+* chore(deps): update step-security/harden-runner digest to 20cf305 ([6de4d3d7365a7735b37aea9abd72ff9809b3ff7b](https://github.com/finos/architecture-as-code/commit/6de4d3d7365a7735b37aea9abd72ff9809b3ff7b))
+* chore(deps): update step-security/harden-runner digest to 20cf305 ([a9a80223be79a1f8e2f3d989fd75a1c9b962588c](https://github.com/finos/architecture-as-code/commit/a9a80223be79a1f8e2f3d989fd75a1c9b962588c))
+* chore(docs): Encourage use of Node 20+. Node 18 is EOL ([4a7107785e80b85ed494ae53e4f0b8061a208d31](https://github.com/finos/architecture-as-code/commit/4a7107785e80b85ed494ae53e4f0b8061a208d31))
+* feat: Add Day 20 documentation for multi-pattern validation approach ([f30bd05c34c37215aa7089c6892e9ee0865ceede](https://github.com/finos/architecture-as-code/commit/f30bd05c34c37215aa7089c6892e9ee0865ceede))
+* feat: Add Day 20 documentation for multi-pattern validation approach ([2bdfec8474da484f45825db50c521f5435fc20ac](https://github.com/finos/architecture-as-code/commit/2bdfec8474da484f45825db50c521f5435fc20ac))
+* feat(docs): add Day 21 - Platform Team Challenge Enterprise Architect ([603d50d734241c1ca8308658cf32f8fce71db5b8](https://github.com/finos/architecture-as-code/commit/603d50d734241c1ca8308658cf32f8fce71db5b8))
+* feat(docs): add Day 22 - Platform Team Challenge Product Developer ([aeed77c146f1dedeb6c1f993b36129b5321b4400](https://github.com/finos/architecture-as-code/commit/aeed77c146f1dedeb6c1f993b36129b5321b4400))
+* feat(docs): add Day 23 - Platform Team Challenge Security SME ([4022fa3b8b72702a7483ca54a998178a767e7613](https://github.com/finos/architecture-as-code/commit/4022fa3b8b72702a7483ca54a998178a767e7613))
+* feat(docs): update home.md to reflect Week 4 changes and enhance clarity ([1735c4b4f9277f9301c4d3cf75a99826fdcd0eeb](https://github.com/finos/architecture-as-code/commit/1735c4b4f9277f9301c4d3cf75a99826fdcd0eeb))
+* fix(deps): update minor updates ([f77ebfcf2e3eb26fe3191517ec99981371942a41](https://github.com/finos/architecture-as-code/commit/f77ebfcf2e3eb26fe3191517ec99981371942a41))
+* fix(deps): update minor updates ([7ea963af310249347155ccb10cb9f51871bfa037](https://github.com/finos/architecture-as-code/commit/7ea963af310249347155ccb10cb9f51871bfa037))
+
 ## [1.23.3] - 2025-12-12
 
 ### Changed
