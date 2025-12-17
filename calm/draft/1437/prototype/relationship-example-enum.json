@@ -1,0 +1,11 @@
+{
+  "unique-id": "rel-002",
+  "description": "Example relationship with existing enum protocol",
+  "relationship-type": {
+    "connects": {
+      "source": "service-a:api",
+      "destination": "service-b:api"
+    }
+  },
+  "protocol": "HTTPS"
+}
