@@ -10,8 +10,7 @@
         <tr>
             <td><b>Database</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Host</b></td>
@@ -28,8 +27,7 @@
                         <tr>
                             <td><b>Credentials</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Username</b></td>
@@ -45,7 +43,6 @@
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         <tr>
@@ -56,14 +53,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Api</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Timeout</b></td>
@@ -85,7 +80,6 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         </tbody>

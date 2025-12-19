@@ -9,12 +9,19 @@
 {{/unless}}
 {{/if}}
 <tbody>
-{{#each columnNames}}
+{{#each columnNames as |colName|}}
+{{#with (lookup (lookup ../rows "0") "data") as |rowData|}}
+{{#with (lookup rowData colName) as |cellValue|}}
 <tr>
-    <th style="text-align:left">{{kebabToTitleCase this}}</th>
-    {{#each ../rows}}
-    <td>{{lookup this.data ../this}}</td>
-    {{/each}}
+    <th style="text-align:left">{{kebabToTitleCase colName}}</th>
+    <td>{{#if (isObject cellValue)}}
+        {{> table-template.html rows=(objectEntries cellValue) headers=false flatTable=false hasRows=true isNested=true}}
+        {{else if (isArray cellValue)}}{{#each cellValue}}{{#if (isObject this)}}
+        {{> table-template.html rows=(objectEntries this) headers=false flatTable=false hasRows=true isNested=true}}
+        {{else}}{{this}}
+        {{/if}}{{/each}}{{else}}{{cellValue}}{{/if}}</td>
 </tr>
+{{/with}}
+{{/with}}
 {{/each}}
 </tbody>

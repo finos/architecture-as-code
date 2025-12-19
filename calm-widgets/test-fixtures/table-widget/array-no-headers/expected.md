@@ -4,8 +4,7 @@
         <tr>
             <td><b>Auth Service</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Name</b></td>
@@ -27,14 +26,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>User Service</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Name</b></td>
@@ -56,14 +53,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Notification Service</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Name</b></td>
@@ -85,7 +80,6 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         </tbody>
