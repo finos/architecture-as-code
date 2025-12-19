@@ -22,3 +22,4 @@ export { C4Model } from './docify/graphing/c4.js';
 export { CalmRelationshipGraph } from './docify/graphing/relationship-graph.js';
 export { ValidationOutcome } from './commands/validate/validation.output';
 export * from './test/file-comparison.js';
+export { setWidgetLogger, type WidgetLogger } from '@finos/calm-widgets';

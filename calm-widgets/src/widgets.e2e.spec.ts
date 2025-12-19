@@ -63,6 +63,33 @@ describe('Widgets E2E - Handlebars Integration', () => {
 
             expect(result.trim()).toBe(expected);
         });
+
+        it('renders only overview columns when sections="overview"', () => {
+            const { context, template, expected } = fixtures.loadFixture('table-widget', 'sections-overview');
+
+            const compiledTemplate = handlebars.compile(template);
+            const result = compiledTemplate(context);
+
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('displays empty-message when table has no data', () => {
+            const { context, template, expected } = fixtures.loadFixture('table-widget', 'empty-message');
+
+            const compiledTemplate = handlebars.compile(template);
+            const result = compiledTemplate(context);
+
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('displays empty-message when metadata section has no data', () => {
+            const { context, template, expected } = fixtures.loadFixture('table-widget', 'empty-message-metadata');
+
+            const compiledTemplate = handlebars.compile(template);
+            const result = compiledTemplate(context);
+
+            expect(result.trim()).toBe(expected);
+        });
     });
 
     describe('List Widget', () => {

@@ -10,12 +10,12 @@
     <td><b>{{kebabToTitleCase id}}</b></td>
     <td>
         {{#if (isObject data)}}
-        {{> table-template.html rows=(objectEntries data) headers=false flatTable=false }}
+        {{> table-template.html rows=(objectEntries data) headers=false flatTable=false hasRows=true isNested=true}}
 
         {{else if (isArray data)}}
         {{#each data}}
         {{#if (isObject this)}}
-        {{> table-template.html rows=(objectEntries this) headers=false flatTable=false }}
+        {{> table-template.html rows=(objectEntries this) headers=false flatTable=false hasRows=true isNested=true}}
 
         {{else}}
         {{this}}

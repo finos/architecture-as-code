@@ -13,6 +13,7 @@ import { EditorFactory } from './features/editor/editor-factory'
 import { CommandRegistrar } from './commands/command-registrar'
 import { DiagnosticsService } from './core/services/diagnostics-service'
 import { createApplicationStore, type ApplicationStoreApi } from './application-store'
+import { setWidgetLogger } from '@finos/calm-shared'
 
 /**
  * Main extension controller that orchestrates all VS Code extension functionality
@@ -24,6 +25,15 @@ export class CalmExtensionController {
   async start(context: vscode.ExtensionContext) {
     this.logging = new LoggingService('vscode-ext')
     const log: Logger = this.logging
+
+    // Configure calm-widgets to log to the CALM output channel
+    setWidgetLogger({
+      debug: (msg) => log.info?.(`[widget] ${msg}`),
+      info: (msg) => log.info?.(`[widget] ${msg}`),
+      warn: (msg) => log.warn?.(`[widget] ${msg}`),
+      error: (msg) => log.error?.(`[widget] ${msg}`),
+    })
+
     const diagnostics = new DiagnosticsService(log)
     const store: ApplicationStoreApi = createApplicationStore()
     void diagnostics.logStartup(context)

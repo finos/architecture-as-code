@@ -11,8 +11,12 @@ describe('TableWidget', () => {
             expect(TableWidget.validateContext({ foo: { bar: 1 }, baz: { qux: 2 } })).toBe(true);
         });
 
-        it('rejects null and invalid types', () => {
-            expect(TableWidget.validateContext(null)).toBe(false);
+        it('accepts null and undefined (renders empty table)', () => {
+            expect(TableWidget.validateContext(null)).toBe(true);
+            expect(TableWidget.validateContext(undefined)).toBe(true);
+        });
+
+        it('rejects invalid types', () => {
             expect(TableWidget.validateContext(123)).toBe(false);
             expect(TableWidget.validateContext('string')).toBe(false);
         });
@@ -23,6 +27,39 @@ describe('TableWidget', () => {
 
         it('rejects array with null elements', () => {
             expect(TableWidget.validateContext([{ a: 1 }, null])).toBe(false);
+        });
+    });
+
+    describe('empty-message option', () => {
+        it('includes emptyMessage in view model when provided', () => {
+            const vm = TableWidget.transformToViewModel!([], { 'empty-message': 'No data available' });
+            expect(vm.emptyMessage).toBe('No data available');
+            expect(vm.rows).toEqual([]);
+        });
+
+        it('includes emptyMessage when context is null', () => {
+            // @ts-expect-error – validateContext accepts null but type doesn't reflect it
+            const vm = TableWidget.transformToViewModel!(null, { 'empty-message': 'No items found' });
+            expect(vm.emptyMessage).toBe('No items found');
+            expect(vm.rows).toEqual([]);
+        });
+
+        it('includes emptyMessage when context is undefined', () => {
+            // @ts-expect-error – validateContext accepts undefined but type doesn't reflect it
+            const vm = TableWidget.transformToViewModel!(undefined, { 'empty-message': 'Nothing here' });
+            expect(vm.emptyMessage).toBe('Nothing here');
+            expect(vm.rows).toEqual([]);
+        });
+
+        it('does not include emptyMessage when not provided', () => {
+            const vm = TableWidget.transformToViewModel!([], {});
+            expect(vm.emptyMessage).toBeUndefined();
+        });
+
+        it('includes emptyMessage even when table has data', () => {
+            const vm = TableWidget.transformToViewModel!([{ a: 1 }], { 'empty-message': 'No data' });
+            expect(vm.emptyMessage).toBe('No data');
+            expect(vm.rows.length).toBe(1);
         });
     });
 
@@ -165,6 +202,306 @@ describe('TableWidget', () => {
             expect(and(true, false, opts)).toBe(false);
             expect(and(1, 'x', opts)).toBe(true);
             expect(and(0, 'x', opts)).toBe(false);
+        });
+    });
+
+    describe('sections parameter', () => {
+        const nodeContext = {
+            'unique-id': 'test-node',
+            'name': 'Test Node',
+            'description': 'A test node for testing',
+            'node-type': 'service',
+            'custom-property': 'custom-value',
+            'another-property': 42,
+            'interfaces': [{ 'unique-id': 'interface-1' }],
+            'controls': { 'security': {} },
+            'metadata': { 'key': 'value' },
+            'details': { 'detailed-architecture': 'some-link' },
+        };
+
+        describe('overview section', () => {
+            it('includes only the four overview columns', () => {
+                const vm = TableWidget.transformToViewModel!(nodeContext, {
+                    sections: 'overview',
+                    orientation: 'vertical'
+                });
+                expect(vm.columnNames).toEqual(['unique-id', 'name', 'description', 'node-type']);
+                expect(vm.rows[0].data).toEqual({
+                    'unique-id': 'test-node',
+                    'name': 'Test Node',
+                    'description': 'A test node for testing',
+                    'node-type': 'service',
+                });
+            });
+        });
+
+        describe('extended section', () => {
+            it('includes additional properties excluding overview and schema-defined optional properties', () => {
+                const vm = TableWidget.transformToViewModel!(nodeContext, {
+                    sections: 'extended',
+                    orientation: 'vertical'
+                });
+                // Should include custom-property and another-property
+                // Should NOT include: unique-id, name, description, node-type (overview)
+                // Should NOT include: interfaces, controls, metadata, details (schema optional)
+                expect(vm.columnNames).toEqual(['custom-property', 'another-property']);
+                expect(vm.rows[0].data).toEqual({
+                    'custom-property': 'custom-value',
+                    'another-property': 42,
+                });
+            });
+
+            it('returns empty rows when no extended properties exist', () => {
+                const minimalNode = {
+                    'unique-id': 'minimal',
+                    'name': 'Minimal',
+                    'description': 'Minimal node',
+                    'node-type': 'service',
+                };
+                const vm = TableWidget.transformToViewModel!(minimalNode, {
+                    sections: 'extended',
+                    orientation: 'vertical'
+                });
+                expect(vm.rows).toEqual([]);
+                expect(vm.columnNames).toBeUndefined();
+            });
+
+            it('returns empty rows with emptyMessage when no extended properties exist', () => {
+                const minimalNode = {
+                    'unique-id': 'minimal',
+                    'name': 'Minimal',
+                    'description': 'Minimal node',
+                    'node-type': 'service',
+                };
+                const vm = TableWidget.transformToViewModel!(minimalNode, {
+                    sections: 'extended',
+                    orientation: 'vertical',
+                    'empty-message': 'There are no additional properties'
+                });
+                expect(vm.rows).toEqual([]);
+                expect(vm.emptyMessage).toBe('There are no additional properties');
+            });
+        });
+
+        describe('metadata section', () => {
+            it('includes metadata column when metadata exists', () => {
+                const vm = TableWidget.transformToViewModel!(nodeContext, {
+                    sections: 'metadata',
+                    orientation: 'vertical'
+                });
+                expect(vm.columnNames).toEqual(['metadata']);
+                expect(vm.rows[0].data).toEqual({
+                    'metadata': { 'key': 'value' },
+                });
+            });
+
+            it('returns empty columns when metadata does not exist', () => {
+                const nodeWithoutMetadata = {
+                    'unique-id': 'no-meta',
+                    'name': 'No Meta',
+                    'description': 'Node without metadata',
+                    'node-type': 'service',
+                };
+                const vm = TableWidget.transformToViewModel!(nodeWithoutMetadata, {
+                    sections: 'metadata',
+                    orientation: 'vertical'
+                });
+                expect(vm.rows).toEqual([]);
+                expect(vm.columnNames).toBeUndefined();
+            });
+
+            it('returns empty rows with emptyMessage when section produces no columns', () => {
+                const nodeWithoutMetadata = {
+                    'unique-id': 'no-meta',
+                    'name': 'No Meta',
+                    'description': 'Node without metadata',
+                    'node-type': 'service',
+                };
+                const vm = TableWidget.transformToViewModel!(nodeWithoutMetadata, {
+                    sections: 'metadata',
+                    orientation: 'vertical',
+                    'empty-message': 'There is no metadata'
+                });
+                expect(vm.rows).toEqual([]);
+                expect(vm.emptyMessage).toBe('There is no metadata');
+            });
+
+            it('handles metadata being explicitly undefined (e.g., from toCanonicalSchema)', () => {
+                // This tests the scenario where metadata key exists but value is undefined
+                // which can happen when toCanonicalSchema() adds all optional properties
+                const nodeWithUndefinedMetadata = {
+                    'unique-id': 'undef-meta',
+                    'name': 'Undefined Meta',
+                    'description': 'Node with undefined metadata property',
+                    'node-type': 'service',
+                    'metadata': undefined,
+                };
+                const vm = TableWidget.transformToViewModel!(nodeWithUndefinedMetadata, {
+                    sections: 'metadata',
+                    orientation: 'vertical',
+                    'empty-message': 'There is no metadata'
+                });
+                expect(vm.rows).toEqual([]);
+                expect(vm.hasRows).toBe(false);
+                expect(vm.emptyMessage).toBe('There is no metadata');
+            });
+
+            it('handles metadata being null', () => {
+                const nodeWithNullMetadata = {
+                    'unique-id': 'null-meta',
+                    'name': 'Null Meta',
+                    'description': 'Node with null metadata property',
+                    'node-type': 'service',
+                    'metadata': null,
+                };
+                const vm = TableWidget.transformToViewModel!(nodeWithNullMetadata, {
+                    sections: 'metadata',
+                    orientation: 'vertical',
+                    'empty-message': 'There is no metadata'
+                });
+                expect(vm.rows).toEqual([]);
+                expect(vm.hasRows).toBe(false);
+                expect(vm.emptyMessage).toBe('There is no metadata');
+            });
+
+            it('treats metadata as empty object as having data (empty object is valid)', () => {
+                // An empty object {} is still truthy and treated as valid metadata
+                // even though it has no keys - this is the expected behavior
+                const nodeWithEmptyMetadata = {
+                    'unique-id': 'empty-meta',
+                    'name': 'Empty Meta',
+                    'description': 'Node with empty metadata object',
+                    'node-type': 'service',
+                    'metadata': {},
+                };
+                const vm = TableWidget.transformToViewModel!(nodeWithEmptyMetadata, {
+                    sections: 'metadata',
+                    orientation: 'vertical',
+                    'empty-message': 'There is no metadata'
+                });
+                // Empty object is truthy, so metadata is included even though it has no keys
+                expect(vm.columnNames).toEqual(['metadata']);
+                expect(vm.rows[0].data).toEqual({ 'metadata': {} });
+            });
+        });
+
+        describe('combined sections', () => {
+            it('combines overview and extended sections', () => {
+                const vm = TableWidget.transformToViewModel!(nodeContext, {
+                    sections: 'overview, extended',
+                    orientation: 'vertical'
+                });
+                expect(vm.columnNames).toEqual([
+                    'unique-id', 'name', 'description', 'node-type',
+                    'custom-property', 'another-property'
+                ]);
+            });
+
+            it('combines all three sections', () => {
+                const vm = TableWidget.transformToViewModel!(nodeContext, {
+                    sections: 'overview, extended, metadata',
+                    orientation: 'vertical'
+                });
+                expect(vm.columnNames).toEqual([
+                    'unique-id', 'name', 'description', 'node-type',
+                    'custom-property', 'another-property',
+                    'metadata'
+                ]);
+            });
+
+            it('does not duplicate columns across sections', () => {
+                const vm = TableWidget.transformToViewModel!(nodeContext, {
+                    sections: 'overview, overview',
+                    orientation: 'vertical'
+                });
+                expect(vm.columnNames).toEqual(['unique-id', 'name', 'description', 'node-type']);
+            });
+        });
+
+        describe('sections with explicit columns', () => {
+            it('adds explicit columns after section columns', () => {
+                const vm = TableWidget.transformToViewModel!(nodeContext, {
+                    sections: 'overview',
+                    columns: 'custom-property',
+                    orientation: 'vertical'
+                });
+                expect(vm.columnNames).toEqual([
+                    'unique-id', 'name', 'description', 'node-type',
+                    'custom-property'
+                ]);
+            });
+
+            it('does not duplicate columns when explicit column is in sections', () => {
+                const vm = TableWidget.transformToViewModel!(nodeContext, {
+                    sections: 'overview',
+                    columns: 'name, custom-property',
+                    orientation: 'vertical'
+                });
+                // 'name' is already in overview, so it should not be duplicated
+                expect(vm.columnNames).toEqual([
+                    'unique-id', 'name', 'description', 'node-type',
+                    'custom-property'
+                ]);
+            });
+        });
+
+        describe('sections with array context', () => {
+            it('ignores sections parameter for array context', () => {
+                const arrayContext = [
+                    { 'unique-id': '1', 'name': 'First', 'custom': 'value1' },
+                    { 'unique-id': '2', 'name': 'Second', 'custom': 'value2' },
+                ];
+                const vm = TableWidget.transformToViewModel!(arrayContext, {
+                    sections: 'overview',
+                    columns: 'name, custom'
+                });
+                // For array context, sections is ignored, explicit columns are used
+                expect(vm.columnNames).toEqual(['name', 'custom']);
+            });
+        });
+
+        describe('invalid sections', () => {
+            it('ignores invalid section names', () => {
+                const vm = TableWidget.transformToViewModel!(nodeContext, {
+                    sections: 'overview, invalid, extended',
+                    orientation: 'vertical'
+                });
+                // 'invalid' should be ignored
+                expect(vm.columnNames).toEqual([
+                    'unique-id', 'name', 'description', 'node-type',
+                    'custom-property', 'another-property'
+                ]);
+            });
+
+            it('handles empty sections string', () => {
+                const vm = TableWidget.transformToViewModel!(nodeContext, {
+                    sections: '',
+                    orientation: 'vertical'
+                });
+                // Empty sections should behave as if no sections were specified
+                expect(vm.columnNames).toEqual(Object.keys(nodeContext));
+            });
+        });
+
+        describe('case insensitivity', () => {
+            it('handles uppercase section names', () => {
+                const vm = TableWidget.transformToViewModel!(nodeContext, {
+                    sections: 'OVERVIEW',
+                    orientation: 'vertical'
+                });
+                expect(vm.columnNames).toEqual(['unique-id', 'name', 'description', 'node-type']);
+            });
+
+            it('handles mixed case section names', () => {
+                const vm = TableWidget.transformToViewModel!(nodeContext, {
+                    sections: 'Overview, EXTENDED',
+                    orientation: 'vertical'
+                });
+                expect(vm.columnNames).toEqual([
+                    'unique-id', 'name', 'description', 'node-type',
+                    'custom-property', 'another-property'
+                ]);
+            });
         });
     });
 
