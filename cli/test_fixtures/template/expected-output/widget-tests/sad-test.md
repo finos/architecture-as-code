@@ -58,8 +58,7 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
         <tr>
             <td><b>Conference Website</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Unique Id</b></td>
@@ -88,8 +87,7 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                         <tr>
                             <td><b>Interfaces</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Unique Id</b></td>
@@ -105,19 +103,16 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Load Balancer</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Unique Id</b></td>
@@ -146,8 +141,7 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                         <tr>
                             <td><b>Interfaces</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Unique Id</b></td>
@@ -169,19 +163,16 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Attendees</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Unique Id</b></td>
@@ -210,8 +201,7 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                         <tr>
                             <td><b>Interfaces</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Unique Id</b></td>
@@ -227,9 +217,7 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Unique Id</b></td>
@@ -245,19 +233,16 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Attendees Store</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Unique Id</b></td>
@@ -286,8 +271,7 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                         <tr>
                             <td><b>Interfaces</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Unique Id</b></td>
@@ -303,9 +287,7 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Unique Id</b></td>
@@ -321,19 +303,16 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>K8s Cluster</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Unique Id</b></td>
@@ -362,14 +341,12 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                         <tr>
                             <td><b>Controls</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Security</b></td>
                                             <td>
-                                                <div class="table-container">
-                                                    <table>
+                                                <table class="nested-table">
                                                         <tbody>
                                                         <tr>
                                                             <td><b>Description</b></td>
@@ -380,8 +357,7 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                         <tr>
                                                             <td><b>Requirements</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Requirement Url</b></td>
@@ -433,22 +409,18 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
-                                                </div>
                                             </td>
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         </tbody>
@@ -479,8 +451,7 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
         <tr>
             <td><b>Conference Website Load Balancer</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Unique Id</b></td>
@@ -491,20 +462,17 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                         <tr>
                             <td><b>Relationship Type</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Connects</b></td>
                                             <td>
-                                                <div class="table-container">
-                                                    <table>
+                                                <table class="nested-table">
                                                         <tbody>
                                                         <tr>
                                                             <td><b>Source</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Node</b></td>
@@ -514,14 +482,12 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td><b>Destination</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Node</b></td>
@@ -531,30 +497,25 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
-                                                </div>
                                             </td>
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         <tr>
                             <td><b>Controls</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Security</b></td>
                                             <td>
-                                                <div class="table-container">
-                                                    <table>
+                                                <table class="nested-table">
                                                         <tbody>
                                                         <tr>
                                                             <td><b>Description</b></td>
@@ -565,8 +526,7 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                         <tr>
                                                             <td><b>Requirements</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Requirement Url</b></td>
@@ -612,17 +572,14 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
-                                                </div>
                                             </td>
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         <tr>
@@ -639,14 +596,12 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Load Balancer Attendees</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Unique Id</b></td>
@@ -657,20 +612,17 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                         <tr>
                             <td><b>Relationship Type</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Connects</b></td>
                                             <td>
-                                                <div class="table-container">
-                                                    <table>
+                                                <table class="nested-table">
                                                         <tbody>
                                                         <tr>
                                                             <td><b>Source</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Node</b></td>
@@ -680,14 +632,12 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td><b>Destination</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Node</b></td>
@@ -697,30 +647,25 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
-                                                </div>
                                             </td>
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         <tr>
                             <td><b>Controls</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Security</b></td>
                                             <td>
-                                                <div class="table-container">
-                                                    <table>
+                                                <table class="nested-table">
                                                         <tbody>
                                                         <tr>
                                                             <td><b>Description</b></td>
@@ -731,8 +676,7 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                         <tr>
                                                             <td><b>Requirements</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Requirement Url</b></td>
@@ -778,17 +722,14 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
-                                                </div>
                                             </td>
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         <tr>
@@ -805,14 +746,12 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Attendees Attendees Store</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Unique Id</b></td>
@@ -823,20 +762,17 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                         <tr>
                             <td><b>Relationship Type</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Connects</b></td>
                                             <td>
-                                                <div class="table-container">
-                                                    <table>
+                                                <table class="nested-table">
                                                         <tbody>
                                                         <tr>
                                                             <td><b>Source</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Node</b></td>
@@ -846,14 +782,12 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td><b>Destination</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Node</b></td>
@@ -863,30 +797,25 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
-                                                </div>
                                             </td>
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         <tr>
                             <td><b>Controls</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Security</b></td>
                                             <td>
-                                                <div class="table-container">
-                                                    <table>
+                                                <table class="nested-table">
                                                         <tbody>
                                                         <tr>
                                                             <td><b>Description</b></td>
@@ -897,8 +826,7 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                         <tr>
                                                             <td><b>Requirements</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Requirement Url</b></td>
@@ -944,17 +872,14 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
-                                                </div>
                                             </td>
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         <tr>
@@ -971,14 +896,12 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Deployed In K8s Cluster</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Unique Id</b></td>
@@ -989,14 +912,12 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                         <tr>
                             <td><b>Relationship Type</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Deployed In</b></td>
                                             <td>
-                                                <div class="table-container">
-                                                    <table>
+                                                <table class="nested-table">
                                                         <tbody>
                                                         <tr>
                                                             <td><b>Container</b></td>
@@ -1014,12 +935,10 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                         </tr>
                                                         </tbody>
                                                     </table>
-                                                </div>
                                             </td>
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         <tr>
@@ -1030,7 +949,6 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         </tbody>

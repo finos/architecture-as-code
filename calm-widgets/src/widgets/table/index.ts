@@ -74,43 +74,43 @@ function buildColumnsFromSections(
 
     for (const section of sections) {
         switch (section) {
-            case 'overview':
-                for (const col of OVERVIEW_COLUMNS) {
-                    if (!resultColumns.includes(col)) {
-                        resultColumns.push(col);
-                    }
+        case 'overview':
+            for (const col of OVERVIEW_COLUMNS) {
+                if (!resultColumns.includes(col)) {
+                    resultColumns.push(col);
                 }
-                break;
-            case 'extended': {
-                // Get all keys from context excluding overview columns and excluded properties
-                const allExcluded = [...OVERVIEW_COLUMNS, ...EXCLUDED_FROM_EXTENDED, 'additionalProperties'];
-                const extendedKeys = Object.keys(context).filter(
-                    key => !allExcluded.includes(key) && !resultColumns.includes(key)
-                );
-                resultColumns.push(...extendedKeys);
+            }
+            break;
+        case 'extended': {
+            // Get all keys from context excluding overview columns and excluded properties
+            const allExcluded = [...OVERVIEW_COLUMNS, ...EXCLUDED_FROM_EXTENDED, 'additionalProperties'];
+            const extendedKeys = Object.keys(context).filter(
+                key => !allExcluded.includes(key) && !resultColumns.includes(key)
+            );
+            resultColumns.push(...extendedKeys);
 
-                // Unpack additionalProperties if present
-                const additionalProps = context['additionalProperties'];
-                if (isPlainRecord(additionalProps)) {
-                    for (const key of Object.keys(additionalProps)) {
-                        if (!resultColumns.includes(key)) {
-                            resultColumns.push(key);
-                        }
+            // Unpack additionalProperties if present
+            const additionalProps = context['additionalProperties'];
+            if (isPlainRecord(additionalProps)) {
+                for (const key of Object.keys(additionalProps)) {
+                    if (!resultColumns.includes(key)) {
+                        resultColumns.push(key);
                     }
                 }
-                break;
             }
-            case 'metadata': {
-                // If metadata exists as a property WITH a value, include it
-                // We check for truthy value, not just key existence, because toCanonicalSchema()
-                // may add undefined metadata properties to all nodes
-                const metadataValue = context['metadata'];
-                const hasMetadata = metadataValue !== undefined && metadataValue !== null;
-                if (hasMetadata && !resultColumns.includes('metadata')) {
-                    resultColumns.push('metadata');
-                }
-                break;
+            break;
+        }
+        case 'metadata': {
+            // If metadata exists as a property WITH a value, include it
+            // We check for truthy value, not just key existence, because toCanonicalSchema()
+            // may add undefined metadata properties to all nodes
+            const metadataValue = context['metadata'];
+            const hasMetadata = metadataValue !== undefined && metadataValue !== null;
+            if (hasMetadata && !resultColumns.includes('metadata')) {
+                resultColumns.push('metadata');
             }
+            break;
+        }
         }
     }
 
