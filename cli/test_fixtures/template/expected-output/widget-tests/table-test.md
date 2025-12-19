@@ -47,8 +47,7 @@
         <tr>
             <td><b>Conference Website</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Unique Id</b></td>
@@ -77,8 +76,7 @@
                         <tr>
                             <td><b>Interfaces</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Unique Id</b></td>
@@ -94,19 +92,16 @@
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Load Balancer</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Unique Id</b></td>
@@ -135,8 +130,7 @@
                         <tr>
                             <td><b>Interfaces</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Unique Id</b></td>
@@ -158,19 +152,16 @@
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Attendees</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Unique Id</b></td>
@@ -199,8 +190,7 @@
                         <tr>
                             <td><b>Interfaces</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Unique Id</b></td>
@@ -216,9 +206,7 @@
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Unique Id</b></td>
@@ -234,19 +222,16 @@
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Attendees Store</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Unique Id</b></td>
@@ -275,8 +260,7 @@
                         <tr>
                             <td><b>Interfaces</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Unique Id</b></td>
@@ -292,9 +276,7 @@
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Unique Id</b></td>
@@ -310,19 +292,16 @@
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>K8s Cluster</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Unique Id</b></td>
@@ -351,14 +330,12 @@
                         <tr>
                             <td><b>Controls</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Security</b></td>
                                             <td>
-                                                <div class="table-container">
-                                                    <table>
+                                                <table class="nested-table">
                                                         <tbody>
                                                         <tr>
                                                             <td><b>Description</b></td>
@@ -369,8 +346,7 @@
                                                         <tr>
                                                             <td><b>Requirements</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Requirement Url</b></td>
@@ -422,22 +398,18 @@
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
-                                                </div>
                                             </td>
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         </tbody>
@@ -458,8 +430,7 @@
         <tr>
             <td><b>Conference Website Load Balancer</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Unique Id</b></td>
@@ -470,20 +441,17 @@
                         <tr>
                             <td><b>Relationship Type</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Connects</b></td>
                                             <td>
-                                                <div class="table-container">
-                                                    <table>
+                                                <table class="nested-table">
                                                         <tbody>
                                                         <tr>
                                                             <td><b>Source</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Node</b></td>
@@ -493,14 +461,12 @@
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td><b>Destination</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Node</b></td>
@@ -510,30 +476,25 @@
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
-                                                </div>
                                             </td>
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         <tr>
                             <td><b>Controls</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Security</b></td>
                                             <td>
-                                                <div class="table-container">
-                                                    <table>
+                                                <table class="nested-table">
                                                         <tbody>
                                                         <tr>
                                                             <td><b>Description</b></td>
@@ -544,8 +505,7 @@
                                                         <tr>
                                                             <td><b>Requirements</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Requirement Url</b></td>
@@ -591,17 +551,14 @@
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
-                                                </div>
                                             </td>
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         <tr>
@@ -618,14 +575,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Load Balancer Attendees</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Unique Id</b></td>
@@ -636,20 +591,17 @@
                         <tr>
                             <td><b>Relationship Type</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Connects</b></td>
                                             <td>
-                                                <div class="table-container">
-                                                    <table>
+                                                <table class="nested-table">
                                                         <tbody>
                                                         <tr>
                                                             <td><b>Source</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Node</b></td>
@@ -659,14 +611,12 @@
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td><b>Destination</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Node</b></td>
@@ -676,30 +626,25 @@
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
-                                                </div>
                                             </td>
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         <tr>
                             <td><b>Controls</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Security</b></td>
                                             <td>
-                                                <div class="table-container">
-                                                    <table>
+                                                <table class="nested-table">
                                                         <tbody>
                                                         <tr>
                                                             <td><b>Description</b></td>
@@ -710,8 +655,7 @@
                                                         <tr>
                                                             <td><b>Requirements</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Requirement Url</b></td>
@@ -757,17 +701,14 @@
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
-                                                </div>
                                             </td>
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         <tr>
@@ -784,14 +725,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Attendees Attendees Store</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Unique Id</b></td>
@@ -802,20 +741,17 @@
                         <tr>
                             <td><b>Relationship Type</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Connects</b></td>
                                             <td>
-                                                <div class="table-container">
-                                                    <table>
+                                                <table class="nested-table">
                                                         <tbody>
                                                         <tr>
                                                             <td><b>Source</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Node</b></td>
@@ -825,14 +761,12 @@
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td><b>Destination</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Node</b></td>
@@ -842,30 +776,25 @@
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
-                                                </div>
                                             </td>
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         <tr>
                             <td><b>Controls</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Security</b></td>
                                             <td>
-                                                <div class="table-container">
-                                                    <table>
+                                                <table class="nested-table">
                                                         <tbody>
                                                         <tr>
                                                             <td><b>Description</b></td>
@@ -876,8 +805,7 @@
                                                         <tr>
                                                             <td><b>Requirements</b></td>
                                                             <td>
-                                                                <div class="table-container">
-                                                                    <table>
+                                                                <table class="nested-table">
                                                                         <tbody>
                                                                         <tr>
                                                                             <td><b>Requirement Url</b></td>
@@ -923,17 +851,14 @@
                                                                         </tr>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
                                                             </td>
                                                         </tr>
                                                         </tbody>
                                                     </table>
-                                                </div>
                                             </td>
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         <tr>
@@ -950,14 +875,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Deployed In K8s Cluster</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Unique Id</b></td>
@@ -968,14 +891,12 @@
                         <tr>
                             <td><b>Relationship Type</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Deployed In</b></td>
                                             <td>
-                                                <div class="table-container">
-                                                    <table>
+                                                <table class="nested-table">
                                                         <tbody>
                                                         <tr>
                                                             <td><b>Container</b></td>
@@ -993,12 +914,10 @@
                                                         </tr>
                                                         </tbody>
                                                     </table>
-                                                </div>
                                             </td>
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
                         </tr>
                         <tr>
@@ -1009,7 +928,6 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         </tbody>
@@ -1028,40 +946,113 @@
         </thead>
         <tbody>
         <tr>
-            <td><b>Attendees</b></td>
+            <td><b>Unique Id</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
-                            <td><b>Unique Id</b></td>
+                            <td><b>Value</b></td>
                             <td>
                                 attendees
                                     </td>
                         </tr>
                         <tr>
-                            <td><b>Node Type</b></td>
+                            <td><b>Unique Id</b></td>
+                            <td>
+                                unique-id
+                                    </td>
+                        </tr>
+                        </tbody>
+                    </table>
+            </td>
+        </tr>
+        <tr>
+            <td><b>Node Type</b></td>
+            <td>
+                <table class="nested-table">
+                        <tbody>
+                        <tr>
+                            <td><b>Value</b></td>
                             <td>
                                 service
                                     </td>
                         </tr>
                         <tr>
-                            <td><b>Name</b></td>
+                            <td><b>Unique Id</b></td>
+                            <td>
+                                node-type
+                                    </td>
+                        </tr>
+                        </tbody>
+                    </table>
+            </td>
+        </tr>
+        <tr>
+            <td><b>Name</b></td>
+            <td>
+                <table class="nested-table">
+                        <tbody>
+                        <tr>
+                            <td><b>Value</b></td>
                             <td>
                                 Attendees Service
                                     </td>
                         </tr>
                         <tr>
-                            <td><b>Description</b></td>
+                            <td><b>Unique Id</b></td>
+                            <td>
+                                name
+                                    </td>
+                        </tr>
+                        </tbody>
+                    </table>
+            </td>
+        </tr>
+        <tr>
+            <td><b>Description</b></td>
+            <td>
+                <table class="nested-table">
+                        <tbody>
+                        <tr>
+                            <td><b>Value</b></td>
                             <td>
                                 The attendees service, or a placeholder for another application
                                     </td>
                         </tr>
                         <tr>
-                            <td><b>Interfaces</b></td>
+                            <td><b>Unique Id</b></td>
                             <td>
-                                <div class="table-container">
-                                    <table>
+                                description
+                                    </td>
+                        </tr>
+                        </tbody>
+                    </table>
+            </td>
+        </tr>
+        <tr>
+            <td><b>Details</b></td>
+            <td>
+                <table class="nested-table">
+                        <tbody>
+                        <tr>
+                            <td><b>Unique Id</b></td>
+                            <td>
+                                details
+                                    </td>
+                        </tr>
+                        </tbody>
+                    </table>
+            </td>
+        </tr>
+        <tr>
+            <td><b>Interfaces</b></td>
+            <td>
+                <table class="nested-table">
+                        <tbody>
+                        <tr>
+                            <td><b>Value</b></td>
+                            <td>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Unique Id</b></td>
@@ -1077,9 +1068,7 @@
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
-                                <div class="table-container">
-                                    <table>
+                                <table class="nested-table">
                                         <tbody>
                                         <tr>
                                             <td><b>Unique Id</b></td>
@@ -1095,12 +1084,46 @@
                                         </tr>
                                         </tbody>
                                     </table>
-                                </div>
                             </td>
+                        </tr>
+                        <tr>
+                            <td><b>Unique Id</b></td>
+                            <td>
+                                interfaces
+                                    </td>
                         </tr>
                         </tbody>
                     </table>
-                </div>
+            </td>
+        </tr>
+        <tr>
+            <td><b>Controls</b></td>
+            <td>
+                <table class="nested-table">
+                        <tbody>
+                        <tr>
+                            <td><b>Unique Id</b></td>
+                            <td>
+                                controls
+                                    </td>
+                        </tr>
+                        </tbody>
+                    </table>
+            </td>
+        </tr>
+        <tr>
+            <td><b>Metadata</b></td>
+            <td>
+                <table class="nested-table">
+                        <tbody>
+                        <tr>
+                            <td><b>Unique Id</b></td>
+                            <td>
+                                metadata
+                                    </td>
+                        </tr>
+                        </tbody>
+                    </table>
             </td>
         </tr>
         </tbody>

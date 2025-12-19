@@ -18,13 +18,34 @@ Renders data as Markdown tables with support for nested objects and column filte
 {{!-- Filter specific columns --}}
 {{table services columns="name,port,version" key="id"}}
 
-{{table services oritentation='vertical' columns="name,status"}}
+{{!-- Vertical table layout --}}
+{{table services orientation='vertical' columns="name,status"}}
+
+{{!-- Using sections to filter columns for CALM nodes --}}
+{{table nodes["my-node"] orientation="vertical" sections="overview"}}
+{{table nodes["my-node"] orientation="vertical" sections="extended"}}
+{{table nodes["my-node"] orientation="vertical" sections="metadata"}}
+
+{{!-- Sections can also be combined into a single table --}}
+{{table nodes["my-node"] orientation="vertical" sections="overview,extended,metadata"}}
+
+{{!-- Display message when table is empty --}}
+{{table nodes["my-node"] sections="metadata" empty-message="There is no metadata"}}
 ```
+
 **Options:**
-- `oritentation` (vertical | horizontal): table layout (default: horizontal)
+- `orientation` (vertical | horizontal): Table layout (default: horizontal)
 - `headers` (boolean): Show/hide table headers (default: true)
 - `columns` (string): Comma-separated list of columns to include
 - `key` (string): Property to use as unique identifier (default: "unique-id")
+- `empty-message` (string): Message to display when the table has no data (renders as `<p class="empty-message">...</p>`)
+- `sections` (string): Comma-separated list of section types to include. Valid values:
+  - `overview`: Shows core node properties (unique-id, name, description, node-type)
+  - `extended`: Shows additional properties, excluding overview columns and schema properties (interfaces, controls, metadata, details)
+  - `metadata`: Shows only the metadata property if it exists and has content
+
+**Nested Objects:**
+When a cell value is an object or array, the table widget automatically renders it as a nested table, providing recursive display of complex data structures.
 
 ### List Widget
 

@@ -325,6 +325,7 @@ npm run build:shared    # Builds models, widgets, shared
 3. **Store Mutations**: Always use store actions, never mutate directly
 4. **Extension Not Activating**: Check `activationEvents` in package.json
 5. **Webview Not Updating**: Remember to postMessage from webview to extension
+6. **toCanonicalSchema adds undefined values**: When using `toCanonicalSchema()` from calm-models, ALL optional properties are added with `undefined` values. Code checking for property existence must check for truthy values, not just key existence. See [calm-widgets/AGENTS.md](../../calm-widgets/AGENTS.md) for details.
 
 ## Debugging
 

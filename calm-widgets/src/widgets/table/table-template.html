@@ -1,4 +1,18 @@
-<div class="table-container">
+{{#if hasRows}}{{#if isNested}}<table class="nested-table">
+        {{#if isVertical}}
+        {{> table-vertical.html
+        headers=headers
+        columnNames=columnNames
+        rows=rows
+        flatTable=flatTable }}
+        {{else}}
+        {{> table-horizontal.html
+        headers=headers
+        columnNames=columnNames
+        rows=rows
+        flatTable=flatTable }}
+        {{/if}}
+    </table>{{else}}<div class="table-container">
     <table>
         {{#if isVertical}}
         {{> table-vertical.html
@@ -14,4 +28,4 @@
         flatTable=flatTable }}
         {{/if}}
     </table>
-</div>
+</div>{{/if}}{{else if emptyMessage}}<p class="empty-message">{{emptyMessage}}</p>{{/if}}
