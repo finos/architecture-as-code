@@ -28,7 +28,7 @@ export class CalmExtensionController {
 
     // Configure calm-widgets to log to the CALM output channel
     setWidgetLogger({
-      debug: (msg) => log.info?.(`[widget] ${msg}`),
+      debug: (msg) => log.debug?.(`[widget] ${msg}`),
       info: (msg) => log.info?.(`[widget] ${msg}`),
       warn: (msg) => log.warn?.(`[widget] ${msg}`),
       error: (msg) => log.error?.(`[widget] ${msg}`),
