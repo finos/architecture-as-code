@@ -1,271 +1,227 @@
-# Day 13: Use CALM as Your Expert Operations Advisor
+# Day 13: Custom Documentation with Handlebars Templates
 
 ## Overview
-
-Use CALM Chat mode as an expert operations advisor to troubleshoot issues in your e-commerce platform. With rich metadata, your architecture becomes living support documentation.
+Extend your documentation with custom Handlebars templates when you need more control than the built-in calm-widgets provide.
 
 ## Objective and Rationale
-
-- **Objective:** Enrich your architecture with operational metadata and use CALM Chat mode to troubleshoot simulated outages
-- **Rationale:** Traditional support documentation (Confluence, Twikis, runbooks) quickly becomes stale and disconnected from reality. By embedding operational knowledge directly in your architecture model, CALM becomes a queryable operations expert. When an incident occurs, engineers can ask CALM about affected components, dependencies, escalation paths, and troubleshooting steps - all derived from the actual architecture.
+- **Objective:** Learn Handlebars templating to create fully customized documentation outputs
+- **Rationale:** On Day 12 you used calm-widgets for quick, powerful documentation. But sometimes you need more control - custom logic, filtering, or output formats the widgets don't cover. Handlebars gives you that flexibility while still being simple enough for non-developers.
 
 ## Requirements
 
-### 1. Understand Architecture as Operations Documentation
+### 1. When to Use Raw Handlebars
 
-Your CALM architecture already contains:
+On Day 12 you learned calm-widgets provide ready-made components. Use raw Handlebars when you need to:
+- Create custom filtering logic (e.g., only show nodes of a certain type)
+- Format data in ways widgets don't support
+- Build complex conditional documentation
+- Generate non-markdown outputs (CSV, HTML, etc.)
 
-- **Nodes:** What services exist, their types, and criticality
-- **Relationships:** How services connect and depend on each other
-- **Flows:** Business processes that traverse your system
-- **Controls:** SLAs and compliance requirements
+### 2. Handlebars Basics
 
-By adding operational metadata, you transform this into queryable support documentation:
+[Handlebars](https://handlebarsjs.com/) is a simple templating language. Here's what you need to know:
 
-- Ownership and escalation contacts
-- Health check endpoints
-- Common failure modes and remediation steps
-- Runbook links and troubleshooting guides
+| Syntax | Description | Example |
+|--------|-------------|---------|
+| `{{property}}` | Output a value | `{{name}}` |
+| `{{#each array}}...{{/each}}` | Loop over arrays | `{{#each nodes}}{{name}}{{/each}}` |
+| `{{#if condition}}...{{/if}}` | Conditional | `{{#if description}}...{{/if}}` |
+| `{{#unless condition}}...{{/unless}}` | Negative conditional | `{{#unless @last}}, {{/unless}}` |
+| `{{@index}}` | Current index in loop | `{{@index}}. {{name}}` |
+| `{{@last}}` | Is last item in loop | For comma-separated lists |
+| `{{this}}` | Current item | `{{#each tags}}{{this}}{{/each}}` |
 
-Unlike static wikis, this documentation lives with the architecture and stays in sync.
+### 3. CALM-Specific Helpers
 
-### 2. Add Operational Metadata to Nodes
+The docify command includes custom helpers:
 
-Enrich your key services with support information.
+| Helper | Description | Example |
+|--------|-------------|---------|
+| `eq` | Equality check | `{{#if (eq node-type "service")}}` |
+| `lookup` | Access property by name | `{{lookup this 'unique-id'}}` |
+| `json` | Output as JSON | `{{json metadata}}` |
+| `kebabToTitleCase` | Format text | `{{kebabToTitleCase node-type}}` |
+| `kebabCase` | Convert to kebab-case | `{{kebabCase name}}` |
+| `isObject` | Check if object | `{{#if (isObject data)}}` |
+| `isArray` | Check if array | `{{#if (isArray items)}}` |
+| `join` | Join array elements | `{{join tags ", "}}` |
+| `instanceOf` | Type check | `{{instanceOf value "string"}}` |
 
-**Prompt:**
+### 4. Create a Node Inventory Template
 
-```text
-Add operational metadata to my e-commerce architecture nodes. For each service (load-balancer, api-gateway-1, api-gateway-2, order-service, inventory-service, payment-service), add metadata including:
+Create a template that filters nodes by type - something the widgets don't do directly:
 
-1. "owner": team name responsible (e.g., "platform-team", "payments-team")
-2. "oncall-slack": Slack channel for incidents (e.g., "#oncall-platform")
-3. "health-endpoint": Health check URL (e.g., "/health" or "/actuator/health")
-4. "runbook": Link to runbook (e.g., "https://runbooks.example.com/order-service")
-5. "tier": Service tier for prioritization ("tier-1", "tier-2", "tier-3")
-6. "dependencies": Array of critical upstream/downstream services
+**File:** `templates/node-inventory.md`
 
-Also add to the databases:
-1. "backup-schedule": When backups run
-2. "restore-time": Expected restore duration
-3. "dba-contact": DBA team contact
+```handlebars
+---
+architecture: ../architectures/ecommerce-platform.json
+---
+# Node Inventory: {{metadata.description}}
+
+| Name | Type | ID | Description |
+|------|------|-------|-------------|
+{{#each nodes}}
+| {{name}} | {{kebabToTitleCase node-type}} | `{{unique-id}}` | {{description}} |
+{{/each}}
+
+## Services Only
+
+{{#each nodes}}
+{{#if (eq node-type "service")}}
+- **{{name}}** (`{{unique-id}}`): {{description}}
+{{/if}}
+{{/each}}
+
+## Databases Only
+
+{{#each nodes}}
+{{#if (eq node-type "database")}}
+- **{{name}}** (`{{unique-id}}`): {{description}}
+{{/if}}
+{{/each}}
+
+## Actors
+
+{{#each nodes}}
+{{#if (eq node-type "actor")}}
+- **{{name}}**: {{description}}
+{{/if}}
+{{/each}}
 ```
 
-### 3. Add Failure Mode Metadata
+### 5. Preview in VSCode
 
-Document known failure modes and remediation steps.
+Just like Day 12, you can preview this template in VSCode:
 
-**Prompt:**
+1. Open `templates/node-inventory.md` in VSCode
+2. Open the CALM Preview (Ctrl+Shift+C / Cmd+Shift+C) to see the rendered output
 
-```text
-Add failure mode documentation to the order-service node metadata:
+### 6. Create a Relationship Details Template
 
-"failure-modes": [
-  {
-    "symptom": "HTTP 503 errors",
-    "likely-cause": "Database connection pool exhausted",
-    "check": "Check connection pool metrics in Grafana dashboard",
-    "remediation": "Scale up service replicas or increase pool size",
-    "escalation": "If persists > 5min, page DBA team"
-  },
-  {
-    "symptom": "High latency (>2s p99)",
-    "likely-cause": "Payment service degradation",
-    "check": "Check payment-service health and circuit breaker status",
-    "remediation": "Circuit breaker should open automatically; check fallback queue",
-    "escalation": "Contact payments-team if circuit breaker not triggering"
-  },
-  {
-    "symptom": "Order validation failures",
-    "likely-cause": "Inventory service returning stale data",
-    "check": "Verify inventory-service cache TTL and database replication lag",
-    "remediation": "Clear inventory cache; check replica sync status",
-    "escalation": "Contact platform-team for cache issues"
-  }
-]
+Create a template that shows relationship details with custom formatting:
 
-Add similar failure modes for payment-service and inventory-service.
+**File:** `templates/relationship-details.md`
+
+```handlebars
+---
+architecture: ../architectures/ecommerce-platform.json
+---
+# Relationship Details: {{metadata.description}}
+
+{{#each relationships}}
+### {{unique-id}}
+
+{{#if relationship-type.connects}}
+**Type:** Connection
+
+| Property | Value |
+|----------|-------|
+| Source | `{{relationship-type.connects.source.node}}` |
+| Destination | `{{relationship-type.connects.destination.node}}` |
+{{#if relationship-type.connects.source.interfaces}}
+| Source Interfaces | {{#each relationship-type.connects.source.interfaces}}`{{this}}`{{#unless @last}}, {{/unless}}{{/each}} |
+{{/if}}
+{{#if relationship-type.connects.destination.interfaces}}
+| Dest Interfaces | {{#each relationship-type.connects.destination.interfaces}}`{{this}}`{{#unless @last}}, {{/unless}}{{/each}} |
+{{/if}}
+{{/if}}
+
+{{#if relationship-type.interacts}}
+**Type:** Interaction
+
+- **Actor:** `{{relationship-type.interacts.actor}}`
+- **Interacts with:** {{#each relationship-type.interacts.nodes}}`{{this}}`{{#unless @last}}, {{/unless}}{{/each}}
+{{/if}}
+
+{{#if relationship-type.composed-of}}
+**Type:** Composition
+
+- **Container:** `{{relationship-type.composed-of.container}}`
+- **Contains:** {{#each relationship-type.composed-of.nodes}}`{{this}}`{{#unless @last}}, {{/unless}}{{/each}}
+{{/if}}
+
+---
+{{/each}}
 ```
 
-### 4. Add Flow-Level Incident Metadata
+### 7. Generate Static Files with CLI
 
-Document what business impact each flow has when degraded.
-
-**Prompt:**
-
-```text
-Add incident metadata to my business flows:
-
-For order-processing-flow:
-- "business-impact": "Customers cannot complete purchases - direct revenue loss"
-- "degraded-behavior": "Orders queue in message broker; processed when service recovers"
-- "customer-communication": "Display 'Order processing delayed' message"
-- "sla": "99.9% availability, 30s p99 latency"
-
-For inventory-check-flow:
-- "business-impact": "Stock levels may be inaccurate - risk of overselling"
-- "degraded-behavior": "Fall back to cached inventory; flag orders for manual review"
-- "customer-communication": "Display 'Stock availability being confirmed'"
-- "sla": "99.5% availability, 500ms p99 latency"
-```
-
-### 5. Add Monitoring and Alerting Metadata
-
-Document where to find observability data.
-
-**Prompt:**
-
-```text
-Add monitoring metadata to the architecture level:
-
-"monitoring": {
-  "grafana-dashboard": "https://grafana.example.com/d/ecommerce-overview",
-  "kibana-logs": "https://kibana.example.com/app/discover#/ecommerce-*",
-  "pagerduty-service": "https://pagerduty.example.com/services/ECOMMERCE",
-  "statuspage": "https://status.example.com",
-  "metrics-retention": "30 days",
-  "log-retention": "90 days"
-}
-
-Add service-specific dashboards in each node's metadata:
-- "dashboard": Link to service-specific Grafana dashboard
-- "log-query": Pre-built Kibana query for this service
-- "alerts": Array of PagerDuty alert names that fire for this service
-```
-
-### 6. Validate the Enriched Architecture
+For CI/CD or static site generation, use the docify CLI:
 
 ```bash
-calm validate -a architectures/ecommerce-platform.json
+calm docify \
+  --architecture architectures/ecommerce-platform.json \
+  --template templates/node-inventory.md \
+  --output docs/generated/node-inventory.md
+
+calm docify \
+  --architecture architectures/ecommerce-platform.json \
+  --template templates/relationship-details.md \
+  --output docs/generated/relationship-details.md
 ```
 
-Metadata doesn't affect validation - it passes through as documentation.
+### 8. Combining Widgets and Handlebars
 
-### 7. Simulate an Outage: Payment Service Down
+You can mix calm-widgets with raw Handlebars in the same template:
 
-Now use CALM as your operations advisor to troubleshoot!
+```handlebars
+---
+architecture: ../architectures/ecommerce-platform.json
+---
+# {{metadata.description}} - Combined Documentation
 
-**Scenario:** You receive an alert that order completion rate has dropped 80%. Customers are complaining they can't checkout.
+## Architecture Overview (widget)
+{{block-architecture this}}
 
-**Prompt:**
+## Services Summary (custom Handlebars)
+{{#each nodes}}
+{{#if (eq node-type "service")}}
+### {{name}}
+- **ID:** `{{unique-id}}`
+- **Description:** {{description}}
+{{#if interfaces}}
+- **Interfaces:** {{#each interfaces}}`{{unique-id}}`{{#unless @last}}, {{/unless}}{{/each}}
+{{/if}}
+{{/if}}
+{{/each}}
 
-```text
-I'm receiving alerts that order completion rate has dropped 80%. Customers report checkout failures.
-
-Based on my e-commerce architecture:
-1. What services are involved in the checkout/order flow?
-2. What are the most likely failure points?
-3. What health endpoints should I check first?
-4. Who should I contact if this is a payment issue?
-5. What's the business impact and customer communication plan?
+## All Nodes (widget)
+{{table nodes columns="unique-id,name,node-type"}}
 ```
 
-CALM should respond using your architecture's metadata, identifying the order-processing-flow, the services involved, health endpoints to check, and escalation contacts.
+### 9. When to Use Each Approach
 
-**Capture the output** - Take a screenshot or copy CALM's response as evidence of the troubleshooting conversation.
+| Approach | Best For |
+|----------|----------|
+| calm-widgets (Day 12) | Quick visualisations, standard documentation |
+| Raw Handlebars (Day 13) | Custom filtering, complex logic, non-standard formats |
+| Combined | Best of both worlds |
 
-### 8. Simulate an Outage: Database Latency Spike
+### 10. Update Your README
 
-**Scenario:** You see order-service latency has spiked to 5 seconds. No errors, just slow.
+Document Day 13 progress: note that you've learned Handlebars templating for custom documentation.
 
-**Prompt:**
-
-```text
-Order-service latency has spiked to 5 seconds (normally <200ms). No errors in logs.
-
-Using my architecture:
-1. What databases does order-service connect to?
-2. Could this be a database replication issue?
-3. What are the known failure modes for high latency?
-4. What's the remediation steps?
-5. What's the DBA contact for the order database?
-```
-
-**Capture the output** - Take a screenshot or copy CALM's response as evidence of the troubleshooting conversation.
-
-### 9. Simulate an Outage: Cascade Failure Investigation
-
-**Scenario:** Multiple services are showing errors. You need to find the root cause.
-
-**Prompt:**
-
-```text
-I'm seeing errors across order-service, inventory-service, and the web-frontend. It started 10 minutes ago.
-
-Analyze my architecture to help identify the root cause:
-1. What's the dependency graph between these services?
-2. What shared infrastructure could cause all three to fail?
-3. Is there a single point of failure that could explain this?
-4. In what order should I investigate?
-5. Based on the flow definitions, which business processes are affected?
-```
-
-CALM should identify the API Gateway or load balancer as potential shared failure points, and walk through the dependency chain.
-
-**Capture the output** - Take a screenshot or copy CALM's response as evidence of the troubleshooting conversation.
-
-### 10. Generate an Incident Summary
-
-After troubleshooting, ask CALM to help document the incident.
-
-**Prompt:**
-
-```text
-We identified the root cause as the load-balancer health check misconfiguration causing api-gateway-2 to be marked unhealthy, putting all traffic on api-gateway-1 which became overloaded.
-
-Generate an incident summary based on my architecture:
-1. Affected services and their tiers
-2. Business flows impacted
-3. Customer impact based on flow metadata
-4. Timeline of dependency failures
-5. Remediation steps taken
-6. Follow-up actions to prevent recurrence
-```
-
-### 11. Compare: Wiki vs Architecture-as-Documentation
-
-| Aspect            | Traditional Wiki      | CALM Architecture                     |
-|-------------------|-----------------------|---------------------------------------|
-| Accuracy          | Often stale           | Always current (lives with code)      |
-| Discoverability   | Search/hope           | Query the model directly              |
-| Dependencies      | Manually maintained   | Derived from relationships            |
-| Impact analysis   | Tribal knowledge      | Computed from flows                   |
-| Escalation paths  | Buried in pages       | Embedded in node metadata             |
-| Troubleshooting   | Static runbooks       | Context-aware AI assistance           |
-
-### 12. Commit Your Work
+### 11. Commit Your Work
 
 ```bash
-git add architectures/ecommerce-platform.json
-git commit -m "Day 13: Add operational metadata for support documentation"
+git add templates/ docs/generated/ README.md
+git commit -m "Day 13: Create custom documentation with Handlebars templates"
 git tag day-13
 ```
 
 ## Deliverables
 
 ✅ **Required:**
-
-- `architectures/ecommerce-platform.json` - With operational metadata:
-  - Owner and on-call contacts per service
-  - Health endpoints and runbook links
-  - Failure modes with symptoms and remediation
-  - Flow-level business impact documentation
-  - Monitoring dashboard links
-- Screenshots of CALM troubleshooting conversations
+- `templates/node-inventory.md` - Node filtering template
+- `templates/relationship-details.md` - Relationship details template
 - Updated `README.md` - Day 13 marked complete
 
 ✅ **Validation:**
-
 ```bash
-# Verify operational metadata exists
-grep -q 'oncall-slack' architectures/ecommerce-platform.json
-grep -q 'health-endpoint' architectures/ecommerce-platform.json
-grep -q 'failure-modes' architectures/ecommerce-platform.json
-grep -q 'runbook' architectures/ecommerce-platform.json
-grep -q 'business-impact' architectures/ecommerce-platform.json
-
-# Validate architecture
-calm validate -a architectures/ecommerce-platform.json
+# Verify templates exist
+test -f templates/node-inventory.md
+test -f templates/relationship-details.md
 
 # Check tag
 git tag | grep -q "day-13"
@@ -273,20 +229,16 @@ git tag | grep -q "day-13"
 
 ## Resources
 
-- [Site Reliability Engineering (Google)](https://sre.google/sre-book/table-of-contents/)
-- [Incident Management Best Practices](https://www.atlassian.com/incident-management)
-- [Runbook Documentation](https://www.pagerduty.com/resources/learn/what-is-a-runbook/)
-- [Architecture Decision Records](https://adr.github.io/)
+- [Handlebars Guide](https://handlebarsjs.com/guide/)
+- [Handlebars Built-in Helpers](https://handlebarsjs.com/guide/builtin-helpers.html)
+- [CALM Widgets Documentation](https://github.com/finos/architecture-as-code/tree/main/calm-widgets)
 
 ## Tips
 
-- Keep failure modes updated when you discover new issues in production
-- Link runbooks to specific failure modes, not just services
-- Include both automated remediation steps and manual escalation paths
-- Use CALM during actual incidents - it learns from your architecture
-- The more metadata you add, the better CALM can assist with troubleshooting
-- Consider adding post-incident learnings back into the failure-modes metadata
+- Use `{{json variable}}` to debug and see what data is available
+- Start simple and add complexity incrementally
+- Templates can generate any text format (MD, HTML, CSV, etc.)
+- Preview in VSCode before generating static files
 
 ## Next Steps
-
-Tomorrow (Day 14) you'll use docify to generate operations documentation - runbooks, on-call guides, and incident report templates from your architecture metadata!
+Tomorrow (Day 14) you'll use CALM as an expert architecture advisor to improve your architecture's resilience!

@@ -1,4 +1,4 @@
-import { validate, sortSpectralIssueBySeverity, convertSpectralDiagnosticToValidationOutputs, convertJsonSchemaIssuesToValidationOutputs, stripRefs, exitBasedOffOfValidationOutcome, extractChoicesFromArchitecture } from './validate';
+import { validate, sortSpectralIssueBySeverity, convertJsonSchemaIssuesToValidationOutputs, convertSpectralDiagnosticToValidationOutputs, stripRefs, exitBasedOffOfValidationOutcome, extractChoicesFromArchitecture } from './validate';
 import { ISpectralDiagnostic } from '@stoplight/spectral-core';
 import { ValidationOutcome, ValidationOutput } from './validation.output';
 import { ErrorObject } from 'ajv';
@@ -209,11 +209,16 @@ describe('validation support functions', () => {
                     'error',
                     'must be integer',
                     '/nodes/0/interfaces/0/port',
-                    'https://calm.finos.org/release/1.1/meta/interface.json#/defs/host-port-interface/properties/port/type'
+                    'https://calm.finos.org/release/1.1/meta/interface.json#/defs/host-port-interface/properties/port/type',
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    'architecture'
                 )
             ];
 
-            const actual = convertJsonSchemaIssuesToValidationOutputs(given);
+            const actual = convertJsonSchemaIssuesToValidationOutputs(given, 'architecture');
 
             expect(actual).toStrictEqual(expected);
         });
@@ -236,12 +241,17 @@ describe('validation support functions', () => {
                     'json-schema',
                     'error',
                     'must have required property \'nodes\'',
-                    '',
-                    '#/required'
+                    '/',
+                    '#/required',
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    'architecture'
                 )
             ];
 
-            const actual = convertJsonSchemaIssuesToValidationOutputs(given);
+            const actual = convertJsonSchemaIssuesToValidationOutputs(given, 'architecture');
 
             expect(actual).toStrictEqual(expected);
         });
@@ -249,8 +259,90 @@ describe('validation support functions', () => {
         it('should return an empty array when no JSON Schema issues have been reported', () => {
             const given: ErrorObject[] = [];
             const expected: ValidationOutput[] = [];
-            const actual = convertJsonSchemaIssuesToValidationOutputs(given);
+            const actual = convertJsonSchemaIssuesToValidationOutputs(given, 'architecture');
             expect(actual).toStrictEqual(expected);
+        });
+
+        it('appends expected value for const keyword using params', () => {
+            const given: ErrorObject[] = [
+                {
+                    instancePath: '/root/const',
+                    schemaPath: '#/const',
+                    keyword: 'const',
+                    params: { allowedValue: 'hello' },
+                    message: 'must be equal to constant'
+                } as unknown as ErrorObject
+            ];
+
+            const [actual] = convertJsonSchemaIssuesToValidationOutputs(given, 'architecture');
+
+            expect(actual.message).toBe('must be equal to constant (expected "hello")');
+        });
+
+        it('appends expected value for const keyword using schema fallback', () => {
+            const given: ErrorObject[] = [
+                {
+                    instancePath: '/root/const',
+                    schemaPath: '#/const',
+                    keyword: 'const',
+                    params: {},
+                    schema: 42,
+                    message: 'must be equal to constant'
+                } as unknown as ErrorObject
+            ];
+
+            const [actual] = convertJsonSchemaIssuesToValidationOutputs(given, 'architecture');
+
+            expect(actual.message).toBe('must be equal to constant (expected 42)');
+        });
+
+        it('appends expected values for enum keyword using params', () => {
+            const given: ErrorObject[] = [
+                {
+                    instancePath: '/root/enum',
+                    schemaPath: '#/enum',
+                    keyword: 'enum',
+                    params: { allowedValues: ['one', 'two'] },
+                    message: 'must be equal to one of the allowed values'
+                } as unknown as ErrorObject
+            ];
+
+            const [actual] = convertJsonSchemaIssuesToValidationOutputs(given, 'architecture');
+
+            expect(actual.message).toBe('must be equal to one of the allowed values (expected one of ["one","two"])');
+        });
+
+        it('appends expected values for enum keyword using schema fallback', () => {
+            const given: ErrorObject[] = [
+                {
+                    instancePath: '/root/enum',
+                    schemaPath: '#/enum',
+                    keyword: 'enum',
+                    params: {},
+                    schema: ['a', 'b', 'c'],
+                    message: 'must be equal to one of the allowed values'
+                } as unknown as ErrorObject
+            ];
+
+            const [actual] = convertJsonSchemaIssuesToValidationOutputs(given, 'architecture');
+
+            expect(actual.message).toBe('must be equal to one of the allowed values (expected one of ["a","b","c"])');
+        });
+
+        it('returns original message when params are missing', () => {
+            const given: ErrorObject[] = [
+                {
+                    instancePath: '/root/enum',
+                    schemaPath: '#/enum',
+                    keyword: 'enum',
+                    // params intentionally omitted
+                    message: 'must be equal to one of the allowed values'
+                } as unknown as ErrorObject
+            ];
+
+            const [actual] = convertJsonSchemaIssuesToValidationOutputs(given, 'architecture');
+
+            expect(actual.message).toBe('must be equal to one of the allowed values');
         });
 
     });

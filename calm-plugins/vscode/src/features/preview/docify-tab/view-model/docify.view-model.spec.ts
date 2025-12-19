@@ -234,8 +234,8 @@ describe('DocifyViewModel', () => {
 
             docifyViewModel.setLiveMode(true)
 
-            // Fast-forward timer by 2 seconds
-            vi.advanceTimersByTime(2000)
+            // Fast-forward timer by 2 seconds + debounce delay (300ms)
+            vi.advanceTimersByTime(2300)
 
             expect(requestSpy).toHaveBeenCalledOnce()
         })
@@ -246,22 +246,22 @@ describe('DocifyViewModel', () => {
 
             docifyViewModel.setLiveMode(true)
 
-            // First interval
-            vi.advanceTimersByTime(2000)
+            // First interval (2s) + debounce (300ms)
+            vi.advanceTimersByTime(2300)
             expect(requestSpy).toHaveBeenCalledTimes(1)
 
             // Simulate completing the first request
             docifyViewModel.setRunning(false)
 
-            // Second interval
-            vi.advanceTimersByTime(2000)
+            // Second interval (2s) + debounce (300ms)
+            vi.advanceTimersByTime(2300)
             expect(requestSpy).toHaveBeenCalledTimes(2)
 
             // Simulate completing the second request
             docifyViewModel.setRunning(false)
 
-            // Third interval
-            vi.advanceTimersByTime(2000)
+            // Third interval (2s) + debounce (300ms)
+            vi.advanceTimersByTime(2300)
             expect(requestSpy).toHaveBeenCalledTimes(3)
         })
 
@@ -271,7 +271,7 @@ describe('DocifyViewModel', () => {
 
             // Enable live mode
             docifyViewModel.setLiveMode(true)
-            vi.advanceTimersByTime(2000)
+            vi.advanceTimersByTime(2300) // 2s auto-refresh + 300ms debounce
             expect(requestSpy).toHaveBeenCalledOnce()
 
             // Disable live mode
@@ -279,7 +279,7 @@ describe('DocifyViewModel', () => {
             requestSpy.mockClear()
 
             // Fast-forward more time
-            vi.advanceTimersByTime(4000)
+            vi.advanceTimersByTime(4600) // 2 intervals worth of time
 
             expect(requestSpy).not.toHaveBeenCalled()
         })
@@ -291,19 +291,22 @@ describe('DocifyViewModel', () => {
             docifyViewModel.setLiveMode(true)
             docifyViewModel.setRunning(true) // Set running state
 
-            // Fast-forward timer
-            vi.advanceTimersByTime(2000)
+            // Fast-forward timer (2s auto-refresh + 300ms debounce)
+            vi.advanceTimersByTime(2300)
 
             expect(requestSpy).not.toHaveBeenCalled()
         })
     })
 
     describe('docify request handling', () => {
-        it('should request docify execution when not running', () => {
+        it('should request docify execution when not running (after debounce)', () => {
             const requestSpy = vi.fn()
             docifyViewModel.onDocifyRequest(requestSpy)
 
             docifyViewModel.requestDocify()
+            
+            // Advance past debounce delay (300ms)
+            vi.advanceTimersByTime(300)
 
             expect(requestSpy).toHaveBeenCalledOnce()
             expect(docifyViewModel.getIsRunning()).toBe(true)
@@ -315,8 +318,40 @@ describe('DocifyViewModel', () => {
 
             docifyViewModel.setRunning(true)
             docifyViewModel.requestDocify()
+            
+            // Advance past debounce delay
+            vi.advanceTimersByTime(300)
 
             expect(requestSpy).not.toHaveBeenCalled()
+        })
+
+        it('should coalesce multiple rapid requests into one', () => {
+            const requestSpy = vi.fn()
+            docifyViewModel.onDocifyRequest(requestSpy)
+
+            // Rapidly call requestDocify multiple times
+            docifyViewModel.requestDocify()
+            vi.advanceTimersByTime(100)
+            docifyViewModel.requestDocify()
+            vi.advanceTimersByTime(100)
+            docifyViewModel.requestDocify()
+            
+            // Advance past debounce delay from last call
+            vi.advanceTimersByTime(300)
+
+            // Should only fire once despite multiple calls
+            expect(requestSpy).toHaveBeenCalledOnce()
+        })
+
+        it('should execute immediately when using requestDocifyImmediate', () => {
+            const requestSpy = vi.fn()
+            docifyViewModel.onDocifyRequest(requestSpy)
+
+            docifyViewModel.requestDocifyImmediate()
+
+            // Should fire immediately without waiting for debounce
+            expect(requestSpy).toHaveBeenCalledOnce()
+            expect(docifyViewModel.getIsRunning()).toBe(true)
         })
     })
 

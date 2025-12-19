@@ -47,12 +47,6 @@
       "output-type": "single"
     },
     {
-      "template": "remark-replace-links.mjs",
-      "from": "docs",
-      "output": "src/remark/remark-replace-links.mjs",
-      "output-type": "single"
-    },
-    {
       "template": "custom.css",
       "from": "docs",
       "output": "static/css/custom.css",
@@ -74,12 +68,6 @@
       "from": "docs",
       "output": "package.json",
       "output-type": "single"
-    },
-    {
-      "template": "json-doc.mdx.hbs",
-      "from": "controls",
-      "output": "docs/controls/{{id}}.md",
-      "output-type": "repeated"
     },
     {
       "template": "control-requirement.hbs",

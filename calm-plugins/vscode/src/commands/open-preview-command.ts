@@ -31,7 +31,8 @@ export function createOpenPreviewCommand(store: ApplicationStoreApi) {
         }
 
         // If an elementId was provided (from CodeLens), set the selection
-        if (elementId) {
+        // Note: Context menu passes a Uri object, not a string, so we must check the type
+        if (elementId && typeof elementId === 'string') {
             state.setSelectedElement(elementId)
         }
 

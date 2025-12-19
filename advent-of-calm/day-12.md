@@ -1,275 +1,163 @@
-# Day 12: Use CALM as Your Expert Architecture Advisor
+# Day 12: Custom Documentation with CALM Widgets
 
 ## Overview
-
-Use CALM Chat mode as an expert architect to analyze and improve your e-commerce architecture for better resilience and performance.
+Learn about calm-widgets - a Handlebars-based widget framework for generating custom Markdown documentation from your CALM architecture data, using the VSCode CALM Preview.
 
 ## Objective and Rationale
-
-- **Objective:** Use AI-assisted architecture analysis to identify weaknesses and improve your e-commerce platform's resilience and performance
-- **Rationale:** CALM Chat mode understands architecture patterns, failure modes, and best practices. By treating it as an expert advisor, you can get recommendations for improving your architecture - like having a senior architect review your design. This demonstrates the power of architecture-as-code combined with AI.
+- **Objective:** Understand how to use calm-widgets to create custom documentation templates
+- **Rationale:** While the docify website provides a great out-of-the-box experience, you may need custom documentation formats. CALM Widgets provide reusable Handlebars helpers that make this easy without writing everything from scratch.
 
 ## Requirements
 
-### 1. Understand AI-Assisted Architecture Review
+### 1. What are CALM Widgets?
 
-CALM Chat mode can:
+CALM Widgets is a TypeScript framework built on Handlebars that provides reusable components for generating Markdown documentation. They offer a simpler approach than writing raw Handlebars templates - you get powerful documentation capabilities without needing to learn the intricacies of Handlebars syntax.
 
-- Analyze your architecture for potential issues
-- Suggest improvements based on best practices
-- Help you implement changes with proper CALM syntax
-- Explain the rationale behind recommendations
+**Fun fact:** The visualisations you see in the VSCode CALM extension are built using these same widgets!
 
-Think of it as pair-programming with an expert architect who knows your entire system.
+CALM Widgets provide:
 
-### 2. Get a Resilience Assessment
+- **Pre-built visualisations** - tables, lists, Mermaid diagrams
+- **Architecture-aware helpers** - understand CALM nodes, relationships, and flows
+- **Customizable output** - full control over your documentation format
 
-Open your `architectures/ecommerce-platform.json` and ask CALM Chat mode to analyze it.
+### 2. Explore the Widgets
 
-**Prompt:**
+Review the available widgets in the [calm-widgets README](https://github.com/finos/architecture-as-code/blob/main/calm-widgets/README.md):
 
-```text
-Analyze my e-commerce architecture in architectures/ecommerce-platform.json for resilience issues.
+| Widget | Purpose | Example Use |
+|--------|---------|-------------|
+| `table` | Render data as Markdown tables | `{{table nodes columns="name,type"}}` |
+| `list` | Render arrays as Markdown lists | `{{list services property="name"}}` |
+| `json-viewer` | Render data as formatted JSON | `{{json-viewer config}}` |
+| `related-nodes` | Render relationships as Mermaid graphs | `{{related-nodes node-id="api-gateway"}}` |
+| `block-architecture` | Render full architecture as Mermaid flowchart | `{{block-architecture this}}` |
+| `flow-sequence` | Render a flow as a Mermaid sequence diagram | `{{flow-sequence this flow-id="my-flow"}}` |
 
-Consider:
-- Single points of failure
-- Missing redundancy
-- Failure isolation
-- Recovery patterns
+### 3. Create a Custom Template Using Widgets
 
-What are the top 3 resilience concerns and how would you address them?
-```
+The easiest way to use calm-widgets is with the **VSCode CALM Preview**. Create a Markdown file with YAML front matter that specifies your architecture, and the preview will render the widgets live.
 
-Review the recommendations carefully. The AI should identify issues like:
-
-- **Single API Gateway:** Critical single point of failure - if it fails, the entire platform is unavailable
-- **Single Database Instances:** No replication modeled for order-database or inventory-database
-- **Missing Async Decoupling:** Synchronous service calls mean payment failures cascade to order service
-
-### 3. Implement Resilience Improvement #1: Add Load Balancer and Gateway Redundancy
-
-The API Gateway is currently a critical single point of failure. Let's add a load balancer and model redundant gateways.
-
-**Prompt:**
-
-```text
-My API Gateway is a single point of failure. Update my e-commerce architecture to add:
-
-1. A new "load-balancer" node (type: service) as the entry point
-2. Two API Gateway instances: "api-gateway-1" and "api-gateway-2"
-3. Update the customer and admin interacts relationships to go through the load balancer
-4. Add connects relationships from load balancer to both gateway instances
-5. Add metadata indicating this is for high availability
-
-The existing api-gateway node can become api-gateway-1.
-```
-
-### 4. Implement Resilience Improvement #2: Add Database Replication
-
-Both databases are single instances with no failover. Let's add read replicas.
-
-**Prompt:**
-
-```text
-My order-database is a single point of failure. Update the architecture to show:
-
-1. Rename current order-database to "order-database-primary"
-2. Add a new "order-database-replica" node
-3. Add a relationship from Order Service to the replica for read operations
-4. Add metadata indicating primary/replica roles and replication mode (async)
-5. Use a composed-of relationship to group them into an "order-database-cluster"
-
-Keep the primary for writes, replica for reads.
-```
-
-### 5. Implement Resilience Improvement #3: Add Message Queue (Per ADR-0001)
-
-Your ADR-0001 already documents the decision to use async processing - let's implement it! This decouples Order Service from Payment Service failures.
-
-**Prompt:**
-
-```text
-Implement the async processing pattern from ADR-0001 in my architecture:
-
-1. Add a "message-broker" node (type: system) for RabbitMQ with an AMQP interface on port 5672
-2. Add an "order-queue" that's composed-of the message-broker
-3. Change the order-to-payment flow to go through the message broker:
-   - Order Service publishes to the queue
-   - Payment Service consumes from the queue
-4. Add metadata linking to the ADR: "adr": "docs/adr/0001-use-message-queue-for-async-processing.md"
-
-This provides failure isolation - orders can queue if Payment Service is down.
-```
-
-### 6. Validate After Resilience Changes
-
-```bash
-calm validate -a architectures/ecommerce-platform.json
-```
-
-Should pass! ✅
-
-### 7. Visualize the Improved Architecture
-
-**Steps:**
-
-1. Save `architectures/ecommerce-platform.json`
-2. Open preview (Ctrl+Shift+C / Cmd+Shift+C)
-3. Notice the new components:
-   - Load balancer in front of redundant gateways
-   - Database cluster with primary/replica
-   - Message broker between Order and Payment services
-4. **Take a screenshot** showing the more resilient architecture
-
-### 8. Add Resilience Controls
-
-Document your resilience requirements as controls.
-
-**Prompt:**
-
-```text
-Add resilience controls to my e-commerce architecture:
-
-1. Add an architecture-level "high-availability" control requiring 99.9% uptime
-2. Add a node-level "failover" control on the order-database-cluster documenting RTO/RPO targets
-3. Add a "circuit-breaker" control on the order-service documenting failure thresholds
-
-Use requirement-url pointing to internal-policy.example.com and include inline config with specific values.
-```
-
-### 9. Final Validation
-
-```bash
-calm validate -a architectures/ecommerce-platform.json
-```
-
-### 10. Document the Improvements
-
-**File:** `docs/architecture-improvements.md`
-
-**Content:**
+Create a file called `docs/architecture-summary.md` with the following content:
 
 ```markdown
-# Architecture Improvements
+---
+architecture: ../architectures/ecommerce-platform.json
+---
 
-## Overview
+# Architecture Summary
 
-This document captures architecture improvements made with AI-assisted analysis.
+## System Overview
 
-## Resilience Issues Identified
-
-| Concern | Severity | Original State | Risk |
-|---------|----------|----------------|------|
-| Single API Gateway | Critical | 1 gateway, no LB | Total platform outage |
-| Single Database Instances | High | No replicas | Data unavailability |
-| No Async Decoupling | High | Sync service calls | Cascade failures |
-
-## Improvements Implemented
-
-### 1. Load Balancer + Redundant API Gateways
-
-**Problem:** Single API Gateway was critical single point of failure
-**Solution:** Added load balancer with two gateway instances
-**Benefit:** Gateway failure no longer causes total outage; traffic routes to healthy instance
-
-### 2. Database Primary/Replica Cluster
-
-**Problem:** Order database had no failover capability
-**Solution:** Added read replica with async replication in a composed cluster
-**Benefit:** Read scalability; continued read availability during primary issues; faster failover
-
-### 3. Message Queue (ADR-0001 Implementation)
-
-**Problem:** Synchronous Order→Payment calls meant payment failures blocked orders
-**Solution:** Added RabbitMQ message broker for async processing
-**Benefit:** Orders queue during Payment Service outages; automatic retry; failure isolation
-
-## Controls Added
-
-| Control | Level | Requirement |
-|---------|-------|-------------|
-| high-availability | Architecture | 99.9% uptime SLA |
-| failover | Database Cluster | RTO: 5min, RPO: 1min |
-| circuit-breaker | Order Service | Open after 5 failures in 30s |
-
-## Architecture Evolution
-
-- **Before:** 8 nodes, single points of failure, sync processing
-- **After:** 12+ nodes, redundant entry point, replicated data, async decoupling
-
-## Alignment with ADRs
-
-- **ADR-0001:** Message queue implementation ✅
-- **ADR-0002:** OAuth2 on load balancer entry point ✅
-
-## Lessons Learned
-
-1. AI-assisted review quickly identifies single points of failure
-2. Existing ADRs should drive architecture improvements
-3. Controls document the requirements that drove resilience decisions
-4. Incremental improvements are easier to validate and visualize
+{{block-architecture this}}
 ```
 
-### 11. Update Your README
+**Understanding the Front Matter:**
 
-Mark Day 12 as complete in your README checklist and note the AI-assisted architecture improvements. Link to `docs/architecture-improvements.md` so collaborators can see the evolution.
+The YAML front matter (between the `---` markers) tells the VSCode CALM Preview where to find your architecture data:
 
-### 12. Commit Your Work
+- `architecture:` - Path to your CALM architecture JSON file (relative to the template file)
+- `url-to-local-file-mapping:` (optional) - Path to a URL mapping file if your architecture references external schemas
+
+The front matter is processed by the preview but won't appear in your rendered output.
+
+### 4. Preview Your Documentation in VSCode
+
+1. Open the file `docs/architecture-summary.md` in VSCode
+2. Open the Command Palette (Cmd+Shift+P / Ctrl+Shift+P)
+3. Run **"CALM: Open Preview"**
+4. Notice the **"Live Docify Mode"** badge is highlighted in the preview pane
+5. The preview will render your widgets with live data from your architecture
+
+As you edit the template, the preview updates in real-time - no need to run any CLI commands!
+
+### 5. Explore Widget Customization Options
+
+The power of calm-widgets lies in their customization options. With the preview still open, try adding these sections to your document and watch the preview update in real-time:
+
+**Add a nodes table with specific columns:**
+
+```markdown
+## Nodes
+
+{{table nodes columns="unique-id,name,node-type,description"}}
+```
+
+**Focus on a specific flow in the architecture diagram:**
+
+```markdown
+## Order Processing Flow View
+
+{{block-architecture this focus-flows="order-processing-flow"}}
+```
+
+This filters the diagram to show only the nodes and relationships involved in that flow.
+
+**Highlight specific nodes and render node type shapes:**
+
+```markdown
+## Payment Processing Components
+
+{{block-architecture this focus-nodes="payment-service,order-service" highlight-nodes="payment-service" render-node-type-shapes=true}}
+```
+
+**Render a flow as a sequence diagram:**
+
+```markdown
+## Order Processing Sequence
+
+{{flow-sequence this flow-id="order-processing-flow"}}
+```
+
+**Show relationships for a specific node:**
+
+```markdown
+## API Gateway Connections
+
+{{related-nodes node-id="api-gateway"}}
+```
+
+Experiment with different options - the [calm-widgets README](https://github.com/finos/architecture-as-code/blob/main/calm-widgets/README.md) documents all available options for each widget.
+
+**Note:** These same templates work with the CLI `calm docify` command to generate static documentation websites for publishing or sharing.
+
+### 6. Update Your README
+
+Document Day 12 progress: note which widgets you used and how they simplified documentation.
+
+### 7. Commit Your Work
 
 ```bash
-git add architectures/ecommerce-platform.json docs/architecture-improvements.md README.md
-git commit -m "Day 12: AI-assisted resilience improvements - LB, replicas, message queue"
+git add docs/ README.md
+git commit -m "Day 12: Create custom docs with calm-widgets"
 git tag day-12
 ```
 
 ## Deliverables
 
 ✅ **Required:**
-
-- `architectures/ecommerce-platform.json` - With resilience improvements:
-  - Load balancer + redundant API gateways
-  - Database primary/replica cluster
-  - Message broker for async processing
-- `docs/architecture-improvements.md` - Documentation of changes
-- Screenshots showing before/after architecture
+- `docs/architecture-summary.md` using calm-widgets with front matter
 - Updated `README.md` - Day 12 marked complete
 
 ✅ **Validation:**
-
 ```bash
-# Verify new components exist
-grep -q 'load-balancer' architectures/ecommerce-platform.json
-grep -q 'api-gateway-1\|api-gateway-2' architectures/ecommerce-platform.json
-grep -q 'message-broker' architectures/ecommerce-platform.json
-grep -q 'replica' architectures/ecommerce-platform.json
-
-# Verify resilience controls
-grep -q 'high-availability' architectures/ecommerce-platform.json
-grep -q 'failover' architectures/ecommerce-platform.json
-
-# Validate
-calm validate -a architectures/ecommerce-platform.json
-
+# Check template exists
+ls docs/architecture-summary.md
 # Check tag
 git tag | grep -q "day-12"
 ```
 
 ## Resources
 
-- [Resilience Patterns](https://learn.microsoft.com/en-us/azure/architecture/patterns/category/resiliency)
-- [Circuit Breaker Pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker)
-- [Message Queue Patterns](https://www.enterpriseintegrationpatterns.com/patterns/messaging/)
-- [Database Replication](https://www.postgresql.org/docs/current/high-availability.html)
+- [CALM Widgets README](https://github.com/finos/architecture-as-code/blob/main/calm-widgets/README.md)
+- [Mermaid Documentation](https://mermaid.js.org/)
 
 ## Tips
 
-- Ask CALM Chat mode to explain *why* it recommends changes, not just *what* to change
-- Reference your ADRs when implementing - they document decisions already made
-- Implement changes incrementally and validate after each one
-- Use controls to document the SLAs and thresholds that drove improvements
-- Compare before/after visualizations to communicate changes to stakeholders
-- The AI advisor works best when you provide context about your constraints
+- Start simple with `{{table nodes}}` and add options gradually
+- The `block-architecture` widget is powerful - experiment with `focus-flows` and `highlight-nodes`
+- Use the VSCode CALM Preview for instant feedback as you build templates
+- Use `{{json-viewer data}}` to debug what data is available in your context
 
 ## Next Steps
-
-Tomorrow (Day 13) you'll use CALM as an operations advisor, adding support metadata and troubleshooting simulated outages!
+Tomorrow (Day 13) you'll learn to extend these templates with custom Handlebars logic - combining widgets with your own helpers for maximum flexibility!

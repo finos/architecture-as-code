@@ -26,7 +26,7 @@ This demo showcases the **CALM** approach in action. Designed to help you get st
 
 * Java 21 or higher
 * Maven 3.8.6 or higher
-* Node.js 18 or higher
+* Node.js 20 or higher
 * NPM
 * Have a clone of the [architecture-as-code repository](https://github.com/finos/architecture-as-code)
 

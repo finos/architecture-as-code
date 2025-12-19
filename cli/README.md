@@ -58,7 +58,7 @@ Options:
 The most simple way to use this command is to call it with only the pattern option, which will generate an architecture with the default filename `architecture.json` in the current working directory.
 
 ```shell
-% calm generate -p calm/pattern/api-gateway.json
+% calm generate -p ./conferences/osff-ln-2025/workshop/conference-signup.pattern.json
 ```
 
 ### Validating a CALM architecture
@@ -87,11 +87,11 @@ Options:
 This command can output warnings and errors - the command will only exit with an error code if there are errors present in the output.
 Warnings are sometimes provided as hints about how to improve the architecture, but they are not essential for the architecture to match the pattern.
 
-If you were to try and generate an architecture from the api-pattern, and then validate the architecture against that pattern like this
+If you were to try and generate an architecture from the conference pattern, and then validate the architecture against that pattern like this
 
 ```shell
-% calm generate -p calm/pattern/api-gateway.json
-% calm validate -p calm/pattern/api-gateway.json -a architecture.json
+% calm generate -p ./conferences/osff-ln-2025/workshop/conference-signup.pattern.json -o ./conferences/osff-ln-2025/workshop/architecture/conference-signup.arch.json
+% calm validate -p ./conferences/osff-ln-2025/workshop/conference-signup.pattern.json -a ./conferences/osff-ln-2025/workshop/architecture/conference-signup.arch.json
 ```
 
 You would get an output which includes a warning like this:
@@ -102,65 +102,134 @@ You would get an output which includes a warning like this:
     "jsonSchemaValidationOutputs": [],
     "spectralSchemaValidationOutputs": [
         {
-            "code": "architecture-has-no-placeholder-properties-string",
-            "severity": "warning",
-            "message": "String placeholder detected in architecture.",
-            "path": "/nodes/0/interfaces/0/host",
-            "schemaPath": "",
-            "line_start": 10,
-            "line_end": 10,
-            "character_start": 18,
-            "character_end": 30
+          "code": "architecture-has-no-placeholder-properties-string",
+          "severity": "warning",
+          "message": "String placeholder detected in architecture.",
+          "path": "/nodes/conference-website/interfaces/conference-website-url/url",
+          "schemaPath": "",
+          "line_start": 11,
+          "line_end": 11,
+          "character_start": 17,
+          "character_end": 28
         },
         {
-            "code": "architecture-has-no-placeholder-properties-numerical",
-            "severity": "warning",
-            "message": "Numerical placeholder (-1) detected in architecture.",
-            "path": "/nodes/0/interfaces/0/port",
-            "schemaPath": "",
-            "line_start": 11,
-            "line_end": 11,
-            "character_start": 18,
-            "character_end": 20
+          "code": "architecture-has-no-placeholder-properties-string",
+          "severity": "warning",
+          "message": "String placeholder detected in architecture.",
+          "path": "/nodes/load-balancer/interfaces/load-balancer-host-port/host",
+          "schemaPath": "",
+          "line_start": 23,
+          "line_end": 23,
+          "character_start": 18,
+          "character_end": 30
         },
         {
-            "code": "architecture-has-no-placeholder-properties-string",
-            "severity": "warning",
-            "message": "String placeholder detected in architecture.",
-            "path": "/nodes/0/well-known-endpoint",
-            "schemaPath": "",
-            "line_start": 14,
-            "line_end": 14,
-            "character_start": 29,
-            "character_end": 56
+          "code": "architecture-has-no-placeholder-properties-numerical",
+          "severity": "warning",
+          "message": "Numerical placeholder (-1) detected in architecture.",
+          "path": "/nodes/load-balancer/interfaces/load-balancer-host-port/port",
+          "schemaPath": "",
+          "line_start": 24,
+          "line_end": 24,
+          "character_start": 18,
+          "character_end": 20
         },
         {
-            "code": "architecture-has-no-placeholder-properties-string",
-            "severity": "warning",
-            "message": "String placeholder detected in architecture.",
-            "path": "/nodes/2/interfaces/0/host",
-            "schemaPath": "",
-            "line_start": 31,
-            "line_end": 31,
-            "character_start": 18,
-            "character_end": 30
+          "code": "architecture-has-no-placeholder-properties-string",
+          "severity": "warning",
+          "message": "String placeholder detected in architecture.",
+          "path": "/nodes/attendees/interfaces/attendees-image/image",
+          "schemaPath": "",
+          "line_start": 36,
+          "line_end": 36,
+          "character_start": 19,
+          "character_end": 32
         },
         {
-            "code": "architecture-has-no-placeholder-properties-numerical",
-            "severity": "warning",
-            "message": "Numerical placeholder (-1) detected in architecture.",
-            "path": "/nodes/2/interfaces/0/port",
-            "schemaPath": "",
-            "line_start": 32,
-            "line_end": 32,
-            "character_start": 18,
-            "character_end": 20
+          "code": "architecture-has-no-placeholder-properties-numerical",
+          "severity": "warning",
+          "message": "Numerical placeholder (-1) detected in architecture.",
+          "path": "/nodes/attendees/interfaces/attendees-port/port",
+          "schemaPath": "",
+          "line_start": 40,
+          "line_end": 40,
+          "character_start": 18,
+          "character_end": 20
+        },
+        {
+          "code": "architecture-has-no-placeholder-properties-string",
+          "severity": "warning",
+          "message": "String placeholder detected in architecture.",
+          "path": "/nodes/attendees-store/interfaces/database-image/image",
+          "schemaPath": "",
+          "line_start": 52,
+          "line_end": 52,
+          "character_start": 19,
+          "character_end": 32
+        },
+        {
+          "code": "architecture-has-no-placeholder-properties-numerical",
+          "severity": "warning",
+          "message": "Numerical placeholder (-1) detected in architecture.",
+          "path": "/nodes/attendees-store/interfaces/database-port/port",
+          "schemaPath": "",
+          "line_start": 56,
+          "line_end": 56,
+          "character_start": 18,
+          "character_end": 20
         }
     ],
     "hasErrors": false,
     "hasWarnings": true
 }
 ...
+```
+
+You can also request pretty text output, which shows the same paths and the exact source lines/columns:
+
+```shell
+Summary
+- Errors: no (0)
+- Warnings: yes (7)
+- Info/Hints: 0
+
+WARN  issues:
+- In conference-signup.arch.json (./conferences/osff-ln-2025/workshop/architecture/conference-signup.arch.json):
+  WARN  architecture-has-no-placeholder-properties-string: String placeholder detected in architecture.
+    path: /nodes/conference-website/interfaces/conference-website-url/url
+    at line 11, col 18 (./conferences/osff-ln-2025/workshop/architecture/conference-signup.arch.json)
+    11 |           "url": "[[ URL ]]"
+       |                  ^^^^^^^^^^^
+  WARN  architecture-has-no-placeholder-properties-string: String placeholder detected in architecture.
+    path: /nodes/load-balancer/interfaces/load-balancer-host-port/host
+    at line 23, col 19 (./conferences/osff-ln-2025/workshop/architecture/conference-signup.arch.json)
+    23 |           "host": "[[ HOST ]]",
+       |                   ^^^^^^^^^^^^
+  WARN  architecture-has-no-placeholder-properties-numerical: Numerical placeholder (-1) detected in architecture.
+    path: /nodes/load-balancer/interfaces/load-balancer-host-port/port
+    at line 24, col 19 (./conferences/osff-ln-2025/workshop/architecture/conference-signup.arch.json)
+    24 |           "port": -1
+       |                   ^^
+  WARN  architecture-has-no-placeholder-properties-string: String placeholder detected in architecture.
+    path: /nodes/attendees/interfaces/attendees-image/image
+    at line 36, col 20 (./conferences/osff-ln-2025/workshop/architecture/conference-signup.arch.json)
+    36 |           "image": "[[ IMAGE ]]"
+       |                    ^^^^^^^^^^^^^
+  WARN  architecture-has-no-placeholder-properties-numerical: Numerical placeholder (-1) detected in architecture.
+    path: /nodes/attendees/interfaces/attendees-port/port
+    at line 40, col 19 (./conferences/osff-ln-2025/workshop/architecture/conference-signup.arch.json)
+    40 |           "port": -1
+       |                   ^^
+  WARN  architecture-has-no-placeholder-properties-string: String placeholder detected in architecture.
+    path: /nodes/attendees-store/interfaces/database-image/image
+    at line 52, col 20 (./conferences/osff-ln-2025/workshop/architecture/conference-signup.arch.json)
+    52 |           "image": "[[ IMAGE ]]"
+       |                    ^^^^^^^^^^^^^
+  WARN  architecture-has-no-placeholder-properties-numerical: Numerical placeholder (-1) detected in architecture.
+    path: /nodes/attendees-store/interfaces/database-port/port
+    at line 56, col 19 (./conferences/osff-ln-2025/workshop/architecture/conference-signup.arch.json)
+    56 |           "port": -1
+       |                   ^^
 ```
 
 which is just letting you know that you have left in some placeholder values which might have been generated with the generate command.

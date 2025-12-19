@@ -1,6 +1,6 @@
 {
     "name": "@finos/calm-cli",
-    "version": "1.21.0",
+    "version": "1.24.1",
     "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
     "homepage": "https://calm.finos.org",
     "repository": {
@@ -39,6 +39,7 @@
     "dependencies": {
         "@apidevtools/json-schema-ref-parser": "^14.0.0",
         "@inquirer/prompts": "^7.4.1",
+        "@stoplight/json": "^3.21.7",
         "commander": "^14.0.0",
         "copyfiles": "^2.4.1",
         "execa": "^9.6.0",

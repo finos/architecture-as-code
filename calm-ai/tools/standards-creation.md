@@ -24,7 +24,7 @@ All Standards must follow this base structure:
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "[Descriptive Title]",
   "type": "object",
   "properties": {
@@ -67,7 +67,7 @@ For defining reusable schema fragments:
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "NIST Document Standard",
   "type": "object",
   "properties": {
@@ -100,10 +100,10 @@ For extending CALM components directly:
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Company Node Standard",
   "allOf": [
-    { "$ref": "https://calm.finos.org/schemas/core.json#/defs/node" },
+    { "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node" },
     {
       "type": "object",
       "properties": {
@@ -131,10 +131,10 @@ For extending CALM components directly:
 
 Common `$ref` patterns for extending CALM components:
 
-- **Nodes**: `https://calm.finos.org/schemas/core.json#/defs/node`
-- **Interfaces**: `https://calm.finos.org/schemas/core.json#/defs/interface`
-- **Relationships**: `https://calm.finos.org/schemas/core.json#/defs/relationship`
-- **Controls**: `https://calm.finos.org/schemas/core.json#/defs/control`
+- **Nodes**: `https://calm.finos.org/release/1.1/meta/core.json#/defs/node`
+- **Interfaces**: `https://calm.finos.org/release/1.1/meta/core.json#/defs/interface`
+- **Relationships**: `https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship`
+- **Controls**: `https://calm.finos.org/release/1.1/meta/core.json#/defs/control`
 
 **Note**: Exact URLs may vary based on CALM schema hosting.
 Always verify current schema locations.
@@ -180,13 +180,29 @@ Standards work seamlessly with `calm validate`:
 3. **Validation**: Applies standard JSON Schema validation
 4. **Error Reporting**: Clear messages indicate Standard requirement violations
 
+### Local Development with URL Mapping
+
+When developing Standards locally before publishing to a public URL, use the `--url-to-local-file-mapping` option to map canonical URLs to local files:
+
+```bash
+# Create a mapping file (url-mapping.json)
+{
+  "https://company.com/standards/company-node.json": "standards/company-node.json"
+}
+
+# Validate using the mapping
+calm validate -p pattern.json -a architecture.json -u url-mapping.json
+```
+
+This allows patterns and architectures to reference Standards via their canonical URLs while the actual files exist locally. See **calm-cli-instructions.md** for complete URL mapping documentation.
+
 ## Common Standard Examples
 
 ### Company Node Requirements
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Company Node Standard",
   "type": "object",
   "properties": {
@@ -210,7 +226,7 @@ Standards work seamlessly with `calm validate`:
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OAuth Interface Standard",
   "type": "object",
   "properties": {
@@ -236,7 +252,7 @@ Standards work seamlessly with `calm validate`:
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Security Control Standard",
   "type": "object",
   "properties": {
@@ -274,7 +290,7 @@ Standards work seamlessly with `calm validate`:
   "defs": {
     "company-node": {
       "allOf": [
-        { "$ref": "https://calm.finos.org/schemas/core.json#/defs/node" },
+        { "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node" },
         { "$ref": "https://company.com/standards/company-node.json" }
       ]
     }
@@ -289,7 +305,7 @@ Standards work seamlessly with `calm validate`:
   "defs": {
     "enterprise-node": {
       "allOf": [
-        { "$ref": "https://calm.finos.org/schemas/core.json#/defs/node" },
+        { "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node" },
         { "$ref": "https://company.com/standards/company-node.json" },
         { "$ref": "https://industry.org/standards/security-node.json" }
       ]
