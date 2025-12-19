@@ -172,15 +172,19 @@ const hasMetadata = !!metadataValue && typeof metadataValue === 'object';
 
 ### 3. Test Fixture Format
 
-**Problem**: Expected output files should contain raw output, not markdown fences.
+**Problem**: Expected output files should contain raw output, not markdown code fences.
 
-```markdown
-<!-- WRONG - expected.md with code fence -->
+The `expected.md` files in test fixtures should contain the **raw HTML output** that the template produces, not wrapped in markdown code fences.
+
+**Wrong** - `expected.md` containing a code fence:
+````
 ```markdown
 <div class="table-container">...</div>
 ```
+````
 
-<!-- CORRECT - expected.md with raw HTML -->
+**Correct** - `expected.md` containing raw HTML:
+```
 <div class="table-container">...</div>
 ```
 
