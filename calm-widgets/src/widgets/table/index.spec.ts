@@ -505,4 +505,160 @@ describe('TableWidget', () => {
         });
     });
 
+    describe('additionalProperties flattening', () => {
+        it('merges properties from additionalProperties into the main object', () => {
+            const context = {
+                'unique-id': 'test-node',
+                'name': 'Test Node',
+                'additionalProperties': {
+                    'custom-prop-1': 'value1',
+                    'custom-prop-2': 42
+                }
+            };
+            const vm = TableWidget.transformToViewModel!(context, {
+                orientation: 'vertical'
+            });
+
+            // additionalProperties should be flattened and their values accessible
+            expect(vm.rows[0].data['custom-prop-1']).toBe('value1');
+            expect(vm.rows[0].data['custom-prop-2']).toBe(42);
+        });
+
+        it('removes the additionalProperties wrapper key from final data', () => {
+            const context = {
+                'unique-id': 'test-node',
+                'additionalProperties': {
+                    'custom-prop': 'value'
+                }
+            };
+            const vm = TableWidget.transformToViewModel!(context, {
+                orientation: 'vertical'
+            });
+
+            // The additionalProperties wrapper should not appear in the data
+            expect(vm.rows[0].data).not.toHaveProperty('additionalProperties');
+        });
+
+        it('includes additionalProperties in extended section', () => {
+            const context = {
+                'unique-id': 'test-node',
+                'name': 'Test Node',
+                'description': 'A test',
+                'node-type': 'service',
+                'additionalProperties': {
+                    'custom-prop': 'extended-value'
+                }
+            };
+            const vm = TableWidget.transformToViewModel!(context, {
+                sections: 'extended',
+                orientation: 'vertical'
+            });
+
+            // Extended section should include flattened additionalProperties
+            expect(vm.columnNames).toContain('custom-prop');
+            expect(vm.rows[0].data['custom-prop']).toBe('extended-value');
+        });
+
+        it('handles duplicate keys - additionalProperties values take precedence', () => {
+            // When the same key exists in both the main object and additionalProperties,
+            // the spread operator makes additionalProperties take precedence
+            const context = {
+                'unique-id': 'test-node',
+                'custom-prop': 'original-value',
+                'additionalProperties': {
+                    'custom-prop': 'overridden-value'
+                }
+            };
+            const vm = TableWidget.transformToViewModel!(context, {
+                orientation: 'vertical'
+            });
+
+            // additionalProperties value should override the main object value
+            expect(vm.rows[0].data['custom-prop']).toBe('overridden-value');
+        });
+
+        it('handles empty additionalProperties object', () => {
+            const context = {
+                'unique-id': 'test-node',
+                'name': 'Test Node',
+                'additionalProperties': {}
+            };
+            const vm = TableWidget.transformToViewModel!(context, {
+                orientation: 'vertical'
+            });
+
+            // Should work normally with no additional properties
+            expect(vm.rows[0].data).toHaveProperty('unique-id');
+            expect(vm.rows[0].data).toHaveProperty('name');
+            expect(vm.rows[0].data).not.toHaveProperty('additionalProperties');
+        });
+
+        it('handles non-object additionalProperties (should be ignored)', () => {
+            const context = {
+                'unique-id': 'test-node',
+                'name': 'Test Node',
+                'additionalProperties': 'not-an-object'
+            };
+            const vm = TableWidget.transformToViewModel!(context, {
+                orientation: 'vertical'
+            });
+
+            // Non-object additionalProperties should be ignored (not flattened)
+            // but the key itself may still appear in the data
+            expect(vm.rows[0].data).toHaveProperty('unique-id');
+            expect(vm.rows[0].data).toHaveProperty('name');
+        });
+
+        it('handles additionalProperties being null', () => {
+            const context = {
+                'unique-id': 'test-node',
+                'name': 'Test Node',
+                'additionalProperties': null
+            };
+            const vm = TableWidget.transformToViewModel!(context, {
+                orientation: 'vertical'
+            });
+
+            // Null additionalProperties should be handled gracefully
+            expect(vm.rows[0].data).toHaveProperty('unique-id');
+            expect(vm.rows[0].data).toHaveProperty('name');
+        });
+
+        it('handles additionalProperties being undefined', () => {
+            const context = {
+                'unique-id': 'test-node',
+                'name': 'Test Node',
+                'additionalProperties': undefined
+            };
+            const vm = TableWidget.transformToViewModel!(context, {
+                orientation: 'vertical'
+            });
+
+            // Undefined additionalProperties should be handled gracefully
+            expect(vm.rows[0].data).toHaveProperty('unique-id');
+            expect(vm.rows[0].data).toHaveProperty('name');
+        });
+
+        it('handles nested objects within additionalProperties', () => {
+            const context = {
+                'unique-id': 'test-node',
+                'additionalProperties': {
+                    'nested-config': {
+                        'setting1': 'value1',
+                        'setting2': 123
+                    }
+                }
+            };
+            const vm = TableWidget.transformToViewModel!(context, {
+                orientation: 'vertical'
+            });
+
+            // Nested objects should be preserved as-is for recursive table rendering
+            expect(vm.rows[0].data['nested-config']).toEqual({
+                'setting1': 'value1',
+                'setting2': 123
+            });
+        });
+    });
+
 });
