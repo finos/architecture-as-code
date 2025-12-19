@@ -283,4 +283,4 @@ git tag | grep -q "day-20"
 
 ## Next Steps
 
-Tomorrow (Day 21) you'll explore using CALM Hub to publish and share your architectures with your team!
+Tomorrow (Day 21) you'll start to put together all that you have learnt in the past twenty days.
