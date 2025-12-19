@@ -140,15 +140,7 @@ architecture-compliance:
 3. Teams update their architectures to add the new property
 4. No structural patterns needed to change - governance applied universally
 
-### 8. Generate Updated Documentation
-
-```bash
-calm docify -a architectures/generated-webapp.json -o docs/webapp
-```
-
-Review the generated docs to see how Standard properties appear alongside structural information.
-
-### 9. Update Pattern Documentation
+### 8. Update Pattern Documentation
 
 **Prompt:**
 ```text
@@ -162,7 +154,7 @@ Update patterns/README.md to document the multi-pattern validation approach:
    - company-base-pattern.json (standards)
 ```
 
-### 10. Update Project README
+### 9. Update Project README
 
 **Prompt:**
 ```text
@@ -171,7 +163,7 @@ Update README.md to:
 2. Add section about multi-pattern validation approach
 ```
 
-### 11. Commit Your Work
+### 10. Commit Your Work
 
 ```bash
 git add architectures/generated-webapp.json patterns/README.md README.md
@@ -283,4 +275,4 @@ git tag | grep -q "day-20"
 
 ## Next Steps
 
-Tomorrow (Day 21) you'll explore using CALM Hub to publish and share your architectures with your team!
+Tomorrow (Day 21) you'll start to put together all that you have learnt in the past twenty days.
