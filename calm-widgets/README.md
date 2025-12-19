@@ -26,7 +26,7 @@ Renders data as Markdown tables with support for nested objects and column filte
 {{table nodes["my-node"] orientation="vertical" sections="extended"}}
 {{table nodes["my-node"] orientation="vertical" sections="metadata"}}
 
-{{!-- Sections can also be combined intoa. single table --}}
+{{!-- Sections can also be combined into a single table --}}
 {{table nodes["my-node"] orientation="vertical" sections="overview,extended,metadata"}}
 
 {{!-- Display message when table is empty --}}
