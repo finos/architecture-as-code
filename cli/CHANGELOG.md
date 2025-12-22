@@ -5,6 +5,26 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.25.0] - 2025-12-22
+
+## 1.25.0 (2025-12-22)
+
+*  ([a8e006ac88271c13b948cabd2a59243836a19b2e](https://github.com/finos/architecture-as-code/commit/a8e006ac88271c13b948cabd2a59243836a19b2e))
+* Add support for rendering additional properties in VS Code Preview ([4b6eb8783f680a3229a38a438c6da6ff1876e9cc](https://github.com/finos/architecture-as-code/commit/4b6eb8783f680a3229a38a438c6da6ff1876e9cc))
+* build(calm-hub): exclude config classes from jacoco checks ([d965fb88d1c7bcbca90680f359acd0126f90a81b](https://github.com/finos/architecture-as-code/commit/d965fb88d1c7bcbca90680f359acd0126f90a81b))
+* build(calm-hub): exclude config classes from jacoco checks ([73bbaed54887305488c778a8788913439ef0758d](https://github.com/finos/architecture-as-code/commit/73bbaed54887305488c778a8788913439ef0758d))
+* docs(calm-widgets): Fix confusing nested code fence example in AGENTS.md ([4e79e8244613f13dc1cf7aaa4ac835ecdf6c9dcb](https://github.com/finos/architecture-as-code/commit/4e79e8244613f13dc1cf7aaa4ac835ecdf6c9dcb))
+* feat(calm-widgets): Add support for rendering additional properties ([4fc55deb6bbb2ae05a9520d63a48994cc0e22db3](https://github.com/finos/architecture-as-code/commit/4fc55deb6bbb2ae05a9520d63a48994cc0e22db3))
+* feat(calm-widgets): Add support for rendering additional properties ([fe5d9b81588396120b49bc3508ccf09b5a6d890a](https://github.com/finos/architecture-as-code/commit/fe5d9b81588396120b49bc3508ccf09b5a6d890a))
+* feat(calm-widgets): Add support for rendering additional properties ([b43ae59568e54e3d040a39382fd03e316ab0c2a2](https://github.com/finos/architecture-as-code/commit/b43ae59568e54e3d040a39382fd03e316ab0c2a2))
+* fix(aoc): Fix 'next steps' on day 20 ([2ec90c8bd5353ab3800b116319861d8d4c2fd3f9](https://github.com/finos/architecture-as-code/commit/2ec90c8bd5353ab3800b116319861d8d4c2fd3f9))
+* fix(aoc): Fix 'next steps' on day 20 ([f35377c0547aa8896d342e22bf46877093b20736](https://github.com/finos/architecture-as-code/commit/f35377c0547aa8896d342e22bf46877093b20736))
+* fix(aoc): Fix page titles for days 20-24 ([8f2626f2bda65f23a0db28323ddd8dba486dd735](https://github.com/finos/architecture-as-code/commit/8f2626f2bda65f23a0db28323ddd8dba486dd735))
+* fix(aoc): remove section 8 from day 20 ([e80f8509b0d845f46c7e56967c31c833ca51e8ed](https://github.com/finos/architecture-as-code/commit/e80f8509b0d845f46c7e56967c31c833ca51e8ed))
+* fix(aoc): remove section 8 from day 20 - additional properties don't appear in default docify output ([5ad8765f98916d941e9250a9afb0db883267fbeb](https://github.com/finos/architecture-as-code/commit/5ad8765f98916d941e9250a9afb0db883267fbeb))
+* fix(vscode): Route widget debug logs to log.debug for proper filtering ([95a49f8954c6b4bd3814a93ede94996bc05d34f2](https://github.com/finos/architecture-as-code/commit/95a49f8954c6b4bd3814a93ede94996bc05d34f2))
+* test(calm-widgets): Add unit tests for additionalProperties flattening ([86025bf32b09a4243e663a38d9e69a62bd406cac](https://github.com/finos/architecture-as-code/commit/86025bf32b09a4243e663a38d9e69a62bd406cac))
+
 ## [1.24.1] - 2025-12-17
 
 ## <small>1.24.1 (2025-12-17)</small>
