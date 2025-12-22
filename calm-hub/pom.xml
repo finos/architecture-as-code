@@ -29,7 +29,7 @@
                 <artifactId>netty-bom</artifactId>
                 <!-- Force patched Netty version to mitigate CVE-2025-58057 (affecting
                 4.1.124.Final) -->
-                <version>4.2.7.Final</version>
+                <version>4.2.9.Final</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -283,25 +283,25 @@
                 <dependency>
                     <groupId>org.testcontainers</groupId>
                     <artifactId>testcontainers</artifactId>
-                    <version>1.21.3</version>
+                    <version>1.21.4</version>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>org.testcontainers</groupId>
                     <artifactId>mongodb</artifactId>
-                    <version>1.21.3</version>
+                    <version>1.21.4</version>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>org.testcontainers</groupId>
                     <artifactId>junit-jupiter</artifactId>
-                    <version>1.21.3</version>
+                    <version>1.21.4</version>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.github.dasniko</groupId>
                     <artifactId>testcontainers-keycloak</artifactId>
-                    <version>3.9.0</version>
+                    <version>3.9.1</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
