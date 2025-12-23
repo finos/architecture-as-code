@@ -48,10 +48,3 @@ export type IdAndPosition = {
     nodeId: string;
     position: cytoscape.Position;
 };
-
-export type HubParams = {
-    namespace?: string;
-    type?: 'Architectures' | 'Patterns' | 'Flows' | 'ADRs';
-    id?: string;
-    version?: string;
-};
