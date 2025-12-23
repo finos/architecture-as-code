@@ -86,6 +86,14 @@ function normalizeModel(input: any): CalmModel {
             const src = rt.connects?.source?.node ?? r.source
             const dst = rt.connects?.destination?.node ?? r.target
             if (src && dst) relationships!.push({ id: relId ?? `${src}->${dst}`, source: src, target: dst, label, type: 'connects', description: r.description, raw: r })
+        } else if (rt && typeof rt === 'object' && rt.interacts) {
+            const actor = rt.interacts?.actor
+            const ns: string[] = Array.isArray(rt.interacts?.nodes) ? rt.interacts.nodes : []
+            for (const n of ns) {
+                // direction: actor -> node (interacts with)
+                const id = relId ? `${relId}:${n}` : `${actor}->${n}`
+                if (n && actor) relationships!.push({ id, source: actor, target: n, label: 'interacts', type: 'interacts', description: r.description, raw: r })
+            }
         } else if (rt && typeof rt === 'object' && rt['deployed-in']) {
             const container = rt['deployed-in']?.container
             const ns: string[] = Array.isArray(rt['deployed-in']?.nodes) ? rt['deployed-in'].nodes : []
