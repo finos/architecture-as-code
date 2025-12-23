@@ -52,9 +52,9 @@ export class ModelIndex {
         for (const r of rels) {
             const raw = r.raw || {}
             const rt = raw['relationship-type'] ?? r.type
-            const isContainment = rt && typeof rt === 'object' && (rt['deployed-in'] || rt['composed-of'])
+            const hasMultipleTargets = rt && typeof rt === 'object' && (rt['deployed-in'] || rt['composed-of'] || rt.interacts)
             const rawId = raw['unique-id'] ?? raw.id
-            const groupId = (isContainment && rawId) ? String(rawId) : String(r.id)
+            const groupId = (hasMultipleTargets && rawId) ? String(rawId) : String(r.id)
             if (grouped.has(groupId)) continue
             const label = (raw.label ?? raw.description ?? r.label ?? groupId) as string
             grouped.set(groupId, { id: groupId, label })
