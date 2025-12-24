@@ -253,7 +253,7 @@ The block architecture widget supports visual themes to customize the appearance
 
 - **`dark`**: Dark mode optimized for low-light environments
   - Boundaries: Dark charcoal with dashed border
-  - Nodes: Medium gray with light borders
+  - Nodes: Very dark gray background with light borders
   - Interfaces: Slate gray with lighter borders
   - Highlights: Amber with golden borders
 
