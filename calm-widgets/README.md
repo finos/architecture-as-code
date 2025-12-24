@@ -260,7 +260,7 @@ The block architecture widget supports visual themes to customize the appearance
 - **`high-contrast`**: Accessibility-focused with strong color contrast
   - Boundaries: Black with bold dashed border
   - Nodes: White with black border
-  - Interfaces: Light yellow with black border
+  - Interfaces: Light gray with black border
   - Highlights: Bright yellow with thick black border
 
 **Custom Theme Colors:**
