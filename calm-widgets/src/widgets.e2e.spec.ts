@@ -348,5 +348,33 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const result = compiled(context);
             expectToBeSameIgnoringLineEndings(result, expected);
         });
+
+        it('renders with light theme (default) using preset color palette', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'theme-light');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expectToBeSameIgnoringLineEndings(result, expected);
+        });
+
+        it('renders with dark theme using dark mode optimized color palette', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'theme-dark');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expectToBeSameIgnoringLineEndings(result, expected);
+        });
+
+        it('renders with high-contrast theme using accessibility-focused color palette', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'theme-high-contrast');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expectToBeSameIgnoringLineEndings(result, expected);
+        });
+
+        it('renders with custom theme colors overriding preset theme properties', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'theme-custom');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expectToBeSameIgnoringLineEndings(result, expected);
+        });
     });
 });

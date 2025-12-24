@@ -14,12 +14,13 @@ classDef messagebus fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#000;
 classDef system fill:#fff8e1,stroke:#f9a825,stroke-width:2px,color:#000;
 
 
-    frontend[[💻 Frontend App]]:::webclient
     backend[/"⚙️ Backend API"/]:::service
     db[(🗄️ Database)]:::database
+    frontend[[💻 Frontend App]]:::webclient
 
     frontend -->|API calls| backend
     backend -->|Data access| db
+
 
 
 ```
@@ -40,12 +41,13 @@ classDef messagebus fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#000;
 classDef system fill:#fff8e1,stroke:#f9a825,stroke-width:2px,color:#000;
 
 
-    frontend[[💻 Frontend App]]:::webclient
     backend[/"⚙️ Backend API"/]:::service
     db[(🗄️ Database)]:::database
+    frontend[[💻 Frontend App]]:::webclient
 
     frontend -->|API calls| backend
     backend -->|Data access| db
+
 
 
 ```

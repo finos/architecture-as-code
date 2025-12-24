@@ -14,10 +14,11 @@ classDef messagebus fill:#ffccee,stroke:#cc0066,stroke-width:3px,color:#000;
 classDef system fill:#ffffcc,stroke:#cc9900,stroke-width:3px,color:#000;
 
 
-    frontend[[💻 Frontend App]]:::webclient
     backend[/"⚙️ Backend API"/]:::service
+    frontend[[💻 Frontend App]]:::webclient
 
     frontend -->|API calls| backend
+
 
 
 ```
