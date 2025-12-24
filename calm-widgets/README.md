@@ -206,7 +206,7 @@ Renders a system architecture as a Mermaid flowchart with optional containers (s
 | Option                | Type | Default | Description |
 |-----------------------|---|---:|---|
 | `theme`               | `'light' \| 'dark' \| 'high-contrast'` | `'light'` | Visual theme preset with predefined color palettes for diagram elements. |
-| `theme-colors`        | stringified JSON map | — | Custom color overrides or complete theme. Merges with preset theme or replaces it entirely. Must include `boundary`, `node`, `iface`, and `highlight` objects with `fill`, `stroke`, and optional `strokeDasharray`, `strokeWidth`, `fontSize` properties. |
+| `theme-colors`        | stringified JSON map | — | Custom color overrides or complete theme. Merges with preset theme or replaces it entirely. Must include `boundary`, `node`, `iface`, and `highlight` objects. Each object requires `fill` and `stroke` properties, and optionally `strokeDasharray`, `strokeWidth`, `fontSize`. |
 | `focus-nodes`         | string (CSV) | — | Restrict the view to these node IDs (and, if containers are shown, their parent/child context per other options). |
 | `focus-relationships` | string (CSV) | — | Restrict view to the specified relationship unique-ids. Only those relationships and the nodes they connect are included (plus containers per settings). |
 | `focus-flows`         | string (CSV) | — | Restrict edges to transitions that belong to the given **flow unique-ids or names** (case-insensitive). Only nodes touching those edges are included (plus containers per settings). |
