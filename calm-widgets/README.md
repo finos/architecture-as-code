@@ -284,7 +284,7 @@ Each theme must define four element types: `boundary`, `node`, `iface`, and `hig
 - `fill` (required): Background/fill color (hex format: `#rrggbb`)
 - `stroke` (required): Border/stroke color (hex format: `#rrggbb`)
 - `strokeDasharray` (optional): Dash pattern for borders (e.g., `"5 4"` for dashed lines)
-- `strokeWidth` (optional): Border thickness in pixels (e.g., `"2px"`)
+- `strokeWidth` (optional): Border thickness in pixels as a number (e.g., `2`)
 - `fontSize` (optional): Text size (e.g., `"10px"` for interface labels)
 
 **Node type shapes** (when `render-node-type-shapes=true`) can also have custom colors:
