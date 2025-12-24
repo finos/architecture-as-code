@@ -297,23 +297,23 @@ Example complete custom theme:
     "fill": "#e3f2fd",
     "stroke": "#1976d2",
     "strokeDasharray": "5 4",
-    "strokeWidth": "2px"
+    "strokeWidth": 2
   },
   "node": {
     "fill": "#fff3e0",
     "stroke": "#f57c00",
-    "strokeWidth": "1px"
+    "strokeWidth": 1
   },
   "iface": {
     "fill": "#f3e5f5",
     "stroke": "#7b1fa2",
-    "strokeWidth": "1px",
+    "strokeWidth": 1,
     "fontSize": "10px"
   },
   "highlight": {
     "fill": "#ffebee",
     "stroke": "#c62828",
-    "strokeWidth": "2px"
+    "strokeWidth": 2
   },
   "actor": {
     "fill": "#e8f5e9",
