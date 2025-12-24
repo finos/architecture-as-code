@@ -1,0 +1,49 @@
+{
+    "nodes": [
+        {
+            "unique-id": "frontend",
+            "node-type": "webclient",
+            "name": "Frontend App"
+        },
+        {
+            "unique-id": "backend",
+            "node-type": "service",
+            "name": "Backend API"
+        },
+        {
+            "unique-id": "db",
+            "node-type": "database",
+            "name": "Database"
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "rel-1",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "frontend"
+                    },
+                    "destination": {
+                        "node": "backend"
+                    }
+                }
+            },
+            "description": "API calls"
+        },
+        {
+            "unique-id": "rel-2",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "backend"
+                    },
+                    "destination": {
+                        "node": "db"
+                    }
+                }
+            },
+            "description": "Data access"
+        }
+    ]
+}
