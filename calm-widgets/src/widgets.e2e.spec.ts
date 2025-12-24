@@ -10,8 +10,8 @@ describe('Widgets E2E - Handlebars Integration', () => {
     let engine: WidgetEngine;
     let fixtures: FixtureLoader;
 
-    let normalizeLineEndings = (str: string) => str.replaceAll('\r\n', '\n');
-    let expectToBeSameIgnoringLineEndings = (actual: string, expected: string) => {
+    const normalizeLineEndings = (str: string) => str.replaceAll('\r\n', '\n');
+    const expectToBeSameIgnoringLineEndings = (actual: string, expected: string) => {
         expect(normalizeLineEndings(actual.trim())).toBe(normalizeLineEndings(expected));
     };
 
