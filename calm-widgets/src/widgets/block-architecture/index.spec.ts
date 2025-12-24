@@ -33,6 +33,7 @@ describe('BlockArchitectureWidget', () => {
             renderNodeTypeShapes: false,
             edgeLabels: 'description',
             collapseRelationships: false,
+            theme: 'light',
         });
 
         const fakeVM: BlockArchVM = { containers: [], edges: [], attachments: [], looseNodes: [], highlightNodeIds: [], warnings: [] };
@@ -70,6 +71,7 @@ describe('BlockArchitectureWidget', () => {
             renderNodeTypeShapes: false,
             edgeLabels: 'description',
             collapseRelationships: false,
+            theme: 'light',
         });
         expect(builder).toBeInstanceOf(BlockArchVMBuilder);
     });

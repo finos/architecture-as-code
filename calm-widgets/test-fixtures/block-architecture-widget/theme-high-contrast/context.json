@@ -1,0 +1,30 @@
+{
+    "nodes": [
+        {
+            "unique-id": "frontend",
+            "node-type": "webclient",
+            "name": "Frontend App"
+        },
+        {
+            "unique-id": "backend",
+            "node-type": "service",
+            "name": "Backend API"
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "rel-1",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "frontend"
+                    },
+                    "destination": {
+                        "node": "backend"
+                    }
+                }
+            },
+            "description": "API calls"
+        }
+    ]
+}

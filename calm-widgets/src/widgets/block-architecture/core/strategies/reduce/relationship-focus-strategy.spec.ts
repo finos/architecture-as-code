@@ -14,7 +14,8 @@ const baseOpts = (): NormalizedOptions => ({
     renderInterfaces: false,
     renderNodeTypeShapes: false,
     edgeLabels: 'description',
-    collapseRelationships: false
+    collapseRelationships: false,
+    theme: 'light',
 });
 
 function relConnects(id: string, sourceNode: string, sourceIface: string, destNode: string, destIface: string): CalmRelationshipCanonicalModel {

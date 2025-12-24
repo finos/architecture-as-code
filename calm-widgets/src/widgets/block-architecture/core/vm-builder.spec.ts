@@ -12,6 +12,7 @@ const baseOpts = (over: Partial<NormalizedOptions> = {}): NormalizedOptions => (
     renderNodeTypeShapes: false,
     edgeLabels: 'description',
     collapseRelationships: false,
+    theme: 'light',
     ...over,
 });
 
