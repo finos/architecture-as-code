@@ -5,6 +5,21 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.25.1] - 2025-12-24
+
+## <small>1.25.1 (2025-12-24)</small>
+
+*  ([a977d6487ef35a16910e1752b3c8f323b3716fea](https://github.com/finos/architecture-as-code/commit/a977d6487ef35a16910e1752b3c8f323b3716fea))
+* chore(deps): update docker/setup-buildx-action digest to 8d2750c ([512f2f382907c664090fe7ec6a15d1a0a6fe9b4a](https://github.com/finos/architecture-as-code/commit/512f2f382907c664090fe7ec6a15d1a0a6fe9b4a))
+* chore(deps): update docker/setup-buildx-action digest to 8d2750c ([29cf3f0fb855366ce7d4745526fe7ea2480a47b5](https://github.com/finos/architecture-as-code/commit/29cf3f0fb855366ce7d4745526fe7ea2480a47b5))
+* chore(deps): update security updates ([bf8abf18404adfa90c4bc2f6420271000a091bc3](https://github.com/finos/architecture-as-code/commit/bf8abf18404adfa90c4bc2f6420271000a091bc3))
+* chore(deps): update security updates ([f3e0264bb6d9170c8c287a7c3b7fa8b2eae76cb0](https://github.com/finos/architecture-as-code/commit/f3e0264bb6d9170c8c287a7c3b7fa8b2eae76cb0))
+* fix(deps): update patch updates ([2a3d2d0cc2205055f7056772f72c02e4c6974529](https://github.com/finos/architecture-as-code/commit/2a3d2d0cc2205055f7056772f72c02e4c6974529))
+* fix(deps): update patch updates ([410221ac74defc03ef26522610a846566170e0ba](https://github.com/finos/architecture-as-code/commit/410221ac74defc03ef26522610a846566170e0ba))
+* fix(vscode): add tests for model ([cd5cafff3b729454bda039b5b24276d44fa886cb](https://github.com/finos/architecture-as-code/commit/cd5cafff3b729454bda039b5b24276d44fa886cb))
+* fix(vscode): display 'interacts' relationships in the relationships tree view ([8e51136e4655384af4f5697c0e8ac4094f27fada](https://github.com/finos/architecture-as-code/commit/8e51136e4655384af4f5697c0e8ac4094f27fada))
+* fix(vscode): display 'interacts' relationships in the relationships tree view ([bbbb06476de0e5fcfa699223e53c8423e59f4774](https://github.com/finos/architecture-as-code/commit/bbbb06476de0e5fcfa699223e53c8423e59f4774))
+
 ## [1.25.0] - 2025-12-22
 
 ## 1.25.0 (2025-12-22)
