@@ -89,6 +89,7 @@ describe('resolveVisibilityWithStrategies functional', () => {
         renderNodeTypeShapes: false,
         edgeLabels: 'description',
         collapseRelationships: false,
+        theme: 'light',
         ...over,
     });
 

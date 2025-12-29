@@ -10,6 +10,11 @@ describe('Widgets E2E - Handlebars Integration', () => {
     let engine: WidgetEngine;
     let fixtures: FixtureLoader;
 
+    const normalizeLineEndings = (str: string) => str.replaceAll('\r\n', '\n');
+    const expectToBeSameIgnoringLineEndings = (actual: string, expected: string) => {
+        expect(normalizeLineEndings(actual.trim())).toBe(normalizeLineEndings(expected));
+    };
+
     beforeEach(() => {
         handlebars = Handlebars.create();
         registry = new WidgetRegistry(handlebars);
@@ -25,7 +30,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const compiledTemplate = handlebars.compile(template);
             const result = compiledTemplate(context);
 
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders an array of objects as a table without headers', () => {
@@ -34,7 +39,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const compiledTemplate = handlebars.compile(template);
             const result = compiledTemplate(context);
 
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders nested objects recursively', () => {
@@ -43,7 +48,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const compiledTemplate = handlebars.compile(template);
             const result = compiledTemplate(context);
 
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders with specific columns only (column filtering)', () => {
@@ -52,7 +57,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const compiledTemplate = handlebars.compile(template);
             const result = compiledTemplate(context);
 
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders an flat vertical table', () => {
@@ -61,7 +66,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const compiledTemplate = handlebars.compile(template);
             const result = compiledTemplate(context);
 
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders only overview columns when sections="overview"', () => {
@@ -70,7 +75,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const compiledTemplate = handlebars.compile(template);
             const result = compiledTemplate(context);
 
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('displays empty-message when table has no data', () => {
@@ -79,7 +84,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const compiledTemplate = handlebars.compile(template);
             const result = compiledTemplate(context);
 
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('displays empty-message when metadata section has no data', () => {
@@ -88,7 +93,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const compiledTemplate = handlebars.compile(template);
             const result = compiledTemplate(context);
 
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
     });
 
@@ -99,7 +104,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const compiledTemplate = handlebars.compile(template);
             const result = compiledTemplate(context);
 
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders an ordered list when specified', () => {
@@ -108,7 +113,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const compiledTemplate = handlebars.compile(template);
             const result = compiledTemplate(context);
 
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders objects as key-value pairs', () => {
@@ -117,7 +122,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const compiledTemplate = handlebars.compile(template);
             const result = compiledTemplate(context);
 
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
     });
 
@@ -128,7 +133,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const compiledTemplate = handlebars.compile(template);
             const result = compiledTemplate(context);
 
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders complex nested structures', () => {
@@ -137,7 +142,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const compiledTemplate = handlebars.compile(template);
             const result = compiledTemplate(context);
 
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
     });
 
@@ -148,7 +153,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const compiledTemplate = handlebars.compile(template);
             const result = compiledTemplate(context);
 
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
     });
 
@@ -179,14 +184,14 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const { context, template, expected } = fixtures.loadFixture('flow-sequence-widget', 'bidirectional-flow');
             const compiledTemplate = handlebars.compile(template);
             const result = compiledTemplate(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders a flow with interacts and connects', () => {
             const { context, template, expected } = fixtures.loadFixture('flow-sequence-widget', 'interacts-and-connects-flow');
             const compiledTemplate = handlebars.compile(template);
             const result = compiledTemplate(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders a flow from a nested architecture in node details', () => {
@@ -194,7 +199,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
 
             const compiledTemplate = handlebars.compile(template);
             const result = compiledTemplate(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
     });
 
@@ -203,42 +208,42 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const { context, template, expected } = fixtures.loadFixture('related-nodes-widget', 'relationship-interacts');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders a connects relationship', () => {
             const { context, template, expected } = fixtures.loadFixture('related-nodes-widget', 'relationship-connects');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders a composed relationship', () => {
             const { context, template, expected } = fixtures.loadFixture('related-nodes-widget', 'relationship-composed');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders a deployed-in relationship', () => {
             const { context, template, expected } = fixtures.loadFixture('related-nodes-widget', 'relationship-deployed');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders a node composed-of + connects relationships', () => {
             const { context, template, expected } = fixtures.loadFixture('related-nodes-widget', 'node-composed-connects');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders a node with related relationships', () => {
             const { context, template, expected } = fixtures.loadFixture('related-nodes-widget', 'node-with-related');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
     });
 
@@ -247,7 +252,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'basic-structures');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         // Interface rendering variations - consolidated from interfaces-off, interfaces-on-both, interfaces-on-one-side
@@ -255,7 +260,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'interface-variations');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         // Complex real-world scenarios - keep these as they demonstrate practical use cases
@@ -263,35 +268,35 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'enterprise-bank-trading');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders enterprise bank with clickable navigation pattern and progressive detail levels', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'enterprise-bank-navigation');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders a nested architecture with nested relationships', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'nested-architecture');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders large topology with many nodes and connections efficiently', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'large-topology');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('applies domain interaction diagram', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'domain-interaction');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         // New focus flows test - demonstrates flow-based filtering
@@ -299,49 +304,77 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'focus-flows');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('filters architecture based on interface matching by unique-id and properties', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'focus-interfaces');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('filters architecture based on control matching by ID and properties', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'focus-controls');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('filters architecture based on node focusing with comprehensive scenarios', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'focus-nodes');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('filters architecture based on relationship focusing by unique-id', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'focus-relationships');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('collapses multiple relationships between same source and destination into single edges', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'collapse-relationships');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
 
         it('renders nodes with type-specific shapes and colors when render-node-type-shapes option is enabled', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'node-type-shapes');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result.trim()).toBe(expected);
+            expectToBeSameIgnoringLineEndings(result, expected);
+        });
+
+        it('renders with light theme (default) using preset color palette', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'theme-light');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expectToBeSameIgnoringLineEndings(result, expected);
+        });
+
+        it('renders with dark theme using dark mode optimized color palette', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'theme-dark');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expectToBeSameIgnoringLineEndings(result, expected);
+        });
+
+        it('renders with high-contrast theme using accessibility-focused color palette', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'theme-high-contrast');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expectToBeSameIgnoringLineEndings(result, expected);
+        });
+
+        it('renders with custom theme colors overriding preset theme properties', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'theme-custom');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expectToBeSameIgnoringLineEndings(result, expected);
         });
     });
 });

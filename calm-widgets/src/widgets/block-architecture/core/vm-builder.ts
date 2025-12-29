@@ -174,6 +174,7 @@ export class BlockArchVMBuilder {
             linkPrefix: this.options.linkPrefix,
             linkMap: this.options.linkMap,
             nodeTypeMap: this.options.nodeTypeMap,
+            themeColors: this.options.themeColors,
             warnings: this.visibilityResult.warnings,
         };
     }

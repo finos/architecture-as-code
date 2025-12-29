@@ -1,0 +1,29 @@
+{
+    "nodes": [
+        {
+            "unique-id": "user",
+            "node-type": "actor",
+            "name": "User"
+        },
+        {
+            "unique-id": "app",
+            "node-type": "service",
+            "name": "Application"
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "rel-1",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "user"
+                    },
+                    "destination": {
+                        "node": "app"
+                    }
+                }
+            }
+        }
+    ]
+}

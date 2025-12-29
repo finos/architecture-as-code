@@ -17,6 +17,7 @@ const baseOpts = (): NormalizedOptions => ({
     renderNodeTypeShapes: false,
     edgeLabels: 'description',
     collapseRelationships: false,
+    theme: 'light',
 });
 
 const ctrl = (description = 'control'): CalmControlCanonicalModel => ({
