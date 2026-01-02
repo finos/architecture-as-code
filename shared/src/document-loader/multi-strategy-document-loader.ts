@@ -56,4 +56,16 @@ export class MultiStrategyDocumentLoader implements DocumentLoader {
         }
         this.logger.error(report);
     }
+
+    resolvePath(reference: string): string | undefined {
+        for (const loader of this.loaders) {
+            if (loader.resolvePath) {
+                const resolved = loader.resolvePath(reference);
+                if (resolved) {
+                    return resolved;
+                }
+            }
+        }
+        return undefined;
+    }
 }

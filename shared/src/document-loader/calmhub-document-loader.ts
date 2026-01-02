@@ -62,4 +62,10 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         return document;
     }
 
+    /**
+     * Only local files via a mapping file are currently supported.
+     */
+    resolvePath(_reference: string): string | undefined {
+        return undefined;
+    }
 }
