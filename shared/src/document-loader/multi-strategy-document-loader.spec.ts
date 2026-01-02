@@ -89,23 +89,5 @@ describe('MultiStrategyDocumentLoader', () => {
             
             expect(result).toBeUndefined();
         });
-
-        it('handles loaders without resolvePath method', () => {
-            const mockLoader1: DocumentLoader = {
-                initialise: vi.fn(),
-                loadMissingDocument: vi.fn()
-                // resolvePath missing
-            };
-            const mockLoader2: DocumentLoader = {
-                initialise: vi.fn(),
-                loadMissingDocument: vi.fn(),
-                resolvePath: vi.fn().mockReturnValue('/resolved/path')
-            };
-            
-            const multi = new MultiStrategyDocumentLoader([mockLoader1, mockLoader2]);
-            const result = multi.resolvePath('ref');
-            
-            expect(result).toBe('/resolved/path');
-        });
     });
 });

@@ -1,7 +1,7 @@
 import { CalmDocumentType, DocumentLoader, DocumentLoadError } from './document-loader';
 import { initLogger, Logger } from '../logger';
 import { readdir, readFile } from 'fs/promises';
-import { join } from 'path';
+import { join, isAbsolute } from 'path';
 import { SchemaDirectory } from '../schema-directory';
 import { existsSync } from 'fs';
 
@@ -54,14 +54,14 @@ export class FileSystemDocumentLoader implements DocumentLoader {
     async loadMissingDocument(documentId: string, type: CalmDocumentType): Promise<object> {
         // 1. Try to resolve as relative path first
         const resolvedPath = this.resolvePath(documentId);
-        if (resolvedPath && await existsSync(resolvedPath)) {
+        if (resolvedPath && existsSync(resolvedPath)) {
             this.logger.debug(`Resolved relative path: ${documentId} -> ${resolvedPath}`);
             return this.loadDocument(resolvedPath, type);
         }
 
         // 2. Fallback to checking exact path (existing behavior)
         try {
-            if (await existsSync(documentId)) {
+            if (existsSync(documentId)) {
                 this.logger.info(`${documentId} exists, loading as file...`);
                 return this.loadDocument(documentId, type);
             }
@@ -117,7 +117,7 @@ export class FileSystemDocumentLoader implements DocumentLoader {
      * Check if a path is relative (not absolute and not a URL)
      */
     private isRelativePath(ref: string): boolean {
-        if (ref.startsWith('/') || (process.platform === 'win32' && ref.match(/^[a-zA-Z]:/))) {
+        if (isAbsolute(ref)) {
             return false;
         }
         if (ref.startsWith('http://') || ref.startsWith('https://') ||
