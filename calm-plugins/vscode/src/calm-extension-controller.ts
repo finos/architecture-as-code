@@ -1,4 +1,5 @@
 import * as vscode from 'vscode'
+import { NavigationService } from './core/services/navigation-service'
 import { LoggingService } from './core/services/logging-service'
 import type { Logger } from './core/ports/logger'
 import { ConfigService } from './core/services/config-service'
@@ -42,6 +43,15 @@ export class CalmExtensionController {
     const previewPanelFactory = new PreviewPanelFactory()
     const treeManager = new TreeViewFactory(store)
     const editorFactory = new EditorFactory(store)
+    const navigationService = new NavigationService(log, configService)
+
+    // Listen for configuration changes to reset navigation service
+    this.disposables.push(vscode.workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('calm.urlMapping')) {
+        log.info?.('[extension] Configuration changed: calm.urlMapping - resetting navigation service')
+        navigationService.reset()
+      }
+    }))
 
     let _isCurrentlyInTemplateMode = false
     const setTemplateMode = (enabled: boolean) => {
@@ -52,7 +62,8 @@ export class CalmExtensionController {
       store,
       () => previewPanelFactory.getViewModel(),
       treeManager,
-      async (doc: vscode.TextDocument, id: string) => await editorFactory.revealById(doc, id)
+      async (doc: vscode.TextDocument, id: string) => await editorFactory.revealById(doc, id),
+      navigationService
     )
 
     treeManager.bindSelectionService(selectionService)

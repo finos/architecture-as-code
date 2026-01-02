@@ -26,6 +26,11 @@ export class LoggingService implements Logger {
         if (this.shared?.error) this.shared.error(msg)
     }
 
+    debug(msg: string) {
+        this.output.appendLine('[debug] ' + msg)
+        if (this.shared?.debug) this.shared.debug(msg)
+    }
+
     dispose() {
         this.output.dispose()
     }

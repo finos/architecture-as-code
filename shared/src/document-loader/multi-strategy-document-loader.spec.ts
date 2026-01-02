@@ -55,4 +55,39 @@ describe('MultiStrategyDocumentLoader', () => {
         const multi = new MultiStrategyDocumentLoader([mockLoader1, mockLoader2]);
         await expect(multi.loadMissingDocument('id', 'schema')).rejects.toThrow();
     });
+
+    describe('resolvePath', () => {
+        it('returns path from first loader that resolves it', () => {
+            const mockLoader1: DocumentLoader = {
+                initialise: vi.fn(),
+                loadMissingDocument: vi.fn(),
+                resolvePath: vi.fn().mockReturnValue(undefined)
+            };
+            const mockLoader2: DocumentLoader = {
+                initialise: vi.fn(),
+                loadMissingDocument: vi.fn(),
+                resolvePath: vi.fn().mockReturnValue('/resolved/path')
+            };
+            
+            const multi = new MultiStrategyDocumentLoader([mockLoader1, mockLoader2]);
+            const result = multi.resolvePath('ref');
+            
+            expect(result).toBe('/resolved/path');
+            expect(mockLoader1.resolvePath).toHaveBeenCalledWith('ref');
+            expect(mockLoader2.resolvePath).toHaveBeenCalledWith('ref');
+        });
+
+        it('returns undefined if no loader resolves path', () => {
+            const mockLoader1: DocumentLoader = {
+                initialise: vi.fn(),
+                loadMissingDocument: vi.fn(),
+                resolvePath: vi.fn().mockReturnValue(undefined)
+            };
+            
+            const multi = new MultiStrategyDocumentLoader([mockLoader1]);
+            const result = multi.resolvePath('ref');
+            
+            expect(result).toBeUndefined();
+        });
+    });
 });

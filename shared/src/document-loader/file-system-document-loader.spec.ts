@@ -8,6 +8,11 @@ vi.mock('fs/promises', async () => {
     return memfs.fs.promises;
 });
 
+vi.mock('fs', async () => {
+    const memfs: { fs: typeof fs } = await vi.importActual('memfs');
+    return memfs.fs;
+});
+
 const mocks = vi.hoisted(() => {
     return {
         schemaDirectory: {
@@ -48,5 +53,24 @@ describe('file-system-document-loader', () => {
         await expect(fileSystemDocumentLoader.loadMissingDocument('https://example.com/missing_schema.json', 'schema'))
             .rejects
             .toThrow(DocumentLoadError);
+    });
+    it('resolves relative paths when basePath is provided', async () => {
+        const loader = new FileSystemDocumentLoader(['test_fixtures'], false, '/project');
+        vol.fromJSON({
+            '/project/subdir/relative.json': JSON.stringify(exampleSchema)
+        });
+
+        const result = await loader.loadMissingDocument('subdir/relative.json', 'schema');
+        expect(result).toEqual(exampleSchema);
+    });
+
+    it('returns undefined for resolvePath when no basePath provided', () => {
+        const loader = new FileSystemDocumentLoader(['test_fixtures'], false);
+        expect(loader.resolvePath('some/path.json')).toBeUndefined();
+    });
+
+    it('resolves absolute path when resolvePath is called with relative path and basePath', () => {
+        const loader = new FileSystemDocumentLoader(['test_fixtures'], false, '/project');
+        expect(loader.resolvePath('subdir/file.json')).toBe('/project/subdir/file.json');
     });
 });
