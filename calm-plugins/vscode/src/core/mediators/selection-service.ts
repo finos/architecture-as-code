@@ -83,11 +83,16 @@ export class SelectionService {
                 // Find node by ID
                 const node = model.getNodes().find((n: any) => n.id === id)
                 if (node && node.raw) {
-                    const navigated = await this.navigation.navigate(id, node.raw)
-                    if (navigated) {
-                        // If we navigated to a new file, we don't need to update the editor
-                        // for the *current* file's node selection
-                        return
+                    try {
+                        const navigated = await this.navigation.navigate(id, node.raw)
+                        if (navigated) {
+                            // If we navigated to a new file, we don't need to update the editor
+                            // for the *current* file's node selection
+                            return
+                        }
+                    } catch (error) {
+                        console.error('[selection-service] Error during navigation for id:', id, error)
+                    // Continue with normal selection flow
                     }
                 }
             }

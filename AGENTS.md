@@ -155,6 +155,9 @@ npm run dev                # Test in browser
 2. **All new code must have tests** (unit and/or integration)
 3. **Run linting** (see Linting section below)
 
+**IMPORTANT FOR SHARED PACKAGE**:
+If you modify the `shared` package, you **MUST** run tests for **ALL** workspaces (`npm run test`) because `shared` is a dependency for CLI, VSCode extension, and other packages. Changes in `shared` can break downstream consumers.
+
 ```bash
 # Run ALL tests with coverage (required before committing)
 npm test -- --coverage      # TypeScript packages with coverage

@@ -110,10 +110,17 @@ export class NavigationService {
 
         if (targetPath && fs.existsSync(targetPath)) {
             this.logger.info(`[navigation] Resolved to local file: ${targetPath}`)
-            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(targetPath))
-            // Open in Column 1 to avoid replacing the preview panel (which is usually in Column 2)
-            await vscode.window.showTextDocument(doc, vscode.ViewColumn.One)
-            return true
+            try {
+                const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(targetPath))
+                // Open in Column 1 to avoid replacing the preview panel (which is usually in Column 2)
+                await vscode.window.showTextDocument(doc, vscode.ViewColumn.One)
+                return true
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error)
+                this.logger.error?.(`[navigation] Failed to open file ${targetPath}: ${message}`)
+                vscode.window.showErrorMessage(`Failed to open file: ${targetPath}. ${message}`)
+                return false
+            }
         } else {
             this.logger.warn?.(`[navigation] Could not resolve local file for: ${detailedArch}`)
             
