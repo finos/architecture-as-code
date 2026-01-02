@@ -37,6 +37,32 @@ Live-visualize CALM architecture models while you edit them. Features an interac
 ![Live Docify Mode](https://raw.githubusercontent.com/finos/architecture-as-code/main/calm-plugins/vscode/docs/LiveDocifyMode.png)
 *Live templating mode with real-time documentation generation*
 
+## Configuration
+    
+The extension can be configured via VS Code settings (`.vscode/settings.json` or User Settings).
+
+### Multi-Document Navigation
+Navigate between related CALM files using `detailed-architecture` references.
+
+1.  Create a mapping file (e.g., `calm-mapping.json`) in your workspace:
+    ```json
+    {
+      "https://specs.internal/payment-service": "./services/payment-service.json",
+      "https://specs.internal/inventory": "./services/inventory.json"
+    }
+    ```
+2.  Configure the extension to use this mapping:
+    ```json
+    "calm.urlMapping": "calm-mapping.json"
+    ```
+
+### File Discovery
+Customize how the extension finds your CALM models and templates.
+
+-   `calm.files.globs`: Patterns for CALM model files (Default: `["calm/**/*.json", "calm/**/*.y?(a)ml"]`)
+-   `calm.template.globs`: Patterns for template files (Default: `["**/*.md", "**/*.hbs", ...]`)
+-   `calm.cli.path`: Path to the CALM CLI executable (Default: `./cli`)
+
 ## Getting Involved
 
 Architecture as Code was developed as part of the [DevOps Automation Special Interest Group](https://devops.finos.org/) before graduating as a top level project in it's own right. Our community Zoom meetups take place on the fourth Tuesday of every month, see [here](https://github.com/finos/architecture-as-code/issues?q=label%3Ameeting) for upcoming and previous meetings. For active contributors we have Office Hours every Thursday, see the [FINOS Event Calendar](http://calendar.finos.org) for meeting details.

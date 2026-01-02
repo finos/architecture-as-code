@@ -53,4 +53,11 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
             });
         }
     }
+
+    /**
+     * Only local files via a mapping file are currently supported.
+     */
+    resolvePath(_reference: string): string | undefined {
+        return undefined;
+    }
 }

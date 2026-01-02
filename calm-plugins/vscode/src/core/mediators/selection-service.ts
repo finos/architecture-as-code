@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 import type { ApplicationStoreApi } from '../../application-store'
 import type { PreviewViewModelInterface } from '../../features/preview/preview.view-model'
+import { NavigationService } from '../services/navigation-service'
 
 export interface TreeRevealer {
     revealById(id: string): Promise<void>
@@ -20,7 +21,8 @@ export class SelectionService {
         private store: ApplicationStoreApi,
         private getPreview: () => PreviewViewModelInterface | undefined,
         private tree: TreeRevealer,
-        private revealInEditor: (doc: vscode.TextDocument, id: string) => Promise<void>
+        private revealInEditor: (doc: vscode.TextDocument, id: string) => Promise<void>,
+        private navigation?: NavigationService
     ) { }
 
     /** Tree selection changed */
@@ -71,6 +73,25 @@ export class SelectionService {
         store.setSelectedElement(id)
 
         try { await this.tree.revealById(id) } catch { }
+
+        // Attempt navigation first if available
+        if (this.navigation) {
+            // We need the raw node data to check for detailed-architecture
+            // The model index has the nodes
+            const model = store.currentModelIndex
+            if (model) {
+                // Find node by ID
+                const node = model.getNodes().find((n: any) => n.id === id)
+                if (node && node.raw) {
+                    const navigated = await this.navigation.navigate(id, node.raw)
+                    if (navigated) {
+                        // If we navigated to a new file, we don't need to update the editor
+                        // for the *current* file's node selection
+                        return
+                    }
+                }
+            }
+        }
 
         const preview = this.getPreview()
         const uriPath = preview?.getCurrentUriPath()

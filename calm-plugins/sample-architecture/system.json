@@ -1,0 +1,40 @@
+{
+  "nodes": [
+    {
+      "unique-id": "ecommerce-system",
+      "name": "E-Commerce System",
+      "node-type": "system",
+      "description": "Main e-commerce platform"
+    },
+    {
+      "unique-id": "payment-service",
+      "name": "Payment Service",
+      "node-type": "container",
+      "description": "Handles payment processing",
+      "details": {
+        "detailed-architecture": "https://specs.internal/payment-service"
+      }
+    },
+    {
+      "unique-id": "inventory-service",
+      "name": "Inventory Service",
+      "node-type": "container",
+      "description": "Manages product inventory"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "sys-composition",
+      "description": "System Composition",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ecommerce-system",
+          "nodes": [
+            "payment-service",
+            "inventory-service"
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -8,10 +8,12 @@ import { existsSync } from 'fs';
 export class FileSystemDocumentLoader implements DocumentLoader {
     private readonly logger: Logger;
     private readonly directoryPaths: string[];
+    private readonly basePath?: string;
 
-    constructor(directoryPaths: string[], debug: boolean) {
+    constructor(directoryPaths: string[], debug: boolean, basePath?: string) {
         this.logger = initLogger(debug, 'file-system-document-loader');
         this.directoryPaths = directoryPaths;
+        this.basePath = basePath;
     }
 
     async initialise(schemaDirectory: SchemaDirectory): Promise<void> {
@@ -50,7 +52,14 @@ export class FileSystemDocumentLoader implements DocumentLoader {
     }
 
     async loadMissingDocument(documentId: string, type: CalmDocumentType): Promise<object> {
-        // no async exists 
+        // 1. Try to resolve as relative path first
+        const resolvedPath = this.resolvePath(documentId);
+        if (resolvedPath && await existsSync(resolvedPath)) {
+            this.logger.debug(`Resolved relative path: ${documentId} -> ${resolvedPath}`);
+            return this.loadDocument(resolvedPath, type);
+        }
+
+        // 2. Fallback to checking exact path (existing behavior)
         try {
             if (await existsSync(documentId)) {
                 this.logger.info(`${documentId} exists, loading as file...`);
@@ -59,6 +68,7 @@ export class FileSystemDocumentLoader implements DocumentLoader {
         } catch (err) {
             this.logger.error(`Error checking existence of document ID ${documentId}: ${err.message}. This could be because it isn't a file path.`);
         }
+
         this.logger.debug(`Document ID ${documentId} does not exist in file system, cannot load.`);
         const errorMessage = `Document with id [${documentId}] and type [${type}] was requested but not loaded at initialisation. 
             File system document loader can only load at startup. Please ensure the schemas are present on your directory path or use CALMHub.`;
@@ -92,5 +102,31 @@ export class FileSystemDocumentLoader implements DocumentLoader {
         this.logger.debug('Loaded schema with $id: ' + schemaId);
 
         return parsed;
+    }
+
+    resolvePath(reference: string): string | undefined {
+        if (this.basePath && this.isRelativePath(reference)) {
+            // Resolve against base path
+            // Note: join handles relative segments like .. correctly
+            return join(this.basePath, reference);
+        }
+        return undefined;
+    }
+
+    /**
+     * Check if a path is relative (not absolute and not a URL)
+     */
+    private isRelativePath(ref: string): boolean {
+        if (ref.startsWith('/')) return false; // fast check for absolute on unix-like
+
+
+        if (ref.startsWith('/') || (process.platform === 'win32' && ref.match(/^[a-zA-Z]:/))) {
+            return false;
+        }
+        if (ref.startsWith('http://') || ref.startsWith('https://') ||
+            ref.startsWith('file://') || ref.startsWith('calm:')) {
+            return false;
+        }
+        return true;
     }
 }

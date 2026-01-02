@@ -39,6 +39,10 @@ export class ModelIndex {
     rangeOf(id: string): any | undefined {
         return this.idToRange.get(id)
     }
+    getNodes() {
+        return this.model.nodes || []
+    }
+
     get nodes() {
         return (this.model.nodes || []).map(n => ({
             id: n.id,

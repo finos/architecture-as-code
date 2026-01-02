@@ -13,6 +13,11 @@ export const CALM_HUB_PROTO = 'calm:';
 export interface DocumentLoader {
     initialise(schemaDirectory: SchemaDirectory): Promise<void>;
     loadMissingDocument(documentId: string, type: CalmDocumentType): Promise<object>;
+    /**
+     * Resolve a reference (URL or relative path) to an absolute local file path if possible.
+     * Returns undefined if the loader cannot resolve it to a local file.
+     */
+    resolvePath(reference: string): string | undefined;
 }
 
 export type DocumentLoaderOptions = {
@@ -46,7 +51,11 @@ export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions): Docum
     if (docLoaderOpts.schemaDirectoryPath) {
         directoryPaths.push(docLoaderOpts.schemaDirectoryPath);
     }
-    loaders.push(new FileSystemDocumentLoader(directoryPaths, debug));
+    loaders.push(new FileSystemDocumentLoader(
+        directoryPaths,
+        debug,
+        docLoaderOpts.basePath ?? process.cwd()
+    ));
 
     loaders.push(new DirectUrlDocumentLoader(debug));
 

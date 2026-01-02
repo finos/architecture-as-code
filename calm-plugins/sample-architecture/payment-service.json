@@ -1,0 +1,51 @@
+{
+  "nodes": [
+    {
+      "unique-id": "api-gateway",
+      "name": "API Gateway",
+      "node-type": "component",
+      "description": "API Entry point",
+      "interfaces": [
+          { "unique-id": "http-in" }
+      ]
+    },
+    {
+      "unique-id": "payment-processor",
+      "name": "Payment Processor",
+      "node-type": "component",
+      "description": "Business logic",
+      "interfaces": [
+          { "unique-id": "proc-in" }
+      ]
+    },
+    {
+      "unique-id": "payment-db",
+      "name": "Payment DB",
+      "node-type": "database",
+      "description": "Persistence",
+      "interfaces": [
+          { "unique-id": "db-in" }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "gw-to-proc",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "api-gateway" },
+          "destination": { "node": "payment-processor", "interfaces": ["proc-in"] }
+        }
+      }
+    },
+    {
+      "unique-id": "proc-to-db",
+      "relationship-type": {
+        "connects": {
+           "source": { "node": "payment-processor" },
+           "destination": { "node": "payment-db", "interfaces": ["db-in"] }
+        }
+      }
+    }
+  ]
+}

@@ -21,4 +21,8 @@ export class ConfigService implements Config {
     showLabels(): boolean {
         return this.config.get<boolean>('preview.showLabels', true)
     }
+
+    urlMapping(): string | undefined {
+        return this.config.get<string>('urlMapping')
+    }
 }
