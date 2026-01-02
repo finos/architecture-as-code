@@ -36,9 +36,8 @@ export function getDayTitle(day: number): string {
 
 export function isUnlocked(day: number): boolean {
   const now = new Date();
-  const currentYear = now.getFullYear();
-  const unlockDate = new Date(currentYear, 11, day); // Month 11 = December
-  
+  const unlockDate = new Date(2025, 11, day); // Month 11 = December
+
   return now >= unlockDate;
 }
 
