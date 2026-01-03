@@ -147,7 +147,8 @@ describe('SelfProvidedDirectoryTemplateLoader', () => {
             return fileContents[fileName] || '';
         });
         (fs.existsSync as Mock).mockReturnValue(true);
-        (fs.statSync as Mock).mockReturnValue({ isDirectory: () => true });
+        // Files should return isDirectory: false to prevent infinite recursion
+        (fs.statSync as Mock).mockReturnValue({ isDirectory: () => false });
     });
 
     it('should load all .md and .hbs files and build config entries', () => {

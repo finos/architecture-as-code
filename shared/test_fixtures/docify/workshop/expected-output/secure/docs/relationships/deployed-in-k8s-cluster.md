@@ -1,27 +1,40 @@
 ---
-id: deployed-in-k8s-cluster
-title: Deployed In K8s Cluster
+architecture: ../../../../../../command/generate/expected-output/conference-secure-signup-amended.arch.json
+url-to-local-file-mapping: ../../../../url-mapping-secure.json
+relationship-id: deployed-in-k8s-cluster
+id: "deployed-in-k8s-cluster"
+title: "Deployed In K8s Cluster"
 ---
 
+# Deployed In K8s Cluster
+
 ## Details
-<div className="table-container">
-| Field               | Value                    |
-|---------------------|--------------------------|
-| **Unique ID**       | deployed-in-k8s-cluster                   |
-| **Description**      |  Components deployed on the k8s cluster   |
+<div class="table-container">
+    <table>
+        <tbody>
+        <tr>
+            <th>Unique Id</th>
+            <td>deployed-in-k8s-cluster</td>
+        </tr>
+        <tr>
+            <th>Description</th>
+            <td>Components deployed on the k8s cluster</td>
+        </tr>
+        </tbody>
+    </table>
 </div>
 
 ## Related Nodes
 ```mermaid
 graph TD;
-k8s-cluster -- Deployed In --> load-balancer;
-k8s-cluster -- Deployed In --> attendees;
-k8s-cluster -- Deployed In --> attendees-store;
-
+load-balancer -- Deployed In --> k8s-cluster;
+attendees -- Deployed In --> k8s-cluster;
+attendees-store -- Deployed In --> k8s-cluster;
+classDef highlight fill:#f2bbae;
 ```
 
 ## Controls
-    _No controls defined._
+_No controls defined._
 
 ## Metadata
-  _No Metadata defined._
+<p class="empty-message">No metadata defined.</p>

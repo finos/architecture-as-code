@@ -1,22 +1,27 @@
 ---
-id: {{id}}
-title: {{title}}
+id: "{{flow-id}}"
+title: "{{_architecture.flows['{{flow-id}}'].name}}"
 ---
 
+# {{_architecture.flows["{{flow-id}}"].name}}
+
 ## Details
-<div className="table-container">
-| Field               | Value                    |
-|---------------------|--------------------------|
-| **Unique ID**       | {{id}}                   |
-| **Name**            | {{name}}                 |
-| **Description**     | {{description}}          |
-</div>
+{{table _architecture.flows["{{flow-id}}"] orientation="vertical" columns="unique-id,name,description"}}
 
 ## Sequence Diagram
-{{> flow-sequence.hbs}}
+{{flow-sequence _architecture flow-id="{{flow-id}}"}}
 
 ## Controls
-{{> controls.hbs}}
+{{#each _architecture.flows["{{flow-id}}"].controls}}
+### {{kebabToTitleCase @key}}
+
+{{this.description}}
+
+{{table this.requirements key="control-id" empty-message="No requirements defined."}}
+
+{{else}}
+_No controls defined._
+{{/each}}
 
 ## Metadata
-{{> metadata.hbs data=metadata.data}}
+{{table _architecture.flows["{{flow-id}}"].metadata orientation="vertical" empty-message="No metadata defined."}}

@@ -8,10 +8,6 @@ const INPUT_DIR = join(
     __dirname,
     '../../test_fixtures/command/generate/expected-output'
 );
-const WORKSHOP_DIR = join(
-    __dirname,
-    '../../../conferences/osff-ln-2025/workshop'
-);
 
 const OUTPUT_DIR = join(
     __dirname,
@@ -20,6 +16,11 @@ const OUTPUT_DIR = join(
 const EXPECTED_OUTPUT_DIR = join(
     __dirname,
     '../../test_fixtures/docify/workshop/expected-output'
+);
+
+const URL_MAPPING_SECURE = join(
+    __dirname,
+    '../../test_fixtures/docify/workshop/url-mapping-secure.json'
 );
 
 const NON_SECURE_VERSION_DOC_WEBSITE = join(OUTPUT_DIR, 'non-secure');
@@ -34,8 +35,7 @@ describe('Docifier E2E - Real Model and Template', () => {
         const docifier = new Docifier(
             'WEBSITE',
             join(INPUT_DIR, 'conference-signup.arch.json'),
-            NON_SECURE_VERSION_DOC_WEBSITE,
-            new Map<string, string>()
+            NON_SECURE_VERSION_DOC_WEBSITE
         );
         await docifier.docify();
         await expectDirectoryMatch(
@@ -45,16 +45,11 @@ describe('Docifier E2E - Real Model and Template', () => {
     });
 
     it('generates documentation from the conference-secure-signup.arch.json model with explicit local mapping', async () => {
-        const mapping = new Map<string, string>([
-            ['https://calm.finos.org/workshop/controls/micro-segmentation.config.json', join(WORKSHOP_DIR, 'controls/micro-segmentation.config.json')],
-            ['https://calm.finos.org/workshop/flows/conference-signup.flow.json', join(WORKSHOP_DIR, 'flows/conference-signup.flow.json')],
-        ]);
-
         const docifier = new Docifier(
             'WEBSITE',
             join(INPUT_DIR, 'conference-secure-signup-amended.arch.json'),
             SECURE_VERSION_DOC_WEBSITE,
-            mapping
+            URL_MAPPING_SECURE
         );
 
         await docifier.docify();
@@ -64,17 +59,12 @@ describe('Docifier E2E - Real Model and Template', () => {
         );
     });
 
-    it('generates documentation from the conference-secure-signup.arch.json model with no mapping as workshop documents are available', async () => {
-        const mapping = new Map<string, string>([
-            ['https://calm.finos.org/workshop/flows/conference-signup.flow.json', join(WORKSHOP_DIR, 'flows/conference-signup.flow.json')],
-        ]);
-
-
+    it('generates documentation from the conference-secure-signup.arch.json model with partial mapping', async () => {
         const docifier = new Docifier(
             'WEBSITE',
             join(INPUT_DIR, 'conference-secure-signup-amended.arch.json'),
             SECURE_VERSION_DOC_WEBSITE,
-            mapping
+            URL_MAPPING_SECURE
         );
         await docifier.docify();
         await expectDirectoryMatch(

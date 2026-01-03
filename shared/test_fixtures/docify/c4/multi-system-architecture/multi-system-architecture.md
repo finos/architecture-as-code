@@ -1,3 +1,6 @@
+---
+architecture: ../multi-system-architecture/multi-system-architecture.arch.json
+---
 ```mermaid
 C4Deployment
 

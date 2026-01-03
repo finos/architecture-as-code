@@ -109,11 +109,22 @@ describe('TemplateEngine', () => {
         const templateConfig: IndexFile = {
             name: 'Test Template',
             transformer: 'mock-transformer',
-            templates: [{ template: 'main.hbs', from: 'users', output: '{{id}}.txt', 'output-type': 'repeated' }],
+            templates: [{
+                template: 'main.hbs',
+                from: 'document.nodes',
+                output: '{{unique-id}}.txt',
+                'output-type': 'repeated',
+                'front-matter': {
+                    variables: {
+                        'node-id': '{{id}}'
+                    }
+                }
+            }],
         };
 
         const templateFiles = {
-            'main.hbs': 'User: {{name}}',
+            // The context includes node-id which gets set from the iteration
+            'main.hbs': 'Node: {{node-id}}',
         };
 
         mockFileLoader.getConfig.mockReturnValue(templateConfig);
@@ -126,20 +137,22 @@ describe('TemplateEngine', () => {
         const engine = new TemplateEngine(mockFileLoader, mockTransformer);
 
         const userData = {
-            users: [
-                { id: '1', name: 'Alice' },
-                { id: '2', name: 'Bob' },
-            ],
+            document: {
+                nodes: [
+                    { 'unique-id': 'node-1', name: 'Alice' },
+                    { 'unique-id': 'node-2', name: 'Bob' },
+                ],
+            }
         };
 
         engine.generate(userData, testOutputDir);
 
         expect(mkdirSyncSpy).toHaveBeenCalledWith(testOutputDir, { recursive: true });
-        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname(path.join(testOutputDir, '1.txt')), { recursive: true });
-        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname(path.join(testOutputDir, '2.txt')), { recursive: true });
+        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname(path.join(testOutputDir, 'node-1.txt')), { recursive: true });
+        expect(mkdirSyncSpy).toHaveBeenCalledWith(path.dirname(path.join(testOutputDir, 'node-2.txt')), { recursive: true });
         expect(writeFileSyncSpy).toHaveBeenCalledTimes(2);
-        expect(writeFileSyncSpy).toHaveBeenCalledWith(path.join(testOutputDir, '1.txt'), 'User: Alice', 'utf8');
-        expect(writeFileSyncSpy).toHaveBeenCalledWith(path.join(testOutputDir, '2.txt'), 'User: Bob', 'utf8');
+        expect(writeFileSyncSpy).toHaveBeenCalledWith(path.join(testOutputDir, 'node-1.txt'), 'Node: node-1', 'utf8');
+        expect(writeFileSyncSpy).toHaveBeenCalledWith(path.join(testOutputDir, 'node-2.txt'), 'Node: node-2', 'utf8');
     });
 
     it('should handle single output templates', () => {
@@ -306,8 +319,9 @@ describe('TemplateEngine', () => {
             const testData = { data: { id: 'test-id', user: { name: 'John Doe' } } };
             engine.generate(testData, './test-output');
 
+            // Context now includes _root and _variables in addition to original data
             expect(TemplatePathExtractor.convertFromDotNotation).toHaveBeenCalledWith(
-                { id: 'test-id', user: { name: 'John Doe' } },
+                expect.objectContaining({ id: 'test-id', user: { name: 'John Doe' } }),
                 'user.name',
                 {}
             );
@@ -362,8 +376,9 @@ describe('TemplateEngine', () => {
             const testData = { data: { id: 'test-id', user: { name: 'John Doe' } } };
             engine.generate(testData, './test-output');
 
+            // Context now includes _root and _variables in addition to original data
             expect(TemplatePathExtractor.convertFromDotNotation).toHaveBeenCalledWith(
-                { id: 'test-id', user: { name: 'John Doe' } },
+                expect.objectContaining({ id: 'test-id', user: { name: 'John Doe' } }),
                 'user.name',
                 { option1: 'value1' }
             );
