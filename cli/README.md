@@ -381,6 +381,7 @@ Options:
   -a, --architecture <path>               Path to the CALM model JSON file.
   -o, --output <path>                     Path to output directory.
       --clear-output-directory            Completely delete the contents of the output path before generation.
+      --scaffold                          Generate scaffold only (templates with placeholders, no rendering).
   -t, --template <path>                   Path to a single .hbs or .md template file
   -d, --template-dir <path>               Path to a directory of .hbs/.md templates
   -u, --url-to-local-file-mapping <path>  Path to mapping file which maps URLs to local paths.
@@ -394,6 +395,24 @@ If the output directory exists, files will be modified if they already
 exist. Other files will be unmodified.
 The `--clear-output-directory` option changes this behaviour to delete all
 files and subdirectories from the output path first.
+
+### Two-Stage Workflow (Scaffold Mode)
+
+Scaffold mode enables a two-stage documentation workflow where you can review and edit generated templates before final rendering:
+
+```shell
+# Stage 1: Generate scaffold with widget placeholders
+calm docify --scaffold -a ./architecture.json -o ./website
+
+# Edit generated MDX files in ./website/docs/ as needed
+
+# Stage 2: Render final website from scaffolded templates
+calm docify -a ./architecture.json --template-dir ./website -o ./final-site
+```
+
+This allows architects to customize the documentation before deployment, ensuring that what's previewed in the VSCode extension matches the final output.
+
+### Single-Stage Workflow
 
 Sample usage for you to try is as follows (assuming at root of project)
 
