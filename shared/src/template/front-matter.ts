@@ -7,6 +7,7 @@ export interface ParsedFrontMatter {
     frontMatter: Record<string, unknown>;
     content: string;
     architecturePath?: string;
+    urlMappingPath?: string;
     urlToLocalPathMapping?: Map<string, string>;
 }
 
@@ -42,12 +43,13 @@ export function parseFrontMatterFromContent(
     try {
         const frontMatter = yaml.parse(frontMatterYaml) || {};
         const architecturePath = resolveArchitecturePath(frontMatter.architecture, basePath);
-        const urlToLocalPathMapping = resolveUrlMapping(frontMatter, basePath);
+        const { path: urlMappingPath, map: urlToLocalPathMapping } = resolveUrlMapping(frontMatter, basePath);
 
         return {
             frontMatter,
             content: templateContent,
             architecturePath,
+            urlMappingPath,
             urlToLocalPathMapping
         };
     } catch {
@@ -79,17 +81,17 @@ function resolveArchitecturePath(architecture: string | undefined, basePath?: st
     return architecture;
 }
 
-function resolveUrlMapping(frontMatter: Record<string, unknown>, basePath?: string): Map<string, string> | undefined {
+function resolveUrlMapping(frontMatter: Record<string, unknown>, basePath?: string): { path?: string; map?: Map<string, string> } {
     const mappingKey = frontMatter.urlToLocalPathMapping || frontMatter['url-to-local-file-mapping'];
     if (!mappingKey || typeof mappingKey !== 'string') {
-        return undefined;
+        return {};
     }
 
     let mappingPath = mappingKey;
     if (basePath && !path.isAbsolute(mappingPath)) {
         mappingPath = path.resolve(basePath, mappingPath);
     }
-    return readUrlMappingFile(mappingPath);
+    return { path: mappingPath, map: readUrlMappingFile(mappingPath) };
 }
 
 

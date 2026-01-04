@@ -59,8 +59,9 @@ vi.mock('../../models/file-types', () => ({
   },
 }))
 
-vi.mock('../../cli/front-matter', () => ({
+vi.mock('@finos/calm-shared', () => ({
   parseFrontMatter: vi.fn(() => null),
+  parseFrontMatterFromContent: vi.fn((content) => ({ frontMatter: {}, content })),
 }))
 
 vi.mock('../../core/services/model-service', () => ({
