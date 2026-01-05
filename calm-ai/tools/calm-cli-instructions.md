@@ -10,6 +10,11 @@ Install globally via npm:
 npm install -g @finos/calm-cli
 ```
 
+or if you use [Homebrew](https://brew.sh):
+```shell
+brew install calm-cli
+```
+
 Run `calm` with no arguments to see the top-level help:
 
 ```shell
