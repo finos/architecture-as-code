@@ -65,6 +65,11 @@ To start using CALM, you can install the CALM CLI and begin exploring its capabi
    ```shell
    npm install -g @finos/calm-cli
    ```
+
+   or if you use [Homebrew](https://brew.sh):
+   ```shell
+   brew install calm-cli
+   ```
 2. **Explore the CLI Commands**: Use the CLI to generate and validate architectural patterns and architectures.
 3. **Join the Community**: Contribute to the CALM monorepo, engage with other architects, and help evolve the standard.
 

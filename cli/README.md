@@ -13,6 +13,11 @@ Install the CLI on to your machine with this command:
 % npm install -g @finos/calm-cli
 ```
 
+or if you use [Homebrew](https://brew.sh):
+```shell
+brew install calm-cli
+```
+
 Type `calm` into your terminal, and you should see the help text printed out.
 
 ```shell
