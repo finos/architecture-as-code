@@ -5,6 +5,13 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.26.1] - 2026-01-05
+
+## <small>1.26.1 (2026-01-05)</small>
+
+* fix(deps): update rollup ([f5b09c552c16ceb05ecdfa3498b9767a35ba788a](https://github.com/finos/architecture-as-code/commit/f5b09c552c16ceb05ecdfa3498b9767a35ba788a))
+* fix(deps): update rollup ([e304e6935d87477f4421b8f98d6b92cd6ad37f48](https://github.com/finos/architecture-as-code/commit/e304e6935d87477f4421b8f98d6b92cd6ad37f48))
+
 ## [1.26.0] - 2025-12-31
 
 ## 1.26.0 (2025-12-31)
