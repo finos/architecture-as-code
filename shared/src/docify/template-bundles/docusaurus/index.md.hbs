@@ -10,47 +10,35 @@ slug: /
 This documentation is generated from the **CALM Architecture-as-Code** model.
 
 ## High Level Architecture
-{{> c4-container.hbs}}
+{{block-architecture _architecture}}
 
 ## Nodes
 {{#each nodes}}
-    - [{{title}}](nodes/{{id}})
+- [{{name}}](nodes/{{unique-id}})
 {{/each}}
 
 ## Relationships
 {{#each relationships}}
-    - [{{kebabToTitleCase title}}](relationships/{{id}})
+- [{{kebabToTitleCase unique-id}}](relationships/{{unique-id}})
 {{/each}}
-
 
 ## Flows
-{{#if (notEmpty flows) }}
+{{#if (notEmpty flows)}}
 {{#each flows}}
-    - [{{title}}](flows/{{id}})
+- [{{name}}](flows/{{unique-id}})
 {{/each}}
 {{else}}
-     _No flows defined._
-{{/if}}
-
-## Controls
-{{#if (notEmpty controls) }}
-| Requirement URL               | Category    | Scope        | Applied To                |
-|-------------------------------|-----------|--------------|---------------------------|
-{{#controls}}
-|{{requirementUrl}}|{{domain}}|{{scope}}|{{appliedTo}}|
-{{/controls}}
-{{else}}
-  _No Controls defined._
+_No flows defined._
 {{/if}}
 
 ## Metadata
-{{> metadata.hbs data=metadata.data}}
+{{table metadata orientation="vertical" empty-message="No metadata defined."}}
 
-## Adrs
+## ADRs
 {{#if (notEmpty adrs)}}
 {{#each adrs}}
 - [{{this}}]({{this}})
 {{/each}}
 {{else}}
-  _No Adrs defined._
+_No ADRs defined._
 {{/if}}

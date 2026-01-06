@@ -1,127 +1,73 @@
 ---
-id: attendees-store
-title: Attendees Store
+architecture: ../../../conference-signup.arch.json
+url-to-local-file-mapping: ../../../../url-to-local-file-mapping.json
+node-id: attendees-store
+id: "attendees-store"
+title: "Attendees Store"
 ---
 
-## Details
-<div className="table-container">
-| Field               | Value                    |
-|---------------------|--------------------------|
-| **Unique ID**       | attendees-store                   |
-| **Node Type**       | database             |
-| **Name**            | Attendees Store                 |
-| **Description**     | Persistent storage for attendees          |
+# Attendees Store
 
+## Details
+<div class="table-container">
+    <table>
+        <tbody>
+        <tr>
+            <th>Unique Id</th>
+            <td>attendees-store</td>
+        </tr>
+        <tr>
+            <th>Name</th>
+            <td>Attendees Store</td>
+        </tr>
+        <tr>
+            <th>Description</th>
+            <td>Persistent storage for attendees</td>
+        </tr>
+        <tr>
+            <th>Node Type</th>
+            <td>database</td>
+        </tr>
+        </tbody>
+    </table>
 </div>
 
 ## Interfaces
-        <div className="table-container">
-            <table>
-                <thead>
-                <tr>
-                    <th>Key</th>
-                    <th>Value</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr>
-                    <td>
-                        <b>UniqueId</b>
-                    </td>
-                    <td>
-                        database-image
-                            </td>
-                </tr>
-                <tr>
-                    <td>
-                        <b>AdditionalProperties</b>
-                    </td>
-                    <td>
-                        <div className="table-container">
-                            <table>
-                                <thead>
-                                <tr>
-                                    <th>Key</th>
-                                    <th>Value</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr>
-                                    <td>
-                                        <b>Image</b>
-                                    </td>
-                                    <td>
-                                        [[ IMAGE ]]
-                                            </td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-        <div className="table-container">
-            <table>
-                <thead>
-                <tr>
-                    <th>Key</th>
-                    <th>Value</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr>
-                    <td>
-                        <b>UniqueId</b>
-                    </td>
-                    <td>
-                        database-port
-                            </td>
-                </tr>
-                <tr>
-                    <td>
-                        <b>AdditionalProperties</b>
-                    </td>
-                    <td>
-                        <div className="table-container">
-                            <table>
-                                <thead>
-                                <tr>
-                                    <th>Key</th>
-                                    <th>Value</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr>
-                                    <td>
-                                        <b>Port</b>
-                                    </td>
-                                    <td>
-                                        -1
-                                            </td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-
+<div class="table-container">
+    <table>
+        <thead>
+        <tr>
+            <th>Unique Id</th>
+            <th>Host</th>
+            <th>Port</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>database-image</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>database-port</td>
+            <td></td>
+            <td>-1</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
 
 ## Related Nodes
 ```mermaid
 graph TD;
 attendees-store[attendees-store]:::highlight;
 attendees -- Connects --> attendees-store;
-k8s-cluster -- Deployed In --> attendees-store;
+attendees-store -- Deployed In --> k8s-cluster;
 classDef highlight fill:#f2bbae;
-
 ```
+
 ## Controls
-    _No controls defined._
+_No controls defined._
 
 ## Metadata
-  _No Metadata defined._
+<p class="empty-message">No metadata defined.</p>

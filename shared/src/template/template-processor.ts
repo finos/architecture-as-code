@@ -28,6 +28,8 @@ export class TemplateProcessor {
     private readonly mode: TemplateProcessingMode;
     private readonly supportWidgetEngine: boolean;
     private readonly clearOutputDirectory: boolean = false;
+    private readonly scaffoldOnly: boolean = false;
+    private readonly urlMappingPath?: string;  // Original path for scaffold front-matter
 
     private static _logger: Logger | undefined;
 
@@ -38,7 +40,17 @@ export class TemplateProcessor {
         return this._logger;
     }
 
-    constructor(inputPath: string, templateBundlePath: string, outputPath: string, urlToLocalPathMapping: Map<string, string>, mode: TemplateProcessingMode = 'bundle', supportWidgetEngine: boolean = false, clearOutputDirectory: boolean = false) {
+    constructor(
+        inputPath: string,
+        templateBundlePath: string,
+        outputPath: string,
+        urlToLocalPathMapping: Map<string, string>,
+        mode: TemplateProcessingMode = 'bundle',
+        supportWidgetEngine: boolean = false,
+        clearOutputDirectory: boolean = false,
+        scaffoldOnly: boolean = false,
+        urlMappingPath?: string
+    ) {
         this.inputPath = inputPath;
         this.templateBundlePath = templateBundlePath;
         this.outputPath = outputPath;
@@ -46,6 +58,8 @@ export class TemplateProcessor {
         this.mode = mode;
         this.supportWidgetEngine = supportWidgetEngine;
         this.clearOutputDirectory = clearOutputDirectory;
+        this.scaffoldOnly = scaffoldOnly;
+        this.urlMappingPath = urlMappingPath;
     }
 
     public async processTemplate(): Promise<void> {
@@ -56,6 +70,7 @@ export class TemplateProcessor {
         const resolvedOutputPath = path.extname(this.outputPath)
             ? path.dirname(path.resolve(this.outputPath))
             : path.resolve(this.outputPath);
+
 
         let loader: ITemplateBundleLoader;
 
@@ -98,9 +113,21 @@ export class TemplateProcessor {
             await dereference.visit(coreModel);
             const transformedModel = transformer.getTransformedModel(coreModel);
             const engine = new TemplateEngine(loader, transformer);
-            engine.generate(transformedModel, resolvedOutputPath);
 
-            logger.info('\n✅ Template Generation Completed!');
+            // Pass scaffold paths for front-matter injection
+            // Always provide paths so both scaffold and non-scaffold modes produce identical output
+            const scaffoldPaths = {
+                architecturePath: resolvedInputPath,
+                urlMappingPath: this.urlMappingPath
+            };
+
+            engine.generate(transformedModel, resolvedOutputPath, this.scaffoldOnly, scaffoldPaths);
+
+            if (this.scaffoldOnly) {
+                logger.info('\n✅ Scaffold Generation Completed!');
+            } else {
+                logger.info('\n✅ Template Generation Completed!');
+            }
         } catch (error) {
             logger.error(`❌ Error generating template: ${error.message}`);
             throw new Error(`❌ Error generating template: ${error.message}`);

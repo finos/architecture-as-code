@@ -1,3 +1,7 @@
+---
+architecture: ../../../getting-started/STEP-3/conference-signup-with-flow.arch.json
+url-to-local-file-mapping: ../../../getting-started/url-to-local-file-mapping.json
+---
 ### Show relationships for a specific relationship ID
 ```mermaid
 graph TD;
@@ -24,3 +28,4 @@ attendees -- Deployed In --> k8s-cluster;
 attendees-store -- Deployed In --> k8s-cluster;
 classDef highlight fill:#f2bbae;
 ```
+

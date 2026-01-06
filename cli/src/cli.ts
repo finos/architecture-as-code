@@ -168,16 +168,15 @@ export function setupCLI(program: Command) {
         .option(TEMPLATE_OPTION, 'Path to a single .hbs or .md template file')
         .option(TEMPLATE_DIR_OPTION, 'Path to a directory of .hbs/.md templates')
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
+        .option('--scaffold', 'Copy template files without processing (for customization/live docify)', false)
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
-            const { getUrlToLocalFileMap } = await import('./command-helpers/template');
             const { Docifier } = await import('@finos/calm-shared');
 
             if (options.verbose) {
                 process.env.DEBUG = 'true';
             }
 
-            const localDirectory = getUrlToLocalFileMap(options.urlToLocalFileMapping);
             const flagsUsed = [options.template, options.templateDir].filter(Boolean);
 
             if (flagsUsed.length > 1) {
@@ -203,10 +202,11 @@ export function setupCLI(program: Command) {
                 docifyMode,
                 options.architecture,
                 options.output,
-                localDirectory,
+                options.urlToLocalFileMapping,
                 templateProcessingMode,
                 templatePath,
-                options.clearOutputDirectory
+                options.clearOutputDirectory,
+                options.scaffold
             );
 
             await docifier.docify();

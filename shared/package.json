@@ -9,7 +9,7 @@
     ],
     "private": true,
     "scripts": {
-        "build": "tsup && tsc -p ./tsconfig.build.json && npm run copy:docify-template-bundle",
+        "build": "tsc -p ./tsconfig.build.json && npm run copy:docify-template-bundle",
         "copy:docify-template-bundle": "node scripts/copy-templates.mjs",
         "watch": "tsc -watch -p ./tsconfig.build.json",
         "clean": "rimraf dist tsconfig.build.tsbuildinfo",

@@ -26,5 +26,6 @@ module.exports = {
                 'relationships/deployed-in-k8s-cluster'
             ],
         },
-    ]
+    ],
 };
+

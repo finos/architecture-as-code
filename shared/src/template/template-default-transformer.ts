@@ -5,7 +5,12 @@ export default class TemplateDefaultTransformer implements CalmTemplateTransform
 
     getTransformedModel(calmCore: CalmCore) {
         const canonicalModel = calmCore.toCanonicalSchema();
+        // The canonical model is spread at top level so widgets receive it directly.
+        // The 'document' alias is included for backward compatibility with external templates.
+        // TODO: Consider removing 'document' alias in future release - ask community if safe to remove.
+        // Internal templates should use direct paths (e.g., 'nodes' instead of 'document.nodes').
         return {
+            ...canonicalModel,
             'document': canonicalModel
         };
 
@@ -21,10 +26,13 @@ export default class TemplateDefaultTransformer implements CalmTemplateTransform
             lookup: (obj, key: any) => obj?.[key],
             json: (obj) => JSON.stringify(obj, null, 2),
             instanceOf: (value, className: string) => value?.constructor?.name === className,
-            kebabToTitleCase: (str: string) => str
-                .split('-')
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(' '),
+            kebabToTitleCase: (str: string) => {
+                if (!str) return '';
+                return str
+                    .split('-')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+            },
             kebabCase: (str: string) => str
                 .trim()
                 .toLowerCase()

@@ -1,6 +1,6 @@
 import * as path from 'path'
 import { detectCalmModel } from './model'
-import { parseFrontMatter } from '../cli/front-matter'
+import { parseFrontMatter } from '@finos/calm-shared'
 
 export enum FileType {
     ArchitectureFile = 'architecture',
@@ -12,7 +12,7 @@ export interface FileInfo {
     type: FileType
     filePath: string
     architecturePath?: string
-    urlToLocalPathMapping?: Map<string, string>
+    urlMappingPath?: string
     isValid: boolean
 }
 
@@ -45,15 +45,14 @@ export function detectFileType(filePath: string): FileInfo {
     // For any other file type, check if it has front-matter with architecture reference
     try {
         const parsed = parseFrontMatter(filePath)
-        const hasArchitecture = parsed?.hasArchitecture || false
-        const architecturePath = parsed?.architecturePath
+        const hasArchitecture = !!parsed?.architecturePath
 
         return {
             type: FileType.TemplateFile,
             filePath,
-            architecturePath: architecturePath || undefined,
-            urlToLocalPathMapping: parsed?.urlToLocalPathMapping,
-            isValid: hasArchitecture && !!architecturePath
+            architecturePath: parsed?.architecturePath,
+            urlMappingPath: parsed?.urlMappingPath,
+            isValid: hasArchitecture
         }
     } catch {
         return {

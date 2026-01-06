@@ -48,7 +48,7 @@ npm run copy-ai-tools         # Copy AI chatmode files from ../calm-ai/
 3. **copilot-chatmode** - Install AI chatmode for CALM
 4. **server** - HTTP server proxy (experimental)
 5. **template** - Generate files from Handlebars templates
-6. **docify** - Generate documentation websites
+6. **docify** - Generate documentation websites (supports `--scaffold` for two-stage workflow)
 
 ### Important Directories
 ```
