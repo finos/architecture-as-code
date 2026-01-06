@@ -146,9 +146,14 @@ describe('SchemaDirectory', () => {
         expect(definition['properties']).toHaveProperty('inner-prop');
     });
 
-    it('reject attempts to load standard JSON Schemas', async () => {
+    it('reject attempts to load standard JSON Schemas - HTTPS protocol', async () => {
         const schemaDir = new SchemaDirectory(mockDocLoader);
         expect(() => schemaDir.getSchema('https://json-schema.org/draft/2019-09/schema')).rejects.toThrow();
+    });
+
+    it('reject attempts to load standard JSON Schemas - HTTP protocol', async () => {
+        const schemaDir = new SchemaDirectory(mockDocLoader);
+        expect(() => schemaDir.getSchema('http://json-schema.org/draft/2019-09/schema')).rejects.toThrow();
     });
 });
 

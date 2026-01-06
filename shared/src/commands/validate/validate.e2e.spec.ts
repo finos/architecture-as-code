@@ -39,7 +39,7 @@ describe('validate E2E', () => {
         // AJV2020 ignores references to the JSON 2020-12 draft, but will
         // attempt to load any other JSON schema draft but not register it,
         // leading to an infinite loop.
-        const badPattern = { '$schema': 'https://json-schema.org/draft/2019-01/schema' };
+        const badPattern = { '$schema': 'https://json-schema.org/draft/2019-09/schema' };
         const response = await validate(undefined, badPattern, schemaDirectory, false);
 
         expect(response).not.toBeNull();
@@ -50,8 +50,8 @@ describe('validate E2E', () => {
     });
 
     it('accepts pattern with valid JSON Schema', async () => {
-        const badPattern = { '$schema': 'https://json-schema.org/draft/2020-12/schema' };
-        const response = await validate(undefined, badPattern, schemaDirectory, false);
+        const validPattern = { '$schema': 'https://json-schema.org/draft/2020-12/schema' };
+        const response = await validate(undefined, validPattern, schemaDirectory, false);
 
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
