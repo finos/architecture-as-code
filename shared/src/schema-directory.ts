@@ -136,6 +136,10 @@ export class SchemaDirectory {
     public async getSchema(schemaId: string): Promise<object> {
         if (!this.schemas.has(schemaId)) {
             try {
+                if (schemaId.startsWith('https://json-schema.org') || schemaId.startsWith('http://json-schema.org')) {
+                    throw new Error(`Attempted to load standard JSON Schema with ID ${schemaId}. This is not supported.`);
+                }
+
                 const document = await this.documentLoader.loadMissingDocument(schemaId, 'schema');
                 this.storeDocument(schemaId, 'schema', document);
 
