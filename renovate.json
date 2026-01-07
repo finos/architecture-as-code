@@ -14,6 +14,18 @@
   "schedule": ["before 7am on monday"],
   "prConcurrentLimit": 10,
   "prHourlyLimit": 2,
+  "postUpdateOptions": ["npmDedupe"],
+  "ignorePaths": [
+    "calm-ai/package-lock.json",
+    "calm-models/package-lock.json",
+    "calm-plugins/vscode/package-lock.json",
+    "calm-widgets/package-lock.json",
+    "calm-hub-ui/package-lock.json",
+    "cli/package-lock.json",
+    "docs/package-lock.json",
+    "experimental/calm-explorer/package-lock.json",
+    "shared/package-lock.json"
+  ],
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["before 6am on monday"]
