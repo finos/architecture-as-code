@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
 import { detectFileType, FileType } from '../../models/file-types'
-import { parseFrontMatter } from '../../cli/front-matter'
+import { parseFrontMatter, parseFrontMatterFromContent } from '@finos/calm-shared'
 import { ModelService } from '../../core/services/model-service'
 import { TemplateService } from '../../cli/template-service'
 import { HtmlBuilder } from '../../cli/html-builder'
@@ -196,7 +196,9 @@ export class CalmPreviewPanel {
 
     // Listen for docify results and post them to webview
     this.viewModel.docify.onDocifyResult((result) => {
-      this.post({ type: 'docifyResult', content: result.content, format: result.format, sourceFile: result.sourceFile })
+      // Strip front-matter from the content before displaying in preview
+      const parsed = parseFrontMatterFromContent(result.content)
+      this.post({ type: 'docifyResult', content: parsed.content, format: result.format, sourceFile: result.sourceFile })
     })
 
     // Listen for docify errors and post them to webview

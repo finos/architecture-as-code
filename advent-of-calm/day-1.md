@@ -21,8 +21,14 @@ git init
 ```
 
 ### 2. Install the CALM CLI
+Install via npm:
 ```bash
 npm install -g @finos/calm-cli
+```
+
+or if you use [Homebrew](https://brew.sh):
+```shell
+brew install calm-cli
 ```
 
 Verify installation:

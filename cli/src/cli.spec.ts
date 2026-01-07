@@ -229,7 +229,7 @@ describe('CLI Commands', () => {
                 mode: DocifyMode,
                 inputPath: string,
                 outputPath: string,
-                urlToLocalPathMapping: Map<string, string>,
+                urlMappingPath?: string,
                 templateProcessingMode?: TemplateProcessingMode,
                 templatePath?: string) => Docifier
         >;
@@ -253,9 +253,10 @@ describe('CLI Commands', () => {
                 'WEBSITE',
                 'model.json',
                 'outDir',
-                expect.any(Map),
+                undefined,
                 'bundle',
                 undefined,
+                false,
                 false
             );
         });
@@ -272,10 +273,11 @@ describe('CLI Commands', () => {
                 'WEBSITE',
                 'model.json',
                 'outDir',
-                expect.any(Map),
+                undefined,
                 'bundle',
                 undefined,
-                true
+                true,
+                false
             );
         });
 
@@ -291,9 +293,10 @@ describe('CLI Commands', () => {
                 'USER_PROVIDED',
                 'model.json',
                 'outDir',
-                expect.any(Map),
+                undefined,
                 'template',
                 'template.hbs',
+                false,
                 false
             );
         });
@@ -310,9 +313,10 @@ describe('CLI Commands', () => {
                 'USER_PROVIDED',
                 'model.json',
                 'outDir',
-                expect.any(Map),
+                undefined,
                 'template-directory',
                 'templateDir',
+                false,
                 false
             );
         });
@@ -336,6 +340,45 @@ describe('CLI Commands', () => {
 
             exitSpy.mockRestore();
             errorSpy.mockRestore();
+        });
+
+        it('should use WEBSITE mode by default', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+            ]);
+
+            expect(docifierConstructorSpy).toHaveBeenCalledWith(
+                'WEBSITE',
+                'model.json',
+                'outDir',
+                undefined,
+                'bundle',
+                undefined,
+                false,
+                false
+            );
+        });
+
+        it('should use USER_PROVIDED mode when --template is specified', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+                '--template', 'template.hbs',
+            ]);
+
+            expect(docifierConstructorSpy).toHaveBeenCalledWith(
+                'USER_PROVIDED',
+                'model.json',
+                'outDir',
+                undefined,
+                'template',
+                'template.hbs',
+                false,
+                false
+            );
         });
     });
 

@@ -20,6 +20,11 @@ To update the CALM CLI to the latest version, run:
 npm install -g @finos/calm-cli
 ```
 
+or if you use [Homebrew](https://brew.sh):
+```shell
+brew install calm-cli
+```
+
 This will fetch and install the latest release from npm. We recommend doing this regularly, especially if you encounter any issues or want to use new features.
 
 ### Verify the Update

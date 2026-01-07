@@ -1,3 +1,6 @@
+import { buildThemeClassDefsString } from './widgets/block-architecture/core/themes/theme-builder';
+import { ThemeColors } from './widgets/block-architecture/types';
+
 export function registerGlobalTemplateHelpers(): Record<string, (...args: unknown[]) => unknown> {
     return {
         eq: (a: unknown, b: unknown): boolean => a === b,
@@ -11,6 +14,16 @@ export function registerGlobalTemplateHelpers(): Record<string, (...args: unknow
             return undefined;
         },
         json: (obj: unknown): string => JSON.stringify(obj, null, 2),
+        themeClassDefs: (themeColors: unknown, renderNodeTypeShapes: unknown): string => {
+            if (
+                typeof themeColors === 'object' &&
+                themeColors !== null &&
+                typeof renderNodeTypeShapes === 'boolean'
+            ) {
+                return buildThemeClassDefsString(themeColors as ThemeColors, renderNodeTypeShapes);
+            }
+            return '';
+        },
         mermaidId: (id: unknown): string => {
             if (typeof id !== 'string' || !id) return 'node_empty';
 

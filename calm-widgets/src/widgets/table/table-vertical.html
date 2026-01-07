@@ -2,7 +2,7 @@
 {{#unless flatTable}}
 <thead>
 <tr>
-    <th style="text-align:left">Key</th>
+    <th>Key</th>
     <th>Value</th>
 </tr>
 </thead>
@@ -13,7 +13,7 @@
 {{#with (lookup (lookup ../rows "0") "data") as |rowData|}}
 {{#with (lookup rowData colName) as |cellValue|}}
 <tr>
-    <th style="text-align:left">{{kebabToTitleCase colName}}</th>
+    <th>{{kebabToTitleCase colName}}</th>
     <td>{{#if (isObject cellValue)}}
         {{> table-template.html rows=(objectEntries cellValue) headers=false flatTable=false hasRows=true isNested=true}}
         {{else if (isArray cellValue)}}{{#each cellValue}}{{#if (isObject this)}}

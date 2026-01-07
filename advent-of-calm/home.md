@@ -31,7 +31,7 @@ Before you begin, make sure you have:
 ### Your First Steps
 
 1. **Create your repository** - Set up a git repository to track your progress
-2. **Install the CALM CLI** - `npm install -g @finos/calm-cli`
+2. **Install the CALM CLI** - `npm install -g @finos/calm-cli` or `brew install calm-cli` if you use [Homebrew](https://brew.sh)
 3. **Start with Day 1** - Click on the calendar to begin your journey
 4. **Commit daily** - Track your progress with git commits and tags
 

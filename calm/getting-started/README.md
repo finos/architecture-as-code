@@ -85,6 +85,11 @@ following command:
 npm install -g @finos/calm-cli
 ```
 
+or if you use [Homebrew](https://brew.sh):
+```shell
+brew install calm-cli
+```
+
 Verify the installation.
 
 ```shell

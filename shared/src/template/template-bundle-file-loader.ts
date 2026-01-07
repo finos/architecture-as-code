@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { IndexFile, TemplateEntry } from './types.js';
 import { initLogger, Logger } from '../logger.js';
+import { parseFrontMatterFromContent, replaceVariables } from './front-matter.js';
 
 
 export interface ITemplateBundleLoader {
@@ -15,6 +16,7 @@ export class SelfProvidedTemplateLoader implements ITemplateBundleLoader {
 
     constructor(templatePath: string, outputPath: string) {
         const templateName = path.basename(templatePath);
+        const templateDir = path.dirname(templatePath);
 
         const isDir = !path.extname(outputPath) || (
             fs.existsSync(outputPath) && fs.statSync(outputPath).isDirectory()
@@ -24,8 +26,15 @@ export class SelfProvidedTemplateLoader implements ITemplateBundleLoader {
             ? 'output.md'
             : path.basename(outputPath);
 
+        let templateContent = fs.readFileSync(templatePath, 'utf8');
+        const parsed = parseFrontMatterFromContent(templateContent, templateDir);
+
+        if (parsed && Object.keys(parsed.frontMatter).length > 0) {
+            templateContent = replaceVariables(templateContent, parsed.frontMatter);
+        }
+
         this.templateFiles = {
-            [templateName]: fs.readFileSync(templatePath, 'utf8')
+            [templateName]: templateContent
         };
 
         this.config = {
@@ -56,18 +65,48 @@ export class SelfProvidedDirectoryTemplateLoader implements ITemplateBundleLoade
 
         const entries: TemplateEntry[] = [];
 
-        const allFiles = fs.readdirSync(templateDir);
+        const loadFilesRecursively = (dir: string, relativePath: string = '') => {
+            const items = fs.readdirSync(dir);
+            for (const item of items) {
+                const fullPath = path.join(dir, item);
+                const relPath = relativePath ? path.join(relativePath, item) : item;
 
-        for (const file of allFiles) {
-            this.templateFiles[file] = fs.readFileSync(path.join(templateDir, file), 'utf8');
+                if (fs.statSync(fullPath).isDirectory()) {
+                    loadFilesRecursively(fullPath, relPath);
+                } else {
+                    let templateContent = fs.readFileSync(fullPath, 'utf8');
+                    const templateFileDir = path.dirname(fullPath);
+                    const parsed = parseFrontMatterFromContent(templateContent, templateFileDir);
 
-            entries.push({
-                template: file,
-                from: 'document',
-                output: file, // output file = template file
-                'output-type': 'single'
-            });
-        }
+                    const frontMatterVariables: Record<string, string> = {};
+                    if (parsed && Object.keys(parsed.frontMatter).length > 0) {
+                        templateContent = replaceVariables(templateContent, parsed.frontMatter);
+                        for (const [key, value] of Object.entries(parsed.frontMatter)) {
+                            if (typeof value === 'string') {
+                                frontMatterVariables[key] = value;
+                            }
+                        }
+                    }
+
+                    this.templateFiles[relPath] = templateContent;
+
+                    const entry: TemplateEntry = {
+                        template: relPath,
+                        from: 'document',
+                        output: relPath,
+                        'output-type': 'single'
+                    };
+
+                    if (Object.keys(frontMatterVariables).length > 0) {
+                        entry['front-matter'] = { variables: frontMatterVariables };
+                    }
+
+                    entries.push(entry);
+                }
+            }
+        };
+
+        loadFilesRecursively(templateDir);
 
         this.config = {
             name: 'Self Provided Template Directory',
