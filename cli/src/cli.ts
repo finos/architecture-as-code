@@ -7,6 +7,8 @@ import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@fin
 import { loadCliConfig } from './cli-config';
 import path from 'path';
 
+const inquirer = require('inquirer');
+
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
 const OUTPUT_OPTION = '-o, --output <file>';
@@ -214,7 +216,7 @@ export function setupCLI(program: Command) {
 
     program
         .command('copilot-chatmode')
-        .description('Augment a git repository with a CALM VSCode chatmode for AI assistance')
+        .description('DEPRECATED: Augment a git repository with a CALM VSCode chatmode for AI assistance')
         .option('-d, --directory <path>', 'Target directory (defaults to current directory)', '.')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
@@ -226,6 +228,34 @@ export function setupCLI(program: Command) {
 
             await setupAiTools(options.directory, !!options.verbose);
         });
+
+    const initAiCommand = program
+        .command('init-ai')
+        .argument('[provider]', 'AI provider to initialize')
+        .description('Augment a git repository with AI assistance for CALM')
+        .option('-d, --directory <path>', 'Target directory (defaults to current directory)', '.')
+        .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+        .action(async (provider: string, options) => {
+            const { setupAiTools } = await import('./command-helpers/ai-tools');
+
+            const providers = ['copilot'];
+            let selectedProvider = provider;
+            if (!provider) {
+                const answer = await inquirer.prompt({
+                    type: 'list',
+                    name: 'provider',
+                    message: 'Select an AI provider:',
+                    choices: providers.map((p) => ({ name: p, value: p })),
+                });
+                selectedProvider = answer.provider;
+            }
+            console.log(`Selected AI provider: ${selectedProvider}`);
+
+            await setupAiTools(options.directory, !!options.verbose);
+        });
+
+    // Override the usage to show [provider] before [options]
+    initAiCommand.usage('[provider] [options]');
 
 }
 
