@@ -226,7 +226,7 @@ export function setupCLI(program: Command) {
                 process.env.DEBUG = 'true';
             }
 
-            await setupAiTools(options.directory, !!options.verbose);
+            await setupAiTools("copilot", options.directory, !!options.verbose);
         });
 
     const initAiCommand = program
@@ -251,7 +251,7 @@ export function setupCLI(program: Command) {
             }
             console.log(`Selected AI provider: ${selectedProvider}`);
 
-            await setupAiTools(options.directory, !!options.verbose);
+            await setupAiTools(selectedProvider, options.directory, !!options.verbose);
         });
 
     // Override the usage to show [provider] before [options]

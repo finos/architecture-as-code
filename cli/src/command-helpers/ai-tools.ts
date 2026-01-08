@@ -3,12 +3,12 @@ import { Logger } from '@finos/calm-shared/src/logger.js';
 import { mkdir, writeFile, readFile, stat } from 'fs/promises';
 import { join, resolve } from 'path';
 
-export async function setupAiTools(targetDirectory: string, verbose: boolean): Promise<void> {
+export async function setupAiTools(provider: string, targetDirectory: string, verbose: boolean): Promise<void> {
     const logger = initLogger(verbose, 'calm-ai-tools');
 
     try {
         const resolvedPath = resolve(targetDirectory);
-        logger.info(`Setting up CALM AI tools in: ${resolvedPath}`);
+        logger.info(`Setting up CALM AI tools for provider "${provider}" in: ${resolvedPath}`);
 
         // Verify target directory exists
         const dirStat = await stat(resolvedPath);
