@@ -6,6 +6,8 @@ sidebar_position: 3
 
 # How to Model Business Flows
 
+🟡 **Difficulty:** Intermediate
+
 Flows document how business processes traverse your architecture, showing the sequence of interactions between components.
 
 ## When to Use This

@@ -6,6 +6,8 @@ sidebar_position: 5
 
 # How to Validate Against Multiple Standards
 
+🔴 **Difficulty:** Advanced
+
 Validate complex architectures against multiple patterns and standards simultaneously for comprehensive governance.
 
 ## When to Use This

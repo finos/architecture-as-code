@@ -6,6 +6,8 @@ sidebar_position: 2
 
 # How to Define Controls
 
+🟢 **Difficulty:** Beginner
+
 Controls capture non-functional requirements (NFRs) in your CALM architecture, such as security, performance, compliance, and reliability requirements.
 
 ## When to Use This

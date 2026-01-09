@@ -29,7 +29,6 @@ Before starting, ensure you have:
 - **Git** installed
 - **Node.js** (20+) and npm installed
 - **VSCode** editor (version 1.96+)
-- **GitHub account** (recommended for portfolio sharing)
 - **GitHub Copilot** access (optional but recommended)
 
 ## Time Commitment
@@ -76,7 +75,6 @@ After completing these tutorials:
 ## Tips for Success
 
 1. **Work through tutorials in order** — Each builds on the previous
-2. **Commit your progress** — Create git commits after each tutorial
-3. **Experiment** — Try modifying examples to deepen understanding
-4. **Ask questions** — Use the [FINOS community discussions](https://github.com/finos/architecture-as-code/discussions)
-5. **Use AI assistance** — The CALM Copilot chatmode accelerates learning
+2. **Experiment** — Try modifying examples to deepen understanding
+3. **Ask questions** — Use the [FINOS community discussions](https://github.com/finos/architecture-as-code/discussions)
+4. **Use AI assistance** — The CALM Copilot chatmode accelerates learning

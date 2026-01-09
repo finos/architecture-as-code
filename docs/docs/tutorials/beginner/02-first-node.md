@@ -1,6 +1,6 @@
 ---
 id: 02-first-node
-title: "Tutorial 2: Create Your First Node"
+title: "2. Create Your First Node"
 sidebar_position: 2
 ---
 
@@ -114,33 +114,6 @@ Open the generated file and make sure you understand each part:
 **Try this:** Ask Copilot to explain:
 ```text
 Explain each property in the node I just created
-```
-
-### 7. Commit Your Work
-
-Update your README.md progress, then:
-
-```bash
-git add architectures/my-first-architecture.json README.md
-git commit -m "Tutorial 2: Create first CALM node"
-git tag tutorial-2
-```
-
-## Validation Checklist
-
-Your Tutorial 2 submission should include:
-
-✅ **Required Files:**
-- `architectures/my-first-architecture.json` - Valid CALM architecture with one node
-- Updated `README.md` - Tutorial 2 marked as complete
-
-✅ **Validation Commands:**
-```bash
-# Architecture validates without errors
-calm validate -a architectures/my-first-architecture.json
-
-# Check git tag exists
-git tag | grep -q "tutorial-2"
 ```
 
 ## Key Concepts

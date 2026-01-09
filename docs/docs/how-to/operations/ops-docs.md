@@ -6,6 +6,8 @@ sidebar_position: 3
 
 # How to Create Operations Documentation
 
+🟡 **Difficulty:** Intermediate
+
 Generate comprehensive operations documentation from your CALM architecture, including runbooks, deployment checklists, and incident response guides.
 
 ## When to Use This

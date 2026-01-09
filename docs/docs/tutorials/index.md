@@ -92,15 +92,13 @@ Before you begin, make sure you have:
 - **Git** installed
 - **Node.js** (20+) and npm installed
 - **VSCode** editor (version 1.96+)
-- **GitHub account** (recommended for portfolio sharing)
 - **GitHub Copilot** access (optional but recommended)
 
 ## Getting Started
 
 1. **[Start with Tutorial 1](./beginner/01-setup)** — Set up your CALM workspace and tools
 2. **Work through each tutorial** — They build on each other progressively
-3. **Commit your progress** — Track your learning journey with git commits
-4. **Ask questions** — Join the [FINOS Architecture as Code community](https://github.com/finos/architecture-as-code/discussions)
+3. **Ask questions** — Join the [FINOS Architecture as Code community](https://github.com/finos/architecture-as-code/discussions)
 
 ## Skills You'll Acquire
 

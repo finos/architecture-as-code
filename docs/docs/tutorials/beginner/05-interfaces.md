@@ -1,6 +1,6 @@
 ---
 id: 05-interfaces
-title: "Tutorial 5: Add Interfaces to Your Nodes"
+title: "5. Add Interfaces to Your Nodes"
 sidebar_position: 5
 ---
 
@@ -169,33 +169,6 @@ calm validate -a architectures/my-first-architecture.json
 :::note
 At present, the CALM tooling does not follow external URL definitions (except for docify). For now, just know that by externalizing this configuration you're opening up the reuse possibilities of your architectures.
 :::
-
-### 9. Commit Your Work
-
-```bash
-git add architectures/my-first-architecture.json patterns/rest-api-interface.json docs/screenshots/tutorial-5-interfaces.png README.md
-git commit -m "Tutorial 5: Add inline and external interface definitions with visualization"
-git tag tutorial-5
-```
-
-## Validation Checklist
-
-Your Tutorial 5 submission should include:
-
-✅ **Required Files:**
-- `architectures/my-first-architecture.json` - With interfaces on service and database nodes
-- `patterns/rest-api-interface.json` - Interface schema (optional but recommended)
-- `docs/screenshots/tutorial-5-interfaces.png` - Visualization showing interfaces
-- Updated `README.md` - Tutorial 5 marked as complete
-
-✅ **Validation Commands:**
-```bash
-# Architecture validates
-calm validate -a architectures/my-first-architecture.json
-
-# Check git tag exists
-git tag | grep -q "tutorial-5"
-```
 
 ## Key Concepts
 

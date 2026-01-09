@@ -6,6 +6,8 @@ sidebar_position: 3
 
 # How to Create Custom Templates with Widgets
 
+🟡 **Difficulty:** Intermediate
+
 CALM widgets are reusable Handlebars components for generating Markdown documentation from architecture data.
 
 ## When to Use This

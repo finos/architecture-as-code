@@ -6,6 +6,8 @@ sidebar_position: 4
 
 # How to Document Decisions with ADRs
 
+🟢 **Difficulty:** Beginner
+
 Architecture Decision Records (ADRs) capture the context, decision, and consequences of significant architectural choices.
 
 ## When to Use This

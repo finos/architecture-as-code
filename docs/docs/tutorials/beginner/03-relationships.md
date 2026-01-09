@@ -1,6 +1,6 @@
 ---
 id: 03-relationships
-title: "Tutorial 3: Connect Nodes with Relationships"
+title: "3. Connect Nodes with Relationships"
 sidebar_position: 3
 ---
 
@@ -146,38 +146,6 @@ calm validate -a architectures/my-first-architecture.json
 ```
 
 You should see validation succeed with 4 nodes and 3 relationships.
-
-### 6. Commit Your Work
-
-Update your README.md progress:
-
-```bash
-git add architectures/my-first-architecture.json README.md
-git commit -m "Tutorial 3: Add multiple nodes and relationship types (interacts, connects, composed-of)"
-git tag tutorial-3
-```
-
-## Validation Checklist
-
-Your Tutorial 3 submission should include:
-
-✅ **Required Files:**
-- `architectures/my-first-architecture.json` - Valid CALM architecture with:
-  - At least 4 nodes (system, service, database, actor)
-  - At least 3 relationships demonstrating different types
-  - One "interacts" relationship (actor → service)
-  - One "connects" relationship (service → database)
-  - One "composed-of" relationship (system contains service and database)
-- Updated `README.md` - Tutorial 3 marked as complete
-
-✅ **Validation Commands:**
-```bash
-# Architecture validates without errors
-calm validate -a architectures/my-first-architecture.json
-
-# Check git tag exists
-git tag | grep -q "tutorial-3"
-```
 
 ## Key Concepts
 

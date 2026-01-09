@@ -6,6 +6,8 @@ sidebar_position: 2
 
 # How to Generate Documentation with Docify
 
+🟢 **Difficulty:** Beginner
+
 Docify transforms CALM architectures into readable Markdown documentation, enabling automatic doc generation as part of your workflow.
 
 ## When to Use This

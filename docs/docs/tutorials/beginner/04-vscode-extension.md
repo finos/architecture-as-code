@@ -1,6 +1,6 @@
 ---
 id: 04-vscode-extension
-title: "Tutorial 4: Install the CALM VSCode Extension"
+title: "4. Install the CALM VSCode Extension"
 sidebar_position: 4
 ---
 
@@ -161,30 +161,6 @@ Update your README with the extension information:
 - Use CLI for validation and generation
 - Use extension for visualization and navigation
 ```
-
-### 11. Commit Your Work
-
-```bash
-mkdir -p docs/screenshots
-# Save your visualization screenshot as docs/screenshots/tutorial-4-visualization.png
-git add docs/screenshots/tutorial-4-visualization.png README.md
-git commit -m "Tutorial 4: Install CALM VSCode extension and visualize architecture"
-git tag tutorial-4
-```
-
-## Validation Checklist
-
-Your Tutorial 4 submission should include:
-
-✅ **Required Files:**
-- Updated `README.md` - Tutorial 4 marked complete, Tools section added
-- `docs/screenshots/tutorial-4-visualization.png` - Screenshot of architecture visualization
-
-✅ **Extension Check:**
-- CALM icon appears in VSCode Activity Bar
-- Can open preview with `Ctrl+Shift+C` / `Cmd+Shift+C`
-- Tree view shows your nodes and relationships
-- Diagram visualizes your architecture
 
 ## Key Concepts
 

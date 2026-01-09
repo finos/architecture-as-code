@@ -6,6 +6,8 @@ sidebar_position: 5
 
 # How to Use AI for Architecture Analysis
 
+🟢 **Difficulty:** Beginner
+
 Leverage AI assistants to analyze, validate, and improve your CALM architectures.
 
 ## When to Use This

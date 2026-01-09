@@ -1,6 +1,6 @@
 ---
 id: 01-setup
-title: "Tutorial 1: Setup & CLI"
+title: "1. Setup & CLI"
 sidebar_position: 1
 ---
 
@@ -66,39 +66,7 @@ mkdir docs
 touch README.md
 ```
 
-### 4. Create Your Initial README
-
-Add the following to `README.md`:
-
-```markdown
-# My CALM Learning Journey
-
-This repository tracks my journey learning the Common Architecture Language Model (CALM).
-
-## Progress
-
-- [x] Tutorial 1: Setup & CLI
-- [ ] Tutorial 2: First Node
-- [ ] Tutorial 3: Relationships
-- [ ] Tutorial 4: VSCode Extension
-- [ ] Tutorial 5: Interfaces
-- [ ] Tutorial 6: Metadata
-- [ ] Tutorial 7: Complete Architecture
-
-## Architectures
-
-This directory will contain CALM architecture files documenting systems.
-
-## Patterns
-
-This directory will contain CALM patterns for architectural governance.
-
-## Docs
-
-Generated documentation from CALM models.
-```
-
-### 5. Enable AI Assistance with Copilot Chatmode
+### 4. Enable AI Assistance with Copilot Chatmode
 
 ```bash
 calm copilot-chatmode -d .
@@ -106,7 +74,7 @@ calm copilot-chatmode -d .
 
 This creates `.github/chatmodes/CALM.chatmode.md` with specialized CALM knowledge for GitHub Copilot.
 
-### 6. Add a .gitignore
+### 5. Add a .gitignore
 
 Create `.gitignore`:
 
@@ -116,52 +84,6 @@ node_modules/
 *.log
 .vscode/settings.json
 **/.docusaurus/
-```
-
-### 7. Make Your First Commit
-
-```bash
-git add .
-git commit -m "Tutorial 1: Initialize CALM learning repository with CLI and AI assistance"
-git tag tutorial-1
-```
-
-### 8. Create a GitHub Repository (Recommended)
-
-Push to GitHub to enable:
-- GitHub Copilot integration (if you have access)
-- Public portfolio of your progress
-- Community visibility
-
-```bash
-# Create repo on GitHub, then:
-git remote add origin <your-repo-url>
-git branch -M main
-git push -u origin main --tags
-```
-
-## Validation Checklist
-
-Your Tutorial 1 submission should include:
-
-✅ **Required Files:**
-- `README.md` - Project introduction with progress checklist
-- `.github/chatmodes/CALM.chatmode.md` - Copilot configuration
-- `.gitignore` - Basic ignore patterns
-- `architectures/` - Empty directory (ready for Tutorial 2)
-- `patterns/` - Empty directory
-- `docs/` - Empty directory
-
-✅ **Validation Commands:**
-```bash
-# Test CALM CLI is installed
-calm --version
-
-# Verify chatmode file exists and contains CALM schema guidance
-test -f .github/chatmodes/CALM.chatmode.md && grep -q "CALM" .github/chatmodes/CALM.chatmode.md
-
-# Check git tag exists
-git tag | grep -q "tutorial-1"
 ```
 
 ## Key Concepts
@@ -183,15 +105,11 @@ The chatmode file provides GitHub Copilot with specialized knowledge about:
 ## Resources
 
 - [CALM CLI Documentation](https://github.com/finos/architecture-as-code/tree/main/cli)
-- [CALM Quickstart](https://calm.finos.org/quick-start/)
 - [GitHub Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide)
 
 ## Tips
 
 - If you don't have GitHub Copilot access, the chatmode file is still useful as documentation for you to reference
-- Use descriptive commit messages - they tell the story of your learning
-- Consider making your repository public to inspire others
-- Tag each tutorial's work (`tutorial-1`, `tutorial-2`, etc.) to create clear milestones
 
 ## Next Steps
 

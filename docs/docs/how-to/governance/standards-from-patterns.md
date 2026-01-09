@@ -6,6 +6,8 @@ sidebar_position: 4
 
 # How to Generate Standards from Patterns
 
+🔴 **Difficulty:** Advanced
+
 Automatically generate validation standards from your patterns, ensuring architectures conform to established templates.
 
 ## When to Use This

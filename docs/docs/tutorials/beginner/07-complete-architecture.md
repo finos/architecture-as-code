@@ -1,6 +1,6 @@
 ---
 id: 07-complete-architecture
-title: "Tutorial 7: Build a Complete Architecture"
+title: "7. Build a Complete Architecture"
 sidebar_position: 7
 ---
 
@@ -204,33 +204,6 @@ Compare my two architectures:
 - architectures/ecommerce-platform.json (Tutorial 7, built all at once)
 
 What did I learn? Which approach (incremental vs all-at-once) works better for different scenarios?
-```
-
-### 9. Commit Your Work
-
-```bash
-git add architectures/ecommerce-platform.json docs/screenshots/tutorial-7-ecommerce.png README.md
-git commit -m "Tutorial 7: Build complete e-commerce microservice architecture with visualization"
-git tag tutorial-7
-```
-
-## Validation Checklist
-
-Your Tutorial 7 submission should include:
-
-✅ **Required Files:**
-- `architectures/ecommerce-platform.json` - Complete architecture with:
-  - 8+ nodes (actors, services, databases, system)
-  - 8+ relationships (interacts, connects, composed-of)
-  - Interfaces on services and databases
-  - Metadata at architecture and node levels
-- `docs/screenshots/tutorial-7-ecommerce.png` - Visualization screenshot
-- Updated `README.md` - Tutorial 7 marked as complete
-
-✅ **Validation Commands:**
-```bash
-calm validate -a architectures/ecommerce-platform.json
-git tag | grep -q "tutorial-7"
 ```
 
 ## Congratulations! 🎉

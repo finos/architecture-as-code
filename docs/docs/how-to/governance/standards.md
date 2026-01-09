@@ -6,6 +6,8 @@ sidebar_position: 3
 
 # How to Define Architecture Standards
 
+🟡 **Difficulty:** Intermediate
+
 Standards are validation rules that check architectures against organizational policies, security requirements, and best practices.
 
 ## When to Use This

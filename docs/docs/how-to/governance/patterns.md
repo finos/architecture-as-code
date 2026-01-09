@@ -6,6 +6,8 @@ sidebar_position: 2
 
 # How to Create Architecture Patterns
 
+🟡 **Difficulty:** Intermediate
+
 Patterns are reusable architecture templates that capture proven solutions and organizational best practices.
 
 ## When to Use This

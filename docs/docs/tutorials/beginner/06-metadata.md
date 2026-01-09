@@ -1,6 +1,6 @@
 ---
 id: 06-metadata
-title: "Tutorial 6: Document with Metadata"
+title: "6. Document with Metadata"
 sidebar_position: 6
 ---
 
@@ -182,33 +182,10 @@ Experiment with the array format to understand the difference.
 Show me how the metadata on my service node would look using the array format instead of the object format. Explain when I would choose one over the other.
 ```
 
-### 6. Validate and Commit
+### 6. Validate Your Architecture
 
 ```bash
 calm validate -a architectures/my-first-architecture.json
-
-git add architectures/my-first-architecture.json README.md
-git commit -m "Tutorial 6: Add metadata at architecture, node, and relationship levels"
-git tag tutorial-6
-```
-
-## Validation Checklist
-
-Your Tutorial 6 submission should include:
-
-✅ **Required Files:**
-- `architectures/my-first-architecture.json` - With metadata at all three levels
-- Updated `README.md` - Tutorial 6 marked as complete
-
-✅ **Metadata Requirements:**
-- Architecture-level: owner, version, created, description, tags
-- Node-level: tech-owner, repository, deployment-type
-- Relationship-level: latency-sla, monitoring
-
-✅ **Validation Commands:**
-```bash
-calm validate -a architectures/my-first-architecture.json
-git tag | grep -q "tutorial-6"
 ```
 
 ## Key Concepts
