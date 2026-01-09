@@ -21,9 +21,10 @@ Use docify when you need to:
 ## Quick Start
 
 ```bash
+# Generate a full documentation website
 calm docify \
   --architecture my-architecture.json \
-  --output docs/architecture.md
+  --output docs/
 ```
 
 ## Step-by-Step
@@ -59,14 +60,15 @@ Ensure you have a valid CALM architecture file:
 ```bash
 calm docify \
   --architecture architectures/my-system.json \
-  --output docs/my-system.md
+  --output docs/my-system-website/
 ```
 
-This generates a Markdown file with:
-- Architecture overview
-- Node listing
-- Relationship diagram
-- Metadata summary
+This generates a complete Docusaurus website with:
+- Architecture overview and diagrams
+- Individual pages for each node
+- Relationship documentation
+- Control and metadata pages
+- Ready-to-run `package.json` and config
 
 ### 4. Use a Custom Template
 
@@ -144,7 +146,7 @@ jobs:
           for arch in architectures/*.json; do
             calm docify \
               --architecture "$arch" \
-              --output "docs/$(basename "$arch" .json).md"
+              --output "docs/$(basename "$arch" .json)/"
           done
       - uses: stefanzweifel/git-auto-commit-action@b863ae1933cb653a53c021fe36dbb774e1fb9403 # v5
         with:
