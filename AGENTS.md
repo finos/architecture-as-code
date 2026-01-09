@@ -155,13 +155,16 @@ npm run dev                # Test in browser
 2. **All new code must have tests** (unit and/or integration)
 3. **Run linting** (see Linting section below)
 
+**IMPORTANT**: All workspaces use `vitest run` for the test script, which runs tests once and exits.
+Do NOT use `vitest` without `run` as it enters watch mode and will hang indefinitely.
+
 ```bash
 # Run ALL tests with coverage (required before committing)
 npm test -- --coverage      # TypeScript packages with coverage
 cd calm-hub && ../mvnw verify  # Java tests with coverage (JaCoCo enabled by default)
 
 # Quick test runs (without coverage reports)
-npm test                    # TypeScript packages
+npm test                    # TypeScript packages (runs vitest run in each workspace)
 cd calm-hub && ../mvnw test # Java unit tests (still collects coverage data)
 
 # Package-specific tests
