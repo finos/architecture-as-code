@@ -97,7 +97,7 @@ const sidebars = {
       items: [
         {
           type: 'category',
-          label: 'Modeling',
+          label: '🏗️ Modeling',
           link: {type: 'doc', id: 'how-to/modeling/modeling-index'},
           items: [
             'how-to/modeling/controls',
@@ -107,7 +107,7 @@ const sidebars = {
         },
         {
           type: 'category',
-          label: 'Documentation',
+          label: '📄 Documentation',
           link: {type: 'doc', id: 'how-to/documentation/documentation-index'},
           items: [
             'how-to/documentation/docify',
@@ -118,7 +118,7 @@ const sidebars = {
         },
         {
           type: 'category',
-          label: 'Operations',
+          label: '⚙️ Operations',
           link: {type: 'doc', id: 'how-to/operations/operations-index'},
           items: [
             'how-to/operations/ops-advisor',
@@ -127,7 +127,7 @@ const sidebars = {
         },
         {
           type: 'category',
-          label: 'Governance',
+          label: '🛡️ Governance',
           link: {type: 'doc', id: 'how-to/governance/governance-index'},
           items: [
             'how-to/governance/patterns',

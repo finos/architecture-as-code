@@ -83,7 +83,7 @@ const config = {
                     },
                     {
                         to: '/talks/',
-                        label: 'Talks',
+                        label: '🎤 Talks',
                         position: 'left',
                         activeBaseRegex: `/talks/`,
                     },
