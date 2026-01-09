@@ -1,0 +1,198 @@
+---
+id: 01-setup
+title: "Tutorial 1: Setup & CLI"
+sidebar_position: 1
+---
+
+# Tutorial 1: Install CALM CLI and Initialize Your Architecture Repository
+
+🟢 **Difficulty:** Beginner | ⏱️ **Time:** 30-45 minutes
+
+## Overview
+
+Set up your CALM workspace with AI-powered assistance and establish the foundation for your architecture learning journey.
+
+## Learning Objectives
+
+By the end of this tutorial, you will:
+- Install the CALM CLI tool
+- Create a git repository for your architecture work
+- Enable GitHub Copilot assistance for architecture development
+- Understand the basic project structure for CALM architectures
+
+## Prerequisites
+
+Ensure you have the following installed:
+- Git
+- Node.js (20+) and npm
+- VSCode editor (version 1.96+)
+- GitHub Copilot access (optional but recommended)
+
+## Step-by-Step Guide
+
+### 1. Create Your Repository
+
+```bash
+mkdir calm-learning
+cd calm-learning
+git init
+```
+
+### 2. Install the CALM CLI
+
+Install via npm:
+```bash
+npm install -g @finos/calm-cli
+```
+
+Or if you use [Homebrew](https://brew.sh):
+```shell
+brew install calm-cli
+```
+
+Verify installation:
+```bash
+calm --version
+```
+
+### 3. Initialize Your Project Structure
+
+Create a basic structure for your architecture files:
+
+```bash
+mkdir architectures
+mkdir patterns
+mkdir docs
+touch README.md
+```
+
+### 4. Create Your Initial README
+
+Add the following to `README.md`:
+
+```markdown
+# My CALM Learning Journey
+
+This repository tracks my journey learning the Common Architecture Language Model (CALM).
+
+## Progress
+
+- [x] Tutorial 1: Setup & CLI
+- [ ] Tutorial 2: First Node
+- [ ] Tutorial 3: Relationships
+- [ ] Tutorial 4: VSCode Extension
+- [ ] Tutorial 5: Interfaces
+- [ ] Tutorial 6: Metadata
+- [ ] Tutorial 7: Complete Architecture
+
+## Architectures
+
+This directory will contain CALM architecture files documenting systems.
+
+## Patterns
+
+This directory will contain CALM patterns for architectural governance.
+
+## Docs
+
+Generated documentation from CALM models.
+```
+
+### 5. Enable AI Assistance with Copilot Chatmode
+
+```bash
+calm copilot-chatmode -d .
+```
+
+This creates `.github/chatmodes/CALM.chatmode.md` with specialized CALM knowledge for GitHub Copilot.
+
+### 6. Add a .gitignore
+
+Create `.gitignore`:
+
+```
+node_modules/
+.DS_Store
+*.log
+.vscode/settings.json
+**/.docusaurus/
+```
+
+### 7. Make Your First Commit
+
+```bash
+git add .
+git commit -m "Tutorial 1: Initialize CALM learning repository with CLI and AI assistance"
+git tag tutorial-1
+```
+
+### 8. Create a GitHub Repository (Recommended)
+
+Push to GitHub to enable:
+- GitHub Copilot integration (if you have access)
+- Public portfolio of your progress
+- Community visibility
+
+```bash
+# Create repo on GitHub, then:
+git remote add origin <your-repo-url>
+git branch -M main
+git push -u origin main --tags
+```
+
+## Validation Checklist
+
+Your Tutorial 1 submission should include:
+
+✅ **Required Files:**
+- `README.md` - Project introduction with progress checklist
+- `.github/chatmodes/CALM.chatmode.md` - Copilot configuration
+- `.gitignore` - Basic ignore patterns
+- `architectures/` - Empty directory (ready for Tutorial 2)
+- `patterns/` - Empty directory
+- `docs/` - Empty directory
+
+✅ **Validation Commands:**
+```bash
+# Test CALM CLI is installed
+calm --version
+
+# Verify chatmode file exists and contains CALM schema guidance
+test -f .github/chatmodes/CALM.chatmode.md && grep -q "CALM" .github/chatmodes/CALM.chatmode.md
+
+# Check git tag exists
+git tag | grep -q "tutorial-1"
+```
+
+## Key Concepts
+
+### What is the CALM CLI?
+
+The CALM CLI is a command-line tool that provides:
+- **Validation** - Check if your architecture files are valid
+- **Generation** - Create architecture scaffolds from patterns
+- **Documentation** - Generate docs from your architecture files
+
+### What is the CALM Chatmode?
+
+The chatmode file provides GitHub Copilot with specialized knowledge about:
+- CALM schema and syntax
+- Best practices for architecture modeling
+- Common patterns and examples
+
+## Resources
+
+- [CALM CLI Documentation](https://github.com/finos/architecture-as-code/tree/main/cli)
+- [CALM Quickstart](https://calm.finos.org/quick-start/)
+- [GitHub Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide)
+
+## Tips
+
+- If you don't have GitHub Copilot access, the chatmode file is still useful as documentation for you to reference
+- Use descriptive commit messages - they tell the story of your learning
+- Consider making your repository public to inspire others
+- Tag each tutorial's work (`tutorial-1`, `tutorial-2`, etc.) to create clear milestones
+
+## Next Steps
+
+In [Tutorial 2](02-first-node), you'll create your first CALM architecture file using AI assistance!

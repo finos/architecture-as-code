@@ -58,7 +58,7 @@ const config = {
                 id: 'talks',
                 path: 'talks',
                 routeBasePath: 'talks',
-                sidebarPath: require.resolve('./sidebars.js'),
+                sidebarPath: require.resolve('./talksSidebar.js'),
             },
         ],
         [
@@ -88,6 +88,12 @@ const config = {
                         label: '🚀 Get Started in 5 Mins',
                         position: 'left',
                         activeBaseRegex: `/quick-start/`,
+                    },
+                    {
+                        type: 'docSidebar',
+                        sidebarId: 'learningSidebar',
+                        label: '📚 Learning',
+                        position: 'left',
                     },
                     {
                         to: '/talks/',
