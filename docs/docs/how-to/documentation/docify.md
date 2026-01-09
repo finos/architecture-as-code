@@ -146,7 +146,7 @@ jobs:
               --architecture "$arch" \
               --output "docs/$(basename "$arch" .json).md"
           done
-      - uses: stefanzweifel/git-auto-commit-action@v5
+      - uses: stefanzweifel/git-auto-commit-action@b863ae1933cb653a53c021fe36dbb774e1fb9403 # v5
         with:
           commit_message: "docs: regenerate architecture documentation"
 ```

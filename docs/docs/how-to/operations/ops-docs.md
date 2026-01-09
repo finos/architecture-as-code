@@ -212,7 +212,7 @@ jobs:
               --input "$template" \
               --output "docs/ops/$(basename "$template")"
           done
-      - uses: stefanzweifel/git-auto-commit-action@v5
+      - uses: stefanzweifel/git-auto-commit-action@b863ae1933cb653a53c021fe36dbb774e1fb9403 # v5
 ```
 
 ## Template Patterns
