@@ -36,7 +36,7 @@ This content follows the [Diataxis framework](https://diataxis.fr/). **Tutorials
 
 ## Start Here: Beginner Tutorials
 
-### 🟢 Beginner Tutorials (1-7)
+### 🟢 Beginner Tutorials
 
 **No prior CALM knowledge required**
 

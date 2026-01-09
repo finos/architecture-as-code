@@ -10,7 +10,7 @@ sidebar_position: 5
 
 ## Your Accomplishments
 
-### Beginner Tutorials (1-7)
+### Beginner Tutorials
 
 You learned the fundamentals:
 
