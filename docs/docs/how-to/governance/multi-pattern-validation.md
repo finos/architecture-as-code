@@ -296,4 +296,4 @@ calm validate \
 
 - [Create Patterns](patterns) - Define architecture patterns
 - [Define Standards](standards) - Create validation rules
-- [CLI Reference: validate command](/docs/cli/validate)
+- [CLI Reference: validate command](../../working-with-calm/validate)

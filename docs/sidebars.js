@@ -132,7 +132,6 @@ const sidebars = {
           items: [
             'how-to/governance/patterns',
             'how-to/governance/standards',
-            'how-to/governance/standards-from-patterns',
             'how-to/governance/multi-pattern-validation',
           ],
         },

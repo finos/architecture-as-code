@@ -321,6 +321,6 @@ calm validate \
 
 ## Related Resources
 
-- [Core Concepts: Standards](/docs/core-concepts/standards) - Detailed explanation of standards
+- [Core Concepts: Standards](../../core-concepts/standards) - Detailed explanation of standards
 - [Multi-Pattern Validation](multi-pattern-validation) - Validate against multiple patterns
 - [Create Patterns](patterns) - Define architecture patterns
