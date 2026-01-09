@@ -6,7 +6,7 @@ sidebar_position: 2
 
 # How to Create Architecture Patterns
 
-🟡 **Difficulty:** Intermediate
+🟡 **Difficulty:** Intermediate | ⏱️ **Time:** 20-30 minutes
 
 Patterns are reusable architecture templates that capture proven solutions and organizational best practices.
 

@@ -6,7 +6,7 @@ sidebar_position: 5
 
 # Tutorial 5: Add Interfaces to Your Nodes
 
-🟢 **Difficulty:** Beginner | ⏱️ **Time:** 45-60 minutes
+🟢 **Difficulty:** Beginner | ⏱️ **Time:** 20-30 minutes
 
 ## Overview
 

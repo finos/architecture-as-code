@@ -6,7 +6,7 @@ sidebar_position: 2
 
 # How to Generate Documentation with Docify
 
-🟢 **Difficulty:** Beginner
+🟢 **Difficulty:** Beginner | ⏱️ **Time:** 10-15 minutes
 
 Docify transforms CALM architectures into readable Markdown documentation, enabling automatic doc generation as part of your workflow.
 

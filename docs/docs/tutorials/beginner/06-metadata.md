@@ -6,7 +6,7 @@ sidebar_position: 6
 
 # Tutorial 6: Document with Metadata
 
-🟢 **Difficulty:** Beginner | ⏱️ **Time:** 45-60 minutes
+🟢 **Difficulty:** Beginner | ⏱️ **Time:** 20-30 minutes
 
 ## Overview
 

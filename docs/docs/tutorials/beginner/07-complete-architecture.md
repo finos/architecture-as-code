@@ -6,7 +6,7 @@ sidebar_position: 7
 
 # Tutorial 7: Build a Complete E-Commerce Microservice Architecture
 
-🟢 **Difficulty:** Beginner | ⏱️ **Time:** 90-120 minutes
+🟢 **Difficulty:** Beginner | ⏱️ **Time:** 45-60 minutes
 
 ## Overview
 

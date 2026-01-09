@@ -6,7 +6,7 @@ sidebar_position: 3
 
 # Product Developer Challenge
 
-🏆 **Challenge** | ⏱️ **Time:** 90 minutes | 🟡 **Difficulty:** Intermediate
+🏆 **Challenge** | 🟡 **Difficulty:** Intermediate | ⏱️ **Time:** 45-60 minutes
 
 ## Scenario
 

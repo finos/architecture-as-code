@@ -6,7 +6,7 @@ sidebar_position: 4
 
 # Security SME Challenge
 
-🏆 **Challenge** | ⏱️ **Time:** 90 minutes | 🔴 **Difficulty:** Advanced
+🏆 **Challenge** | 🔴 **Difficulty:** Advanced | ⏱️ **Time:** 60-90 minutes
 
 ## Scenario
 

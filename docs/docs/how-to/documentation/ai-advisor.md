@@ -6,7 +6,7 @@ sidebar_position: 5
 
 # How to Use AI for Architecture Analysis
 
-🟢 **Difficulty:** Beginner
+🟢 **Difficulty:** Beginner | ⏱️ **Time:** 10-15 minutes
 
 Leverage AI assistants to analyze, validate, and improve your CALM architectures.
 

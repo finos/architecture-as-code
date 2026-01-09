@@ -6,7 +6,7 @@ sidebar_position: 3
 
 # How to Create Custom Templates with Widgets
 
-🟡 **Difficulty:** Intermediate
+🟡 **Difficulty:** Intermediate | ⏱️ **Time:** 20-30 minutes
 
 CALM widgets are reusable Handlebars components for generating Markdown documentation from architecture data.
 

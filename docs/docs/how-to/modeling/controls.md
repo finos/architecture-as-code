@@ -6,7 +6,7 @@ sidebar_position: 2
 
 # How to Define Controls
 
-🟢 **Difficulty:** Beginner
+🟡 **Difficulty:** Intermediate | ⏱️ **Time:** 20-30 minutes
 
 Controls capture non-functional requirements (NFRs) in your CALM architecture, such as security, performance, compliance, and reliability requirements.
 

@@ -6,7 +6,7 @@ sidebar_position: 4
 
 # How to Document Decisions with ADRs
 
-🟢 **Difficulty:** Beginner
+🟢 **Difficulty:** Beginner | ⏱️ **Time:** 10-15 minutes
 
 Architecture Decision Records (ADRs) capture the context, decision, and consequences of significant architectural choices.
 

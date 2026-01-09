@@ -6,7 +6,7 @@ sidebar_position: 4
 
 # How to Generate Standards from Patterns
 
-🔴 **Difficulty:** Advanced
+🔴 **Difficulty:** Advanced | ⏱️ **Time:** 30-45 minutes
 
 Automatically generate validation standards from your patterns, ensuring architectures conform to established templates.
 

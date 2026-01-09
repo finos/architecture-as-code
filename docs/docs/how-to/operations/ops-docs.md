@@ -6,7 +6,7 @@ sidebar_position: 3
 
 # How to Create Operations Documentation
 
-🟡 **Difficulty:** Intermediate
+🟡 **Difficulty:** Intermediate | ⏱️ **Time:** 20-30 minutes
 
 Generate comprehensive operations documentation from your CALM architecture, including runbooks, deployment checklists, and incident response guides.
 

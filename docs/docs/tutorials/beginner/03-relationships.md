@@ -6,7 +6,7 @@ sidebar_position: 3
 
 # Tutorial 3: Connect Nodes with Relationships
 
-🟢 **Difficulty:** Beginner | ⏱️ **Time:** 60-90 minutes
+🟢 **Difficulty:** Beginner | ⏱️ **Time:** 30-45 minutes
 
 ## Overview
 

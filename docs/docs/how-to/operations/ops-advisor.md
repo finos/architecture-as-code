@@ -6,7 +6,7 @@ sidebar_position: 2
 
 # How to Use AI for Operations Documentation
 
-🟢 **Difficulty:** Beginner
+🟢 **Difficulty:** Beginner | ⏱️ **Time:** 10-15 minutes
 
 Use AI to analyze your architecture and generate operations documentation, including service inventories, dependency maps, and operational concerns.
 

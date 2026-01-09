@@ -6,7 +6,7 @@ sidebar_position: 4
 
 # How to Use Advanced Handlebars Templates
 
-🔴 **Difficulty:** Advanced
+🔴 **Difficulty:** Advanced | ⏱️ **Time:** 30-45 minutes
 
 For full control over documentation output, use raw Handlebars syntax to iterate, filter, and transform architecture data.
 

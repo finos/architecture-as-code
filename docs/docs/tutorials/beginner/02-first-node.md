@@ -6,7 +6,7 @@ sidebar_position: 2
 
 # Tutorial 2: Create Your First Node
 
-🟢 **Difficulty:** Beginner | ⏱️ **Time:** 45-60 minutes
+🟢 **Difficulty:** Beginner | ⏱️ **Time:** 20-30 minutes
 
 ## Overview
 

@@ -6,7 +6,7 @@ sidebar_position: 1
 
 # Tutorial 1: Install CALM CLI and Initialize Your Architecture Repository
 
-🟢 **Difficulty:** Beginner | ⏱️ **Time:** 30-45 minutes
+🟢 **Difficulty:** Beginner | ⏱️ **Time:** 15-20 minutes
 
 ## Overview
 

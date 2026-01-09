@@ -6,7 +6,7 @@ sidebar_position: 3
 
 # How to Define Architecture Standards
 
-🟡 **Difficulty:** Intermediate
+🟡 **Difficulty:** Intermediate | ⏱️ **Time:** 20-30 minutes
 
 Standards are validation rules that check architectures against organizational policies, security requirements, and best practices.
 

@@ -6,7 +6,7 @@ sidebar_position: 3
 
 # How to Model Business Flows
 
-🟡 **Difficulty:** Intermediate
+🟡 **Difficulty:** Intermediate | ⏱️ **Time:** 20-30 minutes
 
 Flows document how business processes traverse your architecture, showing the sequence of interactions between components.
 

@@ -6,7 +6,7 @@ sidebar_position: 4
 
 # Tutorial 4: Install the CALM VSCode Extension
 
-🟢 **Difficulty:** Beginner | ⏱️ **Time:** 30-45 minutes
+🟢 **Difficulty:** Beginner | ⏱️ **Time:** 10-15 minutes
 
 ## Overview
 
