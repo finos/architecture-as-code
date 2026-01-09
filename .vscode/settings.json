@@ -20,5 +20,8 @@
     "[json]": {
         "editor.defaultFormatter": "vscode.json-language-features"
     },
-    "java.jdt.ls.vmargs": "-XX:+UseG1GC -XX:+UseStringDeduplication -Xmx2G -Xms256m"
+    "java.jdt.ls.vmargs": "-XX:+UseG1GC -XX:+UseStringDeduplication -Xmx2G -Xms256m",
+    "chat.tools.terminal.autoApprove": {
+        "git push": true
+    }
 }
