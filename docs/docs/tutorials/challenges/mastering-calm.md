@@ -114,11 +114,11 @@ calm validate --architecture arch.json --pattern pattern.json
 # Validate against standard
 calm validate --architecture arch.json --standard standard.json
 
-# Generate documentation
-calm docify --input template.md --output output.md
+# Generate documentation website
+calm docify --architecture arch.json --output docs/
 
-# Generate visualization
-calm visualize --architecture arch.json
+# Generate documentation with template
+calm docify --input template.md --output output.md --architecture arch.json
 ```
 
 ### Key File Types
