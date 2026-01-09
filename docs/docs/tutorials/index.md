@@ -46,7 +46,7 @@ Learn the core building blocks of CALM architectures:
 - Understanding interfaces and metadata
 - Building your first complete architecture
 
-**Time commitment:** ~30-45 minutes per tutorial
+**Time commitment:** ~15-45 minutes per tutorial
 
 [Start with Beginner Tutorials →](./beginner/)
 
@@ -77,9 +77,9 @@ Apply your skills in realistic, role-based scenarios:
 
 | Challenge | Role | Time |
 |-----------|------|------|
-| [Enterprise Architect](./challenges/enterprise-architect) | Chief Architect | 90 min |
-| [Product Developer](./challenges/product-developer) | Senior Developer | 90 min |
-| [Security SME](./challenges/security-sme) | Security Architect | 90 min |
+| [Enterprise Architect](./challenges/enterprise-architect) | Chief Architect | 60-90 min |
+| [Product Developer](./challenges/product-developer) | Senior Developer | 45-60 min |
+| [Security SME](./challenges/security-sme) | Security Architect | 60-90 min |
 
 [Take the Challenges →](./challenges/)
 

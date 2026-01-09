@@ -19,9 +19,9 @@ Before attempting these challenges, complete:
 
 | Challenge | Role | Focus | Time |
 |-----------|------|-------|------|
-| [Enterprise Architect](enterprise-architect) | Chief Architect | Patterns & governance | 90 min |
-| [Product Developer](product-developer) | Senior Developer | Feature delivery | 90 min |
-| [Security SME](security-sme) | Security Architect | Security compliance | 90 min |
+| [Enterprise Architect](enterprise-architect) | Chief Architect | Patterns & governance | 60-90 min |
+| [Product Developer](product-developer) | Senior Developer | Feature delivery | 45-60 min |
+| [Security SME](security-sme) | Security Architect | Security compliance | 60-90 min |
 | [Mastering CALM](mastering-calm) | Summary | Wrap-up & next steps | 30 min |
 
 ## How Challenges Work
@@ -43,8 +43,8 @@ Each challenge places you in a realistic scenario:
 
 ## Time Investment
 
-- **Each Challenge:** 60-90 minutes
-- **Total:** ~4-5 hours
+- **Each Challenge:** 45-90 minutes
+- **Total:** ~3-4 hours
 - **Recommended:** Complete one challenge per session
 
 ## Ready to Begin?

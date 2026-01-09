@@ -33,7 +33,7 @@ Before starting, ensure you have:
 
 ## Time Commitment
 
-Each tutorial takes approximately **1-2 hours** to complete. You can work through them at your own pace.
+Each tutorial takes approximately **15-45 minutes** to complete, with the final capstone tutorial taking up to 60 minutes. You can work through them at your own pace.
 
 ## Getting Started
 
