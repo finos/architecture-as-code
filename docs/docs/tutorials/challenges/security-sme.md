@@ -135,7 +135,7 @@ Create `validation/security-profile.json` bundling all security standards.
 ```bash
 calm validate \
   --architecture review/submission.json \
-  --profile validation/security-profile.json
+  --pattern patterns/security-pattern.json
 ```
 
 ### Part 4: Remediation Guidance (10 min)

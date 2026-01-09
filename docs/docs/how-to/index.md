@@ -51,8 +51,7 @@ Guides for patterns, standards, and validation:
 |-------|-------------|
 | [Create Patterns](governance/patterns) | Define reusable architecture templates |
 | [Define Standards](governance/standards) | Create organizational validation rules |
-| [Generate Standards from Patterns](governance/standards-from-patterns) | Auto-generate validation from patterns |
-| [Multi-Pattern Validation](governance/multi-pattern-validation) | Validate against multiple standards |
+| [Multi-Pattern Validation](governance/multi-pattern-validation) | Validate against multiple patterns |
 
 ## Quick Reference
 

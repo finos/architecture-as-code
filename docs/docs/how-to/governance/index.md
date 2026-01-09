@@ -13,8 +13,7 @@ These guides help you implement architecture governance with patterns, standards
 
 - [**Create Patterns**](patterns) - Define reusable architecture templates
 - [**Define Standards**](standards) - Create organizational validation rules
-- [**Generate Standards from Patterns**](standards-from-patterns) - Auto-generate validation rules
-- [**Multi-Pattern Validation**](multi-pattern-validation) - Validate against multiple standards
+- [**Multi-Pattern Validation**](multi-pattern-validation) - Validate against multiple patterns
 
 ## Prerequisites
 

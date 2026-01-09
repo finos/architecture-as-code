@@ -64,7 +64,7 @@ Document key flows:
 ```bash
 calm validate \
   --architecture architectures/subscription-billing.json \
-  --profile validation/production-profile.json
+  --pattern patterns/payment-service-pattern.json
 ```
 
 **Task 3.2: Fix Issues**

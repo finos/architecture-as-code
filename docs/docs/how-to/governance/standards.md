@@ -8,40 +8,55 @@ sidebar_position: 3
 
 🟡 **Difficulty:** Intermediate | ⏱️ **Time:** 20-30 minutes
 
-Standards are validation rules that check architectures against organizational policies, security requirements, and best practices.
+Standards are JSON Schema extensions that add organizational requirements to CALM components. They extend the core CALM schema to enforce properties like cost centers, ownership, and compliance tags.
 
 ## When to Use This
 
 Use standards when you need to:
-- Enforce naming conventions
-- Require security controls
-- Validate compliance requirements
-- Check documentation completeness
+- Add required organizational properties (cost center, owner, team)
+- Enforce compliance metadata across all architectures
+- Define environment classifications
+- Require data classification on relationships
+
+## How Standards Work
+
+Standards are **JSON Schema 2020-12** documents that use `allOf` to compose with CALM's core schema:
+
+```
+Your Standard = Core CALM Definition + Your Requirements
+```
+
+This composition approach means:
+- Base CALM requirements are always enforced
+- Your additional properties are layered on top
+- Validation happens through patterns that reference your standards
 
 ## Quick Start
 
+**File:** `standards/company-node-standard.json`
+
 ```json
 {
-  "$schema": "https://calm.finos.org/draft/2025-03/meta/standard.json",
-  "unique-id": "naming-standard",
-  "name": "Naming Conventions",
-  "requirements": [
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/standards/company-node-standard.json",
+  "title": "Company Node Standard",
+  "description": "Requires cost center and owner on all nodes",
+  "allOf": [
+    { "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node" },
     {
-      "id": "NC-001",
-      "description": "Node IDs must use kebab-case",
-      "severity": "error",
-      "validation": {
-        "type": "object",
-        "properties": {
-          "nodes": {
-            "items": {
-              "properties": {
-                "unique-id": { "pattern": "^[a-z][a-z0-9-]*$" }
-              }
-            }
-          }
+      "type": "object",
+      "properties": {
+        "costCenter": {
+          "type": "string",
+          "pattern": "^CC-[0-9]{4}$",
+          "description": "Cost center code (e.g., CC-1234)"
+        },
+        "owner": {
+          "type": "string",
+          "description": "Team or individual responsible"
         }
-      }
+      },
+      "required": ["costCenter", "owner"]
     }
   ]
 }
@@ -49,261 +64,263 @@ Use standards when you need to:
 
 ## Step-by-Step
 
-### 1. Identify Requirements
+### 1. Identify Your Requirements
 
-Common standard categories:
+Common organizational properties:
 
-| Category | Examples |
-|----------|----------|
-| **Naming** | Kebab-case IDs, descriptive names |
-| **Security** | Auth on external services, encryption |
-| **Documentation** | Required descriptions, owner metadata |
-| **Compliance** | Specific controls for PCI, SOC2 |
+| Category | Properties |
+|----------|-----------|
+| **Ownership** | owner, team, costCenter |
+| **Environment** | environment (dev/staging/prod) |
+| **Compliance** | dataClassification, encrypted |
+| **Operations** | tier, oncallChannel |
 
-### 2. Create Standard Structure
+### 2. Create a Node Standard
 
-**File:** `standards/naming-standard.json`
+Extend the core CALM node with your properties:
 
-```json
-{
-  "$schema": "https://calm.finos.org/draft/2025-03/meta/standard.json",
-  "unique-id": "naming-standard",
-  "name": "Naming Conventions Standard",
-  "description": "Enforces consistent naming across architectures",
-  "requirements": []
-}
-```
-
-### 3. Add Naming Requirements
+**File:** `standards/company-node-standard.json`
 
 ```json
 {
-  "requirements": [
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/standards/company-node-standard.json",
+  "title": "Company Node Standard",
+  "description": "Organizational requirements for all nodes",
+  "allOf": [
+    { "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node" },
     {
-      "id": "NC-001",
-      "description": "Node IDs must use kebab-case",
-      "severity": "error",
-      "validation": {
-        "type": "object",
-        "properties": {
-          "nodes": {
-            "type": "array",
-            "items": {
-              "properties": {
-                "unique-id": {
-                  "type": "string",
-                  "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "id": "NC-002",
-      "description": "All nodes must have non-empty names",
-      "severity": "error",
-      "validation": {
-        "type": "object",
-        "properties": {
-          "nodes": {
-            "type": "array",
-            "items": {
-              "required": ["name"],
-              "properties": {
-                "name": { "minLength": 1 }
-              }
-            }
-          }
-        }
-      }
-    }
-  ]
-}
-```
-
-### 4. Add Security Requirements
-
-**File:** `standards/security-standard.json`
-
-```json
-{
-  "$schema": "https://calm.finos.org/draft/2025-03/meta/standard.json",
-  "unique-id": "security-standard",
-  "name": "Security Requirements",
-  "requirements": [
-    {
-      "id": "SEC-001",
-      "description": "External services must have authentication",
-      "severity": "error",
-      "validation": {
-        "type": "object",
-        "properties": {
-          "nodes": {
-            "items": {
-              "if": {
-                "properties": {
-                  "external": { "const": true }
-                }
-              },
-              "then": {
-                "properties": {
-                  "controls": {
-                    "contains": {
-                      "properties": {
-                        "type": { "const": "authentication" }
-                      }
-                    }
-                  }
-                },
-                "required": ["controls"]
-              }
-            }
-          }
-        }
-      }
-    }
-  ]
-}
-```
-
-### 5. Add Documentation Requirements
-
-**File:** `standards/documentation-standard.json`
-
-```json
-{
-  "$schema": "https://calm.finos.org/draft/2025-03/meta/standard.json",
-  "unique-id": "documentation-standard",
-  "name": "Documentation Requirements",
-  "requirements": [
-    {
-      "id": "DOC-001",
-      "description": "Architecture must have description (20+ chars)",
-      "severity": "error",
-      "validation": {
-        "required": ["description"],
-        "properties": {
-          "description": { "minLength": 20 }
-        }
-      }
-    },
-    {
-      "id": "DOC-002",
-      "description": "All nodes should have descriptions",
-      "severity": "warning",
-      "validation": {
-        "properties": {
-          "nodes": {
-            "items": {
-              "required": ["description"],
-              "properties": {
-                "description": { "minLength": 10 }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "id": "DOC-003",
-      "description": "Architecture must have owner metadata",
-      "severity": "error",
-      "validation": {
-        "properties": {
-          "metadata": {
-            "required": ["owner"],
-            "properties": {
-              "owner": { "format": "email" }
-            }
-          }
+      "type": "object",
+      "properties": {
+        "costCenter": {
+          "type": "string",
+          "pattern": "^CC-[0-9]{4}$",
+          "description": "Cost center code (e.g., CC-1234)"
         },
-        "required": ["metadata"]
-      }
+        "owner": {
+          "type": "string",
+          "description": "Team or individual responsible"
+        },
+        "environment": {
+          "type": "string",
+          "enum": ["development", "staging", "production"],
+          "description": "Deployment environment"
+        }
+      },
+      "required": ["costCenter", "owner"]
     }
   ]
 }
 ```
 
-### 6. Validate Architecture
+### 3. Create a Relationship Standard
+
+Extend relationships with data classification:
+
+**File:** `standards/company-relationship-standard.json`
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/standards/company-relationship-standard.json",
+  "title": "Company Relationship Standard",
+  "description": "Security requirements for all relationships",
+  "allOf": [
+    { "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship" },
+    {
+      "type": "object",
+      "properties": {
+        "dataClassification": {
+          "type": "string",
+          "enum": ["public", "internal", "confidential", "restricted"],
+          "description": "Data sensitivity classification"
+        },
+        "encrypted": {
+          "type": "boolean",
+          "description": "Whether the connection is encrypted"
+        }
+      },
+      "required": ["dataClassification", "encrypted"]
+    }
+  ]
+}
+```
+
+### 4. Create a Pattern That References Standards
+
+Patterns enforce standards by referencing them via `$ref`:
+
+**File:** `patterns/company-base-pattern.json`
+
+```json
+{
+  "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+  "$id": "https://example.com/patterns/company-base-pattern.json",
+  "title": "Company Base Pattern",
+  "description": "Enforces organizational standards on all architectures",
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "https://example.com/standards/company-node-standard.json"
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "$ref": "https://example.com/standards/company-relationship-standard.json"
+      }
+    }
+  }
+}
+```
+
+### 5. Create URL Mapping for Local Development
+
+Standards use canonical URLs for global uniqueness. During development, map them to local files:
+
+**File:** `url-mapping.json`
+
+```json
+{
+  "https://example.com/standards/company-node-standard.json": "standards/company-node-standard.json",
+  "https://example.com/standards/company-relationship-standard.json": "standards/company-relationship-standard.json",
+  "https://example.com/patterns/company-base-pattern.json": "patterns/company-base-pattern.json"
+}
+```
+
+### 6. Validate Against Your Standards
+
+Validate architectures through the pattern:
 
 ```bash
 calm validate \
+  --pattern patterns/company-base-pattern.json \
   --architecture my-architecture.json \
-  --standard standards/naming-standard.json \
-  --standard standards/security-standard.json
+  --url-to-local-file-mapping url-mapping.json
 ```
-
-## Severity Levels
-
-| Severity | Meaning | CI Behavior |
-|----------|---------|-------------|
-| `error` | Must fix | Fails pipeline |
-| `warning` | Should fix | Warns only |
-| `info` | Suggestion | Information |
 
 ## JSON Schema Patterns
 
-### Required Field
-
-```json
-{ "required": ["fieldName"] }
-```
-
-### String Pattern
-
-```json
-{ "pattern": "^[a-z-]+$" }
-```
-
-### Minimum Length
-
-```json
-{ "minLength": 10 }
-```
-
-### Enum Values
-
-```json
-{ "enum": ["value1", "value2"] }
-```
-
-### Conditional (if/then)
+### Required Properties
 
 ```json
 {
-  "if": { "properties": { "type": { "const": "service" } } },
-  "then": { "required": ["controls"] }
+  "required": ["costCenter", "owner"]
 }
 ```
 
-### Array Contains
+### String Patterns
 
 ```json
 {
-  "contains": {
-    "properties": { "type": { "const": "authentication" } }
+  "costCenter": {
+    "type": "string",
+    "pattern": "^CC-[0-9]{4}$"
+  }
+}
+```
+
+### Enumerated Values
+
+```json
+{
+  "environment": {
+    "type": "string",
+    "enum": ["development", "staging", "production"]
+  }
+}
+```
+
+### Boolean Fields
+
+```json
+{
+  "encrypted": {
+    "type": "boolean"
   }
 }
 ```
 
 ## Best Practices
 
-:::tip Start with Warnings
-Use `warning` severity when introducing new standards
+:::tip Use Canonical URLs
+Give standards unique `$id` URLs (like `https://yourcompany.com/standards/...`) for global uniqueness and future publishing.
 :::
 
-:::tip Document Why
-Include clear descriptions explaining the purpose of each requirement
+:::tip Start Simple
+Begin with a few essential properties (owner, cost center) and add more as needed.
 :::
 
-:::tip Test Standards
-Validate against known-good and known-bad architectures
+:::tip Document Properties
+Include helpful `description` fields explaining the purpose and expected values.
 :::
 
-## Related Guides
+:::tip Separate Concerns
+Create focused standards (node standard, relationship standard) rather than one massive schema.
+:::
 
-- [Create Patterns](patterns) - Define architecture templates
-- [Standards from Patterns](standards-from-patterns) - Auto-generate standards
-- [Multi-Pattern Validation](multi-pattern-validation) - Combine multiple standards
+## Complete Example
+
+Here's a complete working example:
+
+```bash
+mkdir -p standards patterns
+
+# Create node standard
+cat > standards/company-node-standard.json << 'EOF'
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/standards/company-node-standard.json",
+  "title": "Company Node Standard",
+  "allOf": [
+    { "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node" },
+    {
+      "type": "object",
+      "properties": {
+        "costCenter": { "type": "string", "pattern": "^CC-[0-9]{4}$" },
+        "owner": { "type": "string" }
+      },
+      "required": ["costCenter", "owner"]
+    }
+  ]
+}
+EOF
+
+# Create pattern
+cat > patterns/company-base-pattern.json << 'EOF'
+{
+  "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+  "$id": "https://example.com/patterns/company-base-pattern.json",
+  "title": "Company Base Pattern",
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "https://example.com/standards/company-node-standard.json"
+      }
+    }
+  }
+}
+EOF
+
+# Create URL mapping
+cat > url-mapping.json << 'EOF'
+{
+  "https://example.com/standards/company-node-standard.json": "standards/company-node-standard.json",
+  "https://example.com/patterns/company-base-pattern.json": "patterns/company-base-pattern.json"
+}
+EOF
+
+# Validate
+calm validate \
+  --pattern patterns/company-base-pattern.json \
+  --architecture my-architecture.json \
+  --url-to-local-file-mapping url-mapping.json
+```
+
+## Related Resources
+
+- [Core Concepts: Standards](/docs/core-concepts/standards) - Detailed explanation of standards
+- [Multi-Pattern Validation](multi-pattern-validation) - Validate against multiple patterns
+- [Create Patterns](patterns) - Define architecture patterns

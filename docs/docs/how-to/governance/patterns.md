@@ -227,7 +227,7 @@ Use versioning to evolve patterns without breaking existing architectures
 Keep example instantiations that pass validation
 :::
 
-## Related Guides
+## Related Resources
 
-- [Define Standards](standards) - Create validation rules
-- [Standards from Patterns](standards-from-patterns) - Auto-generate standards
+- [Define Standards](standards) - Create organizational validation rules
+- [Multi-Pattern Validation](multi-pattern-validation) - Validate against multiple patterns

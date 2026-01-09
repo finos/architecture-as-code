@@ -105,14 +105,14 @@ Continue learning:
 ### CLI Commands
 
 ```bash
-# Validate architecture
+# Validate architecture against CALM schema
 calm validate --architecture arch.json
 
 # Validate against pattern
 calm validate --architecture arch.json --pattern pattern.json
 
-# Validate against standard
-calm validate --architecture arch.json --standard standard.json
+# Validate against pattern with local URL mapping
+calm validate --architecture arch.json --pattern pattern.json --url-to-local-file-mapping url-mapping.json
 
 # Generate documentation website
 calm docify --architecture arch.json --output docs/
@@ -126,8 +126,8 @@ calm docify --input template.md --output output.md --architecture arch.json
 | Type | Purpose |
 |------|---------|
 | Architecture (`.json`) | System model |
-| Pattern (`.json`) | Reusable template |
-| Standard (`.json`) | Validation rules |
+| Pattern (`.json`) | Reusable template / validation rules |
+| Standard (`.json`) | JSON Schema extension for organizational requirements |
 | Template (`.md`) | Documentation template |
 | ADR (`.md`) | Decision record |
 

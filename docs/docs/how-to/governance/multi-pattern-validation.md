@@ -4,154 +4,184 @@ title: Multi-Pattern Validation
 sidebar_position: 5
 ---
 
-# How to Validate Against Multiple Standards
+# How to Validate Against Multiple Patterns
 
-🔴 **Difficulty:** Advanced | ⏱️ **Time:** 30-45 minutes
+🟡 **Difficulty:** Intermediate | ⏱️ **Time:** 20-30 minutes
 
-Validate complex architectures against multiple patterns and standards simultaneously for comprehensive governance.
+Validate architectures against multiple patterns for comprehensive governance - separating structural requirements from organizational standards.
 
 ## When to Use This
 
-Use multi-standard validation when you need to:
-- Apply multiple standard categories (security, naming, docs)
-- Validate against pattern compliance
-- Create environment-specific profiles (dev, prod)
-- Integrate comprehensive checks into CI/CD
+Use multi-pattern validation when you need to:
+- Separate structural validation (what components must exist) from standards validation (what properties must be present)
+- Apply organizational standards across all architecture types
+- Create maintainable governance without duplicating pattern logic
+- Integrate comprehensive checks into CI/CD pipelines
+
+## Core Concept
+
+The key insight is that you don't need complex combined patterns. Instead:
+- **Structural patterns** define what components must exist (specific nodes and relationships)
+- **Standards patterns** define what properties must be present (costCenter, owner, etc.)
+
+Run `calm validate` multiple times with different patterns against the same architecture.
 
 ## Quick Start
 
 ```bash
-calm validate \
-  --architecture my-architecture.json \
-  --standard standards/naming.json \
-  --standard standards/security.json \
-  --standard standards/documentation.json
+# Validate structure - does it have the required components?
+calm validate --pattern patterns/web-app-pattern.json --architecture my-app.json
+
+# Validate standards - does it have required organizational properties?
+calm validate --pattern patterns/company-base-pattern.json --architecture my-app.json \
+  --url-to-local-file-mapping url-mapping.json
 ```
 
 ## Step-by-Step
 
-### 1. Create a Validation Profile
+### 1. Understand the Two Types of Patterns
 
-Bundle multiple standards into a profile:
+| Pattern Type | Enforces | Example |
+|-------------|----------|---------|
+| **Structural** | Specific nodes and relationships | "Must have api-gateway, api-service, database" |
+| **Standards** | Required properties on any component | "All nodes must have costCenter and owner" |
 
-**File:** `validation/production-profile.json`
+**Why separate them?**
+- Structural patterns are architecture-specific (web apps differ from data pipelines)
+- Standards patterns apply universally (all architectures need ownership info)
+- When standards change, update one pattern instead of N structural patterns
+
+### 2. Create Standards (JSON Schema Extensions)
+
+Standards extend CALM's core schemas with organizational requirements using `allOf`:
+
+**File:** `standards/company-node-standard.json`
 
 ```json
 {
-  "$schema": "https://calm.finos.org/draft/2025-03/meta/validation-profile.json",
-  "unique-id": "production-profile",
-  "name": "Production Validation Profile",
-  "description": "All standards required for production deployment",
-  "standards": [
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/standards/company-node-standard.json",
+  "title": "Company Node Standard",
+  "description": "Organizational requirements for all nodes",
+  "allOf": [
+    { "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node" },
     {
-      "ref": "../standards/naming-standard.json",
-      "required": true
-    },
-    {
-      "ref": "../standards/security-standard.json",
-      "required": true
-    },
-    {
-      "ref": "../standards/documentation-standard.json",
-      "required": true
+      "type": "object",
+      "properties": {
+        "costCenter": {
+          "type": "string",
+          "pattern": "^CC-[0-9]{4}$",
+          "description": "Cost center code (e.g., CC-1234)"
+        },
+        "owner": {
+          "type": "string",
+          "description": "Team or individual responsible"
+        },
+        "environment": {
+          "type": "string",
+          "enum": ["development", "staging", "production"]
+        }
+      },
+      "required": ["costCenter", "owner"]
     }
-  ],
-  "patterns": [
+  ]
+}
+```
+
+**File:** `standards/company-relationship-standard.json`
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/standards/company-relationship-standard.json",
+  "title": "Company Relationship Standard",
+  "allOf": [
+    { "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship" },
     {
-      "ref": "../patterns/microservice-pattern.json",
-      "required": false,
-      "condition": "isMicroservice"
+      "type": "object",
+      "properties": {
+        "dataClassification": {
+          "type": "string",
+          "enum": ["public", "internal", "confidential", "restricted"]
+        },
+        "encrypted": {
+          "type": "boolean",
+          "description": "Whether the connection is encrypted"
+        }
+      },
+      "required": ["dataClassification", "encrypted"]
     }
-  ],
-  "settings": {
-    "failOnWarning": false,
-    "failOnError": true,
-    "reportFormat": "detailed"
-  }
+  ]
 }
 ```
 
-### 2. Create Environment-Specific Profiles
+### 3. Create a Standards Pattern
 
-**Development Profile:**
+Create a pattern that enforces your standards on any architecture:
+
+**File:** `patterns/company-base-pattern.json`
 
 ```json
 {
-  "unique-id": "development-profile",
-  "name": "Development Profile",
-  "standards": [
-    { "ref": "../standards/naming-standard.json", "required": true },
-    { "ref": "../standards/security-standard.json", "required": false }
-  ],
-  "settings": {
-    "failOnWarning": false,
-    "failOnError": false
+  "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+  "$id": "https://example.com/patterns/company-base-pattern.json",
+  "title": "Company Base Pattern",
+  "description": "Enforces organizational standards on all architectures",
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "https://example.com/standards/company-node-standard.json"
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "$ref": "https://example.com/standards/company-relationship-standard.json"
+      }
+    }
   }
 }
 ```
 
-**Production Profile:**
+Note: This pattern doesn't use `prefixItems`, `minItems`, or `maxItems` - it enforces properties on whatever nodes exist, not which nodes must exist.
+
+### 4. Create URL Mapping for Local Development
+
+Standards use canonical URLs (like `https://example.com/standards/...`) for global uniqueness. During development, map these to local files:
+
+**File:** `url-mapping.json`
 
 ```json
 {
-  "unique-id": "production-profile",
-  "name": "Production Profile",
-  "standards": [
-    { "ref": "../standards/naming-standard.json", "required": true },
-    { "ref": "../standards/security-standard.json", "required": true },
-    { "ref": "../standards/compliance-standard.json", "required": true }
-  ],
-  "settings": {
-    "failOnWarning": true,
-    "failOnError": true
-  }
+  "https://example.com/standards/company-node-standard.json": "standards/company-node-standard.json",
+  "https://example.com/standards/company-relationship-standard.json": "standards/company-relationship-standard.json",
+  "https://example.com/patterns/company-base-pattern.json": "patterns/company-base-pattern.json"
 }
 ```
 
-### 3. Run Profile Validation
+### 5. Run Multi-Pattern Validation
+
+Run separate validate commands for each concern:
 
 ```bash
-# Using profile
+# Structural validation - does the architecture have required components?
 calm validate \
-  --architecture architectures/my-service.json \
-  --profile validation/production-profile.json
+  --pattern patterns/web-app-pattern.json \
+  --architecture architectures/my-webapp.json
 
-# Using multiple standards directly
+# Standards validation - do components have required properties?
 calm validate \
-  --architecture architectures/my-service.json \
-  --standard standards/naming.json \
-  --standard standards/security.json \
-  --pattern patterns/microservice.json
+  --pattern patterns/company-base-pattern.json \
+  --architecture architectures/my-webapp.json \
+  --url-to-local-file-mapping url-mapping.json
 ```
 
-### 4. Review Results
+Both must pass for complete compliance.
 
-```
-╔════════════════════════════════════════════════════════╗
-║  Validation Report: my-service.json                    ║
-╠════════════════════════════════════════════════════════╣
-║  Profile: production-profile                           ║
-║  Total Requirements: 15                                ║
-║  Passed: 13 | Failed: 1 | Warnings: 1                  ║
-╚════════════════════════════════════════════════════════╝
+### 6. Integrate with CI/CD
 
-Standards Results:
-─────────────────
-✓ naming-standard (4/4 passed)
-✗ security-standard (3/4 passed)
-  ✗ SEC-002: Database connections must use TLS
-⚠ documentation-standard (5/6 passed)
-  ⚠ DOC-003: Node description too short
-
-Pattern Compliance:
-───────────────────
-✓ microservice-pattern: Compliant
-
-Status: FAILED
-Fix SEC-002 to pass production validation.
-```
-
-### 5. Integrate with CI/CD
+Run multiple validation checks in your pipeline:
 
 **GitHub Actions:**
 
@@ -176,114 +206,94 @@ jobs:
       - name: Install CALM CLI
         run: npm install -g @finos/calm-cli
       
-      - name: Validate Architectures
+      - name: Validate Structure
         run: |
-          for arch in architectures/*.json; do
-            echo "Validating $arch..."
-            calm validate \
-              --architecture "$arch" \
-              --profile validation/production-profile.json
-          done
+          calm validate \
+            --pattern patterns/web-app-pattern.json \
+            --architecture architectures/my-webapp.json
+      
+      - name: Validate Standards
+        run: |
+          calm validate \
+            --pattern patterns/company-base-pattern.json \
+            --architecture architectures/my-webapp.json \
+            --url-to-local-file-mapping url-mapping.json
 ```
 
-**GitLab CI:**
+**Validate All Architectures Against Standards:**
 
 ```yaml
-validate:
-  image: node:20
-  script:
-    - npm install -g @finos/calm-cli
-    - |
-      for arch in architectures/*.json; do
-        calm validate \
-          --architecture "$arch" \
-          --profile validation/production-profile.json
-      done
-  only:
-    changes:
-      - architectures/**
+- name: Validate All Architectures
+  run: |
+    for arch in architectures/*.json; do
+      echo "=== Validating $arch ==="
+      
+      # Standards check applies to all architectures
+      calm validate \
+        --pattern patterns/company-base-pattern.json \
+        --architecture "$arch" \
+        --url-to-local-file-mapping url-mapping.json
+    done
 ```
 
-### 6. Generate Validation Report
+## Why This Approach Works
 
-```bash
-calm validate \
-  --architecture architectures/my-service.json \
-  --profile validation/production-profile.json \
-  --output-format json \
-  --output validation-report.json
-```
+| Approach | Patterns Needed | When Standards Change |
+|----------|-----------------|----------------------|
+| Combined patterns | 1 per architecture type × standards | Update N patterns |
+| Multi-pattern validation | 1 structural + 1 standards | Update 1 pattern |
 
-## Profile Options
-
-### Standard Configuration
-
-```json
-{
-  "standards": [
-    {
-      "ref": "../standards/security.json",
-      "required": true,           // Must pass
-      "severity-override": "warning"  // Downgrade errors to warnings
-    }
-  ]
-}
-```
-
-### Conditional Standards
-
-Apply standards based on architecture characteristics:
-
-```json
-{
-  "standards": [
-    {
-      "ref": "../standards/gateway-standard.json",
-      "condition": "hasGateway",
-      "required": false
-    },
-    {
-      "ref": "../standards/pci-standard.json",
-      "condition": "handlesPayments",
-      "required": true
-    }
-  ]
-}
-```
-
-### Settings
-
-```json
-{
-  "settings": {
-    "failOnError": true,      // Fail on any error
-    "failOnWarning": false,   // Don't fail on warnings
-    "reportFormat": "detailed", // detailed | summary | json
-    "stopOnFirstFailure": false
-  }
-}
-```
+**Example:** 10 architecture types, company adds a new required property:
+- **Combined patterns**: Update 10 patterns
+- **Multi-pattern validation**: Update 1 standards pattern, applies everywhere
 
 ## Best Practices
 
-:::tip Environment Profiles
-Create separate profiles for dev, staging, and production
+:::tip Start with Standards
+Begin by enforcing organizational standards across all architectures - this provides immediate value without needing architecture-specific patterns.
 :::
 
-:::tip Start Permissive
-Begin with warnings, promote to errors as teams adapt
+:::tip Separate Concerns
+Keep structural patterns focused on "what must exist" and standards patterns on "what properties must be present."
 :::
 
 :::tip CI/CD Integration
-Validate all architecture changes before merge
+Run both structural and standards validation in your pipeline to catch issues before merge.
 :::
 
-:::tip Report History
-Save validation reports for audit trails
+:::tip Use URL Mapping
+During development, use `--url-to-local-file-mapping` to test standards before publishing them to canonical URLs.
 :::
 
-## Related Guides
+## Tips and Troubleshooting
+
+### URL Resolution
+If validation fails with "cannot resolve" errors, check your `url-mapping.json` paths are correct relative to where you run the command.
+
+### Incremental Adoption
+Start with standards validation only - it applies to any architecture without structural constraints:
+
+```bash
+# Works on ANY architecture
+calm validate \
+  --pattern patterns/company-base-pattern.json \
+  --architecture any-architecture.json \
+  --url-to-local-file-mapping url-mapping.json
+```
+
+### Debugging Validation Failures
+Use `--format pretty` for readable output:
+
+```bash
+calm validate \
+  --pattern patterns/company-base-pattern.json \
+  --architecture my-arch.json \
+  --url-to-local-file-mapping url-mapping.json \
+  --format pretty
+```
+
+## Related Resources
 
 - [Create Patterns](patterns) - Define architecture patterns
 - [Define Standards](standards) - Create validation rules
-- [Standards from Patterns](standards-from-patterns) - Auto-generate standards
+- [CLI Reference: validate command](/docs/cli/validate)
