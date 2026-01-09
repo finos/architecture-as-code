@@ -99,13 +99,28 @@ Start with the basic CALM structure:
 <details>
 <summary>💡 Hint 2: Required Controls</summary>
 
-Payment services typically need these controls:
+Payment services typically need these controls. Controls are objects with named keys, each having a `description` and `requirements` array:
 
 ```json
 "controls": {
-  "authentication": { "mechanism": "OAuth2" },
-  "encryption": { "at-rest": true, "in-transit": "TLS1.3" },
-  "audit-logging": { "enabled": true }
+  "authentication": {
+    "description": "OAuth2 authentication required for all endpoints",
+    "requirements": [
+      {
+        "requirement-url": "https://example.com/controls/oauth2.json",
+        "config": { "mechanism": "OAuth2", "token-type": "JWT" }
+      }
+    ]
+  },
+  "encryption-in-transit": {
+    "description": "TLS 1.3 required for all connections",
+    "requirements": [
+      {
+        "requirement-url": "https://example.com/controls/tls.json",
+        "config": { "min-version": "1.3" }
+      }
+    ]
+  }
 }
 ```
 </details>
@@ -126,8 +141,24 @@ Payment services typically need these controls:
       "description": "REST API for subscription management",
       "node-type": "service",
       "controls": {
-        "authentication": { "mechanism": "OAuth2" },
-        "encryption": { "in-transit": "TLS1.3" }
+        "authentication": {
+          "description": "OAuth2 authentication required for all API endpoints",
+          "requirements": [
+            {
+              "requirement-url": "https://example.com/controls/oauth2.json",
+              "config": { "mechanism": "OAuth2", "token-type": "JWT" }
+            }
+          ]
+        },
+        "encryption-in-transit": {
+          "description": "TLS 1.3 required for all connections",
+          "requirements": [
+            {
+              "requirement-url": "https://example.com/controls/tls.json",
+              "config": { "min-version": "1.3" }
+            }
+          ]
+        }
       }
     },
     {
@@ -142,7 +173,15 @@ Payment services typically need these controls:
       "description": "Stores subscription and billing history",
       "node-type": "database",
       "controls": {
-        "encryption": { "at-rest": true }
+        "encryption-at-rest": {
+          "description": "All subscription data encrypted at rest",
+          "requirements": [
+            {
+              "requirement-url": "https://example.com/controls/encryption-at-rest.json",
+              "config": { "algorithm": "AES-256" }
+            }
+          ]
+        }
       }
     },
     {
@@ -210,21 +249,24 @@ Document key flows:
 <details>
 <summary>💡 Hint: Flow Structure</summary>
 
-Flows describe the sequence of operations:
+Flows describe the sequence of operations using `transitions` that reference existing relationships:
 
 ```json
 "flows": [
   {
     "unique-id": "subscription-creation",
     "name": "Create Subscription",
-    "steps": [
-      { "step": 1, "description": "Customer submits subscription request" },
-      { "step": 2, "description": "API validates payment method" },
-      { "step": 3, "description": "Processor creates subscription record" }
+    "description": "Flow for creating a new subscription",
+    "transitions": [
+      { "relationship-unique-id": "api-to-processor", "sequence-number": 1, "description": "API forwards request to processor" },
+      { "relationship-unique-id": "processor-to-db", "sequence-number": 2, "description": "Processor stores subscription" },
+      { "relationship-unique-id": "processor-to-notifications", "sequence-number": 3, "description": "Processor triggers notification" }
     ]
   }
 ]
 ```
+
+Note: Each transition must reference an existing relationship's `unique-id`.
 </details>
 
 <details>
@@ -238,24 +280,21 @@ Add to your architecture JSON:
     "unique-id": "subscription-creation",
     "name": "Create Subscription",
     "description": "Flow for creating a new subscription",
-    "steps": [
-      { "step": 1, "node": "billing-api", "description": "Receive subscription request" },
-      { "step": 2, "node": "billing-processor", "description": "Validate payment method" },
-      { "step": 3, "node": "subscription-db", "description": "Store subscription record" },
-      { "step": 4, "node": "notification-service", "description": "Send confirmation email" },
-      { "step": 5, "node": "audit-service", "description": "Log subscription creation" }
+    "transitions": [
+      { "relationship-unique-id": "api-to-processor", "sequence-number": 1, "description": "API forwards subscription request to processor" },
+      { "relationship-unique-id": "processor-to-db", "sequence-number": 2, "description": "Processor stores subscription record" },
+      { "relationship-unique-id": "processor-to-notifications", "sequence-number": 3, "description": "Processor triggers confirmation email" },
+      { "relationship-unique-id": "processor-to-audit", "sequence-number": 4, "description": "Processor logs subscription creation" }
     ]
   },
   {
     "unique-id": "payment-processing",
     "name": "Process Recurring Payment",
     "description": "Flow for processing scheduled payments",
-    "steps": [
-      { "step": 1, "node": "billing-processor", "description": "Trigger scheduled payment" },
-      { "step": 2, "node": "subscription-db", "description": "Retrieve payment details" },
-      { "step": 3, "node": "billing-processor", "description": "Process payment" },
-      { "step": 4, "node": "notification-service", "description": "Send receipt" },
-      { "step": 5, "node": "audit-service", "description": "Log payment" }
+    "transitions": [
+      { "relationship-unique-id": "processor-to-db", "sequence-number": 1, "description": "Processor retrieves payment details" },
+      { "relationship-unique-id": "processor-to-notifications", "sequence-number": 2, "description": "Processor sends payment receipt" },
+      { "relationship-unique-id": "processor-to-audit", "sequence-number": 3, "description": "Processor logs payment" }
     ]
   }
 ]

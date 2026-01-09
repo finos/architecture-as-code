@@ -501,11 +501,11 @@ Create a remediation guide showing how to fix common issues.
 <details>
 <summary>💡 Hint: Before/After Examples</summary>
 
-Show developers exactly what to change:
+Show developers exactly what to change. Remember that controls need `description` and `requirements`:
 
 **Before (failing):**
 ```json
-{ "unique-id": "api-server", "node-type": "service", "external": true }
+{ "unique-id": "api-server", "node-type": "service", "name": "API Server", "description": "External API", "external": true }
 ```
 
 **After (passing):**
@@ -513,9 +513,19 @@ Show developers exactly what to change:
 {
   "unique-id": "api-server",
   "node-type": "service",
+  "name": "API Server",
+  "description": "External API",
   "external": true,
   "controls": {
-    "authentication": { "mechanism": "OAuth2" }
+    "authentication": {
+      "description": "OAuth2 authentication required for all endpoints",
+      "requirements": [
+        {
+          "requirement-url": "https://example.com/controls/oauth2.json",
+          "config": { "mechanism": "OAuth2" }
+        }
+      ]
+    }
   }
 }
 ```
@@ -530,7 +540,7 @@ Create `docs/security-remediation-guide.md` with before/after examples for each 
 
 Before:
 ```json
-{ "unique-id": "api-server", "node-type": "service", "external": true }
+{ "unique-id": "api-server", "node-type": "service", "name": "API Server", "description": "External API", "external": true }
 ```
 
 After:
@@ -538,9 +548,19 @@ After:
 {
   "unique-id": "api-server",
   "node-type": "service",
+  "name": "API Server",
+  "description": "External API",
   "external": true,
   "controls": {
-    "authentication": { "mechanism": "OAuth2" }
+    "authentication": {
+      "description": "OAuth2 authentication required for all external API endpoints",
+      "requirements": [
+        {
+          "requirement-url": "https://example.com/controls/oauth2.json",
+          "config": { "mechanism": "OAuth2", "token-type": "JWT" }
+        }
+      ]
+    }
   }
 }
 ```
@@ -549,7 +569,7 @@ After:
 
 Before:
 ```json
-{ "unique-id": "customer-db", "node-type": "database" }
+{ "unique-id": "customer-db", "node-type": "database", "name": "Customer Database", "description": "Stores customer records" }
 ```
 
 After:
@@ -557,8 +577,18 @@ After:
 {
   "unique-id": "customer-db",
   "node-type": "database",
+  "name": "Customer Database",
+  "description": "Stores customer records",
   "controls": {
-    "encryption": { "at-rest": true }
+    "encryption-at-rest": {
+      "description": "All customer data encrypted at rest",
+      "requirements": [
+        {
+          "requirement-url": "https://example.com/controls/encryption-at-rest.json",
+          "config": { "algorithm": "AES-256" }
+        }
+      ]
+    }
   }
 }
 ```

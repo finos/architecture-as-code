@@ -98,22 +98,27 @@ Placeholders allow customization when instantiating:
 
 ### 4. Add Required Controls
 
-Include controls that every instance must have:
+Include controls that every instance must have. Controls are objects with named keys, each having a `description` and `requirements` array:
 
 ```json
 {
   "nodes": [
     {
       "unique-id": "{{ SERVICE_NAME }}",
+      "name": "{{ SERVICE_DISPLAY_NAME }}",
+      "description": "{{ SERVICE_DESCRIPTION }}",
       "node-type": "service",
-      "controls": [
-        {
-          "unique-id": "ctrl-auth",
-          "name": "Authentication",
-          "description": "Service must implement authentication",
-          "required": true
+      "controls": {
+        "authentication": {
+          "description": "Service must implement OAuth2 authentication",
+          "requirements": [
+            {
+              "requirement-url": "https://example.com/controls/oauth2.json",
+              "config": { "mechanism": "OAuth2" }
+            }
+          ]
         }
-      ]
+      }
     }
   ]
 }

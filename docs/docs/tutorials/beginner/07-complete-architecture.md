@@ -264,6 +264,305 @@ Put your skills to the test with role-based challenges:
 - [Product Developer Challenge](../challenges/product-developer) - Focus on implementation details
 - [See all Challenges →](../challenges/)
 
+## Complete Reference Example
+
+Here's a complete, validated e-commerce architecture you can use as a reference:
+
+<details>
+<summary>📄 Complete ecommerce-platform.json (click to expand)</summary>
+
+```json
+{
+  "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+  "metadata": {
+    "owner": "platform-team@example.com",
+    "version": "1.0.0",
+    "created": "2026-01-09",
+    "description": "E-commerce order processing platform",
+    "tags": ["ecommerce", "microservices", "orders"],
+    "status": "production"
+  },
+  "nodes": [
+    {
+      "unique-id": "customer",
+      "node-type": "actor",
+      "name": "Customer",
+      "description": "End user who browses products and places orders"
+    },
+    {
+      "unique-id": "admin",
+      "node-type": "actor",
+      "name": "Admin",
+      "description": "Administrator who manages inventory and monitors orders"
+    },
+    {
+      "unique-id": "api-gateway",
+      "node-type": "service",
+      "name": "API Gateway",
+      "description": "Public entry point for all client requests, handles routing and authentication",
+      "interfaces": [
+        {
+          "unique-id": "gateway-https",
+          "protocol": "HTTPS",
+          "host": "api.ecommerce.example.com",
+          "port": 443
+        }
+      ],
+      "metadata": {
+        "tech-owner": "platform-team@example.com",
+        "repository": "https://github.com/example/api-gateway",
+        "deployment-type": "kubernetes",
+        "sla-tier": "tier-1"
+      }
+    },
+    {
+      "unique-id": "order-service",
+      "node-type": "service",
+      "name": "Order Service",
+      "description": "Manages order lifecycle from creation to fulfillment",
+      "interfaces": [
+        {
+          "unique-id": "order-api",
+          "protocol": "HTTPS",
+          "port": 8080
+        }
+      ],
+      "metadata": {
+        "tech-owner": "orders-team@example.com",
+        "repository": "https://github.com/example/order-service",
+        "deployment-type": "kubernetes"
+      }
+    },
+    {
+      "unique-id": "inventory-service",
+      "node-type": "service",
+      "name": "Inventory Service",
+      "description": "Tracks product stock levels and availability",
+      "interfaces": [
+        {
+          "unique-id": "inventory-api",
+          "protocol": "HTTPS",
+          "port": 8081
+        }
+      ],
+      "metadata": {
+        "tech-owner": "inventory-team@example.com",
+        "repository": "https://github.com/example/inventory-service",
+        "deployment-type": "kubernetes"
+      }
+    },
+    {
+      "unique-id": "payment-service",
+      "node-type": "service",
+      "name": "Payment Service",
+      "description": "Processes payment transactions securely",
+      "interfaces": [
+        {
+          "unique-id": "payment-api",
+          "protocol": "HTTPS",
+          "port": 8082
+        }
+      ],
+      "metadata": {
+        "tech-owner": "payments-team@example.com",
+        "repository": "https://github.com/example/payment-service",
+        "deployment-type": "kubernetes",
+        "pci-compliant": true
+      }
+    },
+    {
+      "unique-id": "order-database",
+      "node-type": "database",
+      "name": "Order Database",
+      "description": "PostgreSQL database storing order records and history",
+      "interfaces": [
+        {
+          "unique-id": "order-db-jdbc",
+          "protocol": "JDBC",
+          "port": 5432
+        }
+      ],
+      "metadata": {
+        "database-type": "PostgreSQL",
+        "version": "15",
+        "backup-frequency": "daily"
+      }
+    },
+    {
+      "unique-id": "inventory-database",
+      "node-type": "database",
+      "name": "Inventory Database",
+      "description": "PostgreSQL database storing product inventory levels",
+      "interfaces": [
+        {
+          "unique-id": "inventory-db-jdbc",
+          "protocol": "JDBC",
+          "port": 5433
+        }
+      ],
+      "metadata": {
+        "database-type": "PostgreSQL",
+        "version": "15",
+        "backup-frequency": "daily"
+      }
+    },
+    {
+      "unique-id": "ecommerce-platform",
+      "node-type": "system",
+      "name": "E-Commerce Platform",
+      "description": "Complete e-commerce order processing system"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "customer-to-gateway",
+      "description": "Customer accesses the platform through the API Gateway",
+      "relationship-type": {
+        "interacts": {
+          "actor": "customer",
+          "nodes": ["api-gateway"]
+        }
+      }
+    },
+    {
+      "unique-id": "admin-to-gateway",
+      "description": "Admin accesses the platform through the API Gateway",
+      "relationship-type": {
+        "interacts": {
+          "actor": "admin",
+          "nodes": ["api-gateway"]
+        }
+      }
+    },
+    {
+      "unique-id": "gateway-to-orders",
+      "description": "API Gateway routes order requests to Order Service",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-gateway",
+            "interfaces": ["gateway-https"]
+          },
+          "destination": {
+            "node": "order-service",
+            "interfaces": ["order-api"]
+          }
+        }
+      },
+      "metadata": {
+        "latency-sla": "100ms",
+        "protocol": "REST"
+      }
+    },
+    {
+      "unique-id": "gateway-to-inventory",
+      "description": "API Gateway routes inventory requests to Inventory Service",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-gateway",
+            "interfaces": ["gateway-https"]
+          },
+          "destination": {
+            "node": "inventory-service",
+            "interfaces": ["inventory-api"]
+          }
+        }
+      },
+      "metadata": {
+        "latency-sla": "100ms",
+        "protocol": "REST"
+      }
+    },
+    {
+      "unique-id": "orders-to-database",
+      "description": "Order Service persists order data to the database",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "order-service",
+            "interfaces": ["order-api"]
+          },
+          "destination": {
+            "node": "order-database",
+            "interfaces": ["order-db-jdbc"]
+          }
+        }
+      },
+      "metadata": {
+        "connection-pool-size": 20
+      }
+    },
+    {
+      "unique-id": "orders-to-payment",
+      "description": "Order Service calls Payment Service to process payments",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "order-service",
+            "interfaces": ["order-api"]
+          },
+          "destination": {
+            "node": "payment-service",
+            "interfaces": ["payment-api"]
+          }
+        }
+      },
+      "metadata": {
+        "latency-sla": "500ms",
+        "retry-policy": "exponential-backoff"
+      }
+    },
+    {
+      "unique-id": "inventory-to-database",
+      "description": "Inventory Service persists stock data to the database",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "inventory-service",
+            "interfaces": ["inventory-api"]
+          },
+          "destination": {
+            "node": "inventory-database",
+            "interfaces": ["inventory-db-jdbc"]
+          }
+        }
+      },
+      "metadata": {
+        "connection-pool-size": 20
+      }
+    },
+    {
+      "unique-id": "platform-composition",
+      "description": "E-Commerce Platform contains all services and databases",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ecommerce-platform",
+          "nodes": [
+            "api-gateway",
+            "order-service",
+            "inventory-service",
+            "payment-service",
+            "order-database",
+            "inventory-database"
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+</details>
+
+:::tip Validate the Example
+You can copy this JSON to test validation:
+```bash
+calm validate -a architectures/ecommerce-platform.json
+```
+You should see no errors and no warnings.
+:::
+
 ## Resources
 
 - [CALM Schema Reference](https://github.com/finos/architecture-as-code/tree/main/calm)

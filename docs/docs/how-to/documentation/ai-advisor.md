@@ -57,24 +57,33 @@ Analyze this architecture for security:
 ```
 Suggest appropriate controls for the payment-service node
 considering PCI-DSS compliance requirements.
-Format the response as CALM JSON.
+Format the response as CALM JSON with the correct controls structure
+(object with named keys, each having description and requirements).
 ```
 
 **Example Response:**
 ```json
 {
-  "controls": [
-    {
-      "unique-id": "ctrl-pci-encryption",
-      "name": "PCI-DSS Encryption",
-      "description": "All cardholder data encrypted with AES-256"
+  "controls": {
+    "pci-encryption": {
+      "description": "All cardholder data encrypted with AES-256",
+      "requirements": [
+        {
+          "requirement-url": "https://example.com/controls/pci-encryption.json",
+          "config": { "algorithm": "AES-256", "key-rotation-days": 90 }
+        }
+      ]
     },
-    {
-      "unique-id": "ctrl-pci-audit",
-      "name": "PCI-DSS Audit Logging",
-      "description": "All access to cardholder data logged"
+    "pci-audit-logging": {
+      "description": "All access to cardholder data logged with immutable audit trail",
+      "requirements": [
+        {
+          "requirement-url": "https://example.com/controls/audit-logging.json",
+          "config": { "retention-days": 365, "immutable": true }
+        }
+      ]
     }
-  ]
+  }
 }
 ```
 

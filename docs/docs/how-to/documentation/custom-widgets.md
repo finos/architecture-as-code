@@ -135,10 +135,12 @@ Show nodes connected to a specific node:
 
 ```bash
 calm docify \
-  --input templates/service-doc.md \
-  --output docs/service-doc.md \
-  --architecture architectures/my-system.json
+  -t templates/service-doc.md \
+  -o docs/service-doc/ \
+  -a architectures/my-system.json
 ```
+
+Note: Use `-t` (or `--template`) for the template file, `-o` (or `--output`) for output directory, and `-a` (or `--architecture`) for the architecture file.
 
 ## Widget Reference
 

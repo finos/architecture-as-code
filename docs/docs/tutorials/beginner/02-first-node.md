@@ -145,9 +145,14 @@ The `$schema` property tells validation tools which version of CALM to use:
 ```json
 {
   "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
-  "nodes": [...]
+  "nodes": [...],
+  "relationships": []
 }
 ```
+
+:::note
+A valid CALM architecture requires both `nodes` and `relationships` arrays at the top level, even if `relationships` is empty. Without the `relationships` array, validation will fail.
+:::
 
 ## Resources
 

@@ -70,15 +70,24 @@ Start with the most common architecture. What components does every payment serv
 <details>
 <summary>💡 Hint 2: Adding Controls</summary>
 
-Payment services need security controls. Add them to nodes:
+Payment services need security controls. Controls are objects with named keys, where each control has a `description` and `requirements` array:
 
 ```json
 {
   "unique-id": "{{ SERVICE }}",
   "node-type": "service",
+  "name": "{{ SERVICE_NAME }}",
+  "description": "Payment service description",
   "controls": {
-    "authentication": { "mechanism": "OAuth2" },
-    "encryption": { "at-rest": true, "in-transit": true }
+    "authentication": {
+      "description": "OAuth2 authentication required for all endpoints",
+      "requirements": [
+        {
+          "requirement-url": "https://example.com/controls/oauth2.json",
+          "config": { "mechanism": "OAuth2", "token-type": "JWT" }
+        }
+      ]
+    }
   }
 }
 ```
@@ -100,8 +109,24 @@ Payment services need security controls. Add them to nodes:
       "description": "External API for payment operations",
       "node-type": "service",
       "controls": {
-        "authentication": { "mechanism": "OAuth2" },
-        "encryption": { "in-transit": "TLS1.3" }
+        "authentication": {
+          "description": "OAuth2 authentication required for all external API endpoints",
+          "requirements": [
+            {
+              "requirement-url": "https://example.com/controls/oauth2.json",
+              "config": { "mechanism": "OAuth2", "token-type": "JWT" }
+            }
+          ]
+        },
+        "encryption-in-transit": {
+          "description": "TLS 1.3 required for all connections",
+          "requirements": [
+            {
+              "requirement-url": "https://example.com/controls/tls.json",
+              "config": { "min-version": "1.3" }
+            }
+          ]
+        }
       }
     },
     {
@@ -116,7 +141,15 @@ Payment services need security controls. Add them to nodes:
       "description": "Stores payment records",
       "node-type": "database",
       "controls": {
-        "encryption": { "at-rest": true }
+        "encryption-at-rest": {
+          "description": "All payment data encrypted at rest",
+          "requirements": [
+            {
+              "requirement-url": "https://example.com/controls/encryption-at-rest.json",
+              "config": { "algorithm": "AES-256" }
+            }
+          ]
+        }
       }
     },
     {
@@ -190,24 +223,36 @@ Think about data flow direction:
     {
       "unique-id": "data-ingestion",
       "name": "Data Ingestion Service",
+      "description": "Receives and validates external data",
       "node-type": "service"
     },
     {
       "unique-id": "data-processor",
       "name": "Data Processor",
+      "description": "Transforms and enriches data",
       "node-type": "service"
     },
     {
       "unique-id": "data-warehouse",
       "name": "Data Warehouse",
+      "description": "Stores processed data for analytics",
       "node-type": "database",
       "controls": {
-        "encryption": { "at-rest": true }
+        "encryption-at-rest": {
+          "description": "All warehouse data encrypted at rest",
+          "requirements": [
+            {
+              "requirement-url": "https://example.com/controls/encryption-at-rest.json",
+              "config": { "algorithm": "AES-256" }
+            }
+          ]
+        }
       }
     },
     {
       "unique-id": "audit-service",
       "name": "Audit Service",
+      "description": "Logs all data operations",
       "node-type": "service"
     }
   ],
