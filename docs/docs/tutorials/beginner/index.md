@@ -12,15 +12,15 @@ Welcome to the beginner tutorials! These seven tutorials will teach you the core
 
 ## What You'll Learn
 
-| Tutorial | Title | What You'll Master |
-|----------|-------|-------------------|
-| 1 | [Setup & CLI](./01-setup) | Install tools and initialize your workspace |
-| 2 | [First Node](./02-first-node) | Create your first architecture component |
-| 3 | [Relationships](./03-relationships) | Connect nodes with different relationship types |
-| 4 | [VSCode Extension](./04-vscode-extension) | Visualize and navigate your architecture |
-| 5 | [Interfaces](./05-interfaces) | Define how nodes communicate |
-| 6 | [Metadata](./06-metadata) | Document ownership, versioning, and context |
-| 7 | [Complete Architecture](./07-complete-architecture) | Build a realistic e-commerce system |
+| Tutorial | What You'll Master |
+|----------|-------------------|
+| [Setup & CLI](./01-setup) | Install tools and initialize your workspace |
+| [First Node](./02-first-node) | Create your first architecture component |
+| [Relationships](./03-relationships) | Connect nodes with different relationship types |
+| [VSCode Extension](./04-vscode-extension) | Visualize and navigate your architecture |
+| [Interfaces](./05-interfaces) | Define how nodes communicate |
+| [Metadata](./06-metadata) | Document ownership, versioning, and context |
+| [Complete Architecture](./07-complete-architecture) | Build a realistic e-commerce system |
 
 ## Prerequisites
 
@@ -37,30 +37,30 @@ Each tutorial takes approximately **15-45 minutes** to complete, with the final 
 
 ## Getting Started
 
-Ready to begin? [Start with Tutorial 1: Setup & CLI →](./01-setup)
+Ready to begin? [Start with Setup & CLI →](./01-setup)
 
 ## Learning Path
 
 ```
-Tutorial 1: Setup & CLI
+Setup & CLI
     │
     ▼
-Tutorial 2: First Node ────────► "I can create nodes!"
+First Node ────────────────────► "I can create nodes!"
     │
     ▼
-Tutorial 3: Relationships ─────► "I can connect components!"
+Relationships ─────────────────► "I can connect components!"
     │
     ▼
-Tutorial 4: VSCode Extension ──► "I can visualize architectures!"
+VSCode Extension ──────────────► "I can visualize architectures!"
     │
     ▼
-Tutorial 5: Interfaces ────────► "I can define integration points!"
+Interfaces ────────────────────► "I can define integration points!"
     │
     ▼
-Tutorial 6: Metadata ──────────► "I can document context!"
+Metadata ──────────────────────► "I can document context!"
     │
     ▼
-Tutorial 7: Complete Architecture ► "I can build real systems!"
+Complete Architecture ─────────► "I can build real systems!"
     │
     ▼
 🎯 Ready for How-To Guides & Challenges!

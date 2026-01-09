@@ -4,13 +4,13 @@ title: "Create Your First Node"
 sidebar_position: 2
 ---
 
-# Tutorial 2: Create Your First Node
+# Create Your First Node
 
 🟢 **Difficulty:** Beginner | ⏱️ **Time:** 20-30 minutes
 
 ## Overview
 
-Use the CALM chatmode you configured in Tutorial 1 to create your first architecture file with AI assistance.
+Use the CALM chatmode you configured in the previous tutorial to create your first architecture file with AI assistance.
 
 ## Learning Objectives
 
@@ -22,7 +22,7 @@ By the end of this tutorial, you will:
 
 ## Prerequisites
 
-Complete [Tutorial 1: Setup & CLI](01-setup) first.
+Complete [Setup & CLI](01-setup) first.
 
 ## Step-by-Step Guide
 
@@ -163,4 +163,4 @@ The `$schema` property tells validation tools which version of CALM to use:
 
 ## Next Steps
 
-In [Tutorial 3](03-relationships), you'll connect multiple nodes with relationships!
+In the [next tutorial](03-relationships), you'll connect multiple nodes with relationships!

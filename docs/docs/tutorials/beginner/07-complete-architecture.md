@@ -4,7 +4,7 @@ title: "Build a Complete Architecture"
 sidebar_position: 7
 ---
 
-# Tutorial 7: Build a Complete E-Commerce Microservice Architecture
+# Build a Complete E-Commerce Microservice Architecture
 
 🟢 **Difficulty:** Beginner | ⏱️ **Time:** 45-60 minutes
 
@@ -22,12 +22,12 @@ By the end of this tutorial, you will:
 
 ## Prerequisites
 
-Complete Tutorials 1-6 first. You'll use all the skills you've learned:
-- Nodes (Tutorial 2)
-- Relationships (Tutorial 3)
-- Visualization (Tutorial 4)
-- Interfaces (Tutorial 5)
-- Metadata (Tutorial 6)
+Complete the previous tutorials first. You'll use all the skills you've learned:
+- Nodes
+- Relationships
+- Visualization
+- Interfaces
+- Metadata
 
 ## Step-by-Step Guide
 
@@ -201,7 +201,7 @@ You now have two complete architectures. Compare them:
 ```text
 Compare my two architectures:
 - architectures/my-first-architecture.json (Tutorials 2-6, built incrementally)
-- architectures/ecommerce-platform.json (Tutorial 7, built all at once)
+- architectures/ecommerce-platform.json (this tutorial, built all at once)
 
 What did I learn? Which approach (incremental vs all-at-once) works better for different scenarios?
 ```

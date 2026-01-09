@@ -4,7 +4,7 @@ title: "Install the CALM VSCode Extension"
 sidebar_position: 4
 ---
 
-# Tutorial 4: Install the CALM VSCode Extension
+# Install the CALM VSCode Extension
 
 🟢 **Difficulty:** Beginner | ⏱️ **Time:** 10-15 minutes
 
@@ -22,7 +22,7 @@ By the end of this tutorial, you will:
 
 ## Prerequisites
 
-Complete [Tutorial 3: Connect Nodes with Relationships](03-relationships) first.
+Complete [Connect Nodes with Relationships](03-relationships) first.
 
 ## Step-by-Step Guide
 
@@ -208,4 +208,4 @@ Update your README with the extension information:
 
 ## Next Steps
 
-In [Tutorial 5](05-interfaces), you'll add interfaces to define how your nodes communicate!
+In the [next tutorial](05-interfaces), you'll add interfaces to define how your nodes communicate!

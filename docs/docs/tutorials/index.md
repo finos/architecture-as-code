@@ -20,13 +20,13 @@ This content follows the [Diataxis framework](https://diataxis.fr/). **Tutorials
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │   🟢 BEGINNER TUTORIALS          📘 HOW-TO GUIDES (Task Reference)          │
-│   ├── 1: Setup & CLI             ├── Modeling: Controls, Flows, ADRs        │
-│   ├── 2: First Node              ├── Documentation: Docify, Widgets         │
-│   ├── 3: Relationships           ├── Operations: Runbooks, Deployment       │
-│   ├── 4: VSCode Extension        └── Governance: Patterns, Standards        │
-│   ├── 5: Interfaces                                                         │
-│   ├── 6: Metadata                🏆 CHALLENGES (Apply Your Skills)          │
-│   └── 7: Complete Architecture   ├── Enterprise Architect                   │
+│   ├── Setup & CLI                ├── Modeling: Controls, Flows, ADRs        │
+│   ├── First Node                 ├── Documentation: Docify, Widgets         │
+│   ├── Relationships              ├── Operations: Runbooks, Deployment       │
+│   ├── VSCode Extension           └── Governance: Patterns, Standards        │
+│   ├── Interfaces                                                            │
+│   ├── Metadata                   🏆 CHALLENGES (Apply Your Skills)          │
+│   └── Complete Architecture      ├── Enterprise Architect                   │
 │                                  ├── Product Developer                      │
 │                                  ├── Security SME                           │
 │                                  └── Mastering CALM                         │
@@ -96,7 +96,7 @@ Before you begin, make sure you have:
 
 ## Getting Started
 
-1. **[Start with Tutorial 1](./beginner/01-setup)** — Set up your CALM workspace and tools
+1. **[Start with Setup & CLI](./beginner/01-setup)** — Set up your CALM workspace and tools
 2. **Work through each tutorial** — They build on each other progressively
 3. **Ask questions** — Join the [FINOS Architecture as Code community](https://github.com/finos/architecture-as-code/discussions)
 

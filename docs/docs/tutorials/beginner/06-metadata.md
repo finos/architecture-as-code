@@ -4,7 +4,7 @@ title: "Document with Metadata"
 sidebar_position: 6
 ---
 
-# Tutorial 6: Document with Metadata
+# Document with Metadata
 
 🟢 **Difficulty:** Beginner | ⏱️ **Time:** 20-30 minutes
 
@@ -22,7 +22,7 @@ By the end of this tutorial, you will:
 
 ## Prerequisites
 
-Complete [Tutorial 5: Add Interfaces to Your Nodes](05-interfaces) first.
+Complete [Add Interfaces to Your Nodes](05-interfaces) first.
 
 ## Step-by-Step Guide
 
@@ -233,4 +233,4 @@ Metadata transforms architecture files from anonymous diagrams into living docum
 
 ## Next Steps
 
-In [Tutorial 7](07-complete-architecture), you'll consolidate everything by building a complete e-commerce microservice architecture!
+In the [next tutorial](07-complete-architecture), you'll consolidate everything by building a complete e-commerce microservice architecture!

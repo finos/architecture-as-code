@@ -4,7 +4,7 @@ title: "Add Interfaces to Your Nodes"
 sidebar_position: 5
 ---
 
-# Tutorial 5: Add Interfaces to Your Nodes
+# Add Interfaces to Your Nodes
 
 🟢 **Difficulty:** Beginner | ⏱️ **Time:** 20-30 minutes
 
@@ -22,7 +22,7 @@ By the end of this tutorial, you will:
 
 ## Prerequisites
 
-Complete [Tutorial 4: Install the CALM VSCode Extension](04-vscode-extension) first.
+Complete [Install the CALM VSCode Extension](04-vscode-extension) first.
 
 ## Step-by-Step Guide
 
@@ -229,4 +229,4 @@ At present, the CALM tooling does not follow external URL definitions (except fo
 
 ## Next Steps
 
-In [Tutorial 6](06-metadata), you'll add metadata to document ownership, versioning, and other important context!
+In the [next tutorial](06-metadata), you'll add metadata to document ownership, versioning, and other important context!

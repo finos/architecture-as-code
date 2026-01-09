@@ -4,7 +4,7 @@ title: "Setup & CLI"
 sidebar_position: 1
 ---
 
-# Tutorial 1: Install CALM CLI and Initialize Your Architecture Repository
+# Install CALM CLI and Initialize Your Architecture Repository
 
 🟢 **Difficulty:** Beginner | ⏱️ **Time:** 15-20 minutes
 
@@ -113,4 +113,4 @@ The chatmode file provides GitHub Copilot with specialized knowledge about:
 
 ## Next Steps
 
-In [Tutorial 2](02-first-node), you'll create your first CALM architecture file using AI assistance!
+In the [next tutorial](02-first-node), you'll create your first CALM architecture file using AI assistance!

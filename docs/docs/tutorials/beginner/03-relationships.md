@@ -4,7 +4,7 @@ title: "Connect Nodes with Relationships"
 sidebar_position: 3
 ---
 
-# Tutorial 3: Connect Nodes with Relationships
+# Connect Nodes with Relationships
 
 🟢 **Difficulty:** Beginner | ⏱️ **Time:** 30-45 minutes
 
@@ -22,7 +22,7 @@ By the end of this tutorial, you will:
 
 ## Prerequisites
 
-Complete [Tutorial 2: Create Your First Node](02-first-node) first.
+Complete [Create Your First Node](02-first-node) first.
 
 ## Step-by-Step Guide
 
@@ -227,4 +227,4 @@ Each relationship can have only **one** type. This is enforced by JSON Schema's 
 
 ## Next Steps
 
-In [Tutorial 4](04-vscode-extension), you'll install the CALM VSCode extension to visualize your architecture!
+In the [next tutorial](04-vscode-extension), you'll install the CALM VSCode extension to visualize your architecture!
