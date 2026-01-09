@@ -1,6 +1,6 @@
 ---
 id: 02-first-node
-title: "2. Create Your First Node"
+title: "Create Your First Node"
 sidebar_position: 2
 ---
 

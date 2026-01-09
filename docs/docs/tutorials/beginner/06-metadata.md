@@ -1,6 +1,6 @@
 ---
 id: 06-metadata
-title: "6. Document with Metadata"
+title: "Document with Metadata"
 sidebar_position: 6
 ---
 

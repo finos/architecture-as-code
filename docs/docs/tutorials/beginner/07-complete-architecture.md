@@ -1,6 +1,6 @@
 ---
 id: 07-complete-architecture
-title: "7. Build a Complete Architecture"
+title: "Build a Complete Architecture"
 sidebar_position: 7
 ---
 

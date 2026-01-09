@@ -1,6 +1,6 @@
 ---
 id: 03-relationships
-title: "3. Connect Nodes with Relationships"
+title: "Connect Nodes with Relationships"
 sidebar_position: 3
 ---
 

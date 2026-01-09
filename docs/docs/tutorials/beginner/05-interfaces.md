@@ -1,6 +1,6 @@
 ---
 id: 05-interfaces
-title: "5. Add Interfaces to Your Nodes"
+title: "Add Interfaces to Your Nodes"
 sidebar_position: 5
 ---
 

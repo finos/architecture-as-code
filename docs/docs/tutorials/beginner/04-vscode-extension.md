@@ -1,6 +1,6 @@
 ---
 id: 04-vscode-extension
-title: "4. Install the CALM VSCode Extension"
+title: "Install the CALM VSCode Extension"
 sidebar_position: 4
 ---
 

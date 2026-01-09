@@ -1,6 +1,6 @@
 ---
 id: 01-setup
-title: "1. Setup & CLI"
+title: "Setup & CLI"
 sidebar_position: 1
 ---
 
