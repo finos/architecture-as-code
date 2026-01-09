@@ -14,7 +14,7 @@ Before starting this challenge, complete these tutorials:
 
 | Tutorial | Why It's Needed |
 |----------|-----------------|
-| [Beginner Tutorials 1-7](../beginner) | Core CALM modeling skills |
+| [Beginner Tutorials](../beginner) | Core CALM modeling skills |
 | [Define Controls](../../how-to/modeling/controls) | Adding security and compliance controls |
 | [Model Business Flows](../../how-to/modeling/flows) | Documenting system flows |
 | [Generate Documentation](../../how-to/documentation/docify) | Using docify to generate docs |

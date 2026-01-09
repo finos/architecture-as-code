@@ -14,7 +14,7 @@ Before starting this challenge, complete these tutorials:
 
 | Tutorial | Why It's Needed |
 |----------|-----------------|
-| [Beginner Tutorials 1-7](../beginner) | Core CALM modeling skills |
+| [Beginner Tutorials](../beginner) | Core CALM modeling skills |
 | [Create Patterns](../../how-to/governance/patterns) | How to define reusable patterns |
 | [Define Standards](../../how-to/governance/standards) | How standards work as JSON Schema extensions |
 | [Multi-Pattern Validation](../../how-to/governance/multi-pattern-validation) | Validating against multiple patterns |
