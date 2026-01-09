@@ -22,7 +22,7 @@ Use patterns when you need to:
 
 ```json
 {
-  "$schema": "https://calm.finos.org/draft/2025-03/meta/pattern.json",
+  "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
   "unique-id": "microservice-pattern",
   "name": "Microservice Pattern",
   "nodes": [
@@ -54,7 +54,7 @@ Look for repeating patterns in your organization:
 
 ```json
 {
-  "$schema": "https://calm.finos.org/draft/2025-03/meta/pattern.json",
+  "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
   "unique-id": "microservice-pattern",
   "name": "Microservice Pattern",
   "description": "Standard microservice with database and API",
@@ -125,7 +125,7 @@ Include controls that every instance must have:
 
 ```json
 {
-  "$schema": "https://calm.finos.org/draft/2025-03/meta/instantiation.json",
+  "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
   "unique-id": "order-service-architecture",
   "name": "Order Service Architecture",
   "pattern-ref": "../patterns/microservice-pattern.json",
