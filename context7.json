@@ -1,0 +1,60 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "url": "https://context7.com/finos/architecture-as-code",
+  "public_key": "pk_tACtU34AUVCHURNQ3CyP0",
+  "projectTitle": "FINOS CALM - Common Architecture Language Model",
+  "description": "A declarative, JSON-based modeling language for describing complex software architectures. Includes CLI tooling, schemas, and integrations for architecture-as-code workflows.",
+  "folders": [
+    "calm-ai",
+    "docs/docs",
+    "docs/quick-start",
+    "docs/cli",
+    "docs/calm",
+    "cli",
+    "calm",
+    "shared",
+    "calm-models",
+    "calm-widgets",
+    "calm-hub",
+    "calm-plugins/vscode"
+  ],
+  "excludeFolders": [
+    "node_modules",
+    "**/node_modules",
+    "**/dist",
+    "**/build",
+    "**/coverage",
+    "**/target",
+    "**/.docusaurus",
+    "conferences",
+    "sandbox",
+    "experimental",
+    "brand",
+    "template-bundles",
+    "advent-of-calm"
+  ],
+  "excludeFiles": [
+    "CHANGELOG.md",
+    "LICENSE.md",
+    "CODE_OF_CONDUCT.md",
+    "renovate.json",
+    "pom.xml",
+    "vitest.config.ts",
+    "vitest.config.mts",
+    "tsconfig.json",
+    "tsconfig.build.json",
+    "tsconfig.base.json",
+    "eslint.config.mjs",
+    "prettier.config.js"
+  ],
+  "rules": [
+    "CALM architectures must be valid JSON that conforms to the CALM JSON Schema specification",
+    "Use the CALM CLI (@finos/calm-cli) for validating, visualizing, and generating architecture documents",
+    "Nodes must have unique-ids that are referenced in relationships",
+    "Relationships connect nodes using relationship-type and must reference valid node unique-ids",
+    "Interfaces define how nodes communicate and must use the oneOf constraint correctly",
+    "Patterns are reusable architecture templates that can be instantiated into concrete architectures",
+    "Use 'calm validate' to check architectures against schemas and patterns",
+    "Use 'calm visualize' to generate SVG diagrams from architecture documents"
+  ]
+}
