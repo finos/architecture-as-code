@@ -216,7 +216,7 @@ export function setupCLI(program: Command) {
 
     program
         .command('copilot-chatmode')
-        .description('DEPRECATED: Augment a git repository with a CALM VSCode chatmode for AI assistance')
+        .description('DEPRECATED (use init-ai): Augment a git repository with a CALM VSCode chatmode for AI assistance')
         .option('-d, --directory <path>', 'Target directory (defaults to current directory)', '.')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
