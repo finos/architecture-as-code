@@ -248,6 +248,28 @@ describe('ai-tools', () => {
 
             expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('CALM AI tools setup completed successfully'));
         });
+
+        it('should throw error when target is not a directory', async () => {
+            mocks.stat.mockImplementation((path: string) => {
+                if (path === resolve(targetDirectory)) {
+                    return Promise.resolve({ isDirectory: () => false });
+                }
+                return Promise.resolve({ isDirectory: () => true, size: 100 });
+            });
+
+            await expect(setupEnhancedAiTools(provider, targetDirectory, verbose)).rejects.toThrow(
+                `Target path is not a directory: ${resolve(targetDirectory)}`
+            );
+        });
+
+        it('should handle bundled resource read failure', async () => {
+            mocks.readFile.mockRejectedValue(new Error('Bundled file not found'));
+
+            await expect(setupEnhancedAiTools(provider, targetDirectory, verbose)).rejects.toThrow();
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to setup AI tools'));
+        });
+
+
     });
 
 
