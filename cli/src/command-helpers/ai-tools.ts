@@ -271,7 +271,8 @@ async function createChatmodeConfig(aiChatPromptDirectory: string, aiTemplatePat
 
         logger.info('✅ Created CALM chatmode configuration from bundled resource');
     } catch (error) {
-        logger.error(`⚠️  Could not load bundled chatmode config: ${error}`);
+        logger.error(`❌  Could not load bundled chatmode config: ${error}`);
+        throw new Error(`Chatmode configuration setup failed: ${error}`);
     }
 
     // Verify the file was created successfully
