@@ -67,7 +67,7 @@ describe('CLI Commands', () => {
             expect(fileSystemDocLoaderModule.FileSystemDocumentLoader.prototype.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
             expect(optionsModule.promptUserForOptions).toHaveBeenCalled();
 
-            expect(fileSystemDocLoaderModule.FileSystemDocumentLoader).toHaveBeenCalledWith([CALM_META_SCHEMA_DIRECTORY, 'schemas'], true);
+            expect(fileSystemDocLoaderModule.FileSystemDocumentLoader).toHaveBeenCalledWith([CALM_META_SCHEMA_DIRECTORY, 'schemas'], true, process.cwd());
 
             expect(calmShared.runGenerate).toHaveBeenCalledWith(
                 {}, 'output.json', true, expect.any(calmShared.SchemaDirectory), []
