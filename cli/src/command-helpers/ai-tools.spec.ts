@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { join, resolve } from 'path';
-import { setupAiTools, setupEnhancedAiTools } from './ai-tools';
+import { setupAiTools } from './ai-tools';
 
 // Mock functions using vi.hoisted
 const mocks = vi.hoisted(() => ({
@@ -61,7 +61,7 @@ describe('ai-tools', () => {
         const verbose = false;
 
         it('should setup AI tools successfully', async () => {
-            await setupAiTools(targetDirectory, verbose);
+            await setupAiTools("copilot", targetDirectory, verbose);
 
             expect(mocks.initLogger).toHaveBeenCalledWith(verbose, 'calm-ai-tools');
             expect(mocks.mkdir).toHaveBeenCalledWith(
@@ -79,7 +79,7 @@ describe('ai-tools', () => {
                 return Promise.resolve({ isDirectory: () => true, size: 100 });
             });
 
-            await expect(setupAiTools(targetDirectory, verbose)).rejects.toThrow(
+            await expect(setupAiTools("copilot", targetDirectory, verbose)).rejects.toThrow(
                 `Target path is not a directory: ${resolve(targetDirectory)}`
             );
         });
@@ -87,7 +87,7 @@ describe('ai-tools', () => {
         it('should handle bundled resource read failure', async () => {
             mocks.readFile.mockRejectedValue(new Error('Bundled file not found'));
 
-            await expect(setupAiTools(targetDirectory, verbose)).rejects.toThrow();
+            await expect(setupAiTools("copilot", targetDirectory, verbose)).rejects.toThrow();
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to setup AI tools'));
         });
 
@@ -102,7 +102,7 @@ describe('ai-tools', () => {
                 return Promise.resolve({ isDirectory: () => true, size: 100 });
             });
 
-            await setupAiTools(targetDirectory, verbose);
+            await setupAiTools("copilot", targetDirectory, verbose);
 
             expect(mockLogger.warn).toHaveBeenCalledWith('Warning: No .git directory found. This may not be a git repository.');
         });
@@ -116,7 +116,7 @@ describe('ai-tools', () => {
             });
 
             // Should still complete but log error
-            await setupAiTools(targetDirectory, verbose);
+            await setupAiTools("copilot", targetDirectory, verbose);
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Could not load bundled chatmode config'));
         });
 
@@ -128,7 +128,7 @@ describe('ai-tools', () => {
                 return Promise.resolve('# Valid content with CALM and sufficient length for validation');
             });
 
-            await setupAiTools(targetDirectory, verbose);
+            await setupAiTools("copilot", targetDirectory, verbose);
 
             expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('Bundled chatmode file appears incomplete or corrupted'));
         });
@@ -147,11 +147,11 @@ describe('ai-tools', () => {
                 return Promise.resolve({ isDirectory: () => true, size: 100 });
             });
 
-            await expect(setupAiTools(targetDirectory, verbose)).rejects.toThrow('Chatmode configuration setup failed');
+            await expect(setupAiTools("copilot", targetDirectory, verbose)).rejects.toThrow('Chatmode configuration setup failed');
         });
 
         it('should enable verbose logging when requested', async () => {
-            await setupAiTools(targetDirectory, true);
+            await setupAiTools("copilot", targetDirectory, true);
 
             expect(mocks.initLogger).toHaveBeenCalledWith(true, 'calm-ai-tools');
         });
@@ -164,7 +164,7 @@ describe('ai-tools', () => {
                 return Promise.resolve({ isDirectory: () => true, size: 100 });
             });
 
-            await expect(setupAiTools(targetDirectory, verbose)).rejects.toThrow('Permission denied');
+            await expect(setupAiTools("copilot", targetDirectory, verbose)).rejects.toThrow('Permission denied');
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to setup AI tools'));
         });
 
@@ -182,7 +182,7 @@ describe('ai-tools', () => {
                 return Promise.resolve({ isDirectory: () => true, size: 100 });
             });
 
-            await expect(setupAiTools(targetDirectory, verbose)).rejects.toThrow('Created chatmode file is empty');
+            await expect(setupAiTools("copilot", targetDirectory, verbose)).rejects.toThrow('Created chatmode file is empty');
         });
     });
 
@@ -237,7 +237,7 @@ describe('ai-tools', () => {
         });
 
         it('should setup AI tools successfully', async () => {
-            await setupEnhancedAiTools(provider, targetDirectory, verbose);
+            await setupAiTools(provider, targetDirectory, verbose);
 
             expect(mocks.initLogger).toHaveBeenCalledWith(verbose, 'calm-ai-tools');
 
@@ -257,7 +257,7 @@ describe('ai-tools', () => {
                 return Promise.resolve({ isDirectory: () => true, size: 100 });
             });
 
-            await expect(setupEnhancedAiTools(provider, targetDirectory, verbose)).rejects.toThrow(
+            await expect(setupAiTools(provider, targetDirectory, verbose)).rejects.toThrow(
                 `Target path is not a directory: ${resolve(targetDirectory)}`
             );
         });
@@ -265,7 +265,7 @@ describe('ai-tools', () => {
         it('should handle bundled resource read failure', async () => {
             mocks.readFile.mockRejectedValue(new Error('Bundled file not found'));
 
-            await expect(setupEnhancedAiTools(provider, targetDirectory, verbose)).rejects.toThrow();
+            await expect(setupAiTools(provider, targetDirectory, verbose)).rejects.toThrow();
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to setup AI tools'));
         });
 
