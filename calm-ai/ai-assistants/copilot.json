@@ -1,6 +1,7 @@
 {
     "description": "Github Copilot integrated with FINOS CALM",
     "topLevelDirectory": ".github/chatmodes",
+    "topLevelPromptDirectory": "",
     "skill-prefix": "`",
     "skill-suffix": "`",
     "frontmatter": "---\ndescription: An AI Assistant for FINOS CALM development.\ntools: ['codebase', 'editFiles', 'fetch', 'runInTerminal']\nmodel: Claude Sonnet 4.5\n---",

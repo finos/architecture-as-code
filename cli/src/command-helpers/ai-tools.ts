@@ -3,6 +3,9 @@ import { Logger } from '@finos/calm-shared/src/logger.js';
 import { mkdir, writeFile, readFile, stat } from 'fs/promises';
 import { join, resolve } from 'path';
 
+import Handlebars from 'handlebars'
+import { log } from 'console';
+
 
 
 // TODO: Clean up DEPRECATED
@@ -78,20 +81,36 @@ export async function setupEnhancedAiTools(provider: string, targetDirectory: st
         await validateBundledResources(logger);
 
         // retrieve AI assistant configuration
-        const aiAssistantsPath = resolve(__dirname, '..', '..', 'calm-ai', 'ai-assistants');
-        const valuesPath = join(aiAssistantsPath, `${provider}.json`);
-        const abs = resolve(process.cwd(), valuesPath);
-        const raw = await readFile(abs, "utf8");
+        const calmAIPath = resolve(__dirname, '..', '..', 'calm-ai');
+        const valuesPath = join(calmAIPath, 'ai-assistants', `${provider}.json`);
+        const raw = await readFile(valuesPath, "utf8");
         const aiConfig = JSON.parse(raw);
         logger.info(`AI assistant top level directory: ${aiConfig.topLevelDirectory}`);
 
-        // Create .github/chatmodes directory if it doesn't exist
+        // Create AI Assistant top level directory if it doesn't exist
         const chatmodesDir = join(resolvedPath, aiConfig.topLevelDirectory);
         await mkdir(chatmodesDir, { recursive: true });
         logger.info(`Created ${aiConfig.topLevelDirectory} directory following AI Assistant ${provider} conventions`);
 
         // Create chatmode configuration
-        await createChatmodeConfig(chatmodesDir, logger);
+        const aiTemplatePath = join(calmAIPath, 'templates', "CALM.chatmode_template.md");
+        logger.info(`Using AI assistant template: ${aiTemplatePath}`);
+
+        // if toplevel prompt director is empty string
+        let aiChatPromptDirectory: string;
+        if (aiConfig.topLevelPromptDirectory === "") {
+            aiChatPromptDirectory = chatmodesDir;
+        } else {
+            aiChatPromptDirectory = join(chatmodesDir, aiConfig.topLevelPromptDirectory);
+        }
+        await mkdir(aiChatPromptDirectory, { recursive: true });
+        logger.info(`Created ${aiChatPromptDirectory} directory following AI Assistant ${provider} conventions`);
+
+
+        logger.info(`AI assistant AI Chat Prompt directory: ${aiChatPromptDirectory}`);
+        logger.info(`AI assistant values path: ${valuesPath}`);
+        // await createChatmodeConfig(chatmodesDir, logger);
+        await createEnhancedChatmodeConfig(aiChatPromptDirectory, aiTemplatePath, valuesPath, logger);
 
         // Create tool prompt files
         await createToolPrompts(chatmodesDir, logger);
@@ -187,13 +206,30 @@ async function createChatmodeConfig(chatmodesDir: string, logger: Logger): Promi
     }
 }
 
-async function createEnhancedChatmodeConfig(chatmodesDir: string, logger: Logger): Promise<void> {
-    const chatmodeFile = join(chatmodesDir, 'CALM.chatmode.md');
+async function createEnhancedChatmodeConfig(aiChatPromptDirectory: string, aiTemplatePath: string, valuesPath: string, logger: Logger): Promise<void> {
+    const chatmodeFile = join(aiChatPromptDirectory, 'CALM.chatmode.md');
+    logger.info(`Creating enhanced chatmode config at: ${chatmodeFile}`);
 
     try {
+        const tplSource = await readFile(aiTemplatePath, 'utf-8');
+
+        const rawValues = await readFile(valuesPath, 'utf-8');
+        let data: any;
+        try {
+            data = JSON.parse(rawValues);
+        } catch (err: any) {
+            console.error('Error parsing JSON from', valuesPath, err?.message ?? err);
+            process.exit(1);
+        }
+
+        const tpl = Handlebars.compile(tplSource);
+        const customAiAsssistangPrompt = tpl(data as any);
+
+        await writeFile(chatmodeFile, customAiAsssistangPrompt, 'utf-8');
+
+
         // Get the bundled chatmode config file
-        const bundledConfigPath = getBundledResourcePath('CALM.chatmode.md');
-        const chatmodeContent = await readFile(bundledConfigPath, 'utf8');
+        const chatmodeContent = await readFile(chatmodeFile, 'utf8');
 
         // Validate content quality
         if (!chatmodeContent.trim()) {
@@ -211,7 +247,8 @@ async function createEnhancedChatmodeConfig(chatmodesDir: string, logger: Logger
             );
         }
 
-        await writeFile(chatmodeFile, chatmodeContent, 'utf8');
+        // await writeFile(chatmodeFile, chatmodeContent, 'utf8');
+
         logger.info('✅ Created CALM chatmode configuration from bundled resource');
     } catch (error) {
         logger.error(`⚠️  Could not load bundled chatmode config: ${error}`);
