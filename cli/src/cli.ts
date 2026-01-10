@@ -229,18 +229,20 @@ export function setupCLI(program: Command) {
             await setupAiTools(options.directory, !!options.verbose);
         });
 
+    const providerOption = new Option('-p, --provider <provider>', 'AI provider to initialize')
+        .choices(['copilot', 'kiro']);
+
     const initAiCommand = program
         .command('init-ai')
-        .argument('[provider]', 'AI provider to initialize [copilot, kiro]')
         .description('Augment a git repository with AI assistance for CALM')
+        .addOption(providerOption)
         .option('-d, --directory <path>', 'Target directory (defaults to current directory)', '.')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
-        .action(async (provider: string, options) => {
+        .action(async (options) => {
             const { setupEnhancedAiTools } = await import('./command-helpers/ai-tools');
-
-            const providers = ['copilot', 'kiro'];
-            let selectedProvider = provider;
-            if (!provider) {
+            const providers = (providerOption as any).argChoices;
+            let selectedProvider: string = options.provider;
+            if (!selectedProvider) {
                 const answer = await inquirer.prompt({
                     type: 'list',
                     name: 'provider',
@@ -248,21 +250,11 @@ export function setupCLI(program: Command) {
                     choices: providers.map((p) => ({ name: p, value: p })),
                 });
                 selectedProvider = answer.provider;
-            } else {
-                // SECURITY: Validate provider argument to prevent path traversal attacks
-                if (!providers.includes(selectedProvider)) {
-                    console.error(`❌ Invalid provider: ${selectedProvider}`);
-                    console.error(`   Valid providers: ${providers.join(', ')}`);
-                    process.exit(1);
-                }
             }
             console.log(`Selected AI provider: ${selectedProvider}`);
 
             await setupEnhancedAiTools(selectedProvider, options.directory, !!options.verbose);
         });
-
-    // Override the usage to show [provider] before [options]
-    initAiCommand.usage('[provider] [options]');
 
 }
 
