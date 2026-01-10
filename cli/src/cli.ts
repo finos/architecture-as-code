@@ -226,7 +226,7 @@ export function setupCLI(program: Command) {
                 process.env.DEBUG = 'true';
             }
 
-            await setupAiTools(options.directory, !!options.verbose);
+            await setupAiTools('copilot', options.directory, !!options.verbose);
         });
 
     const providerOption = new Option('-p, --provider <provider>', 'AI provider to initialize')
@@ -239,7 +239,7 @@ export function setupCLI(program: Command) {
         .option('-d, --directory <path>', 'Target directory (defaults to current directory)', '.')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
-            const { setupEnhancedAiTools } = await import('./command-helpers/ai-tools');
+            const { setupAiTools } = await import('./command-helpers/ai-tools');
             const providers = (providerOption as any).argChoices;
             let selectedProvider: string = options.provider;
             if (!selectedProvider) {
@@ -253,7 +253,7 @@ export function setupCLI(program: Command) {
             }
             console.log(`Selected AI provider: ${selectedProvider}`);
 
-            await setupEnhancedAiTools(selectedProvider, options.directory, !!options.verbose);
+            await setupAiTools(selectedProvider, options.directory, !!options.verbose);
         });
 
 }
