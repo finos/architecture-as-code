@@ -21,12 +21,12 @@ interface AiAssistantConfig {
 
 
 // TODO: Clean up DEPRECATED
-export async function setupAiTools(provider: string, targetDirectory: string, verbose: boolean): Promise<void> {
+export async function setupAiTools(targetDirectory: string, verbose: boolean): Promise<void> {
     const logger = initLogger(verbose, 'calm-ai-tools');
 
     try {
         const resolvedPath = resolve(targetDirectory);
-        logger.info(`Setting up CALM AI tools for provider "${provider}" in: ${resolvedPath}`);
+        logger.info(`Setting up CALM AI tools for Github Copilot in: ${resolvedPath}`);
 
         // Verify target directory exists
         const dirStat = await stat(resolvedPath);
@@ -97,12 +97,12 @@ export async function setupEnhancedAiTools(provider: string, targetDirectory: st
         const valuesPath = join(calmAIPath, 'ai-assistants', `${provider}.json`);
         const raw = await readFile(valuesPath, 'utf8');
         const aiConfig: AiAssistantConfig = JSON.parse(raw);
-        
+
         // Validate required fields
         if (!aiConfig.topLevelDirectory || !aiConfig['skill-prompts']) {
             throw new Error(`Invalid AI configuration for provider: ${provider}`);
         }
-        
+
         logger.info(`AI assistant top level directory: ${aiConfig.topLevelDirectory}`);
 
         // Create AI Assistant top level directory if it doesn't exist
