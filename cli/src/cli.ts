@@ -236,9 +236,9 @@ export function setupCLI(program: Command) {
         .option('-d, --directory <path>', 'Target directory (defaults to current directory)', '.')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (provider: string, options) => {
-            const { setupAiTools } = await import('./command-helpers/ai-tools');
+            const { setupEnhancedAiTools } = await import('./command-helpers/ai-tools');
 
-            const providers = ['copilot'];
+            const providers = ['copilot', 'kiro'];
             let selectedProvider = provider;
             if (!provider) {
                 const answer = await inquirer.prompt({
@@ -251,7 +251,7 @@ export function setupCLI(program: Command) {
             }
             console.log(`Selected AI provider: ${selectedProvider}`);
 
-            await setupAiTools(selectedProvider, options.directory, !!options.verbose);
+            await setupEnhancedAiTools(selectedProvider, options.directory, !!options.verbose);
         });
 
     // Override the usage to show [provider] before [options]
