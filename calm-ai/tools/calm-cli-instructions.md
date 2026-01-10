@@ -122,15 +122,30 @@ calm validate -a my-arch.json --strict -f pretty
 calm validate -p pattern.json -a arch.json -f junit -o results.xml
 ```
 
-## Copilot Chatmode Setup
+## AI Assistant Provider Setup
 
 Configure CALM-specific AI assistance inside a repo:
+
+```shell
+calm init-ai -p <provider> [--directory <path>] [--verbose]
+```
+
+At present Github Copilot (`copilot`) and AWS Kir (`kiro`) are supported as providers.
+
+This generates custom prompts for the specified <provider> to use CALM-aware tools (nodes, relationships, interfaces, controls, flows, patterns, metadata).
+
+## Copilot Chatmode Setup
+
+**Note**:  This command has been Deprecated.  The user is encourged to use the new `init-ai` command, which has equivalent functionality.
+
+Configure CALM-specific AI assistance with Github Copilot inside a repo:
 
 ```shell
 calm copilot-chatmode [--directory <path>] [--verbose]
 ```
 
 This generates `.github/chatmodes/CALM.chatmode.md`, enabling GitHub Copilot Chat to use CALM-aware tools (nodes, relationships, interfaces, controls, flows, patterns, metadata).
+
 
 ## CLI Server (Experimental)
 
