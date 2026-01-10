@@ -20,54 +20,54 @@ interface AiAssistantConfig {
 
 
 
-// TODO: Clean up DEPRECATED
-export async function setupAiTools(targetDirectory: string, verbose: boolean): Promise<void> {
-    const logger = initLogger(verbose, 'calm-ai-tools');
+// TODO: Clean up 
+// export async function setupAiTools(targetDirectory: string, verbose: boolean): Promise<void> {
+//     const logger = initLogger(verbose, 'calm-ai-tools');
 
-    try {
-        const resolvedPath = resolve(targetDirectory);
-        logger.info(`Setting up CALM AI tools for Github Copilot in: ${resolvedPath}`);
+//     try {
+//         const resolvedPath = resolve(targetDirectory);
+//         logger.info(`Setting up CALM AI tools for Github Copilot in: ${resolvedPath}`);
 
-        // Verify target directory exists
-        const dirStat = await stat(resolvedPath);
-        if (!dirStat.isDirectory()) {
-            throw new Error(`Target path is not a directory: ${resolvedPath}`);
-        }
+//         // Verify target directory exists
+//         const dirStat = await stat(resolvedPath);
+//         if (!dirStat.isDirectory()) {
+//             throw new Error(`Target path is not a directory: ${resolvedPath}`);
+//         }
 
-        // Check if it's a git repository
-        const gitDir = join(resolvedPath, '.git');
-        try {
-            await stat(gitDir);
-            logger.info('Git repository detected');
-        } catch {
-            logger.warn('Warning: No .git directory found. This may not be a git repository.');
-        }
+//         // Check if it's a git repository
+//         const gitDir = join(resolvedPath, '.git');
+//         try {
+//             await stat(gitDir);
+//             logger.info('Git repository detected');
+//         } catch {
+//             logger.warn('Warning: No .git directory found. This may not be a git repository.');
+//         }
 
-        // Validate bundled resources before proceeding
-        await validateBundledResources(logger);
+//         // Validate bundled resources before proceeding
+//         await validateBundledResources(logger);
 
-        // Create .github/chatmodes directory if it doesn't exist
-        const chatmodesDir = join(resolvedPath, '.github', 'chatmodes');
-        await mkdir(chatmodesDir, { recursive: true });
-        logger.info('Created .github/chatmodes directory following GitHub Copilot conventions');
+//         // Create .github/chatmodes directory if it doesn't exist
+//         const chatmodesDir = join(resolvedPath, '.github', 'chatmodes');
+//         await mkdir(chatmodesDir, { recursive: true });
+//         logger.info('Created .github/chatmodes directory following GitHub Copilot conventions');
 
-        // Create chatmode configuration
-        await createChatmodeConfig(chatmodesDir, logger);
+//         // Create chatmode configuration
+//         await createChatmodeConfig(chatmodesDir, logger);
 
-        // Create tool prompt files
-        await createToolPrompts(chatmodesDir, logger);
+//         // Create tool prompt files
+//         await createToolPrompts(chatmodesDir, logger);
 
-        logger.info('✅ CALM AI tools setup completed successfully!');
-        logger.info('🚀 To use: Open this repository in VS Code and start a chat with the CALM chatmode');
-        logger.info('📁 Files created in .github/chatmodes/ directory following GitHub Copilot conventions');
+//         logger.info('✅ CALM AI tools setup completed successfully!');
+//         logger.info('🚀 To use: Open this repository in VS Code and start a chat with the CALM chatmode');
+//         logger.info('📁 Files created in .github/chatmodes/ directory following GitHub Copilot conventions');
 
-    } catch (error) {
-        logger.error(`❌ Failed to setup AI tools: ${error}`);
-        throw error;
-    }
-}
+//     } catch (error) {
+//         logger.error(`❌ Failed to setup AI tools: ${error}`);
+//         throw error;
+//     }
+// }
 
-export async function setupEnhancedAiTools(provider: string, targetDirectory: string, verbose: boolean): Promise<void> {
+export async function setupAiTools(provider: string, targetDirectory: string, verbose: boolean): Promise<void> {
     const logger = initLogger(verbose, 'calm-ai-tools');
 
     try {
@@ -127,7 +127,7 @@ export async function setupEnhancedAiTools(provider: string, targetDirectory: st
 
         logger.info(`AI assistant AI Chat Prompt directory: ${aiChatPromptDirectory}`);
         logger.info(`AI assistant values path: ${valuesPath}`);
-        await createEnhancedChatmodeConfig(aiChatPromptDirectory, aiTemplatePath, valuesPath, logger);
+        await createChatmodeConfig(aiChatPromptDirectory, aiTemplatePath, valuesPath, logger);
 
         // Create tool prompt files
         await createToolPrompts(chatmodesDir, logger);
@@ -180,50 +180,50 @@ async function validateBundledResources(logger: Logger): Promise<void> {
     }
 }
 
-// TODO: CLEANUP - DEPRECATED
-async function createChatmodeConfig(chatmodesDir: string, logger: Logger): Promise<void> {
-    const chatmodeFile = join(chatmodesDir, 'CALM.chatmode.md');
+// TODO: CLEANUP 
+// async function createChatmodeConfig(chatmodesDir: string, logger: Logger): Promise<void> {
+//     const chatmodeFile = join(chatmodesDir, 'CALM.chatmode.md');
 
-    try {
-        // Get the bundled chatmode config file
-        const bundledConfigPath = getBundledResourcePath('CALM.chatmode.md');
-        const chatmodeContent = await readFile(bundledConfigPath, 'utf8');
+//     try {
+//         // Get the bundled chatmode config file
+//         const bundledConfigPath = getBundledResourcePath('CALM.chatmode.md');
+//         const chatmodeContent = await readFile(bundledConfigPath, 'utf8');
 
-        // Validate content quality
-        if (!chatmodeContent.trim()) {
-            throw new Error('Bundled chatmode file is empty');
-        }
+//         // Validate content quality
+//         if (!chatmodeContent.trim()) {
+//             throw new Error('Bundled chatmode file is empty');
+//         }
 
-        const MIN_CHATMODE_CONTENT_LENGTH = 500; // Minimum acceptable length for chatmode content
+//         const MIN_CHATMODE_CONTENT_LENGTH = 500; // Minimum acceptable length for chatmode content
 
-        if (
-            !chatmodeContent.includes('CALM') ||
-            chatmodeContent.length < MIN_CHATMODE_CONTENT_LENGTH
-        ) {
-            logger.warn(
-                `Bundled chatmode file appears incomplete or corrupted (length: ${chatmodeContent.length} < ${MIN_CHATMODE_CONTENT_LENGTH})`
-            );
-        }
+//         if (
+//             !chatmodeContent.includes('CALM') ||
+//             chatmodeContent.length < MIN_CHATMODE_CONTENT_LENGTH
+//         ) {
+//             logger.warn(
+//                 `Bundled chatmode file appears incomplete or corrupted (length: ${chatmodeContent.length} < ${MIN_CHATMODE_CONTENT_LENGTH})`
+//             );
+//         }
 
-        await writeFile(chatmodeFile, chatmodeContent, 'utf8');
-        logger.info('✅ Created CALM chatmode configuration from bundled resource');
-    } catch (error) {
-        logger.error(`⚠️  Could not load bundled chatmode config: ${error}`);
-    }
+//         await writeFile(chatmodeFile, chatmodeContent, 'utf8');
+//         logger.info('✅ Created CALM chatmode configuration from bundled resource');
+//     } catch (error) {
+//         logger.error(`⚠️  Could not load bundled chatmode config: ${error}`);
+//     }
 
-    // Verify the file was created successfully
-    try {
-        const createdStat = await stat(chatmodeFile);
-        if (createdStat.size === 0) {
-            throw new Error('Created chatmode file is empty');
-        }
-    } catch (verifyError) {
-        logger.error(`❌ Failed to verify chatmode file creation: ${verifyError}`);
-        throw new Error(`Chatmode configuration setup failed: ${verifyError}`);
-    }
-}
+//     // Verify the file was created successfully
+//     try {
+//         const createdStat = await stat(chatmodeFile);
+//         if (createdStat.size === 0) {
+//             throw new Error('Created chatmode file is empty');
+//         }
+//     } catch (verifyError) {
+//         logger.error(`❌ Failed to verify chatmode file creation: ${verifyError}`);
+//         throw new Error(`Chatmode configuration setup failed: ${verifyError}`);
+//     }
+// }
 
-async function createEnhancedChatmodeConfig(aiChatPromptDirectory: string, aiTemplatePath: string, valuesPath: string, logger: Logger): Promise<void> {
+async function createChatmodeConfig(aiChatPromptDirectory: string, aiTemplatePath: string, valuesPath: string, logger: Logger): Promise<void> {
     const chatmodeFile = join(aiChatPromptDirectory, 'CALM.chatmode.md');
     logger.info(`Creating enhanced chatmode config at: ${chatmodeFile}`);
 
