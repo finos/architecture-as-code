@@ -269,8 +269,6 @@ async function createEnhancedChatmodeConfig(aiChatPromptDirectory: string, aiTem
             );
         }
 
-        // await writeFile(chatmodeFile, chatmodeContent, 'utf8');
-
         logger.info('✅ Created CALM chatmode configuration from bundled resource');
     } catch (error) {
         logger.error(`⚠️  Could not load bundled chatmode config: ${error}`);
