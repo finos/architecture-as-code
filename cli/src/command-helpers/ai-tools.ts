@@ -109,7 +109,6 @@ export async function setupEnhancedAiTools(provider: string, targetDirectory: st
 
         logger.info(`AI assistant AI Chat Prompt directory: ${aiChatPromptDirectory}`);
         logger.info(`AI assistant values path: ${valuesPath}`);
-        // await createChatmodeConfig(chatmodesDir, logger);
         await createEnhancedChatmodeConfig(aiChatPromptDirectory, aiTemplatePath, valuesPath, logger);
 
         // Create tool prompt files
@@ -117,7 +116,7 @@ export async function setupEnhancedAiTools(provider: string, targetDirectory: st
 
         logger.info('✅ CALM AI tools setup completed successfully!');
         logger.info('🚀 To use: Open this repository in VS Code and start a chat with the CALM chatmode');
-        logger.info('📁 Files created in .github/chatmodes/ directory following GitHub Copilot conventions');
+        logger.info(`📁 Files created in ${aiConfig.topLevelDirectory} directory following ${provider} AI Assistant conventions`);
 
     } catch (error) {
         logger.error(`❌ Failed to setup AI tools: ${error}`);
