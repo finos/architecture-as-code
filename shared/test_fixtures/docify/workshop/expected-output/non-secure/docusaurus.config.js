@@ -1,5 +1,3 @@
-const { on } = require("events");
-
 /* eslint-disable no-undef */
 module.exports = {
     title: 'My Docusaurus Docs',
