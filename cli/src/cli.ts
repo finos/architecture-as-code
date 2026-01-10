@@ -231,7 +231,7 @@ export function setupCLI(program: Command) {
 
     const initAiCommand = program
         .command('init-ai')
-        .argument('[provider]', 'AI provider to initialize')
+        .argument('[provider]', 'AI provider to initialize [copilot, kiro]')
         .description('Augment a git repository with AI assistance for CALM')
         .option('-d, --directory <path>', 'Target directory (defaults to current directory)', '.')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
