@@ -226,7 +226,7 @@ export function setupCLI(program: Command) {
                 process.env.DEBUG = 'true';
             }
 
-            await setupAiTools('copilot', options.directory, !!options.verbose);
+            await setupAiTools(options.directory, !!options.verbose);
         });
 
     const initAiCommand = program
