@@ -2,6 +2,7 @@
     "description": "AWS Kiro/Q integrated with FINOS CALM",
     "frontmatter": "---\ninclusion: manual\n---",
     "topLevelDirectory": ".kiro",
+    "topLevelPromptDirectory": "steering",
     "skill-prefix": "#[[",
     "skill-suffix": "]]",
     "skill-prompts": [
