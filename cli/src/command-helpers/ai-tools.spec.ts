@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { join, resolve } from 'path';
-import { setupAiTools } from './ai-tools';
+import { setupAiTools, setupEnhancedAiTools } from './ai-tools';
 
 // Mock functions using vi.hoisted
 const mocks = vi.hoisted(() => ({
@@ -185,4 +185,70 @@ describe('ai-tools', () => {
             await expect(setupAiTools(targetDirectory, verbose)).rejects.toThrow('Created chatmode file is empty');
         });
     });
+
+    const providers = ["copilot", "kiro"] as const;
+
+    describe.each(providers)('setupEnhancedAiTools: %s', (provider) => {
+        const targetDirectory = '/test/directory';
+        const verbose = false;
+
+        beforeEach(async () => {
+            // Use REAL files from calm-ai directory for these tests
+            mocks.readFile.mockImplementation(async (path: string, encoding?: string) => {
+                const actual = await vi.importActual<typeof import('fs/promises')>('fs/promises');
+
+                // Remap paths from src/command-helpers/calm-ai to repository root calm-ai
+                let actualPath = path;
+                if (path.includes('calm-ai')) {
+                    const calmAiIndex = path.lastIndexOf('calm-ai');
+                    const relativeToCalmAi = path.substring(calmAiIndex + 'calm-ai/'.length);
+                    actualPath = resolve(__dirname, '../../../calm-ai', relativeToCalmAi);
+                }
+
+                return actual.readFile(actualPath, encoding as BufferEncoding);
+            });
+
+            // Also update stat to handle real files
+            mocks.stat.mockImplementation(async (path: string) => {
+                const pathStr = String(path);
+
+                // Mock test directory and .git checks
+                if (pathStr.includes('/test/directory') || pathStr.endsWith('.git')) {
+                    if (pathStr.endsWith('.git')) {
+                        return Promise.resolve({} as any);
+                    }
+                    return Promise.resolve({
+                        isDirectory: () => true,
+                        size: 100
+                    } as any);
+                }
+
+                // Remap bundled resource paths for real file stats
+                let actualPath = pathStr;
+                if (pathStr.includes('calm-ai')) {
+                    const calmAiIndex = pathStr.lastIndexOf('calm-ai');
+                    const relativeToCalmAi = pathStr.substring(calmAiIndex + 'calm-ai/'.length);
+                    actualPath = resolve(__dirname, '../../../calm-ai', relativeToCalmAi);
+                }
+
+                const actual = await vi.importActual<typeof import('fs/promises')>('fs/promises');
+                return actual.stat(actualPath);
+            });
+        });
+
+        it('should setup AI tools successfully', async () => {
+            await setupEnhancedAiTools(provider, targetDirectory, verbose);
+
+            expect(mocks.initLogger).toHaveBeenCalledWith(verbose, 'calm-ai-tools');
+
+            // Different providers use different top-level directories
+            // copilot uses .github/chatmodes, kiro uses .kiro
+            // Just verify mkdir was called (path varies by provider's real config)
+            expect(mocks.mkdir).toHaveBeenCalled();
+
+            expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('CALM AI tools setup completed successfully'));
+        });
+    });
+
+
 });
