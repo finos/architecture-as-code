@@ -226,7 +226,7 @@ export function setupCLI(program: Command) {
                 process.env.DEBUG = 'true';
             }
 
-            await setupAiTools("copilot", options.directory, !!options.verbose);
+            await setupAiTools('copilot', options.directory, !!options.verbose);
         });
 
     const initAiCommand = program
@@ -248,6 +248,13 @@ export function setupCLI(program: Command) {
                     choices: providers.map((p) => ({ name: p, value: p })),
                 });
                 selectedProvider = answer.provider;
+            } else {
+                // SECURITY: Validate provider argument to prevent path traversal attacks
+                if (!providers.includes(selectedProvider)) {
+                    console.error(`❌ Invalid provider: ${selectedProvider}`);
+                    console.error(`   Valid providers: ${providers.join(', ')}`);
+                    process.exit(1);
+                }
             }
             console.log(`Selected AI provider: ${selectedProvider}`);
 

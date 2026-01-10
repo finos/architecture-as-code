@@ -3,8 +3,20 @@ import { Logger } from '@finos/calm-shared/src/logger.js';
 import { mkdir, writeFile, readFile, stat } from 'fs/promises';
 import { join, resolve } from 'path';
 
-import Handlebars from 'handlebars'
-import { log } from 'console';
+import Handlebars from 'handlebars';
+
+/**
+ * Interface for AI assistant configuration files
+ */
+interface AiAssistantConfig {
+    description: string;
+    topLevelDirectory: string;
+    topLevelPromptDirectory: string;
+    'skill-prefix': string;
+    'skill-suffix': string;
+    frontmatter: string;
+    'skill-prompts': string[];
+}
 
 
 
@@ -83,8 +95,14 @@ export async function setupEnhancedAiTools(provider: string, targetDirectory: st
         // retrieve AI assistant configuration
         const calmAIPath = resolve(__dirname, '..', '..', 'calm-ai');
         const valuesPath = join(calmAIPath, 'ai-assistants', `${provider}.json`);
-        const raw = await readFile(valuesPath, "utf8");
-        const aiConfig = JSON.parse(raw);
+        const raw = await readFile(valuesPath, 'utf8');
+        const aiConfig: AiAssistantConfig = JSON.parse(raw);
+        
+        // Validate required fields
+        if (!aiConfig.topLevelDirectory || !aiConfig['skill-prompts']) {
+            throw new Error(`Invalid AI configuration for provider: ${provider}`);
+        }
+        
         logger.info(`AI assistant top level directory: ${aiConfig.topLevelDirectory}`);
 
         // Create AI Assistant top level directory if it doesn't exist
@@ -93,12 +111,12 @@ export async function setupEnhancedAiTools(provider: string, targetDirectory: st
         logger.info(`Created ${aiConfig.topLevelDirectory} directory following AI Assistant ${provider} conventions`);
 
         // Create chatmode configuration
-        const aiTemplatePath = join(calmAIPath, 'templates', "CALM.chatmode_template.md");
+        const aiTemplatePath = join(calmAIPath, 'templates', 'CALM.chatmode_template.md');
         logger.info(`Using AI assistant template: ${aiTemplatePath}`);
 
         // if toplevel prompt director is empty string
         let aiChatPromptDirectory: string;
-        if (aiConfig.topLevelPromptDirectory === "") {
+        if (aiConfig.topLevelPromptDirectory === '') {
             aiChatPromptDirectory = chatmodesDir;
         } else {
             aiChatPromptDirectory = join(chatmodesDir, aiConfig.topLevelPromptDirectory);
@@ -213,18 +231,23 @@ async function createEnhancedChatmodeConfig(aiChatPromptDirectory: string, aiTem
         const tplSource = await readFile(aiTemplatePath, 'utf-8');
 
         const rawValues = await readFile(valuesPath, 'utf-8');
-        let data: any;
+        let data: AiAssistantConfig;
         try {
             data = JSON.parse(rawValues);
-        } catch (err: any) {
-            console.error('Error parsing JSON from', valuesPath, err?.message ?? err);
-            process.exit(1);
+            // Validate required fields
+            if (!data.topLevelDirectory || !data['skill-prompts']) {
+                throw new Error('Missing required fields in AI configuration');
+            }
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            logger.error(`Error parsing JSON from ${valuesPath}: ${errorMessage}`);
+            throw new Error(`Failed to load AI configuration: ${errorMessage}`);
         }
 
         const tpl = Handlebars.compile(tplSource);
-        const customAiAsssistangPrompt = tpl(data as any);
+        const customAiAssistantPrompt = tpl(data);
 
-        await writeFile(chatmodeFile, customAiAsssistangPrompt, 'utf-8');
+        await writeFile(chatmodeFile, customAiAssistantPrompt, 'utf-8');
 
 
         // Get the bundled chatmode config file
