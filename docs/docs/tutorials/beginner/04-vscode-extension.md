@@ -71,10 +71,6 @@ Visualize the architecture you've built over Tutorials 2-3.
 - Lines showing relationships (interacts, connects, composed-of)
 - Different visual styles for different node types and relationship types
 
-:::tip Screenshot Time!
-Take a screenshot of your visualization — you'll include this in your commit.
-:::
-
 ### 5. Explore the Tree View
 
 The CALM sidebar provides a structured view of your architecture:
@@ -141,27 +137,6 @@ Look at your architecture in the diagram:
 - Can you explain this architecture to someone using the diagram?
 - What would you change to make it clearer?
 
-### 10. Document Your Tools
-
-Update your README with the extension information:
-
-```markdown
-## Tools
-
-### CALM CLI
-- **Purpose**: Generation, validation, templates
-- **Commands**: `calm validate`, `calm generate`, `calm docify`
-
-### CALM VSCode Extension
-- **Marketplace**: https://marketplace.visualstudio.com/items?itemName=FINOS.calm-vscode-plugin
-- **Features**: Visualization, tree navigation, live preview
-- **Shortcut**: Ctrl+Shift+C / Cmd+Shift+C to open preview
-
-### How They Work Together
-- Use CLI for validation and generation
-- Use extension for visualization and navigation
-```
-
 ## Key Concepts
 
 ### Preview Panel vs. Tree View
@@ -183,7 +158,6 @@ Update your README with the extension information:
 ## Resources
 
 - [CALM VSCode Extension - Marketplace](https://marketplace.visualstudio.com/items?itemName=FINOS.calm-vscode-plugin)
-- [CALM VSCode Extension - GitHub](https://github.com/finos/architecture-as-code/tree/main/calm-plugins/vscode)
 
 ## Tips
 
