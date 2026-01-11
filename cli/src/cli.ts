@@ -6,6 +6,7 @@ import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components
 import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { loadCliConfig } from './cli-config';
 import path from 'path';
+import inquirer from 'inquirer';
 
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -214,7 +215,7 @@ export function setupCLI(program: Command) {
 
     program
         .command('copilot-chatmode')
-        .description('Augment a git repository with a CALM VSCode chatmode for AI assistance')
+        .description('DEPRECATED (use init-ai): Augment a git repository with a CALM VSCode chatmode for AI assistance')
         .option('-d, --directory <path>', 'Target directory (defaults to current directory)', '.')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
@@ -224,7 +225,34 @@ export function setupCLI(program: Command) {
                 process.env.DEBUG = 'true';
             }
 
-            await setupAiTools(options.directory, !!options.verbose);
+            await setupAiTools('copilot', options.directory, !!options.verbose);
+        });
+
+    const providerOption = new Option('-p, --provider <provider>', 'AI provider to initialize')
+        .choices(['copilot', 'kiro']);
+
+    program
+        .command('init-ai')
+        .description('Augment a git repository with AI assistance for CALM')
+        .addOption(providerOption)
+        .option('-d, --directory <path>', 'Target directory (defaults to current directory)', '.')
+        .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+        .action(async (options) => {
+            const { setupAiTools } = await import('./command-helpers/ai-tools');
+            const providers = (providerOption as Option & { argChoices?: string[] }).argChoices ?? [];
+            let selectedProvider: string = options.provider;
+            if (!selectedProvider) {
+                const answer = await inquirer.prompt({
+                    type: 'list',
+                    name: 'provider',
+                    message: 'Select an AI provider:',
+                    choices: providers.map((p) => ({ name: p, value: p })),
+                });
+                selectedProvider = answer.provider;
+            }
+            console.log(`Selected AI provider: ${selectedProvider}`);
+
+            await setupAiTools(selectedProvider, options.directory, !!options.verbose);
         });
 
 }

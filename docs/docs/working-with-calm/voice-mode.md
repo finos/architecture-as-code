@@ -4,16 +4,18 @@ title: Voice Mode
 sidebar_position: 7
 ---
 
-# Voice Mode with CALM Copilot Chat
+# Voice Mode with CALM AI Tools
 
 Voice Mode enables hands-free interaction with CALM Copilot Chat, allowing you to speak architecture queries and receive spoken responses directly in the chat interface.
+
+As of this Voice Mode is supported only in VSCode with Github Copilot.  The remainder of this document assumes this setup.
 
 ## Getting Started
 
 ### Prerequisites
 
 - **VS Code**: Version 1.94 or later
-- **CALM Copilot Chatmode**: Configured in your repository (see [CALM Copilot Chatmode](copilot-chatmode))
+- **CALM Copilot Chatmode**: Configured in your repository (see [CALM AI Tools](calm-ai-tools))
 - **GitHub Copilot Chat**: Active subscription and extension installed
 - **Microphone**: A working microphone
 

@@ -268,13 +268,13 @@ curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/vali
 
 ## CALM Copilot Chatmode
 
-The `copilot-chatmode` command sets up AI-powered development assistance for CALM architecture modeling by configuring a specialized VSCode chatmode with comprehensive tool prompts.
+The `copilot-chatmode` command sets up AI-powered development assistance for CALM architecture modeling by configuring a specialized VSCode chatmode with comprehensive tool prompts.  This command is `DEPRECATED`.  Users are encouraged to use the `init-ai` command.
 
 ```shell
-calm copilot-chatmode --help
+ calm copilot-chatmode --help
 Usage: calm copilot-chatmode [options]
 
-Augment a git repository with a CALM VSCode chatmode for AI assistance
+DEPRECATED (use init-ai): Augment a git repository with a CALM VSCode chatmode for AI assistance
 
 Options:
   -d, --directory <path>  Target directory (defaults to current directory) (default: ".")
@@ -318,6 +318,62 @@ The chatmode includes specialized tools for each CALM component:
 - **Standards Creation**: Guide for creating JSON Schema 2020-12 Standards that extend CALM components with organizational requirements
 
 Each tool includes complete schema definitions, validation rules, realistic examples, and cross-references to related tools.
+
+## CALM init-ai
+
+The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring a specialized VSCode chatmode with comprehensive tool prompts.  At present two AI Assistant providers are supported:  Github Copilot and AWS Kiro.
+
+```shell
+calm init-ai --help
+Usage: calm init-ai [options]
+
+Augment a git repository with AI assistance for CALM
+
+Options:
+  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro")
+  -d, --directory <path>     Target directory (defaults to current directory) (default: ".")
+  -v, --verbose              Enable verbose logging. (default: false)
+  -h, --help                 display help for command
+```
+
+This command creates a custom chat prompt configuration for the specified <provider> that provides AI assistance with specialized knowledge about CALM architecture modeling, including:
+
+- **Schema-accurate guidance**: Complete JSON schema definitions for all CALM components
+- **Critical validation requirements**: Emphasis on oneOf constraints and other validation rules
+- **Best practice enforcement**: Naming conventions, relationship patterns, and proper structure
+- **Comprehensive examples**: Realistic architecture examples based on actual CALM patterns
+- **Tool specialization**: Separate tools for nodes, relationships, interfaces, controls, flows, patterns, and metadata
+
+### Setting up CALM AI assistance
+
+To set up AI assistance for your CALM project:
+
+```shell
+# In your project directory
+calm init-ai -p <provider>
+
+# Or specify a different directory
+calm init-ai -p <provider> --directory /path/to/your/calm-project
+```
+
+This will create the necessary IDE-specific configuration files to enable CALM-specific AI assistance. Once set up, you can use GitHub Copilot Chat with specialized CALM tools that understand schema requirements, validation rules, and best practices.
+
+### Tool Prompts
+
+The chatmode includes specialized tools for each CALM component:
+
+- **Node Creation**: Guide for creating nodes with proper validation and interface definitions
+- **Relationship Creation**: Guide for creating relationships with correct types and constraints
+- **Interface Creation**: Critical guidance for interface oneOf constraints and schema compliance
+- **Control Creation**: Guide for security controls, requirements, and configurations
+- **Flow Creation**: Guide for business process flows and transitions
+- **Pattern Creation**: Guide for reusable architectural patterns using JSON schema constructs
+- **Metadata Creation**: Guide for metadata structure options (single object vs. array)
+- **Standards Creation**: Guide for creating JSON Schema 2020-12 Standards that extend CALM components with organizational requirements
+
+Each tool includes complete schema definitions, validation rules, realistic examples, and cross-references to related tools.
+
+
 
 ## CALM Template
 
