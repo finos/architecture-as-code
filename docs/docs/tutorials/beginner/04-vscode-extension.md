@@ -165,7 +165,7 @@ Look at your architecture in the diagram:
 - **Keep preview open** — see changes as you edit and save
 - **Use tree view for navigation** — easier than scrolling through JSON
 - **Use search** to find specific elements quickly
-- **Visualization aids communication** — screenshots help explain architectures to others
+- **Visualization aids communication** — diagrams help explain architectures to others
 - **Save to update** — preview refreshes when you save the file
 
 ## Common Pitfalls

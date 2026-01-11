@@ -111,8 +111,6 @@ Now see your interfaces in the diagram:
 3. Observe how your nodes now show interface information in the diagram
 4. The visualization shows which nodes have interfaces defined
 
-**Take a screenshot** showing your architecture with interfaces visible.
-
 ### 5. Update Your Connects Relationship
 
 The `connects` relationship can reference interfaces using the `node-interface` structure.
@@ -141,11 +139,11 @@ This precision is valuable for understanding integration points!
 
 Create a reusable interface schema:
 
-**File:** `patterns/rest-api-interface.json`
+**File:** `interfaces/rest-api-interface.json`
 
 **Prompt:**
 ```text
-Create a new file at patterns/rest-api-interface.json
+Create a new file at interfaces/rest-api-interface.json
 
 This should be a JSON Schema that defines a standard REST API interface with these required properties:
 - host (string)
