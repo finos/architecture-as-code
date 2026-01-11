@@ -55,7 +55,7 @@ A **node** in CALM represents a distinct architectural component. CALM provides 
 
 ### 3. Use This Prompt with Copilot
 
-Copy and paste this prompt into the Copilot chat (customize the parts in brackets):
+Copy and paste this prompt into the Copilot chat (customize the parts in [] brackets):
 
 ```text
 Create a new CALM architecture file at architectures/my-first-architecture.json
