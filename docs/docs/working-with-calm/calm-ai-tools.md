@@ -79,21 +79,16 @@ $ calm init-ai
 ```shell
 $ calm init-ai -p copilot
 Selected AI provider: copilot
-info [calm-ai-tools]:     Setting up CALM AI tools for provider "copilot" in: /Desktop/genai/ghcp-calm-demo
-info [calm-ai-tools]:     Git repository detected
+info [calm-ai-tools]:     Setting up CALM AI tools for provider "copilot" in: /Desktop/finos/architecture-as-code/cli
+warn [calm-ai-tools]:     Warning: No .git directory found. This may not be a git repository.
 info [calm-ai-tools]:     🔍 Validating bundled AI tool resources...
 info [calm-ai-tools]:     AI assistant top level directory: .github/chatmodes
-info [calm-ai-tools]:     Created .github/chatmodes directory following AI Assistant copilot conventions
-info [calm-ai-tools]:     Using AI assistant template: /Desktop/finos/architecture-as-code/calm-ai/templates/CALM.chatmode_template.md
-info [calm-ai-tools]:     Created /Desktop/genai/ghcp-calm-demo/.github/chatmodes directory following AI Assistant copilot conventions
-info [calm-ai-tools]:     AI assistant AI Chat Prompt directory: /Desktop/genai/ghcp-calm-demo/.github/chatmodes
-info [calm-ai-tools]:     AI assistant values path: /Desktop/finos/architecture-as-code/calm-ai/ai-assistants/copilot.json
-info [calm-ai-tools]:     Creating enhanced chatmode config at: /Desktop/genai/ghcp-calm-demo/.github/chatmodes/CALM.chatmode.md
+info [calm-ai-tools]:     Creating enhanced chatmode config at: /Desktop/finos/architecture-as-code/cli/.github/chatmodes/CALM.chatmode.md
 info [calm-ai-tools]:     ✅ Created CALM chatmode configuration from bundled resource
 info [calm-ai-tools]:     📁 Created calm-prompts directory
 info [calm-ai-tools]:     ✅ Successfully created all 11 tool prompt files
 info [calm-ai-tools]:     ✅ CALM AI tools setup completed successfully!
-info [calm-ai-tools]:     🚀 To use: Open this repository in VS Code and start a chat with the CALM chatmode
+info [calm-ai-tools]:     🚀 To use: Open this repository in with your IDE and start a chat with the CALM chatmode
 info [calm-ai-tools]:     📁 Files created in .github/chatmodes directory following copilot AI Assistant conventions
 ```
 
