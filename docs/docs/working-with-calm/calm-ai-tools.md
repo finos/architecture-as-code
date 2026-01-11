@@ -4,7 +4,7 @@ title: CALM AI Tools
 sidebar_position: 6
 ---
 
-# CALM Copilot Chatmode
+# CALM AI Tools
 
 CALM AI Tools provides AI-powered development assistance for CALM architecture modeling by integrating specialized knowledge and tools directly into your development environment and coding assistant.
 
