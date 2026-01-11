@@ -16,16 +16,16 @@ This content follows the [Diataxis framework](https://diataxis.fr/). **Tutorials
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         YOUR CALM LEARNING PATH                              │
+│                         YOUR CALM LEARNING PATH                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│   🟢 BEGINNER TUTORIALS          📘 HOW-TO GUIDES (Task Reference)          │
+│   BEGINNER TUTORIALS             HOW-TO GUIDES (Task Reference)             │
 │   ├── Setup & CLI                ├── Modeling: Controls, Flows, ADRs        │
 │   ├── First Node                 ├── Documentation: Docify, Widgets         │
 │   ├── Relationships              ├── Operations: Runbooks, Deployment       │
 │   ├── VSCode Extension           └── Governance: Patterns, Standards        │
 │   ├── Interfaces                                                            │
-│   ├── Metadata                   🏆 CHALLENGES (Apply Your Skills)          │
+│   ├── Metadata                   CHALLENGES (Apply Your Skills)             │
 │   └── Complete Architecture      ├── Enterprise Architect                   │
 │                                  ├── Product Developer                      │
 │                                  ├── Security SME                           │
@@ -60,12 +60,12 @@ Once you've completed the beginner tutorials, you have two paths:
 
 Task-oriented guides for specific goals. Use these as reference when you need to accomplish something specific.
 
-| Category | Topics |
-|----------|--------|
-| [**Modeling**](../how-to/modeling/) | Controls, Flows, ADRs |
+| Category                                      | Topics                                  |
+|-----------------------------------------------|-----------------------------------------|
+| [**Modeling**](../how-to/modeling/)           | Controls, Flows, ADRs                   |
 | [**Documentation**](../how-to/documentation/) | Docify, Widgets, Handlebars, AI Advisor |
-| [**Operations**](../how-to/operations/) | Ops Advisor, Runbooks |
-| [**Governance**](../how-to/governance/) | Patterns, Standards, Validation |
+| [**Operations**](../how-to/operations/)       | Ops Advisor, Runbooks                   |
+| [**Governance**](../how-to/governance/)       | Patterns, Standards, Validation         |
 
 [Browse How-To Guides →](../how-to/)
 
@@ -75,11 +75,11 @@ Task-oriented guides for specific goals. Use these as reference when you need to
 
 Apply your skills in realistic, role-based scenarios:
 
-| Challenge | Role | Time |
-|-----------|------|------|
-| [Enterprise Architect](./challenges/enterprise-architect) | Chief Architect | 60-90 min |
-| [Product Developer](./challenges/product-developer) | Senior Developer | 45-60 min |
-| [Security SME](./challenges/security-sme) | Security Architect | 60-90 min |
+| Challenge                                                 | Role               | Time      |
+|-----------------------------------------------------------|--------------------|-----------|
+| [Enterprise Architect](./challenges/enterprise-architect) | Chief Architect    | 60-90 min |
+| [Product Developer](./challenges/product-developer)       | Senior Developer   | 45-60 min |
+| [Security SME](./challenges/security-sme)                 | Security Architect | 60-90 min |
 
 [Take the Challenges →](./challenges/)
 
