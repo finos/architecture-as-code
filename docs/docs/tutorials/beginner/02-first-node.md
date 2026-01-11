@@ -83,7 +83,7 @@ Make sure the file includes the correct $schema reference and validates against 
 Copilot will generate the file. **Important:** Don't blindly accept it! Review and verify:
 
 - ✅ File is in the correct location: `architectures/my-first-architecture.json`
-- ✅ Contains `$schema` property pointing to CALM 1.1
+- ✅ Contains `$schema` property pointing to the [CALM 1.1](https://calm.finos.org/release/1.1/meta/calm.json) JSON schema
 - ✅ Has a `nodes` array with your node
 - ✅ Node has all required properties: `unique-id`, `node-type`, `name`, `description`
 - ✅ The `node-type` is appropriate for what you're modeling
