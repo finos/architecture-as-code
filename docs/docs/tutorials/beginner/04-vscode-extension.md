@@ -52,6 +52,8 @@ Check that the extension is working:
 2. Click it to open the CALM sidebar view
 3. You should see "Model Elements" panel
 
+<img src="/img/calm-model-elements.png" alt="CALM Model Elements" width="300" />
+
 **If you see the CALM sidebar, the extension is installed correctly!**
 
 ### 4. Open the Preview Panel
