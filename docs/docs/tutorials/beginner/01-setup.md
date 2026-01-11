@@ -72,7 +72,7 @@ touch README.md
 calm copilot-chatmode -d .
 ```
 
-This creates `.github/chatmodes/CALM.chatmode.md` with specialized CALM knowledge for GitHub Copilot.
+This creates `.github/chatmodes/CALM.chatmode.md` with specialized CALM knowledge for GitHub Copilot. We'll configure VSCode to use this chatmode in the next tutorial.
 
 ### 5. Add a .gitignore
 
