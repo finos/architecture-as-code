@@ -523,7 +523,6 @@ describe('ai-tools', () => {
         });
 
         it('should detect and report missing bundled files', async () => {
-            let callCount = 0;
             mocks.readFile.mockImplementation(async (path: string) => {
                 const pathStr = String(path);
 
@@ -680,7 +679,6 @@ describe('ai-tools', () => {
         });
 
         it('should warn but continue when less than half of tool prompts fail', async () => {
-            let failCount = 0;
             mocks.readFile.mockImplementation(async (path: string) => {
                 const pathStr = String(path);
 
