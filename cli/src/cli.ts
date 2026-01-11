@@ -6,8 +6,7 @@ import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components
 import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { loadCliConfig } from './cli-config';
 import path from 'path';
-
-const inquirer = require('inquirer');
+import inquirer from 'inquirer';
 
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -232,7 +231,7 @@ export function setupCLI(program: Command) {
     const providerOption = new Option('-p, --provider <provider>', 'AI provider to initialize')
         .choices(['copilot', 'kiro']);
 
-    const initAiCommand = program
+    program
         .command('init-ai')
         .description('Augment a git repository with AI assistance for CALM')
         .addOption(providerOption)
@@ -240,7 +239,7 @@ export function setupCLI(program: Command) {
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
             const { setupAiTools } = await import('./command-helpers/ai-tools');
-            const providers = (providerOption as any).argChoices;
+            const providers = (providerOption as Option & { argChoices?: string[] }).argChoices ?? [];
             let selectedProvider: string = options.provider;
             if (!selectedProvider) {
                 const answer = await inquirer.prompt({
