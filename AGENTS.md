@@ -175,6 +175,9 @@ npm run dev                # Test in browser
 **IMPORTANT**: All workspaces use `vitest run` for the test script, which runs tests once and exits.
 Do NOT use `vitest` without `run` as it enters watch mode and will hang indefinitely.
 
+**IMPORTANT FOR SHARED PACKAGE**:
+If you modify the `shared` package, you **MUST** run tests for **ALL** workspaces (`npm run test`) because `shared` is a dependency for CLI, VSCode extension, and other packages. Changes in `shared` can break downstream consumers.
+
 ```bash
 # Run ALL tests with coverage (required before committing)
 npm test -- --coverage      # TypeScript packages with coverage

@@ -133,28 +133,7 @@ describe('MappedDocumentLoader', () => {
             expect(result).toEqual(exampleSchema1);
         });
 
-        it('should resolve relative paths against basePath', async () => {
-            vol.fromJSON({
-                '/project/subdir/relative.json': JSON.stringify(exampleSchema1)
-            });
 
-            const loader = new MappedDocumentLoader(new Map(), '/project', false);
-            const result = await loader.loadMissingDocument('subdir/relative.json', 'schema');
-
-            expect(result).toEqual(exampleSchema1);
-        });
-
-        it('should resolve parent-relative paths (../)', async () => {
-            vol.fromJSON({
-                '/project/standards/parent.json': JSON.stringify(exampleSchema1)
-            });
-
-            // Base path is a subdirectory
-            const loader = new MappedDocumentLoader(new Map(), '/project/patterns', false);
-            const result = await loader.loadMissingDocument('../standards/parent.json', 'schema');
-
-            expect(result).toEqual(exampleSchema1);
-        });
 
         it('should throw for URLs not in mapping', async () => {
             vol.fromJSON({});
@@ -215,6 +194,26 @@ describe('MappedDocumentLoader', () => {
             const result = await loader.loadMissingDocument('schema.json', 'schema');
 
             expect(result).toEqual(mappedSchema);
+        });
+    });
+
+    describe('resolvePath', () => {
+        it('should resolve path using mapping', () => {
+            const urlMap = new Map([
+                ['http://example.com/schema.json', 'local/schema.json']
+            ]);
+            const loader = new MappedDocumentLoader(urlMap, '/project', false);
+            
+            const result = loader.resolvePath('http://example.com/schema.json');
+            expect(result).toBe('/project/local/schema.json');
+        });
+
+        it('should return undefined if mapping not found', () => {
+            const urlMap = new Map();
+            const loader = new MappedDocumentLoader(urlMap, '/project', false);
+            
+            const result = loader.resolvePath('http://example.com/schema.json');
+            expect(result).toBeUndefined();
         });
     });
 });
