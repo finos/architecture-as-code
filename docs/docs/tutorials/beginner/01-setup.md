@@ -104,7 +104,7 @@ The chatmode file provides GitHub Copilot with specialized knowledge about:
 
 ## Resources
 
-- [CALM CLI Documentation](https://github.com/finos/architecture-as-code/tree/main/cli)
+- [CALM CLI Documentation](https://calm.finos.org/working-with-calm/using-the-cli)
 - [GitHub Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide)
 
 ## Tips
