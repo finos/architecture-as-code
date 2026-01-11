@@ -60,7 +60,7 @@ src/
 │
 ├── core/                           # Framework-free business logic
 │   ├── ports/                      # Interfaces for dependency inversion
-│   ├── services/                   # Core services (refresh, selection, watch)
+│   ├── services/                   # Core services (refresh, selection, watch, navigation)
 │   ├── mediators/                  # Cross-cutting coordinators
 │   └── emitter.ts                 # Event system (framework-free)
 │
@@ -165,6 +165,11 @@ export class StoreReactionMediator {
     }
 }
 ```
+
+### Navigation Service
+- **Purpose**: Handles navigation between CALM documents via `detailed-architecture` references.
+- **Key Logic**: Uses `DocumentLoader` from `@finos/calm-shared` to resolve URLs/relative paths to local files based on `calm.urlMapping`.
+- **Integration**: Called by `SelectionService` when a node with details is clicked.
 
 ### Features
 
@@ -326,6 +331,7 @@ npm run build:shared    # Builds models, widgets, shared
 4. **Extension Not Activating**: Check `activationEvents` in package.json
 5. **Webview Not Updating**: Remember to postMessage from webview to extension
 6. **toCanonicalSchema adds undefined values**: When using `toCanonicalSchema()` from calm-models, ALL optional properties are added with `undefined` values. Code checking for property existence must check for truthy values, not just key existence. See [calm-widgets/AGENTS.md](../../calm-widgets/AGENTS.md) for details.
+7. **URL Mapping**: To test multi-document navigation, you likely need to configure `calm.urlMapping` in `.vscode/settings.json` to point to a mapping file (e.g. `calm-mapping.json`) in the workspace root.
 
 ## Debugging
 
