@@ -150,8 +150,6 @@ This is where the VSCode extension really shines:
    - Multiple relationships showing different connection types
    - Clear visual distinction between actors, services, databases, and systems
 
-**Take a screenshot** of your complete e-commerce architecture visualization!
-
 ### 5. Navigate the Architecture
 
 Use the tree view to explore:
@@ -200,7 +198,7 @@ You now have two complete architectures. Compare them:
 **Prompt:**
 ```text
 Compare my two architectures:
-- architectures/my-first-architecture.json (Tutorials 2-6, built incrementally)
+- architectures/my-first-architecture.json
 - architectures/ecommerce-platform.json (this tutorial, built all at once)
 
 What did I learn? Which approach (incremental vs all-at-once) works better for different scenarios?
@@ -229,9 +227,9 @@ Your e-commerce architecture should look something like this:
 │  │   (actor)   │      │ interacts                               │
 │  └─────────────┘      │                                         │
 │                       ▼                                         │
-│  ┌─────────────┐  ┌──────────────┐  ┌─────────────────────┐    │
-│  │    Admin    │──│  API Gateway │──│    Order Service    │    │
-│  │   (actor)   │  └──────────────┘  └─────────────────────┘    │
+│  ┌─────────────┐  ┌──────────────┐  ┌─────────────────────┐     │
+│  │    Admin    │──│  API Gateway │──│    Order Service    │     │
+│  │   (actor)   │  └──────────────┘  └─────────────────────┘     │
 │  └─────────────┘         │                    │                 │
 │                          │                    ├──► Order DB     │
 │                          │                    │                 │
