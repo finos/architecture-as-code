@@ -130,7 +130,7 @@ With GitHub Copilot Chat in VS Code:
 With AWS Kiro:
 
 1. Open Kiro Chat
-2. Load CALM knowledg into your context window by entering `#CALM.chatmode.md` and press enter key
+2. Load CALM knowledge into your context window by entering `#CALM.chatmode.md` and press enter key
 3. Ask questions or request assistance with our CALM architecture
 
 
