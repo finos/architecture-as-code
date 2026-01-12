@@ -19,15 +19,22 @@ The `init-ai` command configures your development environment with comprehensive
 
 ## Prerequisites
 
-Before setting up CALM Copilot Chatmode, ensure you have:
+Before setting up CALM AI Support, ensure you have:
 
-- **VS Code**: Version 1.94 or later
+### VSCode
+- **VS Code**: Version 1.104 or later
 - **GitHub Copilot**: Active GitHub Copilot subscription
 - **GitHub Copilot Chat Extension**: Installed in VS Code
+
+### AWS Kiro
+- **Kiro**: Version 0.8.0 or later
+- **AI Support**: Active Kiro Plan
+
+### Install CALM CLI
 - **CALM CLI**: Installed globally (`npm install -g @finos/calm-cli`)
 - **Git Repository**: Your project should be in a Git repository
 
-## Setting Up CALM Copilot Chatmode
+## Setting Up CALM AI Support
 
 To set up AI assistance for your CALM project, run the following command in your project directory:
 
