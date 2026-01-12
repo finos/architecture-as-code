@@ -83,15 +83,7 @@ export class MappedDocumentLoader implements DocumentLoader {
             return this.loadDocumentFromPath(absolutePath);
         }
 
-        // 2. Check if it's a relative path
-        if (this.isRelativePath(documentId)) {
-            const absolutePath = path.resolve(this.basePath, documentId);
-            
-            if (existsSync(absolutePath)) {
-                this.logger.debug(`Resolved relative path: ${documentId} -> ${absolutePath}`);
-                return this.loadDocumentFromPath(absolutePath);
-            }
-        }
+
 
         // Cannot resolve - let other loaders try
         throw new DocumentLoadError({
@@ -100,19 +92,7 @@ export class MappedDocumentLoader implements DocumentLoader {
         });
     }
 
-    /**
-     * Check if a path is relative (not absolute and not a URL)
-     */
-    private isRelativePath(ref: string): boolean {
-        if (path.isAbsolute(ref)) {
-            return false;
-        }
-        if (ref.startsWith('http://') || ref.startsWith('https://') || 
-            ref.startsWith('file://') || ref.startsWith('calm:')) {
-            return false;
-        }
-        return true;
-    }
+
 
     /**
      * Resolve a local path to an absolute path using basePath
@@ -144,5 +124,19 @@ export class MappedDocumentLoader implements DocumentLoader {
                 cause: err
             });
         }
+    }
+    /**
+     * Public method to resolve a reference to a local absolute path.
+     * Reuse the logic from loadMissingDocument but return the path instead of loading.
+     */
+    resolvePath(reference: string): string | undefined {
+        // 1. Check URL mapping
+        if (this.urlToLocalMap.has(reference)) {
+            const localPath = this.urlToLocalMap.get(reference);
+            return this.resolveLocalPath(localPath);
+        }
+
+        // Relative path resolution has been moved to FileSystemDocumentLoader
+        return undefined;
     }
 }

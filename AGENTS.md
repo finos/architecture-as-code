@@ -1,5 +1,22 @@
 # FINOS CALM Monorepo - AI Assistant Guide
 
+## Sandbox Folder for Working Files
+
+**IMPORTANT:** Use the `/sandbox/` folder for all temporary working files, test outputs, notes, and drafts.
+
+- The `sandbox/` folder is in `.gitignore` and will not be committed
+- Store test plans, results, TODO lists, and exploration notes here
+- Do NOT create working files in other directories (they may accidentally be committed)
+- Clean up the sandbox when work is complete if appropriate
+
+```bash
+# Example: Create working files in sandbox
+mkdir -p sandbox
+echo "My notes" > sandbox/my-notes.md
+```
+
+---
+
 ## Project Overview
 
 This is the **FINOS Architecture as Code** monorepo containing the Common Architecture Language Model (CALM) specification and associated tools.
@@ -157,6 +174,9 @@ npm run dev                # Test in browser
 
 **IMPORTANT**: All workspaces use `vitest run` for the test script, which runs tests once and exits.
 Do NOT use `vitest` without `run` as it enters watch mode and will hang indefinitely.
+
+**IMPORTANT FOR SHARED PACKAGE**:
+If you modify the `shared` package, you **MUST** run tests for **ALL** workspaces (`npm run test`) because `shared` is a dependency for CLI, VSCode extension, and other packages. Changes in `shared` can break downstream consumers.
 
 ```bash
 # Run ALL tests with coverage (required before committing)

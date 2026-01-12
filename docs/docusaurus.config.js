@@ -62,16 +62,8 @@ const config = {
                 id: 'talks',
                 path: 'talks',
                 routeBasePath: 'talks',
-                sidebarPath: require.resolve('./sidebars.js'),
+                sidebarPath: require.resolve('./talksSidebar.js'),
             },
-        ],
-        [
-            '@docusaurus/plugin-content-docs',
-            {
-                id: 'quick-start',
-                path: 'quick-start',
-                routeBasePath: 'quick-start',
-            }
         ],
     ],
 
@@ -88,14 +80,14 @@ const config = {
                 },
                 items: [
                     {
-                        to: '/quick-start/',
-                        label: '🚀 Get Started in 5 Mins',
+                        type: 'docSidebar',
+                        sidebarId: 'learningSidebar',
+                        label: '📚 Learning',
                         position: 'left',
-                        activeBaseRegex: `/quick-start/`,
                     },
                     {
                         to: '/talks/',
-                        label: 'Talks',
+                        label: '🎤 Talks',
                         position: 'left',
                         activeBaseRegex: `/talks/`,
                     },
