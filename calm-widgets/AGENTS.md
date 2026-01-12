@@ -16,14 +16,14 @@ CALM Widgets is a TypeScript widget system built on Handlebars that provides reu
 
 ## Key Commands
 
+**IMPORTANT**: Always run npm commands from the **repository root** using workspaces, not from within this package directory.
+
 ```bash
-# From repository root
+# All commands run from repository root
 npm run build --workspace calm-widgets   # Build the package
 npm test --workspace calm-widgets        # Run all tests
 npm run lint --workspace calm-widgets    # Check for linting issues
 npm run lint-fix --workspace calm-widgets # Auto-fix linting issues
-
-# Development
 npm run watch --workspace calm-widgets   # Watch mode for development
 ```
 
@@ -239,6 +239,7 @@ calm-widgets is used by:
 
 **Build Order**: calm-widgets must be built before dependent packages:
 ```bash
+# From repository root
 npm run build --workspace calm-widgets
 ```
 
