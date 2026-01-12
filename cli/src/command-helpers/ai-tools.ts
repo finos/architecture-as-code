@@ -45,8 +45,10 @@ export async function setupAiTools(provider: string, targetDirectory: string, ve
         await validateBundledResources(logger);
 
         // retrieve AI assistant configuration
-        const calmAIPath = resolve(__dirname, '..', '..', 'calm-ai');
+        logger.debug(`__dirname: ${__dirname}`);
+        const calmAIPath = resolve(__dirname, 'calm-ai');
         const valuesPath = join(calmAIPath, 'ai-assistants', `${provider}.json`);
+        logger.debug(`Using AI values path: ${valuesPath}`);
         const raw = await readFile(valuesPath, 'utf8');
         const aiConfig: AiAssistantConfig = JSON.parse(raw);
 
@@ -140,8 +142,10 @@ async function createChatmodeConfig(aiChatPromptDirectory: string, aiTemplatePat
     logger.info(`Creating enhanced chatmode config at: ${chatmodeFile}`);
 
     try {
+        logger.info(`Using AI template path: ${aiTemplatePath}`);
         const tplSource = await readFile(aiTemplatePath, 'utf-8');
 
+        logger.info(`Using AI values path: ${valuesPath}`);
         const rawValues = await readFile(valuesPath, 'utf-8');
         let data: AiAssistantConfig;
         try {
