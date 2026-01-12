@@ -5,6 +5,32 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.28.0] - 2026-01-12
+
+## 1.28.0 (2026-01-12)
+
+*  ([8a864f008db604678c1148380411985f0ed3c116](https://github.com/finos/architecture-as-code/commit/8a864f008db604678c1148380411985f0ed3c116))
+*  ([a533fafba16f595a1aecfaf612e363d16d4fffc3](https://github.com/finos/architecture-as-code/commit/a533fafba16f595a1aecfaf612e363d16d4fffc3))
+* Add multi document navigation in VSCode Extension ([0aac9389133b9bfab330f79e778fd33e452f33ee](https://github.com/finos/architecture-as-code/commit/0aac9389133b9bfab330f79e778fd33e452f33ee))
+* NPM CI Housekeeping (#2016) ([39765a16ffe9f7296c1b2a489dc28c3ef3e04e3e](https://github.com/finos/architecture-as-code/commit/39765a16ffe9f7296c1b2a489dc28c3ef3e04e3e)), closes [#2016](https://github.com/finos/architecture-as-code/issues/2016)
+* chore: Enhance error handling in navigation and selection services; add shared package documentation ([bf39f028b2dc09c37692f232832109504b6f8c2b](https://github.com/finos/architecture-as-code/commit/bf39f028b2dc09c37692f232832109504b6f8c2b))
+* chore: regenerate workspace package-lock.json ([cab0f34df63617304ba692dceda2f3e277de0f8a](https://github.com/finos/architecture-as-code/commit/cab0f34df63617304ba692dceda2f3e277de0f8a))
+* chore(shared): fix lint ([9b5f57d06a4ced44972da4ea2dda768cac365bdc](https://github.com/finos/architecture-as-code/commit/9b5f57d06a4ced44972da4ea2dda768cac365bdc))
+* chore: update renovate configuration to include npm deduplication and ignore specific lock files ([34a781a770b1e84aa31b2584ebbb2e32512d3204](https://github.com/finos/architecture-as-code/commit/34a781a770b1e84aa31b2584ebbb2e32512d3204))
+* feat: Implement multi-document navigation and refactor document loader ([af7e8d4d592ee94333ee7404b11485865fa7ff8f](https://github.com/finos/architecture-as-code/commit/af7e8d4d592ee94333ee7404b11485865fa7ff8f))
+* fix(calm-hub-ui): update react-router-dom to fix XSS vulnerability ([3ef2c342db6e5910c5c5e0bf6abd67069ef79bdf](https://github.com/finos/architecture-as-code/commit/3ef2c342db6e5910c5c5e0bf6abd67069ef79bdf))
+* fix(calm-hub-ui): update react-router-dom to fix XSS vulnerability ([0c788cbe98a164627cdf3b201bfd9a8d3911cdd2](https://github.com/finos/architecture-as-code/commit/0c788cbe98a164627cdf3b201bfd9a8d3911cdd2))
+* fix(deps): update minor updates ([68bac7edf7cf10f0cf8323ebccb3f5af4e36f830](https://github.com/finos/architecture-as-code/commit/68bac7edf7cf10f0cf8323ebccb3f5af4e36f830))
+* fix(deps): update minor updates ([fe6059f9376b8ec2ede221bf4772ec39c47cae91](https://github.com/finos/architecture-as-code/commit/fe6059f9376b8ec2ede221bf4772ec39c47cae91))
+* fix(deps): upgrade qs to 6.14.1 to fix CVE-2025-15284 ([c1fc6b9057e916d90362fe3999a889ba4c5d1aab](https://github.com/finos/architecture-as-code/commit/c1fc6b9057e916d90362fe3999a889ba4c5d1aab))
+* fix(deps): upgrade qs to 6.14.1 to fix CVE-2025-15284 ([e8cc5f89baad62a36e6314f5174938087bbab404](https://github.com/finos/architecture-as-code/commit/e8cc5f89baad62a36e6314f5174938087bbab404))
+* fix(shared): improve tests ([9c9c6c900ed165f6a11c459a723558d2460ac747](https://github.com/finos/architecture-as-code/commit/9c9c6c900ed165f6a11c459a723558d2460ac747))
+* fix(shared): protect against infinite recursion if a pattern references a JSON schema ([c415b5b0cc58fd2974eabfaee2cfaa02d4cc11a6](https://github.com/finos/architecture-as-code/commit/c415b5b0cc58fd2974eabfaee2cfaa02d4cc11a6))
+* fix(shared): protect against infinite recursion if a pattern references a JSON schema ([0857a5b5184a6b072e022f88f1dd4617ded906d2](https://github.com/finos/architecture-as-code/commit/0857a5b5184a6b072e022f88f1dd4617ded906d2))
+* fix(shared): use correct TS in tests ([58addb099be78114173e91204f21b9780f6a4fd9](https://github.com/finos/architecture-as-code/commit/58addb099be78114173e91204f21b9780f6a4fd9))
+* fix(shared): use regex for http/https test ([075f39fdb596c7acbd601cd97fec9e350c919ba0](https://github.com/finos/architecture-as-code/commit/075f39fdb596c7acbd601cd97fec9e350c919ba0))
+* refactor(vscode): flatten nested conditionals with guard clauses in selection-service ([0104388126d04cc0816d2f2e44052e9dd1381cb1](https://github.com/finos/architecture-as-code/commit/0104388126d04cc0816d2f2e44052e9dd1381cb1))
+
 ## [1.27.0] - 2026-01-07
 
 ## 1.27.0 (2026-01-07)
