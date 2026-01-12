@@ -66,7 +66,7 @@ By completing all tutorials, you'll be able to:
 
 ✅ **Create** complete architecture documents from scratch  
 ✅ **Model** nodes, relationships, interfaces, and metadata  
-✅ **Use** the VSCode extension for visualization
+✅ **Use** the VSCode extension for visualization  
 ✅ **Build** realistic multi-service architectures  
 
 Ready to begin? [Start your CALM journey →](beginner/01-setup)
