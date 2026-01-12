@@ -63,15 +63,9 @@ Metadata ──────────────────────► "
 Complete Architecture ─────────► "I can build real systems!"
     │
     ▼
-🎯 Ready for How-To Guides & Challenges!
+🎯 Ready to model your own architectures!
 ```
 
-## Next Steps
-
-After completing these tutorials:
-
-- **[How-To Guides](../../how-to/)** — Task-oriented references for specific goals
-- **[Challenges](../challenges/)** — Apply your skills in realistic scenarios
 ## Tips for Success
 
 1. **Work through tutorials in order** — Each builds on the previous

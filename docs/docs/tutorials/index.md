@@ -8,10 +8,6 @@ sidebar_position: 1
 
 Welcome to the CALM learning path! These tutorials take you from zero CALM knowledge to modeling complete architectures.
 
-:::tip Learning Path
-This content follows the [Diataxis framework](https://diataxis.fr/). **Tutorials** (here) are learning-oriented, while **[How-To Guides](../how-to/)** are task-oriented references you can use after completing the basics.
-:::
-
 ## Learning Path Overview
 
 ```
@@ -19,17 +15,14 @@ This content follows the [Diataxis framework](https://diataxis.fr/). **Tutorials
 │                         YOUR CALM LEARNING PATH                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│   BEGINNER TUTORIALS             HOW-TO GUIDES (Task Reference)             │
-│   ├── Setup & CLI                ├── Modeling: Controls, Flows, ADRs        │
-│   ├── First Node                 ├── Documentation: Docify, Widgets         │
-│   ├── Relationships              ├── Operations: Runbooks, Deployment       │
-│   ├── VSCode Extension           └── Governance: Patterns, Standards        │
+│   BEGINNER TUTORIALS                                                        │
+│   ├── Setup & CLI                                                           │
+│   ├── First Node                                                            │
+│   ├── Relationships                                                         │
+│   ├── VSCode Extension                                                      │
 │   ├── Interfaces                                                            │
-│   ├── Metadata                   CHALLENGES (Apply Your Skills)             │
-│   └── Complete Architecture      ├── Enterprise Architect                   │
-│                                  ├── Product Developer                      │
-│                                  ├── Security SME                           │
-│                                  └── Mastering CALM                         │
+│   ├── Metadata                                                              │
+│   └── Complete Architecture                                                 │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -49,39 +42,6 @@ Learn the core building blocks of CALM architectures:
 **Time commitment:** ~15-45 minutes per tutorial
 
 [Start with Beginner Tutorials →](./beginner/)
-
----
-
-## After the Basics
-
-Once you've completed the beginner tutorials, you have two paths:
-
-### 📘 How-To Guides
-
-Task-oriented guides for specific goals. Use these as reference when you need to accomplish something specific.
-
-| Category                                      | Topics                                  |
-|-----------------------------------------------|-----------------------------------------|
-| [**Modeling**](../how-to/modeling/)           | Controls, Flows, ADRs                   |
-| [**Documentation**](../how-to/documentation/) | Docify, Widgets, Handlebars, AI Advisor |
-| [**Operations**](../how-to/operations/)       | Ops Advisor, Runbooks                   |
-| [**Governance**](../how-to/governance/)       | Patterns, Standards, Validation         |
-
-[Browse How-To Guides →](../how-to/)
-
----
-
-### 🏆 Challenges
-
-Apply your skills in realistic, role-based scenarios:
-
-| Challenge                                                 | Role               | Time      |
-|-----------------------------------------------------------|--------------------|-----------|
-| [Enterprise Architect](./challenges/enterprise-architect) | Chief Architect    | 60-90 min |
-| [Product Developer](./challenges/product-developer)       | Senior Developer   | 45-60 min |
-| [Security SME](./challenges/security-sme)                 | Security Architect | 60-90 min |
-
-[Take the Challenges →](./challenges/)
 
 ---
 
@@ -106,14 +66,7 @@ By completing all tutorials, you'll be able to:
 
 ✅ **Create** complete architecture documents from scratch  
 ✅ **Model** nodes, relationships, interfaces, and metadata  
-✅ **Document** non-functional requirements with controls  
-✅ **Capture** business processes with flows  
-✅ **Record** decisions with ADRs  
-✅ **Generate** documentation automatically  
-✅ **Customize** output with templates  
-✅ **Use AI** assistance for architecture work  
-✅ **Create** organizational patterns and standards  
-✅ **Enable** teams through proper governance  
-✅ **Perform** systematic security reviews  
+✅ **Use** the VSCode extension for visualization
+✅ **Build** realistic multi-service architectures  
 
 Ready to begin? [Start your CALM journey →](beginner/01-setup)

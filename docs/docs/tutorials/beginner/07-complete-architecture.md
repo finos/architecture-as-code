@@ -243,24 +243,12 @@ Your e-commerce architecture should look something like this:
 
 ## What's Next?
 
-You've completed the beginner tutorials! You now have two paths:
+🎉 **Congratulations!** You've completed the beginner tutorials and can now model complete architectures with CALM.
 
-### Apply Your Skills: How-To Guides
-
-Ready to tackle specific tasks? The **How-To Guides** show you how to accomplish common goals:
-
-- [Define Controls](../../how-to/modeling/controls) - Add security and compliance requirements
-- [Model Business Flows](../../how-to/modeling/flows) - Document workflow sequences
-- [Generate Documentation](../../how-to/documentation/docify) - Create docs from your architecture
-- [See all How-To Guides →](../../how-to/)
-
-### Test Yourself: Challenges
-
-Put your skills to the test with role-based challenges:
-
-- [Enterprise Architect Challenge](../challenges/enterprise-architect) - Build a complete enterprise view
-- [Product Developer Challenge](../challenges/product-developer) - Focus on implementation details
-- [See all Challenges →](../challenges/)
+**Continue Learning:**
+- Explore the [Core Concepts](/docs/core-concepts/) for deeper understanding
+- Check out [Working with CALM](/docs/working-with-calm/) for CLI and tooling details
+- Join the [FINOS Architecture as Code community](https://github.com/finos/architecture-as-code/discussions)
 
 ## Complete Reference Example
 

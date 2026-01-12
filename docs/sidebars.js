@@ -54,7 +54,7 @@ const sidebars = {
     },
   ],
 
-  // Learning sidebar - tutorials and how-to guides
+  // Learning sidebar - tutorials
   learningSidebar: [
     {
       type: 'category',
@@ -74,65 +74,6 @@ const sidebars = {
             'tutorials/beginner/05-interfaces',
             'tutorials/beginner/06-metadata',
             'tutorials/beginner/07-complete-architecture',
-          ],
-        },
-        {
-          type: 'category',
-          label: '🏆 Challenges',
-          link: {type: 'doc', id: 'tutorials/challenges/challenges-index'},
-          items: [
-            'tutorials/challenges/enterprise-architect',
-            'tutorials/challenges/product-developer',
-            'tutorials/challenges/security-sme',
-            'tutorials/challenges/mastering-calm',
-          ],
-        },
-      ],
-    },
-    {
-      type: 'category',
-      label: 'How-To Guides',
-      link: {type: 'doc', id: 'how-to/how-to-index'},
-      collapsed: false,
-      items: [
-        {
-          type: 'category',
-          label: '🏗️ Modeling',
-          link: {type: 'doc', id: 'how-to/modeling/modeling-index'},
-          items: [
-            'how-to/modeling/controls',
-            'how-to/modeling/flows',
-            'how-to/modeling/adrs',
-          ],
-        },
-        {
-          type: 'category',
-          label: '📄 Documentation',
-          link: {type: 'doc', id: 'how-to/documentation/documentation-index'},
-          items: [
-            'how-to/documentation/docify',
-            'how-to/documentation/custom-widgets',
-            'how-to/documentation/handlebars',
-            'how-to/documentation/ai-advisor',
-          ],
-        },
-        {
-          type: 'category',
-          label: '⚙️ Operations',
-          link: {type: 'doc', id: 'how-to/operations/operations-index'},
-          items: [
-            'how-to/operations/ops-advisor',
-            'how-to/operations/ops-docs',
-          ],
-        },
-        {
-          type: 'category',
-          label: '🛡️ Governance',
-          link: {type: 'doc', id: 'how-to/governance/governance-index'},
-          items: [
-            'how-to/governance/patterns',
-            'how-to/governance/standards',
-            'how-to/governance/multi-pattern-validation',
           ],
         },
       ],
