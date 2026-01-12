@@ -170,7 +170,9 @@ At present, the CALM tooling does not follow external URL definitions (except fo
 
 ## Key Concepts
 
-### Interface Structure
+### Inline Interface (Simple)
+
+Define interface properties directly on the node, without a definition:
 
 ```json
 {
@@ -185,6 +187,50 @@ At present, the CALM tooling does not follow external URL definitions (except fo
   ]
 }
 ```
+
+### External Interface Definition (Formal)
+
+First, create a reusable interface definition (the schema):
+
+```json title="interfaces/rest-api-v1.json"
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm-hub.example.com/interfaces/rest-api-v1.json",
+  "title": "REST API Interface",
+  "type": "object",
+  "required": ["host", "port", "basePath"],
+  "properties": {
+    "host": { "type": "string" },
+    "port": { "type": "number" },
+    "basePath": { "type": "string" },
+    "authentication": { 
+      "type": "string",
+      "enum": ["OAuth2", "API-Key", "None"]
+    }
+  }
+}
+```
+
+Then reference it in your node with instance-specific config:
+
+```json
+{
+  "interfaces": [
+    {
+      "unique-id": "rest-api",
+      "definition-url": "https://calm-hub.example.com/interfaces/rest-api-v1.json",
+      "config": {
+        "host": "api.example.com",
+        "port": 443,
+        "basePath": "/api/v1",
+        "authentication": "OAuth2"
+      }
+    }
+  ]
+}
+```
+
+The `definition-url` points to a JSON Schema that defines what properties the `config` object should have. The difference with these approaches is about just capturing the details vs. applying standardisation. It should be noted, architecture validation does not yet ensure that external interface definitions have been correctly followed.
 
 ### Referencing Interfaces in Relationships
 
