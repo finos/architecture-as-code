@@ -142,10 +142,10 @@ async function createChatmodeConfig(aiChatPromptDirectory: string, aiTemplatePat
     logger.info(`Creating enhanced chatmode config at: ${chatmodeFile}`);
 
     try {
-        logger.info(`Using AI template path: ${aiTemplatePath}`);
+        logger.debug(`Using AI template path: ${aiTemplatePath}`);
         const tplSource = await readFile(aiTemplatePath, 'utf-8');
 
-        logger.info(`Using AI values path: ${valuesPath}`);
+        logger.debug(`Using AI values path: ${valuesPath}`);
         const rawValues = await readFile(valuesPath, 'utf-8');
         let data: AiAssistantConfig;
         try {
