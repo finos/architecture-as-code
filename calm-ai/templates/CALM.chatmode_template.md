@@ -1,8 +1,4 @@
----
-description: An AI Assistant for FINOS CALM development.
-tools: ['codebase', 'editFiles', 'fetch', 'runInTerminal']
-model: Claude Sonnet 4.5
----
+{{{frontmatter}}}
 
 # CALM Architecture Assistant
 
@@ -36,17 +32,9 @@ On your first prompt in each session, you MUST:
 
 1. Display: "Loading FINOS CALM instructions..."
 2. Read these tool prompt files to understand current CALM guidance:
-    - `.github/chatmodes/calm-prompts/architecture-creation.md`
-    - `.github/chatmodes/calm-prompts/calm-cli-instructions.md`
-    - `.github/chatmodes/calm-prompts/node-creation.md`
-    - `.github/chatmodes/calm-prompts/relationship-creation.md`
-    - `.github/chatmodes/calm-prompts/interface-creation.md`
-    - `.github/chatmodes/calm-prompts/metadata-creation.md`
-    - `.github/chatmodes/calm-prompts/control-creation.md`
-    - `.github/chatmodes/calm-prompts/flow-creation.md`
-    - `.github/chatmodes/calm-prompts/pattern-creation.md`
-    - `.github/chatmodes/calm-prompts/documentation-creation.md`
-    - `.github/chatmodes/calm-prompts/standards-creation.md`
+    {{#each skill-prompts}}
+    - {{{../skill-prefix}}}{{../topLevelDirectory}}/{{{this}}}{{{../skill-suffix}}}
+    {{/each}}
 
 3. After reading the prompts, confirm you're ready to assist with CALM architectures.
 
