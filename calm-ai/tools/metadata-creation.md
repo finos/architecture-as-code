@@ -6,7 +6,7 @@
 
 ## Official JSON Schema Definition
 
-The complete metadata schema from the FINOS CALM v1.0 specification:
+The complete metadata schema from the FINOS CALM v1.1 specification:
 
 ```json
 {
