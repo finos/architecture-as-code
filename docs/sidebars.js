@@ -48,7 +48,7 @@ const sidebars = {
         'working-with-calm/using-the-cli',
         'working-with-calm/validate',
         'working-with-calm/generate',
-        'working-with-calm/copilot-chatmode',
+        'working-with-calm/calm-ai-tools',
         'working-with-calm/voice-mode',
       ],
     },
