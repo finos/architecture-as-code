@@ -74,7 +74,7 @@ Options:
 ```
 
 
-### Use cursor keys to select the AI Assistant thn press "Enter" key
+### Use cursor keys to select the AI Assistant then press "Enter" key
 ```shell
 $ calm init-ai
 ? Select an AI provider: (Use arrow keys)
