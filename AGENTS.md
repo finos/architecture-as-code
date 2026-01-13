@@ -81,25 +81,32 @@ Open the package-specific AGENTS.md when:
 
 ## Key Commands
 
+**IMPORTANT**: Always run npm commands from the **repository root** using workspaces, not from within individual package directories.
+
 ```bash
 # Root-level commands (npm workspaces)
 npm run build              # Build all TypeScript workspaces
-npm run test               # Test all TypeScript workspaces
+npm test                   # Test all TypeScript workspaces
 npm run lint               # Lint all workspaces
 npm run build:cli          # Build CLI and dependencies
 npm run build:shared       # Build shared packages
+
+# Package-specific builds (from root using workspaces)
+npm run build --workspace cli
+npm run build --workspace calm-widgets
+npm run build --workspace shared
+npm run build --workspace calm-plugins/vscode
 
 # Root-level Maven reactor build
 ./mvnw clean install       # Build all Maven modules (mainly calm-hub)
 ./mvnw test                # Test all Maven modules (mainly calm-hub)
 
-# Testing specific packages (from root)
-npm run test:cli           # Test CLI only
-npm run test:shared        # Test shared packages
-npm run test:vscode        # Test VSCode extension
-npm run test:models        # Test calm-models
-npm run test:calm-widgets  # Test calm-widgets
-
+# Testing specific packages (from root using workspaces)
+npm test --workspace cli              # Test CLI only
+npm test --workspace shared  # Test shared packages
+npm test --workspace calm-plugins/vscode # Test VSCode extension
+npm test --workspace calm-models      # Test calm-models
+npm test --workspace calm-widgets     # Test calm-widgets
 # Java/Maven (calm-hub specific)
 cd calm-hub
 ../mvnw quarkus:dev        # Development mode with hot reload
@@ -109,6 +116,11 @@ cd calm-hub
 # CLI (from root)
 npm run link:cli           # Link CLI globally for testing
 calm --version             # Test CLI
+
+# Watch modes (from root)
+npm run watch --workspace cli                  # Watch CLI
+npm run watch --workspace calm-plugins/vscode  # Watch VSCode extension
+npm run watch --workspace calm-widgets         # Watch widgets
 
 # Advent of CALM website
 cd advent-of-calm/website
@@ -136,16 +148,18 @@ Maven modules (reactor build):
 
 ### Working on the CLI
 ```bash
+# From repository root
 npm run build:cli          # Builds models, widgets, shared, cli
 npm run link:cli           # Link globally
 calm --version             # Verify
+npm test --workspace cli   # Run CLI tests
 ```
 
 ### Working on VSCode Extension
 ```bash
+# From repository root
 npm run build:shared       # Build dependencies
-cd calm-plugins/vscode
-npm run watch              # Watch mode
+npm run watch --workspace calm-plugins/vscode  # Watch mode
 # Press F5 in VSCode to debug
 ```
 
@@ -187,11 +201,12 @@ cd calm-hub && ../mvnw verify  # Java tests with coverage (JaCoCo enabled by def
 npm test                    # TypeScript packages (runs vitest run in each workspace)
 cd calm-hub && ../mvnw test # Java unit tests (still collects coverage data)
 
-# Package-specific tests
+# Package-specific tests (from repository root using workspaces)
 npm test --workspace cli
 npm test --workspace calm-plugins/vscode
-npm run test:cli            # With dependencies built
-npm run test:shared         # With dependencies built
+npm test --workspace shared
+npm test --workspace calm-widgets
+npm test --workspace calm-models
 
 # Java integration tests (requires Docker)
 cd calm-hub && ../mvnw -P integration verify
@@ -314,6 +329,8 @@ Before considering any code change ready:
 - **API Docs**: Generated from code (Swagger for calm-hub)
 
 ## Contributing
+
+**CRITICAL:** Always create a feature branch for your changes and submit a pull request. Never commit directly to the main branch—direct commits will be rejected.
 
 1. **Fork the repository**
 2. **Create a feature branch** with descriptive name (e.g., `feat/add-caching`, `fix/mongodb-timeout`)

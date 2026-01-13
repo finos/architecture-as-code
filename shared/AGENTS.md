@@ -18,12 +18,14 @@ The `shared` package contains common utilities, helpers, and core logic used acr
 ### 2. Testing
 Because this is a shared library, rigorous testing is mandatory.
 
+**IMPORTANT**: Always run npm commands from the **repository root** using workspaces.
+
 ```bash
-# Run tests for this package only
-npm run test --workspace @finos/calm-shared
+# Run tests for this package only (from repository root)
+npm test --workspace shared
 
 # Run tests for ALL packages (REQUIRED before PR)
-npm run test
+npm test
 ```
 
 ## Key Components
@@ -35,14 +37,16 @@ npm run test
 
 ## Common Workflows
 
+**IMPORTANT**: Always run npm commands from the **repository root** using workspaces, not from within this package directory.
+
 ### Building
 ```bash
-# Build this package
-npm run build --workspace @finos/calm-shared
+# Build this package (from repository root)
+npm run build --workspace shared
 ```
 
 ### Testing Changes
 1. Make changes in `shared/src/...`
-2. Run local tests: `npm run test --workspace @finos/calm-shared`
-3. Run consumer tests (e.g., CLI): `npm run test --workspace @finos/calm-cli`
-4. Run ALL tests: `npm run test`
+2. Run local tests: `npm test --workspace shared`
+3. Run consumer tests (e.g., CLI): `npm test --workspace cli`
+4. Run ALL tests: `npm test`
