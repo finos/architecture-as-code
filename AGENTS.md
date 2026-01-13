@@ -94,7 +94,7 @@ npm run build:shared       # Build shared packages
 # Package-specific builds (from root using workspaces)
 npm run build --workspace cli
 npm run build --workspace calm-widgets
-npm run build --workspace @finos/calm-shared
+npm run build --workspace shared
 npm run build --workspace calm-plugins/vscode
 
 # Root-level Maven reactor build
@@ -103,7 +103,7 @@ npm run build --workspace calm-plugins/vscode
 
 # Testing specific packages (from root using workspaces)
 npm test --workspace cli              # Test CLI only
-npm test --workspace @finos/calm-shared  # Test shared packages
+npm test --workspace shared  # Test shared packages
 npm test --workspace calm-plugins/vscode # Test VSCode extension
 npm test --workspace calm-models      # Test calm-models
 npm test --workspace calm-widgets     # Test calm-widgets
@@ -204,7 +204,7 @@ cd calm-hub && ../mvnw test # Java unit tests (still collects coverage data)
 # Package-specific tests (from repository root using workspaces)
 npm test --workspace cli
 npm test --workspace calm-plugins/vscode
-npm test --workspace @finos/calm-shared
+npm test --workspace shared
 npm test --workspace calm-widgets
 npm test --workspace calm-models
 
@@ -330,7 +330,7 @@ Before considering any code change ready:
 
 ## Contributing
 
-**CRITICAL: NEVER commit directly to the `main` branch.** Always create a feature branch for your changes and submit a pull request. Direct commits to main will be rejected.
+**CRITICAL:** Always create a feature branch for your changes and submit a pull request. Never commit directly to the main branch—direct commits will be rejected.
 
 1. **Fork the repository**
 2. **Create a feature branch** with descriptive name (e.g., `feat/add-caching`, `fix/mongodb-timeout`)

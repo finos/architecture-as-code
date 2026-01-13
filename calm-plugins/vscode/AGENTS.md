@@ -328,7 +328,7 @@ npm run build:shared    # Builds models, widgets, shared
 # Or build individual packages:
 npm run build --workspace calm-models
 npm run build --workspace calm-widgets
-npm run build --workspace @finos/calm-shared
+npm run build --workspace shared
 ```
 
 ## Common Pitfalls

@@ -150,7 +150,7 @@ npm run build:cli    # Builds models, widgets, shared, then CLI
 # Or build individual packages:
 npm run build --workspace calm-models
 npm run build --workspace calm-widgets
-npm run build --workspace @finos/calm-shared
+npm run build --workspace shared
 npm run build --workspace cli
 ```
 

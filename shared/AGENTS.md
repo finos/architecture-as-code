@@ -47,6 +47,6 @@ npm run build --workspace @finos/calm-shared
 
 ### Testing Changes
 1. Make changes in `shared/src/...`
-2. Run local tests: `npm test --workspace @finos/calm-shared`
+2. Run local tests: `npm test --workspace shared`
 3. Run consumer tests (e.g., CLI): `npm test --workspace cli`
 4. Run ALL tests: `npm test`
