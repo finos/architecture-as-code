@@ -22,7 +22,7 @@ Because this is a shared library, rigorous testing is mandatory.
 
 ```bash
 # Run tests for this package only (from repository root)
-npm test --workspace @finos/calm-shared
+npm test --workspace shared
 
 # Run tests for ALL packages (REQUIRED before PR)
 npm test
@@ -42,7 +42,7 @@ npm test
 ### Building
 ```bash
 # Build this package (from repository root)
-npm run build --workspace @finos/calm-shared
+npm run build --workspace shared
 ```
 
 ### Testing Changes
