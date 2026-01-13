@@ -16,6 +16,7 @@
   "prHourlyLimit": 2,
   "postUpdateOptions": ["npmDedupe"],
   "ignorePaths": [
+    "advent-of-calm/website/package-lock.json",
     "calm-ai/package-lock.json",
     "calm-models/package-lock.json",
     "calm-plugins/vscode/package-lock.json",
