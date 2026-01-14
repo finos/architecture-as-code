@@ -5,6 +5,21 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.28.2] - 2026-01-14
+
+## <small>1.28.2 (2026-01-14)</small>
+
+*  ([29a81dcc89fc942de97c8ead0f1c6c79a3bc0b8e](https://github.com/finos/architecture-as-code/commit/29a81dcc89fc942de97c8ead0f1c6c79a3bc0b8e))
+* Update AGENTS instructions to use npm workspaces ([703cd7be0688646c05b658881a6040720df04ccf](https://github.com/finos/architecture-as-code/commit/703cd7be0688646c05b658881a6040720df04ccf))
+* docs(calm-ai-tools): fix typo in AI Assistant selection instructions ([0c7480da7c566ad054174b03859f75cfc5e50fa1](https://github.com/finos/architecture-as-code/commit/0c7480da7c566ad054174b03859f75cfc5e50fa1))
+* docs(calm-ai-tools): fix typo in AI Assistant selection instructions ([e476d425b2001701b74182b4d30b8d350ef8340f](https://github.com/finos/architecture-as-code/commit/e476d425b2001701b74182b4d30b8d350ef8340f))
+* docs(shared): fix remaining workspace name inconsistencies ([d4b86ab41d4c0b32f4df89202afc26212ee7d923](https://github.com/finos/architecture-as-code/commit/d4b86ab41d4c0b32f4df89202afc26212ee7d923))
+* docs: update AGENTS.md files to use npm workspaces consistently ([eaa199d64e0fc0ce6341b88ef24911b6eaa33601](https://github.com/finos/architecture-as-code/commit/eaa199d64e0fc0ce6341b88ef24911b6eaa33601))
+* docs: use consistent workspace directory names in AGENTS.md files ([f7b38c1db22090f4f4d9a3b9a21dbf7854114e79](https://github.com/finos/architecture-as-code/commit/f7b38c1db22090f4f4d9a3b9a21dbf7854114e79))
+* fix(deps): add advent-of-calm/website to renovate ignorePaths ([eedb4836d29187f6076eef1bf7ca29ba3f2e86bc](https://github.com/finos/architecture-as-code/commit/eedb4836d29187f6076eef1bf7ca29ba3f2e86bc))
+* fix(deps): update patch updates ([878c1f5ef86785a8e0441bc91d9d7f0d1a965293](https://github.com/finos/architecture-as-code/commit/878c1f5ef86785a8e0441bc91d9d7f0d1a965293))
+* fix(deps): update patch updates ([c455f5a93845292bec9ab4d31de1092650b0967d](https://github.com/finos/architecture-as-code/commit/c455f5a93845292bec9ab4d31de1092650b0967d))
+
 ## [1.28.1] - 2026-01-13
 
 ### Changed
