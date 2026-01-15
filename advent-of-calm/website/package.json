@@ -2,6 +2,9 @@
   "name": "advent-of-calm-website",
   "type": "module",
   "version": "0.0.1",
+  "overrides": {
+    "diff": "^8.0.3"
+  },
   "scripts": {
     "dev": "npm run copy:content && astro dev",
     "start": "astro dev",
