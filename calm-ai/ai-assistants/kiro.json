@@ -2,10 +2,10 @@
     "description": "AWS Kiro/Q integrated with FINOS CALM",
     "frontmatter": "---\ninclusion: manual\n---",
     "topLevelDirectory": ".kiro",
-    "topLevelPromptDirectory": "steering",
-    "skill-prefix": "#[[",
-    "skill-suffix": "]]",
-    "skill-prompts": [
+    "topLevelPromptFileName": "steering/CALM.chatmode.md",
+    "skillPrefix": "#[[",
+    "skillSuffix": "]]",
+    "skillPrompts": [
         "calm-prompts/architecture-creation.md",
         "calm-prompts/calm-cli-instructions.md",
         "calm-prompts/node-creation.md",
