@@ -12,10 +12,10 @@ interface AiAssistantConfig {
     description: string;
     topLevelDirectory: string;
     topLevelPromptDirectory: string;
-    'skill-prefix': string;
-    'skill-suffix': string;
+    skillPrefix: string;
+    skillSuffix: string;
     frontmatter: string;
-    'skill-prompts': string[];
+    skillPrompts: string[];
 }
 
 
