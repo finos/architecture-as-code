@@ -286,7 +286,7 @@ describe('ai-tools', () => {
                 return Promise.resolve({ isDirectory: () => true, size: 100 });
             });
 
-            await expect(setupAiTools('copilot', targetDirectory, false)).rejects.toThrow('Chatmode configuration setup failed');
+            await expect(setupAiTools('copilot', targetDirectory, false)).rejects.toThrow('Chatmode configuration verification failed');
         });
 
         it('should handle empty chatmode file after creation and throw error', async () => {
@@ -435,6 +435,27 @@ describe('ai-tools', () => {
                 'Invalid AI configuration for provider: copilot'
             );
         });
+
+        it('should throw error for empty string topLevelPromptFileName', async () => {
+            mocks.readFile.mockImplementation(async (path: string) => {
+                if (String(path).endsWith('.json')) {
+                    return Promise.resolve(JSON.stringify({
+                        description: 'Test',
+                        topLevelDirectory: '.github/chatmodes',
+                        topLevelPromptFileName: '', // Empty string - invalid
+                        skillPrefix: '## ',
+                        skillSuffix: '',
+                        frontmatter: '',
+                        skillPrompts: ['prompt1']
+                    }));
+                }
+                return Promise.resolve('# Valid markdown content');
+            });
+
+            await expect(setupAiTools('copilot', targetDirectory, false)).rejects.toThrow(
+                'Invalid AI configuration for provider: copilot'
+            );
+        });
     });
 
     describe('setupAiTools - config validation at entry point', () => {
@@ -568,7 +589,7 @@ describe('ai-tools', () => {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
                         topLevelDirectory: '.github/chatmodes',
-                        topLevelPromptFileName: '',
+                        topLevelPromptFileName: 'CALM.chatmode.md',
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: '',
@@ -603,7 +624,7 @@ describe('ai-tools', () => {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
                         topLevelDirectory: '.github/chatmodes',
-                        topLevelPromptFileName: '',
+                        topLevelPromptFileName: 'CALM.chatmode.md',
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: '',
@@ -653,7 +674,7 @@ describe('ai-tools', () => {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
                         topLevelDirectory: '.github/chatmodes',
-                        topLevelPromptFileName: '',
+                        topLevelPromptFileName: 'CALM.chatmode.md',
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: '',
@@ -693,7 +714,7 @@ describe('ai-tools', () => {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
                         topLevelDirectory: '.github/chatmodes',
-                        topLevelPromptFileName: '',
+                        topLevelPromptFileName: 'CALM.chatmode.md',
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: '',
@@ -729,7 +750,7 @@ describe('ai-tools', () => {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
                         topLevelDirectory: '.github/chatmodes',
-                        topLevelPromptFileName: '',
+                        topLevelPromptFileName: 'CALM.chatmode.md',
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: '',
@@ -781,7 +802,7 @@ describe('ai-tools', () => {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
                         topLevelDirectory: '.github/chatmodes',
-                        topLevelPromptFileName: '',
+                        topLevelPromptFileName: 'CALM.chatmode.md',
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: '',
@@ -827,7 +848,7 @@ describe('ai-tools', () => {
 
     // MEDIUM PRIORITY: Content Validation Tests
     describe('setupAiTools - directory handling variations', () => {
-        it('should use chatmodesDir directly when topLevelPromptFileName is empty string', async () => {
+        it('should create chatmode file with simple filename', async () => {
             mocks.readFile.mockImplementation(async (path: string) => {
                 const pathStr = String(path);
 
@@ -835,7 +856,7 @@ describe('ai-tools', () => {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
                         topLevelDirectory: '.github/chatmodes',
-                        topLevelPromptFileName: '', // Empty string
+                        topLevelPromptFileName: 'CALM.chatmode.md', // Simple filename
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: '',
@@ -861,15 +882,15 @@ describe('ai-tools', () => {
             );
         });
 
-        it('should create nested directory when topLevelPromptFileName is specified', async () => {
+        it('should create nested directory when topLevelPromptFileName contains path separator', async () => {
             mocks.readFile.mockImplementation(async (path: string) => {
                 const pathStr = String(path);
 
                 if (pathStr.endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
-                        topLevelDirectory: '.claude',
-                        topLevelPromptFileName: 'prompts', // Nested directory
+                        topLevelDirectory: '.kiro',
+                        topLevelPromptFileName: 'steering/CALM.chatmode.md', // Nested path like kiro
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: '',
@@ -885,17 +906,17 @@ describe('ai-tools', () => {
                 return Promise.resolve('# Valid markdown content with sufficient length');
             });
 
-            await setupAiTools('copilot', targetDirectory, false);
+            await setupAiTools('kiro', targetDirectory, false);
 
             // Verify nested directory was created
             expect(mocks.mkdir).toHaveBeenCalledWith(
-                expect.stringContaining('.claude/prompts'),
+                expect.stringContaining('.kiro/steering'),
                 { recursive: true }
             );
 
             // Verify chatmode was created in nested directory
             expect(mocks.writeFile).toHaveBeenCalledWith(
-                expect.stringContaining('.claude/prompts/CALM.chatmode.md'),
+                expect.stringContaining('.kiro/steering/CALM.chatmode.md'),
                 expect.any(String),
                 'utf-8'
             );
