@@ -93,6 +93,7 @@ async function validateBundledResources(logger: Logger): Promise<void> {
     const requiredFiles = [
         'ai-assistants/copilot.json',
         'ai-assistants/kiro.json',
+        'ai-assistants/claude.json',
         'templates/CALM.chatmode_template.md',
         'tools/architecture-creation.md',
         'tools/node-creation.md',
