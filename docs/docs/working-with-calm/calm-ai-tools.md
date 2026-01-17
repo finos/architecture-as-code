@@ -16,6 +16,7 @@ The `init-ai` command configures your development environment with comprehensive
 |------------|---|
 |LLM available in Github Copilot|VSCode|
 |Claude family of LLM|KIRO|
+|Claude family of LLM|Claude Code - CLI|
 
 ## Prerequisites
 
@@ -29,6 +30,10 @@ Before setting up CALM AI Support, ensure you have:
 ### AWS Kiro
 - **Kiro**: Version 0.8.0 or later
 - **AI Support**: Active Kiro Plan
+
+### Claude Code - CLI
+- **Claude Code**: Version 2.0.74 or later
+- **AI Support**: Active Claude Code Plan
 
 ### Install CALM CLI
 - **CALM CLI**: Installed globally (`npm install -g @finos/calm-cli`)
@@ -52,7 +57,7 @@ This command creates a configuration files the `.kiro` sub-directory in your rep
 
 ## Command Options
 
-- **`-p, --provider <provider>`**: The AI coding assistant to setup.  Currently, these two are supported `copilot` and `kiro`.
+- **`-p, --provider <provider>`**: The AI coding assistant to setup.  Currently, these are supported `copilot`, `kiro`, and `claude`.
 - **`-d, --directory <path>`**: Target directory (defaults to current directory)
 - **`-v, --verbose`**: Enable verbose logging (default: false)
 - **`-h, --help`**: Display help for command
@@ -80,6 +85,7 @@ $ calm init-ai
 ? Select an AI provider: (Use arrow keys)
 ❯ copilot 
   kiro 
+  claude
 ```
 
 ### Specify the AI Assistant
@@ -101,7 +107,7 @@ info [calm-ai-tools]:     📁 Files created in .github/chatmodes directory foll
 
 ## What Gets Configured
 
-The chatmode setup provides GitHub Copilot with:
+The AI assistant provides support with:
 
 - **Schema-Accurate Guidance**: Complete JSON schema definitions for all CALM components ensure that suggestions follow the official CALM specification.
 - **Critical Validation Requirements**: Emphasis on important constraints like `oneOf` requirements for interfaces and proper relationship structures.
@@ -109,7 +115,7 @@ The chatmode setup provides GitHub Copilot with:
 
 ### Specialized Tools
 
-The chatmode includes separate tools for each CALM component:
+The AI Support includes separate tools for each CALM component:
 
 - **Architecture Creation**: Guide for creating complete CALM architecture documents
 - **Node Creation**: Creating nodes with proper validation and interface definitions
@@ -140,6 +146,13 @@ With AWS Kiro:
 2. Load CALM knowledge into your context window by entering `#CALM.chatmode.md` and press enter key
 3. Ask questions or request assistance with your CALM architecture
 
+### Claude Code - CLI
+With Claude Code:
+
+1. Start `claude` cli
+2. After the `claude` REPL starts, enter `/calm` to enable the CALM skill
+3. Ask questions or request assistance with your CALM architecture
+
 
 ### Example Queries
 
@@ -165,7 +178,7 @@ What's the recommended way to model a database relationship?
 Generate documentation for my CALM architecture
 ```
 
-## Updating Chatmode Configuration
+## Updating AI Support Configuration
 
 If you update the CALM CLI or want to refresh the chatmode configuration:
 
@@ -173,7 +186,7 @@ If you update the CALM CLI or want to refresh the chatmode configuration:
 calm init-ai -p <provider> --directory /path/to/your/calm-project
 ```
 
-This will update the chatmode files with the latest tool prompts and guidance.
+This will update the AI Support files with the latest tool prompts and guidance.
 
 ## Next Steps
 
