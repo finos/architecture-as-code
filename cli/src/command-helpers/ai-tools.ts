@@ -11,7 +11,7 @@ import Handlebars from 'handlebars';
 interface AiAssistantConfig {
     description: string;
     topLevelDirectory: string;
-    topLevelPromptDirectory: string;
+    topLevelPromptFileName: string;
     skillPrefix: string;
     skillSuffix: string;
     frontmatter: string;
@@ -53,7 +53,7 @@ export async function setupAiTools(provider: string, targetDirectory: string, ve
         const aiConfig: AiAssistantConfig = JSON.parse(raw);
 
         // Validate required fields
-        if (!aiConfig.topLevelDirectory || !aiConfig.skillPrompts) {
+        if (!aiConfig.topLevelDirectory || !aiConfig.skillPrompts || !aiConfig.topLevelPromptFileName) {
             throw new Error(`Invalid AI configuration for provider: ${provider}`);
         }
 
@@ -68,20 +68,11 @@ export async function setupAiTools(provider: string, targetDirectory: string, ve
         const aiTemplatePath = join(calmAIPath, 'templates', 'CALM.chatmode_template.md');
         logger.debug(`Using AI assistant template: ${aiTemplatePath}`);
 
-        // if toplevel prompt director is empty string
-        let aiChatPromptDirectory: string;
-        if (aiConfig.topLevelPromptDirectory === '') {
-            aiChatPromptDirectory = chatmodesDir;
-        } else {
-            aiChatPromptDirectory = join(chatmodesDir, aiConfig.topLevelPromptDirectory);
-        }
-        await mkdir(aiChatPromptDirectory, { recursive: true });
-        logger.debug(`Created ${aiChatPromptDirectory} directory following AI Assistant ${provider} conventions`);
-
-
-        logger.debug(`AI assistant AI Chat Prompt directory: ${aiChatPromptDirectory}`);
+        // form top level prompt file name in the context of the chatmodes directory
+        const aiChatPromptFile = join(chatmodesDir, aiConfig.topLevelPromptFileName);
+        logger.debug(`AI assistant top level AI Chat Prompt file: ${aiChatPromptFile}`);
         logger.debug(`AI assistant values path: ${valuesPath}`);
-        await createChatmodeConfig(aiChatPromptDirectory, aiTemplatePath, valuesPath, logger);
+        await createChatmodeConfig(aiChatPromptFile, aiTemplatePath, valuesPath, logger);
 
         // Create tool prompt files
         await createToolPrompts(chatmodesDir, logger);
@@ -137,8 +128,8 @@ async function validateBundledResources(logger: Logger): Promise<void> {
 }
 
 
-async function createChatmodeConfig(aiChatPromptDirectory: string, aiTemplatePath: string, valuesPath: string, logger: Logger): Promise<void> {
-    const chatmodeFile = join(aiChatPromptDirectory, 'CALM.chatmode.md');
+async function createChatmodeConfig(chatmodeFile: string, aiTemplatePath: string, valuesPath: string, logger: Logger): Promise<void> {
+    // const chatmodeFile = join(aiChatPromptDirectory, 'CALM.chatmode.md');
     logger.info(`Creating enhanced chatmode config at: ${chatmodeFile}`);
 
     try {
@@ -164,6 +155,7 @@ async function createChatmodeConfig(aiChatPromptDirectory: string, aiTemplatePat
         const customAiAssistantPrompt = tpl(data);
 
         await writeFile(chatmodeFile, customAiAssistantPrompt, 'utf-8');
+        logger.debug(`Wrote chatmode configuration to: ${chatmodeFile}`);
 
 
         // Get the bundled chatmode config file
@@ -199,7 +191,7 @@ async function createChatmodeConfig(aiChatPromptDirectory: string, aiTemplatePat
         }
     } catch (verifyError) {
         logger.error(`❌ Failed to verify chatmode file creation: ${verifyError}`);
-        throw new Error(`Chatmode configuration setup failed: ${verifyError}`);
+        throw new Error(`Chatmode configuration verification failed: ${verifyError}`);
     }
 }
 
