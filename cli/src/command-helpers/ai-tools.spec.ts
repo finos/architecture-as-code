@@ -74,7 +74,7 @@ describe('ai-tools', () => {
         vi.restoreAllMocks();
     });
 
-    const providers = ['copilot', 'kiro'] as const;
+    const providers = ['copilot', 'kiro', 'claude'] as const;
     const targetDirectory = '/test/directory';
 
     // 1. Provider-agnostic tests - run once for core functionality
@@ -152,7 +152,7 @@ describe('ai-tools', () => {
                 }
 
                 // For chatmode files in test directory, return mock content
-                if (path.includes('/test/directory/') && path.includes('CALM.chatmode.md')) {
+                if (path.includes('/test/directory/') && (path.includes('CALM.chatmode.md') || path.includes('SKILL.md'))) {
                     return Promise.resolve('# Mock CALM chatmode content with sufficient length for validation to pass successfully');
                 }
 
@@ -205,7 +205,7 @@ describe('ai-tools', () => {
                 }
 
                 // For chatmode files in test directory after writeFile is called, return the short content
-                if (path.includes('/test/directory/') && path.includes('CALM.chatmode.md')) {
+                if (path.includes('/test/directory/') && (path.includes('CALM.chatmode.md') || path.includes('SKILL.md'))) {
                     return Promise.resolve('short');
                 }
 
