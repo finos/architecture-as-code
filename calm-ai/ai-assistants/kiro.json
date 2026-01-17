@@ -3,9 +3,9 @@
     "frontmatter": "---\ninclusion: manual\n---",
     "topLevelDirectory": ".kiro",
     "topLevelPromptDirectory": "steering",
-    "skill-prefix": "#[[",
-    "skill-suffix": "]]",
-    "skill-prompts": [
+    "skillPrefix": "#[[",
+    "skillSuffix": "]]",
+    "skillPrompts": [
         "calm-prompts/architecture-creation.md",
         "calm-prompts/calm-cli-instructions.md",
         "calm-prompts/node-creation.md",

@@ -59,10 +59,10 @@ describe('ai-tools', () => {
                     description: 'Mock AI Assistant',
                     topLevelDirectory: '.github/chatmodes',
                     topLevelPromptDirectory: '',
-                    'skill-prefix': '## ',
-                    'skill-suffix': '',
+                    skillPrefix: '## ',
+                    skillSuffix: '',
                     frontmatter: '',
-                    'skill-prompts': ['prompt1', 'prompt2']
+                    skillPrompts: ['prompt1', 'prompt2']
                 }));
             }
             // Return mock markdown content for other files
@@ -323,10 +323,10 @@ describe('ai-tools', () => {
                     description: 'Test',
                     topLevelDirectory: '.github/chatmodes',
                     topLevelPromptDirectory: '',
-                    'skill-prefix': '## ',
-                    'skill-suffix': '',
+                    skillPrefix: '## ',
+                    skillSuffix: '',
                     frontmatter: '',
-                    'skill-prompts': ['prompt1']
+                    skillPrompts: ['prompt1']
                 }));
             });
 
@@ -381,10 +381,10 @@ describe('ai-tools', () => {
                         description: 'Test',
                         // Missing topLevelDirectory
                         topLevelPromptDirectory: '',
-                        'skill-prefix': '## ',
-                        'skill-suffix': '',
+                        skillPrefix: '## ',
+                        skillSuffix: '',
                         frontmatter: '',
-                        'skill-prompts': ['prompt1']
+                        skillPrompts: ['prompt1']
                     }));
                 }
                 return Promise.resolve('# Valid markdown content');
@@ -395,17 +395,17 @@ describe('ai-tools', () => {
             );
         });
 
-        it('should throw error for missing required field skill-prompts in config', async () => {
+        it('should throw error for missing required field skillPrompts in config', async () => {
             mocks.readFile.mockImplementation(async (path: string) => {
                 if (String(path).endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
                         topLevelDirectory: '.github/chatmodes',
                         topLevelPromptDirectory: '',
-                        'skill-prefix': '## ',
-                        'skill-suffix': '',
+                        skillPrefix: '## ',
+                        skillSuffix: '',
                         frontmatter: ''
-                        // Missing skill-prompts
+                        // Missing skillPrompts
                     }));
                 }
                 return Promise.resolve('# Valid markdown content');
@@ -422,10 +422,10 @@ describe('ai-tools', () => {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
                         topLevelPromptDirectory: '',
-                        'skill-prefix': '## ',
-                        'skill-suffix': '',
+                        skillPrefix: '## ',
+                        skillSuffix: '',
                         frontmatter: ''
-                        // Missing both topLevelDirectory and skill-prompts
+                        // Missing both topLevelDirectory and skillPrompts
                     }));
                 }
                 return Promise.resolve('# Valid markdown content');
@@ -445,7 +445,7 @@ describe('ai-tools', () => {
                         description: 'Test',
                         // topLevelDirectory missing
                         topLevelPromptDirectory: '',
-                        'skill-prompts': null // Also invalid
+                        skillPrompts: null // Also invalid
                     }));
                 }
                 return Promise.resolve('# Valid markdown content');
@@ -457,14 +457,14 @@ describe('ai-tools', () => {
             );
         });
 
-        it('should throw error for invalid AI configuration early - missing skill-prompts', async () => {
+        it('should throw error for invalid AI configuration early - missing skillPrompts', async () => {
             mocks.readFile.mockImplementation(async (path: string) => {
                 if (String(path).endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
                         topLevelDirectory: '.github/chatmodes',
                         topLevelPromptDirectory: ''
-                        // skill-prompts missing
+                        // skillPrompts missing
                     }));
                 }
                 return Promise.resolve('# Valid markdown content');
@@ -481,7 +481,7 @@ describe('ai-tools', () => {
                         description: 'Test',
                         topLevelDirectory: '',  // Empty string (falsy)
                         topLevelPromptDirectory: '',
-                        'skill-prompts': []  // Empty array (falsy)
+                        skillPrompts: []  // Empty array (falsy)
                     }));
                 }
                 return Promise.resolve('# Valid markdown content');
@@ -504,10 +504,10 @@ describe('ai-tools', () => {
                         description: 'Test',
                         topLevelDirectory: '.github/chatmodes',
                         topLevelPromptDirectory: '',
-                        'skill-prefix': '## ',
-                        'skill-suffix': '',
+                        skillPrefix: '## ',
+                        skillSuffix: '',
                         frontmatter: '',
-                        'skill-prompts': ['prompt1']
+                        skillPrompts: ['prompt1']
                     }));
                 }
                 // All bundled resource files return valid content
@@ -537,10 +537,10 @@ describe('ai-tools', () => {
                         description: 'Test',
                         topLevelDirectory: '.github/chatmodes',
                         topLevelPromptDirectory: '',
-                        'skill-prefix': '## ',
-                        'skill-suffix': '',
+                        skillPrefix: '## ',
+                        skillSuffix: '',
                         frontmatter: '',
-                        'skill-prompts': ['prompt1']
+                        skillPrompts: ['prompt1']
                     }));
                 }
 
@@ -569,10 +569,10 @@ describe('ai-tools', () => {
                         description: 'Test',
                         topLevelDirectory: '.github/chatmodes',
                         topLevelPromptDirectory: '',
-                        'skill-prefix': '## ',
-                        'skill-suffix': '',
+                        skillPrefix: '## ',
+                        skillSuffix: '',
                         frontmatter: '',
-                        'skill-prompts': ['prompt1']
+                        skillPrompts: ['prompt1']
                     }));
                 }
 
@@ -604,10 +604,10 @@ describe('ai-tools', () => {
                         description: 'Test',
                         topLevelDirectory: '.github/chatmodes',
                         topLevelPromptDirectory: '',
-                        'skill-prefix': '## ',
-                        'skill-suffix': '',
+                        skillPrefix: '## ',
+                        skillSuffix: '',
                         frontmatter: '',
-                        'skill-prompts': ['prompt1']
+                        skillPrompts: ['prompt1']
                     }));
                 }
 
@@ -654,10 +654,10 @@ describe('ai-tools', () => {
                         description: 'Test',
                         topLevelDirectory: '.github/chatmodes',
                         topLevelPromptDirectory: '',
-                        'skill-prefix': '## ',
-                        'skill-suffix': '',
+                        skillPrefix: '## ',
+                        skillSuffix: '',
                         frontmatter: '',
-                        'skill-prompts': ['prompt1']
+                        skillPrompts: ['prompt1']
                     }));
                 }
 
@@ -694,10 +694,10 @@ describe('ai-tools', () => {
                         description: 'Test',
                         topLevelDirectory: '.github/chatmodes',
                         topLevelPromptDirectory: '',
-                        'skill-prefix': '## ',
-                        'skill-suffix': '',
+                        skillPrefix: '## ',
+                        skillSuffix: '',
                         frontmatter: '',
-                        'skill-prompts': ['prompt1']
+                        skillPrompts: ['prompt1']
                     }));
                 }
 
@@ -730,10 +730,10 @@ describe('ai-tools', () => {
                         description: 'Test',
                         topLevelDirectory: '.github/chatmodes',
                         topLevelPromptDirectory: '',
-                        'skill-prefix': '## ',
-                        'skill-suffix': '',
+                        skillPrefix: '## ',
+                        skillSuffix: '',
                         frontmatter: '',
-                        'skill-prompts': ['prompt1']
+                        skillPrompts: ['prompt1']
                     }));
                 }
 
@@ -782,10 +782,10 @@ describe('ai-tools', () => {
                         description: 'Test',
                         topLevelDirectory: '.github/chatmodes',
                         topLevelPromptDirectory: '',
-                        'skill-prefix': '## ',
-                        'skill-suffix': '',
+                        skillPrefix: '## ',
+                        skillSuffix: '',
                         frontmatter: '',
-                        'skill-prompts': ['prompt1']
+                        skillPrompts: ['prompt1']
                     }));
                 }
 
@@ -836,10 +836,10 @@ describe('ai-tools', () => {
                         description: 'Test',
                         topLevelDirectory: '.github/chatmodes',
                         topLevelPromptDirectory: '', // Empty string
-                        'skill-prefix': '## ',
-                        'skill-suffix': '',
+                        skillPrefix: '## ',
+                        skillSuffix: '',
                         frontmatter: '',
-                        'skill-prompts': ['prompt1']
+                        skillPrompts: ['prompt1']
                     }));
                 }
 
@@ -870,10 +870,10 @@ describe('ai-tools', () => {
                         description: 'Test',
                         topLevelDirectory: '.claude',
                         topLevelPromptDirectory: 'prompts', // Nested directory
-                        'skill-prefix': '## ',
-                        'skill-suffix': '',
+                        skillPrefix: '## ',
+                        skillSuffix: '',
                         frontmatter: '',
-                        'skill-prompts': ['prompt1']
+                        skillPrompts: ['prompt1']
                     }));
                 }
 
