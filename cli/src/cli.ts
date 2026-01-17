@@ -32,6 +32,11 @@ const TEMPLATE_DIR_OPTION = '-d, --template-dir <path>';
 const URL_MAPPING_OPTION = '-u, --url-to-local-file-mapping <path>';
 const CLEAR_OUTPUT_DIRECTORY_OPTION = '--clear-output-directory';
 
+// init-ai command options
+const AI_DIRECTORY_OPTION = '-d, --directory <path>';
+const AI_PROVIDER_OPTION = '-p, --provider <provider>';
+const AI_PROVIDER_CHOICES = ['copilot', 'kiro'];
+
 export function setupCLI(program: Command) {
     program
         .name('calm')
@@ -228,14 +233,14 @@ export function setupCLI(program: Command) {
             await setupAiTools('copilot', options.directory, !!options.verbose);
         });
 
-    const providerOption = new Option('-p, --provider <provider>', 'AI provider to initialize')
-        .choices(['copilot', 'kiro']);
+    const providerOption = new Option(AI_PROVIDER_OPTION, 'AI provider to initialize')
+        .choices(AI_PROVIDER_CHOICES);
 
     program
         .command('init-ai')
         .description('Augment a git repository with AI assistance for CALM')
         .addOption(providerOption)
-        .option('-d, --directory <path>', 'Target directory (defaults to current directory)', '.')
+        .option(AI_DIRECTORY_OPTION, 'Target directory (defaults to current directory)', '.')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
             const { setupAiTools } = await import('./command-helpers/ai-tools');
