@@ -2,10 +2,10 @@
     "description": "Github Copilot integrated with FINOS CALM",
     "topLevelDirectory": ".github/chatmodes",
     "topLevelPromptDirectory": "",
-    "skill-prefix": "`",
-    "skill-suffix": "`",
+    "skillPrefix": "`",
+    "skillSuffix": "`",
     "frontmatter": "---\ndescription: An AI Assistant for FINOS CALM development.\ntools: ['codebase', 'editFiles', 'fetch', 'runInTerminal']\nmodel: Claude Sonnet 4.5\n---",
-    "skill-prompts": [
+    "skillPrompts": [
         "calm-prompts/architecture-creation.md",
         "calm-prompts/calm-cli-instructions.md",
         "calm-prompts/node-creation.md",

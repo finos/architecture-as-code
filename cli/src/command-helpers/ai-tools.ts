@@ -53,7 +53,7 @@ export async function setupAiTools(provider: string, targetDirectory: string, ve
         const aiConfig: AiAssistantConfig = JSON.parse(raw);
 
         // Validate required fields
-        if (!aiConfig.topLevelDirectory || !aiConfig['skill-prompts']) {
+        if (!aiConfig.topLevelDirectory || !aiConfig.skillPrompts) {
             throw new Error(`Invalid AI configuration for provider: ${provider}`);
         }
 
@@ -151,7 +151,7 @@ async function createChatmodeConfig(aiChatPromptDirectory: string, aiTemplatePat
         try {
             data = JSON.parse(rawValues);
             // Validate required fields
-            if (!data.topLevelDirectory || !data['skill-prompts']) {
+            if (!data.topLevelDirectory || !data.skillPrompts) {
                 throw new Error('Missing required fields in AI configuration');
             }
         } catch (err) {
