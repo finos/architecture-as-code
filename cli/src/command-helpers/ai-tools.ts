@@ -1,7 +1,7 @@
 import { initLogger } from '@finos/calm-shared';
 import { Logger } from '@finos/calm-shared/src/logger.js';
 import { mkdir, writeFile, readFile, stat } from 'fs/promises';
-import { join, resolve } from 'path';
+import { dirname, join, resolve } from 'path';
 
 import Handlebars from 'handlebars';
 
@@ -151,9 +151,15 @@ async function createChatmodeConfig(chatmodeFile: string, aiTemplatePath: string
             throw new Error(`Failed to load AI configuration: ${errorMessage}`);
         }
 
+        // Compile prompt template with specific AI assistant data
         const tpl = Handlebars.compile(tplSource);
         const customAiAssistantPrompt = tpl(data);
 
+
+        // Ensure directory exists before writing
+        await mkdir(dirname(chatmodeFile), { recursive: true });
+
+        // Write the compiled chatmode configuration to file
         await writeFile(chatmodeFile, customAiAssistantPrompt, 'utf-8');
         logger.debug(`Wrote chatmode configuration to: ${chatmodeFile}`);
 
