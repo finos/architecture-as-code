@@ -52,6 +52,26 @@ There are currently two types of tests;
 - `cli` tests - these are end-to-end and involve linking the package as part of the test so that we can assert on actual `calm X` invocations.
 - `shared` tests - these are where the core logic tests live, like how validation behaves etc.
 
+### Local verification of new CLI version
+
+```shell
+$ cd cli
+
+# create local distribution package in /tmp directory
+$ npm pack --pack-destination /tmp
+
+# install from the local distribution package.
+# Note: this will replace an existing calm cli install in the global area
+$ npm install -g /tmp/finos-calm-cli-<version-identifier>.tgz
+
+# run manual verfication of the new version, e.g,.
+#   calm --help
+#   calm init-ai --hep
+```
+
+
+
+
 ## Releasing the CLI
 
 The CLI uses **semantic-release** for automated releases. Version management follows these principles:
