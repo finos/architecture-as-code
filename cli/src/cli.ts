@@ -35,7 +35,7 @@ const CLEAR_OUTPUT_DIRECTORY_OPTION = '--clear-output-directory';
 // init-ai command options
 const AI_DIRECTORY_OPTION = '-d, --directory <path>';
 const AI_PROVIDER_OPTION = '-p, --provider <provider>';
-const AI_PROVIDER_CHOICES = ['copilot', 'kiro'];
+const AI_PROVIDER_CHOICES = ['copilot', 'kiro', 'claude'];
 
 export function setupCLI(program: Command) {
     program
@@ -244,7 +244,7 @@ export function setupCLI(program: Command) {
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
             const { setupAiTools } = await import('./command-helpers/ai-tools');
-            const providers = (providerOption as Option & { argChoices?: string[] }).argChoices ?? [];
+            const providers = AI_PROVIDER_CHOICES;
             let selectedProvider: string = options.provider;
             if (!selectedProvider) {
                 const answer = await inquirer.prompt({
