@@ -31,5 +31,5 @@ function JsonDisplay({ data, showLineNumbers = true }: { data: object; showLineN
 export function JsonRenderer({ json, showLineNumbers = true }: JsonRendererProps) {
     const content = json ? <JsonDisplay data={json} showLineNumbers={showLineNumbers} /> : <NoData />;
 
-    return <div className="h-full" data-cy={"json-renderer"}>{content}</div>;
+    return <div className="h-full" data-cy={"json-renderer-wrapper"}>{content}</div>;
 }

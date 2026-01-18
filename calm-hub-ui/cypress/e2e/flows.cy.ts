@@ -2,7 +2,7 @@ const expectedNamespace = "finos"
 const expectedFlowId = 1;
 const expectedFlowVersion = "1.0.0";
 
-describe('Pattern Tests', () => {
+describe('Flow Tests', () => {
     beforeEach(() => {
         cy.intercept("/calm/namespaces", {"values": [expectedNamespace]});
         cy.intercept("/calm/namespaces/finos/flows", {"values": [expectedFlowId]});
@@ -40,7 +40,7 @@ describe('Pattern Tests', () => {
             Object.entries(data.transitions[0]).forEach(([key, value]) => {
                 cy.contains(key).should("exist");
                 cy.contains(value as string).should("exist");
-            })
+            });
 
         });
     })

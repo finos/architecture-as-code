@@ -2,7 +2,7 @@ const expectedNamespace = "finos"
 const expectedAdrId = 1;
 const expectedAdrRevision = 2;
 
-describe('Pattern Tests', () => {
+describe('ADR Tests', () => {
     beforeEach(() => {
         cy.intercept("/calm/namespaces", {"values": [expectedNamespace]});
         cy.intercept("/calm/namespaces/finos/adrs", {"values": [expectedAdrId]});

@@ -23,13 +23,13 @@ See the section about [running tests](https://facebook.github.io/create-react-ap
 
 End to End tests are written with cypress. Cypress can be run in headless and headed modes. 
 The above command runs in headed mode and allows the developer to locally run through the spec 
-files and observe the test runs. [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) queries and paradigm for testing features 
+files and observe the test runs. [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) queries and paradigm for testing feature 
 heavily in these tests as these help maintainability by organising tests around how the UI is used
 and not how its implemented. [Cypress and its best practices](https://docs.cypress.io/app/core-concepts/best-practices) are also used in writing and updating
 these tests.
 
 You need to set an environment variable VITE_BASE_URL which should be the address where the vite server is being run
-A default in .env.example has been added. This cant also be set in CI to whatever the intended vite port should be
+A default in .env.example has been added. This can also be set in CI to whatever the intended vite port should be
 
 #### Test Stubbing
 The tests are all stubbed to return desired responses. These will need to be maintained in tandem with 
