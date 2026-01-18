@@ -40,7 +40,7 @@ describe('Flow Tests', () => {
             Object.entries(data.transitions[0]).forEach(([key, value]) => {
                 cy.contains(key).should("exist");
                 cy.contains(value as string).should("exist");
-            })
+            });
 
         });
     })
