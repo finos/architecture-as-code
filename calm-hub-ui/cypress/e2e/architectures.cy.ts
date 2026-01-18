@@ -34,7 +34,7 @@ describe('Architecture Tests', () => {
             Object.entries(data.nodes[0]).forEach(([key, value]) => {
                 cy.contains(key).should("exist");
                 cy.contains(value as string).should("exist");
-            })
+            });
 
             cy.contains(/unique-id/i).should("exist");
             cy.contains(data.nodes[0]["unique-id"]).should("exist");
