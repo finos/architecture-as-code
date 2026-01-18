@@ -66,11 +66,8 @@ $ npm install -g /tmp/finos-calm-cli-<version-identifier>.tgz
 
 # run manual verfication of the new version, e.g,.
 #   calm --help
-#   calm init-ai --hep
+#   calm init-ai --help
 ```
-
-
-
 
 ## Releasing the CLI
 
