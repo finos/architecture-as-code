@@ -9,8 +9,9 @@ export class ValidationOutput {
     public line_end: number | undefined;
     public character_start: number | undefined;
     public character_end: number | undefined;
+    public source: string | undefined;
 
-    constructor(code: string | number, severity: string, message: string, path: string, schemaPath?: string, line_start?: number, line_end?: number, character_start?: number, character_end?: number) {
+    constructor(code: string | number, severity: string, message: string, path: string, schemaPath?: string, line_start?: number, line_end?: number, character_start?: number, character_end?: number, source?: string) {
         this.code = code;
         this.severity = severity;
         this.message = message;
@@ -20,6 +21,7 @@ export class ValidationOutput {
         this.line_end = line_end;
         this.character_start = character_start;
         this.character_end = character_end;
+        this.source = source;
     }
 }
 

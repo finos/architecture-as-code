@@ -5,7 +5,6 @@ module.exports = {
     url: 'http://localhost',
     baseUrl: '/',
     onBrokenLinks: 'throw',
-    onBrokenMarkdownLinks: 'warn',
     favicon: 'img/favicon.ico',
     organizationName: 'my-org',
     projectName: 'calm-docs',
@@ -24,7 +23,10 @@ module.exports = {
         '@docusaurus/theme-mermaid',
     ],
     markdown: {
-        mermaid: true
+        mermaid: true,
+        hooks: {
+            onBrokenMarkdownLinks: 'warn'
+        }
     },
     stylesheets: [
         '/css/custom.css'

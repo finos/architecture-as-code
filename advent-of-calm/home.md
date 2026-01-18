@@ -12,10 +12,10 @@ Inspired by "Advent of Code", this challenge provides daily hands-on tasks that 
 
 Each day from December 1st through December 24th, a new challenge unlocks. Each challenge is designed to build on the previous days, teaching you:
 
-- **Week 1 (Days 1-7)**: Foundation & First Steps - Learn CALM basics and create your first complete architecture
-- **Week 2 (Days 8-14)**: Controls, Flows & AI-Assisted Operations - Master governance, business flows, and use AI to analyze and document architectures
-- **Week 3 (Days 15-18)**: Patterns & Automation - Create reusable patterns and integrate with CI/CD
-- **Week 4 (Days 19-24)**: Real-World Application & Community - Apply CALM to real scenarios and contribute back
+- **Week 1 (Days 1-7)**: Foundation & First Steps — Learn CALM basics and create your first complete architecture
+- **Week 2 (Days 8-14)**: Controls, Flows & Documentation — Master governance, business flows, and use AI to analyze and document architectures
+- **Week 3 (Days 15-20)**: Operations & Governance — Use CALM for operational support, then create patterns and standards for enterprise governance
+- **Week 4 (Days 21-24)**: Platform Team Challenge — Apply everything you've learned in a multi-day project simulating real enterprise workflows
 
 ## Getting Started
 
@@ -23,7 +23,7 @@ Each day from December 1st through December 24th, a new challenge unlocks. Each 
 
 Before you begin, make sure you have:
 - Git installed
-- Node.js (18+) and npm installed
+- Node.js (20+) and npm installed
 - VSCode editor (106+)
 - GitHub account (recommended for portfolio sharing)
 - GitHub Copilot access
@@ -31,7 +31,7 @@ Before you begin, make sure you have:
 ### Your First Steps
 
 1. **Create your repository** - Set up a git repository to track your progress
-2. **Install the CALM CLI** - `npm install -g @finos/calm-cli`
+2. **Install the CALM CLI** - `npm install -g @finos/calm-cli` or `brew install calm-cli` if you use [Homebrew](https://brew.sh)
 3. **Start with Day 1** - Click on the calendar to begin your journey
 4. **Commit daily** - Track your progress with git commits and tags
 

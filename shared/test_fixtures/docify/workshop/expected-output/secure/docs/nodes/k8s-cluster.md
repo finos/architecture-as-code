@@ -1,66 +1,83 @@
 ---
-id: k8s-cluster
-title: Kubernetes Cluster
+architecture: ../../../../../../command/generate/expected-output/conference-secure-signup-amended.arch.json
+url-to-local-file-mapping: ../../../../url-mapping-secure.json
+node-id: k8s-cluster
+id: "k8s-cluster"
+title: "Kubernetes Cluster"
 ---
 
-## Details
-<div className="table-container">
-| Field               | Value                    |
-|---------------------|--------------------------|
-| **Unique ID**       | k8s-cluster                   |
-| **Node Type**       | system             |
-| **Name**            | Kubernetes Cluster                 |
-| **Description**     | Kubernetes Cluster with network policy rules enabled          |
+# Kubernetes Cluster
 
+## Details
+<div class="table-container">
+    <table>
+        <tbody>
+        <tr>
+            <th>Unique Id</th>
+            <td>k8s-cluster</td>
+        </tr>
+        <tr>
+            <th>Name</th>
+            <td>Kubernetes Cluster</td>
+        </tr>
+        <tr>
+            <th>Description</th>
+            <td>Kubernetes Cluster with network policy rules enabled</td>
+        </tr>
+        <tr>
+            <th>Node Type</th>
+            <td>system</td>
+        </tr>
+        </tbody>
+    </table>
 </div>
 
 ## Interfaces
-    _No interfaces defined._
-
+<p class="empty-message">No interfaces defined.</p>
 
 ## Related Nodes
 ```mermaid
 graph TD;
 k8s-cluster[k8s-cluster]:::highlight;
-k8s-cluster -- Deployed In --> load-balancer;
-k8s-cluster -- Deployed In --> attendees;
-k8s-cluster -- Deployed In --> attendees-store;
+load-balancer -- Deployed In --> k8s-cluster;
+attendees -- Deployed In --> k8s-cluster;
+attendees-store -- Deployed In --> k8s-cluster;
 classDef highlight fill:#f2bbae;
-
 ```
+
 ## Controls
+### Security
 
-        ### Security
+Security requirements for the Kubernetes cluster
 
-        Security requirements for the Kubernetes cluster
-
-        <div className="table-container">
-            <table>
-                <thead>
-                <tr>
-                    <th>Requirement URL</th>
-                    <th>Config</th>
-                </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>
-                                <a href="https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json" target="_blank">
-                                    https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json
-                                </a>
-                        </td>
-
-                        <td>
-                                <a href="https://calm.finos.org/workshop/controls/micro-segmentation.config.json" target="_blank">
-                                    https://calm.finos.org/workshop/controls/micro-segmentation.config.json
-                                </a>
-
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+<div class="table-container">
+    <table>
+        <thead>
+        <tr>
+            <th>Key</th>
+            <th>Value</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><b>0</b></td>
+            <td>
+                <table class="nested-table">
+                        <tbody>
+                        <tr>
+                            <td><b>Requirement Url</b></td>
+                            <td>
+                                https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json
+                                    </td>
+                        </tr>
+                        </tbody>
+                    </table>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
 
 
 ## Metadata
-  _No Metadata defined._
+<p class="empty-message">No metadata defined.</p>

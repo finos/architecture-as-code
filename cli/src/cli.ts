@@ -6,6 +6,7 @@ import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components
 import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { loadCliConfig } from './cli-config';
 import path from 'path';
+import inquirer from 'inquirer';
 
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -168,16 +169,15 @@ export function setupCLI(program: Command) {
         .option(TEMPLATE_OPTION, 'Path to a single .hbs or .md template file')
         .option(TEMPLATE_DIR_OPTION, 'Path to a directory of .hbs/.md templates')
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
+        .option('--scaffold', 'Copy template files without processing (for customization/live docify)', false)
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
-            const { getUrlToLocalFileMap } = await import('./command-helpers/template');
             const { Docifier } = await import('@finos/calm-shared');
 
             if (options.verbose) {
                 process.env.DEBUG = 'true';
             }
 
-            const localDirectory = getUrlToLocalFileMap(options.urlToLocalFileMapping);
             const flagsUsed = [options.template, options.templateDir].filter(Boolean);
 
             if (flagsUsed.length > 1) {
@@ -203,10 +203,11 @@ export function setupCLI(program: Command) {
                 docifyMode,
                 options.architecture,
                 options.output,
-                localDirectory,
+                options.urlToLocalFileMapping,
                 templateProcessingMode,
                 templatePath,
-                options.clearOutputDirectory
+                options.clearOutputDirectory,
+                options.scaffold
             );
 
             await docifier.docify();
@@ -214,7 +215,7 @@ export function setupCLI(program: Command) {
 
     program
         .command('copilot-chatmode')
-        .description('Augment a git repository with a CALM VSCode chatmode for AI assistance')
+        .description('DEPRECATED (use init-ai): Augment a git repository with a CALM VSCode chatmode for AI assistance')
         .option('-d, --directory <path>', 'Target directory (defaults to current directory)', '.')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
@@ -224,7 +225,34 @@ export function setupCLI(program: Command) {
                 process.env.DEBUG = 'true';
             }
 
-            await setupAiTools(options.directory, !!options.verbose);
+            await setupAiTools('copilot', options.directory, !!options.verbose);
+        });
+
+    const providerOption = new Option('-p, --provider <provider>', 'AI provider to initialize')
+        .choices(['copilot', 'kiro']);
+
+    program
+        .command('init-ai')
+        .description('Augment a git repository with AI assistance for CALM')
+        .addOption(providerOption)
+        .option('-d, --directory <path>', 'Target directory (defaults to current directory)', '.')
+        .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
+        .action(async (options) => {
+            const { setupAiTools } = await import('./command-helpers/ai-tools');
+            const providers = (providerOption as Option & { argChoices?: string[] }).argChoices ?? [];
+            let selectedProvider: string = options.provider;
+            if (!selectedProvider) {
+                const answer = await inquirer.prompt({
+                    type: 'list',
+                    name: 'provider',
+                    message: 'Select an AI provider:',
+                    choices: providers.map((p) => ({ name: p, value: p })),
+                });
+                selectedProvider = answer.provider;
+            }
+            console.log(`Selected AI provider: ${selectedProvider}`);
+
+            await setupAiTools(selectedProvider, options.directory, !!options.verbose);
         });
 
 }

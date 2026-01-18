@@ -24,16 +24,22 @@ CALM Patterns pre-define the required structure of an architecture. They specify
 **One Pattern = Two Powers:**
 
 **Power 1 - Generation:**
+
+Uses a pattern to create an architecture scaffold with all required nodes and relationships.
+
+If you have a pattern `my-pattern.json`, to turn it into a new architecture file `new-architecture.json` you would run:
 ```bash
 calm generate -p my-pattern.json -o new-architecture.json
 ```
-Creates an architecture scaffold with all required nodes and relationships.
 
 **Power 2 - Validation:**
+
+Check that an architecture has the required structure, according to a pattern.
+
+If you have an architecture `existing-architecture.json` and wish to validate it against the pattern `my-pattern.json`, you would run:
 ```bash
 calm validate -p my-pattern.json -a existing-architecture.json
 ```
-Checks that an architecture has the required structure.
 
 ### 3. Understand How Patterns Work
 

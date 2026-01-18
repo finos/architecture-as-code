@@ -20,6 +20,11 @@ To update the CALM CLI to the latest version, run:
 npm install -g @finos/calm-cli
 ```
 
+or if you use [Homebrew](https://brew.sh):
+```shell
+brew install calm-cli
+```
+
 This will fetch and install the latest release from npm. We recommend doing this regularly, especially if you encounter any issues or want to use new features.
 
 ### Verify the Update
@@ -112,7 +117,7 @@ If you experience issues after updating the CLI:
 
 1. Clear npm cache: `npm cache clean --force`
 2. Reinstall: `npm uninstall -g @finos/calm-cli && npm install -g @finos/calm-cli`
-3. Check Node.js version: `node --version` (Node.js 18+ recommended)
+3. Check Node.js version: `node --version` (Node.js 20+ recommended)
 
 ### VS Code Extension Issues
 

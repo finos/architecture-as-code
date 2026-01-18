@@ -17,6 +17,20 @@
       "name": "Envoy AI Gateway",
       "description": "Centralized MCP proxy enforcing FINOS AIGF MI-20 Tier 2 controls including pre-approved server access, TLS enforcement, and connection logging",
       "node-type": "service",
+      "new-property": "new-value",
+      "a-numeric-property": 42,
+      "an-extra": {
+        "example-property": {
+          "sub-property": "sub-value"
+        }
+      },
+      "another-extra-property": "another-value",
+      "metadata": {
+        "metadata-key-1": "metadata-value-1",
+        "metadata-key-2": {
+          "sub-key": "sub-value"
+        }
+      },
       "interfaces": [
         {
           "unique-id": "ai-gateway-image",
@@ -148,7 +162,7 @@
           "description": "Secure MCP Communication - Client to Gateway uses TLS 1.3+ with certificate validation",
           "requirements": [
             {
-              "requirement-url": "https://ai-governance-framework.finos.org/mitigations/mi-20#secure-communication",
+              "requirement-url": "https://ai-governance-framework.finos.org/mitigations/mi-20-secure-communication",
               "config": {
                 "tls-version": "1.3+",
                 "certificate-validation": "required",
@@ -179,7 +193,7 @@
           "description": "Gateway enforces pre-approved server list and comprehensive logging",
           "requirements": [
             {
-              "requirement-url": "https://ai-governance-framework.finos.org/mitigations/mi-20#centralized-proxy",
+              "requirement-url": "https://ai-governance-framework.finos.org/mitigations/mi-20-centralized-proxy",
               "config": {
                 "server-allowlist-enforcement": true,
                 "connection-logging": true,
@@ -225,7 +239,7 @@
           "description": "API Authentication and Authorization - Ensures MCP server uses secure authentication with least-privilege access to the Reports API",
           "requirements": [
             {
-              "requirement-url": "https://ai-governance-framework.finos.org/mitigations/mi-23#api-authentication",
+              "requirement-url": "https://ai-governance-framework.finos.org/mitigations/mi-23-api-authentication",
               "config": {
                 "authentication-method": "mtls",
                 "certificate-rotation": "30-days",

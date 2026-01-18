@@ -10,7 +10,7 @@ Relationships connect nodes in your architecture and define how they interact or
 
 ## Official JSON Schema Definition
 
-The complete relationship schema from the FINOS CALM v1.0 specification:
+The complete relationship schema from the FINOS CALM v1.1 specification:
 
 ```json
 {

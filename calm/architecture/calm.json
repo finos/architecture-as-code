@@ -1,0 +1,182 @@
+{
+    "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+    "nodes": [
+        {
+            "unique-id": "calm-user",
+            "node-type": "actor",
+            "name": "CALM User",
+            "description": "User working with CALM architectures through various tools and interfaces"
+        },
+        {
+            "unique-id": "calm-cli",
+            "node-type": "service",
+            "name": "CALM CLI",
+            "description": "Command-line interface for CALM operations including validation, generation, visualization, and documentation",
+            "development-language": "TypeScript"
+        },
+        {
+            "unique-id": "calm-vscode",
+            "node-type": "service",
+            "name": "VSCode Extension",
+            "description": "Visual Studio Code extension providing IDE integration for CALM architectures with syntax highlighting, validation, and visualization",
+            "development-language": "TypeScript"
+        },
+        {
+            "unique-id": "calm-hub",
+            "node-type": "service",
+            "name": "CALM Hub API",
+            "description": "Central registry and API service for CALM architectures, patterns, and standards built with Quarkus",
+            "development-language": "Java",
+            "interfaces": [
+                {
+                    "unique-id": "calm-hub-rest-api",
+                    "type": "api"
+                }
+            ]
+        },
+        {
+            "unique-id": "calm-hub-ui",
+            "node-type": "system",
+            "name": "CALM Hub UI",
+            "description": "React-based web interface for browsing and managing CALM architectures, patterns, and standards",
+            "development-language": "TypeScript"
+        },
+        {
+            "unique-id": "mongodb",
+            "node-type": "database",
+            "name": "MongoDB",
+            "description": "Document database for storing CALM architectures, patterns, and standards in CALM Hub",
+            "interfaces": [
+                {
+                    "unique-id": "mongodb-port",
+                    "type": "port-interface",
+                    "port": 27017
+                }
+            ]
+        },
+        {
+            "unique-id": "calm-hub-system",
+            "node-type": "system",
+            "name": "CALM Hub System",
+            "description": "Complete CALM Hub system including API backend, web UI, and database"
+        },
+        {
+            "unique-id": "vscode",
+            "node-type": "system",
+            "name": "Visual Studio Code",
+            "description": "Microsoft Visual Studio Code IDE"
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "user-interacts-with-ui",
+            "description": "CALM user interacts with CALM Hub UI through web browser",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "calm-user",
+                    "nodes": [
+                        "calm-hub-ui"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "user-interacts-with-cli",
+            "description": "CALM user interacts with CALM CLI through command line",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "calm-user",
+                    "nodes": [
+                        "calm-cli"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "user-interacts-with-vscode",
+            "description": "CALM user interacts with VSCode extension through IDE",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "calm-user",
+                    "nodes": [
+                        "calm-vscode"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "cli-to-hub",
+            "description": "CLI interacts with CALM Hub API REST endpoint for publishing and retrieving architectures",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-cli"
+                    },
+                    "destination": {
+                        "node": "calm-hub",
+                        "interface": "calm-hub-rest-api"
+                    }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "hub-to-db",
+            "description": "CALM Hub API stores and retrieves data from MongoDB",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub"
+                    },
+                    "destination": {
+                        "node": "mongodb",
+                        "interface": "mongodb-port"
+                    }
+                }
+            },
+            "protocol": "TCP"
+        },
+        {
+            "unique-id": "hub-ui-to-hub",
+            "description": "CALM Hub UI interacts with CALM Hub API via REST endpoint",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-ui"
+                    },
+                    "destination": {
+                        "node": "calm-hub",
+                        "interface": "calm-hub-rest-api"
+                    }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "hub-system-composition",
+            "description": "CALM Hub System is composed of API backend, web UI, and database",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "calm-hub-system",
+                    "nodes": [
+                        "calm-hub",
+                        "calm-hub-ui",
+                        "mongodb"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "vscode-composition",
+            "description": "VSCode contains the CALM extension",
+            "relationship-type": {
+                "deployed-in": {
+                    "container": "vscode",
+                    "nodes": [
+                        "calm-vscode"
+                    ]
+                }
+            }
+        }
+    ]
+}

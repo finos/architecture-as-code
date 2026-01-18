@@ -25,20 +25,19 @@ export function getDayTitle(day: number): string {
     17: "Introduction to CALM Patterns",
     18: "Using Standards for Your Organization",
     19: "Enforcing Standards with Patterns",
-    20: "Add Deployment Topology",
-    21: "Model Data Lineage",
-    22: "Create a Migration from Existing Documentation",
-    23: "Contribute to the CALM Community",
-    24: "Present Your CALM Journey"
+    20: "Multi-Pattern Validation for Complete Compliance",
+    21: "The Platform Team Challenge — Enterprise Architect",
+    22: "The Platform Team Challenge — Product Developer",
+    23: "The Platform Team Challenge — Security SME",
+    24: "Congratulations — You've Completed Advent of CALM! 🎉"
   };
   return titles[day] || `Day ${day}`;
 }
 
 export function isUnlocked(day: number): boolean {
   const now = new Date();
-  const currentYear = now.getFullYear();
-  const unlockDate = new Date(currentYear, 11, day); // Month 11 = December
-  
+  const unlockDate = new Date(2025, 11, day); // Month 11 = December
+
   return now >= unlockDate;
 }
 

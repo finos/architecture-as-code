@@ -19,7 +19,7 @@ Nodes represent the "boxes" in a typical architecture diagram and are the fundam
 
 ## Official JSON Schema Definition
 
-The complete node schema from the FINOS CALM v1.0 specification:
+The complete node schema from the FINOS CALM v1.1 specification:
 
 ```json
 {

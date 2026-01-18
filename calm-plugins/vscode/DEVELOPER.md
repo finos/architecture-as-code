@@ -93,7 +93,7 @@ src/
 
 ### Prerequisites
 - VS Code 1.88+
-- Node.js 18+
+- Node.js 20+
 
 ### Development Setup
 

@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
-import { parseFrontMatter } from './front-matter'
+import { parseFrontMatter } from '@finos/calm-shared'
 import { DocifyProcessor } from './docify-processor'
 import { TemplateService } from './template-service'
 import { Logger } from '../core/ports/logger'
@@ -32,7 +32,7 @@ export class DocifyService {
     }
 
     // Determine architecture file and template content
-    const { archFilePath, templateContentToUse, urlToLocalPathMapping } = await this.prepareDocifyInputs(params)
+    const { archFilePath, templateContentToUse, urlMappingPath } = await this.prepareDocifyInputs(params)
 
     if (!fs.existsSync(archFilePath)) {
       throw new Error(`Architecture file not found: ${archFilePath}`)
@@ -65,7 +65,7 @@ export class DocifyService {
     this.log.info(`[docify-service] - architecture: ${archFilePath}`)
     this.log.info(`[docify-service] - template: ${templatePath}`)
     this.log.info(`[docify-service] - output: ${fileNames.outFile}`)
-    await this.executeDocify(archFilePath, fileNames.outFile, urlToLocalPathMapping, templatePath)
+    await this.executeDocify(archFilePath, fileNames.outFile, urlMappingPath, templatePath)
 
     // Process results - use the original template file path for image resolution
     const originalSourceFile = params.isTemplateMode && params.templateFilePath
@@ -78,7 +78,7 @@ export class DocifyService {
   private async prepareDocifyInputs(params: any) {
     let archFilePath: string
     let templateContentToUse: string | undefined
-    let urlToLocalPathMapping = new Map<string, string>()
+    let urlMappingPath: string | undefined
 
     if (params.isTemplateMode && params.architectureFilePath && params.templateFilePath) {
       archFilePath = params.architectureFilePath
@@ -86,9 +86,7 @@ export class DocifyService {
 
       if (parsed) {
         templateContentToUse = parsed.content
-        if (parsed.urlToLocalPathMapping) {
-          urlToLocalPathMapping = parsed.urlToLocalPathMapping
-        }
+        urlMappingPath = parsed.urlMappingPath
       } else {
         templateContentToUse = fs.readFileSync(params.templateFilePath, 'utf8')
       }
@@ -96,7 +94,7 @@ export class DocifyService {
       archFilePath = params.currentFilePath as string
     }
 
-    return { archFilePath, templateContentToUse, urlToLocalPathMapping }
+    return { archFilePath, templateContentToUse, urlMappingPath }
   }
 
   private async prepareTemplate(
@@ -128,7 +126,7 @@ export class DocifyService {
   private async executeDocify(
     architectureFilePath: string,
     outputFilePath: string,
-    urlToLocalPathMapping: Map<string, string>,
+    urlMappingPath: string | undefined,
     templatePath: string | undefined
   ) {
     const config = this.processor.getDocifyConfiguration(templatePath)
@@ -145,7 +143,7 @@ export class DocifyService {
       config.docifyMode,
       architectureFilePath,
       outputFilePath,
-      urlToLocalPathMapping,
+      urlMappingPath,
       config.templateMode,
       templatePath,
       false

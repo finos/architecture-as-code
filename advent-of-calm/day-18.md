@@ -1,5 +1,12 @@
 # Day 18: Using Standards for Your Organization
 
+## ATTENTION
+
+Please ensure you are using the latest version of the CALM CLI and reran `calm copilot-chatmode` to update your repositories chatmode files.
+A bug exists in Chatmode instructions for CLI <= 1.24.0 where the CALM Schema
+URL in the $ref attribute is incorrect. It should refer to
+`https://calm.finos.org/release/1.1/meta/core.json`.
+
 ## Overview
 Learn how CALM Standards extend the flexible core schema with your organization's specific requirements, enabling consistent governance across all architectures.
 
@@ -54,6 +61,8 @@ Standards extend core CALM definitions using `allOf` composition:
 ```
 
 This says: "A node using this Standard must satisfy BOTH the core CALM node requirements AND our additional properties."
+
+Please ensure the URL in the `$ref` property is correct. If not, you may need to update your CLI and Copilot Chatmode instructions.
 
 ### 4. Explore Common Use Cases
 

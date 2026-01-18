@@ -5,7 +5,7 @@ import { CALM_HUB_PROTO } from '@finos/calm-shared/dist/document-loader/document
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
 import path from 'path';
-import { runValidate, writeOutputFile, checkValidateOptions, ValidateOptions, resolveSchemaRef } from './validate';
+import { runValidate, writeOutputFile, checkValidateOptions, ValidateOptions, resolveSchemaRef, __test__ } from './validate';
 
 
 const dummyArch = { dummy: 'arch' };
@@ -109,7 +109,7 @@ describe('runValidate', () => {
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch.json', 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
         expect(validate).toHaveBeenCalledWith(dummyArch, dummyPattern, expect.anything(), true);
-        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json');
+        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
@@ -133,7 +133,7 @@ describe('runValidate', () => {
         expect(mocks.loadSchemas).toHaveBeenCalled();
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch.json', 'architecture');
         expect(validate).toHaveBeenCalledWith(dummyArch, undefined, expect.anything(), true);
-        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json');
+        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
@@ -161,7 +161,7 @@ describe('runValidate', () => {
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch-of-pattern.json', 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith(resolvedPatternPath, 'pattern');
         expect(validate).toHaveBeenCalledWith(dummyArchOfAPattern, dummyPattern, expect.anything(), true);
-        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json');
+        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
@@ -189,7 +189,7 @@ describe('runValidate', () => {
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch-of-calm.json', 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledOnce();
         expect(validate).toHaveBeenCalledWith(dummyArchOfCalmSchema, dummyCalmSchema, expect.anything(), true);
-        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json');
+        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
@@ -213,7 +213,7 @@ describe('runValidate', () => {
         expect(mocks.loadSchemas).toHaveBeenCalled();
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
         expect(validate).toHaveBeenCalledWith(undefined, dummyPattern, expect.anything(), true);
-        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json');
+        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
@@ -354,5 +354,64 @@ describe('resolveSchemaRef', () => {
         expect(mockLogger.debug).toHaveBeenCalledWith(
             expect.stringContaining('Resolved relative $schema path')
         );
+    });
+});
+
+describe('rewritePathWithIds', () => {
+    const { rewritePathWithIds } = __test__;
+
+    const document = {
+        nodes: [
+            {
+                'unique-id': 'api-producer',
+                interfaces: [
+                    {
+                        'unique-id': 'producer-ingress',
+                        port: 8080
+                    },
+                    {
+                        'unique-id': 'http-config',
+                        config: {
+                            targets: [
+                                { 'unique-id': 'target-a', url: 'a' },
+                                { url: 'b' }
+                            ]
+                        }
+                    }
+                ]
+            },
+            {
+                interfaces: [
+                    {
+                        port: 9090
+                    }
+                ]
+            }
+        ],
+        meta: { id: 'root' }
+    } as const;
+
+    it('rewrites simple object paths unchanged', () => {
+        expect(rewritePathWithIds('/meta/id', document)).toBe('/meta/id');
+    });
+
+    it('uses array unique-ids when present', () => {
+        expect(rewritePathWithIds('/nodes/0/interfaces/0/port', document))
+            .toBe('/nodes/api-producer/interfaces/producer-ingress/port');
+    });
+
+    it('falls back to array index when no unique-id is present', () => {
+        expect(rewritePathWithIds('/nodes/1/interfaces/0/port', document))
+            .toBe('/nodes/1/interfaces/0/port');
+    });
+
+    it('handles nested array segments combining ids and indexes', () => {
+        expect(rewritePathWithIds('/nodes/0/interfaces/1/config/targets/1/url', document))
+            .toBe('/nodes/api-producer/interfaces/http-config/config/targets/1/url');
+    });
+
+    it('returns undefined when pointer path is empty or data missing', () => {
+        expect(rewritePathWithIds('', document)).toBeUndefined();
+        expect(rewritePathWithIds('/anything', undefined)).toBeUndefined();
     });
 });

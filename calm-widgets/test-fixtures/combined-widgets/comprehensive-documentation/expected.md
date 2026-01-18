@@ -14,8 +14,7 @@
         <tr>
             <td><b>Project Name</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Value</b></td>
@@ -31,14 +30,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Version</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Value</b></td>
@@ -54,14 +51,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Architecture</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Value</b></td>
@@ -77,14 +72,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Deployment</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Value</b></td>
@@ -100,7 +93,6 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         </tbody>
@@ -124,8 +116,7 @@
         <tr>
             <td><b>Name</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Value</b></td>
@@ -141,14 +132,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Port</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Value</b></td>
@@ -164,14 +153,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Database</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Value</b></td>
@@ -187,14 +174,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Features</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Value</b></td>
@@ -212,14 +197,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Config</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>CacheEnabled</b></td>
@@ -241,7 +224,6 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         </tbody>
@@ -297,8 +279,7 @@
         <tr>
             <td><b>Name</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Value</b></td>
@@ -314,14 +295,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Port</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Value</b></td>
@@ -337,14 +316,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Database</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Value</b></td>
@@ -360,14 +337,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Features</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Value</b></td>
@@ -385,14 +360,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Config</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>PaymentTimeout</b></td>
@@ -414,7 +387,6 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         </tbody>

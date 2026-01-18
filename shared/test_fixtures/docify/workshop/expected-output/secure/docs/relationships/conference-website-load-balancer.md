@@ -1,56 +1,109 @@
 ---
-id: conference-website-load-balancer
-title: Conference Website Load Balancer
+architecture: ../../../../../../command/generate/expected-output/conference-secure-signup-amended.arch.json
+url-to-local-file-mapping: ../../../../url-mapping-secure.json
+relationship-id: conference-website-load-balancer
+id: "conference-website-load-balancer"
+title: "Conference Website Load Balancer"
 ---
 
+# Conference Website Load Balancer
+
 ## Details
-<div className="table-container">
-| Field               | Value                    |
-|---------------------|--------------------------|
-| **Unique ID**       | conference-website-load-balancer                   |
-| **Description**      |  Request attendee details   |
+<div class="table-container">
+    <table>
+        <tbody>
+        <tr>
+            <th>Unique Id</th>
+            <td>conference-website-load-balancer</td>
+        </tr>
+        <tr>
+            <th>Description</th>
+            <td>Request attendee details</td>
+        </tr>
+        <tr>
+            <th>Protocol</th>
+            <td>HTTPS</td>
+        </tr>
+        </tbody>
+    </table>
 </div>
 
 ## Related Nodes
 ```mermaid
 graph TD;
 conference-website -- Connects --> load-balancer;
-
+classDef highlight fill:#f2bbae;
 ```
 
 ## Controls
+### Security
 
-        ### Security
+Security Controls for the connection
 
-        Security Controls for the connection
-
-        <div className="table-container">
-            <table>
-                <thead>
-                <tr>
-                    <th>Requirement URL</th>
-                    <th>Config</th>
-                </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>
-                                <a href="https://calm.finos.org/workshop/controls/permitted-connection.requirement.json" target="_blank">
-                                    https://calm.finos.org/workshop/controls/permitted-connection.requirement.json
-                                </a>
-                        </td>
-
-                        <td>
-                                <a href="https://calm.finos.org/workshop/controls/permitted-connection-http.config.json" target="_blank">
-                                    https://calm.finos.org/workshop/controls/permitted-connection-http.config.json
-                                </a>
-
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+<div class="table-container">
+    <table>
+        <thead>
+        <tr>
+            <th>Key</th>
+            <th>Value</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><b>Security 002</b></td>
+            <td>
+                <table class="nested-table">
+                        <tbody>
+                        <tr>
+                            <td><b>Requirement Url</b></td>
+                            <td>
+                                https://calm.finos.org/workshop/controls/permitted-connection.requirement.json
+                                    </td>
+                        </tr>
+                        <tr>
+                            <td><b>$schema</b></td>
+                            <td>
+                                https://calm.finos.org/workshop/controls/permitted-connection.requirement.json
+                                    </td>
+                        </tr>
+                        <tr>
+                            <td><b>Control Id</b></td>
+                            <td>
+                                security-002
+                                    </td>
+                        </tr>
+                        <tr>
+                            <td><b>Name</b></td>
+                            <td>
+                                Permitted Connection
+                                    </td>
+                        </tr>
+                        <tr>
+                            <td><b>Description</b></td>
+                            <td>
+                                Permits a connection on a relationship specified in the architecture
+                                    </td>
+                        </tr>
+                        <tr>
+                            <td><b>Reason</b></td>
+                            <td>
+                                Required to enable flow between architecture components
+                                    </td>
+                        </tr>
+                        <tr>
+                            <td><b>Protocol</b></td>
+                            <td>
+                                HTTP
+                                    </td>
+                        </tr>
+                        </tbody>
+                    </table>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
 
 
 ## Metadata
-  _No Metadata defined._
+<p class="empty-message">No metadata defined.</p>

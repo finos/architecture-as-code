@@ -1,5 +1,8 @@
 .DS_Store
 
+# Sandbox folder for AI agent working files (not for check-in)
+/sandbox/
+
 # Docusaurus generated folders
 website/translated_docs/
 website/build/
@@ -15,12 +18,24 @@ docs/contributing.md
 # website/package-lock.json
 /.idea/
 
+# Workspace lockfiles are managed at the repo root
+/calm-ai/package-lock.json
+/calm-models/package-lock.json
+/calm-plugins/vscode/package-lock.json
+/calm-widgets/package-lock.json
+/calm-hub-ui/package-lock.json
+/cli/package-lock.json
+/docs/package-lock.json
+/experimental/calm-explorer/package-lock.json
+/shared/package-lock.json
+
 **/.vscode**/
 
 node_modules/
 **/dist/
 **/.vscode-test/
 **/out/
+*.vsix
 **/dependency-check-report/
 
 **/tsconfig.tsbuildinfo

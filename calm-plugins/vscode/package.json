@@ -2,7 +2,7 @@
     "name": "calm-vscode-plugin",
     "displayName": "CALM Preview & Tools",
     "description": "Live-visualize CALM architecture models, validate, and generate docs.",
-    "version": "0.0.13",
+    "version": "0.3.0",
     "publisher": "FINOS",
     "homepage": "https://calm.finos.org",
     "repository": {
@@ -96,6 +96,11 @@
                         "**/*.handlebars"
                     ],
                     "markdownDescription": "Glob patterns for template files that may reference CALM architecture files."
+                },
+                "calm.urlMapping": {
+                    "type": "string",
+                    "description": "Path to a JSON file mapping URLs to local file paths for detailed-architecture navigation.",
+                    "default": ""
                 }
             }
         },
@@ -162,7 +167,7 @@
         "jsdom": "^22.1.0",
         "lodash": "^4.17.21",
         "markdown-it": "^13.0.1",
-        "mermaid": "^10.4.0",
+        "mermaid": "^11.0.0",
         "svg-pan-zoom": "^3.6.2",
         "yaml": "^2.5.1",
         "zustand": "^5.0.8"

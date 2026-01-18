@@ -103,7 +103,7 @@ For extending CALM components directly:
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Company Node Standard",
   "allOf": [
-    { "$ref": "https://calm.finos.org/schemas/core.json#/defs/node" },
+    { "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node" },
     {
       "type": "object",
       "properties": {
@@ -131,10 +131,10 @@ For extending CALM components directly:
 
 Common `$ref` patterns for extending CALM components:
 
-- **Nodes**: `https://calm.finos.org/schemas/core.json#/defs/node`
-- **Interfaces**: `https://calm.finos.org/schemas/core.json#/defs/interface`
-- **Relationships**: `https://calm.finos.org/schemas/core.json#/defs/relationship`
-- **Controls**: `https://calm.finos.org/schemas/core.json#/defs/control`
+- **Nodes**: `https://calm.finos.org/release/1.1/meta/core.json#/defs/node`
+- **Interfaces**: `https://calm.finos.org/release/1.1/meta/core.json#/defs/interface`
+- **Relationships**: `https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship`
+- **Controls**: `https://calm.finos.org/release/1.1/meta/core.json#/defs/control`
 
 **Note**: Exact URLs may vary based on CALM schema hosting.
 Always verify current schema locations.
@@ -290,7 +290,7 @@ This allows patterns and architectures to reference Standards via their canonica
   "defs": {
     "company-node": {
       "allOf": [
-        { "$ref": "https://calm.finos.org/schemas/core.json#/defs/node" },
+        { "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node" },
         { "$ref": "https://company.com/standards/company-node.json" }
       ]
     }
@@ -305,7 +305,7 @@ This allows patterns and architectures to reference Standards via their canonica
   "defs": {
     "enterprise-node": {
       "allOf": [
-        { "$ref": "https://calm.finos.org/schemas/core.json#/defs/node" },
+        { "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node" },
         { "$ref": "https://company.com/standards/company-node.json" },
         { "$ref": "https://industry.org/standards/security-node.json" }
       ]

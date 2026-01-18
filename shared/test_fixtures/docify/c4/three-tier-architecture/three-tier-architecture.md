@@ -1,3 +1,6 @@
+---
+architecture: ../three-tier-architecture/three-tier-architecture.arch.json
+---
 ```mermaid
 C4Deployment
 

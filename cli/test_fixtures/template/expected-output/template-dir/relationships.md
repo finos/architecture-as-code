@@ -1,3 +1,6 @@
+---
+architecture: ../../model/document-system.json
+---
 # All Relationships
 
 ## Relationship: rel-upload-to-storage
