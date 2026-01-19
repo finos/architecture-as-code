@@ -13,12 +13,13 @@
         "watch-test": "vitest watch",
         "lint": "eslint .",
         "format": "prettier --write .",
-        "copy-public": "copyfiles -u 1 ../brand/**/* public/"
+        "copy-public": "copyfiles -u 1 ../brand/**/* public/",
+        "start-cypress": "npx cypress open"
     },
     "dependencies": {
         "@monaco-editor/react": "^4.7.0",
         "@tailwindcss/vite": "^4.1.4",
-        "@types/node": "^22.15.0",
+        "@types/node": "^22.19.2",
         "@types/react": "^18.3.12",
         "@types/react-dom": "^18.3.1",
         "@vitejs/plugin-react-swc": "^4.0.0",
@@ -46,6 +47,7 @@
     "devDependencies": {
         "@eslint/js": "^9.25.0",
         "@tailwindcss/typography": "^0.5.16",
+        "@testing-library/cypress": "^10.1.0",
         "@testing-library/jest-dom": "^6.6.3",
         "@testing-library/react": "^16.2.0",
         "@testing-library/user-event": "^14.6.1",
@@ -55,7 +57,9 @@
         "@types/react-dom": "^19.1.2",
         "@vitejs/plugin-react": "^4.3.4",
         "autoprefixer": "^10.4.20",
+        "cypress": "^15.7.0",
         "daisyui": "^5.0.0",
+        "dotenv": "^17.2.3",
         "eslint": "^9.25.0",
         "eslint-plugin-react": "^7.37.2",
         "eslint-plugin-react-hooks": "^5.2.0",

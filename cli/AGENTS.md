@@ -16,16 +16,18 @@ This guide helps AI assistants work efficiently with the CALM CLI codebase.
 
 ## Key Commands
 
-```bash
-# Development
-npm run build          # Build CLI + copy schemas/templates/widgets/AI tools
-npm run watch          # Watch mode with live reload (uses watch.mjs)
-npm test               # Run Vitest tests
-npm run lint           # ESLint check
-npm run lint-fix       # Auto-fix linting issues
+**IMPORTANT**: Always run npm commands from the **repository root** using workspaces, not from within this package directory.
 
-# Local testing
-npm run link:cli       # From root: link CLI globally for testing
+```bash
+# Development (from repository root)
+npm run build --workspace cli          # Build CLI + copy schemas/templates/widgets/AI tools
+npm run watch --workspace cli          # Watch mode with live reload (uses watch.mjs)
+npm test --workspace cli               # Run Vitest tests
+npm run lint --workspace cli           # ESLint check
+npm run lint-fix --workspace cli       # Auto-fix linting issues
+
+# Local testing (from repository root)
+npm run link:cli       # Link CLI globally for testing
 calm --help            # Test globally linked CLI
 
 # Build steps (executed by npm run build)
@@ -101,9 +103,10 @@ dist/
 
 ### Running Tests
 ```bash
-npm test              # All tests
-npm test -- --watch   # Watch mode
-npm test -- <file>    # Specific test file
+# From repository root (preferred)
+npm test --workspace cli              # All tests
+npm test --workspace cli -- --watch   # Watch mode
+npm test --workspace cli -- <file>    # Specific test file
 ```
 
 ### Common Test Patterns
@@ -142,8 +145,13 @@ calm-cli depends on:
 
 **Important**: When working across packages, rebuild dependencies:
 ```bash
-# From root
+# From repository root (always use workspaces)
 npm run build:cli    # Builds models, widgets, shared, then CLI
+# Or build individual packages:
+npm run build --workspace calm-models
+npm run build --workspace calm-widgets
+npm run build --workspace shared
+npm run build --workspace cli
 ```
 
 ## Common Pitfalls

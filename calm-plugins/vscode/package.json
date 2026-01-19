@@ -167,7 +167,7 @@
         "jsdom": "^22.1.0",
         "lodash": "^4.17.21",
         "markdown-it": "^13.0.1",
-        "mermaid": "^10.4.0",
+        "mermaid": "^11.0.0",
         "svg-pan-zoom": "^3.6.2",
         "yaml": "^2.5.1",
         "zustand": "^5.0.8"

@@ -14,19 +14,22 @@ This guide helps AI assistants work efficiently with the CALM VSCode extension c
 
 ## Key Commands
 
+**IMPORTANT**: Always run npm commands from the **repository root** using workspaces, not from within this package directory.
+
 ```bash
-# Development
-npm run build          # Build extension
-npm run watch          # Watch mode (no auto-reload in VSCode)
-npm test               # Run Vitest tests
-npm run lint           # ESLint check
-npm run lint-fix       # Auto-fix linting issues
-npm run package        # Create .vsix package for distribution
+# Development (from repository root)
+npm run build --workspace calm-plugins/vscode          # Build extension
+npm run watch --workspace calm-plugins/vscode          # Watch mode (no auto-reload in VSCode)
+npm test --workspace calm-plugins/vscode               # Run Vitest tests
+npm run lint --workspace calm-plugins/vscode           # ESLint check
+npm run lint-fix --workspace calm-plugins/vscode       # Auto-fix linting issues
+npm run package --workspace calm-plugins/vscode        # Create .vsix package for distribution
 
 # Testing Extension in VSCode
-# 1. Open calm-plugins/vscode/ folder in VSCode (File → Open Folder)
-# 2. Press F5 (or Run → Start Debugging) to launch Extension Development Host
-# 3. In the new Extension Development Host window, open a CALM JSON file to activate extension
+# 1. Open the repository root in VSCode (File → Open Folder)
+# 2. Use the "calm-plugin: watch" task or run: npm run watch --workspace calm-plugins/vscode
+# 3. Press F5 (or Run → Start Debugging) to launch Extension Development Host
+# 4. In the new Extension Development Host window, open a CALM JSON file to activate extension
 ```
 
 ## Architecture Overview
@@ -201,9 +204,10 @@ export class StoreReactionMediator {
 
 ### Running Tests
 ```bash
-npm test              # All tests
-npm test -- --watch   # Watch mode
-npm test -- <file>    # Specific test file
+# From repository root (preferred)
+npm test --workspace calm-plugins/vscode              # All tests
+npm test --workspace calm-plugins/vscode -- --watch   # Watch mode
+npm test --workspace calm-plugins/vscode -- <file>    # Specific test file
 ```
 
 ### Testing ViewModels
@@ -319,8 +323,12 @@ vscode-plugin depends on:
 
 **Important**: Build dependencies first:
 ```bash
-# From root
+# From repository root (always use workspaces)
 npm run build:shared    # Builds models, widgets, shared
+# Or build individual packages:
+npm run build --workspace calm-models
+npm run build --workspace calm-widgets
+npm run build --workspace shared
 ```
 
 ## Common Pitfalls
@@ -358,7 +366,8 @@ npm run build:shared    # Builds models, widgets, shared
 ## Publishing
 
 ```bash
-npm run package        # Creates .vsix file
+# From repository root
+npm run package --workspace calm-plugins/vscode        # Creates .vsix file
 # Then publish to VS Code Marketplace via GitHub Actions
 ```
 
