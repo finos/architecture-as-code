@@ -5,6 +5,19 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.28.3] - 2026-01-19
+
+## <small>1.28.3 (2026-01-19)</small>
+
+*  ([0471b6170fbfb39ad4d5c4f2dc8d2d209e19a24e](https://github.com/finos/architecture-as-code/commit/0471b6170fbfb39ad4d5c4f2dc8d2d209e19a24e))
+*  ([71dd3c9dd022ab334bf92433a3d87e99f9c58514](https://github.com/finos/architecture-as-code/commit/71dd3c9dd022ab334bf92433a3d87e99f9c58514))
+* build(deps): bump devalue ([150d237030e50f5b37783a4823bc809cf09e36a8](https://github.com/finos/architecture-as-code/commit/150d237030e50f5b37783a4823bc809cf09e36a8))
+* build(deps): bump devalue from 5.6.1 to 5.6.2 in /advent-of-calm/website in the npm_and_yarn group across 1 directory ([458cd37b1907d9556c64e6c3e5e51b722e392034](https://github.com/finos/architecture-as-code/commit/458cd37b1907d9556c64e6c3e5e51b722e392034))
+* fix(aoc): update diff to 8.0.3 to address GHSA-73rr-hh4g-fpgx ([3447188079f90197fcd345c036b7faf122a5f820](https://github.com/finos/architecture-as-code/commit/3447188079f90197fcd345c036b7faf122a5f820))
+* fix(deps): update diff to 8.0.3 to address GHSA-73rr-hh4g-fpgx ([d0d16541c249fce7a1bf8e8e76547c82ea9ceeba](https://github.com/finos/architecture-as-code/commit/d0d16541c249fce7a1bf8e8e76547c82ea9ceeba))
+* fix(deps): update mermaid to v11 to fix diff DoS vulnerability (GHSA-73rr-hh4g-fpgx) ([17f6c47f7a8b6ee1393de1c9b200b23f2204a163](https://github.com/finos/architecture-as-code/commit/17f6c47f7a8b6ee1393de1c9b200b23f2204a163))
+* fix(deps): update mermaid to v11 to fix diff DoS vulnerability (GHSA-73rr-hh4g-fpgx) ([819ef4c35877b42b459b406d3178ce3edffc3239](https://github.com/finos/architecture-as-code/commit/819ef4c35877b42b459b406d3178ce3edffc3239))
+
 ## [1.28.2] - 2026-01-14
 
 ## <small>1.28.2 (2026-01-14)</small>
