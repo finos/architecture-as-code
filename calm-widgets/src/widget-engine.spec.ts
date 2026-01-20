@@ -55,7 +55,7 @@ describe('WidgetEngine', () => {
         localHandlebars = handlebars.create(); // ✅ fresh handlebars with empty helpers
         vi.spyOn(localHandlebars, 'registerHelper');
         registry = { register: registerMock } as unknown as WidgetRegistry;
-        engine = new WidgetEngine(localHandlebars, registry);
+        engine = new WidgetEngine(localHandlebars, registry, {});
     });
 
     describe('setupWidgets', () => {

@@ -67,7 +67,7 @@ describe('WidgetRenderer', () => {
 
         const result = renderer.render('test-widget', { foo: 'bar' });
 
-        expect(widget.transformToViewModel).toHaveBeenCalledWith({ foo: 'bar' }, undefined);
+        expect(widget.transformToViewModel).toHaveBeenCalledWith({ foo: 'bar' }, {});
         expect(templateFnMock).toHaveBeenCalledWith({ wrapped: { foo: 'bar' } });
         expect(result).toBe('rendered output');
     });
@@ -87,5 +87,85 @@ describe('WidgetRenderer', () => {
 
         expect(templateFnMock).toHaveBeenCalledWith({ a: 1 });
         expect(result).toBe('plain output');
+    });
+
+    it('uses options', () => {
+        const widget: CalmWidget = {
+            id: 'test-widget',
+            templatePartial: 'main.hbs',
+            validateContext: (context: unknown): context is unknown => true,
+            transformToViewModel: vi.fn().mockImplementation((ctx) => ({
+                wrapped: ctx
+            })),
+        };
+
+        (registry.get as Mock).mockReturnValue(widget);
+        compileMock.mockReturnValue(templateFnMock);
+        templateFnMock.mockReturnValue('rendered output');
+
+        const context = { a: 1 }
+        renderer.render('test-widget', context, { opt1: 'value1' });
+
+        expect(widget.transformToViewModel).toHaveBeenCalledWith(context, { opt1: 'value1' });
+    });
+
+    it('uses options from context', () => {
+        const widget: CalmWidget = {
+            id: 'test-widget',
+            templatePartial: 'main.hbs',
+            validateContext: (context: unknown): context is unknown => true,
+            transformToViewModel: vi.fn().mockImplementation((ctx) => ({
+                wrapped: ctx
+            })),
+        };
+
+        (registry.get as Mock).mockReturnValue(widget);
+        compileMock.mockReturnValue(templateFnMock);
+        templateFnMock.mockReturnValue('rendered output');
+
+        const context = { a: 1, _widgetOptions: { 'test-widget': { opt1: 'value1' } } }
+        renderer.render('test-widget', context);
+
+        expect(widget.transformToViewModel).toHaveBeenCalledWith(context, { opt1: 'value1' });
+    });
+
+    it('ignores options for other widgets', () => {
+        const widget: CalmWidget = {
+            id: 'test-widget',
+            templatePartial: 'main.hbs',
+            validateContext: (context: unknown): context is unknown => true,
+            transformToViewModel: vi.fn().mockImplementation((ctx) => ({
+                wrapped: ctx
+            })),
+        };
+
+        (registry.get as Mock).mockReturnValue(widget);
+        compileMock.mockReturnValue(templateFnMock);
+        templateFnMock.mockReturnValue('rendered output');
+
+        const context = { a: 1, _widgetOptions: { 'other-widget': { opt1: 'value1' } } }
+        renderer.render('test-widget', context);
+
+        expect(widget.transformToViewModel).toHaveBeenCalledWith(context, {});
+    });
+
+    it('options on widget override context', () => {
+        const widget: CalmWidget = {
+            id: 'test-widget',
+            templatePartial: 'main.hbs',
+            validateContext: (context: unknown): context is unknown => true,
+            transformToViewModel: vi.fn().mockImplementation((ctx) => ({
+                wrapped: ctx
+            })),
+        };
+
+        (registry.get as Mock).mockReturnValue(widget);
+        compileMock.mockReturnValue(templateFnMock);
+        templateFnMock.mockReturnValue('rendered output');
+
+        const context = { a: 1, _widgetOptions: { 'test-widget': { opt1: 'value1' } } }
+        renderer.render('test-widget', context, { opt1: 'overridden' });
+
+        expect(widget.transformToViewModel).toHaveBeenCalledWith(context, { opt1: 'overridden' });
     });
 });

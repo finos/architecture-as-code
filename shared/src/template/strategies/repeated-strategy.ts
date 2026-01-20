@@ -68,12 +68,14 @@ export class RepeatedStrategy extends AbstractOutputStrategy {
         const rawTemplate = this.engine.getRawTemplate(entry.template);
         const frontMatterVariables = entry['front-matter']?.variables;
         const idType = frontMatterVariables ? Object.keys(frontMatterVariables)[0] : undefined;
+        const widgetOptions = entry['front-matter']?.widgetOptions || {};
 
         for (const instance of dataSource) {
             const itemId = this.getItemId(instance, idKey);
 
             const templateContext: Record<string, unknown> = {
                 ...(fullDocument as Record<string, unknown>),
+                _widgetOptions: widgetOptions,
                 _root: data,
                 _architecture: fullDocument
             };

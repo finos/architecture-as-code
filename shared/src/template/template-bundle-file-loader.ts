@@ -29,8 +29,18 @@ export class SelfProvidedTemplateLoader implements ITemplateBundleLoader {
         let templateContent = fs.readFileSync(templatePath, 'utf8');
         const parsed = parseFrontMatterFromContent(templateContent, templateDir);
 
+        const frontMatterVariables: Record<string, string> = {};
+        const widgetOptions: Record<string, unknown> = {};
         if (parsed && Object.keys(parsed.frontMatter).length > 0) {
             templateContent = replaceVariables(templateContent, parsed.frontMatter);
+            for (const [key, value] of Object.entries(parsed.frontMatter)) {
+                if (typeof value === 'string') {
+                    frontMatterVariables[key] = value;
+                }
+                if (key === 'widget-options' && typeof value === 'object') {
+                    Object.assign(widgetOptions, value);
+                }
+            }
         }
 
         this.templateFiles = {
@@ -46,6 +56,13 @@ export class SelfProvidedTemplateLoader implements ITemplateBundleLoader {
                 'output-type': 'single'
             }]
         };
+
+        if (Object.keys(frontMatterVariables).length > 0) {
+            this.config.templates[0]['front-matter'] = {
+                variables: frontMatterVariables,
+                widgetOptions: widgetOptions
+            };
+        }
     }
 
     getConfig(): IndexFile {
@@ -79,11 +96,15 @@ export class SelfProvidedDirectoryTemplateLoader implements ITemplateBundleLoade
                     const parsed = parseFrontMatterFromContent(templateContent, templateFileDir);
 
                     const frontMatterVariables: Record<string, string> = {};
+                    const widgetOptions: Record<string, unknown> = {};
                     if (parsed && Object.keys(parsed.frontMatter).length > 0) {
                         templateContent = replaceVariables(templateContent, parsed.frontMatter);
                         for (const [key, value] of Object.entries(parsed.frontMatter)) {
                             if (typeof value === 'string') {
                                 frontMatterVariables[key] = value;
+                            }
+                            if (key === 'widget-options' && typeof value === 'object') {
+                                Object.assign(widgetOptions, value);
                             }
                         }
                     }
@@ -98,7 +119,10 @@ export class SelfProvidedDirectoryTemplateLoader implements ITemplateBundleLoade
                     };
 
                     if (Object.keys(frontMatterVariables).length > 0) {
-                        entry['front-matter'] = { variables: frontMatterVariables };
+                        entry['front-matter'] = {
+                            variables: frontMatterVariables,
+                            widgetOptions: widgetOptions
+                        };
                     }
 
                     entries.push(entry);

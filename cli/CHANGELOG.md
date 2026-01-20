@@ -5,6 +5,32 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.29.0] - 2026-01-21
+
+## 1.29.0 (2026-01-21)
+
+*  ([0245840f9ef575aeb21bbd66e9435d0bd04d2b82](https://github.com/finos/architecture-as-code/commit/0245840f9ef575aeb21bbd66e9435d0bd04d2b82))
+* feat(calm-cli, calm-ai): Add support for AI Assistant support for Claude Code ([1b18daf128cd982cee16371fc837b1f7bc19c61a](https://github.com/finos/architecture-as-code/commit/1b18daf128cd982cee16371fc837b1f7bc19c61a))
+* chore(deps): update actions/cache digest to 8b402f5 ([69238038108a6d870ff6b688544aae62f76e4ad3](https://github.com/finos/architecture-as-code/commit/69238038108a6d870ff6b688544aae62f76e4ad3))
+* chore(deps): update actions/cache digest to 8b402f5 ([9a79b76803aaad3c555483b420e08d1a362130b6](https://github.com/finos/architecture-as-code/commit/9a79b76803aaad3c555483b420e08d1a362130b6))
+* chore(deps): update actions/setup-node digest to 6044e13 ([5d337012ce61a2b3eb8b95e5afacb453215678d5](https://github.com/finos/architecture-as-code/commit/5d337012ce61a2b3eb8b95e5afacb453215678d5))
+* chore(deps): update actions/setup-node digest to 6044e13 ([39cae918b671c4712deb89e06509e6623028a66d](https://github.com/finos/architecture-as-code/commit/39cae918b671c4712deb89e06509e6623028a66d))
+* chore(deps): update patch updates ([e4b442956332eccd28f8687af7a1e89277a81ee0](https://github.com/finos/architecture-as-code/commit/e4b442956332eccd28f8687af7a1e89277a81ee0))
+* chore(deps): update patch updates ([ced8a1db9af2caf009a2448fbc26540f18902274](https://github.com/finos/architecture-as-code/commit/ced8a1db9af2caf009a2448fbc26540f18902274))
+* chore(deps): update semgrep/semgrep docker digest to 815298b ([63c466f8e5cb0ccbbb55daca4adef0362e214140](https://github.com/finos/architecture-as-code/commit/63c466f8e5cb0ccbbb55daca4adef0362e214140))
+* chore(deps): update semgrep/semgrep docker digest to 815298b ([87792e8d54c390d30592ad7748835b5a4c0fa21e](https://github.com/finos/architecture-as-code/commit/87792e8d54c390d30592ad7748835b5a4c0fa21e))
+* docs: update README for improved clarity on CALM AI tools and directory structure ([0261e2ec3d138e3b87bfde7a31cad89735c5d90f](https://github.com/finos/architecture-as-code/commit/0261e2ec3d138e3b87bfde7a31cad89735c5d90f))
+* feat(ai): add support for Claude AI provider in CLI options ([35f347d4fda234379a66919599f1e9d03fee4088](https://github.com/finos/architecture-as-code/commit/35f347d4fda234379a66919599f1e9d03fee4088))
+* feat(ai): add support for Claude AI provider in tests and resource validation ([216114a31658f1e7803e8ca906a24e4d654c12af](https://github.com/finos/architecture-as-code/commit/216114a31658f1e7803e8ca906a24e4d654c12af))
+* feat(ai): add support for Claude Code in CLI and documentation updates ([3173383920f9e3225a5462f403d8855aeef78253](https://github.com/finos/architecture-as-code/commit/3173383920f9e3225a5462f403d8855aeef78253))
+* feat(ai): AI assistant config to use topLevelPromptFileName instead of topLevelPromptDirectory ([5d138e0a5ff1a855272e249e35d7fb46f35f6c10](https://github.com/finos/architecture-as-code/commit/5d138e0a5ff1a855272e249e35d7fb46f35f6c10))
+* feat(ai): update AI assistant configuration for refactored TopLevelPromptFileName ([a72202614f0affa0585b927894574b9f859a31bb](https://github.com/finos/architecture-as-code/commit/a72202614f0affa0585b927894574b9f859a31bb))
+* feat(cli): refactor init-ai options and refactor AI assistant config interface per reviewer comment ([084895fd2b71fa222eca07ea1629724b539efb42](https://github.com/finos/architecture-as-code/commit/084895fd2b71fa222eca07ea1629724b539efb42))
+* feat(docs): add local verification instructions for new CLI version in developer guide ([95eb35590ca01139a488bbce1353ecb029c94109](https://github.com/finos/architecture-as-code/commit/95eb35590ca01139a488bbce1353ecb029c94109))
+* feat(tests): enhance ai-tools tests for chatmode configuration validation and error handling ([0b7adcada7913ffbe054d581affa598cad1dd04e](https://github.com/finos/architecture-as-code/commit/0b7adcada7913ffbe054d581affa598cad1dd04e))
+* fix(docs): correct typo in CLI manual verification instructions ([263331b184ecffb1759b783610122895d15efcb2](https://github.com/finos/architecture-as-code/commit/263331b184ecffb1759b783610122895d15efcb2))
+* refactor(ai): standardize skill prefix and suffix keys in AI assistant configurations ([7ff0233cb588589db3e59c09100e1e1f4715dc21](https://github.com/finos/architecture-as-code/commit/7ff0233cb588589db3e59c09100e1e1f4715dc21))
+
 ## [1.28.3] - 2026-01-19
 
 ## <small>1.28.3 (2026-01-19)</small>

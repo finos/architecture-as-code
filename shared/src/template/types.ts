@@ -1,5 +1,5 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
-import {CalmCore} from '@finos/calm-models/model';
+import { CalmCore } from '@finos/calm-models/model';
 import { Logger } from '../logger.js';
 
 export interface IndexFile {
@@ -31,6 +31,8 @@ export interface TemplateEntry {
         inject?: boolean;
         /** Variables to inject into front-matter and Handlebars context. Use {{id}} for the item's ID value */
         variables?: Record<string, string>;
+        /** Widget options to inject into front-matter and Handlebars context. Supports objects. */
+        widgetOptions?: Record<string, unknown>;
     };
 }
 

@@ -155,7 +155,8 @@ describe('RepeatedStrategy', () => {
                 output: 'docs/nodes/{{unique-id}}.md',
                 'output-type': 'repeated',
                 'front-matter': {
-                    variables: { 'node-id': '{{id}}' }
+                    variables: { 'node-id': '{{id}}' },
+                    widgetOptions: { 'test-widget': { 'option1': 'value1' } }
                 }
             };
 
@@ -185,11 +186,13 @@ describe('RepeatedStrategy', () => {
                 expect.objectContaining({
                     _root: context.data,
                     _architecture: context.data.document,
+                    _widgetOptions: { 'test-widget': { 'option1': 'value1' } },
                     'node-id': 'node-1'
                 })
             );
             expect(mockCompiledTemplate).toHaveBeenCalledWith(
                 expect.objectContaining({
+                    _widgetOptions: { 'test-widget': { 'option1': 'value1' } },
                     'node-id': 'node-2'
                 })
             );

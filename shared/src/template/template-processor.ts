@@ -15,7 +15,7 @@ import { pathToFileURL } from 'node:url';
 import TemplateDefaultTransformer from './template-default-transformer';
 import { CalmCore } from '@finos/calm-models/model';
 import { DereferencingVisitor } from '../model-visitor/dereference-visitor';
-import { WidgetEngine, WidgetRegistry } from '@finos/calm-widgets';
+import { WidgetEngine, WidgetOptionContainer, WidgetRegistry } from '@finos/calm-widgets';
 import Handlebars from 'handlebars';
 
 export type TemplateProcessingMode = 'template' | 'template-directory' | 'bundle';
@@ -91,10 +91,10 @@ export class TemplateProcessor {
         }
 
         const config = loader.getConfig();
-
+        const optionContainer: WidgetOptionContainer = {};
         if (this.supportWidgetEngine === true) {
             //TODO: Handlebars supports local instance. Ideally to make testable we should use a local instance of Handlebars and inject dependency.
-            const widgetEngine = new WidgetEngine(Handlebars, new WidgetRegistry(Handlebars));
+            const widgetEngine = new WidgetEngine(Handlebars, new WidgetRegistry(Handlebars), optionContainer);
             widgetEngine.registerDefaultWidgets();
         }
 
@@ -112,7 +112,7 @@ export class TemplateProcessor {
             const dereference = new DereferencingVisitor(mappedResolver);
             await dereference.visit(coreModel);
             const transformedModel = transformer.getTransformedModel(coreModel);
-            const engine = new TemplateEngine(loader, transformer);
+            const engine = new TemplateEngine(loader, transformer, optionContainer);
 
             // Pass scaffold paths for front-matter injection
             // Always provide paths so both scaffold and non-scaffold modes produce identical output

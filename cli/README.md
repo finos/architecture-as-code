@@ -480,3 +480,22 @@ Sample usage for you to try is as follows (assuming at root of project)
 ```shell
 calm docify -a ./cli/test_fixtures/template/model/document-system.json -o ./output/documentation -u ./cli/test_fixtures/template/model/url-to-file-directory.json
 ```
+
+### Default options for widgets in templates
+
+Frontmatter can be used in templates to provide default options for any widgets used:
+
+```
+---
+widget-options:
+  block-architecture:
+    render-node-type-shapes: true
+---
+These two are the same:
+{{ block-architecture }}
+and
+{{ block-architecture render-node-type-shapes: true }}
+
+This differs:
+{{ block-architecture render-node-type-shapes: false }}
+```

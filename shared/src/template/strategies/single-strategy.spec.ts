@@ -205,6 +205,35 @@ describe('SingleStrategy', () => {
                 })
             );
         });
+
+        it('includes widget options in template context', () => {
+            const entry: TemplateEntry = {
+                template: 'template.hbs',
+                from: 'document',
+                output: 'output.md',
+                'output-type': 'single',
+                'front-matter': {
+                    widgetOptions: { 'widget-one': { 'key': 'value' } }
+                }
+            };
+
+            const context: OutputContext = {
+                data: { document: { title: 'Test' } },
+                outputDir: '/test/output',
+                scaffoldOnly: false
+            };
+
+            const mockCompiledTemplate = vi.fn().mockReturnValue('content');
+            vi.mocked(mockEngine.getCompiledTemplate).mockReturnValue(mockCompiledTemplate);
+
+            strategy.process(entry, context, mockLogger);
+
+            expect(mockCompiledTemplate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    _widgetOptions: { 'widget-one': { 'key': 'value' } }
+                })
+            );
+        });
     });
 });
 

@@ -18,7 +18,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
     beforeEach(() => {
         handlebars = Handlebars.create();
         registry = new WidgetRegistry(handlebars);
-        engine = new WidgetEngine(handlebars, registry);
+        engine = new WidgetEngine(handlebars, registry, {});
         engine.registerDefaultWidgets();
         fixtures = new FixtureLoader();
     });

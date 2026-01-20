@@ -9,12 +9,14 @@ import { TemplatePreprocessor } from './template-preprocessor.js';
 import { CopyStrategy } from './strategies/copy-strategy.js';
 import { SingleStrategy } from './strategies/single-strategy.js';
 import { RepeatedStrategy } from './strategies/repeated-strategy.js';
+import { WidgetOptionContainer } from '@finos/calm-widgets';
 
 export class TemplateEngine {
     private readonly compiledTemplates: Record<string, Handlebars.TemplateDelegate>;
     private readonly rawTemplates: Record<string, string>;
     private readonly config: IndexFile;
     private readonly strategies: Record<string, OutputStrategy>;
+    private readonly optionContainer: WidgetOptionContainer;
     private static _logger: Logger | undefined;
 
     private static get logger(): Logger {
@@ -24,11 +26,12 @@ export class TemplateEngine {
         return this._logger;
     }
 
-    constructor(fileLoader: ITemplateBundleLoader, transformer: CalmTemplateTransformer) {
+    constructor(fileLoader: ITemplateBundleLoader, transformer: CalmTemplateTransformer, optionContainer: WidgetOptionContainer) {
         this.config = fileLoader.getConfig();
         this.rawTemplates = fileLoader.getTemplateFiles();
         this.compiledTemplates = this.compileAllTemplates();
         this.registerHelpers(transformer);
+        this.optionContainer = optionContainer;
         this.strategies = {
             'copy': new CopyStrategy(this),
             'single': new SingleStrategy(this),
@@ -53,6 +56,14 @@ export class TemplateEngine {
             this.registerPartials(entry.partials);
             const strategy = this.strategies[entry['output-type']];
             if (strategy) {
+                // Clear the option container before each generation
+                for (const key in this.optionContainer) {
+                    delete this.optionContainer[key];
+                }
+                for (const key in entry['front-matter']?.widgetOptions || {}) {
+                    this.optionContainer[key] = entry['front-matter']?.widgetOptions?.[key] as Record<string, unknown>;
+                }
+
                 strategy.process(entry, context, logger);
             } else {
                 logger.warn(`⚠️ Unknown output-type: ${entry['output-type']}`);
