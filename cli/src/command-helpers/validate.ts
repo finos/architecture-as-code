@@ -1,4 +1,4 @@
-import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, SchemaDirectory, ValidationFormattingOptions, ValidationOutcome, loadArchitectureAndPattern } from '@finos/calm-shared';
+import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, ValidationFormattingOptions, ValidationOutcome, loadArchitectureAndPattern } from '@finos/calm-shared';
 import { initLogger } from '@finos/calm-shared';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
@@ -6,7 +6,7 @@ import { readFileSync, writeFileSync } from 'fs';
 import { Command } from 'commander';
 import { ValidateOutputFormat } from '@finos/calm-shared/dist/commands/validate/validate';
 import { buildSchemaDirectory, parseDocumentLoaderConfig } from '../cli';
-import { buildDocumentLoader, DocumentLoader, CALM_HUB_PROTO } from '@finos/calm-shared/dist/document-loader/document-loader';
+import { buildDocumentLoader, DocumentLoader } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { Logger } from '@finos/calm-shared/dist/logger';
 import { getLocationForJsonPath, parseWithPointers } from '@stoplight/json';
 

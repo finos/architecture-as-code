@@ -1,7 +1,6 @@
 import { Command } from 'commander';
 import { Mock } from 'vitest';
 import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome } from '@finos/calm-shared';
-import { CALM_HUB_PROTO } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
 import path from 'path';
