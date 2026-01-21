@@ -88,6 +88,86 @@ describe('CLI Integration Tests', () => {
         expect(stdout).toContain('Usage:');
     });
 
+    test('calm init-ai --help shows help', async () => {
+        const { stdout } = await run(calm(), ['init-ai', '--help']);
+        expect(stdout).toContain('Augment a git repository with AI assistance for CALM');
+        expect(stdout).toContain('Options:');
+    });
+
+    describe.each(['copilot', 'kiro', 'claude'])('calm init-ai -p %s', (provider) => {
+        test('creates correct directory structure and files', async () => {
+            const testDir = path.join(tempDir, `init-ai-${provider}-test`);
+            fs.mkdirSync(testDir, { recursive: true });
+
+            // Initialize a git repository to avoid warning
+            execSync('git init', { cwd: testDir, stdio: 'inherit' });
+
+            // Run calm init-ai with the specified provider
+            await run(calm(), ['init-ai', '-p', provider, '--directory', testDir]);
+
+            // Define expected paths based on provider
+            const expectedPaths: Record<string, { topLevelDir: string; mainPromptFile: string; skillPromptsDir: string }> = {
+                copilot: {
+                    topLevelDir: '.github/chatmodes',
+                    mainPromptFile: '.github/chatmodes/CALM.chatmode.md',
+                    skillPromptsDir: '.github/chatmodes/calm-prompts',
+                },
+                kiro: {
+                    topLevelDir: '.kiro',
+                    mainPromptFile: '.kiro/steering/CALM.chatmode.md',
+                    skillPromptsDir: '.kiro/calm-prompts',
+                },
+                claude: {
+                    topLevelDir: '.claude/skills/calm',
+                    mainPromptFile: '.claude/skills/calm/SKILL.md',
+                    skillPromptsDir: '.claude/skills/calm/calm-prompts',
+                },
+            };
+
+            const paths = expectedPaths[provider];
+
+            // Verify top-level directory exists
+            expect(fs.existsSync(path.join(testDir, paths.topLevelDir))).toBe(true);
+
+            // Verify main prompt file exists and contains expected content
+            const mainPromptPath = path.join(testDir, paths.mainPromptFile);
+            expect(fs.existsSync(mainPromptPath)).toBe(true);
+            const mainPromptContent = fs.readFileSync(mainPromptPath, 'utf8');
+            expect(mainPromptContent).toContain('FINOS CALM');
+            expect(mainPromptContent).toContain('Common Architecture Language Model');
+
+            // Verify calm-prompts directory exists
+            const skillPromptsPath = path.join(testDir, paths.skillPromptsDir);
+            expect(fs.existsSync(skillPromptsPath)).toBe(true);
+
+            // Verify all 11 skill prompt files exist
+            const expectedSkillFiles = [
+                'architecture-creation.md',
+                'calm-cli-instructions.md',
+                'node-creation.md',
+                'relationship-creation.md',
+                'interface-creation.md',
+                'metadata-creation.md',
+                'control-creation.md',
+                'flow-creation.md',
+                'pattern-creation.md',
+                'documentation-creation.md',
+                'standards-creation.md',
+            ];
+
+            expectedSkillFiles.forEach((skillFile) => {
+                const skillFilePath = path.join(skillPromptsPath, skillFile);
+                expect(fs.existsSync(skillFilePath)).toBe(true);
+                // Verify file has content
+                const content = fs.readFileSync(skillFilePath, 'utf8');
+                expect(content.length).toBeGreaterThan(0);
+            });
+
+            // Clean up test directory
+            fs.rmSync(testDir, { recursive: true, force: true });
+        });
+    });
+
     test('validate command outputs JSON to stdout', async () => {
         const apiGatewayPath = path.join(
             __dirname,

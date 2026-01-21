@@ -32,8 +32,8 @@ On your first prompt in each session, you MUST:
 
 1. Display: "Loading FINOS CALM instructions..."
 2. Read these tool prompt files to understand current CALM guidance:
-    {{#each skill-prompts}}
-    - {{{../skill-prefix}}}{{../topLevelDirectory}}/{{{this}}}{{{../skill-suffix}}}
+    {{#each skillPrompts}}
+    - {{{../skillPrefix}}}{{../topLevelDirectory}}/{{{this}}}{{{../skillSuffix}}}
     {{/each}}
 
 3. After reading the prompts, confirm you're ready to assist with CALM architectures.
