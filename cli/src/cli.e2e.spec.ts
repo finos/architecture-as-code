@@ -626,16 +626,16 @@ describe('CLI Integration Tests', () => {
 
                 await run(
                     calm(), [
-                    'docify',
-                    '--architecture',
-                    testModelPath,
-                    '--template',
-                    templatePath,
-                    '--output',
-                    outputFile,
-                    '--url-to-local-file-mapping',
-                    STATIC_GETTING_STARTED_MAPPING_PATH,
-                ]
+                        'docify',
+                        '--architecture',
+                        testModelPath,
+                        '--template',
+                        templatePath,
+                        '--output',
+                        outputFile,
+                        '--url-to-local-file-mapping',
+                        STATIC_GETTING_STARTED_MAPPING_PATH,
+                    ]
                 );
 
                 expect(fs.existsSync(outputFile)).toBe(true);
@@ -694,14 +694,14 @@ describe('CLI Integration Tests', () => {
         const outputWebsite = path.resolve(actualOutputDir, 'website');
         await run(
             calm(), [
-            'docify',
-            '--architecture',
-            outputArchitecture,
-            '--output',
-            outputWebsite,
-            '--url-to-local-file-mapping',
-            STATIC_GETTING_STARTED_MAPPING_PATH,
-        ]
+                'docify',
+                '--architecture',
+                outputArchitecture,
+                '--output',
+                outputWebsite,
+                '--url-to-local-file-mapping',
+                STATIC_GETTING_STARTED_MAPPING_PATH,
+            ]
         );
 
         const expectedOutputDocifyWebsite = path.resolve(
@@ -755,14 +755,14 @@ describe('CLI Integration Tests', () => {
         );
         await run(
             calm(), [
-            'docify',
-            '--architecture',
-            outputArchitecture,
-            '--output',
-            outputWebsiteWithFlow,
-            '--url-to-local-file-mapping',
-            STATIC_GETTING_STARTED_MAPPING_PATH,
-        ]
+                'docify',
+                '--architecture',
+                outputArchitecture,
+                '--output',
+                outputWebsiteWithFlow,
+                '--url-to-local-file-mapping',
+                STATIC_GETTING_STARTED_MAPPING_PATH,
+            ]
         );
 
         const expectedOutputDocifyWebsiteWithFLow = path.resolve(
