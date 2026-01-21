@@ -52,7 +52,7 @@ export async function loadPatternFromArchitectureIfPresent(architecture: object,
     catch (_) {
         logger.debug(`Trying to load pattern from architecture schema: ${schemaRef}`);
     }
-    const pattern = docLoader.loadMissingDocument(schemaRef, 'pattern');
+    const pattern = await docLoader.loadMissingDocument(schemaRef, 'pattern');
     logger.debug(`Loaded pattern from architecture schema: ${schemaRef}`);
     return pattern;
 }
@@ -61,7 +61,7 @@ export async function loadPattern(patternPath: string, docLoader: DocumentLoader
     if (!patternPath) {
         return undefined;
     }
-    const pattern = docLoader.loadMissingDocument(patternPath, 'pattern');
+    const pattern = await docLoader.loadMissingDocument(patternPath, 'pattern');
     logger.debug(`Loaded pattern from ${patternPath}`);
     return pattern;
 }
@@ -70,7 +70,7 @@ export async function loadArchitecture(architecturePath: string, docLoader: Docu
     if (!architecturePath) {
         return undefined;
     }
-    const arch = docLoader.loadMissingDocument(architecturePath, 'architecture');
+    const arch = await docLoader.loadMissingDocument(architecturePath, 'architecture');
     logger.debug(`Loaded architecture from ${architecturePath}`);
     return arch;
 }
