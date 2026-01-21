@@ -32,3 +32,4 @@ export { CalmRelationshipGraph } from './docify/graphing/relationship-graph.js';
 export { ValidationOutcome } from './commands/validate/validation.output';
 export * from './test/file-comparison.js';
 export { setWidgetLogger, type WidgetLogger } from '@finos/calm-widgets';
+export * from './document-loader/loading-helpers.js';
