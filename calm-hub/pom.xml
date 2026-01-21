@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
-         xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<project
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+    xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -26,8 +27,9 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-bom</artifactId>
-                <!-- Force patched Netty version to mitigate CVE-2025-58057 (affecting 4.1.124.Final) -->
-                <version>4.2.7.Final</version>
+                <!-- Force patched Netty version to mitigate CVE-2025-58057 (affecting
+                4.1.124.Final) -->
+                <version>4.2.9.Final</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -219,6 +221,7 @@
                         <exclude>**/*Constants.*</exclude>
                         <exclude>**/*NamespaceStandardSummary.*</exclude>
                         <exclude>**/*ArchitectureRequest.*</exclude>
+                        <exclude>**/config/**/*</exclude>
                     </excludes>
                 </configuration>
                 <executions>
@@ -280,25 +283,25 @@
                 <dependency>
                     <groupId>org.testcontainers</groupId>
                     <artifactId>testcontainers</artifactId>
-                    <version>1.21.3</version>
+                    <version>1.21.4</version>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>org.testcontainers</groupId>
                     <artifactId>mongodb</artifactId>
-                    <version>1.21.3</version>
+                    <version>1.21.4</version>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>org.testcontainers</groupId>
                     <artifactId>junit-jupiter</artifactId>
-                    <version>1.21.3</version>
+                    <version>1.21.4</version>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.github.dasniko</groupId>
                     <artifactId>testcontainers-keycloak</artifactId>
-                    <version>3.9.0</version>
+                    <version>3.9.1</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -372,7 +375,8 @@
                             <!-- Use environment-provided NVD API Key, fallback to Maven property -->
                             <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
                             <suppressionFiles>
-                                <suppressionFile>${project.basedir}/../.github/maven-cve-ignore-list.xml</suppressionFile>
+                                <suppressionFile>
+                                    ${project.basedir}/../.github/maven-cve-ignore-list.xml</suppressionFile>
                             </suppressionFiles>
                         </configuration>
                     </plugin>

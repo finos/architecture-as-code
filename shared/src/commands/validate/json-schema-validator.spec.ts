@@ -66,7 +66,7 @@ describe('JsonSchemaValidator', () => {
 });
 
 describe('JsonSchemaValidator integration', () => {
-    const schemaDir = path.join(__dirname, '../../../../calm/release/1.0/meta/');
+    const schemaDir = path.join(__dirname, '../../../../calm/release/1.1/meta/');
     const badPatternPath = path.join(__dirname, '../../../test_fixtures/bad-schema/bad-json-schema.json');
 
     it('throws when compiling the bad-json-schema fixture', async () => {

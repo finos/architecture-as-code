@@ -21,11 +21,11 @@
     <table>
         <tbody>
         <tr>
-            <th style="text-align:left">SimpleValue</th>
+            <th>SimpleValue</th>
             <td>just-a-string</td>
         </tr>
         <tr>
-            <th style="text-align:left">NumberValue</th>
+            <th>NumberValue</th>
             <td>42</td>
         </tr>
         </tbody>

@@ -11,7 +11,8 @@ const baseOpts = (): NormalizedOptions => ({
     renderInterfaces: false,
     renderNodeTypeShapes: false,
     edgeLabels: 'description',
-    collapseRelationships: false
+    collapseRelationships: false,
+    theme: 'light',
 });
 
 const ctx = (ids: string[]): CalmCoreCanonicalModel => ({

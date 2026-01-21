@@ -23,6 +23,11 @@ To install the CALM CLI globally on your machine, run the following command in y
 npm install -g @finos/calm-cli
 ```
 
+or if you use [Homebrew](https://brew.sh):
+```shell
+brew install calm-cli
+```
+
 Once the installation is complete, you can verify that the CLI is installed correctly by typing:
 
 ```shell

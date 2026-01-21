@@ -14,6 +14,7 @@ const base = (overrides: Partial<NormalizedOptions> = {}): NormalizedOptions => 
     renderNodeTypeShapes: false,
     edgeLabels: 'description',
     collapseRelationships: false,
+    theme: 'light',
     ...overrides,
 });
 

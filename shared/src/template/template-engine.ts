@@ -1,17 +1,20 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 import Handlebars from 'handlebars';
-import { IndexFile, TemplateEntry, CalmTemplateTransformer } from './types.js';
+import { IndexFile, CalmTemplateTransformer, OutputStrategy, OutputContext } from './types.js';
 import { ITemplateBundleLoader } from './template-bundle-file-loader.js';
 import { initLogger, Logger } from '../logger.js';
 import fs from 'fs';
-import path from 'path';
 import { TemplatePathExtractor } from './template-path-extractor.js';
 import { TemplatePreprocessor } from './template-preprocessor.js';
+import { CopyStrategy } from './strategies/copy-strategy.js';
+import { SingleStrategy } from './strategies/single-strategy.js';
+import { RepeatedStrategy } from './strategies/repeated-strategy.js';
 
 export class TemplateEngine {
-    private readonly templates: Record<string, Handlebars.TemplateDelegate>;
+    private readonly compiledTemplates: Record<string, Handlebars.TemplateDelegate>;
+    private readonly rawTemplates: Record<string, string>;
     private readonly config: IndexFile;
-    private transformer: CalmTemplateTransformer;
+    private readonly strategies: Record<string, OutputStrategy>;
     private static _logger: Logger | undefined;
 
     private static get logger(): Logger {
@@ -23,30 +26,71 @@ export class TemplateEngine {
 
     constructor(fileLoader: ITemplateBundleLoader, transformer: CalmTemplateTransformer) {
         this.config = fileLoader.getConfig();
-        this.transformer = transformer;
-        this.templates = this.compileTemplates(fileLoader.getTemplateFiles());
-        this.registerTemplateHelpers();
+        this.rawTemplates = fileLoader.getTemplateFiles();
+        this.compiledTemplates = this.compileAllTemplates();
+        this.registerHelpers(transformer);
+        this.strategies = {
+            'copy': new CopyStrategy(this),
+            'single': new SingleStrategy(this),
+            'repeated': new RepeatedStrategy(this)
+        };
     }
 
-    private compileTemplates(templateFiles: Record<string, string>): Record<string, Handlebars.TemplateDelegate> {
+    public generate(
+        data: any,
+        outputDir: string,
+        scaffoldOnly: boolean = false,
+        scaffoldPaths?: { architecturePath: string; urlMappingPath?: string }
+    ): void {
         const logger = TemplateEngine.logger;
-        const compiledTemplates: Record<string, Handlebars.TemplateDelegate> = {};
+        logger.info(scaffoldOnly ? '\n🔹 Starting Scaffold Generation...' : '\n🔹 Starting Template Generation...');
 
-        for (const [fileName, content] of Object.entries(templateFiles)) {
-            const preprocessed = TemplatePreprocessor.preprocessTemplate(content);
-            logger.debug(preprocessed);
-            compiledTemplates[fileName] = Handlebars.compile(preprocessed);
+        this.ensureOutputDirectory(outputDir);
+
+        const context: OutputContext = { data, outputDir, scaffoldOnly, scaffoldPaths };
+
+        for (const entry of this.config.templates) {
+            this.registerPartials(entry.partials);
+            const strategy = this.strategies[entry['output-type']];
+            if (strategy) {
+                strategy.process(entry, context, logger);
+            } else {
+                logger.warn(`⚠️ Unknown output-type: ${entry['output-type']}`);
+            }
         }
 
-        logger.info(`✅ Compiled ${Object.keys(compiledTemplates).length} Templates`);
-        return compiledTemplates;
+        logger.info('\n✅ Template Generation Completed!');
     }
 
-    private registerTemplateHelpers(): void {
+    getCompiledTemplate(name: string): Handlebars.TemplateDelegate | undefined {
+        return this.compiledTemplates[name];
+    }
+
+    getRawTemplate(name: string): string | undefined {
+        return this.rawTemplates[name];
+    }
+
+    compileTemplate(content: string): Handlebars.TemplateDelegate {
+        return Handlebars.compile(content);
+    }
+
+    private compileAllTemplates(): Record<string, Handlebars.TemplateDelegate> {
+        const logger = TemplateEngine.logger;
+        const compiled: Record<string, Handlebars.TemplateDelegate> = {};
+
+        for (const [fileName, content] of Object.entries(this.rawTemplates)) {
+            const preprocessed = TemplatePreprocessor.preprocessTemplate(content);
+            logger.debug(preprocessed);
+            compiled[fileName] = Handlebars.compile(preprocessed);
+        }
+
+        logger.info(`✅ Compiled ${Object.keys(compiled).length} Templates`);
+        return compiled;
+    }
+
+    private registerHelpers(transformer: CalmTemplateTransformer): void {
         const logger = TemplateEngine.logger;
         logger.info('🔧 Registering Handlebars Helpers...');
-
-        const helperFunctions = this.transformer.registerTemplateHelpers();
 
         Handlebars.registerHelper('convertFromDotNotation', (context: unknown, path: string, options?: any) => {
             try {
@@ -57,71 +101,32 @@ export class TemplateEngine {
             }
         });
 
-        Object.entries(helperFunctions).forEach(([name, fn]) => {
+        const helperFunctions = transformer.registerTemplateHelpers();
+        for (const [name, fn] of Object.entries(helperFunctions)) {
             Handlebars.registerHelper(name, fn);
             logger.info(`✅ Registered helper: ${name}`);
-        });
+        }
     }
 
-    public generate(data: any, outputDir: string): void {
-        const logger = TemplateEngine.logger;
-        logger.info('\n🔹 Starting Template Generation...');
+    private registerPartials(partials: string[] | undefined): void {
+        if (!partials) return;
 
+        const logger = TemplateEngine.logger;
+        for (const partial of partials) {
+            if (this.compiledTemplates[partial]) {
+                logger.info(`✅ Registering partial template: ${partial}`);
+                Handlebars.registerPartial(partial, this.compiledTemplates[partial]);
+            } else {
+                logger.warn(`⚠️ Missing partial template: ${partial}`);
+            }
+        }
+    }
+
+    private ensureOutputDirectory(outputDir: string): void {
         if (!fs.existsSync(outputDir)) {
-            logger.info(`📂 Output directory does not exist. Creating: ${outputDir}`);
+            TemplateEngine.logger.info(`📂 Output directory does not exist. Creating: ${outputDir}`);
             fs.mkdirSync(outputDir, { recursive: true });
-        }
-
-        for (const templateEntry of this.config.templates) {
-            this.processTemplate(templateEntry, data, outputDir);
-        }
-
-        logger.info('\n✅ Template Generation Completed!');
-    }
-
-    private processTemplate(templateEntry: TemplateEntry, data: any, outputDir: string): void {
-        const logger = TemplateEngine.logger;
-        const { template, from, output, 'output-type': outputType, partials } = templateEntry;
-
-        if (!this.templates[template]) {
-            logger.warn(`⚠️ Skipping unknown template: ${template}`);
-            return;
-        }
-
-        if (partials) {
-            for (const partial of partials) {
-                if (this.templates[partial]) {
-                    logger.info(`✅ Registering partial template: ${partial}`);
-                    Handlebars.registerPartial(partial, this.templates[partial]);
-                } else {
-                    logger.warn(`⚠️ Missing partial template: ${partial}`);
-                }
-            }
-        }
-
-        const dataSource = data[from];
-
-        if (outputType === 'repeated') {
-            if (!Array.isArray(dataSource)) {
-                logger.warn(`⚠️ Expected array for repeated output, but found non-array for ${template}`);
-                return;
-            }
-
-            for (const instance of dataSource) {
-                const filename = output.replace('{{id}}', instance.id);//TODO: Improve output naming for use case.
-                const outputPath = path.join(outputDir, filename);
-                fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-                fs.writeFileSync(outputPath, this.templates[template](instance), 'utf8');
-                logger.info(`✅ Generated: ${outputPath}`);
-            }
-        } else if (outputType === 'single') {
-            const filename = output.replace('{{id}}', dataSource.id);//TODO: Improve output naming for use case.
-            const outputPath = path.join(outputDir, filename);
-            fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-            fs.writeFileSync(outputPath, this.templates[template](dataSource), 'utf8');
-            logger.info(`✅ Generated: ${outputPath}`);
-        } else {
-            logger.warn(`⚠️ Unknown output-type: ${outputType}`);
         }
     }
 }
+

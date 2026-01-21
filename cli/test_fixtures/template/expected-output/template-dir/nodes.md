@@ -1,3 +1,6 @@
+---
+architecture: ../../model/document-system.json
+---
 # All Nodes
 
 ## Node: DocuFlow

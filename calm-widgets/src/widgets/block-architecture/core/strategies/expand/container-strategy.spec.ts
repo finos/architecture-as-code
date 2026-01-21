@@ -13,7 +13,8 @@ const base = (includeContainers: NormalizedOptions['includeContainers']): Normal
     renderInterfaces: false,
     renderNodeTypeShapes: false,
     edgeLabels: 'description',
-    collapseRelationships: false
+    collapseRelationships: false,
+    theme: 'light',
 });
 
 describe('ContainerStrategy', () => {

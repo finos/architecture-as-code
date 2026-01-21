@@ -1,0 +1,11 @@
+{
+  "nodes": [
+    {
+      "unique-id": "test-service",
+      "node-type": "service",
+      "name": "Test Service",
+      "description": "A test service missing the required owner field"
+    }
+  ],
+  "relationships": []
+}

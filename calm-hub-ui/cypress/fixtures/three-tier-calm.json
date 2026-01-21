@@ -1,0 +1,81 @@
+{
+  "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
+  "nodes": [
+    {
+      "unique-id": "web-client",
+      "node-type": "webclient",
+      "name": "Web Client",
+      "description": "Browser based web interface for TraderX",
+      "data-classification": "Confidential",
+      "run-as": "user"
+    },
+    {
+      "unique-id": "web-service",
+      "node-type": "service",
+      "name": "Web Service",
+      "description": "Allows employees to manage accounts and book trades",
+      "data-classification": "Confidential",
+      "run-as": "systemId"
+    },
+    {
+      "unique-id": "app-db",
+      "node-type": "database",
+      "name": "App DB",
+      "description": "Database which stores account, trade and position state",
+      "data-classification": "Confidential",
+      "run-as": "systemId"
+    },
+    {
+      "unique-id": "internal-bank-network",
+      "node-type": "network",
+      "name": "Bank ABC Internal Network",
+      "description": "Internal network for Bank ABC",
+      "instance": "Internal Network"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "client-to-service",
+      "description": "Calls web service",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "web-client"
+          },
+          "destination": {
+            "node": "web-service"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "service-to-database",
+      "description": "Persist data in and retrieve data from",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "web-service"
+          },
+          "destination": {
+            "node": "app-db"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "traderx-system-is-deployed-in-internal-bank-network",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "internal-bank-network",
+          "nodes": [
+            "web-client",
+            "web-service",
+            "app-db"
+          ]
+        }
+      }
+    }
+  ]
+}

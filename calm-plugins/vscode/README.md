@@ -1,6 +1,8 @@
-# CALM VS Code Extension
+# CALM Visual Studio Code Extension
 
-> **Status**: Experimental - APIs, behavior, and visuals may change. Use at your own risk.
+> **Status**: Active - From v0.1.0 (December 2025) the extension has been moved out of experimental status, as it has
+> become a worthy part of the CALM tooling ecosystem. It will continue to be in active development, meaning that APIs, behavior, and visuals
+> will evolve.
 
 Live-visualize CALM architecture models while you edit them. Features an interactive preview, tree navigation, intelligent validation, and documentation generation.
 
@@ -34,6 +36,32 @@ Live-visualize CALM architecture models while you edit them. Features an interac
 
 ![Live Docify Mode](https://raw.githubusercontent.com/finos/architecture-as-code/main/calm-plugins/vscode/docs/LiveDocifyMode.png)
 *Live templating mode with real-time documentation generation*
+
+## Configuration
+    
+The extension can be configured via VS Code settings (`.vscode/settings.json` or User Settings).
+
+### Multi-Document Navigation
+Navigate between related CALM files using `detailed-architecture` references.
+
+1.  Create a mapping file (e.g., `calm-mapping.json`) in your workspace:
+    ```json
+    {
+      "https://specs.internal/payment-service": "./services/payment-service.json",
+      "https://specs.internal/inventory": "./services/inventory.json"
+    }
+    ```
+2.  Configure the extension to use this mapping:
+    ```json
+    "calm.urlMapping": "calm-mapping.json"
+    ```
+
+### File Discovery
+Customize how the extension finds your CALM models and templates.
+
+-   `calm.files.globs`: Patterns for CALM model files (Default: `["calm/**/*.json", "calm/**/*.y?(a)ml"]`)
+-   `calm.template.globs`: Patterns for template files (Default: `["**/*.md", "**/*.hbs", ...]`)
+-   `calm.cli.path`: Path to the CALM CLI executable (Default: `./cli`)
 
 ## Getting Involved
 

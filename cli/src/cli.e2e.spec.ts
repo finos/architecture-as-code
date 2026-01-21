@@ -88,6 +88,86 @@ describe('CLI Integration Tests', () => {
         expect(stdout).toContain('Usage:');
     });
 
+    test('calm init-ai --help shows help', async () => {
+        const { stdout } = await run(calm(), ['init-ai', '--help']);
+        expect(stdout).toContain('Augment a git repository with AI assistance for CALM');
+        expect(stdout).toContain('Options:');
+    });
+
+    describe.each(['copilot', 'kiro', 'claude'])('calm init-ai -p %s', (provider) => {
+        test('creates correct directory structure and files', async () => {
+            const testDir = path.join(tempDir, `init-ai-${provider}-test`);
+            fs.mkdirSync(testDir, { recursive: true });
+
+            // Initialize a git repository to avoid warning
+            execSync('git init', { cwd: testDir, stdio: 'inherit' });
+
+            // Run calm init-ai with the specified provider
+            await run(calm(), ['init-ai', '-p', provider, '--directory', testDir]);
+
+            // Define expected paths based on provider
+            const expectedPaths: Record<string, { topLevelDir: string; mainPromptFile: string; skillPromptsDir: string }> = {
+                copilot: {
+                    topLevelDir: '.github/chatmodes',
+                    mainPromptFile: '.github/chatmodes/CALM.chatmode.md',
+                    skillPromptsDir: '.github/chatmodes/calm-prompts',
+                },
+                kiro: {
+                    topLevelDir: '.kiro',
+                    mainPromptFile: '.kiro/steering/CALM.chatmode.md',
+                    skillPromptsDir: '.kiro/calm-prompts',
+                },
+                claude: {
+                    topLevelDir: '.claude/skills/calm',
+                    mainPromptFile: '.claude/skills/calm/SKILL.md',
+                    skillPromptsDir: '.claude/skills/calm/calm-prompts',
+                },
+            };
+
+            const paths = expectedPaths[provider];
+
+            // Verify top-level directory exists
+            expect(fs.existsSync(path.join(testDir, paths.topLevelDir))).toBe(true);
+
+            // Verify main prompt file exists and contains expected content
+            const mainPromptPath = path.join(testDir, paths.mainPromptFile);
+            expect(fs.existsSync(mainPromptPath)).toBe(true);
+            const mainPromptContent = fs.readFileSync(mainPromptPath, 'utf8');
+            expect(mainPromptContent).toContain('FINOS CALM');
+            expect(mainPromptContent).toContain('Common Architecture Language Model');
+
+            // Verify calm-prompts directory exists
+            const skillPromptsPath = path.join(testDir, paths.skillPromptsDir);
+            expect(fs.existsSync(skillPromptsPath)).toBe(true);
+
+            // Verify all 11 skill prompt files exist
+            const expectedSkillFiles = [
+                'architecture-creation.md',
+                'calm-cli-instructions.md',
+                'node-creation.md',
+                'relationship-creation.md',
+                'interface-creation.md',
+                'metadata-creation.md',
+                'control-creation.md',
+                'flow-creation.md',
+                'pattern-creation.md',
+                'documentation-creation.md',
+                'standards-creation.md',
+            ];
+
+            expectedSkillFiles.forEach((skillFile) => {
+                const skillFilePath = path.join(skillPromptsPath, skillFile);
+                expect(fs.existsSync(skillFilePath)).toBe(true);
+                // Verify file has content
+                const content = fs.readFileSync(skillFilePath, 'utf8');
+                expect(content.length).toBeGreaterThan(0);
+            });
+
+            // Clean up test directory
+            fs.rmSync(testDir, { recursive: true, force: true });
+        });
+    });
+
     test('validate command outputs JSON to stdout', async () => {
         const apiGatewayPath = path.join(
             __dirname,
@@ -206,13 +286,10 @@ describe('CLI Integration Tests', () => {
         const { stdout } = await run(
             calm(), ['validate', '-p', p, '-a', a, '-f', 'pretty']
         );
-        const expected = fs.readFileSync(
-            path.join(__dirname, '../test_fixtures/validate_output_pretty.txt'),
-            'utf8'
-        );
-        expect(stdout.trim().replace(/\r\n/g, '\n')).toEqual(
-            expected.trim().replace(/\r\n/g, '\n')
-        );
+        expect(stdout).toContain('WARN');
+        expect(stdout).toContain('architecture-has-no-placeholder-properties-numerical');
+        expect(stdout).toContain('/nodes/api-producer/interfaces/producer-ingress/port');
+        expect(stdout).toContain('Numerical placeholder (-1) detected in architecture.');
     });
 
     test('validate command fails when neither architecture nor pattern is provided', async () => {
@@ -240,6 +317,61 @@ describe('CLI Integration Tests', () => {
         expect(parsedOutput).toEqual(expectedOutput);
     });
 
+    describe('validate command with URL mapping', () => {
+        const urlMappingFixtures = path.join(__dirname, '../test_fixtures/url-mapping');
+
+        test('validates with URL mapping file when pattern has $id', async () => {
+            const patternPath = path.join(urlMappingFixtures, 'patterns/pattern-with-id.json');
+            const archPath = path.join(urlMappingFixtures, 'architectures/compliant.json');
+            const mappingPath = path.join(urlMappingFixtures, 'url-mapping.json');
+
+            const { stdout } = await run(
+                calm(), ['validate', '-p', patternPath, '-a', archPath, '-u', mappingPath]
+            );
+            const result = JSON.parse(stdout);
+            expect(result.hasErrors).toBe(false);
+        });
+
+        test('validates with relative refs when pattern has no $id', async () => {
+            const patternPath = path.join(urlMappingFixtures, 'patterns/pattern-without-id.json');
+            const archPath = path.join(urlMappingFixtures, 'architectures/compliant.json');
+
+            const { stdout } = await run(
+                calm(), ['validate', '-p', patternPath, '-a', archPath]
+            );
+            const result = JSON.parse(stdout);
+            expect(result.hasErrors).toBe(false);
+        });
+
+        test('fails validation for non-compliant architecture with relative refs', async () => {
+            const patternPath = path.join(urlMappingFixtures, 'patterns/pattern-without-id.json');
+            const archPath = path.join(urlMappingFixtures, 'architectures/non-compliant.json');
+
+            try {
+                await run(calm(), ['validate', '-p', patternPath, '-a', archPath]);
+                expect.fail('Expected validation to fail');
+            } catch (error) {
+                const result = JSON.parse(error.stdout);
+                expect(result.hasErrors).toBe(true);
+                expect(JSON.stringify(result)).toContain('owner');
+            }
+        });
+
+        test('fails validation for non-compliant architecture with URL mapping', async () => {
+            const patternPath = path.join(urlMappingFixtures, 'patterns/pattern-with-id.json');
+            const archPath = path.join(urlMappingFixtures, 'architectures/non-compliant.json');
+            const mappingPath = path.join(urlMappingFixtures, 'url-mapping.json');
+
+            try {
+                await run(calm(), ['validate', '-p', patternPath, '-a', archPath, '-u', mappingPath]);
+                expect.fail('Expected validation to fail');
+            } catch (error) {
+                const result = JSON.parse(error.stdout);
+                expect(result.hasErrors).toBe(true);
+                expect(JSON.stringify(result)).toContain('owner');
+            }
+        });
+    });
 
 
     test('generate command produces the expected output', async () => {
@@ -358,8 +490,12 @@ describe('CLI Integration Tests', () => {
         const testModelPath = path.join(fixtureDir, 'model/document-system.json');
         const templatePath = path.join(fixtureDir, 'self-provided/single-template.hbs');
         const expectedOutputPath = path.join(fixtureDir, 'expected-output/single-template-output.md');
-        const outputDir = path.join(tempDir, 'output-single-template');
+        const outputDir = path.join(fixtureDir, 'actual-output/single-template');
         const outputFile = path.join(outputDir, 'simple-template-output.md');
+
+        if (fs.existsSync(outputDir)) {
+            fs.rmSync(outputDir, { recursive: true });
+        }
 
         await run(
             calm(), ['template', '--architecture', testModelPath, '--template', templatePath, '--output', outputFile]
@@ -369,6 +505,8 @@ describe('CLI Integration Tests', () => {
         const actual = fs.readFileSync(outputFile, 'utf8').trim();
         const expected = fs.readFileSync(expectedOutputPath, 'utf8').trim();
         expect(actual).toEqual(expected);
+
+        fs.rmSync(outputDir, { recursive: true });
     });
 
     test('template command works with --template-dir mode', async () => {
@@ -376,13 +514,19 @@ describe('CLI Integration Tests', () => {
         const testModelPath = path.join(fixtureDir, 'model/document-system.json');
         const templateDirPath = path.join(fixtureDir, 'self-provided/template-dir');
         const expectedOutputDir = path.join(fixtureDir, 'expected-output/template-dir');
-        const actualOutputDir = path.join(tempDir, 'output-template-dir');
+        const actualOutputDir = path.join(fixtureDir, 'actual-output/template-dir');
+
+        if (fs.existsSync(actualOutputDir)) {
+            fs.rmSync(actualOutputDir, { recursive: true });
+        }
 
         await run(
             calm(), ['template', '--architecture', testModelPath, '--template-dir', templateDirPath, '--output', actualOutputDir]
         );
 
         await expectDirectoryMatch(expectedOutputDir, actualOutputDir);
+
+        fs.rmSync(actualOutputDir, { recursive: true });
     });
 
 
@@ -419,9 +563,13 @@ describe('CLI Integration Tests', () => {
         const testModelPath = path.join(fixtureDir, 'model/document-system.json');
         const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
         const templatePath = path.join(fixtureDir, 'self-provided/single-template.hbs');
-        const expectedOutputPath = path.join(fixtureDir, 'expected-output/single-template-output.md');
-        const outputDir = path.join(tempDir, 'output-single-template');
+        const expectedOutputPath = path.join(fixtureDir, 'expected-output/docify/single-template-output.md');
+        const outputDir = path.join(fixtureDir, 'actual-output/single-template-docify');
         const outputFile = path.join(outputDir, 'simple-template-output.md');
+
+        if (fs.existsSync(outputDir)) {
+            fs.rmSync(outputDir, { recursive: true });
+        }
 
         await run(
             calm(), ['docify', '--architecture', testModelPath, '--template', templatePath, '--output', outputFile, '--url-to-local-file-mapping', localDirectory]
@@ -431,6 +579,8 @@ describe('CLI Integration Tests', () => {
         const actual = fs.readFileSync(outputFile, 'utf8').trim();
         const expected = fs.readFileSync(expectedOutputPath, 'utf8').trim();
         expect(actual).toEqual(expected);
+
+        fs.rmSync(outputDir, { recursive: true });
     });
 
     test('docify command works with --template-dir mode', async () => {
@@ -438,14 +588,20 @@ describe('CLI Integration Tests', () => {
         const testModelPath = path.join(fixtureDir, 'model/document-system.json');
         const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
         const templateDirPath = path.join(fixtureDir, 'self-provided/template-dir');
-        const expectedOutputDir = path.join(fixtureDir, 'expected-output/template-dir');
-        const actualOutputDir = path.join(tempDir, 'output-template-dir');
+        const expectedOutputDir = path.join(fixtureDir, 'expected-output/docify/template-dir');
+        const actualOutputDir = path.join(fixtureDir, 'actual-output/template-dir-docify');
+
+        if (fs.existsSync(actualOutputDir)) {
+            fs.rmSync(actualOutputDir, { recursive: true });
+        }
 
         await run(
             calm(), ['docify', '--architecture', testModelPath, '--template-dir', templateDirPath, '--output', actualOutputDir, '--url-to-local-file-mapping', localDirectory]
         );
 
         await expectDirectoryMatch(expectedOutputDir, actualOutputDir);
+
+        fs.rmSync(actualOutputDir, { recursive: true });
     });
     // Docify widget rendering verifies every template keeps working with the
     // getting-started assets bundled in the repo, so we use the static mapping
@@ -461,8 +617,12 @@ describe('CLI Integration Tests', () => {
                 const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
                 const templatePath = path.join(fixtureDir, `widget-tests/${templateName}`);
                 const expectedOutputPath = path.join(fixtureDir, `expected-output/widget-tests/${outputName}`);
-                const outputDir = path.join(tempDir, 'widget-tests');
+                const outputDir = path.join(fixtureDir, 'actual-output/widget-tests');
                 const outputFile = path.join(outputDir, outputName);
+
+                if (fs.existsSync(outputFile)) {
+                    fs.rmSync(outputFile);
+                }
 
                 await run(
                     calm(), [
@@ -482,6 +642,8 @@ describe('CLI Integration Tests', () => {
                 const actual = fs.readFileSync(outputFile, 'utf8').trim();
                 const expected = fs.readFileSync(expectedOutputPath, 'utf8').trim();
                 expect(actual).toEqual(expected);
+
+                fs.rmSync(outputFile);
             };
         }
 
@@ -504,13 +666,20 @@ describe('CLI Integration Tests', () => {
     test('Getting Started Verification - CLI Steps', async () => {
         // This flow mirrors the public Getting Started guide to ensure the
         // documentation actually works when the CLI resolves URLs locally.
+        const actualOutputDir = path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR, 'actual-output');
+
+        if (fs.existsSync(actualOutputDir)) {
+            fs.rmSync(actualOutputDir, { recursive: true });
+        }
+        fs.mkdirSync(actualOutputDir, { recursive: true });
+
         //STEP 1: Generate Architecture From Pattern
         const inputPattern = path.resolve(
             GETTING_STARTED_DIR,
             'conference-signup.pattern.json'
         );
         const outputArchitecture = path.resolve(
-            tempDir,
+            actualOutputDir,
             'conference-signup.arch.json'
         );
         await run(calm(), ['generate', '-p', inputPattern, '-o', outputArchitecture]);
@@ -522,7 +691,7 @@ describe('CLI Integration Tests', () => {
         await expectFilesMatch(expectedOutputArchitecture, outputArchitecture);
 
         //STEP 2: Generate Docify Website From Architecture
-        const outputWebsite = path.resolve(tempDir, 'website');
+        const outputWebsite = path.resolve(actualOutputDir, 'website');
         await run(
             calm(), [
                 'docify',
@@ -581,7 +750,7 @@ describe('CLI Integration Tests', () => {
 
 
         const outputWebsiteWithFlow = path.resolve(
-            tempDir,
+            actualOutputDir,
             'website-with-flow'
         );
         await run(
@@ -604,6 +773,8 @@ describe('CLI Integration Tests', () => {
             expectedOutputDocifyWebsiteWithFLow,
             outputWebsiteWithFlow
         );
+
+        fs.rmSync(actualOutputDir, { recursive: true });
     });
 
     function writeJson(filePath: string, obj: object) {

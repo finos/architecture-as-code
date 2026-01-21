@@ -1,0 +1,55 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Calendar from '../components/Calendar.astro';
+
+const homeMarkdown = await import('../home.md?raw');
+const homeContent = homeMarkdown.default;
+
+// Simple markdown to HTML conversion
+function markdownToHtml(md: string): string {
+  return md
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^\- (.+)$/gm, '<li>$1</li>')
+    .replace(/^(<li>.*<\/li>\n?)+/gm, '<ul>$&</ul>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`(.+?)`/g, '<code>$1</code>')
+    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>')
+    .replace(/^(?!<[h|u|l]|$)(.+)$/gm, '<p>$1</p>')
+    .replace(/<\/ul>\s*<ul>/g, '');
+}
+
+const htmlContent = markdownToHtml(homeContent);
+---
+
+<Layout title="Advent of CALM - Home">
+  <div class="home-content" set:html={htmlContent} />
+  
+  <div class="calendar-section">
+    <h2>Your 24-Day Journey</h2>
+    <p>Click on an unlocked day to begin. Days unlock each day throughout December.</p>
+    <Calendar />
+  </div>
+</Layout>
+
+<style>
+  .home-content {
+    max-width: 800px;
+  }
+  
+  .calendar-section {
+    margin-top: var(--spacing-xl);
+  }
+  
+  .calendar-section h2 {
+    text-align: center;
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .calendar-section > p {
+    text-align: center;
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-lg);
+  }
+</style>

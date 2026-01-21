@@ -4,6 +4,7 @@ import { mkdirp } from 'mkdirp';
 
 import { CalmChoice, selectChoices } from './components/options.js';
 import { instantiate } from './components/instantiate';
+import { flattenAllOf } from './components/flatten-allof';
 import { initLogger } from '../../logger.js';
 import { SchemaDirectory } from '../../schema-directory.js';
 
@@ -11,11 +12,19 @@ export async function runGenerate(pattern: object, outputPath: string, debug: bo
     const logger = initLogger(debug, 'calm-generate');
     logger.info('Generating a CALM architecture...');
     try {
+        // Flatten any allOf compositions before processing
+        await schemaDirectory.loadSchemas();
+        let flattenedPattern = await flattenAllOf(
+            pattern as Record<string, unknown>,
+            schemaDirectory,
+            debug
+        );
+
         if (chosenChoices) {
-            pattern = selectChoices(pattern, chosenChoices, debug);
+            flattenedPattern = selectChoices(flattenedPattern, chosenChoices, debug);
         }
 
-        const final = await instantiate(pattern, debug, schemaDirectory);
+        const final = await instantiate(flattenedPattern, debug, schemaDirectory);
         const output = JSON.stringify(final, null, 2);
         const dirname = path.dirname(outputPath);
 

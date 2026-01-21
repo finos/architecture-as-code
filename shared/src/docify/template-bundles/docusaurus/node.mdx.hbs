@@ -1,34 +1,30 @@
 ---
-id: {{id}}
-title: {{title}}
+id: "{{node-id}}"
+title: "{{_architecture.nodes['{{node-id}}'].name}}"
 ---
 
-## Details
-<div className="table-container">
-| Field               | Value                    |
-|---------------------|--------------------------|
-| **Unique ID**       | {{id}}                   |
-| **Node Type**       | {{nodeType}}             |
-| **Name**            | {{name}}                 |
-| **Description**     | {{description}}          |
+# {{_architecture.nodes["{{node-id}}"].name}}
 
-</div>
+## Details
+{{table _architecture.nodes["{{node-id}}"] orientation="vertical" sections="overview"}}
 
 ## Interfaces
-{{#if interfaces.length}}
-    {{#each interfaces as |iface|}}
-        {{> table-template.html data=iface}}
-    {{/each}}
-{{else}}
-    _No interfaces defined._
-{{/if}}
-
+{{table _architecture.nodes["{{node-id}}"].interfaces columns="unique-id,host,port" empty-message="No interfaces defined."}}
 
 ## Related Nodes
-{{> relationships.hbs}}
+{{related-nodes _architecture node-id="{{node-id}}"}}
 
 ## Controls
-{{> controls.hbs}}
+{{#each _architecture.nodes["{{node-id}}"].controls}}
+### {{kebabToTitleCase @key}}
+
+{{this.description}}
+
+{{table this.requirements key="control-id" empty-message="No requirements defined."}}
+
+{{else}}
+_No controls defined._
+{{/each}}
 
 ## Metadata
-{{> metadata.hbs data=metadata.data}}
+{{table _architecture.nodes["{{node-id}}"].metadata orientation="vertical" empty-message="No metadata defined."}}

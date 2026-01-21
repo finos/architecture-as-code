@@ -28,7 +28,6 @@
     "lodash": "^4.17.21"
   },
   "devDependencies": {
-    "@types/handlebars": "^4.1.0",
     "@stoplight/types": "^14.1.1",
     "@types/js-yaml": "^4.0.9",
     "@types/json-pointer": "^1.0.34",

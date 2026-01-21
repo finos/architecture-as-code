@@ -4,6 +4,7 @@ import { CalmHubDocumentLoader } from './calmhub-document-loader';
 import { FileSystemDocumentLoader } from './file-system-document-loader';
 import { DirectUrlDocumentLoader } from './direct-url-document-loader';
 import { MultiStrategyDocumentLoader } from './multi-strategy-document-loader';
+import { MappedDocumentLoader } from './mapped-document-loader';
 
 export type CalmDocumentType = 'architecture' | 'pattern' | 'schema';
 
@@ -12,17 +13,35 @@ export const CALM_HUB_PROTO = 'calm:';
 export interface DocumentLoader {
     initialise(schemaDirectory: SchemaDirectory): Promise<void>;
     loadMissingDocument(documentId: string, type: CalmDocumentType): Promise<object>;
+    /**
+     * Resolve a reference (URL or relative path) to an absolute local file path if possible.
+     * Returns undefined if the loader cannot resolve it to a local file.
+     */
+    resolvePath(reference: string): string | undefined;
 }
 
 export type DocumentLoaderOptions = {
     calmHubUrl?: string;
     schemaDirectoryPath?: string;
+    urlToLocalMap?: Map<string, string>;
+    basePath?: string;
     debug?: boolean;
 };
 
 export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions): DocumentLoader {
     const loaders = [];
     const debug = docLoaderOpts.debug ?? false;
+
+    // Add MappedDocumentLoader FIRST if mapping or basePath provided
+    // This ensures URL mappings are resolved before other loaders.
+    // Note: Relative paths are handled by FileSystemDocumentLoader later in the chain.
+    if ((docLoaderOpts.urlToLocalMap && docLoaderOpts.urlToLocalMap.size > 0) || docLoaderOpts.basePath) {
+        loaders.push(new MappedDocumentLoader(
+            docLoaderOpts.urlToLocalMap ?? new Map(),
+            docLoaderOpts.basePath ?? process.cwd(),
+            debug
+        ));
+    }
 
     if (docLoaderOpts.calmHubUrl) {
         loaders.push(new CalmHubDocumentLoader(docLoaderOpts.calmHubUrl, debug));
@@ -33,7 +52,11 @@ export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions): Docum
     if (docLoaderOpts.schemaDirectoryPath) {
         directoryPaths.push(docLoaderOpts.schemaDirectoryPath);
     }
-    loaders.push(new FileSystemDocumentLoader(directoryPaths, debug));
+    loaders.push(new FileSystemDocumentLoader(
+        directoryPaths,
+        debug,
+        docLoaderOpts.basePath ?? process.cwd()
+    ));
 
     loaders.push(new DirectUrlDocumentLoader(debug));
 

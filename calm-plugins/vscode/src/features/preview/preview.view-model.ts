@@ -206,6 +206,14 @@ export class PreviewViewModel implements PreviewViewModelInterface {
     }
 
     /**
+     * Clear current URI (called when panel is disposed)
+     * This ensures that reopening the preview will trigger proper data loading
+     */
+    clearCurrentUri(): void {
+        this.currentUri = undefined
+    }
+
+    /**
      * Set extension version for announcements
      */
     setExtensionVersion(version: string): void {

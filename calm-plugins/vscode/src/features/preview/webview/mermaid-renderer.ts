@@ -19,19 +19,15 @@ export default class MermaidRenderer {
         if (!this.mermaidReady) {
             mermaid.initialize({
                 startOnLoad: false,
-                securityLevel: 'strict',
+                securityLevel: 'loose', // Required for webview environments to avoid structuredClone issues
                 theme: 'base',
                 deterministicIds: true, // For better performance with large diagrams
                 logLevel: 'error', // Reduce logging for better performance
                 flowchart: {
-                    // Better handling of long labels
-                    curve: 'basis',
                     padding: 15, // Reduced for more compact layouts
                     nodeSpacing: 40, // Reduced for denser layouts
                     rankSpacing: 60, // Reduced for more compact vertical spacing
-                    // Allow wrapping for edge labels
                     htmlLabels: true,
-                    // Improve text wrapping
                     useMaxWidth: true
                 },
                 // Global settings for better rendering of large files
@@ -57,9 +53,16 @@ export default class MermaidRenderer {
             let match
             while ((match = rawMermaidRegex.exec(content)) !== null) {
                 const mermaidCode = match[1].trim()
+                const diagramSize = mermaidCode.length
+                
                 try {
                     // Generate a unique ID for this diagram
                     const diagramId = `mermaid-${Math.random().toString(36).substr(2, 9)}`
+                    
+                    // Log large diagram warnings
+                    if (diagramSize > 50000) {
+                        console.warn(`[mermaid-renderer] Large diagram detected (${Math.round(diagramSize / 1024)}KB). Rendering may be slow.`)
+                    }
                     
                     // Render the Mermaid diagram
                     const { svg } = await mermaid.render(diagramId, mermaidCode)
@@ -71,7 +74,9 @@ export default class MermaidRenderer {
                     processedContent = processedContent.replace(match[0], wrappedSvg)
                 } catch (error) {
                     console.error('Error rendering Mermaid diagram:', error)
-                    // Keep the original code block if rendering fails
+                    // Show error message to user instead of silently failing
+                    const errorMessage = this.createErrorDisplay(error, diagramSize)
+                    processedContent = processedContent.replace(match[0], errorMessage)
                 }
             }
             
@@ -84,9 +89,16 @@ export default class MermaidRenderer {
                 // Decode HTML entities before rendering
                 const encodedCode = match[1].trim()
                 const mermaidCode = this.decodeHtmlEntities(encodedCode)
+                const diagramSize = mermaidCode.length
+                
                 try {
                     // Generate a unique ID for this diagram
                     const diagramId = `mermaid-${Math.random().toString(36).substr(2, 9)}`
+
+                    // Log large diagram warnings
+                    if (diagramSize > 50000) {
+                        console.warn(`[mermaid-renderer] Large diagram detected (${Math.round(diagramSize / 1024)}KB). Rendering may be slow.`)
+                    }
 
                     // Render the Mermaid diagram
                     const { svg } = await mermaid.render(diagramId, mermaidCode)
@@ -98,7 +110,9 @@ export default class MermaidRenderer {
                     html = html.replace(match[0], wrappedSvg)
                 } catch (error) {
                     console.error('Error rendering HTML Mermaid diagram:', error)
-                    // Keep the original code block if rendering fails
+                    // Show error message to user instead of silently failing
+                    const errorMessage = this.createErrorDisplay(error, diagramSize)
+                    html = html.replace(match[0], errorMessage)
                 }
             }
 
@@ -116,6 +130,59 @@ export default class MermaidRenderer {
         return `<div class="mermaid-diagram-container" data-diagram-id="${diagramId}">
             ${svg}
         </div>`
+    }
+
+    /**
+     * Create an error display for failed diagram rendering
+     */
+    private createErrorDisplay(error: unknown, diagramSize: number): string {
+        const sizeKB = Math.round(diagramSize / 1024)
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        
+        // Check if it's likely a size-related issue
+        const isSizeIssue = sizeKB > 50 || errorMessage.includes('Maximum text size') || errorMessage.includes('timeout')
+        
+        let suggestion = ''
+        if (isSizeIssue) {
+            suggestion = `
+                <p style="margin-top: 8px; font-size: 12px;">
+                    <strong>Suggestions:</strong>
+                    <ul style="margin: 4px 0; padding-left: 20px;">
+                        <li>Select a specific node or relationship to view a focused diagram</li>
+                        <li>The full architecture has too many elements (${sizeKB}KB of diagram code)</li>
+                    </ul>
+                </p>`
+        }
+
+        return `
+            <div style="
+                padding: 16px;
+                margin: 8px 0;
+                background: var(--vscode-inputValidation-errorBackground, #5a1d1d);
+                border: 1px solid var(--vscode-inputValidation-errorBorder, #be1100);
+                border-radius: 4px;
+                color: var(--vscode-errorForeground, #f48771);
+            ">
+                <strong>⚠️ Diagram rendering failed</strong>
+                <p style="margin: 8px 0; font-size: 12px; opacity: 0.9;">
+                    ${this.escapeHtml(errorMessage)}
+                </p>
+                <p style="margin: 4px 0; font-size: 11px; opacity: 0.7;">
+                    Diagram size: ${sizeKB}KB
+                </p>
+                ${suggestion}
+            </div>`
+    }
+
+    /**
+     * Escape HTML to prevent XSS in error messages
+     */
+    private escapeHtml(text: string): string {
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
     }
 
     /**

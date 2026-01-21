@@ -6,7 +6,7 @@
 
 ## Official JSON Schema Definition
 
-The complete interface schema from the FINOS CALM v1.0 specification:
+The complete interface schema from the FINOS CALM v1.1 specification:
 
 ```json
 {
@@ -199,4 +199,5 @@ Use **interface-type** when:
 2. Include all required properties for chosen type
 3. Port values must be integers, not strings
 4. URLs must be valid format
-5. No additional properties beyond those defined
+5. For `interface-definition`: no additional properties beyond `unique-id`, `definition-url`, and `config`
+6. For `interface-type`: any additional properties are allowed beyond `unique-id`

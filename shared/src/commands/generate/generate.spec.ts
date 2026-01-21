@@ -2,14 +2,15 @@ import { runGenerate } from './generate';
 import { tmpdir } from 'node:os';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import { SchemaDirectory } from '../../schema-directory.js';
 
 vi.mock('../../logger', () => {
     return {
         initLogger: () => {
             return {
                 info: () => {},
-                debug: () => {}
+                debug: () => {},
+                error: () => {},
+                warn: () => {}
             };
         }
     };
@@ -23,6 +24,10 @@ vi.mock('./components/instantiate', () => ({
     }))
 }));
 
+vi.mock('./components/flatten-allof', () => ({
+    flattenAllOf: vi.fn((schema) => Promise.resolve(schema))
+}));
+
 
 describe('runGenerate', () => {
     let tempDirectoryPath;
@@ -32,7 +37,9 @@ describe('runGenerate', () => {
 
     beforeEach(() => {
         tempDirectoryPath = mkdtempSync(path.join(tmpdir(), 'calm-test-'));
-        schemaDirectory = vi.mocked(SchemaDirectory);
+        schemaDirectory = {
+            loadSchemas: vi.fn().mockResolvedValue(undefined)
+        };
     });
 
     afterEach(() => {

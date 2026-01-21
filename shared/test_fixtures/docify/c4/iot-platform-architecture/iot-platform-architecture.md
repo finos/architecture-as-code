@@ -1,3 +1,6 @@
+---
+architecture: ../iot-platform-architecture/iot-platform-architecture.arch.json
+---
 ```mermaid
 C4Deployment
 
