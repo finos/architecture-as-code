@@ -54,6 +54,7 @@ export class ValidationService implements vscode.Disposable {
         // Validate on save
         this.disposables.push(
             vscode.workspace.onDidSaveTextDocument(doc => {
+                this.logger.info?.(`[validation] Document saved: ${doc.uri.fsPath}`)
                 void this.validateIfCalmDocument(doc)
             })
         )
@@ -61,6 +62,7 @@ export class ValidationService implements vscode.Disposable {
         // Validate when a document is opened
         this.disposables.push(
             vscode.workspace.onDidOpenTextDocument(doc => {
+                this.logger.info?.(`[validation] Document opened: ${doc.uri.fsPath}`)
                 void this.validateIfCalmDocument(doc)
             })
         )
@@ -68,12 +70,16 @@ export class ValidationService implements vscode.Disposable {
         // Clear diagnostics when document is closed
         this.disposables.push(
             vscode.workspace.onDidCloseTextDocument(doc => {
+                this.logger.info?.(`[validation] Document closed: ${doc.uri.fsPath}`)
                 this.diagnosticCollection.delete(doc.uri)
+                this.logger.info?.(`[validation] Diagnostics cleared for: ${doc.uri.fsPath}`)
             })
         )
 
         // Validate currently open documents on activation
+        this.logger.info?.(`[validation] Validating ${vscode.workspace.textDocuments.length} already-open documents`)
         vscode.workspace.textDocuments.forEach(doc => {
+            this.logger.info?.(`[validation] Initial validation: ${doc.uri.fsPath}`)
             void this.validateIfCalmDocument(doc)
         })
 
