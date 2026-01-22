@@ -36,8 +36,6 @@ export * from './document-loader/loading-helpers.js';
 export {
     hasArchitectureExtension,
     hasMappingFileExtension,
-    getFileExtension,
-    ARCHITECTURE_EXTENSIONS,
-    MAPPING_FILE_EXTENSIONS
+    getFileExtension
 } from './util/file-utils.js';
 

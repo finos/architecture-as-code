@@ -253,5 +253,59 @@ describe('WebsiteFormController', () => {
 
         expect(result?.templateBundlePath).toBeUndefined()
     })
+
+    it('should not dispose QuickPick when hiding to show file dialog', async () => {
+        ;(mockWindow.showOpenDialog as Mock).mockResolvedValue([{ fsPath: '/path/to/mapping.json' }])
+
+        const showPromise = controller.show('/test/arch.json')
+
+        // Select mappingFile - this hides the QuickPick to show file dialog
+        mockQuickPick.selectedItems = [{ id: 'mappingFile' }]
+
+        // Simulate the hide event firing when QuickPick is hidden for file dialog
+        const hidePromise = acceptHandler()
+        hideHandler() // This should NOT dispose the QuickPick
+        await hidePromise
+
+        // QuickPick should NOT have been disposed yet
+        expect(mockQuickPick.dispose).not.toHaveBeenCalled()
+
+        // QuickPick should be shown again after file selection
+        expect(mockQuickPick.show).toHaveBeenCalledTimes(2)
+
+        // Complete the form
+        mockQuickPick.selectedItems = [{ id: 'create' }]
+        await acceptHandler()
+
+        const result = await showPromise
+
+        // Should have the selected mapping file
+        expect(result?.mappingFilePath).toBe('/path/to/mapping.json')
+    })
+
+    it('should update QuickPick items to show selected mapping file path', async () => {
+        ;(mockWindow.showOpenDialog as Mock).mockResolvedValue([{ fsPath: '/path/to/mapping.json' }])
+
+        const showPromise = controller.show('/test/arch.json')
+
+        // Verify initial items show (none) for mapping file
+        const initialMappingItem = mockQuickPick.items.find((item: FormQuickPickItem) => item.id === 'mappingFile')
+        expect(initialMappingItem?.description).toBe('(none)')
+
+        // Select mappingFile
+        mockQuickPick.selectedItems = [{ id: 'mappingFile' }]
+        await acceptHandler()
+
+        // After selection, items should be updated to show the selected file
+        const updatedMappingItem = mockQuickPick.items.find((item: FormQuickPickItem) => item.id === 'mappingFile')
+        expect(updatedMappingItem?.description).toBe('mapping.json')
+        expect(updatedMappingItem?.detail).toBe('/path/to/mapping.json')
+
+        // Complete the form
+        mockQuickPick.selectedItems = [{ id: 'create' }]
+        await acceptHandler()
+
+        await showPromise
+    })
 })
 

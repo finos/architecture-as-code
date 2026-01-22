@@ -3,24 +3,9 @@ import {
     hasArchitectureExtension,
     hasMappingFileExtension,
     getFileExtension,
-    ARCHITECTURE_EXTENSIONS,
-    MAPPING_FILE_EXTENSIONS
 } from './file-utils';
 
 describe('file-utils', () => {
-    describe('ARCHITECTURE_EXTENSIONS', () => {
-        it('should contain only json extension', () => {
-            expect(ARCHITECTURE_EXTENSIONS).toContain('.json');
-            expect(ARCHITECTURE_EXTENSIONS).toHaveLength(1);
-        });
-    });
-
-    describe('MAPPING_FILE_EXTENSIONS', () => {
-        it('should contain only json extension', () => {
-            expect(MAPPING_FILE_EXTENSIONS).toContain('.json');
-            expect(MAPPING_FILE_EXTENSIONS).toHaveLength(1);
-        });
-    });
 
     describe('hasArchitectureExtension', () => {
         it('should return true for .json files', () => {

@@ -3,12 +3,6 @@
  * These utilities are framework-agnostic and can be used across CLI, VSCode, and other consumers
  */
 
-/** Supported architecture file extensions */
-export const ARCHITECTURE_EXTENSIONS = ['.json'] as const;
-
-/** Supported mapping file extensions */
-export const MAPPING_FILE_EXTENSIONS = ['.json'] as const;
-
 /**
  * Check if a file path has an architecture file extension (json only)
  * This is a lightweight check that only examines the file extension, not the content.

@@ -20,6 +20,7 @@ export class WebsiteFormController {
             quickPick.canSelectMany = false
 
             let resolved = false
+            let isShowingDialog = false
             const updateItems = () => { quickPick.items = createFormItems(formState) }
 
             updateItems()
@@ -37,11 +38,13 @@ export class WebsiteFormController {
                     return
                 }
 
+                isShowingDialog = true
                 await this.handleFieldSelection(selected.id, formState, quickPick, updateItems)
+                isShowingDialog = false
             })
 
             quickPick.onDidHide(() => {
-                if (!resolved) {
+                if (!resolved && !isShowingDialog) {
                     resolve(undefined)
                     quickPick.dispose()
                 }
