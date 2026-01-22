@@ -253,6 +253,8 @@ export class ValidationService implements vscode.Disposable {
         // Determine range from line/character info or fall back to start of document
         let range: vscode.Range
 
+        this.logger.debug?.(`[validation] Converting output: path=${output.path}, line_start=${output.line_start}, line_end=${output.line_end}, char_start=${output.character_start}, char_end=${output.character_end}`)
+
         if (output.line_start !== undefined && output.line_end !== undefined) {
             // ValidationOutput uses 1-based line numbers
             const startLine = Math.max(0, (output.line_start ?? 1) - 1)
@@ -261,11 +263,14 @@ export class ValidationService implements vscode.Disposable {
             const endChar = output.character_end ?? doc.lineAt(endLine).text.length
 
             range = new vscode.Range(startLine, startChar, endLine, endChar)
+            this.logger.debug?.(`[validation] Using line info: range=${startLine}:${startChar}-${endLine}:${endChar}`)
         } else if (output.path) {
             // Try to find the path in the document
             range = this.findPathInDocument(output.path, doc)
+            this.logger.debug?.(`[validation] Using path lookup for: ${output.path}`)
         } else {
             range = new vscode.Range(0, 0, 0, 0)
+            this.logger.debug?.(`[validation] No location info, using start of document`)
         }
 
         // Map severity
