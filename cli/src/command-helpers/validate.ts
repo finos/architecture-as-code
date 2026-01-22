@@ -1,4 +1,4 @@
-import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, ValidationFormattingOptions, ValidationOutcome, loadArchitectureAndPattern, enrichWithDocumentPositions, ParsedDocumentContext } from '@finos/calm-shared';
+import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, ValidationFormattingOptions, loadArchitectureAndPattern, enrichWithDocumentPositions, ParsedDocumentContext } from '@finos/calm-shared';
 import { initLogger } from '@finos/calm-shared';
 import path from 'path';
 import { mkdirp } from 'mkdirp';

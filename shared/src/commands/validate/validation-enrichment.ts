@@ -146,12 +146,20 @@ function tokensToJsonPath(tokens: Array<string | number>, data: unknown): Array<
     return path;
 }
 
+function hasMatchingUniqueId(item: unknown, token: string): boolean {
+    return (
+        isRecord(item) &&
+        typeof item['unique-id'] === 'string' &&
+        item['unique-id'] === token
+    );
+}
+
 function findIndexInArray(arr: unknown[], token: string | number): number | undefined {
     if (typeof token === 'number') {
         return token >= 0 && token < arr.length ? token : undefined;
     }
 
-    const byUniqueId = arr.findIndex(item => isRecord(item) && typeof item['unique-id'] === 'string' && item['unique-id'] === token);
+    const byUniqueId = arr.findIndex(item => hasMatchingUniqueId(item, token));
     if (byUniqueId !== -1) {
         return byUniqueId;
     }

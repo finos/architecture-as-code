@@ -33,7 +33,11 @@ npm test
 - **Document Loader**: Strategies for loading CALM documents (FileSystem, MultiStrategy).
 - **Template Processor**: Handlebars-based template generation logic.
 - **Model Visitors**: Visitor pattern implementations for traversing CALM models.
-- **Validation**: Core validation logic (Spectral integration).
+- **Validation**: Core validation logic (Spectral integration) and output enrichment.
+  - `runValidation()` - Main validation function used by CLI and VSCode
+  - `enrichWithDocumentPositions()` - Adds precise line/character positions to validation output using `@stoplight/json`
+  - `parseDocumentWithPositions()` - Parses JSON/YAML with position tracking for error location
+- **Schema Directory**: Registry of bundled CALM schemas, used for lookup by schema URL.
 
 ## Common Workflows
 
