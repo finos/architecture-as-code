@@ -168,6 +168,24 @@ describe('CLI Integration Tests', () => {
         });
     });
 
+    test('calm init-ai -p invalidprovider reports error', async () => {
+        const testDir = path.join(tempDir, 'init-ai-invalid-provider-test');
+        fs.mkdirSync(testDir, { recursive: true });
+
+        // Initialize a git repository to avoid warning
+        execSync('git init', { cwd: testDir, stdio: 'inherit' });
+
+        // Attempt to run calm init-ai with an invalid provider
+        await expect(
+            run(calm(), ['init-ai', '-p', 'invalidprovider', '--directory', testDir])
+        ).rejects.toMatchObject({
+            stderr: expect.stringContaining("error: option '-p, --provider <provider>' argument 'invalidprovider' is invalid. Allowed choices are copilot, kiro, claude.")
+        });
+
+        // Clean up test directory
+        fs.rmSync(testDir, { recursive: true, force: true });
+    });
+
     test('validate command outputs JSON to stdout', async () => {
         const apiGatewayPath = path.join(
             __dirname,
@@ -626,16 +644,16 @@ describe('CLI Integration Tests', () => {
 
                 await run(
                     calm(), [
-                        'docify',
-                        '--architecture',
-                        testModelPath,
-                        '--template',
-                        templatePath,
-                        '--output',
-                        outputFile,
-                        '--url-to-local-file-mapping',
-                        STATIC_GETTING_STARTED_MAPPING_PATH,
-                    ]
+                    'docify',
+                    '--architecture',
+                    testModelPath,
+                    '--template',
+                    templatePath,
+                    '--output',
+                    outputFile,
+                    '--url-to-local-file-mapping',
+                    STATIC_GETTING_STARTED_MAPPING_PATH,
+                ]
                 );
 
                 expect(fs.existsSync(outputFile)).toBe(true);
@@ -694,14 +712,14 @@ describe('CLI Integration Tests', () => {
         const outputWebsite = path.resolve(actualOutputDir, 'website');
         await run(
             calm(), [
-                'docify',
-                '--architecture',
-                outputArchitecture,
-                '--output',
-                outputWebsite,
-                '--url-to-local-file-mapping',
-                STATIC_GETTING_STARTED_MAPPING_PATH,
-            ]
+            'docify',
+            '--architecture',
+            outputArchitecture,
+            '--output',
+            outputWebsite,
+            '--url-to-local-file-mapping',
+            STATIC_GETTING_STARTED_MAPPING_PATH,
+        ]
         );
 
         const expectedOutputDocifyWebsite = path.resolve(
@@ -755,14 +773,14 @@ describe('CLI Integration Tests', () => {
         );
         await run(
             calm(), [
-                'docify',
-                '--architecture',
-                outputArchitecture,
-                '--output',
-                outputWebsiteWithFlow,
-                '--url-to-local-file-mapping',
-                STATIC_GETTING_STARTED_MAPPING_PATH,
-            ]
+            'docify',
+            '--architecture',
+            outputArchitecture,
+            '--output',
+            outputWebsiteWithFlow,
+            '--url-to-local-file-mapping',
+            STATIC_GETTING_STARTED_MAPPING_PATH,
+        ]
         );
 
         const expectedOutputDocifyWebsiteWithFLow = path.resolve(
