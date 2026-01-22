@@ -58,6 +58,13 @@ export class ValidationService implements vscode.Disposable {
             })
         )
 
+        // Validate when a document is opened
+        this.disposables.push(
+            vscode.workspace.onDidOpenTextDocument(doc => {
+                void this.validateIfCalmDocument(doc)
+            })
+        )
+
         // Clear diagnostics when document is closed
         this.disposables.push(
             vscode.workspace.onDidCloseTextDocument(doc => {
