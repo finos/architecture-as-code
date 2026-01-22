@@ -25,6 +25,11 @@ export class ValidationService implements vscode.Disposable {
     private readonly diagnosticCollection: vscode.DiagnosticCollection
     private readonly disposables: vscode.Disposable[] = []
     private schemaRegistry: CalmSchemaRegistry | undefined
+    
+    // Debouncing: track pending validations and last validated document versions
+    private readonly pendingValidations = new Map<string, ReturnType<typeof setTimeout>>()
+    private readonly lastValidatedVersion = new Map<string, number>()
+    private static readonly DEBOUNCE_MS = 100
 
     constructor(
         private readonly logger: Logger,
@@ -82,8 +87,10 @@ export class ValidationService implements vscode.Disposable {
         // Clear diagnostics when document is closed from memory
         this.disposables.push(
             vscode.workspace.onDidCloseTextDocument(doc => {
+                const uri = doc.uri.toString()
                 this.logger.info?.(`[validation] Document closed from memory: ${doc.uri.fsPath}`)
                 this.diagnosticCollection.delete(doc.uri)
+                this.lastValidatedVersion.delete(uri)
                 this.logger.info?.(`[validation] Diagnostics cleared for: ${doc.uri.fsPath}`)
             })
         )
@@ -96,6 +103,8 @@ export class ValidationService implements vscode.Disposable {
                         const uri = closedTab.input.uri
                         this.logger.info?.(`[validation] Editor tab closed: ${uri.fsPath}`)
                         this.diagnosticCollection.delete(uri)
+                        // Clear version tracking so reopening will trigger validation
+                        this.lastValidatedVersion.delete(uri.toString())
                         this.logger.info?.(`[validation] Diagnostics cleared for closed tab: ${uri.fsPath}`)
                     }
                 }
@@ -114,6 +123,7 @@ export class ValidationService implements vscode.Disposable {
 
     /**
      * Validate document if it's a CALM document (based on $schema content).
+     * Uses debouncing and version tracking to prevent redundant validations.
      */
     private async validateIfCalmDocument(doc: vscode.TextDocument): Promise<void> {
         if (doc.languageId !== 'json') {
@@ -129,7 +139,26 @@ export class ValidationService implements vscode.Disposable {
             return
         }
 
-        await this.validateDocument(doc)
+        const uri = doc.uri.toString()
+
+        // Skip if document hasn't changed since last validation
+        if (this.lastValidatedVersion.get(uri) === doc.version) {
+            this.logger.debug?.(`[validation] Skipping - document unchanged: ${doc.uri.fsPath}`)
+            return
+        }
+
+        // Debounce: cancel pending validation for same document
+        const pending = this.pendingValidations.get(uri)
+        if (pending) {
+            clearTimeout(pending)
+        }
+
+        // Schedule validation after short delay to coalesce rapid triggers
+        this.pendingValidations.set(uri, setTimeout(() => {
+            this.pendingValidations.delete(uri)
+            this.lastValidatedVersion.set(uri, doc.version)
+            void this.validateDocument(doc)
+        }, ValidationService.DEBOUNCE_MS))
     }
 
     /**
@@ -318,6 +347,13 @@ export class ValidationService implements vscode.Disposable {
     }
 
     dispose(): void {
+        // Cancel any pending validations
+        for (const timeout of this.pendingValidations.values()) {
+            clearTimeout(timeout)
+        }
+        this.pendingValidations.clear()
+        this.lastValidatedVersion.clear()
+        
         this.disposables.forEach(d => d.dispose())
     }
 }
