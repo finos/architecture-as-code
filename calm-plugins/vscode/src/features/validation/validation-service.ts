@@ -290,24 +290,96 @@ export class ValidationService implements vscode.Disposable {
 
     /**
      * Try to find a JSON path in the document and return its range.
+     * Handles paths like /nodes/0/unique-id or /relationships/1
      */
     private findPathInDocument(jsonPath: string, doc: vscode.TextDocument): vscode.Range {
-        // Simple approach: search for the last segment of the path as a key
-        const segments = jsonPath.split('/')
-        const lastSegment = segments[segments.length - 1]
+        const text = doc.getText()
+        const segments = jsonPath.split('/').filter(s => s.length > 0)
+        
+        if (segments.length === 0) {
+            return new vscode.Range(0, 0, 0, 0)
+        }
 
-        if (lastSegment && !/^\d+$/.test(lastSegment)) {
-            // It's a property name, not an array index
-            const searchPattern = `"${lastSegment}"`
-            const text = doc.getText()
-            const index = text.indexOf(searchPattern)
-
-            if (index !== -1) {
-                const pos = doc.positionAt(index)
-                return new vscode.Range(pos, pos.translate(0, searchPattern.length))
+        // Try to navigate through the JSON structure
+        let searchPos = 0
+        
+        for (let i = 0; i < segments.length; i++) {
+            const segment = segments[i]
+            const isArrayIndex = /^\d+$/.test(segment)
+            
+            if (isArrayIndex) {
+                // Find the nth element in an array - look for [ then count commas/objects
+                const arrayIndex = parseInt(segment, 10)
+                const arrayStart = text.indexOf('[', searchPos)
+                if (arrayStart === -1) break
+                
+                // Find the start of the target array element
+                let depth = 0
+                let elementCount = 0
+                let elementStart = arrayStart + 1
+                
+                for (let j = arrayStart + 1; j < text.length; j++) {
+                    const char = text[j]
+                    if (char === '{' || char === '[') {
+                        if (depth === 0 && elementCount === arrayIndex) {
+                            elementStart = j
+                        }
+                        depth++
+                    } else if (char === '}' || char === ']') {
+                        depth--
+                        if (depth < 0) break // End of array
+                    } else if (char === ',' && depth === 0) {
+                        elementCount++
+                        if (elementCount === arrayIndex) {
+                            // Next element starts after this comma
+                            elementStart = j + 1
+                        }
+                    }
+                    
+                    if (depth === 0 && elementCount === arrayIndex && (char === '{' || char === '[')) {
+                        searchPos = j
+                        break
+                    }
+                }
+                
+                // If this is the last segment, return range for the element
+                if (i === segments.length - 1) {
+                    const pos = doc.positionAt(elementStart)
+                    // Find the end of this element
+                    let endPos = elementStart
+                    depth = 0
+                    for (let j = elementStart; j < text.length; j++) {
+                        const char = text[j]
+                        if (char === '{' || char === '[') depth++
+                        else if (char === '}' || char === ']') {
+                            depth--
+                            if (depth === 0) {
+                                endPos = j + 1
+                                break
+                            }
+                        }
+                    }
+                    const _endPosition = doc.positionAt(endPos)
+                    return new vscode.Range(pos.line, 0, pos.line, doc.lineAt(pos.line).text.length)
+                }
+            } else {
+                // Property name - search for "propertyName":
+                const searchPattern = `"${segment}"`
+                const index = text.indexOf(searchPattern, searchPos)
+                
+                if (index === -1) break
+                
+                // If this is the last segment, return the range
+                if (i === segments.length - 1) {
+                    const pos = doc.positionAt(index)
+                    return new vscode.Range(pos.line, 0, pos.line, doc.lineAt(pos.line).text.length)
+                }
+                
+                searchPos = index + searchPattern.length
             }
         }
 
+        // Fallback: return first line
         return new vscode.Range(0, 0, 0, 0)
     }
 

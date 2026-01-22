@@ -162,7 +162,8 @@ describe('ValidationService', () => {
             const output = new ValidationOutput('test', 'warning', 'Test warning', '/path')
             const diagnostic = (service as any).convertOutputToDiagnostic(output, {
                 getText: () => '{}',
-                lineAt: () => ({ text: '' })
+                lineAt: () => ({ text: '' }),
+                positionAt: () => ({ line: 0, character: 0, translate: () => ({ line: 0, character: 0 }) })
             })
             expect(diagnostic.severity).toBe(1) // DiagnosticSeverity.Warning
         })
@@ -171,7 +172,8 @@ describe('ValidationService', () => {
             const output = new ValidationOutput('test', 'information', 'Test info', '/path')
             const diagnostic = (service as any).convertOutputToDiagnostic(output, {
                 getText: () => '{}',
-                lineAt: () => ({ text: '' })
+                lineAt: () => ({ text: '' }),
+                positionAt: () => ({ line: 0, character: 0, translate: () => ({ line: 0, character: 0 }) })
             })
             expect(diagnostic.severity).toBe(2) // DiagnosticSeverity.Information
         })
@@ -180,7 +182,8 @@ describe('ValidationService', () => {
             const output = new ValidationOutput('test', 'unknown', 'Test', '/path')
             const diagnostic = (service as any).convertOutputToDiagnostic(output, {
                 getText: () => '{}',
-                lineAt: () => ({ text: '' })
+                lineAt: () => ({ text: '' }),
+                positionAt: () => ({ line: 0, character: 0, translate: () => ({ line: 0, character: 0 }) })
             })
             expect(diagnostic.severity).toBe(0) // DiagnosticSeverity.Error
         })
@@ -196,7 +199,8 @@ describe('ValidationService', () => {
 
             const mockDoc = {
                 getText: () => '{"nodes": [], "relationships": []}',
-                lineAt: () => ({ text: '' })
+                lineAt: () => ({ text: '' }),
+                positionAt: () => ({ line: 0, character: 0, translate: () => ({ line: 0, character: 0 }) })
             }
 
             const diagnostics = (service as any).convertToDiagnostics(outcome, mockDoc)
@@ -210,7 +214,8 @@ describe('ValidationService', () => {
 
             const mockDoc = {
                 getText: () => '{}',
-                lineAt: () => ({ text: '' })
+                lineAt: () => ({ text: '' }),
+                positionAt: () => ({ line: 0, character: 0, translate: () => ({ line: 0, character: 0 }) })
             }
 
             const diagnostics = (service as any).convertToDiagnostics(outcome, mockDoc)
