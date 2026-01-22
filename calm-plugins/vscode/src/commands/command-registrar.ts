@@ -2,6 +2,7 @@ import type { ApplicationStoreApi } from '../application-store'
 import { createOpenPreviewCommand } from './open-preview-command'
 import { createSearchTreeViewCommand } from './search-tree-view-command'
 import { createClearTreeViewSearchCommand } from './clear-tree-view-search-command'
+import { createCreateWebsiteCommand } from './create-website/create-website-command'
 import * as vscode from 'vscode'
 
 export class CommandRegistrar {
@@ -14,7 +15,8 @@ export class CommandRegistrar {
         const commands = [
             createOpenPreviewCommand(this.store),
             createSearchTreeViewCommand(this.store),
-            createClearTreeViewSearchCommand(this.store)
+            createClearTreeViewSearchCommand(this.store),
+            createCreateWebsiteCommand(this.context)
         ]
 
         commands.forEach(disposable => {
@@ -22,4 +24,3 @@ export class CommandRegistrar {
         })
     }
 }
-

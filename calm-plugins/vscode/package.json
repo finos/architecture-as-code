@@ -44,6 +44,10 @@
                 "command": "calm.clearTreeViewSearch",
                 "title": "Clear Search",
                 "icon": "$(clear-all)"
+            },
+            {
+                "command": "calm.createWebsite",
+                "title": "CALM: Create Documentation Website"
             }
         ],
         "viewsContainers": {
@@ -129,13 +133,17 @@
                 {
                     "command": "calm.openPreview",
                     "group": "navigation@9"
+                },
+                {
+                    "command": "calm.createWebsite",
+                    "group": "navigation@10"
                 }
             ]
         }
     },
     "scripts": {
         "build": "tsup",
-        "postbuild": "node ./scripts/copy-widgets.js",
+        "postbuild": "node ./scripts/copy-calm-assets.js",
         "watch": "tsup --watch",
         "test": "vitest run",
         "test:watch": "vitest",
