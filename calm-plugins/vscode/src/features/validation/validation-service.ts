@@ -7,9 +7,18 @@ import {
     loadArchitectureAndPattern
 } from '@finos/calm-shared'
 import { buildDocumentLoader, DocumentLoader } from '@finos/calm-shared/dist/document-loader/document-loader'
+import { parseWithPointers, getLocationForJsonPath } from '@stoplight/json'
 import type { Logger } from '../../core/ports/logger'
 import type { Config } from '../../core/ports/config'
 import { CalmSchemaRegistry } from '../../core/services/calm-schema-registry'
+
+/**
+ * Parsed document context with location information for precise error positioning.
+ */
+interface ParsedDocumentContext {
+    data: unknown
+    parseResult: ReturnType<typeof parseWithPointers>
+}
 
 /**
  * Service that validates CALM documents and reports diagnostics to VS Code.
@@ -154,10 +163,15 @@ export class ValidationService implements vscode.Disposable {
 
         try {
             const text = doc.getText()
-            let architecture: object
-
+            
+            // Parse with location information for precise error positioning
+            let parseContext: ParsedDocumentContext
             try {
-                architecture = JSON.parse(text)
+                const parseResult = parseWithPointers(text)
+                parseContext = {
+                    data: parseResult.data,
+                    parseResult
+                }
             } catch (parseError) {
                 // JSON parse error - report it
                 const diagnostic = new vscode.Diagnostic(
@@ -169,6 +183,8 @@ export class ValidationService implements vscode.Disposable {
                 this.diagnosticCollection.set(doc.uri, [diagnostic])
                 return
             }
+
+            const architecture = parseContext.data as object
 
             // Build document loader for resolving patterns
             const docLoader = await this.buildDocumentLoader()
@@ -192,6 +208,9 @@ export class ValidationService implements vscode.Disposable {
                 false // debug
             )
 
+            // Enrich validation outputs with line numbers
+            this.enrichWithDocumentPositions(outcome, parseContext)
+
             // Convert to VS Code diagnostics
             const diagnostics = this.convertToDiagnostics(outcome, doc)
             this.diagnosticCollection.set(doc.uri, diagnostics)
@@ -201,6 +220,79 @@ export class ValidationService implements vscode.Disposable {
             this.logger.error?.(`Validation failed: ${error instanceof Error ? error.message : String(error)}`)
             // Don't clear diagnostics on error - keep previous results
         }
+    }
+
+    /**
+     * Enrich validation outputs with line/character positions from the parsed document.
+     */
+    private enrichWithDocumentPositions(outcome: ValidationOutcome, context: ParsedDocumentContext): void {
+        if (!outcome?.allValidationOutputs) {
+            return
+        }
+        const outputs = outcome.allValidationOutputs()
+        for (const output of outputs) {
+            if (!output.path) {
+                continue
+            }
+
+            const jsonPath = this.pointerToJsonPath(output.path, context.data)
+            if (!jsonPath) {
+                continue
+            }
+
+            const location = getLocationForJsonPath(context.parseResult, jsonPath)
+            if (location?.range) {
+                output.line_start = location.range.start.line + 1 // store 1-based
+                output.character_start = location.range.start.character
+                output.line_end = location.range.end.line + 1 // store 1-based
+                output.character_end = location.range.end.character
+                this.logger.debug?.(`[validation] Enriched ${output.path}: line ${output.line_start}-${output.line_end}`)
+            }
+        }
+    }
+
+    /**
+     * Convert a JSON pointer path to a JSON path array for @stoplight/json.
+     * Handles paths like /nodes/0/unique-id or /relationships/user-to-hitl/relationship-type/interacts/actor
+     */
+    private pointerToJsonPath(pointerPath: string, data?: unknown): Array<string | number> | undefined {
+        if (!pointerPath || pointerPath[0] !== '/') {
+            return undefined
+        }
+
+        const segments = pointerPath.slice(1).split('/')
+        const jsonPath: Array<string | number> = []
+
+        let current: unknown = data
+        for (const segment of segments) {
+            // Check if segment is a numeric index or a property name that should be resolved
+            if (/^\d+$/.test(segment)) {
+                jsonPath.push(parseInt(segment, 10))
+            } else if (this.isRecord(current) && Array.isArray(current[jsonPath[jsonPath.length - 1] as keyof typeof current])) {
+                // Previous segment was an array - try to find element by unique-id
+                const arr = current[jsonPath[jsonPath.length - 1] as keyof typeof current] as unknown[]
+                const idx = arr.findIndex(el => this.isRecord(el) && el['unique-id'] === segment)
+                if (idx >= 0) {
+                    jsonPath.push(idx)
+                } else {
+                    jsonPath.push(segment)
+                }
+            } else {
+                jsonPath.push(segment)
+            }
+
+            // Navigate for next iteration
+            if (this.isRecord(current)) {
+                const lastKey = jsonPath[jsonPath.length - 1]
+                current = current[lastKey as keyof typeof current]
+            }
+        }
+
+        return jsonPath
+    }
+
+    private isRecord(obj: unknown): obj is Record<string, unknown> {
+        return typeof obj === 'object' && obj !== null
     }
 
     /**

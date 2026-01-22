@@ -182,16 +182,17 @@
         "@typescript-eslint/eslint-plugin": "^8.29.1",
         "@typescript-eslint/parser": "^8.29.1",
         "@vscode/dts": "^0.4.1",
+        "@vscode/vsce": "^3.7.1",
         "eslint": "^9.24.0",
         "eslint-plugin-import": "^2.32.0",
         "globals": "^16.0.0",
         "tsup": "^8.2.4",
-        "typescript": "^5.6.2",
-        "@vscode/vsce": "^3.7.1"
+        "typescript": "^5.6.2"
     },
     "dependencies": {
         "@finos/calm-models": "file:../../calm-models",
         "@finos/calm-shared": "file:../../shared",
+        "@stoplight/json": "^3.21.7",
         "jsdom": "^22.1.0",
         "lodash": "^4.17.21",
         "markdown-it": "^13.0.1",
