@@ -13,17 +13,21 @@ export class WidgetRenderer {
     constructor(
         private handlebars: typeof Handlebars,
         private registry: WidgetRegistry
-    ) {}
+    ) { }
 
     render(
         widgetId: string,
         context: unknown,
-        options?: Record<string, unknown>
+        options?: Record<string, unknown>,
+        topLevelOptions?: Record<string, unknown>
     ): string {
         const widget: CalmWidget | undefined = this.registry.get(widgetId);
         if (!widget) throw new Error(`Widget '${widgetId}' not found.`);
 
-        const flattenedOptions = flattenOptions(options);
+        const flattenedOptions = {
+            ...topLevelOptions,
+            ...flattenOptions(options)
+        };
         // TODO: Give more context on why the widget is invalid.
         if (!widget.validateContext?.(context, flattenedOptions)) {
             throw new Error(`Invalid context for widget '${widgetId}'`);

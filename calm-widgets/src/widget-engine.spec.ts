@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import handlebars from 'handlebars';
 import { WidgetEngine } from './widget-engine';
 import { WidgetRegistry } from './widget-registry';
-import { CalmWidget } from './types';
+import { CalmWidget, WidgetOptionContainer } from './types';
 import { WidgetRenderer } from './widget-renderer';
 
 const globalHelpers = {
@@ -14,9 +14,10 @@ vi.mock('./widget-helpers', () => ({
     registerGlobalTemplateHelpers: () => globalHelpers,
 }));
 
+const render = vi.fn().mockReturnValue('rendered-content');
 vi.mock('./widget-renderer', () => ({
     WidgetRenderer: vi.fn().mockImplementation(() => ({
-        render: vi.fn().mockReturnValue('rendered-content'),
+        render: render,
     })),
 }));
 
@@ -49,13 +50,15 @@ describe('WidgetEngine', () => {
     const registerMock = vi.fn();
     let registry: WidgetRegistry;
     let engine: WidgetEngine;
+    let options: WidgetOptionContainer;
 
     beforeEach(() => {
         vi.clearAllMocks();
         localHandlebars = handlebars.create(); // ✅ fresh handlebars with empty helpers
         vi.spyOn(localHandlebars, 'registerHelper');
         registry = { register: registerMock } as unknown as WidgetRegistry;
-        engine = new WidgetEngine(localHandlebars, registry);
+        options = {}
+        engine = new WidgetEngine(localHandlebars, registry, options);
     });
 
     describe('setupWidgets', () => {
@@ -122,6 +125,33 @@ describe('WidgetEngine', () => {
             expect(helperName).toBe('test-widget');
             expect(output.toString()).toBe('rendered-content');
             expect(WidgetRenderer).toHaveBeenCalledWith(localHandlebars, registry);
+            expect(render).toHaveBeenCalledWith(
+                'test-widget',
+                { some: 'context' },
+                { hash: {} },
+                undefined
+            );
+        });
+
+        it('passes options to WidgetRenderer', () => {
+            engine.registerWidgetHelper('test-widget');
+
+            options['test-widget'] = { optionA: 'valueA' };
+
+            const calls = (localHandlebars.registerHelper as Mock).mock.calls;
+            const [helperName, helperFn] = calls.find(([name]) => name === 'test-widget')!;
+
+            const output = helperFn({ some: 'context' }, { hash: {} });
+
+            expect(helperName).toBe('test-widget');
+            expect(output.toString()).toBe('rendered-content');
+            expect(WidgetRenderer).toHaveBeenCalledWith(localHandlebars, registry);
+            expect(render).toHaveBeenCalledWith(
+                'test-widget',
+                { some: 'context' },
+                { hash: {} },
+                options['test-widget']
+            );
         });
     });
 

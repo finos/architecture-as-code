@@ -1,3 +1,5 @@
+export type WidgetOptionContainer = Record<string, Record<string, unknown>>;
+
 export interface CalmWidget<
     TContext = unknown,
     TOptions = Record<string, unknown>,
