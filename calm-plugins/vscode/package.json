@@ -165,7 +165,7 @@
         "@finos/calm-models": "file:../../calm-models",
         "@finos/calm-shared": "file:../../shared",
         "jsdom": "^22.1.0",
-        "lodash": "^4.17.21",
+        "lodash": "^4.17.23",
         "markdown-it": "^13.0.1",
         "mermaid": "^11.0.0",
         "svg-pan-zoom": "^3.6.2",
