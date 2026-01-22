@@ -60,7 +60,7 @@ describe('TemplateEngine', () => {
         mockFileLoader.getConfig.mockReturnValue(templateConfig);
         mockFileLoader.getTemplateFiles.mockReturnValue(templateFiles);
 
-        new TemplateEngine(mockFileLoader, mockTransformer);
+        new TemplateEngine(mockFileLoader, mockTransformer, {});
 
         expect(loggerInfoSpy).toHaveBeenCalledWith('✅ Compiled 1 Templates');
     });
@@ -83,7 +83,7 @@ describe('TemplateEngine', () => {
             uppercase: (str: string) => str.toUpperCase(),
         });
 
-        new TemplateEngine(mockFileLoader, mockTransformer);
+        new TemplateEngine(mockFileLoader, mockTransformer, {});
 
         expect(loggerInfoSpy).toHaveBeenCalledWith('🔧 Registering Handlebars Helpers...');
         expect(loggerInfoSpy).toHaveBeenCalledWith('✅ Registered helper: uppercase');
@@ -99,7 +99,7 @@ describe('TemplateEngine', () => {
         mockFileLoader.getConfig.mockReturnValue(templateConfig);
         mockFileLoader.getTemplateFiles.mockReturnValue({});
 
-        const engine = new TemplateEngine(mockFileLoader, mockTransformer);
+        const engine = new TemplateEngine(mockFileLoader, mockTransformer, {});
         engine.generate({}, testOutputDir);
 
         expect(loggerWarnSpy).toHaveBeenCalledWith('⚠️ Skipping unknown template: unknown.hbs');
@@ -134,7 +134,7 @@ describe('TemplateEngine', () => {
         const mkdirSyncSpy = vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
         const writeFileSyncSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => { });
 
-        const engine = new TemplateEngine(mockFileLoader, mockTransformer);
+        const engine = new TemplateEngine(mockFileLoader, mockTransformer, {});
 
         const userData = {
             document: {
@@ -173,7 +173,7 @@ describe('TemplateEngine', () => {
         const mkdirSyncSpy = vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
         const writeFileSyncSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => { });
 
-        const engine = new TemplateEngine(mockFileLoader, mockTransformer);
+        const engine = new TemplateEngine(mockFileLoader, mockTransformer, {});
 
         const testData = { data: { id: '123', name: 'Alice' } };
 
@@ -199,7 +199,7 @@ describe('TemplateEngine', () => {
         mockFileLoader.getConfig.mockReturnValue(templateConfig);
         mockFileLoader.getTemplateFiles.mockReturnValue(templateFiles);
 
-        const engine = new TemplateEngine(mockFileLoader, mockTransformer);
+        const engine = new TemplateEngine(mockFileLoader, mockTransformer, {});
         engine.generate({ data: { name: 'Alice' } }, testOutputDir);
 
         expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining('⚠️ Missing partial template: header.hbs'));
@@ -219,7 +219,7 @@ describe('TemplateEngine', () => {
         mockFileLoader.getConfig.mockReturnValue(templateConfig);
         mockFileLoader.getTemplateFiles.mockReturnValue(templateFiles);
 
-        const engine = new TemplateEngine(mockFileLoader, mockTransformer);
+        const engine = new TemplateEngine(mockFileLoader, mockTransformer, {});
         engine.generate({ data: { id: '1', name: 'Alice' } }, testOutputDir);
 
         expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining('⚠️ Expected array for repeated output, but found non-array for main.hbs'));
@@ -239,7 +239,7 @@ describe('TemplateEngine', () => {
         mockFileLoader.getConfig.mockReturnValue(templateConfig);
         mockFileLoader.getTemplateFiles.mockReturnValue(templateFiles);
 
-        const engine = new TemplateEngine(mockFileLoader, mockTransformer);
+        const engine = new TemplateEngine(mockFileLoader, mockTransformer, {});
         engine.generate({ data: { id: '1', name: 'Alice' } }, testOutputDir);
 
         expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining('⚠️ Unknown output-type: invalid-type'));
@@ -262,7 +262,7 @@ describe('TemplateEngine', () => {
         mockFileLoader.getConfig.mockReturnValue(templateConfig);
         mockFileLoader.getTemplateFiles.mockReturnValue(templateFiles);
 
-        const engine = new TemplateEngine(mockFileLoader, mockTransformer);
+        const engine = new TemplateEngine(mockFileLoader, mockTransformer, {});
         engine.generate({ data: { name: 'Alice' } }, testOutputDir);
 
         expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining('✅ Registering partial template: header.hbs'));
@@ -288,7 +288,7 @@ describe('TemplateEngine', () => {
 
             vi.mocked(TemplatePreprocessor.preprocessTemplate).mockReturnValue(preprocessedTemplate);
 
-            new TemplateEngine(mockFileLoader, mockTransformer);
+            new TemplateEngine(mockFileLoader, mockTransformer, {});
 
             expect(TemplatePreprocessor.preprocessTemplate).toHaveBeenCalledWith(originalTemplate);
             expect(loggerDebugSpy).toHaveBeenCalledWith(preprocessedTemplate);
@@ -313,7 +313,7 @@ describe('TemplateEngine', () => {
             vi.mocked(TemplatePreprocessor.preprocessTemplate).mockReturnValue(templateFiles['main.hbs']);
             vi.mocked(TemplatePathExtractor.convertFromDotNotation).mockReturnValue(['John Doe']);
 
-            const engine = new TemplateEngine(mockFileLoader, mockTransformer);
+            const engine = new TemplateEngine(mockFileLoader, mockTransformer, {});
 
             // Test the helper was registered by generating output
             const testData = { data: { id: 'test-id', user: { name: 'John Doe' } } };
@@ -346,7 +346,7 @@ describe('TemplateEngine', () => {
                 throw new Error('Invalid path');
             });
 
-            const engine = new TemplateEngine(mockFileLoader, mockTransformer);
+            const engine = new TemplateEngine(mockFileLoader, mockTransformer, {});
             const testData = { data: { id: 'test-id' } };
             engine.generate(testData, './test-output');
 
@@ -372,7 +372,7 @@ describe('TemplateEngine', () => {
             vi.mocked(TemplatePreprocessor.preprocessTemplate).mockReturnValue(templateFiles['main.hbs']);
             vi.mocked(TemplatePathExtractor.convertFromDotNotation).mockReturnValue(['John Doe']);
 
-            const engine = new TemplateEngine(mockFileLoader, mockTransformer);
+            const engine = new TemplateEngine(mockFileLoader, mockTransformer, {});
             const testData = { data: { id: 'test-id', user: { name: 'John Doe' } } };
             engine.generate(testData, './test-output');
 
