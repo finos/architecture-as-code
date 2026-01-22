@@ -39,13 +39,12 @@ async function copyTemplateBundles(repoRoot, distDir) {
     const templateBundleSrc = path.join(repoRoot, 'shared', 'dist', 'template-bundles')
     const templateBundleDest = path.join(distDir, 'template-bundles')
 
-    if (fs.existsSync(templateBundleSrc)) {
-        await copyDir(templateBundleSrc, templateBundleDest)
-        console.log('Template bundles copied to', templateBundleDest)
-    } else {
-        console.warn('Template bundles not found at', templateBundleSrc)
-        console.warn('Run "npm run build" in shared package first')
+    if (!fs.existsSync(templateBundleSrc)) {
+        throw new Error(`Template bundles not found at ${templateBundleSrc}\nRun "npm run build" in shared package first`)
     }
+
+    await copyDir(templateBundleSrc, templateBundleDest)
+    console.log('Template bundles copied to', templateBundleDest)
 }
 
 async function main() {
