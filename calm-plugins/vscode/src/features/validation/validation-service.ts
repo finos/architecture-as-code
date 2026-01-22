@@ -292,8 +292,8 @@ export class ValidationService implements vscode.Disposable {
 
         if (output.line_start !== undefined && output.line_end !== undefined) {
             // ValidationOutput uses 1-based line numbers
-            const startLine = Math.max(0, (output.line_start ?? 1) - 1)
-            const endLine = Math.max(0, (output.line_end ?? 1) - 1)
+            const startLine = Math.max(0, output.line_start - 1)
+            const endLine = Math.max(0, output.line_end - 1)
             const startChar = output.character_start ?? 0
             const endChar = output.character_end ?? doc.lineAt(endLine).text.length
 
