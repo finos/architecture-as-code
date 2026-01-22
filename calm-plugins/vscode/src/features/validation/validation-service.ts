@@ -67,6 +67,16 @@ export class ValidationService implements vscode.Disposable {
             })
         )
 
+        // Validate when an editor becomes active (handles reopening cached documents)
+        this.disposables.push(
+            vscode.window.onDidChangeActiveTextEditor(editor => {
+                if (editor?.document) {
+                    this.logger.info?.(`[validation] Editor activated: ${editor.document.uri.fsPath}`)
+                    void this.validateIfCalmDocument(editor.document)
+                }
+            })
+        )
+
         // Clear diagnostics when document is closed from memory
         this.disposables.push(
             vscode.workspace.onDidCloseTextDocument(doc => {
