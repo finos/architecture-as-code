@@ -67,12 +67,26 @@ export class ValidationService implements vscode.Disposable {
             })
         )
 
-        // Clear diagnostics when document is closed
+        // Clear diagnostics when document is closed from memory
         this.disposables.push(
             vscode.workspace.onDidCloseTextDocument(doc => {
-                this.logger.info?.(`[validation] Document closed: ${doc.uri.fsPath}`)
+                this.logger.info?.(`[validation] Document closed from memory: ${doc.uri.fsPath}`)
                 this.diagnosticCollection.delete(doc.uri)
                 this.logger.info?.(`[validation] Diagnostics cleared for: ${doc.uri.fsPath}`)
+            })
+        )
+
+        // Clear diagnostics when editor tab is closed (document may still be in memory)
+        this.disposables.push(
+            vscode.window.tabGroups.onDidChangeTabs(event => {
+                for (const closedTab of event.closed) {
+                    if (closedTab.input instanceof vscode.TabInputText) {
+                        const uri = closedTab.input.uri
+                        this.logger.info?.(`[validation] Editor tab closed: ${uri.fsPath}`)
+                        this.diagnosticCollection.delete(uri)
+                        this.logger.info?.(`[validation] Diagnostics cleared for closed tab: ${uri.fsPath}`)
+                    }
+                }
             })
         )
 
