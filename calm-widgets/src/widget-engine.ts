@@ -1,7 +1,7 @@
 import Handlebars from 'handlebars';
 import { WidgetRegistry } from './widget-registry';
 import { WidgetRenderer } from './widget-renderer';
-import { CalmWidget } from './types';
+import { CalmWidget, WidgetOptionContainer } from './types';
 import { registerGlobalTemplateHelpers } from './widget-helpers';
 
 import { TableWidget } from './widgets/table';
@@ -14,7 +14,8 @@ import { BlockArchitectureWidget } from './widgets/block-architecture';
 export class WidgetEngine {
     constructor(
         private readonly handlebars: typeof Handlebars,
-        private readonly registry: WidgetRegistry
+        private readonly registry: WidgetRegistry,
+        private readonly optionContainer: WidgetOptionContainer
     ) { }
 
     setupWidgets(widgets: { widget: CalmWidget<unknown, Record<string, unknown>, unknown>, folder: string }[]) {
@@ -48,7 +49,7 @@ export class WidgetEngine {
     registerWidgetHelper(widgetId: string) {
         this.handlebars.registerHelper(widgetId, (context: unknown, options: Record<string, unknown>) => {
             const renderer = new WidgetRenderer(this.handlebars, this.registry);
-            const rendered = renderer.render(widgetId, context, options);
+            const rendered = renderer.render(widgetId, context, options, this.optionContainer[widgetId]);
             return new this.handlebars.SafeString(rendered);
         });
     }

@@ -3,11 +3,13 @@ import Handlebars from 'handlebars';
 import { WidgetEngine } from './widget-engine';
 import { WidgetRegistry } from './widget-registry';
 import { FixtureLoader } from './test-utils/fixture-loader';
+import { WidgetOptionContainer } from './types';
 
 describe('Widgets E2E - Handlebars Integration', () => {
     let handlebars: typeof Handlebars;
     let registry: WidgetRegistry;
     let engine: WidgetEngine;
+    let options: WidgetOptionContainer
     let fixtures: FixtureLoader;
 
     const normalizeLineEndings = (str: string) => str.replaceAll('\r\n', '\n');
@@ -18,7 +20,8 @@ describe('Widgets E2E - Handlebars Integration', () => {
     beforeEach(() => {
         handlebars = Handlebars.create();
         registry = new WidgetRegistry(handlebars);
-        engine = new WidgetEngine(handlebars, registry);
+        options = {}
+        engine = new WidgetEngine(handlebars, registry, options);
         engine.registerDefaultWidgets();
         fixtures = new FixtureLoader();
     });
