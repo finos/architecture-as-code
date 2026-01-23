@@ -25,4 +25,12 @@ export class ConfigService implements Config {
     urlMapping(): string | undefined {
         return this.config.get<string>('urlMapping')
     }
+
+    docifyTheme(): string {
+        const themeSetting = this.config.get<string>('docify.theme', 'auto')
+        if (themeSetting === 'auto') {
+            return vscode.workspace.getConfiguration('workbench').get<string>('colorTheme')?.includes('Dark') ? 'dark' : 'light'
+        }
+        return themeSetting
+    }
 }

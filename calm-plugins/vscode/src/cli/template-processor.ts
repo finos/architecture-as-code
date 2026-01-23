@@ -19,6 +19,24 @@ export class TemplateProcessor {
     }
 
     /**
+     * Apply documentation theme to template content
+     */
+    processTemplateForTheme(content: string, theme: string): string {
+        if (theme === 'auto') {
+            return content
+        }
+        else {
+            return `---
+widget-options:
+    block-architecture:
+        theme: ${theme}
+        render-node-type-shapes: true
+---
+${content}`
+        }
+    }
+
+    /**
    * Get template name based on selection and graph structure
    */
     getTemplateNameForSelection(selectedId: string | undefined, graph: any): string {
