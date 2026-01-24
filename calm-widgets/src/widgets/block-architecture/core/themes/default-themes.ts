@@ -117,9 +117,67 @@ export const darkTheme: ThemeColors = {
 };
 
 /**
- * High-contrast theme - accessibility-focused with strong color differentiation
+ * High-contrast dark theme - accessibility-focused with strong color differentiation
  */
-export const highContrastTheme: ThemeColors = {
+export const highContrastDarkTheme: ThemeColors = {
+    boundary: {
+        fill: '#ffffff',
+        stroke: '#000000',
+        strokeWidth: 3,
+        strokeDasharray: '5 4',
+    },
+    node: {
+        fill: '#ffffff',
+        stroke: '#000000',
+        strokeWidth: 2,
+    },
+    iface: {
+        fill: '#e0e0e0',
+        stroke: '#000000',
+        strokeWidth: 2,
+        fontSize: '10px',
+    },
+    highlight: {
+        fill: '#ffff00',
+        stroke: '#000000',
+        strokeWidth: 3,
+    },
+    actor: {
+        fill: '#cce5ff',
+        stroke: '#0000ff',
+        strokeWidth: 3,
+    },
+    database: {
+        fill: '#ffe5cc',
+        stroke: '#ff6600',
+        strokeWidth: 3,
+    },
+    webclient: {
+        fill: '#e5ccff',
+        stroke: '#6600ff',
+        strokeWidth: 3,
+    },
+    service: {
+        fill: '#ccffcc',
+        stroke: '#009900',
+        strokeWidth: 3,
+    },
+    messagebus: {
+        fill: '#ffccee',
+        stroke: '#cc0066',
+        strokeWidth: 3,
+    },
+    system: {
+        fill: '#ffffcc',
+        stroke: '#cc9900',
+        strokeWidth: 3,
+    },
+};
+
+/**
+ * High-contrast light theme - accessibility-focused with strong color differentiation
+ */
+export const highContrastLightTheme: ThemeColors = {
     boundary: {
         fill: '#ffffff',
         stroke: '#000000',
@@ -182,9 +240,9 @@ export function getThemeByName(name: string): ThemeColors {
     case 'dark':
         return darkTheme;
     case 'high-contrast-dark':
-        return highContrastTheme;
+        return highContrastDarkTheme;
     case 'high-contrast-light':
-        return highContrastTheme;
+        return highContrastLightTheme;
     case 'light':
     default:
         return lightTheme;

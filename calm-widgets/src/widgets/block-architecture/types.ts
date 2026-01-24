@@ -4,7 +4,6 @@ export type IncludeContainers = 'none' | 'parents' | 'all';
 export type IncludeChildren = 'none' | 'direct' | 'all';
 export type Edges = 'connected' | 'seeded' | 'all' | 'none';
 export type EdgeLabels = 'description' | 'none';
-export type ThemePreset = 'light' | 'dark' | 'high-contrast';
 
 /** -----------------------------
  * Theme Types
@@ -52,7 +51,7 @@ export interface BlockArchOptions {
     ['link-prefix']?: string;
     ['link-map']?: string;
     ['node-type-map']?: string;
-    ['theme']?: ThemePreset | string;
+    ['theme']?: string;
     ['theme-colors']?: string | ThemeColors;
 }
 
@@ -101,7 +100,7 @@ export type NormalizedOptions = {
     linkPrefix?: string;
     linkMap?: Record<string, string>;
     nodeTypeMap?: Record<string, string>;
-    theme: ThemePreset;
+    theme: string;
     themeColors?: ThemeColors;
 };
 

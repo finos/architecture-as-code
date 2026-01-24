@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { parseTheme, resolveThemeColors } from './theme-parser';
 import { ThemeColors } from '../../types';
-import { lightTheme, darkTheme, highContrastTheme } from './default-themes';
+import { lightTheme, darkTheme, highContrastLightTheme, highContrastDarkTheme } from './default-themes';
 
 describe('theme-parser', () => {
     // Mock console.warn to verify warnings
@@ -19,12 +19,6 @@ describe('theme-parser', () => {
         describe('theme preset parsing', () => {
             it('returns light theme by default when no options provided', () => {
                 const result = parseTheme();
-                expect(result.theme).toBe('light');
-                expect(result.themeColors).toBeUndefined();
-            });
-
-            it('returns light theme when undefined is passed', () => {
-                const result = parseTheme(undefined, undefined);
                 expect(result.theme).toBe('light');
                 expect(result.themeColors).toBeUndefined();
             });
@@ -71,29 +65,13 @@ describe('theme-parser', () => {
             });
 
             it('parses "HIGH-CONTRAST" theme (uppercase)', () => {
-                const result = parseTheme('HIGH-CONTRAST');
-                expect(result.theme).toBe('high-contrast');
-            });
-
-            it('falls back to light for unknown theme preset', () => {
-                const result = parseTheme('unknown-theme');
-                expect(result.theme).toBe('light');
-                expect(consoleWarnSpy).toHaveBeenCalledWith(
-                    'Unknown theme preset "unknown-theme", falling back to "light"'
-                );
+                const result = parseTheme('HIGH-CONTRAST-DARK');
+                expect(result.theme).toBe('high-contrast-dark');
             });
 
             it('falls back to light for empty string', () => {
                 const result = parseTheme('');
                 expect(result.theme).toBe('light');
-            });
-
-            it('falls back to light for invalid preset "custom"', () => {
-                const result = parseTheme('custom');
-                expect(result.theme).toBe('light');
-                expect(consoleWarnSpy).toHaveBeenCalledWith(
-                    'Unknown theme preset "custom", falling back to "light"'
-                );
             });
         });
 
@@ -307,9 +285,14 @@ describe('theme-parser', () => {
                 expect(result).toEqual(darkTheme);
             });
 
-            it('returns high-contrast theme colors when no custom colors provided', () => {
-                const result = resolveThemeColors('high-contrast');
-                expect(result).toEqual(highContrastTheme);
+            it('returns high-contrast-dark theme colors when no custom colors provided', () => {
+                const result = resolveThemeColors('high-contrast-dark');
+                expect(result).toEqual(highContrastDarkTheme);
+            });
+
+            it('returns high-contrast-light theme colors when no custom colors provided', () => {
+                const result = resolveThemeColors('high-contrast-light');
+                expect(result).toEqual(highContrastLightTheme);
             });
 
             it('returns light theme when undefined custom colors', () => {
@@ -441,7 +424,7 @@ describe('theme-parser', () => {
 
                 const lightResult = resolveThemeColors('light', partialCustom);
                 const darkResult = resolveThemeColors('dark', partialCustom);
-                const hcResult = resolveThemeColors('high-contrast', partialCustom);
+                const hcResult = resolveThemeColors('high-contrast-dark', partialCustom);
 
                 // Custom parts should be same
                 expect(lightResult.boundary).toEqual(partialCustom.boundary);

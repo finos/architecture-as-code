@@ -1,7 +1,7 @@
 import Handlebars from 'handlebars';
 import { WidgetRegistry } from './widget-registry';
 import { WidgetRenderer } from './widget-renderer';
-import { CalmWidget, WidgetOptionContainer } from './types';
+import { CalmWidget } from './types';
 import { registerGlobalTemplateHelpers } from './widget-helpers';
 
 import { TableWidget } from './widgets/table';

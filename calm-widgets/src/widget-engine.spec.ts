@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import handlebars from 'handlebars';
 import { WidgetEngine, WidgetsOptionsContainer } from './widget-engine';
 import { WidgetRegistry } from './widget-registry';
-import { CalmWidget, WidgetOptionContainer } from './types';
+import { CalmWidget } from './types';
 import { WidgetRenderer } from './widget-renderer';
 
 const globalHelpers = {
@@ -50,7 +50,6 @@ describe('WidgetEngine', () => {
     const registerMock = vi.fn();
     let registry: WidgetRegistry;
     let engine: WidgetEngine;
-    let options: WidgetOptionContainer;
 
     beforeEach(() => {
         vi.clearAllMocks();

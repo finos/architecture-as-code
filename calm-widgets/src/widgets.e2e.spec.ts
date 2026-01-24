@@ -3,13 +3,11 @@ import Handlebars from 'handlebars';
 import { WidgetEngine, WidgetsOptionsContainer } from './widget-engine';
 import { WidgetRegistry } from './widget-registry';
 import { FixtureLoader } from './test-utils/fixture-loader';
-import { WidgetOptionContainer } from './types';
 
 describe('Widgets E2E - Handlebars Integration', () => {
     let handlebars: typeof Handlebars;
     let registry: WidgetRegistry;
     let engine: WidgetEngine;
-    let options: WidgetOptionContainer;
     let fixtures: FixtureLoader;
 
     const normalizeLineEndings = (str: string) => str.replaceAll('\r\n', '\n');
@@ -366,7 +364,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
             expectToBeSameIgnoringLineEndings(result, expected);
         });
 
-        it('renders with high-contrast theme using accessibility-focused color palette', () => {
+        it('renders with high-contrast-dark theme using accessibility-focused color palette', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'theme-high-contrast');
             const compiled = handlebars.compile(template);
             const result = compiled(context);
