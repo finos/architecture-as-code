@@ -434,7 +434,7 @@ describe('theme-parser', () => {
                 // But filled parts should differ based on preset
                 expect(lightResult.actor).toEqual(lightTheme.actor);
                 expect(darkResult.actor).toEqual(darkTheme.actor);
-                expect(hcResult.actor).toEqual(highContrastTheme.actor);
+                expect(hcResult.actor).toEqual(highContrastDarkTheme.actor);
 
                 expect(lightResult.actor).not.toEqual(darkResult.actor);
                 expect(darkResult.actor).not.toEqual(hcResult.actor);
