@@ -177,11 +177,13 @@ export const highContrastTheme: ThemeColors = {
 /**
  * Get a theme by preset name
  */
-export function getThemeByName(name: 'light' | 'dark' | 'high-contrast'): ThemeColors {
+export function getThemeByName(name: string): ThemeColors {
     switch (name) {
     case 'dark':
         return darkTheme;
-    case 'high-contrast':
+    case 'high-contrast-dark':
+        return highContrastTheme;
+    case 'high-contrast-light':
         return highContrastTheme;
     case 'light':
     default:

@@ -15,7 +15,7 @@ import { pathToFileURL } from 'node:url';
 import TemplateDefaultTransformer from './template-default-transformer';
 import { CalmCore } from '@finos/calm-models/model';
 import { DereferencingVisitor } from '../model-visitor/dereference-visitor';
-import { WidgetEngine, WidgetOptionContainer, WidgetRegistry } from '@finos/calm-widgets';
+import { WidgetEngine, WidgetsOptions, WidgetRegistry } from '@finos/calm-widgets';
 import Handlebars from 'handlebars';
 
 export type TemplateProcessingMode = 'template' | 'template-directory' | 'bundle';
@@ -91,7 +91,6 @@ export class TemplateProcessor {
         }
 
         const config = loader.getConfig();
-        const optionContainer: WidgetOptionContainer = {};
         if (this.supportWidgetEngine === true) {
             //TODO: Handlebars supports local instance. Ideally to make testable we should use a local instance of Handlebars and inject dependency.
             const widgetEngine = new WidgetEngine(Handlebars, new WidgetRegistry(Handlebars), optionContainer);

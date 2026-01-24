@@ -4,6 +4,8 @@ import * as vscode from 'vscode'
 import { Logger } from '../core/ports/logger'
 import { TemplateProcessor } from './template-processor'
 import { ModelService } from '../core/services/model-service'
+import { Config } from '../core/ports/config'
+import { ConfigService } from '../core/services/config-service'
 
 /**
  * TemplateService - VSCode-specific template file loading service
@@ -29,7 +31,10 @@ export class TemplateService {
     try {
       const templatePath = path.join(this.context.extensionUri.fsPath, 'templates', name)
       let content = await fs.promises.readFile(templatePath, 'utf8')
-      return this.processor.processTemplateForLabels(content, showLabels)
+      content = this.processor.processTemplateForLabels(content, showLabels)
+      const configService: Config = new ConfigService();
+      const docifyTheme = configService.docifyTheme();
+      return this.processor.processTemplateForTheme(content, docifyTheme);
     } catch {
       this.log.info(`[preview] loadTemplate: using fallback template for ${name}`)
       return this.processor.generateFallbackTemplate(showLabels)

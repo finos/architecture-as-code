@@ -11,6 +11,38 @@ import { FlowSequenceWidget } from './widgets/flow-sequence';
 import { RelatedNodesWidget } from './widgets/related-nodes';
 import { BlockArchitectureWidget } from './widgets/block-architecture';
 
+export type WidgetOptions = Record<string, unknown>;
+export type WidgetsOptions = Record<string, WidgetOptions>;
+
+export class WidgetsOptionsContainer {
+    private options: WidgetsOptions;
+    private static instance: WidgetsOptionsContainer;
+
+    private constructor() {
+        this.options = {};
+    }
+
+    public static getInstance(): WidgetsOptionsContainer {
+        if (!this.instance) {
+            this.instance = new WidgetsOptionsContainer();
+        }
+        return this.instance;
+    }
+
+    public reset(): void {
+        this.options = {};
+    }
+
+    public getOptionsForWidget(widgetId: string): WidgetOptions {
+        console.log('Getting options for widget:', widgetId, this.options);
+        return this.options[widgetId] || undefined;
+    }
+
+    public setOptions(options: WidgetsOptions): void {
+        this.options = options;
+    }
+}
+
 export class WidgetEngine {
     constructor(
         private readonly handlebars: typeof Handlebars,
@@ -49,7 +81,8 @@ export class WidgetEngine {
     registerWidgetHelper(widgetId: string) {
         this.handlebars.registerHelper(widgetId, (context: unknown, options: Record<string, unknown>) => {
             const renderer = new WidgetRenderer(this.handlebars, this.registry);
-            const rendered = renderer.render(widgetId, context, options, this.optionContainer[widgetId]);
+            const baseOptions = WidgetsOptionsContainer.getInstance().getOptionsForWidget(widgetId);
+            const rendered = renderer.render(widgetId, context, options, baseOptions);
             return new this.handlebars.SafeString(rendered);
         });
     }

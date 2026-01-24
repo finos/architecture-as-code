@@ -9,7 +9,7 @@ import { TemplatePreprocessor } from './template-preprocessor.js';
 import { CopyStrategy } from './strategies/copy-strategy.js';
 import { SingleStrategy } from './strategies/single-strategy.js';
 import { RepeatedStrategy } from './strategies/repeated-strategy.js';
-import { WidgetOptionContainer } from '@finos/calm-widgets';
+import { WidgetsOptionsContainer } from '@finos/calm-widgets';
 
 export class TemplateEngine {
     private readonly compiledTemplates: Record<string, Handlebars.TemplateDelegate>;
@@ -56,7 +56,7 @@ export class TemplateEngine {
             this.registerPartials(entry.partials);
             const strategy = this.strategies[entry['output-type']];
             if (strategy) {
-                Object.assign(this.optionContainer, entry['front-matter']?.widgetOptions || {});
+                WidgetsOptionsContainer.getInstance().setOptions(entry['front-matter']?.widgetOptions || {});
 
                 strategy.process(entry, context, logger);
             } else {
