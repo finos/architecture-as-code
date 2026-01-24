@@ -5,8 +5,10 @@ import {
     parseFrontMatterFromContent,
     parseFrontMatter,
     hasArchitectureFrontMatter,
-    replaceVariables
+    replaceVariables,
+    injectWidgetOptionsIntoContent
 } from './front-matter';
+import { result } from 'lodash';
 
 vi.mock('fs');
 
@@ -318,6 +320,31 @@ Content`;
             const result = replaceVariables(content, variables);
 
             expect(result).toBe('auth-service');
+        });
+    });
+
+    describe('injectWidgetOptionsIntoContent', () => {
+        it('should inject widget options as YAML frontmatter into content without frontmatter', () => {
+            const content = '# My Template\n\nSome content here.';
+            const widgetOptions = {
+                'block-architecture': {
+                    theme: 'dark',
+                    layout: 'horizontal'
+                }
+            };
+
+            const result = injectWidgetOptionsIntoContent(content, widgetOptions);
+
+            expect(result).toContain('---\nwidget-options:\n  block-architecture:\n    theme: dark\n    layout: horizontal\n---\n# My Template');
+        });
+
+        it('should handle no widget options', () => {
+            const content = 'Template content';
+            const widgetOptions = undefined;
+
+            const result = injectWidgetOptionsIntoContent(content, widgetOptions);
+
+            expect(result).toContain('Template content');
         });
     });
 });
