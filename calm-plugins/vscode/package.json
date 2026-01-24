@@ -102,7 +102,7 @@
                     "enum": [
                         "light",
                         "dark",
-                        "high-constrast",
+                        "high-contrast",
                         "auto"
                     ],
                     "default": "auto",

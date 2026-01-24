@@ -3,7 +3,7 @@ import path from 'path';
 import { IndexFile, TemplateEntry } from './types.js';
 import { initLogger, Logger } from '../logger.js';
 import { parseFrontMatterFromContent, replaceVariables } from './front-matter.js';
-import { WidgetOptionContainer } from '@finos/calm-widgets';
+import { WidgetsOptions } from '@finos/calm-widgets';
 
 
 export interface ITemplateBundleLoader {
@@ -31,7 +31,7 @@ export class SelfProvidedTemplateLoader implements ITemplateBundleLoader {
         const parsed = parseFrontMatterFromContent(templateContent, templateDir);
 
         const frontMatterVariables: Record<string, string> = {};
-        const widgetOptions: WidgetOptionContainer = {};
+        const widgetOptions: WidgetsOptions = {};
         if (parsed && Object.keys(parsed.frontMatter).length > 0) {
             templateContent = replaceVariables(templateContent, parsed.frontMatter);
             for (const [key, value] of Object.entries(parsed.frontMatter)) {
@@ -97,7 +97,7 @@ export class SelfProvidedDirectoryTemplateLoader implements ITemplateBundleLoade
                     const parsed = parseFrontMatterFromContent(templateContent, templateFileDir);
 
                     const frontMatterVariables: Record<string, string> = {};
-                    const widgetOptions: WidgetOptionContainer = {};
+                    const widgetOptions: WidgetsOptions = {};
                     if (parsed && Object.keys(parsed.frontMatter).length > 0) {
                         templateContent = replaceVariables(templateContent, parsed.frontMatter);
                         for (const [key, value] of Object.entries(parsed.frontMatter)) {

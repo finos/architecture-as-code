@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import handlebars from 'handlebars';
-import { WidgetEngine } from './widget-engine';
+import { WidgetEngine, WidgetsOptionsContainer } from './widget-engine';
 import { WidgetRegistry } from './widget-registry';
-import { CalmWidget, WidgetOptionContainer } from './types';
+import { CalmWidget } from './types';
 import { WidgetRenderer } from './widget-renderer';
 
 const globalHelpers = {
@@ -50,15 +50,14 @@ describe('WidgetEngine', () => {
     const registerMock = vi.fn();
     let registry: WidgetRegistry;
     let engine: WidgetEngine;
-    let options: WidgetOptionContainer;
 
     beforeEach(() => {
         vi.clearAllMocks();
         localHandlebars = handlebars.create(); // ✅ fresh handlebars with empty helpers
         vi.spyOn(localHandlebars, 'registerHelper');
         registry = { register: registerMock } as unknown as WidgetRegistry;
-        options = {};
-        engine = new WidgetEngine(localHandlebars, registry, options);
+        WidgetsOptionsContainer.getInstance().reset();
+        engine = new WidgetEngine(localHandlebars, registry);
     });
 
     describe('setupWidgets', () => {
@@ -136,7 +135,7 @@ describe('WidgetEngine', () => {
         it('passes options to WidgetRenderer', () => {
             engine.registerWidgetHelper('test-widget');
 
-            options['test-widget'] = { optionA: 'valueA' };
+            WidgetsOptionsContainer.getInstance().setOptions({ 'test-widget': { optionA: 'valueA' } });
 
             const calls = (localHandlebars.registerHelper as Mock).mock.calls;
             const [helperName, helperFn] = calls.find(([name]) => name === 'test-widget')!;
@@ -150,7 +149,7 @@ describe('WidgetEngine', () => {
                 'test-widget',
                 { some: 'context' },
                 { hash: {} },
-                options['test-widget']
+                { optionA: 'valueA' }
             );
         });
     });

@@ -258,7 +258,7 @@ describe('TemplateProcessor', () => {
 
             await processor.processTemplate();
 
-            expect(WidgetEngine).toHaveBeenCalledWith(expect.anything(), expect.anything(), expect.anything());
+            expect(WidgetEngine).toHaveBeenCalledWith(expect.anything(), expect.anything());
             expect(WidgetRegistry).toHaveBeenCalledWith(expect.anything());
             expect(mockWidgetEngine.registerDefaultWidgets).toHaveBeenCalled();
         });
