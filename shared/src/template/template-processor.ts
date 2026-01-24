@@ -93,7 +93,7 @@ export class TemplateProcessor {
         const config = loader.getConfig();
         if (this.supportWidgetEngine === true) {
             //TODO: Handlebars supports local instance. Ideally to make testable we should use a local instance of Handlebars and inject dependency.
-            const widgetEngine = new WidgetEngine(Handlebars, new WidgetRegistry(Handlebars), optionContainer);
+            const widgetEngine = new WidgetEngine(Handlebars, new WidgetRegistry(Handlebars));
             widgetEngine.registerDefaultWidgets();
         }
 
@@ -111,7 +111,7 @@ export class TemplateProcessor {
             const dereference = new DereferencingVisitor(mappedResolver);
             await dereference.visit(coreModel);
             const transformedModel = transformer.getTransformedModel(coreModel);
-            const engine = new TemplateEngine(loader, transformer, optionContainer);
+            const engine = new TemplateEngine(loader, transformer);
 
             // Pass scaffold paths for front-matter injection
             // Always provide paths so both scaffold and non-scaffold modes produce identical output

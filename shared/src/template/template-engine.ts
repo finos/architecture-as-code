@@ -16,7 +16,6 @@ export class TemplateEngine {
     private readonly rawTemplates: Record<string, string>;
     private readonly config: IndexFile;
     private readonly strategies: Record<string, OutputStrategy>;
-    private readonly optionContainer: WidgetOptionContainer;
     private static _logger: Logger | undefined;
 
     private static get logger(): Logger {
@@ -26,7 +25,7 @@ export class TemplateEngine {
         return this._logger;
     }
 
-    constructor(fileLoader: ITemplateBundleLoader, transformer: CalmTemplateTransformer, optionContainer: WidgetOptionContainer) {
+    constructor(fileLoader: ITemplateBundleLoader, transformer: CalmTemplateTransformer) {
         this.config = fileLoader.getConfig();
         this.rawTemplates = fileLoader.getTemplateFiles();
         this.compiledTemplates = this.compileAllTemplates();
@@ -36,7 +35,6 @@ export class TemplateEngine {
             'single': new SingleStrategy(this),
             'repeated': new RepeatedStrategy(this)
         };
-        this.optionContainer = optionContainer;
     }
 
     public generate(

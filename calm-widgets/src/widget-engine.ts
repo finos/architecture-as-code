@@ -46,8 +46,7 @@ export class WidgetsOptionsContainer {
 export class WidgetEngine {
     constructor(
         private readonly handlebars: typeof Handlebars,
-        private readonly registry: WidgetRegistry,
-        private readonly optionContainer: WidgetOptionContainer
+        private readonly registry: WidgetRegistry
     ) { }
 
     setupWidgets(widgets: { widget: CalmWidget<unknown, Record<string, unknown>, unknown>, folder: string }[]) {
