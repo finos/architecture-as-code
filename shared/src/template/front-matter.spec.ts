@@ -8,7 +8,6 @@ import {
     replaceVariables,
     injectWidgetOptionsIntoContent
 } from './front-matter';
-import { result } from 'lodash';
 
 vi.mock('fs');
 

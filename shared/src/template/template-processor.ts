@@ -15,7 +15,7 @@ import { pathToFileURL } from 'node:url';
 import TemplateDefaultTransformer from './template-default-transformer';
 import { CalmCore } from '@finos/calm-models/model';
 import { DereferencingVisitor } from '../model-visitor/dereference-visitor';
-import { WidgetEngine, WidgetsOptions, WidgetRegistry } from '@finos/calm-widgets';
+import { WidgetEngine, WidgetRegistry } from '@finos/calm-widgets';
 import Handlebars from 'handlebars';
 
 export type TemplateProcessingMode = 'template' | 'template-directory' | 'bundle';
