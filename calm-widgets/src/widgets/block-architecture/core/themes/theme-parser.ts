@@ -48,6 +48,7 @@ export function resolveThemeColors(theme: string, customColors?: ThemeColors): T
         // Merge custom colors with preset to fill in any missing properties
         const baseTheme = getThemeByName(theme);
         return {
+            base: customColors.base || baseTheme.base,
             boundary: customColors.boundary || baseTheme.boundary,
             node: customColors.node || baseTheme.node,
             iface: customColors.iface || baseTheme.iface,

@@ -11,12 +11,21 @@ export type EdgeLabels = 'description' | 'none';
 export interface ThemeClassStyle {
     fill: string;
     stroke: string;
-    strokeWidth?: number;
+    strokeWidth: number;
     strokeDasharray?: string;
     fontSize?: string;
+    color?: string;
+}
+
+interface ThemeBaseDetails {
+    darkMode?: boolean;
+    edgeLabelBackground?: string;
+    fontSize?: string;
+    lineColor?: string;
 }
 
 export interface ThemeColors {
+    base?: ThemeBaseDetails;
     boundary: ThemeClassStyle;
     node: ThemeClassStyle;
     iface: ThemeClassStyle;
