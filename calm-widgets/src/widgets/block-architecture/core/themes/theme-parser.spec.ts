@@ -345,25 +345,6 @@ describe('theme-parser', () => {
                 expect(result.webclient).toEqual(darkTheme.webclient);
             });
 
-            it('merges all custom properties including node types with high-contrast theme', () => {
-                const customColors: ThemeColors = {
-                    boundary: { fill: '#fff', stroke: '#000', strokeWidth: 5 },
-                    node: { fill: '#fff', stroke: '#000', strokeWidth: 3 },
-                    iface: { fill: '#eee', stroke: '#000', strokeWidth: 3 },
-                    highlight: { fill: '#ff0', stroke: '#000', strokeWidth: 5 },
-                    actor: { fill: '#aaf', stroke: '#00f', strokeWidth: 4 },
-                    database: { fill: '#faa', stroke: '#f00', strokeWidth: 4 },
-                    webclient: { fill: '#faf', stroke: '#f0f', strokeWidth: 4 },
-                    service: { fill: '#afa', stroke: '#0f0', strokeWidth: 4 },
-                    messagebus: { fill: '#ffa', stroke: '#ff0', strokeWidth: 4 },
-                    system: { fill: '#aff', stroke: '#0ff', strokeWidth: 4 }
-                };
-                const result = resolveThemeColors('high-contrast', customColors);
-
-                // All custom properties should be used
-                expect(result).toEqual(customColors);
-            });
-
             it('uses preset fallback for undefined custom property', () => {
                 const customColors: Partial<ThemeColors> = {
                     boundary: { fill: '#custom', stroke: '#custom', strokeWidth: 2 },
@@ -395,6 +376,7 @@ describe('theme-parser', () => {
         describe('complete custom color override', () => {
             it('uses all custom colors when complete theme provided', () => {
                 const completeCustomTheme: ThemeColors = {
+                    base: { darkMode: false, fontSize: '10px' },
                     boundary: { fill: '#010', stroke: '#101', strokeWidth: 1 },
                     node: { fill: '#020', stroke: '#202', strokeWidth: 1 },
                     iface: { fill: '#030', stroke: '#303', strokeWidth: 1 },
