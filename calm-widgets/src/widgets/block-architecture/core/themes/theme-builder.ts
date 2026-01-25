@@ -20,7 +20,7 @@ function styleToClassDef(className: string, style: ThemeClassStyle): string {
     }
 
     // Default to black text
-    parts.push(`color:${style.color ?? "#000000"}`);
+    parts.push(`color:${style.color ?? '#000000'}`);
 
     return `classDef ${className} ${parts.join(',')};`;
 }
@@ -78,7 +78,7 @@ export function buildThemeFrontMatter(theme: ThemeColors): string {
     lines.push('config:');
     lines.push('  theme: base');
     lines.push('  themeVariables:');
-    lines.push(`    fontFamily: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', sans-serif`)
+    lines.push('    fontFamily: -apple-system, BlinkMacSystemFont, \'Segoe WPC\', \'Segoe UI\', system-ui, \'Ubuntu\', sans-serif');
     if (theme.base !== undefined) {
         if (theme.base.darkMode !== undefined) {
             lines.push(`    darkMode: ${theme.base.darkMode}`);

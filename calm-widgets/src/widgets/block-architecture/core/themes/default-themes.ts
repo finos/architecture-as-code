@@ -1,6 +1,17 @@
 import { ThemeColors } from '../../types';
 
-function buildTheme(base: Record<string, any>): ThemeColors {
+interface ThemeBuilderDetails {
+    darkMode: boolean;
+    fontSize?: string;
+    strokeWidth?: number;
+    background: string[];
+    tonal: string[];
+    warning: string[];
+    text: string[];
+    main: string[];
+};
+
+function buildTheme(base: ThemeBuilderDetails): ThemeColors {
     return {
         base: {
             darkMode: base.darkMode ?? false,
@@ -105,7 +116,7 @@ export const highContrastLightTheme: ThemeColors = buildTheme({
     background: ['#ffffff', '#f0f0f0', '#e1e1e1'], /* min contrast ratio of 16.05 */
     warning: ['#f0c060', '#f7dca6', '#feedd1'], /* bg2 has 19.59 contrast ratio, warning[2] is tint 5 of warning[0] */
     text: ['#000000']
-})
+});
 
 /**
  * Dark theme - based on #007dff (CALM blue)
