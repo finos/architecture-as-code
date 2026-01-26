@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import Handlebars from 'handlebars';
-import { WidgetEngine } from './widget-engine';
+import { WidgetEngine, WidgetsOptionsContainer } from './widget-engine';
 import { WidgetRegistry } from './widget-registry';
 import { FixtureLoader } from './test-utils/fixture-loader';
 
@@ -18,6 +18,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
     beforeEach(() => {
         handlebars = Handlebars.create();
         registry = new WidgetRegistry(handlebars);
+        WidgetsOptionsContainer.getInstance().reset();
         engine = new WidgetEngine(handlebars, registry);
         engine.registerDefaultWidgets();
         fixtures = new FixtureLoader();
@@ -363,7 +364,7 @@ describe('Widgets E2E - Handlebars Integration', () => {
             expectToBeSameIgnoringLineEndings(result, expected);
         });
 
-        it('renders with high-contrast theme using accessibility-focused color palette', () => {
+        it('renders with high-contrast-dark theme using accessibility-focused color palette', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'theme-high-contrast');
             const compiled = handlebars.compile(template);
             const result = compiled(context);

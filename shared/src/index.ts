@@ -23,6 +23,7 @@ export {
     hasArchitectureFrontMatter,
     replaceVariables,
     injectFrontMatter,
+    injectWidgetOptionsIntoContent,
     type ParsedFrontMatter,
     type FrontMatterInjectionParams
 } from './template/front-matter.js';

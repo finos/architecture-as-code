@@ -91,7 +91,6 @@ export class TemplateProcessor {
         }
 
         const config = loader.getConfig();
-
         if (this.supportWidgetEngine === true) {
             //TODO: Handlebars supports local instance. Ideally to make testable we should use a local instance of Handlebars and inject dependency.
             const widgetEngine = new WidgetEngine(Handlebars, new WidgetRegistry(Handlebars));

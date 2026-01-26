@@ -1,4 +1,4 @@
-import { ThemeColors, ThemePreset } from '../../types';
+import { ThemeColors } from '../../types';
 import { getThemeByName } from './default-themes';
 
 /**
@@ -7,18 +7,13 @@ import { getThemeByName } from './default-themes';
 export function parseTheme(
     themeOption?: string,
     themeColorsOption?: string | ThemeColors
-): { theme: ThemePreset; themeColors?: ThemeColors } {
-    let theme: ThemePreset = 'light';
+): { theme: string; themeColors?: ThemeColors } {
+    let theme: string = 'light';
     let themeColors: ThemeColors | undefined;
 
     // Parse theme preset
     if (themeOption) {
-        const normalized = themeOption.toLowerCase().trim();
-        if (normalized === 'dark' || normalized === 'high-contrast') {
-            theme = normalized;
-        } else if (normalized !== 'light') {
-            console.warn(`Unknown theme preset "${themeOption}", falling back to "light"`);
-        }
+        theme = themeOption.toLowerCase().trim();
     }
 
     // Parse custom theme colors
@@ -48,11 +43,12 @@ export function parseTheme(
  * Resolve the final theme colors to use
  * Custom colors take precedence, otherwise use preset
  */
-export function resolveThemeColors(theme: ThemePreset, customColors?: ThemeColors): ThemeColors {
+export function resolveThemeColors(theme: string, customColors?: ThemeColors): ThemeColors {
     if (customColors) {
         // Merge custom colors with preset to fill in any missing properties
         const baseTheme = getThemeByName(theme);
         return {
+            base: customColors.base || baseTheme.base,
             boundary: customColors.boundary || baseTheme.boundary,
             node: customColors.node || baseTheme.node,
             iface: customColors.iface || baseTheme.iface,

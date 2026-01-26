@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
-import { parseFrontMatter, replaceVariables } from '@finos/calm-shared'
+import { injectWidgetOptionsIntoContent, parseFrontMatter, replaceVariables } from '@finos/calm-shared'
 import { DocifyProcessor } from './docify-processor'
 import { TemplateService } from './template-service'
 import { Logger } from '../core/ports/logger'
@@ -93,6 +93,13 @@ export class DocifyService {
       if (parsed) {
         templateContentToUse = replaceVariables(parsed.content, parsed.frontMatter)
         urlMappingPath = parsed.urlMappingPath
+        const widgetOptions = parsed.frontMatter['widget-options']
+
+        // Reinstate widget options into the content as YAML frontmatter
+        if (widgetOptions && typeof widgetOptions === 'object') {
+          this.log.info('[docify-service] Widget options detected in front matter, reinstating into template content.')
+          templateContentToUse = injectWidgetOptionsIntoContent(templateContentToUse, widgetOptions)
+        }
       } else {
         templateContentToUse = fs.readFileSync(params.templateFilePath, 'utf8')
       }

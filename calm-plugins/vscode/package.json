@@ -101,6 +101,18 @@
                     ],
                     "markdownDescription": "Glob patterns for template files that may reference CALM architecture files."
                 },
+                "calm.docify.theme": {
+                    "type": "string",
+                    "enum": [
+                        "light",
+                        "dark",
+                        "high-contrast-light",
+                        "high-contrast-dark",
+                        "auto"
+                    ],
+                    "default": "auto",
+                    "description": "Default theme for CALM diagrams."
+                },
                 "calm.urlMapping": {
                     "type": "string",
                     "description": "Path to a JSON file mapping URLs to local file paths for detailed-architecture navigation.",

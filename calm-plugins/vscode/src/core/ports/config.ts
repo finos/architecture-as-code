@@ -8,5 +8,6 @@ export interface Config {
     previewLayout(): string
     showLabels(): boolean
     urlMapping(): string | undefined
+    docifyTheme(): string
 }
 
