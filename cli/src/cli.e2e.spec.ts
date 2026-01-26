@@ -625,6 +625,11 @@ describe('CLI Integration Tests', () => {
     // getting-started assets bundled in the repo, so we use the static mapping
     // to avoid hitting the public site during CI.
     describe('calm docify command - widget rendering', () => {
+        const normalizeLineEndings = (str: string) => str.replaceAll('\r\n', '\n');
+        const expectToBeSameIgnoringLineEndings = (actual: string, expected: string) => {
+            expect(normalizeLineEndings(actual.trim())).toBe(normalizeLineEndings(expected));
+        };
+
         function runTemplateWidgetTest(templateName: string, outputName: string) {
             return async () => {
 
@@ -644,22 +649,22 @@ describe('CLI Integration Tests', () => {
 
                 await run(
                     calm(), [
-                        'docify',
-                        '--architecture',
-                        testModelPath,
-                        '--template',
-                        templatePath,
-                        '--output',
-                        outputFile,
-                        '--url-to-local-file-mapping',
-                        STATIC_GETTING_STARTED_MAPPING_PATH,
-                    ]
+                    'docify',
+                    '--architecture',
+                    testModelPath,
+                    '--template',
+                    templatePath,
+                    '--output',
+                    outputFile,
+                    '--url-to-local-file-mapping',
+                    STATIC_GETTING_STARTED_MAPPING_PATH,
+                ]
                 );
 
                 expect(fs.existsSync(outputFile)).toBe(true);
                 const actual = fs.readFileSync(outputFile, 'utf8').trim();
                 const expected = fs.readFileSync(expectedOutputPath, 'utf8').trim();
-                expect(actual).toEqual(expected);
+                expectToBeSameIgnoringLineEndings(actual, expected);
 
                 fs.rmSync(outputFile);
             };
@@ -712,14 +717,14 @@ describe('CLI Integration Tests', () => {
         const outputWebsite = path.resolve(actualOutputDir, 'website');
         await run(
             calm(), [
-                'docify',
-                '--architecture',
-                outputArchitecture,
-                '--output',
-                outputWebsite,
-                '--url-to-local-file-mapping',
-                STATIC_GETTING_STARTED_MAPPING_PATH,
-            ]
+            'docify',
+            '--architecture',
+            outputArchitecture,
+            '--output',
+            outputWebsite,
+            '--url-to-local-file-mapping',
+            STATIC_GETTING_STARTED_MAPPING_PATH,
+        ]
         );
 
         const expectedOutputDocifyWebsite = path.resolve(
@@ -773,14 +778,14 @@ describe('CLI Integration Tests', () => {
         );
         await run(
             calm(), [
-                'docify',
-                '--architecture',
-                outputArchitecture,
-                '--output',
-                outputWebsiteWithFlow,
-                '--url-to-local-file-mapping',
-                STATIC_GETTING_STARTED_MAPPING_PATH,
-            ]
+            'docify',
+            '--architecture',
+            outputArchitecture,
+            '--output',
+            outputWebsiteWithFlow,
+            '--url-to-local-file-mapping',
+            STATIC_GETTING_STARTED_MAPPING_PATH,
+        ]
         );
 
         const expectedOutputDocifyWebsiteWithFLow = path.resolve(
