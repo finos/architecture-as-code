@@ -4,6 +4,18 @@ import type { Logger } from '../../core/ports/logger'
 import type { Config } from '../../core/ports/config'
 import { ValidationOutcome, ValidationOutput } from '@finos/calm-shared'
 
+/**
+ * Known CALM schema URL pattern (mirrors the pattern in calm-schema-registry.ts).
+ * Matches URLs like:
+ * - https://calm.finos.org/release/1.1/meta/calm.json
+ * - https://calm.finos.org/draft/2025-03/meta/calm.json
+ * 
+ * Uses vi.hoisted() to ensure the pattern is available before vi.mock hoisting.
+ */
+const { CALM_SCHEMA_URL_PATTERN } = vi.hoisted(() => ({
+    CALM_SCHEMA_URL_PATTERN: /^https:\/\/calm\.finos\.org\/(release|draft)\/([^/]+)\/meta\/(.+\.json)$/
+}))
+
 // Mock vscode module
 vi.mock('vscode', () => ({
     languages: {
@@ -79,7 +91,7 @@ vi.mock('../../core/services/calm-schema-registry', () => ({
     CalmSchemaRegistry: vi.fn().mockImplementation(() => ({
         initialize: vi.fn(),
         reset: vi.fn(),
-        isKnownCalmSchema: vi.fn((url: string) => url.includes('calm.finos.org')),
+        isKnownCalmSchema: vi.fn((url: string) => CALM_SCHEMA_URL_PATTERN.test(url)),
         getSchemaPath: vi.fn(),
         getRegisteredSchemaUrls: vi.fn(() => [])
     }))
