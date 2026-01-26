@@ -9,5 +9,5 @@ export interface Config {
     showLabels(): boolean
     urlMapping(): string | undefined
     docifyTheme(): string
+    schemaAdditionalFolders(): string[]
 }
-

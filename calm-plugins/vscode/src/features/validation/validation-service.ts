@@ -9,15 +9,20 @@ import {
 import { buildDocumentLoader, DocumentLoader } from '@finos/calm-shared/dist/document-loader/document-loader'
 import type { Logger } from '../../core/ports/logger'
 import type { Config } from '../../core/ports/config'
+import { CalmSchemaRegistry } from '../../core/services/calm-schema-registry'
 
 /**
  * Service that validates CALM documents and reports diagnostics to VS Code.
  * Follows the hexagonal architecture pattern - depends on ports, not VSCode directly
  * (except for the DiagnosticCollection which is the output port).
+ * 
+ * Documents are identified as CALM files based on their $schema reference pointing
+ * to a known CALM schema URL (e.g., https://calm.finos.org/release/1.1/meta/calm.json).
  */
 export class ValidationService implements vscode.Disposable {
     private readonly diagnosticCollection: vscode.DiagnosticCollection
     private readonly disposables: vscode.Disposable[] = []
+    private schemaRegistry: CalmSchemaRegistry | undefined
 
     constructor(
         private readonly logger: Logger,
@@ -31,12 +36,25 @@ export class ValidationService implements vscode.Disposable {
      * Register document listeners to trigger validation on save.
      */
     register(context: vscode.ExtensionContext): void {
+        // Initialize the schema registry with bundled schemas
+        this.schemaRegistry = new CalmSchemaRegistry(context.extensionUri, this.logger, this.config)
+        void this.schemaRegistry.initialize()
+
+        // Listen for configuration changes to reset schema registry
+        this.disposables.push(
+            vscode.workspace.onDidChangeConfiguration(e => {
+                if (e.affectsConfiguration('calm.schemas.additionalFolders')) {
+                    this.logger.info?.('[validation] Configuration changed: calm.schemas.additionalFolders - reloading schemas')
+                    this.schemaRegistry?.reset()
+                    void this.schemaRegistry?.initialize()
+                }
+            })
+        )
+
         // Validate on save
         this.disposables.push(
             vscode.workspace.onDidSaveTextDocument(doc => {
-                if (this.isCalmDocument(doc)) {
-                    void this.validateDocument(doc)
-                }
+                void this.validateIfCalmDocument(doc)
             })
         )
 
@@ -47,39 +65,48 @@ export class ValidationService implements vscode.Disposable {
             })
         )
 
-        // Validate currently open CALM documents on activation
+        // Validate currently open documents on activation
         vscode.workspace.textDocuments.forEach(doc => {
-            if (this.isCalmDocument(doc)) {
-                void this.validateDocument(doc)
-            }
+            void this.validateIfCalmDocument(doc)
         })
 
         context.subscriptions.push(...this.disposables)
     }
 
     /**
-     * Check if a document is a CALM JSON file based on configured globs.
+     * Validate document if it's a CALM document (based on $schema content).
      */
-    private isCalmDocument(doc: vscode.TextDocument): boolean {
+    private async validateIfCalmDocument(doc: vscode.TextDocument): Promise<void> {
         if (doc.languageId !== 'json') {
-            return false
+            return
         }
-        const relativePath = vscode.workspace.asRelativePath(doc.uri)
-        const globs = this.config.filesGlobs()
-        return globs.some(glob => this.matchGlob(relativePath, glob))
+
+        const schemaUrl = this.extractSchemaUrl(doc)
+        if (!schemaUrl) {
+            return
+        }
+
+        if (!this.schemaRegistry?.isKnownCalmSchema(schemaUrl)) {
+            return
+        }
+
+        await this.validateDocument(doc)
     }
 
     /**
-     * Simple glob matching for common patterns.
+     * Extract the $schema URL from a JSON document.
      */
-    private matchGlob(path: string, glob: string): boolean {
-        // Convert glob to regex (simplified)
-        const regexStr = glob
-            .replace(/\*\*/g, '.*')
-            .replace(/\*/g, '[^/]*')
-            .replace(/\?/g, '.')
-        const regex = new RegExp(`^${regexStr}$`)
-        return regex.test(path)
+    private extractSchemaUrl(doc: vscode.TextDocument): string | undefined {
+        try {
+            const text = doc.getText()
+            const json = JSON.parse(text)
+            if (json.$schema && typeof json.$schema === 'string') {
+                return json.$schema
+            }
+        } catch {
+            // Not valid JSON or no $schema
+        }
+        return undefined
     }
 
     /**

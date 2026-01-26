@@ -117,6 +117,14 @@
                     "type": "string",
                     "description": "Path to a JSON file mapping URLs to local file paths for detailed-architecture navigation.",
                     "default": ""
+                },
+                "calm.schemas.additionalFolders": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "markdownDescription": "Additional folders containing CALM schemas for validation. Useful for schema developers testing local schema changes. Paths are relative to the workspace root."
                 }
             }
         },
@@ -155,7 +163,7 @@
     },
     "scripts": {
         "build": "tsup",
-        "postbuild": "node ./scripts/copy-calm-assets.js",
+        "postbuild": "node ./scripts/copy-calm-assets.js && node ./scripts/copy-calm-schemas.js",
         "watch": "tsup --watch",
         "test": "vitest run",
         "test:watch": "vitest",

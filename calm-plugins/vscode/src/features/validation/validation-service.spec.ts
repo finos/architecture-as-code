@@ -17,16 +17,22 @@ vi.mock('vscode', () => ({
     workspace: {
         onDidSaveTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
         onDidCloseTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
+        onDidChangeConfiguration: vi.fn(() => ({ dispose: vi.fn() })),
         textDocuments: [],
         asRelativePath: vi.fn((uri: any) => typeof uri === 'string' ? uri : uri.fsPath),
         workspaceFolders: [{ uri: { fsPath: '/workspace' } }],
         fs: {
-            readFile: vi.fn()
+            readFile: vi.fn(),
+            readDirectory: vi.fn(() => Promise.resolve([]))
         }
     },
     Uri: {
         file: vi.fn((path: string) => ({ fsPath: path })),
-        joinPath: vi.fn((_base: any, path: string) => ({ fsPath: `/workspace/${path}` }))
+        joinPath: vi.fn((_base: any, ...parts: string[]) => ({ fsPath: `/workspace/${parts.join('/')}` }))
+    },
+    FileType: {
+        File: 1,
+        Directory: 2
     },
     Diagnostic: vi.fn().mockImplementation((range, message, severity) => ({
         range,
@@ -68,6 +74,17 @@ vi.mock('@finos/calm-shared/dist/document-loader/document-loader', () => ({
     }))
 }))
 
+// Mock CalmSchemaRegistry
+vi.mock('../../core/services/calm-schema-registry', () => ({
+    CalmSchemaRegistry: vi.fn().mockImplementation(() => ({
+        initialize: vi.fn(),
+        reset: vi.fn(),
+        isKnownCalmSchema: vi.fn((url: string) => url.includes('calm.finos.org')),
+        getSchemaPath: vi.fn(),
+        getRegisteredSchemaUrls: vi.fn(() => [])
+    }))
+}))
+
 describe('ValidationService', () => {
     let service: ValidationService
     let mockLogger: Logger
@@ -88,7 +105,8 @@ describe('ValidationService', () => {
             templateGlobs: vi.fn(() => ['**/*.md']),
             previewLayout: vi.fn(() => 'dagre'),
             showLabels: vi.fn(() => true),
-            urlMapping: vi.fn(() => undefined)
+            urlMapping: vi.fn(() => undefined),
+            schemaAdditionalFolders: vi.fn(() => [])
         }
 
         service = new ValidationService(mockLogger, mockConfig)
@@ -98,6 +116,35 @@ describe('ValidationService', () => {
         it('should create a diagnostic collection', async () => {
             const vscode = await import('vscode')
             expect(vscode.languages.createDiagnosticCollection).toHaveBeenCalledWith('calm')
+        })
+    })
+
+    describe('extractSchemaUrl', () => {
+        it('should extract $schema from valid JSON document', () => {
+            const doc = {
+                languageId: 'json',
+                getText: () => JSON.stringify({ $schema: 'https://calm.finos.org/release/1.1/meta/calm.json' })
+            }
+            const result = (service as any).extractSchemaUrl(doc)
+            expect(result).toBe('https://calm.finos.org/release/1.1/meta/calm.json')
+        })
+
+        it('should return undefined for JSON without $schema', () => {
+            const doc = {
+                languageId: 'json',
+                getText: () => JSON.stringify({ nodes: [] })
+            }
+            const result = (service as any).extractSchemaUrl(doc)
+            expect(result).toBeUndefined()
+        })
+
+        it('should return undefined for invalid JSON', () => {
+            const doc = {
+                languageId: 'json',
+                getText: () => 'not valid json'
+            }
+            const result = (service as any).extractSchemaUrl(doc)
+            expect(result).toBeUndefined()
         })
     })
 
@@ -136,50 +183,6 @@ describe('ValidationService', () => {
                 lineAt: () => ({ text: '' })
             })
             expect(diagnostic.severity).toBe(0) // DiagnosticSeverity.Error
-        })
-    })
-
-    describe('isCalmDocument', () => {
-        it('should return false for non-JSON documents', () => {
-            const doc = { languageId: 'typescript' }
-            const result = (service as any).isCalmDocument(doc)
-            expect(result).toBe(false)
-        })
-
-        it('should return true for JSON files matching glob pattern', () => {
-            const doc = {
-                languageId: 'json',
-                uri: { fsPath: 'calm/test.json' }
-            }
-            const result = (service as any).isCalmDocument(doc)
-            expect(result).toBe(true)
-        })
-
-        it('should return false for JSON files not matching glob pattern', () => {
-            const doc = {
-                languageId: 'json',
-                uri: { fsPath: 'package.json' }
-            }
-            const result = (service as any).isCalmDocument(doc)
-            expect(result).toBe(false)
-        })
-    })
-
-    describe('matchGlob', () => {
-        it('should match simple glob patterns', () => {
-            const result = (service as any).matchGlob('calm/test.json', 'calm/*.json')
-            expect(result).toBe(true)
-        })
-
-        it('should match double-star glob patterns', () => {
-            // The ** pattern matches any path segments including empty
-            const result = (service as any).matchGlob('calm/nested/test.json', 'calm/**/*.json')
-            expect(result).toBe(true)
-        })
-
-        it('should not match non-matching paths', () => {
-            const result = (service as any).matchGlob('other/test.json', 'calm/**/*.json')
-            expect(result).toBe(false)
         })
     })
 
