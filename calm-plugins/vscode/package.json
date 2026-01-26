@@ -117,6 +117,14 @@
                     "type": "string",
                     "description": "Path to a JSON file mapping URLs to local file paths for detailed-architecture navigation.",
                     "default": ""
+                },
+                "calm.schemas.additionalFolders": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "markdownDescription": "Additional folders containing CALM schemas for validation. Useful for schema developers testing local schema changes. Paths are relative to the workspace root."
                 }
             }
         },
@@ -155,7 +163,7 @@
     },
     "scripts": {
         "build": "tsup",
-        "postbuild": "node ./scripts/copy-calm-assets.js",
+        "postbuild": "node ./scripts/copy-calm-assets.js && copyfiles \"../../calm/release/**/meta/*\" \"../../calm/draft/**/meta/*\" dist/calm/ --up 3",
         "watch": "tsup --watch",
         "test": "vitest run",
         "test:watch": "vitest",
@@ -174,12 +182,13 @@
         "@typescript-eslint/eslint-plugin": "^8.29.1",
         "@typescript-eslint/parser": "^8.29.1",
         "@vscode/dts": "^0.4.1",
+        "@vscode/vsce": "^3.7.1",
+        "copyfiles": "^2.4.1",
         "eslint": "^9.24.0",
         "eslint-plugin-import": "^2.32.0",
         "globals": "^16.0.0",
         "tsup": "^8.2.4",
-        "typescript": "^5.6.2",
-        "@vscode/vsce": "^3.7.1"
+        "typescript": "^5.6.2"
     },
     "dependencies": {
         "@finos/calm-models": "file:../../calm-models",

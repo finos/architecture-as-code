@@ -183,6 +183,19 @@ export class StoreReactionMediator {
   - `tree-data-provider.ts` - VSCode TreeDataProvider
   - `view-model/tree-view-model.ts` - Business logic (framework-free)
 
+#### Validation Service
+- **Purpose**: Real-time CALM document validation with Problems panel integration
+- **Location**: `src/features/validation/`
+- **Key Files**:
+  - `validation-service.ts` - Main service, handles document events and diagnostics
+  - `validation-service.spec.ts` - Unit tests
+- **Behavior**:
+  - Validates on document open, save, and editor activation
+  - Clears diagnostics when editor tab is closed
+  - Uses content-based detection (checks `$schema` field for known CALM schemas)
+  - Produces precise line numbers for error positioning using shared enrichment logic
+- **Dependencies**: Uses `runValidation`, `enrichWithDocumentPositions` from `@finos/calm-shared`
+
 #### Webview Preview
 - **Purpose**: Multi-tab preview (Model, Docify, Template)
 - **Location**: `src/features/preview/`
@@ -330,6 +343,28 @@ npm run build --workspace calm-models
 npm run build --workspace calm-widgets
 npm run build --workspace shared
 ```
+
+## Bundled CALM Schemas
+
+The extension bundles CALM schemas from the `calm/` directory at the repository root. This allows validation to work without network access.
+
+### Build Process
+The `postbuild` script (`scripts/copy-calm-schemas.js`) copies schemas from:
+- `calm/release/*/meta/*.json` → `dist/calm/release/*/meta/`
+- `calm/draft/*/meta/*.json` → `dist/calm/draft/*/meta/`
+
+Schemas are indexed by their `$id` field for lookup when validating documents.
+
+### Schema Registry
+`CalmSchemaRegistry` (`src/core/services/calm-schema-registry.ts`) manages schema discovery:
+- Loads bundled schemas from `dist/calm/`
+- Loads additional schemas from folders configured in `calm.schemas.additionalFolders`
+- Provides `isKnownCalmSchema(url)` to check if a schema URL is available locally
+
+### Adding New Schema Versions
+When new CALM schema versions are released:
+1. Add the schema files to `calm/{release|draft}/{version}/meta/`
+2. Rebuild the extension - schemas are automatically copied and indexed
 
 ## Common Pitfalls
 

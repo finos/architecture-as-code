@@ -33,6 +33,7 @@
         "@apidevtools/json-schema-ref-parser": "^14.0.0",
         "@finos/calm-models": "file:../calm-models",
         "@finos/calm-widgets": "file:../calm-widgets",
+        "@stoplight/json": "^3.21.7",
         "@stoplight/spectral-cli": "^6.14.3",
         "@stoplight/spectral-core": "^1.19.5",
         "@stoplight/spectral-functions": "^1.9.4",

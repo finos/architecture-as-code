@@ -53,4 +53,8 @@ export class ConfigService implements Config {
         }
         return themeSetting
     }
+
+    schemaAdditionalFolders(): string[] {
+        return this.config.get<string[]>('schemas.additionalFolders', [])
+    }
 }

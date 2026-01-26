@@ -15,6 +15,7 @@ import { CommandRegistrar } from './commands/command-registrar'
 import { DiagnosticsService } from './core/services/diagnostics-service'
 import { createApplicationStore, type ApplicationStoreApi } from './application-store'
 import { setWidgetLogger } from '@finos/calm-shared'
+import { ValidationService } from './features/validation/validation-service'
 
 /**
  * Main extension controller that orchestrates all VS Code extension functionality
@@ -84,6 +85,10 @@ export class CalmExtensionController {
 
     new CommandRegistrar(context, store).registerAll()
 
+    // Initialize validation service (await to ensure schemas are loaded before validating documents)
+    const validationService = new ValidationService(log, configService)
+    await validationService.register(context)
+
     const storeReactionMediator = new StoreReactionMediator(
       store,
       previewPanelFactory,
@@ -100,7 +105,8 @@ export class CalmExtensionController {
       previewPanelFactory,
       treeManager,
       editorFactory,
-      storeReactionMediator
+      storeReactionMediator,
+      validationService
     )
   }
 

@@ -18,6 +18,13 @@ Live-visualize CALM architecture models while you edit them. Features an interac
 - **Quick Navigation**: Jump between editor and preview
 - **Search & Filter**: Find elements across large models
 
+### ✅ Real-Time Validation
+- **Automatic Validation**: Documents are validated on open, save, and when switching editors
+- **Problems Panel Integration**: Errors and warnings appear in the VS Code Problems panel
+- **Click-to-Navigate**: Click any issue to jump directly to the problematic line in your document
+- **Bundled Schemas**: CALM schemas are bundled with the extension - no network access required
+- **Schema Detection**: Documents are identified as CALM files by their `$schema` reference
+
 ### ✨ Smart Editor Features
 - **Hover Information**: Rich tooltips for model elements
 - **Auto-Refresh**: Preview updates automatically on save
@@ -56,12 +63,21 @@ Navigate between related CALM files using `detailed-architecture` references.
     "calm.urlMapping": "calm-mapping.json"
     ```
 
+### Schema Development
+For schema developers working on custom CALM schemas, you can configure additional local folders to load schemas from:
+
+```json
+"calm.schemas.additionalFolders": ["./my-schemas", "./custom-calm-schemas"]
+```
+
+Schemas in these folders are indexed by their `$id` field and can be referenced in your CALM documents.
+
 ### File Discovery
 Customize how the extension finds your CALM models and templates.
 
 -   `calm.files.globs`: Patterns for CALM model files (Default: `["calm/**/*.json", "calm/**/*.y?(a)ml"]`)
 -   `calm.template.globs`: Patterns for template files (Default: `["**/*.md", "**/*.hbs", ...]`)
--   `calm.cli.path`: Path to the CALM CLI executable (Default: `./cli`)
+-   `calm.schemas.additionalFolders`: Additional folders containing CALM schemas for validation (Default: `[]`)
 
 ## Getting Involved
 
