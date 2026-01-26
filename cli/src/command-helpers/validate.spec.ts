@@ -1,10 +1,10 @@
 import { Command } from 'commander';
 import { Mock } from 'vitest';
-import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome } from '@finos/calm-shared';
+import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, validationEnrichmentTest } from '@finos/calm-shared';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
 import path from 'path';
-import { runValidate, writeOutputFile, checkValidateOptions, ValidateOptions, __test__ } from './validate';
+import { runValidate, writeOutputFile, checkValidateOptions, ValidateOptions } from './validate';
 
 
 const dummyArch = { dummy: 'arch' };
@@ -298,7 +298,7 @@ describe('checkValidateOptions', () => {
 
 
 describe('rewritePathWithIds', () => {
-    const { rewritePathWithIds } = __test__;
+    const { rewritePathWithIds } = validationEnrichmentTest;
 
     const document = {
         nodes: [

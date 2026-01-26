@@ -39,4 +39,9 @@ export {
     hasMappingFileExtension,
     getFileExtension
 } from './util/file-utils.js';
-
+export {
+    enrichWithDocumentPositions,
+    parseDocumentWithPositions,
+    type ParsedDocumentContext,
+    __test__ as validationEnrichmentTest
+} from './commands/validate/validation-enrichment.js';
