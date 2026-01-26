@@ -41,11 +41,12 @@ export class ValidationService implements vscode.Disposable {
 
     /**
      * Register document listeners to trigger validation on save.
+     * Async to ensure schema registry is fully initialized before validating documents.
      */
-    register(context: vscode.ExtensionContext): void {
+    async register(context: vscode.ExtensionContext): Promise<void> {
         // Initialize the schema registry with bundled schemas
         this.schemaRegistry = new CalmSchemaRegistry(context.extensionUri, this.logger, this.config)
-        void this.schemaRegistry.initialize()
+        await this.schemaRegistry.initialize()
 
         // Listen for configuration changes to reset schema registry
         this.disposables.push(

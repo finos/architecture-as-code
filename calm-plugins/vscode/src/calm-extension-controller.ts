@@ -85,9 +85,9 @@ export class CalmExtensionController {
 
     new CommandRegistrar(context, store).registerAll()
 
-    // Initialize validation service
+    // Initialize validation service (await to ensure schemas are loaded before validating documents)
     const validationService = new ValidationService(log, configService)
-    validationService.register(context)
+    await validationService.register(context)
 
     const storeReactionMediator = new StoreReactionMediator(
       store,
