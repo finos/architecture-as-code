@@ -5,6 +5,29 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.30.0] - 2026-01-26
+
+## 1.30.0 (2026-01-26)
+
+* Adding Algolia config ([9da501ef5e908d840cfc4f590dea81f2393c93e2](https://github.com/finos/architecture-as-code/commit/9da501ef5e908d840cfc4f590dea81f2393c93e2))
+*  ([c96bdb2a659584a9f282a09bf7869378a90363fa](https://github.com/finos/architecture-as-code/commit/c96bdb2a659584a9f282a09bf7869378a90363fa))
+*  ([09ba123e37288e491b56b89ae2a03983b3f5e3b2](https://github.com/finos/architecture-as-code/commit/09ba123e37288e491b56b89ae2a03983b3f5e3b2))
+*  ([d6ce6ce0d6e17e25f4612b64219ed928e12d5011](https://github.com/finos/architecture-as-code/commit/d6ce6ce0d6e17e25f4612b64219ed928e12d5011))
+*  ([5e4798f35ea496e2194814fd5d079731c412d41a](https://github.com/finos/architecture-as-code/commit/5e4798f35ea496e2194814fd5d079731c412d41a))
+* feat(docs): add algolia docsearch configuration ([4f0a672e841143da4614921fa8abf613fd658d87](https://github.com/finos/architecture-as-code/commit/4f0a672e841143da4614921fa8abf613fd658d87))
+* feat(docs): add algolia docsearch configuration ([d4dea79da5fe18974ef2fdfa587827d2e57e7787](https://github.com/finos/architecture-as-code/commit/d4dea79da5fe18974ef2fdfa587827d2e57e7787)), closes [#2019](https://github.com/finos/architecture-as-code/issues/2019)
+* fix: address PR review comments (await loading, add tests) ([9a0d1fd8578801f9828425920069ed6bbcc2ee0c](https://github.com/finos/architecture-as-code/commit/9a0d1fd8578801f9828425920069ed6bbcc2ee0c))
+* fix(cli): resolve linting errors ([d091f6670a3a80c35f4e68d68d7560b6ab61ffa1](https://github.com/finos/architecture-as-code/commit/d091f6670a3a80c35f4e68d68d7560b6ab61ffa1))
+* refactor(cli): move validation helpers to shared package ([1808b579750cacb90b30251ad7db95d18ac8bced](https://github.com/finos/architecture-as-code/commit/1808b579750cacb90b30251ad7db95d18ac8bced))
+* refactor(cli): move validation helpers to shared package ([c0c41eafb269c73e4afdcb28b1c477d71508aa04](https://github.com/finos/architecture-as-code/commit/c0c41eafb269c73e4afdcb28b1c477d71508aa04))
+* test: add e2e tests for calm init-ai command with multiple providers ([110a8cbe70c6a5aa9f307c7e94d333861f3b0afe](https://github.com/finos/architecture-as-code/commit/110a8cbe70c6a5aa9f307c7e94d333861f3b0afe))
+* test: add help command for calm init-ai ([7b01dd7427f6200415c02c3d4b0e57b8dcdd2396](https://github.com/finos/architecture-as-code/commit/7b01dd7427f6200415c02c3d4b0e57b8dcdd2396))
+* test: add integration test for handling invalid provider in calm init-ai command ([776c8fad82ac5d8c07cec86357176e882cbc1a6f](https://github.com/finos/architecture-as-code/commit/776c8fad82ac5d8c07cec86357176e882cbc1a6f))
+* test(cli): add e2e tests for `calm init-ai` ([8344166953282769d4c9d785349fc0caa25f27dc](https://github.com/finos/architecture-as-code/commit/8344166953282769d4c9d785349fc0caa25f27dc))
+* test(cli): Add test for invalid provider string ([1c8fcacacf764de8ae3451b889c5f647497e5a7b](https://github.com/finos/architecture-as-code/commit/1c8fcacacf764de8ae3451b889c5f647497e5a7b))
+* test: refactor docify command arguments for better readability ([b02afa37e3b99ad33f80dd4e437c7d3e2d7f8fda](https://github.com/finos/architecture-as-code/commit/b02afa37e3b99ad33f80dd4e437c7d3e2d7f8fda))
+* test: update error message for invalid provider in calm init-ai command ([f9287332ffe0f0a383df16aec78b91e0dd23a5a2](https://github.com/finos/architecture-as-code/commit/f9287332ffe0f0a383df16aec78b91e0dd23a5a2))
+
 ## [1.29.0] - 2026-01-21
 
 ## 1.29.0 (2026-01-21)
