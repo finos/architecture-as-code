@@ -83,7 +83,105 @@ const calmData = {
     },
 };
 
-describe('Drawer', () => {
+const calmPatternData = {
+    name: 'Converted Pattern',
+    calmType: 'Patterns',
+    id: 'pattern-1',
+    version: '1.0',
+    data: {
+        type: "object",
+        title: "Converted Pattern",
+        required: ["nodes", "relationships"],
+        properties: {
+            nodes: {
+                prefixItems: [
+                    {
+                        type: 'object',
+                        properties: {
+                            'unique-id': {
+                                const: 'n1'
+                            },
+                            name: {
+                                const: 'Node 1'
+                            },
+                            description: {
+                                const: 'desc1'
+                            },
+                            'node-type': {
+                                const: 'typeA'
+                            },
+                        }
+                    },
+                    {
+                        type: 'object',
+                        properties: {
+                            'unique-id': {
+                                const: 'n2'
+                            },
+                            name: {
+                                const: 'Node 2'
+                            },
+                            description: {
+                                const: 'desc2'
+                            },
+                            'node-type': {
+                                const: 'typeB'
+                            },
+                        }
+                    },
+                ]
+            },
+            relationships: {
+                prefixItems: [
+                    {
+                        properties: {
+                            'unique-id': {
+                                const: 'r1'
+                            },
+                            description: {
+                                const: 'rel1'
+                            },
+                            'relationship-type': {
+                                const: {
+                                    interacts: {
+                                        actor: 'n1',
+                                        nodes: ['n2'],
+                                    }
+                                },
+                            },
+                        },
+                        required: [
+                            'description'
+                        ]
+                    },
+                    {
+                        properties: {
+                            'unique-id': {
+                                const: 'r2'
+                            },
+                            description: {
+                                const: 'rel2'
+                            },
+                            'relationship-type': {
+                                const: {
+                                    'composed-of': {
+                                        container: 'n1',
+                                        nodes: ['n2'],
+                                    }
+                                },
+                            },
+                        },
+                        required: [
+                            'description'
+                        ]
+                    },
+                ]
+            }
+        }
+    }
+};
+
+describe('Drawer with CALM schema data', () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
@@ -109,5 +207,19 @@ describe('Drawer', () => {
             fireEvent.click(checkbox);
         });
         expect(checkbox).toBeInTheDocument();
+    });
+});
+
+describe('Drawer with CALM pattern data', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('renders VisualizerContainer when provided a calm pattern', () => {
+        render(<Drawer data={calmPatternData as unknown as Data} />);
+        expect(screen.getByTestId('visualizer-container')).toBeInTheDocument();
+        expect(screen.getByText('1')).toBeInTheDocument();
+        expect(screen.getByText('2')).toBeInTheDocument();
+        expect(screen.getByText('Converted Pattern/pattern-1/1.0')).toBeInTheDocument();
     });
 });
