@@ -33,3 +33,9 @@ export { ValidationOutcome } from './commands/validate/validation.output';
 export * from './test/file-comparison.js';
 export { setWidgetLogger, type WidgetLogger } from '@finos/calm-widgets';
 export * from './document-loader/loading-helpers.js';
+export {
+    hasArchitectureExtension,
+    hasMappingFileExtension,
+    getFileExtension
+} from './util/file-utils.js';
+
