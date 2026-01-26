@@ -49,7 +49,6 @@ export class ConfigService implements Config {
                 chosenTheme = themeMapping[vscodeTheme];
             }
 
-            console.log('Mapped VSCode theme "' + vscodeTheme + '" to docify theme "' + chosenTheme + '"');
             return chosenTheme;
         }
         return themeSetting

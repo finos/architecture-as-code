@@ -34,7 +34,6 @@ export class WidgetsOptionsContainer {
     }
 
     public getOptionsForWidget(widgetId: string): WidgetOptions {
-        console.log('Getting options for widget:', widgetId, this.options);
         return this.options[widgetId] || undefined;
     }
 

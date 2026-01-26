@@ -84,7 +84,7 @@ export function buildThemeFrontMatter(theme: ThemeColors): string {
             lines.push(`    darkMode: ${theme.base.darkMode}`);
         }
         if (theme.base.fontSize !== undefined) {
-            lines.push(`    fontSize: ${theme.base.fontSize ?? '14px'}`);
+            lines.push(`    fontSize: ${theme.base.fontSize}`);
         }
         if (theme.base.edgeLabelBackground !== undefined) {
             lines.push(`    edgeLabelBackground: '${theme.base.edgeLabelBackground}'`);

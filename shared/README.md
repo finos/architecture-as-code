@@ -63,4 +63,4 @@ add something like the following to `index.json`:
     },
 ```
 
-This will pass the option `theme` to all `block-architecture` widgets in `index.md.hbs
+This will pass the option `theme` to all `block-architecture` widgets in `index.md.hbs`
