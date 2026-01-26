@@ -127,12 +127,10 @@ export function injectWidgetOptionsIntoContent(content: string, widgetOptions: W
         return content;
     }
 
-    const frontMatterLines = [
-        '---',
-        `${yaml.stringify({ 'widget-options': widgetOptions }).trim()}`,
-        '---'
-    ];
-    return frontMatterLines.join('\n') + '\n' + content;
+    const widgetOptionsYaml = yaml.stringify({ 'widget-options': widgetOptions }).trim();
+    const injectLines = widgetOptionsYaml.split('\n');
+    
+    return mergeFrontMatter(content, injectLines);
 }
 
 export interface FrontMatterInjectionParams {

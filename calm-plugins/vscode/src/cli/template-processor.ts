@@ -1,3 +1,5 @@
+import { injectWidgetOptionsIntoContent } from '@finos/calm-shared'
+
 /**
  * TemplateProcessor - Pure domain service for template processing logic
  * Framework-free service for template content manipulation
@@ -20,20 +22,21 @@ export class TemplateProcessor {
 
     /**
      * Apply documentation theme to template content
+     * Handles both content with and without existing YAML frontmatter
      */
     processTemplateForTheme(content: string, theme: string): string {
         if (theme === 'auto') {
             return content
         }
-        else {
-            return `---
-widget-options:
-    block-architecture:
-        theme: ${theme}
-        render-node-type-shapes: true
----
-${content}`
+
+        const widgetOptions = {
+            'block-architecture': {
+                theme: theme,
+                'render-node-type-shapes': true
+            }
         }
+
+        return injectWidgetOptionsIntoContent(content, widgetOptions)
     }
 
     /**
