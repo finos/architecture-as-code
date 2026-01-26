@@ -33,7 +33,7 @@ export class WidgetsOptionsContainer {
         this.options = {};
     }
 
-    public getOptionsForWidget(widgetId: string): WidgetOptions {
+    public getOptionsForWidget(widgetId: string): WidgetOptions | undefined {
         return this.options[widgetId] || undefined;
     }
 
