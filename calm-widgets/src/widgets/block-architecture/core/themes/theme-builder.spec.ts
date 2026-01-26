@@ -33,7 +33,7 @@ describe('buildThemeFrontMatter', () => {
         expect(result).toContain('config:');
         expect(result).toContain('  theme: base');
         expect(result).toContain('  themeVariables:');
-        expect(result).toContain("    fontFamily: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', sans-serif");
+        expect(result).toContain('    fontFamily: -apple-system, BlinkMacSystemFont, \'Segoe WPC\', \'Segoe UI\', system-ui, \'Ubuntu\', sans-serif');
         expect(result).toMatch(/^---\n.*\n---$/s);
     });
 
@@ -130,7 +130,7 @@ describe('buildThemeFrontMatter', () => {
 
         const result = buildThemeFrontMatter(theme);
 
-        expect(result).toContain("    edgeLabelBackground: '#f0f0f0'");
+        expect(result).toContain('    edgeLabelBackground: \'#f0f0f0\'');
     });
 
     it('should include lineColor when specified', () => {
@@ -162,7 +162,7 @@ describe('buildThemeFrontMatter', () => {
 
         const result = buildThemeFrontMatter(theme);
 
-        expect(result).toContain("    lineColor: '#333333'");
+        expect(result).toContain('    lineColor: \'#333333\'');
     });
 
     it('should include all base theme variables when specified', () => {
@@ -199,8 +199,8 @@ describe('buildThemeFrontMatter', () => {
 
         expect(result).toContain('    darkMode: false');
         expect(result).toContain('    fontSize: 14px');
-        expect(result).toContain("    edgeLabelBackground: '#ffffff'");
-        expect(result).toContain("    lineColor: '#000000'");
+        expect(result).toContain('    edgeLabelBackground: \'#ffffff\'');
+        expect(result).toContain('    lineColor: \'#000000\'');
     });
 
     it('should return valid YAML format', () => {
