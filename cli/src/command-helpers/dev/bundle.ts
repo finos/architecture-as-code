@@ -97,3 +97,41 @@ export async function addFileToBundle(
 
     return { id, destPath, rel };
 }
+
+/**
+ * Add an in-memory JSON object into the workspace bundle and register it in the manifest.
+ * The object will be saved as JSON under 'files/<sanitised-id>.json'.
+ * @param bundlePath Absolute path to the bundle directory
+ * @param obj The object to serialize and store
+ * @param explicitId Optional explicit id to use for the object
+ */
+export async function addObjectToBundle(
+    bundlePath: string,
+    obj: any,
+    explicitId?: string
+): Promise<{ id: string; destPath: string; rel: string }> {
+    // We will determine id using the same logic but since we don't have a source file,
+    // prefer explicitId, then $id property on the object, then fallback to a generated name.
+    let id = explicitId && explicitId.trim() ? explicitId.trim() : undefined;
+    if (!id && obj && typeof obj['$id'] === 'string' && obj['$id'].trim()) {
+        id = obj['$id'].trim();
+    }
+    if (!id) {
+        throw new Error('Cannot add object to bundle: no explicit id provided and object has no $id property.');
+    }
+
+    // sanitise id for filename
+    const filename = id.replace(/[^a-zA-Z0-9-_\.]/g, '-').replace(/^-+|-+$/g, '') + '.json';
+    const filesDir = path.join(bundlePath, FILES_DIRNAME);
+    await mkdir(filesDir, { recursive: true });
+    const destPath = path.join(filesDir, filename);
+    const rel = path.relative(bundlePath, destPath);
+
+    await writeFile(destPath, JSON.stringify(obj, null, 2), 'utf8');
+
+    const manifest = await loadManifest(bundlePath);
+    manifest[id] = rel;
+    await saveManifest(bundlePath, manifest);
+
+    return { id, destPath, rel };
+}
