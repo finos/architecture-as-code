@@ -96,6 +96,15 @@ describe('Widgets E2E - Handlebars Integration', () => {
 
             expectToBeSameIgnoringLineEndings(result, expected);
         });
+
+        it('renders primitive arrays inline with comma separator (MDX-safe)', () => {
+            const { context, template, expected } = fixtures.loadFixture('table-widget', 'metadata-primitive-array');
+
+            const compiledTemplate = handlebars.compile(template);
+            const result = compiledTemplate(context);
+
+            expectToBeSameIgnoringLineEndings(result, expected);
+        });
     });
 
     describe('List Widget', () => {

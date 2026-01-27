@@ -1,0 +1,7 @@
+{
+  "metadata": {
+    "operations": ["add", "subtract", "multiply", "divide"],
+    "tags": ["payment", "financial", "api"],
+    "version": "1.0.0"
+  }
+}
