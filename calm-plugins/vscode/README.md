@@ -1,9 +1,5 @@
 # CALM Visual Studio Code Extension
 
-> **Status**: Active - From v0.1.0 (December 2025) the extension has been moved out of experimental status, as it has
-> become a worthy part of the CALM tooling ecosystem. It will continue to be in active development, meaning that APIs, behavior, and visuals
-> will evolve.
-
 Live-visualize CALM architecture models while you edit them. Features an interactive preview, tree navigation, intelligent validation, and documentation generation.
 
 ## Features
@@ -78,6 +74,12 @@ Customize how the extension finds your CALM models and templates.
 -   `calm.files.globs`: Patterns for CALM model files (Default: `["calm/**/*.json", "calm/**/*.y?(a)ml"]`)
 -   `calm.template.globs`: Patterns for template files (Default: `["**/*.md", "**/*.hbs", ...]`)
 -   `calm.schemas.additionalFolders`: Additional folders containing CALM schemas for validation (Default: `[]`)
+
+### Visualisation Themes
+
+Four themes are supported for the live preview diagrams:
+
+- `calm.docify.theme` - set to `light`, `dark`, `high-contrast-light` or `high-contrast-dark`, or `auto` to automatically align to your VSCode theme.
 
 ## Getting Involved
 
