@@ -3,10 +3,12 @@ import { Option, Command } from 'commander';
 import { version } from '../package.json';
 import { promptUserForOptions } from './command-helpers/generate-options';
 import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components/options';
-import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
+import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '../../shared/src/document-loader/document-loader';
 import { loadCliConfig } from './cli-config';
 import path from 'path';
 import inquirer from 'inquirer';
+import { findWorkspaceBundlePath } from './workspace-resolver';
+import { setupDevCommands } from './command-helpers/dev/commands';
 
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -260,6 +262,8 @@ export function setupCLI(program: Command) {
             await setupAiTools(selectedProvider, options.directory, !!options.verbose);
         });
 
+    // Dev commands
+    setupDevCommands(program);
 }
 
 interface ParseDocumentLoaderOptions {
@@ -287,6 +291,18 @@ export async function parseDocumentLoaderConfig(
         logger.info('Using CALMHub URL from config file: ' + userConfig.calmHubUrl);
         docLoaderOpts.calmHubUrl = userConfig.calmHubUrl;
     }
+
+    // If a CALM workspace bundle is present in the repository, prefer it for resolving documents
+    try {
+        const workspaceBundle = findWorkspaceBundlePath(process.cwd());
+        if (workspaceBundle) {
+            logger.info('Using workspace bundle for document resolution: ' + workspaceBundle);
+            (docLoaderOpts as any).workspaceBundlePath = workspaceBundle;
+        }
+    } catch (err) {
+        logger.debug('Error while checking for workspace bundle: ' + (err instanceof Error ? err.message : String(err)));
+    }
+
     return docLoaderOpts;
 }
 
