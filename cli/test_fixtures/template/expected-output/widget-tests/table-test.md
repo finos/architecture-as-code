@@ -911,8 +911,8 @@ url-to-local-file-mapping: ../../../getting-started/url-to-local-file-mapping.js
                                                         <tr>
                                                             <td><b>Nodes</b></td>
                                                             <td>
-                                                                load-balancer
-                                                                attendees
+                                                                load-balancer, 
+                                                                attendees, 
                                                                 attendees-store
                                                             </td>
                                                         </tr>

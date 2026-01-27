@@ -942,8 +942,8 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                         <tr>
                                                             <td><b>Nodes</b></td>
                                                             <td>
-                                                                load-balancer
-                                                                attendees
+                                                                load-balancer, 
+                                                                attendees, 
                                                                 attendees-store
                                                             </td>
                                                         </tr>
