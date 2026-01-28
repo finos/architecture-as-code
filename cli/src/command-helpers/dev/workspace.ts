@@ -1,5 +1,5 @@
 import path from 'path';
-import { mkdir, writeFile } from 'fs/promises';
+import { mkdir, writeFile, readdir, readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 
 /**
@@ -14,20 +14,33 @@ export async function ensureWorkspaceBundle(targetDir: string, workspaceName: st
 
     await mkdir(bundleDir, { recursive: true });
 
-    const workspaceJsonPath = path.join(calmWorkspacePath, 'workspace.json');
-    const workspaceJson = { name: workspaceName };
-    // Only write workspace.json if it doesn't exist or contains different name
-    try {
-        if (!existsSync(workspaceJsonPath)) {
-            await writeFile(workspaceJsonPath, JSON.stringify(workspaceJson, null, 2), 'utf8');
-        } else {
-            // attempt to read and update if necessary — keep simple and overwrite
-            await writeFile(workspaceJsonPath, JSON.stringify(workspaceJson, null, 2), 'utf8');
-        }
-    } catch (e) {
-        // rethrow to allow caller to handle
-        throw e;
-    }
+    await setActiveWorkspace(targetDir, workspaceName);
 
     return bundleDir;
+}
+
+export async function getActiveWorkspace(targetDir: string): Promise<string | null> {
+    const workspaceJsonPath = path.join(targetDir, '.calm-workspace', 'workspace.json');
+    if (!existsSync(workspaceJsonPath)) {
+        return null;
+    }
+    const content = await readFile(workspaceJsonPath, 'utf8');
+    const json = JSON.parse(content);
+    return json.name;
+}
+
+export async function listWorkspaces(targetDir: string): Promise<string[]> {
+    const bundlesPath = path.join(targetDir, '.calm-workspace', 'bundles');
+    if (!existsSync(bundlesPath)) {
+        return [];
+    }
+    const entries = await readdir(bundlesPath, { withFileTypes: true });
+    return entries.filter(e => e.isDirectory()).map(e => e.name);
+}
+
+export async function setActiveWorkspace(targetDir: string, workspaceName: string): Promise<void> {
+    const calmWorkspacePath = path.join(targetDir, '.calm-workspace');
+    const workspaceJsonPath = path.join(calmWorkspacePath, 'workspace.json');
+    const workspaceJson = { name: workspaceName };
+    await writeFile(workspaceJsonPath, JSON.stringify(workspaceJson, null, 2), 'utf8');
 }

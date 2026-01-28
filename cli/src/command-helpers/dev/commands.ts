@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import path from 'path';
-import { ensureWorkspaceBundle } from './workspace';
+import { ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces, setActiveWorkspace } from './workspace';
 import { addFileToBundle, addObjectToBundle, loadManifest, printBundleTree } from './bundle';
 import { findWorkspaceBundlePath } from '../../workspace-resolver';
 import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '../../../../shared/src/document-loader/document-loader';
@@ -180,6 +180,70 @@ export function setupWorkspaceCommands(program: Command) {
                 await printBundleTree(bundlePath);
             } catch (err) {
                 console.error('Failed to print tree: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+
+    // Add list command
+    workspaceCmd
+        .command('list')
+        .description('List all available workspaces')
+        .action(async () => {
+            try {
+                const workspaces = await listWorkspaces(process.cwd());
+                const activeWorkspace = await getActiveWorkspace(process.cwd());
+                if (workspaces.length === 0) {
+                    console.log('No workspaces found.');
+                    return;
+                }
+                console.log('Available workspaces:');
+                for (const ws of workspaces) {
+                    if (ws === activeWorkspace) {
+                        console.log(`* ${ws}`);
+                    } else {
+                        console.log(`  ${ws}`);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to list workspaces: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+
+    // Add show command
+    workspaceCmd
+        .command('show')
+        .description('Show the active workspace')
+        .action(async () => {
+            try {
+                const activeWorkspace = await getActiveWorkspace(process.cwd());
+                if (activeWorkspace) {
+                    console.log(activeWorkspace);
+                } else {
+                    console.log('No active workspace.');
+                }
+            } catch (err) {
+                console.error('Failed to get active workspace: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+
+    // Add switch command
+    workspaceCmd
+        .command('switch')
+        .description('Switch the active workspace')
+        .argument('<name>', 'The name of the workspace to switch to')
+        .action(async (name: string) => {
+            try {
+                const workspaces = await listWorkspaces(process.cwd());
+                if (!workspaces.includes(name)) {
+                    console.error(`Workspace '${name}' not found.`);
+                    process.exit(1);
+                }
+                await setActiveWorkspace(process.cwd(), name);
+                console.log(`Switched to workspace '${name}'.`);
+            } catch (err) {
+                console.error('Failed to switch workspace: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);
             }
         });
