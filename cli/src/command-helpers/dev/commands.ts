@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import path from 'path';
 import { ensureWorkspaceBundle } from './workspace';
-import { addFileToBundle, addObjectToBundle, loadManifest } from './bundle';
+import { addFileToBundle, addObjectToBundle, loadManifest, printBundleTree } from './bundle';
 import { findWorkspaceBundlePath } from '../../workspace-resolver';
 import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '../../../../shared/src/document-loader/document-loader';
 import fs from 'fs';
@@ -153,6 +153,24 @@ export function setupDevCommands(program: Command) {
                 console.log('Pull complete');
             } catch (err) {
                 console.error('Failed to pull references: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+
+    // Add tree command
+    dev
+        .command('tree')
+        .description('Print dependency tree of files in the current workspace bundle')
+        .action(async () => {
+            try {
+                const bundlePath = findWorkspaceBundlePath(process.cwd());
+                if (!bundlePath) {
+                    console.error('No CALM workspace bundle found.');
+                    process.exit(1);
+                }
+                await printBundleTree(bundlePath);
+            } catch (err) {
+                console.error('Failed to print tree: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);
             }
         });

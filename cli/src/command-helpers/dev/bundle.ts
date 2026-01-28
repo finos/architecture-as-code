@@ -1,8 +1,16 @@
 import path from 'path';
 import { mkdir, copyFile, readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
+import { JSONPath } from 'jsonpath-plus';
+import { printTree } from 'tree-dump';
+import { renderGraphAsTree, printBundleTreeFromGraph } from './tree';
 
 export type BundleManifest = Record<string, string>;
+export type DependencyGraph = {
+    nodes: string[]; // ids
+    edges: Record<string, string[]>; // id -> referenced ids
+    idToPath: Record<string, string>;
+};
 
 export const MANIFEST_FILENAME = 'bundle-manifest.json';
 const FILES_DIRNAME = 'files';
@@ -134,4 +142,71 @@ export async function addObjectToBundle(
     await saveManifest(bundlePath, manifest);
 
     return { id, destPath, rel };
+}
+
+/**
+ * Build a dependency graph for the bundle where edges point from a document id to other document ids it references.
+ * Only references that resolve to ids present in the bundle manifest are included as edges.
+ */
+export async function buildDependencyGraph(bundlePath: string): Promise<DependencyGraph> {
+    const manifest = await loadManifest(bundlePath);
+    const idToPath: Record<string, string> = {};
+    for (const [id, rel] of Object.entries(manifest)) {
+        idToPath[id] = path.join(bundlePath, rel);
+    }
+
+    const edges: Record<string, string[]> = {};
+
+    for (const id of Object.keys(manifest)) {
+        const filePath = idToPath[id];
+        let json: any = null;
+        try {
+            const raw = await readFile(filePath, 'utf8');
+            json = JSON.parse(raw);
+        } catch (e) {
+            // skip unreadable files
+            continue;
+        }
+
+        const found = JSONPath({ path: "$..['$ref']", json }) as unknown[];
+        const refs = Array.from(new Set(found.filter(v => typeof v === 'string') as string[]));
+
+        edges[id] = [];
+        for (const ref of refs) {
+            const refBase = ref.split('#')[0];
+            // direct id match
+            if (manifest[ref]) {
+                edges[id].push(ref);
+                continue;
+            }
+            // match by base (strip fragment)
+            if (manifest[refBase]) {
+                edges[id].push(refBase);
+                continue;
+            }
+            // match by target file path (relative or absolute)
+            let candidatePath: string;
+            if (refBase.startsWith('http://') || refBase.startsWith('https://')) {
+                // nothing more we can do
+                continue;
+            }
+            // resolve relative to bundlePath
+            candidatePath = path.resolve(bundlePath, refBase);
+            const match = Object.entries(idToPath).find(([, p]) => path.resolve(p) === candidatePath);
+            if (match) {
+                edges[id].push(match[0]);
+            }
+        }
+    }
+
+    return { nodes: Object.keys(manifest), edges, idToPath };
+}
+
+/**
+ * Print the dependency tree for the bundle to stdout.
+ * Starts from nodes with no incoming edges by default.
+ */
+export async function printBundleTree(bundlePath: string): Promise<void> {
+    const graph = await buildDependencyGraph(bundlePath);
+    printBundleTreeFromGraph(graph, bundlePath);
 }
