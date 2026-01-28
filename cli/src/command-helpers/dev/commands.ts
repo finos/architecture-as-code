@@ -121,9 +121,10 @@ export function setupWorkspaceCommands(program: Command) {
     // Add a file to the current workspace bundle
     workspaceCmd
         .command('add')
-        .description('Add a file to the current CALM workspace bundle')
+        .description('Add a file to the current CALM workspace bundle. By default, this creates a reference to the file at its current location.')
         .argument('<file>', 'Path to the file to add to the bundle')
         .option('--id <id>', 'Document ID to register for this file (defaults to filename without extension)')
+        .option('--copy', 'Copy the file into the bundle instead of referencing it from its current location.')
         .action(async (file: string, options: any) => {
             try {
                 const bundlePath = findWorkspaceBundlePath(process.cwd());
@@ -135,8 +136,16 @@ export function setupWorkspaceCommands(program: Command) {
                 const srcPath = path.resolve(file);
 
                 // Delegate to bundle helper which does all FS operations
-                const { id, destPath: finalDestPath } = await addFileToBundle(bundlePath, srcPath, { id: options && options.id ? options.id : undefined });
-                console.log(`Added ${srcPath} -> ${finalDestPath} (id: ${id})`);
+                const { id, destPath: finalDestPath } = await addFileToBundle(bundlePath, srcPath, {
+                    id: options.id,
+                    copy: options.copy
+                });
+                
+                if (options.copy) {
+                    console.log(`Copied ${srcPath} -> ${finalDestPath} (id: ${id})`);
+                } else {
+                    console.log(`Added reference to ${finalDestPath} (id: ${id})`);
+                }
             } catch (err) {
                 console.error('Failed to add file to workspace bundle: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);

@@ -85,20 +85,27 @@ export async function determineDocumentId(srcPath: string, explicitId?: string):
 export async function addFileToBundle(
     bundlePath: string,
     srcPath: string,
-    opts?: { id?: string; destName?: string }
+    opts?: { id?: string; destName?: string, copy?: boolean }
 ): Promise<{ id: string; destPath: string; rel: string }> {
-    const filesDir = path.join(bundlePath, FILES_DIRNAME);
-    await mkdir(filesDir, { recursive: true });
 
-    const destName = opts && opts.destName ? opts.destName : path.basename(srcPath);
-    const destPath = path.join(filesDir, destName);
+    const id = await determineDocumentId(srcPath, opts?.id);
+    let rel: string;
+    let destPath: string;
 
-    await copyFile(srcPath, destPath);
+    if (opts?.copy) {
+        const filesDir = path.join(bundlePath, FILES_DIRNAME);
+        await mkdir(filesDir, { recursive: true });
 
-    const id = await determineDocumentId(srcPath, opts && opts.id ? opts.id : undefined);
-
-    const rel = path.relative(bundlePath, destPath);
-
+        const destName = opts.destName ?? path.basename(srcPath);
+        destPath = path.join(filesDir, destName);
+        await copyFile(srcPath, destPath);
+        rel = path.relative(bundlePath, destPath);
+    } else {
+        // reference the original file
+        destPath = srcPath;
+        rel = path.relative(bundlePath, srcPath);
+    }
+    
     const manifest = await loadManifest(bundlePath);
     manifest[id] = rel;
     await saveManifest(bundlePath, manifest);
