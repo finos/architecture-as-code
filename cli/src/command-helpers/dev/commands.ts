@@ -88,12 +88,12 @@ export async function pullWorkspaceBundle(bundlePath?: string, docLoaderOpts?: D
     await pullReferencesFromBundle(bp, docLoader);
 }
 
-export function setupDevCommands(program: Command) {
-    const dev = program.command('dev').description('Development helpers for CALM');
+export function setupWorkspaceCommands(program: Command) {
+    const workspaceCmd = program.command('workspace').description('Manage CALM workspace bundle and development helpers');
 
-    dev
-        .command('workspace')
-        .description('Manage CALM workspace in a repository')
+    workspaceCmd
+        .command('init')
+        .description('Initialize or update CALM workspace in a repository')
         .option('--set <name>', 'Set the workspace name (creates bundles/<name> and workspace.json)')
         .option('--dir <path>', 'Directory in which to create the workspace (defaults to current directory)', '.')
         .action(async (options: { set?: string; dir?: string }) => {
@@ -119,7 +119,7 @@ export function setupDevCommands(program: Command) {
         });
 
     // Add a file to the current workspace bundle
-    dev
+    workspaceCmd
         .command('add')
         .description('Add a file to the current CALM workspace bundle')
         .argument('<file>', 'Path to the file to add to the bundle')
@@ -128,7 +128,7 @@ export function setupDevCommands(program: Command) {
             try {
                 const bundlePath = findWorkspaceBundlePath(process.cwd());
                 if (!bundlePath) {
-                    console.error('No CALM workspace bundle found. Create one with `calm dev workspace --set <name>`');
+                    console.error('No CALM workspace bundle found. Create one with `calm workspace init --set <name>`');
                     process.exit(1);
                 }
 
@@ -144,7 +144,7 @@ export function setupDevCommands(program: Command) {
         });
 
     // Add pull command
-    dev
+    workspaceCmd
         .command('pull')
         .description('Pull referenced documents for all files in the current workspace bundle')
         .action(async () => {
@@ -158,7 +158,7 @@ export function setupDevCommands(program: Command) {
         });
 
     // Add tree command
-    dev
+    workspaceCmd
         .command('tree')
         .description('Print dependency tree of files in the current workspace bundle')
         .action(async () => {

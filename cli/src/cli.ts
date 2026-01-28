@@ -8,7 +8,7 @@ import { loadCliConfig } from './cli-config';
 import path from 'path';
 import inquirer from 'inquirer';
 import { findWorkspaceBundlePath } from './workspace-resolver';
-import { setupDevCommands } from './command-helpers/dev/commands';
+import { setupWorkspaceCommands } from './command-helpers/dev/commands';
 
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -263,7 +263,7 @@ export function setupCLI(program: Command) {
         });
 
     // Dev commands
-    setupDevCommands(program);
+    setupWorkspaceCommands(program);
 }
 
 interface ParseDocumentLoaderOptions {
