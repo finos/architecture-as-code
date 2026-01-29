@@ -1,5 +1,5 @@
 import path from 'path';
-import { mkdir, writeFile, readdir, readFile } from 'fs/promises';
+import { mkdir, writeFile, readdir, readFile, rm } from 'fs/promises';
 import { existsSync } from 'fs';
 
 /**
@@ -43,4 +43,22 @@ export async function setActiveWorkspace(targetDir: string, workspaceName: strin
     const workspaceJsonPath = path.join(calmWorkspacePath, 'workspace.json');
     const workspaceJson = { name: workspaceName };
     await writeFile(workspaceJsonPath, JSON.stringify(workspaceJson, null, 2), 'utf8');
+}
+
+export async function cleanWorkspace(targetDir: string): Promise<void> {
+    const calmWorkspacePath = path.join(targetDir, '.calm-workspace');
+    const bundlesPath = path.join(calmWorkspacePath, 'bundles');
+    const workspaceJsonPath = path.join(calmWorkspacePath, 'workspace.json');
+
+    // Delete all bundle files
+    if (existsSync(bundlesPath)) {
+        for (const file of await readdir(bundlesPath)) {
+            await rm(path.join(bundlesPath, file), { recursive: true, force: true });
+        }
+    }
+
+    // Reset the bundle manifest
+    if (existsSync(workspaceJsonPath)) {
+        await writeFile(workspaceJsonPath, JSON.stringify({}, null, 2), 'utf8');
+    }
 }

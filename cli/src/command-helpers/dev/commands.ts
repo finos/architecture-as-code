@@ -1,11 +1,14 @@
 import { Command } from 'commander';
 import path from 'path';
-import { ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces, setActiveWorkspace } from './workspace';
+import { ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces, setActiveWorkspace, cleanWorkspace } from './workspace';
 import { addFileToBundle, addObjectToBundle, loadManifest, printBundleTree } from './bundle';
 import { findWorkspaceBundlePath } from '../../workspace-resolver';
 import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '../../../../shared/src/document-loader/document-loader';
 import fs from 'fs';
 import { JSONPath } from 'jsonpath-plus';
+import { initLogger, Logger } from '@finos/calm-shared/src/logger';
+
+const logger: Logger = initLogger(false, 'workspace');
 
 async function loadJsonFile(filePath: string): Promise<any> {
     const raw = await fs.promises.readFile(filePath, 'utf8');
@@ -23,7 +26,7 @@ async function pullReferencesFromBundle(bundlePath: string, docLoader: DocumentL
         try {
             json = await loadJsonFile(filePath);
         } catch (e) {
-            console.warn('Failed to parse JSON ' + filePath + ': ' + (e instanceof Error ? e.message : String(e)));
+            logger.warn('Failed to parse JSON ' + filePath + ': ' + (e instanceof Error ? e.message : String(e)));
             continue;
         }
 
@@ -51,7 +54,7 @@ async function pullReferencesFromBundle(bundlePath: string, docLoader: DocumentL
                     queue.push(added.destPath);
                 }
             } catch (e) {
-                console.warn(`Failed to load reference ${ref}: ${e instanceof Error ? e.message : String(e)}`);
+                logger.warn(`Failed to load reference ${ref}: ${e instanceof Error ? e.message : String(e)}`);
             }
         }
     }
@@ -98,7 +101,7 @@ export function setupWorkspaceCommands(program: Command) {
         .option('--dir <path>', 'Directory in which to create the workspace (defaults to current directory)', '.')
         .action(async (options: { set?: string; dir?: string }) => {
             if (!options.set) {
-                console.error('Please specify --set <name> to create or update the workspace.');
+                logger.error('Please specify --set <name> to create or update the workspace.');
                 process.exit(1);
             }
 
@@ -110,10 +113,10 @@ export function setupWorkspaceCommands(program: Command) {
 
             try {
                 const created = await ensureWorkspaceBundle(targetDir, workspaceName);
-                console.log(`Workspace '${workspaceName}' created/updated at ${path.dirname(created)}`);
-                console.log(`Bundle directory ensured at ${created}`);
+                logger.info(`Workspace '${workspaceName}' created/updated at ${path.dirname(created)}`);
+                logger.info(`Bundle directory ensured at ${created}`);
             } catch (err) {
-                console.error('Failed to create workspace: ' + (err instanceof Error ? err.message : String(err)));
+                logger.error('Failed to create workspace: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);
             }
         });
@@ -129,7 +132,7 @@ export function setupWorkspaceCommands(program: Command) {
             try {
                 const bundlePath = findWorkspaceBundlePath(process.cwd());
                 if (!bundlePath) {
-                    console.error('No CALM workspace bundle found. Create one with `calm workspace init --set <name>`');
+                    logger.error('No CALM workspace bundle found. Create one with `calm workspace init --set <name>`');
                     process.exit(1);
                 }
 
@@ -140,14 +143,14 @@ export function setupWorkspaceCommands(program: Command) {
                     id: options.id,
                     copy: options.copy
                 });
-                
+
                 if (options.copy) {
-                    console.log(`Copied ${srcPath} -> ${finalDestPath} (id: ${id})`);
+                    logger.info(`Copied ${srcPath} -> ${finalDestPath} (id: ${id})`);
                 } else {
-                    console.log(`Added reference to ${finalDestPath} (id: ${id})`);
+                    logger.info(`Added reference to ${finalDestPath} (id: ${id})`);
                 }
             } catch (err) {
-                console.error('Failed to add file to workspace bundle: ' + (err instanceof Error ? err.message : String(err)));
+                logger.error('Failed to add file to workspace bundle: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);
             }
         });
@@ -159,9 +162,9 @@ export function setupWorkspaceCommands(program: Command) {
         .action(async () => {
             try {
                 await pullWorkspaceBundle();
-                console.log('Pull complete');
+                logger.info('Pull complete');
             } catch (err) {
-                console.error('Failed to pull references: ' + (err instanceof Error ? err.message : String(err)));
+                logger.error('Failed to pull references: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);
             }
         });
@@ -174,12 +177,12 @@ export function setupWorkspaceCommands(program: Command) {
             try {
                 const bundlePath = findWorkspaceBundlePath(process.cwd());
                 if (!bundlePath) {
-                    console.error('No CALM workspace bundle found.');
+                    logger.error('No CALM workspace bundle found.');
                     process.exit(1);
                 }
                 await printBundleTree(bundlePath);
             } catch (err) {
-                console.error('Failed to print tree: ' + (err instanceof Error ? err.message : String(err)));
+                logger.error('Failed to print tree: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);
             }
         });
@@ -193,19 +196,19 @@ export function setupWorkspaceCommands(program: Command) {
                 const workspaces = await listWorkspaces(process.cwd());
                 const activeWorkspace = await getActiveWorkspace(process.cwd());
                 if (workspaces.length === 0) {
-                    console.log('No workspaces found.');
+                    logger.warn('No workspaces found.');
                     return;
                 }
-                console.log('Available workspaces:');
+                logger.info('Available workspaces:');
                 for (const ws of workspaces) {
                     if (ws === activeWorkspace) {
-                        console.log(`* ${ws}`);
+                        logger.info(`* ${ws}`);
                     } else {
-                        console.log(`  ${ws}`);
+                        logger.info(`  ${ws}`);
                     }
                 }
             } catch (err) {
-                console.error('Failed to list workspaces: ' + (err instanceof Error ? err.message : String(err)));
+                logger.error('Failed to list workspaces: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);
             }
         });
@@ -218,12 +221,12 @@ export function setupWorkspaceCommands(program: Command) {
             try {
                 const activeWorkspace = await getActiveWorkspace(process.cwd());
                 if (activeWorkspace) {
-                    console.log(activeWorkspace);
+                    logger.info(activeWorkspace);
                 } else {
-                    console.log('No active workspace.');
+                    logger.info('No active workspace.');
                 }
             } catch (err) {
-                console.error('Failed to get active workspace: ' + (err instanceof Error ? err.message : String(err)));
+                logger.error('Failed to get active workspace: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);
             }
         });
@@ -237,13 +240,27 @@ export function setupWorkspaceCommands(program: Command) {
             try {
                 const workspaces = await listWorkspaces(process.cwd());
                 if (!workspaces.includes(name)) {
-                    console.error(`Workspace '${name}' not found.`);
+                    logger.error(`Workspace '${name}' not found.`);
                     process.exit(1);
                 }
                 await setActiveWorkspace(process.cwd(), name);
-                console.log(`Switched to workspace '${name}'.`);
+                logger.info(`Switched to workspace '${name}'.`);
             } catch (err) {
-                console.error('Failed to switch workspace: ' + (err instanceof Error ? err.message : String(err)));
+                logger.error('Failed to switch workspace: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+
+    // Add clean command
+    workspaceCmd
+        .command('clean')
+        .description('Clean the workspace by deleting all bundles and resetting the manifest')
+        .action(async () => {
+            try {
+                await cleanWorkspace(process.cwd());
+                logger.info('Workspace cleaned.');
+            } catch (err) {
+                logger.error('Failed to clean workspace: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);
             }
         });
