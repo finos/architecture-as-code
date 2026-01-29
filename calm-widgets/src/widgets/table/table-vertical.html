@@ -18,8 +18,7 @@
         {{> table-template.html rows=(objectEntries cellValue) headers=false flatTable=false hasRows=true isNested=true}}
         {{else if (isArray cellValue)}}{{#each cellValue}}{{#if (isObject this)}}
         {{> table-template.html rows=(objectEntries this) headers=false flatTable=false hasRows=true isNested=true}}
-        {{else}}{{this}}
-        {{/if}}{{/each}}{{else}}{{cellValue}}{{/if}}</td>
+        {{else}}{{this}}{{#unless @last}}, {{/unless}}{{/if}}{{/each}}{{else}}{{cellValue}}{{/if}}</td>
 </tr>
 {{/with}}
 {{/with}}
