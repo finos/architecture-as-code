@@ -97,15 +97,15 @@ export function setupWorkspaceCommands(program: Command) {
     workspaceCmd
         .command('init')
         .description('Initialize or update CALM workspace in a repository')
-        .option('--set <name>', 'Set the workspace name (creates bundles/<name> and workspace.json)')
+        .argument('<name>', 'The name of the workspace to create or update')
         .option('--dir <path>', 'Directory in which to create the workspace (defaults to current directory)', '.')
-        .action(async (options: { set?: string; dir?: string }) => {
-            if (!options.set) {
-                logger.error('Please specify --set <name> to create or update the workspace.');
+        .action(async (name: string, options: { dir?: string }) => {
+            if (!name) {
+                logger.error('Please specify the workspace name. Usage: calm workspace init <name> [--dir <path>]');
                 process.exit(1);
             }
 
-            const workspaceName: string = options.set as string;
+            const workspaceName: string = name as string;
             const targetDir = path.resolve(options.dir || '.');
             const calmWorkspacePath = path.join(targetDir, '.calm-workspace');
             const bundlesPath = path.join(calmWorkspacePath, 'bundles');
@@ -132,7 +132,7 @@ export function setupWorkspaceCommands(program: Command) {
             try {
                 const bundlePath = findWorkspaceBundlePath(process.cwd());
                 if (!bundlePath) {
-                    logger.error('No CALM workspace bundle found. Create one with `calm workspace init --set <name>`');
+                    logger.error('No CALM workspace bundle found. Create one with `calm workspace init <name>`');
                     process.exit(1);
                 }
 
