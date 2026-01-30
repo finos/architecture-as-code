@@ -1,11 +1,19 @@
-bug when NOT working out of root dir. not all the comands seem to correctly discover the root workspaces folder
-bug with clean command not deleting properly
+Points for improvement
+Do these one at a time, not all at once.
 
-Ideas:
-User shouldn't be able to work on pulled files that were created by calm pull unless they opt in.
-Core idea being you only really care about the stuff that was added to the workspace.
-Similarly calm workspace tree shouldn't link files if they were pulled
+# calm workspace clean
+- Should only clean up the currently-active workspace
+- Should have a --all flag to clean up everything (current behaviour)
 
+# tree prints too much
+- if a file to be printed by calm workspace print is in the files directory inside the bundle, i.e. it was pulled rather than being explicitly calm workspace added, just print (workspace) for the file path instead of the full path.
+  Core idea being you only really care about the stuff that was added to the workspace.
+
+# logging is way too verbose for pull command
+pull command prints tons of diagnostic logs from the schema loader. these should be suppressed unless --verbose is provided or loading of a file fails completely.
+
+
+# ignore beyond this point, these are just ideas
 Along this idea workspace 'files' directory should probably just go into the current working directory. top level should just be an index.
 
 Maybe a command to take a file in the top level cache and put it in current working directory.
