@@ -24,7 +24,10 @@ export function renderGraphAsTree(graph: DependencyGraph, bundlePath: string): s
 
     function buildSubtree(id: string, seen = new Set<string>()): Record<string, any> {
         const relativePath = path.relative(bundlePath, graph.idToPath[id]);
-        const key = `${id} (${relativePath ? './' + relativePath : '.'})`;
+        // Files in the 'files/' directory were pulled, show (pulled) instead of full path
+        const isPulled = relativePath.startsWith('files' + path.sep) || relativePath.startsWith('files/');
+        const pathDisplay = isPulled ? 'pulled' : (relativePath ? './' + relativePath : '.');
+        const key = `${id} (${pathDisplay})`;
         if (seen.has(id)) {
             return { [key]: { '(cycle)': {} } };
         }

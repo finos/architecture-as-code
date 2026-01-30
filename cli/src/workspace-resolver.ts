@@ -10,7 +10,7 @@ export function resolveWorkspaceBundlePathFromEnv(): string | null {
     return null;
 }
 
-function findGitRoot(startPath?: string): string | null {
+export function findGitRoot(startPath?: string): string | null {
     let currentPath = startPath || process.cwd();
     while (true) {
         const gitPath = join(currentPath, '.git');

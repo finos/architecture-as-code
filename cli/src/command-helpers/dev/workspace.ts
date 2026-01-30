@@ -45,7 +45,21 @@ export async function setActiveWorkspace(targetDir: string, workspaceName: strin
     await writeFile(workspaceJsonPath, JSON.stringify(workspaceJson, null, 2), 'utf8');
 }
 
-export async function cleanWorkspace(targetDir: string): Promise<void> {
+/**
+ * Clean a specific workspace bundle by deleting its directory.
+ * Does not modify workspace.json (active workspace setting).
+ */
+export async function cleanWorkspaceBundle(targetDir: string, workspaceName: string): Promise<void> {
+    const bundlePath = path.join(targetDir, '.calm-workspace', 'bundles', workspaceName);
+    if (existsSync(bundlePath)) {
+        await rm(bundlePath, { recursive: true, force: true });
+    }
+}
+
+/**
+ * Clean all workspace bundles and reset workspace.json.
+ */
+export async function cleanAllWorkspaces(targetDir: string): Promise<void> {
     const calmWorkspacePath = path.join(targetDir, '.calm-workspace');
     const bundlesPath = path.join(calmWorkspacePath, 'bundles');
     const workspaceJsonPath = path.join(calmWorkspacePath, 'workspace.json');

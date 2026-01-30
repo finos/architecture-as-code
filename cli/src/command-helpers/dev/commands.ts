@@ -1,8 +1,8 @@
 import { Command } from 'commander';
 import path from 'path';
-import { ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces, setActiveWorkspace, cleanWorkspace } from './workspace';
+import { ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces, setActiveWorkspace, cleanWorkspaceBundle, cleanAllWorkspaces } from './workspace';
 import { addFileToBundle, addObjectToBundle, loadManifest, printBundleTree } from './bundle';
-import { findWorkspaceBundlePath } from '../../workspace-resolver';
+import { findWorkspaceBundlePath, findGitRoot } from '../../workspace-resolver';
 import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '../../../../shared/src/document-loader/document-loader';
 import fs from 'fs';
 import { JSONPath } from 'jsonpath-plus';
@@ -98,7 +98,7 @@ export function setupWorkspaceCommands(program: Command) {
         .command('init')
         .description('Initialize or update CALM workspace in a repository')
         .argument('<name>', 'The name of the workspace to create or update')
-        .option('--dir <path>', 'Directory in which to create the workspace (defaults to current directory)', '.')
+        .option('--dir <path>', 'Directory in which to create the workspace (defaults to git root)')
         .action(async (name: string, options: { dir?: string }) => {
             if (!name) {
                 logger.error('Please specify the workspace name. Usage: calm workspace init <name> [--dir <path>]');
@@ -106,7 +106,7 @@ export function setupWorkspaceCommands(program: Command) {
             }
 
             const workspaceName: string = name as string;
-            const targetDir = path.resolve(options.dir || '.');
+            const targetDir = options.dir ? path.resolve(options.dir) : (findGitRoot(process.cwd()) ?? process.cwd());
             const calmWorkspacePath = path.join(targetDir, '.calm-workspace');
             const bundlesPath = path.join(calmWorkspacePath, 'bundles');
             const bundleDir = path.join(bundlesPath, workspaceName);
@@ -159,9 +159,10 @@ export function setupWorkspaceCommands(program: Command) {
     workspaceCmd
         .command('pull')
         .description('Pull referenced documents for all files in the current workspace bundle')
-        .action(async () => {
+        .option('--verbose', 'Show verbose logging from document loaders')
+        .action(async (options: { verbose?: boolean }) => {
             try {
-                await pullWorkspaceBundle();
+                await pullWorkspaceBundle(undefined, { debug: options.verbose ?? false });
                 logger.info('Pull complete');
             } catch (err) {
                 logger.error('Failed to pull references: ' + (err instanceof Error ? err.message : String(err)));
@@ -193,8 +194,13 @@ export function setupWorkspaceCommands(program: Command) {
         .description('List all available workspaces')
         .action(async () => {
             try {
-                const workspaces = await listWorkspaces(process.cwd());
-                const activeWorkspace = await getActiveWorkspace(process.cwd());
+                const gitRoot = findGitRoot(process.cwd());
+                if (!gitRoot) {
+                    logger.error('No git repository found. Please run this command from within a git repository.');
+                    process.exit(1);
+                }
+                const workspaces = await listWorkspaces(gitRoot);
+                const activeWorkspace = await getActiveWorkspace(gitRoot);
                 if (workspaces.length === 0) {
                     logger.warn('No workspaces found.');
                     return;
@@ -219,7 +225,12 @@ export function setupWorkspaceCommands(program: Command) {
         .description('Show the active workspace')
         .action(async () => {
             try {
-                const activeWorkspace = await getActiveWorkspace(process.cwd());
+                const gitRoot = findGitRoot(process.cwd());
+                if (!gitRoot) {
+                    logger.error('No git repository found. Please run this command from within a git repository.');
+                    process.exit(1);
+                }
+                const activeWorkspace = await getActiveWorkspace(gitRoot);
                 if (activeWorkspace) {
                     logger.info(activeWorkspace);
                 } else {
@@ -238,12 +249,17 @@ export function setupWorkspaceCommands(program: Command) {
         .argument('<name>', 'The name of the workspace to switch to')
         .action(async (name: string) => {
             try {
-                const workspaces = await listWorkspaces(process.cwd());
+                const gitRoot = findGitRoot(process.cwd());
+                if (!gitRoot) {
+                    logger.error('No git repository found. Please run this command from within a git repository.');
+                    process.exit(1);
+                }
+                const workspaces = await listWorkspaces(gitRoot);
                 if (!workspaces.includes(name)) {
                     logger.error(`Workspace '${name}' not found.`);
                     process.exit(1);
                 }
-                await setActiveWorkspace(process.cwd(), name);
+                await setActiveWorkspace(gitRoot, name);
                 logger.info(`Switched to workspace '${name}'.`);
             } catch (err) {
                 logger.error('Failed to switch workspace: ' + (err instanceof Error ? err.message : String(err)));
@@ -254,11 +270,28 @@ export function setupWorkspaceCommands(program: Command) {
     // Add clean command
     workspaceCmd
         .command('clean')
-        .description('Clean the workspace by deleting all bundles and resetting the manifest')
-        .action(async () => {
+        .description('Clean the active workspace bundle (use --all to clean all workspaces)')
+        .option('--all', 'Clean all workspaces and reset workspace.json')
+        .action(async (options: { all?: boolean }) => {
             try {
-                await cleanWorkspace(process.cwd());
-                logger.info('Workspace cleaned.');
+                const gitRoot = findGitRoot(process.cwd());
+                if (!gitRoot) {
+                    logger.error('No git repository found. Please run this command from within a git repository.');
+                    process.exit(1);
+                }
+
+                if (options.all) {
+                    await cleanAllWorkspaces(gitRoot);
+                    logger.info('All workspaces cleaned.');
+                } else {
+                    const activeWorkspace = await getActiveWorkspace(gitRoot);
+                    if (!activeWorkspace) {
+                        logger.error('No active workspace. Use --all to clean all workspaces.');
+                        process.exit(1);
+                    }
+                    await cleanWorkspaceBundle(gitRoot, activeWorkspace);
+                    logger.info(`Workspace '${activeWorkspace}' cleaned.`);
+                }
             } catch (err) {
                 logger.error('Failed to clean workspace: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);

@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { cleanWorkspace, ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces } from './workspace';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { cleanWorkspaceBundle, cleanAllWorkspaces, ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces } from './workspace';
 import { mkdir, writeFile, rm, readdir } from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
@@ -20,9 +20,33 @@ describe('workspace', () => {
         await rm(testDir, { recursive: true, force: true });
     });
 
-    describe('cleanWorkspace', () => {
-        beforeAll(async () => {
-            // Setup a dummy workspace
+    describe('cleanWorkspaceBundle', () => {
+        beforeEach(async () => {
+            // Setup dummy workspaces
+            await ensureWorkspaceBundle(testDir, 'test-bundle');
+            await writeFile(path.join(bundlesPath, 'test-bundle', 'file1.json'), '{}');
+            await ensureWorkspaceBundle(testDir, 'another-bundle');
+            await writeFile(path.join(bundlesPath, 'another-bundle', 'file2.json'), '{}');
+        });
+
+        it('should delete only the specified workspace bundle', async () => {
+            // Pre-check
+            expect(await listWorkspaces(testDir)).toContain('test-bundle');
+            expect(await listWorkspaces(testDir)).toContain('another-bundle');
+
+            // Run clean on specific bundle
+            await cleanWorkspaceBundle(testDir, 'test-bundle');
+
+            // Post-check - only test-bundle should be deleted
+            const workspaces = await listWorkspaces(testDir);
+            expect(workspaces).not.toContain('test-bundle');
+            expect(workspaces).toContain('another-bundle');
+        });
+    });
+
+    describe('cleanAllWorkspaces', () => {
+        beforeEach(async () => {
+            // Setup dummy workspaces
             await ensureWorkspaceBundle(testDir, 'test-bundle');
             await writeFile(path.join(bundlesPath, 'test-bundle', 'file1.json'), '{}');
             await ensureWorkspaceBundle(testDir, 'another-bundle');
@@ -35,8 +59,8 @@ describe('workspace', () => {
             expect(await listWorkspaces(testDir)).toContain('another-bundle');
             expect(await getActiveWorkspace(testDir)).toBe('another-bundle');
 
-            // Run clean
-            await cleanWorkspace(testDir);
+            // Run clean all
+            await cleanAllWorkspaces(testDir);
 
             // Post-check
             expect(existsSync(bundlesPath)).toBe(true); // bundles folder should still exist
