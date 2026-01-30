@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://calm.finos.org/release/1.0/meta/flow.json",
+  "$id": "https://calm.finos.org/release/1.2/meta/flow.json",
   "title": "Business Flow Model",
   "description": "Defines business flows that relate to technical architectures, allowing mapping of flows to technical components and attaching control requirements.",
   "defs": {
@@ -25,13 +25,13 @@
             "destination-to-source"
           ],
           "default": "source-to-destination"
-        },
-        "required": [
-          "relationship-unique-id",
-          "sequence-number",
-          "description"
-        ]
-      }
+        }
+      },
+      "required": [
+        "relationship-unique-id",
+        "sequence-number",
+        "description"
+      ]
     },
     "flow": {
       "type": "object",
@@ -71,8 +71,8 @@
         "name",
         "description",
         "transitions"
-      ]
+      ],
+      "additionalProperties": false
     }
   }
 }
-

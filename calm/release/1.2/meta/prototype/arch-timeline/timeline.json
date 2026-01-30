@@ -1,6 +1,6 @@
 {
-  "$schema": "https://calm.finos.org/draft/1762/meta/calm-timeline.json",
-  "$id": "https://calm.finos.org/draft/1762/prototype/arch-timeline/timeline.json",
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm-timeline.json",
+  "$id": "https://calm.finos.org/release/1.2/prototype/arch-timeline/timeline.json",
   "current-moment": "insecure",
   "moments": [
     {
@@ -9,7 +9,7 @@
       "name": "Initial design without security measures",
       "description": "This moment represents the architecture before any security measures were implemented, for POC purposes.",
       "details": {
-        "detailed-architecture": "https://calm.finos.org/draft/1762/prototype/arch-timeline/arch-insecure.json"
+        "detailed-architecture": "https://calm.finos.org/release/1.2/prototype/arch-timeline/arch-insecure.json"
       },
       "valid-from": "2024-06-01"
     },
@@ -19,10 +19,10 @@
       "name": "Enhanced design with security measures",
       "description": "Secured website",
       "details": {
-        "detailed-architecture": "https://calm.finos.org/draft/1762/prototype/arch-timeline/arch-secure.json"
+        "detailed-architecture": "https://calm.finos.org/release/1.2/prototype/arch-timeline/arch-secure.json"
       },
       "adrs": [
-        "https://calm.finos.org/draft/1762/prototype/adrs/add-security.md"
+        "https://calm.finos.org/release/1.2/prototype/adrs/add-security.md"
       ]
     }
   ]

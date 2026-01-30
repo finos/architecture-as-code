@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://calm.finos.org/release/1.0/meta/units.json",
+  "$id": "https://calm.finos.org/release/1.2/meta/units.json",
   "title": "Common Architecture Language Model Units",
   "defs": {
     "time-unit": {
@@ -29,7 +29,10 @@
           "description": "The numeric value representing the amount of time."
         }
       },
-      "required": ["unit", "value"],
+      "required": [
+        "unit",
+        "value"
+      ],
       "additionalProperties": false,
       "examples": [
         {
@@ -76,7 +79,10 @@
           "description": "The time unit defining the rate interval."
         }
       },
-      "required": ["rate", "per"],
+      "required": [
+        "rate",
+        "per"
+      ],
       "additionalProperties": false,
       "examples": [
         {

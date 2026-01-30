@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://calm.finos.org/release/1.0/meta/core.json",
+  "$id": "https://calm.finos.org/release/1.2/meta/core.json",
   "title": "Common Architecture Language Model (CALM) Vocab",
-  "type" : "object",
+  "type": "object",
   "properties": {
     "nodes": {
       "type": "array",
@@ -69,8 +69,12 @@
           "type": "array",
           "items": {
             "anyOf": [
-              { "$ref": "interface.json#/defs/interface-definition" },
-              { "$ref": "interface.json#/defs/interface-type" }
+              {
+                "$ref": "interface.json#/defs/interface-definition"
+              },
+              {
+                "$ref": "interface.json#/defs/interface-type"
+              }
             ]
           }
         },
