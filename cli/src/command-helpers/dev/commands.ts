@@ -37,6 +37,10 @@ async function pullReferencesFromBundle(bundlePath: string, docLoader: DocumentL
         for (const ref of refs) {
             // skip if already in manifest (by id)
             // try to resolve via docLoader.resolvePath first
+            if (!ref.startsWith('http')) {
+                // local reference; skip
+                continue;
+            }
             const resolved = docLoader.resolvePath(ref);
             try {
                 const loaded = await docLoader.loadMissingDocument(ref, 'schema').catch(async (e) => {
