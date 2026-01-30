@@ -2,8 +2,13 @@ import path from 'path';
 import { mkdir, copyFile, readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { JSONPath } from 'jsonpath-plus';
-import { printTree } from 'tree-dump';
-import { renderGraphAsTree, printBundleTreeFromGraph } from './tree';
+import { printBundleTreeFromGraph } from './tree';
+
+/**
+ * Property names that can contain document references (URLs or paths) in CALM JSON.
+ * These are scanned during pull and dependency graph building.
+ */
+export const REFERENCE_PROPERTIES = ['$ref', 'requirement-url', 'config-url'] as const;
 
 export type BundleManifest = Record<string, string>;
 export type DependencyGraph = {
@@ -105,7 +110,7 @@ export async function addFileToBundle(
         destPath = srcPath;
         rel = path.relative(bundlePath, srcPath);
     }
-    
+
     const manifest = await loadManifest(bundlePath);
     manifest[id] = rel;
     await saveManifest(bundlePath, manifest);
@@ -175,8 +180,13 @@ export async function buildDependencyGraph(bundlePath: string): Promise<Dependen
             continue;
         }
 
-        const found = JSONPath({ path: "$..['$ref']", json }) as unknown[];
-        const refs = Array.from(new Set(found.filter(v => typeof v === 'string') as string[]));
+        // Extract all reference types from the document
+        const allRefs: string[] = [];
+        for (const prop of REFERENCE_PROPERTIES) {
+            const found = JSONPath({ path: `$..['${prop}']`, json }) as unknown[];
+            allRefs.push(...found.filter(v => typeof v === 'string') as string[]);
+        }
+        const refs = Array.from(new Set(allRefs));
 
         edges[id] = [];
         for (const ref of refs) {

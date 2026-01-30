@@ -52,7 +52,9 @@ export async function setActiveWorkspace(targetDir: string, workspaceName: strin
 export async function cleanWorkspaceBundle(targetDir: string, workspaceName: string): Promise<void> {
     const bundlePath = path.join(targetDir, '.calm-workspace', 'bundles', workspaceName);
     if (existsSync(bundlePath)) {
-        await rm(bundlePath, { recursive: true, force: true });
+        await rm(path.join(bundlePath, '*'), { recursive: true, force: true });
+        // wipe manifest
+        await writeFile(path.join(bundlePath, 'bundle-manifest.json'), '{}', 'utf8');
     }
 }
 

@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import path from 'path';
 import { ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces, setActiveWorkspace, cleanWorkspaceBundle, cleanAllWorkspaces } from './workspace';
-import { addFileToBundle, addObjectToBundle, loadManifest, printBundleTree } from './bundle';
+import { addFileToBundle, addObjectToBundle, loadManifest, printBundleTree, REFERENCE_PROPERTIES } from './bundle';
 import { findWorkspaceBundlePath, findGitRoot } from '../../workspace-resolver';
 import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '../../../../shared/src/document-loader/document-loader';
 import fs from 'fs';
@@ -30,9 +30,13 @@ async function pullReferencesFromBundle(bundlePath: string, docLoader: DocumentL
             continue;
         }
 
-        // Use jsonpath-plus to extract all $ref values anywhere in the JSON
-        const found = JSONPath({ path: "$..['$ref']", json }) as unknown[];
-        const refs = new Set<string>(found.filter((v) => typeof v === 'string') as string[]);
+        // Extract all reference types from the document ($ref, requirement-url, config-url, etc.)
+        const allRefs: string[] = [];
+        for (const prop of REFERENCE_PROPERTIES) {
+            const found = JSONPath({ path: `$..['${prop}']`, json }) as unknown[];
+            allRefs.push(...found.filter((v) => typeof v === 'string') as string[]);
+        }
+        const refs = new Set<string>(allRefs);
 
         for (const ref of refs) {
             // skip if already in manifest (by id)
@@ -86,11 +90,8 @@ export async function pullWorkspaceBundle(bundlePath?: string, docLoaderOpts?: D
 
     const opts: DocumentLoaderOptions = docLoaderOpts ?? {};
     const docLoader = buildDocumentLoader(opts);
-    try {
-        await docLoader.initialise(undefined as any);
-    } catch (e) {
-        // some loaders may not require initialise; ignore failures here
-    }
+    // Note: we don't call initialise() here because pull only needs loadMissingDocument()
+    // to fetch external URLs, not pre-loaded filesystem schemas.
 
     await pullReferencesFromBundle(bp, docLoader);
 }
@@ -111,9 +112,6 @@ export function setupWorkspaceCommands(program: Command) {
 
             const workspaceName: string = name as string;
             const targetDir = options.dir ? path.resolve(options.dir) : (findGitRoot(process.cwd()) ?? process.cwd());
-            const calmWorkspacePath = path.join(targetDir, '.calm-workspace');
-            const bundlesPath = path.join(calmWorkspacePath, 'bundles');
-            const bundleDir = path.join(bundlesPath, workspaceName);
 
             try {
                 const created = await ensureWorkspaceBundle(targetDir, workspaceName);
