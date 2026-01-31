@@ -1,6 +1,6 @@
 ---
-id: building-architecture
-title: Building a CALM Architecture
+id: business-context
+title: Business Context
 sidebar_position: 1
 ---
 
