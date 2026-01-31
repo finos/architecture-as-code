@@ -50,6 +50,14 @@ const sidebars = {
         'working-with-calm/generate',
         'working-with-calm/calm-ai-tools',
         'working-with-calm/voice-mode',
+        {
+          type: 'category',
+          label: 'CALM Example',
+          items: [
+            'working-with-calm/calm-example/building-architecture',
+            'working-with-calm/calm-example/enable-ai-support'
+          ],
+        }
       ],
     },
   ],
