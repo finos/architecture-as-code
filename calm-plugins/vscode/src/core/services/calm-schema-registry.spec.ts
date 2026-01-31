@@ -54,6 +54,8 @@ describe('CalmSchemaRegistry', () => {
 
     describe('isKnownCalmSchema', () => {
         it('should recognize CALM release schema URLs', () => {
+            expect(registry.isKnownCalmSchema('https://calm.finos.org/release/1.2/meta/calm.json')).toBe(true)
+            expect(registry.isKnownCalmSchema('https://calm.finos.org/release/1.2/meta/calm-timeline.json')).toBe(true)
             expect(registry.isKnownCalmSchema('https://calm.finos.org/release/1.1/meta/calm.json')).toBe(true)
             expect(registry.isKnownCalmSchema('https://calm.finos.org/release/1.0/meta/calm.json')).toBe(true)
         })
@@ -63,6 +65,10 @@ describe('CalmSchemaRegistry', () => {
         })
 
         it('should recognize other CALM meta schema files', () => {
+            expect(registry.isKnownCalmSchema('https://calm.finos.org/release/1.2/meta/core.json')).toBe(true)
+            expect(registry.isKnownCalmSchema('https://calm.finos.org/release/1.2/meta/flow.json')).toBe(true)
+            expect(registry.isKnownCalmSchema('https://calm.finos.org/release/1.2/meta/timeline.json')).toBe(true)
+            expect(registry.isKnownCalmSchema('https://calm.finos.org/release/1.2/meta/timeline.json')).toBe(true)
             expect(registry.isKnownCalmSchema('https://calm.finos.org/release/1.1/meta/core.json')).toBe(true)
             expect(registry.isKnownCalmSchema('https://calm.finos.org/release/1.1/meta/flow.json')).toBe(true)
         })
@@ -106,7 +112,7 @@ describe('CalmSchemaRegistry', () => {
     })
 
     describe('initialize', () => {
-        it('should load schemas from bundled directory', async () => {
+        it('should load 1.1 schemas from bundled directory', async () => {
             const vscode = await import('vscode')
 
             // Mock directory structure: dist/calm/release/1.1/meta/calm.json
@@ -126,6 +132,29 @@ describe('CalmSchemaRegistry', () => {
             await registry.initialize()
 
             expect(registry.getSchemaPath('https://calm.finos.org/release/1.1/meta/calm.json')).toBeDefined()
+            expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('initialized with'))
+        })
+
+        it('should load 1.2 schemas from bundled directory', async () => {
+            const vscode = await import('vscode')
+
+            // Mock directory structure: dist/calm/release/1.2/meta/calm.json
+            vi.mocked(vscode.workspace.fs.readDirectory)
+                .mockResolvedValueOnce([['release', 2]]) // dist/calm
+                .mockResolvedValueOnce([['1.2', 2]]) // dist/calm/release
+                .mockResolvedValueOnce([['meta', 2]]) // dist/calm/release/1.2
+                .mockResolvedValueOnce([['calm.json', 1]]) // dist/calm/release/1.2/meta
+
+            vi.mocked(vscode.workspace.fs.readFile).mockResolvedValue(
+                Buffer.from(JSON.stringify({
+                    $id: 'https://calm.finos.org/release/1.2/meta/calm.json',
+                    title: 'CALM Schema'
+                }))
+            )
+
+            await registry.initialize()
+
+            expect(registry.getSchemaPath('https://calm.finos.org/release/1.2/meta/calm.json')).toBeDefined()
             expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('initialized with'))
         })
 
