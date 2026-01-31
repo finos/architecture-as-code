@@ -24,13 +24,14 @@ const validationPath = path.join(
 
 const schemaDir_10 = path.join(__dirname, '../../../../calm/release/1.0/meta/');
 const schemaDir_11 = path.join(__dirname, '../../../../calm/release/1.1/meta/');
+const schemaDir_12 = path.join(__dirname, '../../../../calm/release/1.2/meta/');
 
 describe('validate E2E', () => {
     let documentLoader: FileSystemDocumentLoader;
     let schemaDirectory: SchemaDirectory;
 
     beforeEach(async () => {
-        documentLoader = new FileSystemDocumentLoader([schemaDir_10, schemaDir_11], true);
+        documentLoader = new FileSystemDocumentLoader([schemaDir_10, schemaDir_11, schemaDir_12], true);
         schemaDirectory = new SchemaDirectory(documentLoader);
         await schemaDirectory.loadSchemas();
     });
