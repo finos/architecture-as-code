@@ -68,7 +68,6 @@ describe('CalmSchemaRegistry', () => {
             expect(registry.isKnownCalmSchema('https://calm.finos.org/release/1.2/meta/core.json')).toBe(true)
             expect(registry.isKnownCalmSchema('https://calm.finos.org/release/1.2/meta/flow.json')).toBe(true)
             expect(registry.isKnownCalmSchema('https://calm.finos.org/release/1.2/meta/timeline.json')).toBe(true)
-            expect(registry.isKnownCalmSchema('https://calm.finos.org/release/1.2/meta/timeline.json')).toBe(true)
             expect(registry.isKnownCalmSchema('https://calm.finos.org/release/1.1/meta/core.json')).toBe(true)
             expect(registry.isKnownCalmSchema('https://calm.finos.org/release/1.1/meta/flow.json')).toBe(true)
         })
