@@ -22,7 +22,7 @@ The CALM VSCode extension gives you:
 
 1. Open VSCode
 2. Go to Extensions (Ctrl+Shift+X / Cmd+Shift+X)
-3. Search for "CALM Preview & Tools" 
+3. Search for "CALM Tools" 
 4. Click **Install**
 
 **Marketplace Link:** https://marketplace.visualstudio.com/items?itemName=FINOS.calm-vscode-plugin
@@ -202,7 +202,7 @@ git tag | grep -q "day-4"
 - Make sure you're in a CALM architecture file (has nodes/relationships)
 - Try the keyboard shortcut: `Ctrl+Shift+C` / `Cmd+Shift+C`
 - Look for the command in the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P` , type "CALM")
-- If all else fails, you may need to restart the Extensions Host in VSCode (our CALM Preview is still in experimental mode and can be a little temperamental!) - (`Ctrl+Shift+P` / `Cmd+Shift+P` , type "Restart Extension Host")
+- If all else fails, you may need to restart the Extensions Host in VSCode (our CALM Tools extension is fairly new and can be a little temperamental!) - (`Ctrl+Shift+P` / `Cmd+Shift+P` , type "Restart Extension Host")
 
 **"Changes aren't appearing in the preview"**
 - **Save the file** - preview updates on save, not on every keystroke

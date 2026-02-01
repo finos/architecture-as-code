@@ -1,7 +1,7 @@
 # Day 12: Custom Documentation with CALM Widgets
 
 ## Overview
-Learn about calm-widgets - a Handlebars-based widget framework for generating custom Markdown documentation from your CALM architecture data, using the VSCode CALM Preview.
+Learn about calm-widgets - a Handlebars-based widget framework for generating custom Markdown documentation from your CALM architecture data, using the VSCode CALM Tools extension.
 
 ## Objective and Rationale
 - **Objective:** Understand how to use calm-widgets to create custom documentation templates
@@ -36,7 +36,7 @@ Review the available widgets in the [calm-widgets README](https://github.com/fin
 
 ### 3. Create a Custom Template Using Widgets
 
-The easiest way to use calm-widgets is with the **VSCode CALM Preview**. Create a Markdown file with YAML front matter that specifies your architecture, and the preview will render the widgets live.
+The easiest way to use calm-widgets is with the **VSCode CALM Tools extension**. Create a Markdown file with YAML front matter that specifies your architecture, and the preview will render the widgets live.
 
 Create a file called `docs/architecture-summary.md` with the following content:
 
@@ -54,7 +54,7 @@ architecture: ../architectures/ecommerce-platform.json
 
 **Understanding the Front Matter:**
 
-The YAML front matter (between the `---` markers) tells the VSCode CALM Preview where to find your architecture data:
+The YAML front matter (between the `---` markers) tells the VSCode CALM Tools extension where to find your architecture data:
 
 - `architecture:` - Path to your CALM architecture JSON file (relative to the template file)
 - `url-to-local-file-mapping:` (optional) - Path to a URL mapping file if your architecture references external schemas
@@ -156,7 +156,7 @@ git tag | grep -q "day-12"
 
 - Start simple with `{{table nodes}}` and add options gradually
 - The `block-architecture` widget is powerful - experiment with `focus-flows` and `highlight-nodes`
-- Use the VSCode CALM Preview for instant feedback as you build templates
+- Use the VSCode CALM Tools extension for instant feedback as you build templates
 - Use `{{json-viewer data}}` to debug what data is available in your context
 
 ## Next Steps
