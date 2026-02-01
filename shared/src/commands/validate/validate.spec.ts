@@ -684,6 +684,12 @@ describe('validate timeline and schema', () => {
             .toThrow();
     });
 
+    it('throws error when the Timeline is provided without an Schema', async () => {
+        await expect(validate(undefined, undefined, {}, schemaDirectory, debugDisabled))
+            .rejects
+            .toThrow();
+    });
+
     it('has error when the timeline does not match the json schema', async () => {
         // Simulate invalid schema validation
         mocks.jsonSchemaValidate.mockReturnValue([

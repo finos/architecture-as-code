@@ -117,8 +117,10 @@ export async function validate(
     try {
         if (timeline) {
             if (architecture) {
-                logger.debug('You cannot provide an architecture when validating a timeline');
                 throw new Error('You cannot provide an architecture when validating a timeline');
+            }
+            if (!patternOrSchema) {
+                throw new Error('You must provide a schema to validate the timeline against, or the timeline must reference it internally');
             }
             // It is acceptable, in fact desired, for `patternOrSchema` to be set, and be the CALM timeline schema.
             return await validateTimeline(timeline, patternOrSchema, schemaDirectory, debug);
@@ -266,7 +268,7 @@ async function validateTimeline(timeline: object, schema: object, schemaDirector
         jsonSchemaValidations = convertJsonSchemaIssuesToValidationOutputs(schemaErrors, 'timeline');
     }
 
-    return new ValidationOutcome(jsonSchemaValidations, spectralValidationResults.spectralIssues, errors, warnings);// added spectral to return object
+    return new ValidationOutcome(jsonSchemaValidations, spectralValidationResults.spectralIssues, errors, warnings);
 }
 
 /**

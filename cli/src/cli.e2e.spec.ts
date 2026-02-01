@@ -353,6 +353,14 @@ describe('CLI Integration Tests', () => {
         expect(parsedOutput).toEqual(expectedOutput);
     });
 
+    test('validate command rejects a timeline with no schema', async () => {
+        const apiGatewayTimelinePath = path.join(__dirname, '../test_fixtures/timeline/timeline-no-schema.json');
+        const targetOutputFile = path.join(tempDir, 'validate-timeline-output3.json');
+
+        await expect(run(calm(), ['validate', '--timeline', apiGatewayTimelinePath, '-o', targetOutputFile]))
+            .rejects.toHaveProperty('exitCode', 1);
+    });
+
     describe('validate command with URL mapping', () => {
         const urlMappingFixtures = path.join(__dirname, '../test_fixtures/url-mapping');
 
