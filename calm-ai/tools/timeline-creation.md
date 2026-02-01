@@ -53,7 +53,7 @@ The `current-moment` property can be used to indicate the active moment in the t
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm-timeline.json",
     "metadata": [
         {
             "version": "1.0.0",
