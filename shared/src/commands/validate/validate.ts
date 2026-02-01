@@ -108,7 +108,7 @@ async function runSpectralValidations(
 export async function validate(
     architecture: object,
     patternOrSchema: object,
-    timeline: object,
+    timeline: object | undefined,
     schemaDirectory?: SchemaDirectory,
     debug: boolean = false
 ): Promise<ValidationOutcome> {
