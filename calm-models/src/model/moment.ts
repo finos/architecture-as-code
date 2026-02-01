@@ -4,7 +4,7 @@ import { CalmNodeDetails } from './node.js';
 import { CalmMomentSchema } from '../types';
 import { CalmAdaptable } from './adaptable.js';
 import { CalmMomentCanonicalModel } from '../canonical/template-models.js';
-import { CalmNode } from './node';
+import { CalmNode } from './node.js';
 
 export class CalmMoment extends CalmNode implements CalmAdaptable<CalmMomentSchema, CalmMomentCanonicalModel> {
     constructor(

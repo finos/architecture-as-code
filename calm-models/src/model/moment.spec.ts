@@ -61,7 +61,6 @@ describe('CalmMoment', () => {
 
     it('should produce the correct canonical model (minimal)', () => {
         const moment = CalmMoment.fromSchema(minimalSchema);
-        console.log(moment);
         expect(moment.toCanonicalSchema()).toEqual({
             'unique-id': 'moment-1',
             'node-type': 'moment',
