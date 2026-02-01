@@ -55,8 +55,8 @@ const sidebars = {
           label: 'CALM Example',
           items: [
             'working-with-calm/calm-example/business-context',
-           'working-with-calm/calm-example/enable-ai-support',
-            'working-with-calm/calm-example/define-use-patterns',
+            'working-with-calm/calm-example/enable-ai-support',
+            'working-with-calm/calm-example/define-initial-architecture',
            ],
         }
       ],
