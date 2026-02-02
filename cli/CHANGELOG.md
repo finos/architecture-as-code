@@ -5,6 +5,26 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.31.1] - 2026-02-02
+
+## <small>1.31.1 (2026-02-02)</small>
+
+*  ([ccfad8f0c769003b952b0ff8482eed138fe74675](https://github.com/finos/architecture-as-code/commit/ccfad8f0c769003b952b0ff8482eed138fe74675))
+* chore(deps): update actions/cache digest to cdf6c1f ([08933c1dbb1a3193bc5ba6bf126280819229c83e](https://github.com/finos/architecture-as-code/commit/08933c1dbb1a3193bc5ba6bf126280819229c83e))
+* chore(deps): update actions/cache digest to cdf6c1f ([f3138ebaac8ec30f4c2e4ad6c1aca98e2638f130](https://github.com/finos/architecture-as-code/commit/f3138ebaac8ec30f4c2e4ad6c1aca98e2638f130))
+* chore(deps): update docker/login-action digest to c94ce9f ([89c966724311a4f1f82ab1f4e53e22cde0905fde](https://github.com/finos/architecture-as-code/commit/89c966724311a4f1f82ab1f4e53e22cde0905fde))
+* chore(deps): update docker/login-action digest to c94ce9f ([08ed92e02d9e1fe29ecc475174282242c85e6f1a](https://github.com/finos/architecture-as-code/commit/08ed92e02d9e1fe29ecc475174282242c85e6f1a))
+* chore(deps): update semgrep/semgrep docker digest to b6a1bae ([932b1625663a934de8ccd12592802fc707eb63f8](https://github.com/finos/architecture-as-code/commit/932b1625663a934de8ccd12592802fc707eb63f8))
+* chore(deps): update semgrep/semgrep docker digest to b6a1bae ([0a5a54666fbc78054225681ad242cf3170c2976f](https://github.com/finos/architecture-as-code/commit/0a5a54666fbc78054225681ad242cf3170c2976f))
+* chore(docs): propose addition of markscott-ms as listed maintainer subprojects ([ea80062c7528c9bf4d25b59f89869cfbd57e393e](https://github.com/finos/architecture-as-code/commit/ea80062c7528c9bf4d25b59f89869cfbd57e393e))
+* chore(docs): Revise Maintainers list in README.md ([f60de774b8f43e9aa3657a5029783070e026f51d](https://github.com/finos/architecture-as-code/commit/f60de774b8f43e9aa3657a5029783070e026f51d))
+* chore(docs): update CODEOWNERS file in line with README.md ([09229b1c10a79c87b2bf71a0a38c93a4d91bb8dc](https://github.com/finos/architecture-as-code/commit/09229b1c10a79c87b2bf71a0a38c93a4d91bb8dc))
+* chore: upgrade semantic-release to v25 to fix tar vulnerability ([021845b4fecbefbdd9b897e7f1f6d5fc3400cd34](https://github.com/finos/architecture-as-code/commit/021845b4fecbefbdd9b897e7f1f6d5fc3400cd34))
+* docs(vscode): rename plugin to 'CALM Tools', as 'calm' is taken ([7f5892d58539a869c1d9bf9620193d4fe4316c33](https://github.com/finos/architecture-as-code/commit/7f5892d58539a869c1d9bf9620193d4fe4316c33))
+* docs(vscode): rename plugin to 'CALM Tools', as 'calm' is taken ([f80c0903739bbf84b8706d0f7e17454719ba10fc](https://github.com/finos/architecture-as-code/commit/f80c0903739bbf84b8706d0f7e17454719ba10fc))
+* fix(calm-widgets): render primitive arrays inline with comma separator for MDX compatibility (#2080) ([ce513296cdd88a5110809c30994e1fe85c7b29ef](https://github.com/finos/architecture-as-code/commit/ce513296cdd88a5110809c30994e1fe85c7b29ef)), closes [#2080](https://github.com/finos/architecture-as-code/issues/2080)
+* fix(calm-widgets): render primitive arrays inline with comma separator list for for MDX compatibility (#2080) ([25eee61bedfba3502bcf9916bf7979cf8dc568a2](https://github.com/finos/architecture-as-code/commit/25eee61bedfba3502bcf9916bf7979cf8dc568a2)), closes [#2080](https://github.com/finos/architecture-as-code/issues/2080)
+
 ## [1.31.0] - 2026-01-28
 
 ## 1.31.0 (2026-01-28)
