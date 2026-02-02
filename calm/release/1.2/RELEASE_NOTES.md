@@ -1,0 +1,24 @@
+# CALM Schema v1.2 Release Notes
+
+CALM v1.2 builds on v1.1 to introduce architecture timelines.
+
+## Core Schema Concepts
+
+Unchanged.
+
+## Timeline Schema Concepts
+
+**Moments** - Time-based architecture snapshots, enabling views of
+architecture changes over time.
+
+## Question and Feedback
+
+For questions or feedback, please engage with the CALM community through the
+appropriate channels.
+
+## Change Log
+### 2025-11-18
+Added CALM timeline schema, chatmode, models, and support for `calm validate --timeline` CLI command.
+
+### 2025-11-17
+Initial creation of release-1.2 schema to manage proposed changes, only change is schema reference from 1.1 -> 1.2
