@@ -8,7 +8,7 @@ import { printBundleTreeFromGraph } from './tree';
  * Property names that can contain document references (URLs or paths) in CALM JSON.
  * These are scanned during pull and dependency graph building.
  */
-export const REFERENCE_PROPERTIES = ['$ref', 'requirement-url', 'config-url'] as const;
+export const REFERENCE_PROPERTIES = ['$ref', , '$schema', 'requirement-url', 'config-url'] as const;
 
 /**
  * Extract a reference URL from a value that may be either:
