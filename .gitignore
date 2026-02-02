@@ -46,3 +46,4 @@ coverage/
 /cli/test/template-bundles/
 .github/chatmodes
 shared/test-output/
+.calm-workspace/
