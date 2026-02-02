@@ -39,7 +39,7 @@ The CALM VSCode extension gives you:
 
 1. Open VSCode
 2. Go to Extensions (`Ctrl+Shift+X` / `Cmd+Shift+X`)
-3. Search for "CALM Preview & Tools" 
+3. Search for "CALM Tools" 
 4. Click **Install**
 
 **Marketplace Link:** https://marketplace.visualstudio.com/items?itemName=FINOS.calm-vscode-plugin
