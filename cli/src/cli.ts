@@ -8,8 +8,8 @@ import { loadCliConfig } from './cli-config';
 import path from 'path';
 import inquirer from 'inquirer';
 import { findWorkspaceBundlePath } from './workspace-resolver';
-import { setupWorkspaceCommands } from './command-helpers/dev/commands';
-import { loadManifest } from './command-helpers/dev/bundle';
+import { setupWorkspaceCommands } from './command-helpers/workspace/commands';
+import { loadManifest } from './command-helpers/workspace/bundle';
 
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';

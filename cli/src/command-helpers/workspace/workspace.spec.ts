@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { cleanWorkspaceBundle, cleanAllWorkspaces, ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces } from './workspace';
-import { mkdir, writeFile, rm, readdir } from 'fs/promises';
+import { MANIFEST_FILENAME } from './bundle';
+import { mkdir, writeFile, rm, readdir, readFile } from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
 
@@ -22,25 +23,45 @@ describe('workspace', () => {
 
     describe('cleanWorkspaceBundle', () => {
         beforeEach(async () => {
-            // Setup dummy workspaces
+            // Setup dummy workspaces with files directories
             await ensureWorkspaceBundle(testDir, 'test-bundle');
-            await writeFile(path.join(bundlesPath, 'test-bundle', 'file1.json'), '{}');
+            const testFilesPath = path.join(bundlesPath, 'test-bundle', 'files');
+            await mkdir(testFilesPath, { recursive: true });
+            await writeFile(path.join(testFilesPath, 'file1.json'), '{}');
+            await writeFile(path.join(bundlesPath, 'test-bundle', MANIFEST_FILENAME), '{"doc1": "files/file1.json"}');
+
             await ensureWorkspaceBundle(testDir, 'another-bundle');
-            await writeFile(path.join(bundlesPath, 'another-bundle', 'file2.json'), '{}');
+            const anotherFilesPath = path.join(bundlesPath, 'another-bundle', 'files');
+            await mkdir(anotherFilesPath, { recursive: true });
+            await writeFile(path.join(anotherFilesPath, 'file2.json'), '{}');
+            await writeFile(path.join(bundlesPath, 'another-bundle', MANIFEST_FILENAME), '{"doc2": "files/file2.json"}');
         });
 
-        it('should delete only the specified workspace bundle', async () => {
+        it('should delete files directory and reset manifest but keep the workspace', async () => {
             // Pre-check
             expect(await listWorkspaces(testDir)).toContain('test-bundle');
             expect(await listWorkspaces(testDir)).toContain('another-bundle');
+            expect(existsSync(path.join(bundlesPath, 'test-bundle', 'files', 'file1.json'))).toBe(true);
 
             // Run clean on specific bundle
             await cleanWorkspaceBundle(testDir, 'test-bundle');
 
-            // Post-check - only test-bundle should be deleted
+            // Post-check - test-bundle should still exist but be clean
             const workspaces = await listWorkspaces(testDir);
-            expect(workspaces).not.toContain('test-bundle');
+            expect(workspaces).toContain('test-bundle');
             expect(workspaces).toContain('another-bundle');
+
+            // Files directory should be deleted
+            expect(existsSync(path.join(bundlesPath, 'test-bundle', 'files'))).toBe(false);
+
+            // Manifest should be empty
+            const manifest = JSON.parse(await readFile(path.join(bundlesPath, 'test-bundle', MANIFEST_FILENAME), 'utf8'));
+            expect(manifest).toEqual({});
+
+            // Another bundle should be untouched
+            expect(existsSync(path.join(bundlesPath, 'another-bundle', 'files', 'file2.json'))).toBe(true);
+            const anotherManifest = JSON.parse(await readFile(path.join(bundlesPath, 'another-bundle', MANIFEST_FILENAME), 'utf8'));
+            expect(anotherManifest).toEqual({ "doc2": "files/file2.json" });
         });
     });
 
@@ -72,9 +93,3 @@ describe('workspace', () => {
         });
     });
 });
-
-// Little helper to read file, since it is not exported from workspace.ts
-async function readFile(filePath: string, encoding: string): Promise<string> {
-    const { readFile } = await import('fs/promises');
-    return await readFile(filePath, { encoding });
-}

@@ -1,6 +1,7 @@
 import path from 'path';
 import { mkdir, writeFile, readdir, readFile, rm } from 'fs/promises';
 import { existsSync } from 'fs';
+import { MANIFEST_FILENAME } from './bundle';
 
 /**
  * Ensure the workspace bundle exists at the given target directory and workspace name.
@@ -46,15 +47,20 @@ export async function setActiveWorkspace(targetDir: string, workspaceName: strin
 }
 
 /**
- * Clean a specific workspace bundle by deleting its directory.
+ * Clean a specific workspace bundle by deleting its files directory and resetting the manifest.
  * Does not modify workspace.json (active workspace setting).
+ * The workspace bundle directory itself is preserved.
  */
 export async function cleanWorkspaceBundle(targetDir: string, workspaceName: string): Promise<void> {
     const bundlePath = path.join(targetDir, '.calm-workspace', 'bundles', workspaceName);
     if (existsSync(bundlePath)) {
-        await rm(path.join(bundlePath, '*'), { recursive: true, force: true });
-        // wipe manifest
-        await writeFile(path.join(bundlePath, 'bundle-manifest.json'), '{}', 'utf8');
+        // Delete the files directory
+        const filesPath = path.join(bundlePath, 'files');
+        if (existsSync(filesPath)) {
+            await rm(filesPath, { recursive: true, force: true });
+        }
+        // Reset the manifest to empty
+        await writeFile(path.join(bundlePath, MANIFEST_FILENAME), '{}', 'utf8');
     }
 }
 

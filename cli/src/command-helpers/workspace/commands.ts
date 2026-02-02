@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import path from 'path';
 import { ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces, setActiveWorkspace, cleanWorkspaceBundle, cleanAllWorkspaces } from './workspace';
-import { addFileToBundle, addObjectToBundle, loadManifest, printBundleTree, REFERENCE_PROPERTIES } from './bundle';
+import { addFileToBundle, addObjectToBundle, loadManifest, printBundleTree, REFERENCE_PROPERTIES, extractReferenceValue } from './bundle';
 import { findWorkspaceBundlePath, findGitRoot } from '../../workspace-resolver';
 import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '../../../../shared/src/document-loader/document-loader';
 import fs from 'fs';
@@ -31,10 +31,16 @@ async function pullReferencesFromBundle(bundlePath: string, docLoader: DocumentL
         }
 
         // Extract all reference types from the document ($ref, requirement-url, config-url, etc.)
+        // Values can be direct strings or JSON Schema const objects
         const allRefs: string[] = [];
         for (const prop of REFERENCE_PROPERTIES) {
             const found = JSONPath({ path: `$..['${prop}']`, json }) as unknown[];
-            allRefs.push(...found.filter((v) => typeof v === 'string') as string[]);
+            for (const v of found) {
+                const ref = extractReferenceValue(v);
+                if (ref) {
+                    allRefs.push(ref);
+                }
+            }
         }
         const refs = new Set<string>(allRefs);
 

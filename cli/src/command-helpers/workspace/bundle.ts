@@ -10,6 +10,27 @@ import { printBundleTreeFromGraph } from './tree';
  */
 export const REFERENCE_PROPERTIES = ['$ref', 'requirement-url', 'config-url'] as const;
 
+/**
+ * Extract a reference URL from a value that may be either:
+ * 1. A direct string value (e.g., "https://example.com/schema.json")
+ * 2. A JSON Schema const object (e.g., { "const": "https://example.com/schema.json" })
+ *
+ * @param value The value to extract a reference from
+ * @returns The extracted string reference, or null if no valid reference found
+ */
+export function extractReferenceValue(value: unknown): string | null {
+    if (typeof value === 'string') {
+        return value;
+    }
+    if (value && typeof value === 'object' && 'const' in value) {
+        const constValue = (value as { const: unknown }).const;
+        if (typeof constValue === 'string') {
+            return constValue;
+        }
+    }
+    return null;
+}
+
 export type BundleManifest = Record<string, string>;
 export type DependencyGraph = {
     nodes: string[]; // ids
@@ -17,7 +38,7 @@ export type DependencyGraph = {
     idToPath: Record<string, string>;
 };
 
-export const MANIFEST_FILENAME = 'bundle-manifest.json';
+export const MANIFEST_FILENAME = 'workspace-manifest.json';
 const FILES_DIRNAME = 'files';
 
 /**
@@ -181,10 +202,16 @@ export async function buildDependencyGraph(bundlePath: string): Promise<Dependen
         }
 
         // Extract all reference types from the document
+        // Values can be direct strings or JSON Schema const objects
         const allRefs: string[] = [];
         for (const prop of REFERENCE_PROPERTIES) {
             const found = JSONPath({ path: `$..['${prop}']`, json }) as unknown[];
-            allRefs.push(...found.filter(v => typeof v === 'string') as string[]);
+            for (const v of found) {
+                const ref = extractReferenceValue(v);
+                if (ref) {
+                    allRefs.push(ref);
+                }
+            }
         }
         const refs = Array.from(new Set(allRefs));
 
