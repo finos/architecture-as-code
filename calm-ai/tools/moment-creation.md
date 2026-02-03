@@ -10,7 +10,7 @@
 Moments represent the "major stages" an architecture progresses through over time. A moment represents a single point in time, and the architecture at that moment. They provide several key capabilities:
 
 - **Time-Based Modeling**: Capture how an architecture evolves over time, including changes to nodes, interfaces, and controls.
-- 
+
 - **Non-Functional Requirements**: Controls can be added to moments to specify non-functional requirements such as security policies, compliance controls, and operational constraints governing the change to an architecture.
 
 - **Architecture Decision Records**: Moments can have one or more architecture decision records (ADRs) associated with them, documenting key decisions made to reach that moment.
