@@ -107,7 +107,6 @@ Here's a complete example of a timeline tracking the evolution of a system:
       "node-type": "moment",
       "name": "Event-Driven Architecture (Planned)",
       "description": "Planned introduction of event-driven patterns with message broker for asynchronous communication",
-      "valid-from": "2027-01-15",
       "details": {
         "detailed-architecture": "architectures/v4-event-driven.json",
         "required-pattern": "patterns/event-driven-pattern.json"
@@ -150,11 +149,11 @@ Use the `adrs` property to link to Architecture Decision Records or similar docu
 
 ### Use Dates to Track Timeline
 
-The `valid-from` property helps establish a clear timeline. Use ISO date format (YYYY-MM-DD) to indicate when each architectural state became or will become active.
+The `valid-from` property helps establish a clear timeline for historical and current moments. Use ISO date format (YYYY-MM-DD) to indicate when each architectural state became active. Planned future moments (those after the `current-moment`) must omit `valid-from`, as they represent intended future states rather than states that are already in effect.
 
 ### Model Future States
 
-Timelines aren't just for historical tracking—use them to model planned architectural changes. This helps teams visualize the target state and plan migration strategies.
+Timelines aren't just for historical tracking—use them to model planned architectural changes. Future moments do not have `valid-from` until they become current or historical states. This helps teams visualize the target state and plan migration strategies while keeping validation rules satisfied.
 
 ### Keep Current Moment Updated
 
