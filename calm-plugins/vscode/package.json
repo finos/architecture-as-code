@@ -1,8 +1,8 @@
 {
     "name": "calm-vscode-plugin",
-    "displayName": "CALM",
+    "displayName": "CALM Tools",
     "description": "Live-visualize CALM architecture models, validate, and generate docs.",
-    "version": "0.4.1",
+    "version": "0.4.3",
     "publisher": "FINOS",
     "homepage": "https://calm.finos.org",
     "repository": {
