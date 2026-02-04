@@ -8,8 +8,8 @@ export function idsAreUnique(input, _, context) {
     if (!input) {
         return [];
     }
-    // get uniqueIds of all nodes
-    const momentIdMatches = JSONPath({path: '$.moments[*].unique-id', json: context.document.data, resultType: 'all'});
+    // get uniqueIds of all moments
+    const momentIdMatches = JSONPath({ path: '$.moments[*].unique-id', json: context.document.data, resultType: 'all' });
 
     const seenIds = new Set();
 
