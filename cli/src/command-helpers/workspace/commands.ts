@@ -1,107 +1,17 @@
 import { Command } from 'commander';
 import path from 'path';
 import { ensureWorkspaceBundle, getActiveWorkspace, listWorkspaces, setActiveWorkspace, cleanWorkspaceBundle, cleanAllWorkspaces } from './workspace';
-import { addFileToBundle, addObjectToBundle, loadManifest, printBundleTree, REFERENCE_PROPERTIES, extractReferenceValue } from './bundle';
+import { addFileToBundle, printBundleTree } from './bundle';
+import { pullWorkspaceBundle } from './pull';
 import { findWorkspaceBundlePath, findGitRoot } from '../../workspace-resolver';
-import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '../../../../shared/src/document-loader/document-loader';
-import fs from 'fs';
-import { JSONPath } from 'jsonpath-plus';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
 
 const logger: Logger = initLogger(false, 'workspace');
 
-async function loadJsonFile(filePath: string): Promise<any> {
-    const raw = await fs.promises.readFile(filePath, 'utf8');
-    return JSON.parse(raw);
-}
-
-async function pullReferencesFromBundle(bundlePath: string, docLoader: DocumentLoader) {
-    const manifest = await loadManifest(bundlePath);
-    const processed = new Set<string>(Object.keys(manifest));
-    const queue: string[] = Object.values(manifest).map(p => path.join(bundlePath, p));
-
-    while (queue.length > 0) {
-        const filePath = queue.shift()!;
-        let json: any;
-        try {
-            json = await loadJsonFile(filePath);
-        } catch (e) {
-            logger.warn('Failed to parse JSON ' + filePath + ': ' + (e instanceof Error ? e.message : String(e)));
-            continue;
-        }
-
-        // Extract all reference types from the document ($ref, requirement-url, config-url, etc.)
-        // Values can be direct strings or JSON Schema const objects
-        const allRefs: string[] = [];
-        for (const prop of REFERENCE_PROPERTIES) {
-            const found = JSONPath({ path: `$..['${prop}']`, json }) as unknown[];
-            for (const v of found) {
-                const ref = extractReferenceValue(v);
-                if (ref) {
-                    allRefs.push(ref);
-                }
-            }
-        }
-        const refs = new Set<string>(allRefs);
-
-        for (const ref of refs) {
-            // skip if already in manifest (by id)
-            // try to resolve via docLoader.resolvePath first
-            if (!ref.startsWith('http')) {
-                // local reference; skip
-                continue;
-            }
-            const resolved = docLoader.resolvePath(ref);
-            try {
-                const loaded = await docLoader.loadMissingDocument(ref, 'schema').catch(async (e) => {
-                    // if resolvePath returned a local file path, try loading from it directly
-                    if (resolved) {
-                        return await loadJsonFile(resolved);
-                    }
-                    throw e;
-                });
-
-                // loaded may be object; determine id
-                const added = await addObjectToBundle(bundlePath, loaded);
-                if (!processed.has(added.id)) {
-                    processed.add(added.id);
-                    queue.push(added.destPath);
-                }
-            } catch (e) {
-                logger.warn(`Failed to load reference ${ref}: ${e instanceof Error ? e.message : String(e)}`);
-            }
-        }
-    }
-}
-
 /**
- * Pull all referenced documents for a workspace bundle.
- *
- * This will:
- *  - locate the workspace bundle (if bundlePath not provided),
- *  - build a DocumentLoader from provided options (or defaults),
- *  - recursively load all documents referenced via $ref from files in the bundle,
- *    storing them in the bundle and updating the manifest. Already-registered
- *    document ids in the bundle manifest are not re-fetched.
- *
- * @param bundlePath Optional absolute path to the workspace bundle. If omitted the current
- *                   repository workspace bundle will be discovered.
- * @param docLoaderOpts Optional DocumentLoaderOptions to configure the document loader.
+ * Sets up the 'workspace' command and its subcommands in the CLI.
+ * @param program The Commander.js top-level program.
  */
-export async function pullWorkspaceBundle(bundlePath?: string, docLoaderOpts?: DocumentLoaderOptions): Promise<void> {
-    const bp = bundlePath || findWorkspaceBundlePath(process.cwd());
-    if (!bp) {
-        throw new Error('No CALM workspace bundle found.');
-    }
-
-    const opts: DocumentLoaderOptions = docLoaderOpts ?? {};
-    const docLoader = buildDocumentLoader(opts);
-    // Note: we don't call initialise() here because pull only needs loadMissingDocument()
-    // to fetch external URLs, not pre-loaded filesystem schemas.
-
-    await pullReferencesFromBundle(bp, docLoader);
-}
-
 export function setupWorkspaceCommands(program: Command) {
     const workspaceCmd = program.command('workspace').description('Manage CALM workspace bundle and development helpers');
 
@@ -136,7 +46,7 @@ export function setupWorkspaceCommands(program: Command) {
         .argument('<file>', 'Path to the file to add to the bundle')
         .option('--id <id>', 'Document ID to register for this file (defaults to filename without extension)')
         .option('--copy', 'Copy the file into the bundle instead of referencing it from its current location.')
-        .action(async (file: string, options: any) => {
+        .action(async (file: string, options: { id?: string; copy?: boolean }) => {
             try {
                 const bundlePath = findWorkspaceBundlePath(process.cwd());
                 if (!bundlePath) {
