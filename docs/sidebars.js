@@ -37,6 +37,7 @@ const sidebars = {
         'core-concepts/controls',
         'core-concepts/metadata',
         'core-concepts/standards',
+        'core-concepts/timelines',
       ],
     },
     {
