@@ -1,7 +1,10 @@
 import { RulesetDefinition } from '@stoplight/spectral-core';
 import { truthy } from '@stoplight/spectral-functions';
+import { currentMomentRequiredWhenMomentsNonEmpty } from './functions/timeline/current-moment-required-when-moments-non-empty';
 import { idsAreUnique } from './functions/timeline/ids-are-unique';
 import { momentIdExists } from './functions/timeline/moment-id-exists';
+import { momentsMustBeNonEmpty } from './functions/timeline/moments-must-be-non-empty';
+import { momentsSortedByValidFrom } from './functions/timeline/moments-sorted-by-valid-from';
 import { validFromNotAfterCurrentMoment } from './functions/timeline/valid-from-not-after-current-moment';
 
 const timelineRules: RulesetDefinition = {
@@ -43,6 +46,36 @@ const timelineRules: RulesetDefinition = {
             given: '$.current-moment',
             then: {
                 function: validFromNotAfterCurrentMoment
+            }
+        },
+
+        'current-moment-required-when-moments-non-empty': {
+            description: 'Current-moment must be defined when moments are present.',
+            severity: 'warn',
+            message: '{{error}}',
+            given: '$',
+            then: {
+                function: currentMomentRequiredWhenMomentsNonEmpty
+            }
+        },
+
+        'timeline-moments-must-be-non-empty': {
+            description: 'Timeline must define at least one moment.',
+            severity: 'warn',
+            message: '{{error}}',
+            given: '$',
+            then: {
+                function: momentsMustBeNonEmpty
+            }
+        },
+
+        'moments-must-be-sorted-by-valid-from': {
+            description: 'Moments with valid-from must be sorted by date.',
+            severity: 'error',
+            message: '{{error}}',
+            given: '$',
+            then: {
+                function: momentsSortedByValidFrom
             }
         }
     }
