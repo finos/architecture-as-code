@@ -1,71 +1,14 @@
 ---
-title: "Define Initial Architecture"
 id: define-initial-architecture
+title: Define Initial Architecture
 sidebar_position: 3
 ---
 
-## AI Assistant Prompt
+## Analyze the business context to identify candidate CALM nodes for the architecture
+
+**Prompt to the AI Assistant**
 ```text
-create a minimal CALM architecture file calm-example/docs/tradining-system.architecture.json
-```
-
-## AI Assistant Response
-```text
-GitHub Copilot: Loading FINOS CALM instructions...
-
-I'll read the CALM tool prompt files to understand the current guidance for creating architectures.
-
-Ran terminal command:  cat .github/chatmodes/calm-prompts/architecture-creation.md
-
-Ran terminal command:  cat .github/chatmodes/calm-prompts/calm-cli-instructions.md
-
-Ran terminal command:  cat .github/chatmodes/calm-prompts/node-creation.md
-
-Ran terminal command:  cat .github/chatmodes/calm-prompts/relationship-creation.md .github/chatmodes/calm-prompts/interface-creation.md .github/chatmodes/calm-prompts/metadata-creation.md
-
-Perfect! I'm ready to assist you with CALM architectures. Now I'll create a minimal CALM architecture file for a trading system.
-
-Ran terminal command:  cat > /Users/jim/Desktop/finos/architecture-as-code/calm-example/docs/trading-system.architecture.json << 'EOF'
-{
-    "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
-    "unique-id": "trading-system",
-    "name": "Trading System",
-    "description": "A minimal trading system architecture demonstrating CALM modeling",
-    "metadata": {
-        "version": "1.0.0",
-        "created-by": "Architecture Team",
-        "environment": "production"
-    },
-    "nodes": [],
-    "relationships": []
-}
-EOF
-
-
-Now let me validate the architecture file using the CALM CLI to ensure it meets the schema requirements:
-
-Ran terminal command:  which calm
-
-Ran terminal command:  calm validate -a /Users/jim/Desktop/finos/architecture-as-code/calm-example/docs/trading-system.architecture.json
-
-Perfect! I've successfully created a minimal CALM architecture file at trading-system.architecture.json.
-
-The file includes:
-- **Required schema reference** to CALM v1.1
-- **Unique identifier**: `trading-system`
-- **Name and description** for the trading system
-- **Metadata** with version, creator, and environment information
-- **Empty nodes and relationships arrays** ready for expansion
-
-✅ **Validation confirmed**: The architecture passes all schema validation with no errors or warnings (`hasErrors: false, hasWarnings: false`).
-
-This minimal architecture provides a solid foundation that you can build upon by adding nodes (services, databases, etc.) and relationships between them.
-```
-
-## AI Assistant Prompt
-```text
-User: identify candidate CALM nodes with type for an event driven architecture for the business context
-
+User: identify candidate CALM nodes with type for an event driven architecture for the business context.  List each node with its type and a short description
 ## Business Context
 
 **TraderX** is a sample trading application developed by FINOS as a reference implementation for financial services trading operations. It serves as an educational platform to demonstrate typical trading workflows and business processes.
@@ -138,90 +81,309 @@ User: identify candidate CALM nodes with type for an event driven architecture f
 The application demonstrates essential trading operations including order entry, execution, settlement, and position keeping - core functions required by any trading platform in financial services. It provides a complete view of how accounts, users, trades, and positions interrelate throughout the trading lifecycle.
 ```
 
-## AI Assistant Response
+**AI Assistant Response**
+
 ```text
-GitHub Copilot: I'll analyze the business context and identify candidate CALM nodes for an event-driven trading architecture.
+GitHub Copilot: Loading FINOS CALM instructions...
 
-Ran terminal command:  cat > /Users/jim/Desktop/finos/architecture-as-code/sandbox/trading-system-nodes.md << 'EOF'
-# Trading System - Candidate CALM Nodes
+Searched codebase for "CALM architecture creation node types interface relationship flow control metadata pattern documentation standards", 23 results
 
-## External Actors
-- **trader** (actor) - End users who submit and monitor trades
-- **administrator** (actor) - System administrators who manage accounts and users
+Searched codebase for "CALM architecture creation node interface relationship flow control metadata pattern documentation chatmode prompts tools", 26 results
 
-## User-Facing Components
-- **trading-ui** (webclient) - Web interface for trade submission and monitoring
-- **admin-ui** (webclient) - Administrative interface for account and user management
+Now I'll read the CALM tool prompt files to get the detailed guidance:
 
-## Core Services (Event-Driven)
-- **order-service** (service) - Processes trade order submissions and validations
-- **execution-service** (service) - Executes validated trade orders
-- **position-service** (service) - Calculates and maintains current account positions
-- **account-service** (service) - Manages trading accounts and user associations
-- **reference-data-service** (service) - Provides security master and user directory information
-- **notification-service** (service) - Distributes real-time updates to users
+Ran terminal command:  cat /Users/jim/Desktop/finos/architecture-as-code/.github/chatmodes/calm-prompts/architecture-creation.md
 
-## Event Infrastructure
-- **trade-event-bus** (network) - Message broker for trade lifecycle events (order submitted, executed, settled)
-- **position-event-stream** (network) - Event stream for position updates
-- **notification-event-stream** (network) - Event stream for user notifications
+Ran terminal command:  cat /Users/jim/Desktop/finos/architecture-as-code/.github/chatmodes/calm-prompts/node-creation.md | head -200
 
-## Data Stores
-- **account-database** (database) - Stores account and user association data
-- **trade-database** (database) - Persists all trade records and audit trail
-- **position-database** (database) - Stores current position snapshots
-- **reference-database** (database) - Contains security master and user directory
-- **event-store** (database) - Stores event history for event sourcing and replay
+Perfect! I'm ready to assist you with CALM architectures. Now I'll identify candidate CALM nodes for an event-driven architecture based on the TraderX business context.
 
-## Integration Points
-- **market-data-feed** (system) - External market data provider for pricing
-- **settlement-system** (system) - External settlement and clearing system
+## Candidate CALM Nodes for TraderX Event-Driven Architecture
 
-## Summary Statistics
-Total Nodes: 17
-- Actors: 2
-- Webclients: 2
-- Services: 6
-- Networks: 3
-- Databases: 5
-- Systems: 2
-EOF
-cat /Users/jim/Desktop/finos/architecture-as-code/sandbox/trading-system-nodes.md
+Based on the business context, here are the recommended nodes with their types and descriptions:
 
-Based on the TraderX business context, here are **17 candidate CALM nodes** organized for an event-driven architecture:
+### Core Application Nodes
 
-## **External Actors (2)**
-- **trader** (actor) - End users who submit and monitor trades
-- **administrator** (actor) - System administrators who manage accounts and users
+1. **`trading-ui`** - Type: `webclient`
+   - Web-based trading interface for users to submit orders, view positions, and monitor trade history
 
-## **User-Facing Components (2)**
-- **trading-ui** (webclient) - Web interface for trade submission and monitoring
-- **admin-ui** (webclient) - Administrative interface for account and user management
+2. **`order-submission-service`** - Type: `service`
+   - API service that receives and validates trade orders from the UI before publishing to event stream
 
-## **Core Services (6)**
-- **order-service** (service) - Processes trade order submissions and validations
-- **execution-service** (service) - Executes validated trade orders
-- **position-service** (service) - Calculates and maintains current account positions
-- **account-service** (service) - Manages trading accounts and user associations
-- **reference-data-service** (service) - Provides security master and user directory information
-- **notification-service** (service) - Distributes real-time updates to users
+3. **`trade-execution-service`** - Type: `service`
+   - Service that consumes order events, executes trades, and publishes trade execution events
 
-## **Event Infrastructure (3)**
-- **trade-event-bus** (network) - Message broker for trade lifecycle events (order submitted, executed, settled)
-- **position-event-stream** (network) - Event stream for position updates
-- **notification-event-stream** (network) - Event stream for user notifications
+4. **`position-service`** - Type: `service`
+   - Service that maintains current positions by consuming trade execution events and calculating aggregated holdings
 
-## **Data Stores (5)**
-- **account-database** (database) - Stores account and user association data
-- **trade-database** (database) - Persists all trade records and audit trail
-- **position-database** (database) - Stores current position snapshots
-- **reference-database** (database) - Contains security master and user directory
-- **event-store** (database) - Stores event history for event sourcing and replay
+5. **`account-service`** - Type: `service`
+   - Service managing trading account CRUD operations and user-account associations
 
-## **Integration Points (2)**
-- **market-data-feed** (system) - External market data provider for pricing
-- **settlement-system** (system) - External settlement and clearing system
+6. **`notification-service`** - Type: `service`
+   - Service that publishes real-time updates to users when trades execute or positions change
 
-This event-driven architecture supports the key business workflows with asynchronous processing, real-time notifications, and proper separation of concerns between services.
+### Data Storage Nodes
+
+7. **`trade-database`** - Type: `database`
+   - Persistent storage for trade history and execution records
+
+8. **`position-database`** - Type: `database`
+   - Storage for current account positions and aggregated holdings
+
+9. **`account-database`** - Type: `database`
+   - Storage for trading accounts and user-account associations
+
+10. **`security-reference-database`** - Type: `database`
+    - Master database of tradeable securities with company information
+
+11. **`user-directory`** - Type: `ldap` (or `database`)
+    - Directory service storing user profiles and contact information
+
+### Event Infrastructure Nodes
+
+12. **`order-event-stream`** - Type: `service` (or custom type: `event-stream`)
+    - Event stream/topic for order submission events (e.g., Kafka topic)
+
+13. **`trade-execution-event-stream`** - Type: `service` (or custom type: `event-stream`)
+    - Event stream/topic for trade execution events
+
+14. **`position-update-event-stream`** - Type: `service` (or custom type: `event-stream`)
+    - Event stream/topic for position change events
+
+15. **`notification-event-stream`** - Type: `service` (or custom type: `event-stream`)
+    - Event stream/topic for user notification events
+
+### External/Actor Nodes
+
+16. **`trader`** - Type: `actor`
+    - End users who submit trades and monitor positions
+
+17. **`administrator`** - Type: `actor`
+    - Users who manage accounts and user associations
+
+---
+
+### Architecture Pattern Notes
+
+**Event-Driven Characteristics:**
+- Services communicate primarily through asynchronous event streams
+- Event streams act as integration points between producers and consumers
+- Services maintain their own databases (database-per-service pattern)
+- Decoupled architecture enables independent scaling and deployment
+
+**Relationship Types to Use:**
+- **`connects`** relationships between services and event streams (pub/sub)
+- **`connects`** relationships between services and their databases
+- **`interacts`** relationships between actors and UI/services
+- **`connects`** relationships between UI and API services
+
+This node structure supports event-driven patterns with clear separation of concerns, asynchronous communication, and independent data ownership per service.
 ```
 
+## Based on architect expert judgement, some adjustments are needed to the candidate nodes.  The architect prompts the AI Assistant to make adjustments.
+
+**Prompt to the AI Assistant**
+```text
+User: consolidate trade-database, postion-database, account-database into a single database called trade-database.   Consolidate all the nodes for event notification into a single service node called trade-event-notification.  update node inventory to reflect this change and list out all the nodes
+```
+
+**AI Assistant Response**
+
+```text
+GitHub Copilot: Based on your consolidation requirements, here's the updated node inventory for the TraderX event-driven architecture:
+
+## Consolidated CALM Nodes for TraderX Event-Driven Architecture
+
+### Core Application Nodes
+
+1. **`trading-ui`** - Type: `webclient`
+   - Web-based trading interface for users to submit orders, view positions, and monitor trade history
+
+2. **`order-submission-service`** - Type: `service`
+   - API service that receives and validates trade orders from the UI before publishing to event stream
+
+3. **`trade-execution-service`** - Type: `service`
+   - Service that consumes order events, executes trades, and publishes trade execution events
+
+4. **`position-service`** - Type: `service`
+   - Service that maintains current positions by consuming trade execution events and calculating aggregated holdings
+
+5. **`account-service`** - Type: `service`
+   - Service managing trading account CRUD operations and user-account associations
+
+6. **`trade-event-notification`** - Type: `service`
+   - Event infrastructure service handling order submissions, trade executions, position updates, and user notifications through event streams/topics
+
+### Data Storage Nodes
+
+7. **`trade-database`** - Type: `database`
+   - Consolidated database storing trade history, execution records, current account positions, trading accounts, and user-account associations
+
+8. **`security-reference-database`** - Type: `database`
+   - Master database of tradeable securities with company information
+
+9. **`user-directory`** - Type: `ldap` (or `database`)
+   - Directory service storing user profiles and contact information
+
+### External/Actor Nodes
+
+10. **`trader`** - Type: `actor`
+    - End users who submit trades and monitor positions
+
+11. **`administrator`** - Type: `actor`
+    - Users who manage accounts and user associations
+
+---
+
+### Total Node Count: 11 nodes
+- **3 Service nodes** (order-submission-service, trade-execution-service, position-service, account-service) + **1 Event notification service** (trade-event-notification)
+- **1 Web client** (trading-ui)
+- **3 Data storage nodes** (trade-database, security-reference-database, user-directory)
+- **2 Actor nodes** (trader, administrator)
+
+### Architecture Pattern Notes
+
+**Simplified Event-Driven Characteristics:**
+- Single event notification service manages all event streams (Kafka, message broker, etc.)
+- Consolidated database reduces operational complexity while maintaining clear data domains
+- Services communicate through the centralized event notification service
+- Clear separation between application services, data storage, and event infrastructure
+```
+
+## Create initial architecture from the revised node inventory
+
+**Prompt to the AI Assistant**
+```text
+User: update the trading-system.architecture.json with the nodes and their relationships.
+```
+
+** AI Assistant Response**
+```text
+GitHub Copilot: Searched codebase for "trading-system.architecture.json calm example", 25 results
+
+Ran terminal command:  find /Users/jim/Desktop/finos/architecture-as-code -name "trading-system.architecture.json" -type f 2>/dev/null | head -5
+
+Ran terminal command:  cat /Users/jim/Desktop/finos/architecture-as-code/docs/docs/working-with-calm/calm-example/trading-system.architecture.json
+
+Now I'll read the relationship creation guide to understand how to properly define relationships:
+
+Ran terminal command:  cat /Users/jim/Desktop/finos/architecture-as-code/.github/chatmodes/calm-prompts/relationship-creation.md | head -300
+
+Now I'll create a comprehensive trading system architecture with all nodes and relationships:
+
+
+Now let's validate the architecture file:
+
+Ran terminal command:  calm validate -a /Users/jim/Desktop/finos/architecture-as-code/docs/docs/working-with-calm/calm-example/trading-system.architecture.json
+
+Perfect! Now let's view a summary of what was created:
+
+Ran terminal command:  cat /Users/jim/Desktop/finos/architecture-as-code/docs/docs/working-with-calm/calm-example/trading-system.architecture.json | jq '{name, description, "node-count": (.nodes | length), "relationship-count": (.relationships | length), nodes: [.nodes[] | {id: ."unique-id", type: ."node-type", name}]}'
+
+Excellent! The architecture has been successfully created and validated. Here's a summary of what was implemented:
+
+## ✅ Trading System Architecture Complete
+
+**File**: `trading-system.architecture.json`
+
+**Validation**: ✅ Passes all CALM schema validation (`hasErrors: false, hasWarnings: false`)
+
+### Architecture Summary
+
+**Total Nodes**: 11
+- **2 Actors**: trader, administrator
+- **1 Web Client**: trading-ui
+- **5 Services**: order-submission-service, trade-execution-service, position-service, account-service, trade-event-notification
+- **2 Databases**: trade-database (consolidated), security-reference-database
+- **1 LDAP**: user-directory
+
+**Total Relationships**: 15
+
+### Key Architecture Features
+
+1. **Event-Driven Design**: Centralized `trade-event-notification` service handles all event streams (AMQP protocol)
+
+2. **Consolidated Storage**: Single `trade-database` stores trades, positions, accounts, and user associations
+
+3. **Service Interactions**:
+   - UI communicates with services via HTTPS
+   - Services publish/consume events via AMQP
+   - Services access databases via JDBC
+   - Account service queries user-directory via LDAP
+   - Real-time updates to UI via WebSocket
+
+4. **Actor Interactions**: Both trader and administrator interact with the trading-ui
+
+The architecture follows event-driven microservices patterns with clear separation of concerns and asynchronous communication through the event notification service.
+
+Made changes.
+```
+
+## From the business context add business flows
+
+**Prompt to the AI Assistant**
+
+```text
+User: add flows to the architecture file
+```
+
+**AI Assistant Response**
+
+```text
+GitHub Copilot: I'll read the flow creation guide to understand how to properly define flows in CALM:
+
+Ran terminal command:  cat /Users/jim/Desktop/finos/architecture-as-code/.github/chatmodes/calm-prompts/flow-creation.md
+
+Now I'll add flows to the architecture file based on the business context. I'll create flows for the key business processes:
+
+Using "Replace String in File"
+
+
+```
+
+```
+Now let's validate the updated architecture with flows:
+
+Ran terminal command:  calm validate -a /Users/jim/Desktop/finos/architecture-as-code/docs/docs/working-with-calm/calm-example/trading-system.architecture.json
+
+Perfect! Now let's display a summary of the flows:
+
+Ran terminal command:  cat /Users/jim/Desktop/finos/architecture-as-code/docs/docs/working-with-calm/calm-example/trading-system.architecture.json | jq '{name, "flow-count": (.flows | length), flows: [.flows[] | {id: ."unique-id", name, description, "transition-count": (.transitions | length)}]}'
+
+Excellent! The flows have been successfully added. Here's what was implemented:
+
+## ✅ Flows Added to Trading System Architecture
+
+**Validation**: ✅ Passes all CALM schema validation (`hasErrors: false, hasWarnings: false`)
+
+### Flow Summary
+
+**Total Flows**: 4
+
+1. **Trade Order Submission Flow** (4 transitions)
+   - Trader submits order → UI → Order Submission Service → Security validation → Event notification
+   - SLA: < 200ms, Peak: 1000 orders/second
+
+2. **Trade Execution Flow** (5 transitions)
+   - Event notification → Execution Service → Database persistence → Execution event → Position Service → Position update
+   - Critical business process with MiFID II and Reg NMS compliance
+   - SLA: < 500ms
+
+3. **Position Update Notification Flow** (2 transitions)
+   - Position Service → Event notification → Trading UI (WebSocket)
+   - Real-time updates with < 100ms SLA
+
+4. **Account Management Flow** (4 transitions)
+   - Administrator → UI → Account Service → User Directory → Database
+   - SOX and Access Control compliance
+   - SLA: < 2 seconds
+
+Each flow:
+- References existing relationships in the architecture
+- Includes sequence numbers for proper ordering
+- Has business-focused descriptions for each transition
+- Contains metadata with SLA, criticality, and compliance information
+- Demonstrates how business processes traverse the technical architecture
+
+Made changes.
+```

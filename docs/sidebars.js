@@ -57,6 +57,8 @@ const sidebars = {
             'working-with-calm/calm-example/business-context',
             'working-with-calm/calm-example/enable-ai-support',
             'working-with-calm/calm-example/define-initial-architecture',
+            'working-with-calm/calm-example/enhance-architecture-definition',
+            'working-with-calm/calm-example/generate-documentation',
            ],
         }
       ],

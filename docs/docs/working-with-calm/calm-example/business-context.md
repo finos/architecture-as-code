@@ -4,7 +4,7 @@ title: Business Context
 sidebar_position: 1
 ---
 
-# TraderX
+# Trading System
 
 ## Introduction
 
@@ -12,7 +12,7 @@ This document walks through practical examples of CALM architecture constructs t
 
 ## Business Context
 
-**TraderX** is a sample trading application developed by FINOS as a reference implementation for financial services trading operations. It serves as an educational platform to demonstrate typical trading workflows and business processes.
+**Trading System** is a sample trading application developed by FINOS as a reference implementation for financial services trading operations. It serves as an educational platform to demonstrate typical trading workflows and business processes.
 
 ### Core Business Functions
 
