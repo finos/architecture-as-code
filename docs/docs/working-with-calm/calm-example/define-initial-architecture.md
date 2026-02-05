@@ -319,6 +319,16 @@ The architecture follows event-driven microservices patterns with clear separati
 Made changes.
 ```
 
+When any major updates are made to the [architecture file](./.architecture/trading-system-initial.architecture.json) and is has been validated, a best practice is to commit it to the repo to establish a baseline and point of recovery if future changes result in an erroneous architecture.
+
+**Commit to the repo**
+
+```shell
+$ git add trading-system.architecture.json
+$ git commit -m"initial architecture from business context"
+```
+
+
 ## From the business context add business flows
 
 **Prompt to the AI Assistant**
@@ -386,4 +396,13 @@ Each flow:
 - Demonstrates how business processes traverse the technical architecture
 
 Made changes.
+```
+
+After updating and validating the [architecture file](./.architecture/trading-system-with-flows.architecture.json) with business flows commit to the repo.
+
+**Commit to the repo**
+
+```shell
+$ git add trading-system.architecture.json
+$ git commit -m"updated architecture with business flows"
 ```
