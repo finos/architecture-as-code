@@ -21,11 +21,6 @@ export function setupWorkspaceCommands(program: Command) {
         .argument('<name>', 'The name of the workspace to create or update')
         .option('--dir <path>', 'Directory in which to create the workspace (defaults to git root)')
         .action(async (name: string, options: { dir?: string }) => {
-            if (!name) {
-                logger.error('Please specify the workspace name. Usage: calm workspace init <name> [--dir <path>]');
-                process.exit(1);
-            }
-
             const workspaceName: string = name as string;
             const targetDir = options.dir ? path.resolve(options.dir) : (findGitRoot(process.cwd()) ?? process.cwd());
 
