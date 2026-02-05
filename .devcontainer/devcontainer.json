@@ -1,6 +1,10 @@
 {
 	"image": "mcr.microsoft.com/devcontainers/universal:3",
 	"features": {
+		"ghcr.io/devcontainers/features/node:1": {
+			"version": "lts",
+			"nodeGypDependencies": true
+		},
 		"ghcr.io/devcontainers/features/java:1": {
 			"version": "21",
 			"installMaven": true,
@@ -10,7 +14,7 @@
 	"containerEnv": {
 		"JAVA_HOME": "/usr/local/sdkman/candidates/java/current"
 	},
-	"postCreateCommand": "echo 'Container setup completed'",
+	"postCreateCommand": "npm install",
 	"hostRequirements": {
 		"cpus": 4,
 		"memory": "16gb"
