@@ -31,3 +31,5 @@ To enable AI-powered assistance for CALM architecture modeling in VS Code using 
 ---
 
 For more details, see the CALM documentation or run `calm init-ai --help`.
+
+**Note to the Reader**: Large language models, which underly CALM's AI Support, are inherently non-deterministic.  Running the same prompt may produce slightly different results.
