@@ -1,8 +1,8 @@
-import { existsSync, readFileSync, statSync } from "fs";
-import { dirname, join } from "path";
+import { existsSync, readFileSync, statSync } from 'fs';
+import { dirname, join } from 'path';
 
 function findGitRoot(startPath?: string): string | null {
-    let found = false;
+    const found = false;
     let currentPath = startPath;
     if (!currentPath) {
         currentPath = process.cwd();

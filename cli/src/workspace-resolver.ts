@@ -45,7 +45,7 @@ function getDefaultWorkspaceName(workspaceRoot: string): string {
             if (config && typeof config.name === 'string') {
                 return config.name;
             }
-        } catch (e) {
+        } catch (_) {
             // ignore and fallback
         }
     }

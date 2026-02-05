@@ -8,7 +8,7 @@ import { printBundleTreeFromGraph } from './tree';
  * Property names that can contain document references (URLs or paths) in CALM JSON.
  * These are scanned during pull and dependency graph building.
  */
-export const REFERENCE_PROPERTIES = ['$ref', , '$schema', 'requirement-url', 'config-url'] as const;
+export const REFERENCE_PROPERTIES = ['$ref', '$schema', 'requirement-url', 'config-url'] as const;
 
 /**
  * Extract a reference URL from a value that may be either:
@@ -53,7 +53,7 @@ export async function loadManifest(bundlePath: string): Promise<BundleManifest> 
     try {
         const content = await readFile(manifestPath, 'utf8');
         return JSON.parse(content) as BundleManifest;
-    } catch (e) {
+    } catch (_) {
         // If manifest is corrupted, return empty and overwrite on save
         return {};
     }
@@ -91,7 +91,7 @@ export async function determineDocumentId(srcPath: string, explicitId?: string):
         if (parsed && typeof parsed['$id'] === 'string' && parsed['$id'].trim()) {
             return parsed['$id'].trim();
         }
-    } catch (e) {
+    } catch (_) {
         // ignore and fallback to filename
     }
 
@@ -148,7 +148,7 @@ export async function addFileToBundle(
  */
 export async function addObjectToBundle(
     bundlePath: string,
-    obj: any,
+    obj: object,
     explicitId?: string
 ): Promise<{ id: string; destPath: string; rel: string }> {
     // We will determine id using the same logic but since we don't have a source file,
@@ -162,7 +162,7 @@ export async function addObjectToBundle(
     }
 
     // sanitise id for filename
-    const filename = id.replace(/[^a-zA-Z0-9-_\.]/g, '-').replace(/^-+|-+$/g, '') + '.json';
+    const filename = id.replace(/[^a-zA-Z0-9-_.]/g, '-').replace(/^-+|-+$/g, '') + '.json';
     const filesDir = path.join(bundlePath, FILES_DIRNAME);
     await mkdir(filesDir, { recursive: true });
     const destPath = path.join(filesDir, filename);
@@ -192,11 +192,11 @@ export async function buildDependencyGraph(bundlePath: string): Promise<Dependen
 
     for (const id of Object.keys(manifest)) {
         const filePath = idToPath[id];
-        let json: any = null;
+        let json = null;
         try {
             const raw = await readFile(filePath, 'utf8');
             json = JSON.parse(raw);
-        } catch (e) {
+        } catch (_) {
             // skip unreadable files
             continue;
         }
@@ -228,14 +228,12 @@ export async function buildDependencyGraph(bundlePath: string): Promise<Dependen
                 edges[id].push(refBase);
                 continue;
             }
-            // match by target file path (relative or absolute)
-            let candidatePath: string;
             if (refBase.startsWith('http://') || refBase.startsWith('https://')) {
                 // nothing more we can do
                 continue;
             }
             // resolve relative to bundlePath
-            candidatePath = path.resolve(bundlePath, refBase);
+            const candidatePath: string = path.resolve(bundlePath, refBase);
             const match = Object.entries(idToPath).find(([, p]) => path.resolve(p) === candidatePath);
             if (match) {
                 edges[id].push(match[0]);

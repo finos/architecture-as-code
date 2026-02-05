@@ -61,7 +61,7 @@ describe('workspace', () => {
             // Another bundle should be untouched
             expect(existsSync(path.join(bundlesPath, 'another-bundle', 'files', 'file2.json'))).toBe(true);
             const anotherManifest = JSON.parse(await readFile(path.join(bundlesPath, 'another-bundle', MANIFEST_FILENAME), 'utf8'));
-            expect(anotherManifest).toEqual({ "doc2": "files/file2.json" });
+            expect(anotherManifest).toEqual({ 'doc2': 'files/file2.json' });
         });
     });
 

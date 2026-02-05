@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { loadJsonFile, pullReferencesFromBundle, pullWorkspaceBundle } from './pull';
-import { saveManifest, MANIFEST_FILENAME } from './bundle';
-import { mkdir, writeFile, rm, readFile } from 'fs/promises';
+import { saveManifest } from './bundle';
+import { mkdir, writeFile, rm } from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
 
@@ -66,15 +66,15 @@ describe('pull', () => {
 
     describe('pullReferencesFromBundle', () => {
         // Create a mock DocumentLoader for testing
-        const createMockDocLoader = (responses: Record<string, unknown>) => ({
-            resolvePath: vi.fn((url: string) => null),
-            loadMissingDocument: vi.fn(async (url: string) => {
+        const createMockDocLoader = (responses: Record<string, object>) => ({
+            resolvePath: vi.fn((_: string): string | undefined => undefined),
+            loadMissingDocument: vi.fn(async (url: string): Promise<object> => {
                 if (responses[url]) {
                     return responses[url];
                 }
                 throw new Error(`Not found: ${url}`);
             }),
-            initialise: vi.fn(),
+            initialise: vi.fn(async () => {}),
             getLoadedDocuments: vi.fn(() => ({}))
         });
 
@@ -95,7 +95,7 @@ describe('pull', () => {
                 }
             });
 
-            await pullReferencesFromBundle(bundlePath, mockLoader as any);
+            await pullReferencesFromBundle(bundlePath, mockLoader);
 
             expect(mockLoader.loadMissingDocument).toHaveBeenCalledWith('https://example.com/schema.json', 'schema');
         });
@@ -111,7 +111,7 @@ describe('pull', () => {
 
             const mockLoader = createMockDocLoader({});
 
-            await pullReferencesFromBundle(bundlePath, mockLoader as any);
+            await pullReferencesFromBundle(bundlePath, mockLoader);
 
             expect(mockLoader.loadMissingDocument).not.toHaveBeenCalled();
         });
@@ -136,7 +136,7 @@ describe('pull', () => {
                 }
             });
 
-            await pullReferencesFromBundle(bundlePath, mockLoader as any);
+            await pullReferencesFromBundle(bundlePath, mockLoader);
 
             expect(mockLoader.loadMissingDocument).toHaveBeenCalledWith('https://example.com/requirement.json', 'schema');
         });
@@ -157,7 +157,7 @@ describe('pull', () => {
 
             const mockLoader = createMockDocLoader({});
 
-            await pullReferencesFromBundle(bundlePath, mockLoader as any);
+            await pullReferencesFromBundle(bundlePath, mockLoader);
 
             // Should not try to load since it's already in manifest
             expect(mockLoader.loadMissingDocument).not.toHaveBeenCalled();
@@ -172,7 +172,7 @@ describe('pull', () => {
             const mockLoader = createMockDocLoader({});
 
             // Should not throw
-            await expect(pullReferencesFromBundle(bundlePath, mockLoader as any)).resolves.not.toThrow();
+            await expect(pullReferencesFromBundle(bundlePath, mockLoader)).resolves.not.toThrow();
         });
 
         it('should handle failed reference loads gracefully', async () => {
@@ -187,7 +187,7 @@ describe('pull', () => {
             const mockLoader = createMockDocLoader({});  // No responses = all fail
 
             // Should not throw, just log warning
-            await expect(pullReferencesFromBundle(bundlePath, mockLoader as any)).resolves.not.toThrow();
+            await expect(pullReferencesFromBundle(bundlePath, mockLoader)).resolves.not.toThrow();
         });
 
         it('should recursively pull references from newly added documents', async () => {
@@ -211,7 +211,7 @@ describe('pull', () => {
                 }
             });
 
-            await pullReferencesFromBundle(bundlePath, mockLoader as any);
+            await pullReferencesFromBundle(bundlePath, mockLoader);
 
             // Both level1 and level2 should be fetched
             expect(mockLoader.loadMissingDocument).toHaveBeenCalledWith('https://example.com/level1.json', 'schema');
@@ -235,7 +235,7 @@ describe('pull', () => {
                 'https://example.com/config.json': { '$id': 'https://example.com/config.json' }
             });
 
-            await pullReferencesFromBundle(bundlePath, mockLoader as any);
+            await pullReferencesFromBundle(bundlePath, mockLoader);
 
             expect(mockLoader.loadMissingDocument).toHaveBeenCalledWith('https://example.com/ref.json', 'schema');
             expect(mockLoader.loadMissingDocument).toHaveBeenCalledWith('https://example.com/req.json', 'schema');
