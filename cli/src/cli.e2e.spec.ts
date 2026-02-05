@@ -168,6 +168,24 @@ describe('CLI Integration Tests', () => {
         });
     });
 
+    test('calm init-ai -p invalidprovider reports error', async () => {
+        const testDir = path.join(tempDir, 'init-ai-invalid-provider-test');
+        fs.mkdirSync(testDir, { recursive: true });
+
+        // Initialize a git repository to avoid warning
+        execSync('git init', { cwd: testDir, stdio: 'inherit' });
+
+        // Attempt to run calm init-ai with an invalid provider
+        await expect(
+            run(calm(), ['init-ai', '-p', 'invalidprovider', '--directory', testDir])
+        ).rejects.toMatchObject({
+            stderr: expect.stringContaining('error: option \'-p, --provider <provider>\' argument \'invalidprovider\' is invalid. Allowed choices are copilot, kiro, claude.')
+        });
+
+        // Clean up test directory
+        fs.rmSync(testDir, { recursive: true, force: true });
+    });
+
     test('validate command outputs JSON to stdout', async () => {
         const apiGatewayPath = path.join(
             __dirname,
@@ -607,6 +625,11 @@ describe('CLI Integration Tests', () => {
     // getting-started assets bundled in the repo, so we use the static mapping
     // to avoid hitting the public site during CI.
     describe('calm docify command - widget rendering', () => {
+        const normalizeLineEndings = (str: string) => str.replaceAll('\r\n', '\n');
+        const expectToBeSameIgnoringLineEndings = (actual: string, expected: string) => {
+            expect(normalizeLineEndings(actual.trim())).toBe(normalizeLineEndings(expected));
+        };
+
         function runTemplateWidgetTest(templateName: string, outputName: string) {
             return async () => {
 
@@ -625,7 +648,8 @@ describe('CLI Integration Tests', () => {
                 }
 
                 await run(
-                    calm(), [
+                    calm(),
+                    [
                         'docify',
                         '--architecture',
                         testModelPath,
@@ -641,7 +665,7 @@ describe('CLI Integration Tests', () => {
                 expect(fs.existsSync(outputFile)).toBe(true);
                 const actual = fs.readFileSync(outputFile, 'utf8').trim();
                 const expected = fs.readFileSync(expectedOutputPath, 'utf8').trim();
-                expect(actual).toEqual(expected);
+                expectToBeSameIgnoringLineEndings(actual, expected);
 
                 fs.rmSync(outputFile);
             };
@@ -693,7 +717,8 @@ describe('CLI Integration Tests', () => {
         //STEP 2: Generate Docify Website From Architecture
         const outputWebsite = path.resolve(actualOutputDir, 'website');
         await run(
-            calm(), [
+            calm(),
+            [
                 'docify',
                 '--architecture',
                 outputArchitecture,
@@ -754,7 +779,8 @@ describe('CLI Integration Tests', () => {
             'website-with-flow'
         );
         await run(
-            calm(), [
+            calm(),
+            [
                 'docify',
                 '--architecture',
                 outputArchitecture,

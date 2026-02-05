@@ -1,8 +1,8 @@
 {
     "name": "calm-vscode-plugin",
-    "displayName": "CALM Preview & Tools",
+    "displayName": "CALM Tools",
     "description": "Live-visualize CALM architecture models, validate, and generate docs.",
-    "version": "0.3.0",
+    "version": "0.4.3",
     "publisher": "FINOS",
     "homepage": "https://calm.finos.org",
     "repository": {
@@ -44,6 +44,10 @@
                 "command": "calm.clearTreeViewSearch",
                 "title": "Clear Search",
                 "icon": "$(clear-all)"
+            },
+            {
+                "command": "calm.createWebsite",
+                "title": "CALM: Create Documentation Website"
             }
         ],
         "viewsContainers": {
@@ -97,10 +101,30 @@
                     ],
                     "markdownDescription": "Glob patterns for template files that may reference CALM architecture files."
                 },
+                "calm.docify.theme": {
+                    "type": "string",
+                    "enum": [
+                        "light",
+                        "dark",
+                        "high-contrast-light",
+                        "high-contrast-dark",
+                        "auto"
+                    ],
+                    "default": "auto",
+                    "description": "Default theme for CALM diagrams."
+                },
                 "calm.urlMapping": {
                     "type": "string",
                     "description": "Path to a JSON file mapping URLs to local file paths for detailed-architecture navigation.",
                     "default": ""
+                },
+                "calm.schemas.additionalFolders": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "markdownDescription": "Additional folders containing CALM schemas for validation. Useful for schema developers testing local schema changes. Paths are relative to the workspace root."
                 }
             }
         },
@@ -129,13 +153,17 @@
                 {
                     "command": "calm.openPreview",
                     "group": "navigation@9"
+                },
+                {
+                    "command": "calm.createWebsite",
+                    "group": "navigation@10"
                 }
             ]
         }
     },
     "scripts": {
         "build": "tsup",
-        "postbuild": "node ./scripts/copy-widgets.js",
+        "postbuild": "node ./scripts/copy-calm-assets.js && copyfiles \"../../calm/release/**/meta/*\" \"../../calm/draft/**/meta/*\" dist/calm/ --up 3",
         "watch": "tsup --watch",
         "test": "vitest run",
         "test:watch": "vitest",
@@ -154,18 +182,19 @@
         "@typescript-eslint/eslint-plugin": "^8.29.1",
         "@typescript-eslint/parser": "^8.29.1",
         "@vscode/dts": "^0.4.1",
+        "@vscode/vsce": "^3.7.1",
+        "copyfiles": "^2.4.1",
         "eslint": "^9.24.0",
         "eslint-plugin-import": "^2.32.0",
         "globals": "^16.0.0",
         "tsup": "^8.2.4",
-        "typescript": "^5.6.2",
-        "@vscode/vsce": "^3.7.1"
+        "typescript": "^5.6.2"
     },
     "dependencies": {
         "@finos/calm-models": "file:../../calm-models",
         "@finos/calm-shared": "file:../../shared",
         "jsdom": "^22.1.0",
-        "lodash": "^4.17.21",
+        "lodash": "^4.17.23",
         "markdown-it": "^13.0.1",
         "mermaid": "^11.0.0",
         "svg-pan-zoom": "^3.6.2",

@@ -13,16 +13,14 @@ function styleToClassDef(className: string, style: ThemeClassStyle): string {
         parts.push(`stroke-dasharray: ${style.strokeDasharray}`);
     }
 
-    if (style.strokeWidth !== undefined) {
-        parts.push(`stroke-width:${style.strokeWidth}px`);
-    }
+    parts.push(`stroke-width:${style.strokeWidth}px`);
 
     if (style.fontSize) {
         parts.push(`font-size:${style.fontSize}`);
     }
 
-    // Always set text color to black for visibility
-    parts.push('color:#000');
+    // Default to black text
+    parts.push(`color:${style.color ?? '#000000'}`);
 
     return `classDef ${className} ${parts.join(',')};`;
 }
@@ -30,7 +28,7 @@ function styleToClassDef(className: string, style: ThemeClassStyle): string {
 /**
  * Generate all classDef statements from a theme object
  */
-export function buildThemeClassDefs(theme: ThemeColors, renderNodeTypeShapes: boolean): string[] {
+function buildThemeClassDefs(theme: ThemeColors, renderNodeTypeShapes: boolean): string[] {
     const classDefs: string[] = [];
 
     // Base styles (always included)
@@ -69,4 +67,32 @@ export function buildThemeClassDefs(theme: ThemeColors, renderNodeTypeShapes: bo
  */
 export function buildThemeClassDefsString(theme: ThemeColors, renderNodeTypeShapes: boolean): string {
     return buildThemeClassDefs(theme, renderNodeTypeShapes).join('\n');
+}
+
+/**
+ * Mermaid frontmatter to configure a theme
+ */
+export function buildThemeFrontMatter(theme: ThemeColors): string {
+    const lines: string[] = [];
+    lines.push('---');
+    lines.push('config:');
+    lines.push('  theme: base');
+    lines.push('  themeVariables:');
+    lines.push('    fontFamily: -apple-system, BlinkMacSystemFont, \'Segoe WPC\', \'Segoe UI\', system-ui, \'Ubuntu\', sans-serif');
+    if (theme.base !== undefined) {
+        if (theme.base.darkMode !== undefined) {
+            lines.push(`    darkMode: ${theme.base.darkMode}`);
+        }
+        if (theme.base.fontSize !== undefined) {
+            lines.push(`    fontSize: ${theme.base.fontSize}`);
+        }
+        if (theme.base.edgeLabelBackground !== undefined) {
+            lines.push(`    edgeLabelBackground: '${theme.base.edgeLabelBackground}'`);
+        }
+        if (theme.base.lineColor !== undefined) {
+            lines.push(`    lineColor: '${theme.base.lineColor}'`);
+        }
+    }
+    lines.push('---');
+    return lines.join('\n');
 }

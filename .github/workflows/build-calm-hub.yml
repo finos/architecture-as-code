@@ -25,14 +25,14 @@ jobs:
 
             # Step 2: Set up JDK
             - name: Set up JDK
-              uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e # v5
+              uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
               with:
                   distribution: 'temurin'
                   java-version: '21'
 
             # Step 3: Cache Maven Dependencies
             - name: Cache Maven Dependencies
-              uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5
+              uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5
               with:
                   path: ~/.m2
                   key: ${{ runner.os }}-m2-${{ hashFiles('calm-hub/pom.xml') }}

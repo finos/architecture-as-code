@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import yaml from 'yaml';
 import { readUrlMappingFile } from './url-mapping.js';
+import { WidgetsOptions } from '@finos/calm-widgets';
 
 export interface ParsedFrontMatter {
     frontMatter: Record<string, unknown>;
@@ -119,6 +120,17 @@ export function replaceVariables(content: string, frontMatter: Record<string, un
         }
     }
     return result;
+}
+
+export function injectWidgetOptionsIntoContent(content: string, widgetOptions: WidgetsOptions): string {
+    if (widgetOptions === undefined) {
+        return content;
+    }
+
+    const widgetOptionsYaml = yaml.stringify({ 'widget-options': widgetOptions }).trim();
+    const injectLines = widgetOptionsYaml.split('\n');
+    
+    return mergeFrontMatter(content, injectLines);
 }
 
 export interface FrontMatterInjectionParams {

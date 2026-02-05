@@ -1,4 +1,4 @@
-import { buildThemeClassDefsString } from './widgets/block-architecture/core/themes/theme-builder';
+import { buildThemeClassDefsString, buildThemeFrontMatter } from './widgets/block-architecture/core/themes/theme-builder';
 import { ThemeColors } from './widgets/block-architecture/types';
 
 export function registerGlobalTemplateHelpers(): Record<string, (...args: unknown[]) => unknown> {
@@ -14,6 +14,12 @@ export function registerGlobalTemplateHelpers(): Record<string, (...args: unknow
             return undefined;
         },
         json: (obj: unknown): string => JSON.stringify(obj, null, 2),
+        themeFrontMatter: (themeColors: unknown): string => {
+            if (typeof themeColors === 'object' && themeColors !== null) {
+                return buildThemeFrontMatter(themeColors as ThemeColors);
+            }
+            return '';
+        },
         themeClassDefs: (themeColors: unknown, renderNodeTypeShapes: unknown): string => {
             if (
                 typeof themeColors === 'object' &&

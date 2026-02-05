@@ -5,7 +5,8 @@ import {
     parseFrontMatterFromContent,
     parseFrontMatter,
     hasArchitectureFrontMatter,
-    replaceVariables
+    replaceVariables,
+    injectWidgetOptionsIntoContent
 } from './front-matter';
 
 vi.mock('fs');
@@ -318,6 +319,115 @@ Content`;
             const result = replaceVariables(content, variables);
 
             expect(result).toBe('auth-service');
+        });
+    });
+
+    describe('injectWidgetOptionsIntoContent', () => {
+        it('should inject widget options as YAML frontmatter into content without frontmatter', () => {
+            const content = '# My Template\n\nSome content here.';
+            const widgetOptions = {
+                'block-architecture': {
+                    theme: 'dark',
+                    layout: 'horizontal'
+                }
+            };
+
+            const result = injectWidgetOptionsIntoContent(content, widgetOptions);
+
+            expect(result).toContain('---\nwidget-options:\n  block-architecture:\n    theme: dark\n    layout: horizontal\n---\n# My Template');
+        });
+
+        it('should handle no widget options', () => {
+            const content = 'Template content';
+            const widgetOptions = undefined;
+
+            const result = injectWidgetOptionsIntoContent(content, widgetOptions);
+
+            expect(result).toContain('Template content');
+        });
+
+        it('should handle nested widget options', () => {
+            const content = '{{block-architecture}}';
+            const widgetOptions = {
+                'block-architecture': {
+                    theme: 'light',
+                    settings: {
+                        nested: 'value'
+                    }
+                }
+            };
+
+            const result = injectWidgetOptionsIntoContent(content, widgetOptions);
+
+            expect(result).toContain('widget-options:');
+            expect(result).toContain('theme: light');
+            expect(result).toContain('nested: value');
+            expect(result).toContain('{{block-architecture}}');
+        });
+
+        it('should prepend frontmatter before existing content', () => {
+            const content = '# Title\n\nContent';
+            const widgetOptions = {
+                table: { columns: 3 }
+            };
+
+            const result = injectWidgetOptionsIntoContent(content, widgetOptions);
+
+            expect(result).toMatch(/^---\nwidget-options:/);
+            expect(result).toContain('# Title');
+        });
+
+        it('should handle empty widget options object', () => {
+            const content = 'Content';
+            const widgetOptions = {};
+
+            const result = injectWidgetOptionsIntoContent(content, widgetOptions);
+
+            expect(result).toContain('widget-options: {}');
+        });
+
+        it('should properly format YAML for widget options with arrays', () => {
+            const content = '{{widget}}';
+            const widgetOptions = {
+                table: {
+                    columns: ['id', 'name', 'status']
+                }
+            };
+
+            const result = injectWidgetOptionsIntoContent(content, widgetOptions);
+
+            expect(result).toContain('widget-options:');
+            expect(result).toContain('table:');
+            expect(result).toContain('- id');
+            expect(result).toContain('- name');
+            expect(result).toContain('- status');
+        });
+
+        it('should merge with existing frontmatter', () => {
+            const content = `---
+title: My Document
+description: A test document
+---
+{{block-architecture}}`;
+            const widgetOptions = {
+                'block-architecture': {
+                    theme: 'dark'
+                }
+            };
+
+            const result = injectWidgetOptionsIntoContent(content, widgetOptions);
+
+            // Should preserve existing frontmatter fields
+            expect(result).toContain('title: My Document');
+            expect(result).toContain('description: A test document');
+            // Should add widget options
+            expect(result).toContain('widget-options:');
+            expect(result).toContain('theme: dark');
+            // Should preserve content
+            expect(result).toContain('{{block-architecture}}');
+            // Should have only one frontmatter block
+            const frontmatterCount = (result.match(/---/g) || []).length;
+            expect(frontmatterCount).toBe(2);
         });
     });
 });

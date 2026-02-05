@@ -15,6 +15,7 @@ import { CommandRegistrar } from './commands/command-registrar'
 import { DiagnosticsService } from './core/services/diagnostics-service'
 import { createApplicationStore, type ApplicationStoreApi } from './application-store'
 import { setWidgetLogger } from '@finos/calm-shared'
+import { ValidationService } from './features/validation/validation-service'
 
 /**
  * Main extension controller that orchestrates all VS Code extension functionality
@@ -45,11 +46,19 @@ export class CalmExtensionController {
     const editorFactory = new EditorFactory(store)
     const navigationService = new NavigationService(log, configService)
 
-    // Listen for configuration changes to reset navigation service
+    // Listen for configuration changes to reset navigation service and refresh preview
     this.disposables.push(vscode.workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('calm.urlMapping')) {
         log.info?.('[extension] Configuration changed: calm.urlMapping - resetting navigation service')
         navigationService.reset()
+      }
+      if (e.affectsConfiguration('calm.docify.theme') || e.affectsConfiguration('workbench.colorTheme')) {
+        log.info?.('[extension] Configuration changed: calm.docify.theme - refreshing docify view')
+        const previewPanel = previewPanelFactory.get()
+        if (previewPanel) {
+          const vm = previewPanelFactory.getViewModel()
+          vm.configurationChanged();
+        }
       }
     }))
 
@@ -76,6 +85,10 @@ export class CalmExtensionController {
 
     new CommandRegistrar(context, store).registerAll()
 
+    // Initialize validation service (await to ensure schemas are loaded before validating documents)
+    const validationService = new ValidationService(log, configService)
+    await validationService.register(context)
+
     const storeReactionMediator = new StoreReactionMediator(
       store,
       previewPanelFactory,
@@ -92,7 +105,8 @@ export class CalmExtensionController {
       previewPanelFactory,
       treeManager,
       editorFactory,
-      storeReactionMediator
+      storeReactionMediator,
+      validationService
     )
   }
 

@@ -1,11 +1,21 @@
 ## Classic Mode (Default)
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', sans-serif
+    darkMode: false
+    fontSize: 14px
+    edgeLabelBackground: '#d5d7e1'
+    lineColor: '#000000'
+---
 %%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
-classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
-classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
-classDef iface fill:#f1f5f9,stroke:#64748b,stroke-width:1px,font-size:10px,color:#000;
-classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
+classDef boundary fill:#e1e4f0,stroke:#204485,stroke-dasharray: 5 4,stroke-width:1px,color:#000000;
+classDef node fill:#eef1ff,stroke:#007dff,stroke-width:1px,color:#000000;
+classDef iface fill:#f0f0f0,stroke:#b6b6b6,stroke-width:1px,font-size:10px,color:#000000;
+classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
 
 
     api-service["API Service"]:::node
@@ -34,18 +44,28 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
 
 ## Node Type Shapes Mode [render-node-type-shapes=true]
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', sans-serif
+    darkMode: false
+    fontSize: 14px
+    edgeLabelBackground: '#d5d7e1'
+    lineColor: '#000000'
+---
 %%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
-classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
-classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
-classDef iface fill:#f1f5f9,stroke:#64748b,stroke-width:1px,font-size:10px,color:#000;
-classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
-classDef actor fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000;
-classDef database fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000;
-classDef webclient fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
-classDef service fill:#e8f5e8,stroke:#388e3c,stroke-width:2px,color:#000;
-classDef messagebus fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#000;
-classDef system fill:#fff8e1,stroke:#f9a825,stroke-width:2px,color:#000;
+classDef boundary fill:#e1e4f0,stroke:#204485,stroke-dasharray: 5 4,stroke-width:1px,color:#000000;
+classDef node fill:#eef1ff,stroke:#007dff,stroke-width:1px,color:#000000;
+classDef iface fill:#f0f0f0,stroke:#b6b6b6,stroke-width:1px,font-size:10px,color:#000000;
+classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
+classDef actor fill:#eef1ff,stroke:#007dff,stroke-width:1px,color:#000000;
+classDef database fill:#eef1ff,stroke:#2052a2,stroke-width:1px,color:#000000;
+classDef webclient fill:#eef1ff,stroke:#156edf,stroke-width:1px,color:#000000;
+classDef service fill:#eef1ff,stroke:#1c60c0,stroke-width:1px,color:#000000;
+classDef messagebus fill:#eef1ff,stroke:#1c60c0,stroke-width:1px,color:#000000;
+classDef system fill:#eef1ff,stroke:#204485,stroke-width:1px,color:#000000;
 
 
     api-service[/"⚙️ API Service"/]:::service
@@ -75,18 +95,28 @@ classDef system fill:#fff8e1,stroke:#f9a825,stroke-width:2px,color:#000;
 
 ## Custom Node Type Mapping [render-node-type-shapes=true node-type-map]
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', sans-serif
+    darkMode: false
+    fontSize: 14px
+    edgeLabelBackground: '#d5d7e1'
+    lineColor: '#000000'
+---
 %%{init: {"flowchart": {"htmlLabels": false}}}%%
 flowchart TB
-classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
-classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
-classDef iface fill:#f1f5f9,stroke:#64748b,stroke-width:1px,font-size:10px,color:#000;
-classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
-classDef actor fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000;
-classDef database fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000;
-classDef webclient fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
-classDef service fill:#e8f5e8,stroke:#388e3c,stroke-width:2px,color:#000;
-classDef messagebus fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#000;
-classDef system fill:#fff8e1,stroke:#f9a825,stroke-width:2px,color:#000;
+classDef boundary fill:#e1e4f0,stroke:#204485,stroke-dasharray: 5 4,stroke-width:1px,color:#000000;
+classDef node fill:#eef1ff,stroke:#007dff,stroke-width:1px,color:#000000;
+classDef iface fill:#f0f0f0,stroke:#b6b6b6,stroke-width:1px,font-size:10px,color:#000000;
+classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
+classDef actor fill:#eef1ff,stroke:#007dff,stroke-width:1px,color:#000000;
+classDef database fill:#eef1ff,stroke:#2052a2,stroke-width:1px,color:#000000;
+classDef webclient fill:#eef1ff,stroke:#156edf,stroke-width:1px,color:#000000;
+classDef service fill:#eef1ff,stroke:#1c60c0,stroke-width:1px,color:#000000;
+classDef messagebus fill:#eef1ff,stroke:#1c60c0,stroke-width:1px,color:#000000;
+classDef system fill:#eef1ff,stroke:#204485,stroke-width:1px,color:#000000;
 
 
     api-service[/"⚙️ API Service"/]:::service

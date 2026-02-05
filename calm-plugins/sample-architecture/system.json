@@ -1,4 +1,5 @@
 {
+  "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
   "nodes": [
     {
       "unique-id": "ecommerce-system",

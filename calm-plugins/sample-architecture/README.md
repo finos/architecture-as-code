@@ -15,7 +15,7 @@ This folder contains a set of CALM architecture files designed to test the featu
     "calm.urlMapping": "calm-plugins/sample-architecture/calm-mapping.json"
     ```
 2.  **Open Root**: Open `system.json`.
-3.  **Preview**: Open the CALM Preview (`Ctrl+Shift+C` or Command Palette).
+3.  **Preview**: Open the CALM preview pane (`Ctrl+Shift+C` or Command Palette).
 4.  **Navigate**: Click the **Payment Service** node in the preview.
     -   *Expected Behavior*: `payment-service.json` opens in the primary editor column, keeping the preview visible.
 

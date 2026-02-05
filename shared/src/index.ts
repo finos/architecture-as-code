@@ -23,6 +23,7 @@ export {
     hasArchitectureFrontMatter,
     replaceVariables,
     injectFrontMatter,
+    injectWidgetOptionsIntoContent,
     type ParsedFrontMatter,
     type FrontMatterInjectionParams
 } from './template/front-matter.js';
@@ -32,3 +33,15 @@ export { CalmRelationshipGraph } from './docify/graphing/relationship-graph.js';
 export { ValidationOutcome } from './commands/validate/validation.output';
 export * from './test/file-comparison.js';
 export { setWidgetLogger, type WidgetLogger } from '@finos/calm-widgets';
+export * from './document-loader/loading-helpers.js';
+export {
+    hasArchitectureExtension,
+    hasMappingFileExtension,
+    getFileExtension
+} from './util/file-utils.js';
+export {
+    enrichWithDocumentPositions,
+    parseDocumentWithPositions,
+    type ParsedDocumentContext,
+    __test__ as validationEnrichmentTest
+} from './commands/validate/validation-enrichment.js';
