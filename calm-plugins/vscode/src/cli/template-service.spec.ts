@@ -74,6 +74,26 @@ describe('TemplateService', () => {
         expect(result).toBe('REL shared-id')
     })
 
+    it('should return flow-focus template when graph edge type is flow', async () => {
+        const loadTemplateSpy = vi
+            .spyOn(service as any, 'loadTemplate')
+            .mockResolvedValue('FLOW {{focused-flow-id}}')
+        const readModelSpy = vi.spyOn((service as any).modelService, 'readModelAsync')
+
+        const result = await service.generateTemplateContent(
+            'flow-edge-1',
+            { nodes: [], edges: [{ id: 'flow-edge-1', type: 'flow' }] },
+            '/path/to/model.json',
+            true,
+            false,
+            undefined
+        )
+
+        expect(loadTemplateSpy).toHaveBeenCalledWith('flow-focus-template.hbs', true)
+        expect(readModelSpy).not.toHaveBeenCalled()
+        expect(result).toBe('FLOW flow-edge-1')
+    })
+
     it('should return flow-focus template when flow unique-id matches model', async () => {
         const loadTemplateSpy = vi
             .spyOn(service as any, 'loadTemplate')

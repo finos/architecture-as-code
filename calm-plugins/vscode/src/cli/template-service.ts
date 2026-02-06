@@ -74,6 +74,13 @@ export class TemplateService {
 
       const edge = graph.edges?.find((x: any) => x.id === selectedId)
       if (edge) {
+        if (edge.type === 'flow') {
+          const template = await this.loadTemplate('flow-focus-template.hbs', showLabels)
+          return this.processor.replacePlaceholders(template, {
+            'focused-flow-id': selectedId
+          })
+        }
+
         const template = await this.loadTemplate('relationship-focus-template.hbs', showLabels)
         return this.processor.replacePlaceholders(template, {
           'focused-relationship-id': selectedId
