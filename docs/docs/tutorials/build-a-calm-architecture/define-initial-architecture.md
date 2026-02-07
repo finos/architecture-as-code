@@ -6,6 +6,8 @@ sidebar_position: 3
 
 ## Create a minimal CALM architecture file
 
+To start off, we will create a minimal CALM architecture file.
+
 **Prompt to AI Assistant**
 ```text
 User: create a minimal CALM architecture file called trading-system.architecture.json 
@@ -348,6 +350,8 @@ The architecture validates successfully with no errors or warnings.
 Made changes.
 ```
 
+_Note_:  Whenever an update is made to the architecture file, the `calm validate` command should be used to ensure syntatic correctness.  If the AI Assistant does not run it, the architect should request it to be run.
+
 ### Excerpt of the CALM Architecture JSON
 ![Raw Architecture JSON](./images/00_initial_architecture_json.png)
 
@@ -530,6 +534,8 @@ Add this transition at the **end** of the flow:
 Do you approve these changes?
 ```
 
+Before accepting the change, the architect wants to see the complete updated process flow definitions.
+
 **Prompt to AI Assistant**
 ```text
 User: Show full definition of submit-trade-flow and process-trade-flow
@@ -663,6 +669,8 @@ json
 }
 ```
 
+The updated process flows look good, so the architect tells the AI Assistant that the proposed changes should be accepted.
+
 **Prompt to AI Assistant**
 ```text
 User: I accept the proposed changes
@@ -696,6 +704,8 @@ The `Trader` node is now present in both flows.
 
 
 ## Commit the architecture definition with revised process flow to GIT Repo
+
+At this point the architect has completed the initial definition of the architecture.
 
 **Prompt to AI Assistant**
 ```text
