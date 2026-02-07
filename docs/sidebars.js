@@ -78,14 +78,14 @@ const sidebars = {
         },
         {
           type: 'category',
-          label: 'CALM Example',
-          link: {type: 'doc', id: 'tutorials/calm-example/calm-example-index'},
+          label: 'Build a Calm Architecture',
+          link: {type: 'doc', id: 'tutorials/build-a-calm-architecture/build-a-calm-architecture'},
           items: [
-            'tutorials/calm-example/business-context',
-            'tutorials/calm-example/enable-ai-support',
-            'tutorials/calm-example/define-initial-architecture',
-            'tutorials/calm-example/enhance-architecture-definition',
-            'tutorials/calm-example/generate-documentation',
+            'tutorials/build-a-calm-architecture/business-context',
+            'tutorials/build-a-calm-architecture/enable-ai-support',
+            'tutorials/build-a-calm-architecture/define-initial-architecture',
+            'tutorials/build-a-calm-architecture/enhance-architecture-definition',
+            'tutorials/build-a-calm-architecture/generate-documentation',
            ],
         }
       ],
