@@ -1,6 +1,6 @@
 ---
-id: calm-example-index
-title: Working with CALM
+id: build-a-calm-architecture
+title: Build a CALM Architecture
 sidebar_position: 2
 ---
 
