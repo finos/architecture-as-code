@@ -37,7 +37,32 @@ All Maintainer votes MUST be carried out transparently, with all discussion and 
 
 ### Maintainer Qualifications
 
-Any Contributor who has made a substantial contribution to the project MAY apply (or be nominated) to become a Maintainer. The existing Maintainers SHALL decide whether to approve the nomination according to the Maintainer Voting process above.
+Any Contributor who has made a substantial contribution to the project MAY apply (or be nominated) to become a Maintainer. The existing Maintainers SHALL vote on whether to approve the nomination according to the Maintainer Voting process above. A nomination MUST receive a majority of votes to be approved.
+
+### Removal of Maintainers
+
+A Maintainer MAY be removed due to inactivity or by their own request, subject to the following processes:
+
+#### Voluntary Removal
+
+1. A Maintainer wishing to step down MUST raise a GitHub issue stating their intent to be removed.
+2. The remaining Maintainers SHALL acknowledge the request and proceed with removal.
+3. No vote is required for voluntary removal.
+
+#### Removal Due to Inactivity
+
+A Maintainer is considered inactive if they have had no commits and no involvement in any issue or pull request discussions for a period of **3 months** or more.
+
+1. A Maintainer MUST raise a GitHub issue proposing the removal, clearly stating the reason (e.g., period of inactivity) and tagging the inactive Maintainer.
+2. The inactive Maintainer SHALL be notified via the issue and any other known contact methods (e.g., email).
+3. A minimum notice period of **4 weeks** MUST be observed from the date the issue is raised before any vote on removal may occur.
+4. During the notice period, the inactive Maintainer MAY respond to the issue to contest the removal or indicate their intent to resume activity.
+5. After the notice period, if the Maintainer has not responded or resumed activity, the remaining Maintainers SHALL vote on removal according to the Maintainer Voting process above.
+6. If the Maintainer resumes meaningful activity during the notice period, the removal issue SHOULD be closed without a vote.
+
+#### Reinstatement
+
+A Maintainer who has been removed due to inactivity MAY be reinstated at any time if they resume activity and wish to rejoin. The reinstatement process follows the standard Maintainer Qualifications process above.
 
 ### Changes to this Document
 
