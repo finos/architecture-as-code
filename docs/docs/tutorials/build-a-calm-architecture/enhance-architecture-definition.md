@@ -1,6 +1,6 @@
 ---
-id: enhance-architecture-definition
-title: Enhance Architecture Definition
+id: refine-architecture-definition
+title: Refine Architecture Definition
 sidebar_position: 4
 ---
 

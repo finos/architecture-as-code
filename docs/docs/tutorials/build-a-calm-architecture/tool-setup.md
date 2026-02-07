@@ -1,6 +1,6 @@
 ---
-id: enable-ai-support
-title: Enabling AI Support for CALM
+id: tool-setup
+title: Tool Setup
 sidebar_position: 2
 ---
 
