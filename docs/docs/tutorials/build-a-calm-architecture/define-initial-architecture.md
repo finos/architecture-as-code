@@ -4,14 +4,62 @@ title: Define Initial Architecture
 sidebar_position: 3
 ---
 
-## Analyze the business context to identify candidate CALM nodes for the architecture
+## Create a minimal CALM architecture file
 
-**Prompt to the AI Assistant**
+**Prompt to AI Assistant**
 ```text
-User: identify candidate CALM nodes with type for an event driven architecture for the business context.  List each node with its type and a short description
-## Business Context
+User: create a minimal CALM architecture file called trading-system.architecture.json 
+      with no nodes or relationships
+```
 
-**TraderX** is a sample trading application developed by FINOS as a reference implementation for financial services trading operations. It serves as an educational platform to demonstrate typical trading workflows and business processes.
+**Response from AI Assistant**
+```text
+GitHub Copilot: Loading FINOS CALM instructions...
+
+Let me read the CALM tool prompts to understand the current guidance. 
+
+Ran terminal command:  cat "/Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts/architecture-creation.md"
+
+Ran terminal command:  cat "/Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts/calm-cli-instructions.md"
+
+I'm ready to assist with CALM architectures. Let me create the minimal architecture file for you. 
+
+Ran terminal command:  cat > "/Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json" << 'EOF'
+{
+    "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+    "unique-id": "trading-system",
+    "name": "Trading System",
+    "description": "A minimal trading system architecture",
+    "nodes": [],
+    "relationships": []
+}
+EOF
+
+
+Now let me validate the architecture file to ensure it's compliant with CALM v1.1: 
+
+Ran terminal command:  calm validate -a trading-system.architecture.json
+
+Perfect! Created trading-system.architecture.json with the minimal required structure and validated successfully. The file includes:
+
+- `$schema`: Reference to CALM v1.1 schema
+- `unique-id`: "trading-system"
+- `name`: "Trading System"
+- `description`: A minimal description
+- `nodes`: Empty array (ready for nodes to be added)
+- `relationships`: Empty array (ready for relationships to be added)
+
+The validation confirms no errors or warnings.
+```
+
+## Analyze business design to identify candidate nodes for the CALM architecture definition
+
+**Prompt to AI Assistant**
+```text
+User: identify candidate CALM nodes with type for an event driven architecture for the provided 
+      business design.  Use only information found in the business design provided.  List each 
+      node with its type and a short description.
+## Business Design
 
 ### Core Business Functions
 
@@ -29,38 +77,80 @@ User: identify candidate CALM nodes with type for an event driven architecture f
 **Reference Information:**
 - **Security Master**: Maintains list of tradeable securities (stocks) with company information
 - **User Directory**: Stores user profiles and contact information
-- **Account Registry**: Central repository of all trading accounts
+- **Trade Data Store**: Central repository of all trading accounts
 
 **Real-time Information:**
-- **Live Updates**: Users receive immediate notifications when trades execute
+- **Trade Updates**: Users receive immediate notifications when trades execute
 - **Position Updates**: Account positions refresh automatically as trades settle
 - **Trade Status**: Monitor trade lifecycle from submission through execution
 
 ### Business Workflows
 
-**Primary Trading Process:**
-1. User authenticates and selects a trading account
-2. System displays current positions and trade history for that account
-3. User views available securities from the security master
-4. User submits a trade order specifying security, quantity, and buy/sell direction
-5. System validates the account exists and security is valid
-6. Trade order enters processing workflow
-7. Order executes and updates to the trade blotter
-8. Position is recalculated based on the executed trade
-9. User sees updated position and trade information in real-time
+**1: Load List of Accounts**
+- **Actors**: Web GUI, Account Service, Trade Data Store.
+- **Steps**:
+  1. Web GUI asks Account Service to load the list of accounts.
+  2. Account Service queries the Trade Data Store for all accounts.
+  3. Trade Data Store returns the result set to Account Service.
+  4. Account Service returns the list of accounts to Web GUI.
 
-**Account Setup Process:**
-1. Administrator creates a new trading account
-2. System assigns unique account identifier
-3. Administrator searches for users in the directory
-4. Users are associated with the account for access purposes
-5. Account becomes available for trading operations
+**2: Bootstrapping the Trade and Position Blotter**
+- **Actors**: Web GUI, Position Service, Trade Feed, Trade Data Store.
+- **Steps**:
+  1. Web GUI requests trades and positions for a selected account from Position Service.
+  2. Position Service queries the Trade Data Store for that account's trades and positions.
+  3. Position Service returns the initial trades and positions to Web GUI.
+  4. Web GUI subscribes to Trade Feed for account-specific trade and position updates.
+  5. Live Updates publishes ongoing trade and position updates to Web GUI.
 
-**Position Reconciliation:**
-- When user selects an account, system loads historical trades
-- System calculates current positions by aggregating all trades
-- Ongoing trades continuously update positions
-- Users maintain accurate real-time view of holdings
+**3: Submitting a Trade Ticket**
+- **Actors**: Web GUI, Security Master, Trade Service, Account Service, Trade Feed.
+- **Steps**:
+  1. Web GUI requests the ticker list from the Security Master; Security Master returns it.
+  2. Web GUI submits a trade (account, ticker, side, quantity) to Trade Service.
+  3. Trade Service validates the ticker with the Security Master.
+  4. Trade Service validates the account with Account Service.
+  5. Trade Service publishes a new trade event to Trade Feed (trades/new).
+  6. Trade Service returns a trade submission completion response to Web GUI.
+
+**4: Trade Processing**
+- **Actors**: Trade Feed, Trade Processor, Trade Data Store, Web GUI.
+- **Steps**:
+  1. Trade Feed delivers a new trade event to Trade Processor.
+  2. Trade Processor inserts the new trade into the Trade Data Store.
+  3. Trade Processor publishes a new account-specific trade event Trade Feed.
+  4. Trade Feed pushes the "new trade" event to Web GUI.
+  5. Trade Processor marks the trade as executed in the Trade Data Store.
+  6. Trade Processor inserts or updates the corresponding position (account, ticker, quantity) in the Trade Data Store.
+  7. Trade Processor publishes trade update events and a position event via Trade Feed.
+  8. Trade Feed forwards trade updates and position updates to Web GUI.
+
+**5: Add/Update Account**
+- **Actors**: Web GUI, Account Service, Trade Data Store.
+- **Steps**:
+  1. Web GUI sends an account create or update request to Account Service.
+  2. Account Service inserts or updates the account row in the Trade Data Store.
+  3. Account Service returns success or failure to Web GUI.
+
+**6: Add/Update Users to Account**
+- **Actors**: Web GUI, Account Service, Trade Data Store, People Service, User Directory.
+- **Steps**:
+  1. Web GUI asks Account Service for the current list of people associated with an account.
+  2. Account Service queries the Trade Data Store for account-user mappings and returns them.
+  3. Web GUI asks the People Service to search for a user by name.
+  4. People Service queries User Directory and returns matching people records to People Service.
+  5. People Service returns search results to Web GUI.
+  6. Web GUI requests Account Service to add the selected user to the account.
+  7. Account Service validates the username via the People Service.
+  8. Account Service inserts or updates the account–user mapping in the Trade Data Store.
+  9. Account Service returns success or failure to Web GUI.
+
+**7: Security Master Bootstrap**
+- **Actors**: Security Master, CSV file, Web GUI.
+- **Steps**:
+  1. On startup, the Security Master loads the ticker CSV file.
+  2. The CSV file supplies the ticker list to the Security Master.
+  3. When Web GUI requests the ticker list, the Security Master returns it.
 
 ### Business Entities
 
@@ -81,328 +171,544 @@ User: identify candidate CALM nodes with type for an event driven architecture f
 The application demonstrates essential trading operations including order entry, execution, settlement, and position keeping - core functions required by any trading platform in financial services. It provides a complete view of how accounts, users, trades, and positions interrelate throughout the trading lifecycle.
 ```
 
-**AI Assistant Response**
-
+**Response from AI Assitant**
 ```text
-GitHub Copilot: Loading FINOS CALM instructions...
+GitHub Copilot: Based on the event-driven architecture described in the business design, here are the candidate CALM nodes:
 
-Searched codebase for "CALM architecture creation node types interface relationship flow control metadata pattern documentation standards", 23 results
+## User Interface Nodes
 
-Searched codebase for "CALM architecture creation node interface relationship flow control metadata pattern documentation chatmode prompts tools", 26 results
+**web-gui** (Type: `system`)
+- Browser-based graphical user interface for traders to submit orders, view positions, manage accounts, and receive real-time trade updates
 
-Now I'll read the CALM tool prompt files to get the detailed guidance:
+## Service Nodes
 
-Ran terminal command:  cat /Users/jim/Desktop/finos/architecture-as-code/.github/chatmodes/calm-prompts/architecture-creation.md
+**account-service** (Type: `service`)
+- Manages account creation, updates, and user associations; validates account data and queries account information from the data store
 
-Ran terminal command:  cat /Users/jim/Desktop/finos/architecture-as-code/.github/chatmodes/calm-prompts/node-creation.md | head -200
+**trade-service** (Type: `service`)
+- Handles trade ticket submission; validates trades against security master and account service before publishing to the trade feed
 
-Perfect! I'm ready to assist you with CALM architectures. Now I'll identify candidate CALM nodes for an event-driven architecture based on the TraderX business context.
+**position-service** (Type: `service`)
+- Provides initial bootstrap data for trades and positions when users select an account; queries historical data from the trade data store
 
-## Candidate CALM Nodes for TraderX Event-Driven Architecture
+**people-service** (Type: `service`)
+- Searches for users by name and validates user information against the user directory for account associations
 
-Based on the business context, here are the recommended nodes with their types and descriptions:
+**security-master** (Type: `service`)
+- Maintains and serves the list of tradeable securities with ticker symbols and company information; bootstraps from CSV file on startup
 
-### Core Application Nodes
+**trade-processor** (Type: `service`)
+- Asynchronous processor that consumes new trade events, persists trades to the data store, updates positions, and publishes account-specific trade and position events
 
-1. **`trading-ui`** - Type: `webclient`
-   - Web-based trading interface for users to submit orders, view positions, and monitor trade history
+## Event Streaming Node
 
-2. **`order-submission-service`** - Type: `service`
-   - API service that receives and validates trade orders from the UI before publishing to event stream
+**trade-feed** (Type: `service`)
+- Event-driven message broker that publishes and delivers trade events (new trades, trade updates, position updates) to subscribers including the web GUI and trade processor
 
-3. **`trade-execution-service`** - Type: `service`
-   - Service that consumes order events, executes trades, and publishes trade execution events
+## Data Store Nodes
 
-4. **`position-service`** - Type: `service`
-   - Service that maintains current positions by consuming trade execution events and calculating aggregated holdings
+**trade-data-store** (Type: `datastore`)
+- Central persistent repository storing accounts, trades, positions, and account-user mappings
 
-5. **`account-service`** - Type: `service`
-   - Service managing trading account CRUD operations and user-account associations
+**user-directory** (Type: `datastore`)
+- Repository of user profiles and contact information queried by people service
 
-6. **`notification-service`** - Type: `service`
-   - Service that publishes real-time updates to users when trades execute or positions change
+## External Data Source
 
-### Data Storage Nodes
+**ticker-csv-file** (Type: `system`)
+- Static CSV file containing the list of tradeable securities loaded by security master at startup
+```
 
-7. **`trade-database`** - Type: `database`
-   - Persistent storage for trade history and execution records
+## Review and revise the candidate list of CALM Nodes
 
-8. **`position-database`** - Type: `database`
-   - Storage for current account positions and aggregated holdings
+After reviewing the proposed list of nodes, the architect determines a node representing the human trader is missing.  
 
-9. **`account-database`** - Type: `database`
-   - Storage for trading accounts and user-account associations
+**Prompt to AI Assistant**
+```text
+User: add a node called "Trader" of type actor to the node inventory.  display the updated 
+      node inventory.  I want to review and approve any changes.
+```
+_Note_: Reviewing and approving changes is a guardrail to help ensure the AI Assistant does not stray from the architect intent.  
 
-10. **`security-reference-database`** - Type: `database`
-    - Master database of tradeable securities with company information
+**Response from AI Assistant**
+```text
+GitHub Copilot: Here's the proposed addition to the node inventory:
 
-11. **`user-directory`** - Type: `ldap` (or `database`)
-    - Directory service storing user profiles and contact information
+## Updated Node Inventory
 
-### Event Infrastructure Nodes
+### Actor Nodes
 
-12. **`order-event-stream`** - Type: `service` (or custom type: `event-stream`)
-    - Event stream/topic for order submission events (e.g., Kafka topic)
+**trader** (Type: `actor`)
+- Person who interacts with the trading system to submit orders, manage accounts, and monitor positions through the web GUI
 
-13. **`trade-execution-event-stream`** - Type: `service` (or custom type: `event-stream`)
-    - Event stream/topic for trade execution events
+### User Interface Nodes
 
-14. **`position-update-event-stream`** - Type: `service` (or custom type: `event-stream`)
-    - Event stream/topic for position change events
+**web-gui** (Type: `system`)
+- Browser-based graphical user interface for traders to submit orders, view positions, manage accounts, and receive real-time trade updates
 
-15. **`notification-event-stream`** - Type: `service` (or custom type: `event-stream`)
-    - Event stream/topic for user notification events
+### Service Nodes
 
-### External/Actor Nodes
+**account-service** (Type: `service`)
+- Manages account creation, updates, and user associations; validates account data and queries account information from the data store
 
-16. **`trader`** - Type: `actor`
-    - End users who submit trades and monitor positions
+**trade-service** (Type: `service`)
+- Handles trade ticket submission; validates trades against security master and account service before publishing to the trade feed
 
-17. **`administrator`** - Type: `actor`
-    - Users who manage accounts and user associations
+**position-service** (Type: `service`)
+- Provides initial bootstrap data for trades and positions when users select an account; queries historical data from the trade data store
+
+**people-service** (Type: `service`)
+- Searches for users by name and validates user information against the user directory for account associations
+
+**security-master** (Type: `service`)
+- Maintains and serves the list of tradeable securities with ticker symbols and company information; bootstraps from CSV file on startup
+
+**trade-processor** (Type: `service`)
+- Asynchronous processor that consumes new trade events, persists trades to the data store, updates positions, and publishes account-specific trade and position events
+
+### Event Streaming Node
+
+**trade-feed** (Type: `service`)
+- Event-driven message broker that publishes and delivers trade events (new trades, trade updates, position updates) to subscribers including the web GUI and trade processor
+
+### Data Store Nodes
+
+**trade-data-store** (Type: `datastore`)
+- Central persistent repository storing accounts, trades, positions, and account-user mappings
+
+**user-directory** (Type: `datastore`)
+- Repository of user profiles and contact information queried by people service
+
+### External Data Source
+
+**ticker-csv-file** (Type: `system`)
+- Static CSV file containing the list of tradeable securities loaded by security master at startup
 
 ---
 
-### Architecture Pattern Notes
+**Changes:** Added "trader" as an actor node to represent the human user who interacts with the system.
 
-**Event-Driven Characteristics:**
-- Services communicate primarily through asynchronous event streams
-- Event streams act as integration points between producers and consumers
-- Services maintain their own databases (database-per-service pattern)
-- Decoupled architecture enables independent scaling and deployment
+Do you approve this addition?
 
-**Relationship Types to Use:**
-- **`connects`** relationships between services and event streams (pub/sub)
-- **`connects`** relationships between services and their databases
-- **`interacts`** relationships between actors and UI/services
-- **`connects`** relationships between UI and API services
-
-This node structure supports event-driven patterns with clear separation of concerns, asynchronous communication, and independent data ownership per service.
 ```
 
-## Based on architect expert judgement, some adjustments are needed to the candidate nodes.  The architect prompts the AI Assistant to make adjustments.
-
-**Prompt to the AI Assistant**
+**Prompt to AI Assistant**
 ```text
-User: consolidate trade-database, postion-database, account-database into a single database called trade-database.   Consolidate all the nodes for event notification into a single service node called trade-event-notification.  update node inventory to reflect this change and list out all the nodes
+User: yes
 ```
 
-**AI Assistant Response**
-
+**Response from AI Assistant**
 ```text
-GitHub Copilot: Based on your consolidation requirements, here's the updated node inventory for the TraderX event-driven architecture:
+GitHub Copilot: The node inventory has been updated to include the "trader" actor node. The inventory now contains 12 nodes total:
 
-## Consolidated CALM Nodes for TraderX Event-Driven Architecture
-
-### Core Application Nodes
-
-1. **`trading-ui`** - Type: `webclient`
-   - Web-based trading interface for users to submit orders, view positions, and monitor trade history
-
-2. **`order-submission-service`** - Type: `service`
-   - API service that receives and validates trade orders from the UI before publishing to event stream
-
-3. **`trade-execution-service`** - Type: `service`
-   - Service that consumes order events, executes trades, and publishes trade execution events
-
-4. **`position-service`** - Type: `service`
-   - Service that maintains current positions by consuming trade execution events and calculating aggregated holdings
-
-5. **`account-service`** - Type: `service`
-   - Service managing trading account CRUD operations and user-account associations
-
-6. **`trade-event-notification`** - Type: `service`
-   - Event infrastructure service handling order submissions, trade executions, position updates, and user notifications through event streams/topics
-
-### Data Storage Nodes
-
-7. **`trade-database`** - Type: `database`
-   - Consolidated database storing trade history, execution records, current account positions, trading accounts, and user-account associations
-
-8. **`security-reference-database`** - Type: `database`
-   - Master database of tradeable securities with company information
-
-9. **`user-directory`** - Type: `ldap` (or `database`)
-   - Directory service storing user profiles and contact information
-
-### External/Actor Nodes
-
-10. **`trader`** - Type: `actor`
-    - End users who submit trades and monitor positions
-
-11. **`administrator`** - Type: `actor`
-    - Users who manage accounts and user associations
-
----
-
-### Total Node Count: 11 nodes
-- **3 Service nodes** (order-submission-service, trade-execution-service, position-service, account-service) + **1 Event notification service** (trade-event-notification)
-- **1 Web client** (trading-ui)
-- **3 Data storage nodes** (trade-database, security-reference-database, user-directory)
-- **2 Actor nodes** (trader, administrator)
-
-### Architecture Pattern Notes
-
-**Simplified Event-Driven Characteristics:**
-- Single event notification service manages all event streams (Kafka, message broker, etc.)
-- Consolidated database reduces operational complexity while maintaining clear data domains
-- Services communicate through the centralized event notification service
-- Clear separation between application services, data storage, and event infrastructure
+- 1 actor node (trader)
+- 1 user interface system (web-gui)
+- 6 service nodes (account-service, trade-service, position-service, people-service, security-master, trade-processor)
+- 1 event streaming service (trade-feed)
+- 2 datastore nodes (trade-data-store, user-directory)
+- 1 external data source system (ticker-csv-file)
 ```
 
-## Create initial architecture from the revised node inventory
+## Create the basline node and relationship definitions for the CALM architecture
 
-**Prompt to the AI Assistant**
+**Prompt to AI Assistant**
 ```text
-User: update the trading-system.architecture.json with the nodes and their relationships.
+User: update the calm architecture file trading-system.architecture.json with 
+      nodes and relationships.
 ```
 
-** AI Assistant Response**
+**Response from AI Assistant**
 ```text
-GitHub Copilot: Searched codebase for "trading-system.architecture.json calm example", 25 results
+GitHub Copilot: Ran terminal command:  cat "/Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts/node-creation.md"
 
-Ran terminal command:  find /Users/jim/Desktop/finos/architecture-as-code -name "trading-system.architecture.json" -type f 2>/dev/null | head -5
+Ran terminal command:  cat "/Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts/relationship-creation.md"
 
-Ran terminal command:  cat /Users/jim/Desktop/finos/architecture-as-code/docs/docs/working-with-calm/calm-example/trading-system.architecture.json
-
-Now I'll read the relationship creation guide to understand how to properly define relationships:
-
-Ran terminal command:  cat /Users/jim/Desktop/finos/architecture-as-code/.github/chatmodes/calm-prompts/relationship-creation.md | head -300
-
-Now I'll create a comprehensive trading system architecture with all nodes and relationships:
-
-
-Now let's validate the architecture file:
-
-Ran terminal command:  calm validate -a /Users/jim/Desktop/finos/architecture-as-code/docs/docs/working-with-calm/calm-example/trading-system.architecture.json
-
-Perfect! Now let's view a summary of what was created:
-
-Ran terminal command:  cat /Users/jim/Desktop/finos/architecture-as-code/docs/docs/working-with-calm/calm-example/trading-system.architecture.json | jq '{name, description, "node-count": (.nodes | length), "relationship-count": (.relationships | length), nodes: [.nodes[] | {id: ."unique-id", type: ."node-type", name}]}'
-
-Excellent! The architecture has been successfully created and validated. Here's a summary of what was implemented:
-
-## ✅ Trading System Architecture Complete
-
-**File**: `trading-system.architecture.json`
-
-**Validation**: ✅ Passes all CALM schema validation (`hasErrors: false, hasWarnings: false`)
-
-### Architecture Summary
-
-**Total Nodes**: 11
-- **2 Actors**: trader, administrator
-- **1 Web Client**: trading-ui
-- **5 Services**: order-submission-service, trade-execution-service, position-service, account-service, trade-event-notification
-- **2 Databases**: trade-database (consolidated), security-reference-database
-- **1 LDAP**: user-directory
-
-**Total Relationships**: 15
-
-### Key Architecture Features
-
-1. **Event-Driven Design**: Centralized `trade-event-notification` service handles all event streams (AMQP protocol)
-
-2. **Consolidated Storage**: Single `trade-database` stores trades, positions, accounts, and user associations
-
-3. **Service Interactions**:
-   - UI communicates with services via HTTPS
-   - Services publish/consume events via AMQP
-   - Services access databases via JDBC
-   - Account service queries user-directory via LDAP
-   - Real-time updates to UI via WebSocket
-
-4. **Actor Interactions**: Both trader and administrator interact with the trading-ui
-
-The architecture follows event-driven microservices patterns with clear separation of concerns and asynchronous communication through the event notification service.
-
-Made changes.
-```
-
-When any major updates are made to the [architecture file](./.architecture/trading-system-initial.architecture.json) and is has been validated, a best practice is to commit it to the repo to establish a baseline and point of recovery if future changes result in an erroneous architecture.
-
-**Commit to the repo**
-
-```shell
-$ git add trading-system.architecture.json
-$ git commit -m"initial architecture from business context"
-```
-
-
-## From the business context add business flows
-
-**Prompt to the AI Assistant**
-
-```text
-User: add flows to the architecture file
-```
-
-**AI Assistant Response**
-
-```text
-GitHub Copilot: I'll read the flow creation guide to understand how to properly define flows in CALM:
-
-Ran terminal command:  cat /Users/jim/Desktop/finos/architecture-as-code/.github/chatmodes/calm-prompts/flow-creation.md
-
-Now I'll add flows to the architecture file based on the business context. I'll create flows for the key business processes:
+Now let me update the architecture file with all the nodes and relationships based on the business design: 
 
 Using "Replace String in File"
 
+Now let me validate the updated architecture: 
 
-```
+Ran terminal command:  calm validate -a trading-system.architecture.json -f pretty
 
-```
-Now let's validate the updated architecture with flows:
+Perfect! Updated trading-system.architecture.json with:
 
-Ran terminal command:  calm validate -a /Users/jim/Desktop/finos/architecture-as-code/docs/docs/working-with-calm/calm-example/trading-system.architecture.json
+**12 Nodes:**
+- 1 actor (trader)
+- 7 services (account-service, trade-service, position-service, people-service, security-master, trade-processor, trade-feed)
+- 2 databases (trade-data-store, user-directory)
+- 2 systems (web-gui, ticker-csv-file)
 
-Perfect! Now let's display a summary of the flows:
+**18 Relationships:**
+- 1 interacts relationship (trader → web-gui)
+- 17 connects relationships showing data flows between components with appropriate protocols (HTTPS, JDBC, LDAP, AMQP, WebSocket)
 
-Ran terminal command:  cat /Users/jim/Desktop/finos/architecture-as-code/docs/docs/working-with-calm/calm-example/trading-system.architecture.json | jq '{name, "flow-count": (.flows | length), flows: [.flows[] | {id: ."unique-id", name, description, "transition-count": (.transitions | length)}]}'
-
-Excellent! The flows have been successfully added. Here's what was implemented:
-
-## ✅ Flows Added to Trading System Architecture
-
-**Validation**: ✅ Passes all CALM schema validation (`hasErrors: false, hasWarnings: false`)
-
-### Flow Summary
-
-**Total Flows**: 4
-
-1. **Trade Order Submission Flow** (4 transitions)
-   - Trader submits order → UI → Order Submission Service → Security validation → Event notification
-   - SLA: < 200ms, Peak: 1000 orders/second
-
-2. **Trade Execution Flow** (5 transitions)
-   - Event notification → Execution Service → Database persistence → Execution event → Position Service → Position update
-   - Critical business process with MiFID II and Reg NMS compliance
-   - SLA: < 500ms
-
-3. **Position Update Notification Flow** (2 transitions)
-   - Position Service → Event notification → Trading UI (WebSocket)
-   - Real-time updates with < 100ms SLA
-
-4. **Account Management Flow** (4 transitions)
-   - Administrator → UI → Account Service → User Directory → Database
-   - SOX and Access Control compliance
-   - SLA: < 2 seconds
-
-Each flow:
-- References existing relationships in the architecture
-- Includes sequence numbers for proper ordering
-- Has business-focused descriptions for each transition
-- Contains metadata with SLA, criticality, and compliance information
-- Demonstrates how business processes traverse the technical architecture
+The architecture validates successfully with no errors or warnings.
 
 Made changes.
 ```
 
-After updating and validating the [architecture file](./.architecture/trading-system-with-flows.architecture.json) with business flows commit to the repo.
+### Excerpt of the CALM Architecture JSON
+![Raw Architecture JSON](./images/00_initial_architecture_json.png)
 
-**Commit to the repo**
 
-```shell
-$ git add trading-system.architecture.json
-$ git commit -m"updated architecture with business flows"
+## Using CALM Tool VSCode extenstion, review parts of the architecture representation
+
+### Preview of the Overall Architecture
+![Overall Architecturee](./images/01_initial_architecture_overall_preview.png)
+
+### Preview of Trade Service
+![Trade Service](./images/02_initial_architecture_trade_service_preview.png)
+
+### Preview of Trade Data Store
+![Trade Data Store](./images/03_initial_architecture_trade-data-store_preview.png)
+
+## Commit Architecture to GIT repo
+
+Another good practice is to commit the architecture json file after signficant updates.   The AI Assistant can help you with this task.
+
+**Prompt to AI Assistant**
+```text
+User: git commit the architecture file with message "initial version"
 ```
+
+**Response from AI Assistant**
+```text
+GitHub Copilot: Ran terminal command:  git add trading-system.architecture.json && git commit -m "initial version"
+
+Committed successfully. The trading-system.architecture.json file has been added to the repository with commit message "initial version".
+```
+
+## Add process flows to the architecture definition
+
+**Prompt to AI Assistant**
+```text
+User: list candidate CALM flows described in the business design.
+```
+
+**Response from AI Assistant**
+```text
+GitHub Copilot: Based on the business design, here are the candidate CALM flows:
+
+## Candidate Flows
+
+1. **load-accounts-flow**
+   - Load the list of trading accounts for display in the UI
+   - Actors: Web GUI, Account Service, Trade Data Store
+
+2. **bootstrap-blotter-flow**
+   - Bootstrap the trade and position blotter with historical data and subscribe to live updates
+   - Actors: Web GUI, Position Service, Trade Feed, Trade Data Store
+
+3. **submit-trade-flow**
+   - Submit a trade ticket with validation and event publishing
+   - Actors: Web GUI, Security Master, Trade Service, Account Service, Trade Feed
+
+4. **process-trade-flow**
+   - Process new trade events, persist to storage, update positions, and publish updates
+   - Actors: Trade Feed, Trade Processor, Trade Data Store, Web GUI
+
+5. **manage-account-flow**
+   - Create or update trading account information
+   - Actors: Web GUI, Account Service, Trade Data Store
+
+6. **manage-account-users-flow**
+   - Add or update user associations to trading accounts
+   - Actors: Web GUI, Account Service, Trade Data Store, People Service, User Directory
+
+7. **bootstrap-security-master-flow**
+   - Load the security master with ticker data from CSV file on startup
+   - Actors: Security Master, Ticker CSV File, Web GUI
+```
+
+**Prompt to AI Assistant**
+```text
+User: add flows to the trading-system.architecture.json
+```
+
+**Response from AI Assistant**
+```text
+GitHub Copilot: Ran terminal command:  cat "/Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts/flow-creation.md"
+
+Using "Replace String in File"
+
+Ran terminal command:  tail -20 "/Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json"
+
+Using "Replace String in File"
+
+Now let me validate the updated architecture with flows: 
+
+Ran terminal command:  calm validate -a trading-system.architecture.json -f pretty
+
+Perfect! Added 7 flows to trading-system.architecture.json:
+
+1. **load-accounts-flow** - 4 transitions
+2. **bootstrap-blotter-flow** - 5 transitions  
+3. **submit-trade-flow** - 7 transitions
+4. **process-trade-flow** - 8 transitions
+5. **manage-account-flow** - 3 transitions
+6. **manage-account-users-flow** - 12 transitions
+7. **bootstrap-security-master-flow** - 4 transitions
+
+All flows use existing relationships with bidirectional transitions where needed. The architecture validates successfully with no errors or warnings.
+
+Made changes.
+```
+
+## Commit addition of process flow to GIT repo
+
+**Prompt to AI Assistant**
+```text
+User: git commit architecture file with message "add initial flow definitions"
+```
+
+**Response from AI Assistant**
+```text
+GitHub Copilot: Ran terminal command:  git add trading-system.architecture.json && git commit -m "add initial flow definitions"
+
+Committed successfully with message "add initial flow definitions".
+```
+
+## Review process flows with CALM Tool VSCode extesion
+
+_Note_: For purposes of this tutorial, only two process flows are reviewed.  In actual work, all process flows should be reviewed for completeness and accuracy.
+
+### Review Submit Trade Process Flow
+![Submit Trade Process Flow](./images/04_initial_flow_submit-trade_flow_preview.png)
+
+### Review Process Trade Flow
+![Process Trade Flow](./images/05_initial_flow_process-trade_flow_preview.png)
+
+Based on this review the architect determines the `Trader` node is missing from this flows and requests the AI Assistant to add the missing node.
+
+
+**Prompt to AI Assistant**
+```text
+User: add Trader node to submit-trade-flow where Trader interacts with the webgui to submit 
+      the trade ticket. add Trader to the process-trade-flow where the Trader receives 
+      notification from the webgui at the end to receive trade and position updates. 
+      Do not update architecture file.  I want review and approve changes.
+```
+
+**Response from AI Assistant**
+```text
+GitHub Copilot: Here are the proposed changes to add the Trader node to the flows:
+
+## submit-trade-flow
+
+Add these transitions at the **beginning** of the flow:
+
+   **New Transition 1:**
+   {
+      "relationship-unique-id": "trader-web-gui",
+      "sequence-number": 1,
+      "description": "Trader submits trade ticket through Web GUI",
+      "direction": "source-to-destination"
+   }
+
+
+**Renumber existing transitions:** All current transitions shift from sequence 1-7 to sequence 2-8.
+
+## process-trade-flow
+
+Add this transition at the **end** of the flow:
+
+**New Transition 9:**
+   json
+   {
+      "relationship-unique-id": "trader-web-gui",
+      "sequence-number": 9,
+      "description": "Web GUI notifies Trader of trade and position updates",
+      "direction": "destination-to-source"
+   }
+
+
+**Summary of Changes:**
+- **submit-trade-flow**: Adds Trader initiating the trade submission (1 new transition at start, renumber existing 1-7 → 2-8)
+- **process-trade-flow**: Adds Trader receiving updates at the end (1 new transition after current sequence 8)
+
+Do you approve these changes?
+```
+
+**Prompt to AI Assistant**
+```text
+User: Show full definition of submit-trade-flow and process-trade-flow
+```
+
+**Response from AI Assistant**
+```text
+GitHub Copilot: ## submit-trade-flow (with proposed changes)
+
+json
+{
+    "unique-id": "submit-trade-flow",
+    "name": "Submit Trade Ticket",
+    "description": "Submit a trade ticket with validation and event publishing",
+    "transitions": [
+        {
+            "relationship-unique-id": "trader-web-gui",
+            "sequence-number": 1,
+            "description": "Trader submits trade ticket through Web GUI",
+            "direction": "source-to-destination"
+        },
+        {
+            "relationship-unique-id": "web-gui-security-master",
+            "sequence-number": 2,
+            "description": "Web GUI requests ticker list from Security Master",
+            "direction": "source-to-destination"
+        },
+        {
+            "relationship-unique-id": "web-gui-security-master",
+            "sequence-number": 3,
+            "description": "Security Master returns ticker list to Web GUI",
+            "direction": "destination-to-source"
+        },
+        {
+            "relationship-unique-id": "web-gui-trade-service",
+            "sequence-number": 4,
+            "description": "Web GUI submits trade with account, ticker, side, and quantity",
+            "direction": "source-to-destination"
+        },
+        {
+            "relationship-unique-id": "trade-service-security-master",
+            "sequence-number": 5,
+            "description": "Trade Service validates ticker with Security Master",
+            "direction": "source-to-destination"
+        },
+        {
+            "relationship-unique-id": "trade-service-account-service",
+            "sequence-number": 6,
+            "description": "Trade Service validates account with Account Service",
+            "direction": "source-to-destination"
+        },
+        {
+            "relationship-unique-id": "trade-service-trade-feed",
+            "sequence-number": 7,
+            "description": "Trade Service publishes new trade event to Trade Feed",
+            "direction": "source-to-destination"
+        },
+        {
+            "relationship-unique-id": "web-gui-trade-service",
+            "sequence-number": 8,
+            "description": "Trade Service returns submission confirmation to Web GUI",
+            "direction": "destination-to-source"
+        }
+    ]
+}
+
+
+## process-trade-flow (with proposed changes)
+
+json
+{
+    "unique-id": "process-trade-flow",
+    "name": "Process Trade Event",
+    "description": "Process new trade events, persist to storage, update positions, and publish updates",
+    "transitions": [
+        {
+            "relationship-unique-id": "trade-feed-trade-processor",
+            "sequence-number": 1,
+            "description": "Trade Feed delivers new trade event to Trade Processor",
+            "direction": "source-to-destination"
+        },
+        {
+            "relationship-unique-id": "trade-processor-trade-data-store",
+            "sequence-number": 2,
+            "description": "Trade Processor inserts new trade into Trade Data Store",
+            "direction": "source-to-destination"
+        },
+        {
+            "relationship-unique-id": "trade-processor-trade-feed",
+            "sequence-number": 3,
+            "description": "Trade Processor publishes account-specific trade event",
+            "direction": "source-to-destination"
+        },
+        {
+            "relationship-unique-id": "web-gui-trade-feed",
+            "sequence-number": 4,
+            "description": "Trade Feed pushes new trade event to Web GUI",
+            "direction": "destination-to-source"
+        },
+        {
+            "relationship-unique-id": "trade-processor-trade-data-store",
+            "sequence-number": 5,
+            "description": "Trade Processor marks trade as executed in Trade Data Store",
+            "direction": "source-to-destination"
+        },
+        {
+            "relationship-unique-id": "trade-processor-trade-data-store",
+            "sequence-number": 6,
+            "description": "Trade Processor updates position in Trade Data Store",
+            "direction": "source-to-destination"
+        },
+        {
+            "relationship-unique-id": "trade-processor-trade-feed",
+            "sequence-number": 7,
+            "description": "Trade Processor publishes trade update and position events",
+            "direction": "source-to-destination"
+        },
+        {
+            "relationship-unique-id": "web-gui-trade-feed",
+            "sequence-number": 8,
+            "description": "Trade Feed forwards updates to Web GUI",
+            "direction": "destination-to-source"
+        },
+        {
+            "relationship-unique-id": "trader-web-gui",
+            "sequence-number": 9,
+            "description": "Web GUI notifies Trader of trade and position updates",
+            "direction": "destination-to-source"
+        }
+    ]
+}
+```
+
+**Prompt to AI Assistant**
+```text
+User: I accept the proposed changes
+```
+
+**Response from AI Assistant**
+```text
+GitHub Copilot: Using "Multi-Replace String in Files"
+
+Ran terminal command:  calm validate -a trading-system.architecture.json -f pretty
+
+Changes applied successfully:
+
+- **submit-trade-flow**: Added Trader initiating trade at sequence 1, renumbered all transitions (now 8 total)
+- **process-trade-flow**: Added Trader receiving updates at sequence 9 (now 9 total transitions)
+
+Architecture validates with no errors or warnings.
+
+Made changes.
+```
+
+## Review updated process flows with CALM Tool VSCode Extension
+
+The `Trader` node is now present in both flows.
+
+### Updated Submit Trade Process Flow
+![Submit Trade Process Flow](./images/06_revised_flow_submit-trade_flow_preview.png)
+
+### Updated Process Trade Flow
+![Process Trade Flow](./images/06_revised_flow_process-trade_flow_preview.png)
+
+
+## Commit the architecture definition with revised process flow to GIT Repo
+
+**Prompt to AI Assistant**
+```text
+User: git commit architecture file with mesasge "revised trade-submit and process-trade flows"
+```
+
+**Response from AI Assistant**
+```text
+GitHub Copilot: Ran terminal command:  git add trading-system.architecture.json && git commit -m "revised trade-submit and process-trade flows"
+
+Committed successfully with message "revised trade-submit and process-trade flows".
+```
+
+## Summary 
+
+At this point we have a baseline architecture defined and reviewed by an architect that reflects the business design.  The next step is to enhance the architecture with technical and other key information.
