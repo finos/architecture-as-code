@@ -81,8 +81,8 @@ const sidebars = {
           label: 'Build a Calm Architecture',
           link: {type: 'doc', id: 'tutorials/build-a-calm-architecture/build-a-calm-architecture'},
           items: [
-            'tutorials/build-a-calm-architecture/business-context',
             'tutorials/build-a-calm-architecture/tool-setup',
+            'tutorials/build-a-calm-architecture/business-context',
             'tutorials/build-a-calm-architecture/define-initial-architecture',
             'tutorials/build-a-calm-architecture/refine-architecture-definition',
             'tutorials/build-a-calm-architecture/generate-documentation',
