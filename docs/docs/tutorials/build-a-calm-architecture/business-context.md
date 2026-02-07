@@ -1,7 +1,7 @@
 ---
 id: business-context
 title: Business Context
-sidebar_position: 1
+sidebar_position: 2
 ---
 
 # Trading System
