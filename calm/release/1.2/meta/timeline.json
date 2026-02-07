@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/release/1.2/meta/timeline.json",
+  "title": "Common Architecture Language Model (CALM) Timelines Vocab",
+  "type": "object",
+  "required": [
+    "moments"
+  ],
+  "properties": {
+    "current-moment": {
+      "type": "string",
+      "description": "The unique-id of the current architecture moment within the timeline."
+    },
+    "moments": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "$ref": "core.json#/defs/node"
+          },
+          {
+            "$ref": "#/defs/node-moment"
+          }
+        ]
+      },
+      "description": "A list of significant architecture states or points in time, each represented as a 'moment'."
+    },
+    "metadata": {
+      "$ref": "core.json#/defs/metadata"
+    }
+  },
+  "defs": {
+    "node-moment": {
+      "required": [
+        "details"
+      ],
+      "properties": {
+        "node-type": {
+          "const": "moment"
+        },
+        "valid-from": {
+          "type": "string",
+          "format": "date",
+          "description": "The date when this architecture moment came into effect."
+        },
+        "adrs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to why the architecture changed."
+        },
+        "interfaces": false
+      }
+    }
+  }
+}

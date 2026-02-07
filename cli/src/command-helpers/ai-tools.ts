@@ -105,7 +105,9 @@ async function validateBundledResources(logger: Logger): Promise<void> {
         'tools/pattern-creation.md',
         'tools/documentation-creation.md',
         'tools/standards-creation.md',
-        'tools/calm-cli-instructions.md'
+        'tools/calm-cli-instructions.md',
+        'tools/moment-creation.md',
+        'tools/timeline-creation.md'
     ];
 
     const missingFiles: string[] = [];
@@ -220,7 +222,9 @@ async function createToolPrompts(chatmodesDir: string, logger: Logger): Promise<
         'pattern-creation.md',
         'documentation-creation.md',
         'standards-creation.md',
-        'calm-cli-instructions.md'
+        'calm-cli-instructions.md',
+        'moment-creation.md',
+        'timeline-creation.md'
     ];
 
     let successCount = 0;

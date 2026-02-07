@@ -25,7 +25,7 @@ export class ValidationService implements vscode.Disposable {
     private readonly diagnosticCollection: vscode.DiagnosticCollection
     private readonly disposables: vscode.Disposable[] = []
     private schemaRegistry: CalmSchemaRegistry | undefined
-    
+
     // Debouncing: track pending validations and last validated document versions
     private readonly pendingValidations = new Map<string, ReturnType<typeof setTimeout>>()
     private readonly lastValidatedVersion = new Map<string, number>()
@@ -186,7 +186,7 @@ export class ValidationService implements vscode.Disposable {
 
         try {
             const text = doc.getText()
-            
+
             // Parse with location information for precise error positioning
             const parseContext = parseDocumentWithPositions(text, 'architecture')
             if (!parseContext) {
@@ -221,6 +221,7 @@ export class ValidationService implements vscode.Disposable {
             const outcome = await validate(
                 loadedArch || architecture,
                 pattern,
+                undefined, // no explicit timeline path
                 schemaDirectory,
                 false // debug
             )
@@ -354,7 +355,7 @@ export class ValidationService implements vscode.Disposable {
         }
         this.pendingValidations.clear()
         this.lastValidatedVersion.clear()
-        
+
         this.disposables.forEach(d => d.dispose())
     }
 }
