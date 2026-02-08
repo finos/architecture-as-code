@@ -79,7 +79,7 @@ Chatmodes are specialized configurations for GitHub Copilot Chat that provide do
 Use the CALM CLI to install or update the chatmode:
 
 ```bash
-calm copilot-chatmode
+calm init-ai -p copilot
 ```
 
 This command will:
@@ -133,7 +133,7 @@ If the extension isn't working properly:
 If Copilot doesn't seem to be using the chatmode:
 
 1. Verify `.github/copilot-instructions.md` exists in your repository root
-2. Run `calm copilot-chatmode` to ensure it's up to date
+2. Run `calm init-ai` to ensure it's up to date
 3. Start a completely new chat session (close and reopen)
 4. Ensure GitHub Copilot is active (check status bar)
 5. Make sure you're chatting from within your repository directory

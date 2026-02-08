@@ -2,7 +2,7 @@
 
 ## ATTENTION
 
-Please ensure you are using the latest version of the CALM CLI and reran `calm copilot-chatmode` to update your repositories chatmode files.
+Please ensure you are using the latest version of the CALM CLI and reran `calm init-ai` to update your repositories chatmode files.
 A bug exists in Chatmode instructions for CLI <= 1.24.0 where the CALM Schema
 URL in the $ref attribute is incorrect. It should refer to
 `https://calm.finos.org/release/1.1/meta/core.json`.

@@ -69,7 +69,7 @@ touch README.md
 ### 4. Enable AI Assistance with Copilot Chatmode
 
 ```bash
-calm copilot-chatmode -d .
+calm init-ai -p copilot -d .
 ```
 
 This creates `.github/chatmodes/CALM.chatmode.md` with specialized CALM knowledge for GitHub Copilot. We'll use this chatmode in VSCode in the next tutorial.

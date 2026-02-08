@@ -76,7 +76,7 @@ Generated documentation from CALM models.
 
 ### 5. Enable AI Assistance with Copilot Chatmode
 ```bash
-calm copilot-chatmode -d .
+calm init-ai -p copilot -d .
 ```
 
 This creates `.github/chatmodes/CALM.chatmode.md` with specialized CALM knowledge for GitHub Copilot.

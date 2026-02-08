@@ -156,7 +156,7 @@ git tag | grep -q "day-2"
 ## Troubleshooting
 
 **"I don't see CALM in the chatmode list"**
-- Make sure you ran `calm copilot-chatmode -d .` on Day 1
+- Make sure you ran `calm init-ai -p copilot -d .` on Day 1
 - Check that `.github/chatmodes/CALM.chatmode.md` exists
 - Restart VSCode and try again
 
