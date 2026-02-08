@@ -10,14 +10,14 @@ sidebar_position: 2
 
 ## Overview
 
-Use the CALM chatmode you configured in the previous tutorial to create your first architecture file with AI assistance.
+Use the CALM agent you configured in the previous tutorial to create your first architecture file with AI assistance.
 
 ## Learning Objectives
 
 By the end of this tutorial, you will:
 - Understand what a node represents in CALM
 - Create a valid CALM architecture JSON file
-- Use GitHub Copilot with the CALM chatmode
+- Use GitHub Copilot with the CALM agent
 - Validate your architecture using the CLI
 
 ## Prerequisites
@@ -42,14 +42,14 @@ A **node** in CALM represents a distinct architectural component. CALM provides 
 
 **Custom node types:** You can define your own (e.g., "message-queue", "cache", "api-gateway") to better represent your specific architecture.
 
-### 2. Open the CALM Chatmode in VSCode
+### 2. Open the CALM Agent in VSCode
 
 1. Open your `calm-learning` repository in VSCode
 2. Open the Copilot Chat panel:
    - **Windows/Linux**: `Ctrl+Alt+I` or click the chat icon in the sidebar
    - **Mac**: `Cmd+Shift+I` or click the chat icon in the sidebar
-3. **Select the CALM chatmode**:
-   - Click the chatmode selector dropdown (shows "General Purpose" by default)
+3. **Select the CALM agent**:
+   - Click the agent selector dropdown (shows "Agent" by default)
    - Select **"CALM"** from the list
    - The chat panel will now show "CALM" as the active mode
 

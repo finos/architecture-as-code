@@ -66,13 +66,13 @@ mkdir docs
 touch README.md
 ```
 
-### 4. Enable AI Assistance with Copilot Chatmode
+### 4. Enable AI Assistance with Copilot Agent
 
 ```bash
 calm init-ai -p copilot -d .
 ```
 
-This creates `.github/chatmodes/CALM.chatmode.md` with specialized CALM knowledge for GitHub Copilot. We'll use this chatmode in VSCode in the next tutorial.
+This creates `.github/agents/CALM.agent.md` with specialized CALM knowledge for GitHub Copilot. We'll use this agent in VSCode in the next tutorial.
 
 ### 5. Add a .gitignore
 
@@ -95,9 +95,9 @@ The CALM CLI is a command-line tool that provides:
 - **Generation** - Create architecture scaffolds from patterns
 - **Documentation** - Generate docs from your architecture files
 
-### What is the CALM Chatmode?
+### What is the CALM Agent?
 
-The chatmode file provides GitHub Copilot with specialized knowledge about:
+The agent file provides GitHub Copilot with specialized knowledge about:
 - CALM schema and syntax
 - Best practices for architecture modeling
 - Common patterns and examples
@@ -109,7 +109,7 @@ The chatmode file provides GitHub Copilot with specialized knowledge about:
 
 ## Tips
 
-- If you don't have GitHub Copilot access, the chatmode file is still useful as documentation for you to reference
+- If you don't have GitHub Copilot access, the agent file is still useful as documentation for you to reference
 
 ## Next Steps
 

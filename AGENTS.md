@@ -33,7 +33,7 @@ architecture-as-code/
 ├── calm-plugins/vscode/       # VSCode extension
 ├── calm-models/               # TypeScript data models
 ├── calm-widgets/              # React visualization components
-├── calm-ai/                   # AI chatmode tools & prompts
+├── calm-ai/                   # AI agent tools & prompts
 ├── shared/                    # Shared TypeScript utilities
 ├── docs/                      # Docusaurus documentation site
 ├── advent-of-calm/            # Educational content (24-day challenge)

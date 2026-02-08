@@ -57,8 +57,8 @@ describe('ai-tools', () => {
                 // Return mock JSON config for provider config files
                 return Promise.resolve(JSON.stringify({
                     description: 'Mock AI Assistant',
-                    topLevelDirectory: '.github/chatmodes',
-                    topLevelPromptFileName: 'CALM.chatmode.md',
+                    topLevelDirectory: '.github/agents',
+                    topLevelPromptFileName: 'CALM.agent.md',
                     skillPrefix: '## ',
                     skillSuffix: '',
                     frontmatter: '',
@@ -139,7 +139,7 @@ describe('ai-tools', () => {
         });
 
         it('should setup AI tools successfully', async () => {
-            // Need to mock the chatmode file read after it's created
+            // Need to mock the agent file read after it's created
             mocks.readFile.mockImplementation(async (path: string, encoding?: string) => {
                 const actual = await vi.importActual<typeof import('fs/promises')>('fs/promises');
 
@@ -151,9 +151,9 @@ describe('ai-tools', () => {
                     actualPath = resolve(__dirname, '../../../calm-ai', relativeToCalmAi);
                 }
 
-                // For chatmode files in test directory, return mock content
-                if (path.includes('/test/directory/') && (path.includes('CALM.chatmode.md') || path.includes('SKILL.md'))) {
-                    return Promise.resolve('# Mock CALM chatmode content with sufficient length for validation to pass successfully');
+                // For agent files in test directory, return mock content
+                if (path.includes('/test/directory/') && (path.includes('CALM.agent.md') || path.includes('CALM.chatmode.md') || path.includes('SKILL.md'))) {
+                    return Promise.resolve('# Mock CALM agent content with sufficient length for validation to pass successfully');
                 }
 
                 return actual.readFile(actualPath, encoding as BufferEncoding);
@@ -164,7 +164,7 @@ describe('ai-tools', () => {
             expect(mocks.initLogger).toHaveBeenCalledWith(false, 'calm-ai-tools');
 
             // Different providers use different top-level directories
-            // copilot uses .github/chatmodes, kiro uses .kiro
+            // copilot uses .github/agents, kiro uses .kiro
             // Just verify mkdir was called (path varies by provider's real config)
             expect(mocks.mkdir).toHaveBeenCalled();
 
@@ -178,9 +178,9 @@ describe('ai-tools', () => {
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to setup AI tools'));
         });
 
-        it('should handle empty bundled chatmode file and catch errors', async () => {
+        it('should handle empty bundled agent file and catch errors', async () => {
             mocks.readFile.mockImplementation(async (path: string, encoding?: string) => {
-                if (path.includes('CALM.chatmode.md')) {
+                if (path.includes('CALM.agent.md')) {
                     return Promise.resolve(''); // Empty content
                 }
                 // Use real files for other paths
@@ -195,17 +195,17 @@ describe('ai-tools', () => {
             });
 
             await expect(setupAiTools(provider, targetDirectory, false)).rejects.toThrow();
-            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Could not load bundled chatmode config'));
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Could not load bundled agent config'));
         });
 
-        it('should warn about incomplete chatmode content', async () => {
+        it('should warn about incomplete agent content', async () => {
             mocks.readFile.mockImplementation(async (path: string, encoding?: string) => {
                 if (path.includes('CALM.chatmode_template.md')) {
                     return Promise.resolve('short'); // Too short and missing CALM
                 }
 
-                // For chatmode files in test directory after writeFile is called, return the short content
-                if (path.includes('/test/directory/') && (path.includes('CALM.chatmode.md') || path.includes('SKILL.md'))) {
+                // For agent files in test directory after writeFile is called, return the short content
+                if (path.includes('/test/directory/') && (path.includes('CALM.agent.md') || path.includes('CALM.chatmode.md') || path.includes('SKILL.md'))) {
                     return Promise.resolve('short');
                 }
 
@@ -225,7 +225,7 @@ describe('ai-tools', () => {
 
             await setupAiTools(provider, targetDirectory, false);
 
-            expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('Bundled chatmode file appears incomplete or corrupted'));
+            expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('Bundled agent file appears incomplete or corrupted'));
         });
     });
 
@@ -272,7 +272,7 @@ describe('ai-tools', () => {
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to setup AI tools'));
         });
 
-        it('should handle chatmode file verification failure', async () => {
+        it('should handle agent file verification failure', async () => {
             mocks.stat.mockImplementation((path: string) => {
                 if (path === resolve(targetDirectory)) {
                     return Promise.resolve({ isDirectory: () => true });
@@ -280,16 +280,16 @@ describe('ai-tools', () => {
                 if (path.endsWith('.git')) {
                     return Promise.resolve({});
                 }
-                if (path.endsWith('CALM.chatmode.md')) {
+                if (path.endsWith('CALM.agent.md')) {
                     return Promise.reject(new Error('File verification failed'));
                 }
                 return Promise.resolve({ isDirectory: () => true, size: 100 });
             });
 
-            await expect(setupAiTools('copilot', targetDirectory, false)).rejects.toThrow('Chatmode configuration verification failed');
+            await expect(setupAiTools('copilot', targetDirectory, false)).rejects.toThrow('Agent configuration verification failed');
         });
 
-        it('should handle empty chatmode file after creation and throw error', async () => {
+        it('should handle empty agent file after creation and throw error', async () => {
             mocks.stat.mockImplementation((path: string) => {
                 if (path === resolve(targetDirectory)) {
                     return Promise.resolve({ isDirectory: () => true });
@@ -297,13 +297,13 @@ describe('ai-tools', () => {
                 if (path.endsWith('.git')) {
                     return Promise.resolve({});
                 }
-                if (path.endsWith('CALM.chatmode.md')) {
+                if (path.endsWith('CALM.agent.md')) {
                     return Promise.resolve({ size: 0 }); // File was created but is empty
                 }
                 return Promise.resolve({ isDirectory: () => true, size: 100 });
             });
 
-            await expect(setupAiTools('copilot', targetDirectory, false)).rejects.toThrow('Created chatmode file is empty');
+            await expect(setupAiTools('copilot', targetDirectory, false)).rejects.toThrow('Created agent file is empty');
         });
     });
 
@@ -321,8 +321,8 @@ describe('ai-tools', () => {
                 }
                 return Promise.resolve(JSON.stringify({
                     description: 'Test',
-                    topLevelDirectory: '.github/chatmodes',
-                    topLevelPromptFileName: 'CALM.chatmode.md',
+                    topLevelDirectory: '.github/agents',
+                    topLevelPromptFileName: 'CALM.agent.md',
                     skillPrefix: '## ',
                     skillSuffix: '',
                     frontmatter: '',
@@ -359,7 +359,7 @@ describe('ai-tools', () => {
         });
     });
 
-    describe('createChatmodeConfig - JSON validation', () => {
+    describe('createAgentConfig - JSON validation', () => {
         it('should handle malformed JSON in config file', async () => {
             mocks.readFile.mockImplementation(async (path: string) => {
                 if (String(path).endsWith('.json')) {
@@ -400,8 +400,8 @@ describe('ai-tools', () => {
                 if (String(path).endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
-                        topLevelDirectory: '.github/chatmodes',
-                        topLevelPromptFileName: 'CALM.chatmode.md',
+                        topLevelDirectory: '.github/agents',
+                        topLevelPromptFileName: 'CALM.agent.md',
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: ''
@@ -421,7 +421,7 @@ describe('ai-tools', () => {
                 if (String(path).endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
-                        topLevelPromptFileName: 'CALM.chatmode.md',
+                        topLevelPromptFileName: 'CALM.agent.md',
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: ''
@@ -441,7 +441,7 @@ describe('ai-tools', () => {
                 if (String(path).endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
-                        topLevelDirectory: '.github/chatmodes',
+                        topLevelDirectory: '.github/agents',
                         topLevelPromptFileName: '', // Empty string - invalid
                         skillPrefix: '## ',
                         skillSuffix: '',
@@ -465,7 +465,7 @@ describe('ai-tools', () => {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
                         // topLevelDirectory missing
-                        topLevelPromptFileName: 'CALM.chatmode.md',
+                        topLevelPromptFileName: 'CALM.agent.md',
                         skillPrompts: null // Also invalid
                     }));
                 }
@@ -483,8 +483,8 @@ describe('ai-tools', () => {
                 if (String(path).endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
-                        topLevelDirectory: '.github/chatmodes',
-                        topLevelPromptFileName: 'CALM.chatmode.md',
+                        topLevelDirectory: '.github/agents',
+                        topLevelPromptFileName: 'CALM.agent.md',
                         // skillPrompts missing
                     }));
                 }
@@ -501,7 +501,7 @@ describe('ai-tools', () => {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
                         topLevelDirectory: '',  // Empty string (falsy)
-                        topLevelPromptFileName: 'CALM.chatmode.md',
+                        topLevelPromptFileName: 'CALM.agent.md',
                         skillPrompts: []  // Empty array (falsy)
                     }));
                 }
@@ -523,8 +523,8 @@ describe('ai-tools', () => {
                 if (pathStr.endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
-                        topLevelDirectory: '.github/chatmodes',
-                        topLevelPromptFileName: 'CALM.chatmode.md',
+                        topLevelDirectory: '.github/agents',
+                        topLevelPromptFileName: 'CALM.agent.md',
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: '',
@@ -556,8 +556,8 @@ describe('ai-tools', () => {
                 if (pathStr.endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
-                        topLevelDirectory: '.github/chatmodes',
-                        topLevelPromptFileName: 'CALM.chatmode.md',
+                        topLevelDirectory: '.github/agents',
+                        topLevelPromptFileName: 'CALM.agent.md',
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: '',
@@ -588,8 +588,8 @@ describe('ai-tools', () => {
                 if (pathStr.endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
-                        topLevelDirectory: '.github/chatmodes',
-                        topLevelPromptFileName: 'CALM.chatmode.md',
+                        topLevelDirectory: '.github/agents',
+                        topLevelPromptFileName: 'CALM.agent.md',
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: '',
@@ -623,8 +623,8 @@ describe('ai-tools', () => {
                 if (pathStr.endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
-                        topLevelDirectory: '.github/chatmodes',
-                        topLevelPromptFileName: 'CALM.chatmode.md',
+                        topLevelDirectory: '.github/agents',
+                        topLevelPromptFileName: 'CALM.agent.md',
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: '',
@@ -632,9 +632,9 @@ describe('ai-tools', () => {
                     }));
                 }
 
-                // Mock chatmode file after creation
-                if (pathStr.includes('CALM.chatmode.md')) {
-                    return Promise.resolve('# Valid chatmode content with sufficient length');
+                // Mock agent file after creation
+                if (pathStr.includes('CALM.agent.md')) {
+                    return Promise.resolve('# Valid agent content with sufficient length');
                 }
 
                 return Promise.resolve('# Valid markdown content with sufficient length');
@@ -673,8 +673,8 @@ describe('ai-tools', () => {
                 if (pathStr.endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
-                        topLevelDirectory: '.github/chatmodes',
-                        topLevelPromptFileName: 'CALM.chatmode.md',
+                        topLevelDirectory: '.github/agents',
+                        topLevelPromptFileName: 'CALM.agent.md',
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: '',
@@ -682,9 +682,9 @@ describe('ai-tools', () => {
                     }));
                 }
 
-                // Mock chatmode file after creation
-                if (pathStr.includes('CALM.chatmode.md')) {
-                    return Promise.resolve('# Valid chatmode content with sufficient length');
+                // Mock agent file after creation
+                if (pathStr.includes('CALM.agent.md')) {
+                    return Promise.resolve('# Valid agent content with sufficient length');
                 }
 
                 return Promise.resolve('# Valid markdown content with sufficient length');
@@ -713,8 +713,8 @@ describe('ai-tools', () => {
                 if (pathStr.endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
-                        topLevelDirectory: '.github/chatmodes',
-                        topLevelPromptFileName: 'CALM.chatmode.md',
+                        topLevelDirectory: '.github/agents',
+                        topLevelPromptFileName: 'CALM.agent.md',
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: '',
@@ -722,9 +722,9 @@ describe('ai-tools', () => {
                     }));
                 }
 
-                // Mock chatmode file after creation
-                if (pathStr.includes('CALM.chatmode.md')) {
-                    return Promise.resolve('# Valid chatmode content with sufficient length');
+                // Mock agent file after creation
+                if (pathStr.includes('CALM.agent.md')) {
+                    return Promise.resolve('# Valid agent content with sufficient length');
                 }
 
                 return Promise.resolve('# Valid markdown content with sufficient length');
@@ -749,8 +749,8 @@ describe('ai-tools', () => {
                 if (pathStr.endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
-                        topLevelDirectory: '.github/chatmodes',
-                        topLevelPromptFileName: 'CALM.chatmode.md',
+                        topLevelDirectory: '.github/agents',
+                        topLevelPromptFileName: 'CALM.agent.md',
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: '',
@@ -758,9 +758,9 @@ describe('ai-tools', () => {
                     }));
                 }
 
-                // Mock chatmode file after creation
-                if (pathStr.includes('CALM.chatmode.md')) {
-                    return Promise.resolve('# Valid chatmode content with sufficient length');
+                // Mock agent file after creation
+                if (pathStr.includes('CALM.agent.md')) {
+                    return Promise.resolve('# Valid agent content with sufficient length');
                 }
 
                 return Promise.resolve('# Valid markdown content with sufficient length');
@@ -801,8 +801,8 @@ describe('ai-tools', () => {
                 if (pathStr.endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
-                        topLevelDirectory: '.github/chatmodes',
-                        topLevelPromptFileName: 'CALM.chatmode.md',
+                        topLevelDirectory: '.github/agents',
+                        topLevelPromptFileName: 'CALM.agent.md',
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: '',
@@ -810,9 +810,9 @@ describe('ai-tools', () => {
                     }));
                 }
 
-                // Mock chatmode file after creation
-                if (pathStr.includes('CALM.chatmode.md')) {
-                    return Promise.resolve('# Valid chatmode content with sufficient length');
+                // Mock agent file after creation
+                if (pathStr.includes('CALM.agent.md')) {
+                    return Promise.resolve('# Valid agent content with sufficient length');
                 }
 
                 return Promise.resolve('# Valid markdown content with sufficient length');
@@ -848,15 +848,15 @@ describe('ai-tools', () => {
 
     // MEDIUM PRIORITY: Content Validation Tests
     describe('setupAiTools - directory handling variations', () => {
-        it('should create chatmode file with simple filename', async () => {
+        it('should create agent file with simple filename', async () => {
             mocks.readFile.mockImplementation(async (path: string) => {
                 const pathStr = String(path);
 
                 if (pathStr.endsWith('.json')) {
                     return Promise.resolve(JSON.stringify({
                         description: 'Test',
-                        topLevelDirectory: '.github/chatmodes',
-                        topLevelPromptFileName: 'CALM.chatmode.md', // Simple filename
+                        topLevelDirectory: '.github/agents',
+                        topLevelPromptFileName: 'CALM.agent.md', // Simple filename
                         skillPrefix: '## ',
                         skillSuffix: '',
                         frontmatter: '',
@@ -864,9 +864,9 @@ describe('ai-tools', () => {
                     }));
                 }
 
-                // Mock chatmode file after creation
-                if (pathStr.includes('CALM.chatmode.md')) {
-                    return Promise.resolve('# Valid chatmode content with sufficient length');
+                // Mock agent file after creation
+                if (pathStr.includes('CALM.agent.md')) {
+                    return Promise.resolve('# Valid agent content with sufficient length');
                 }
 
                 return Promise.resolve('# Valid markdown content with sufficient length');
@@ -874,9 +874,9 @@ describe('ai-tools', () => {
 
             await setupAiTools('copilot', targetDirectory, false);
 
-            // Verify chatmode was created directly in chatmodes directory
+            // Verify agent was created directly in agents directory
             expect(mocks.writeFile).toHaveBeenCalledWith(
-                expect.stringContaining('.github/chatmodes/CALM.chatmode.md'),
+                expect.stringContaining('.github/agents/CALM.agent.md'),
                 expect.any(String),
                 'utf-8'
             );

@@ -268,7 +268,7 @@ curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/vali
 
 ## CALM init-ai
 
-The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring a specialized VSCode chatmode with comprehensive tool prompts.  At present two AI Assistant providers are supported:  Github Copilot and AWS Kiro.
+The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring a specialized VSCode agent with comprehensive tool prompts.  At present two AI Assistant providers are supported:  Github Copilot and AWS Kiro.
 
 ```shell
 calm init-ai --help
@@ -307,7 +307,7 @@ This will create the necessary IDE-specific configuration files to enable CALM-s
 
 ### Tool Prompts
 
-The chatmode includes specialized tools for each CALM component:
+The agent includes specialized tools for each CALM component:
 
 - **Node Creation**: Guide for creating nodes with proper validation and interface definitions
 - **Relationship Creation**: Guide for creating relationships with correct types and constraints

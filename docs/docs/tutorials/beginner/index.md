@@ -71,4 +71,4 @@ Complete Architecture ─────────► "I can build real systems!"
 1. **Work through tutorials in order** — Each builds on the previous
 2. **Experiment** — Try modifying examples to deepen understanding
 3. **Ask questions** — Use the [FINOS community discussions](https://github.com/finos/architecture-as-code/discussions)
-4. **Use AI assistance** — The CALM Copilot chatmode accelerates learning
+4. **Use AI assistance** — The CALM Copilot agent accelerates learning

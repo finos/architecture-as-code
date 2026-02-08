@@ -95,14 +95,14 @@ Selected AI provider: copilot
 info [calm-ai-tools]:     Setting up CALM AI tools for provider "copilot" in: /Desktop/finos/architecture-as-code/cli
 warn [calm-ai-tools]:     Warning: No .git directory found. This may not be a git repository.
 info [calm-ai-tools]:     🔍 Validating bundled AI tool resources...
-info [calm-ai-tools]:     AI assistant top level directory: .github/chatmodes
-info [calm-ai-tools]:     Creating enhanced chatmode config at: /Desktop/finos/architecture-as-code/cli/.github/chatmodes/CALM.chatmode.md
-info [calm-ai-tools]:     ✅ Created CALM chatmode configuration from bundled resource
+info [calm-ai-tools]:     AI assistant top level directory: .github/agents
+info [calm-ai-tools]:     Creating enhanced agent config at: /Desktop/finos/architecture-as-code/cli/.github/agents/CALM.agents.md
+info [calm-ai-tools]:     ✅ Created configuration from bundled resource
 info [calm-ai-tools]:     📁 Created calm-prompts directory
 info [calm-ai-tools]:     ✅ Successfully created all 11 tool prompt files
 info [calm-ai-tools]:     ✅ CALM AI tools setup completed successfully!
-info [calm-ai-tools]:     🚀 To use: Open this repository in with your IDE and start a chat with the CALM chatmode
-info [calm-ai-tools]:     📁 Files created in .github/chatmodes directory following copilot AI Assistant conventions
+info [calm-ai-tools]:     🚀 To use: Open this repository in with your IDE and start a chat with the CALM agent
+info [calm-ai-tools]:     📁 Files created in .github/agents directory following copilot AI Assistant conventions
 ```
 
 ## What Gets Configured
@@ -136,7 +136,7 @@ Once configured, how you get started with CALM AI Assistant will depend on our I
 With GitHub Copilot Chat in VS Code:
 
 1. Open GitHub Copilot Chat (Ctrl+Shift+I or Cmd+Shift+I)
-2. Select the **CALM** chatmode from the mode selector
+2. Select the **CALM** agent from the mode selector
 3. Ask questions or request assistance with your CALM architecture
 
 ### AWS Kiro
@@ -180,7 +180,7 @@ Generate documentation for my CALM architecture
 
 ## Updating AI Support Configuration
 
-If you update the CALM CLI or want to refresh the chatmode configuration:
+If you update the CALM CLI or want to refresh the agent configuration:
 
 ```shell
 calm init-ai -p <provider> --directory /path/to/your/calm-project
