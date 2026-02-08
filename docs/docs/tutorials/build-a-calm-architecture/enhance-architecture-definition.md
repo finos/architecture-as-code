@@ -6,7 +6,7 @@ sidebar_position: 4
 
 ## Add inteface specifications for RESTful Services
 
-We will now enhance the trading system architecture definition by adding interface definitions for the RESTful services.  Here are the specifications by serivde.
+We will now enhance the trading system architecture definition by adding interface definitions for the RESTful services.  Here are the specifications by serivce.
 
 ### REST API End Point specifications
 
