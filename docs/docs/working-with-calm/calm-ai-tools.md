@@ -23,7 +23,7 @@ The `init-ai` command configures your development environment with comprehensive
 Before setting up CALM AI Support, ensure you have:
 
 ### VSCode
-- **VS Code**: Version 1.104 or later
+- **VS Code**: Version 1.106+
 - **GitHub Copilot**: Active GitHub Copilot subscription
 - **GitHub Copilot Chat Extension**: Installed in VS Code
 

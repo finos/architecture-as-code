@@ -29,7 +29,7 @@ Before starting, ensure you have:
 - **Git** installed
 - **Node.js** (20+) and npm installed
 - **VSCode** editor (version 1.96+)
-- **GitHub Copilot** access (optional but recommended)
+- **GitHub Copilot** access (optional but recommended, requires VSCode 1.106+)
 
 ## Time Commitment
 

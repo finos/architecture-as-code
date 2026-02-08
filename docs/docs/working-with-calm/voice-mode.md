@@ -14,7 +14,7 @@ As of this Voice Mode is supported only in VSCode with Github Copilot.  The rema
 
 ### Prerequisites
 
-- **VS Code**: Version 1.94 or later
+- **VS Code**: Version 1.106+
 - **CALM Copilot Agent**: Configured in your repository (see [CALM AI Tools](calm-ai-tools))
 - **GitHub Copilot Chat**: Active subscription and extension installed
 - **Microphone**: A working microphone
