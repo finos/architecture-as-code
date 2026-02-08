@@ -86,6 +86,7 @@ const sidebars = {
             'tutorials/build-a-calm-architecture/define-initial-architecture',
             'tutorials/build-a-calm-architecture/refine-architecture-definition',
             'tutorials/build-a-calm-architecture/generate-documentation',
+            'tutorials/build-a-calm-architecture/tutorial-key-takeaways',
            ],
         }
       ],

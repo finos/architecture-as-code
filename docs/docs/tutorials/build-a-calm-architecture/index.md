@@ -12,5 +12,6 @@ Tutorial Structure
 - [Tool Setup](tool-setup) - Setup tools that will assist the architect in defining the CALM architecture (AI Assistant and CALM Tools)
 - [Business Context](business-context) - Business requirements for the trading system (trading operations, accounts, positions, workflows)
 - [Define Initial Architecture](define-initial-architecture) - Core tutorial: AI identifies nodes from business context → architect refines → AI generates validated architecture JSON with nodes, relationships, and flows
-- [Refine Architecture Content](refine-architecture-definition) - Placeholder (controls/governance)
-- [Generate Documentation](generate-documentation) - Placeholder (template-based docs)
+- [Refine Architecture Content](refine-architecture-definition) - Refine the architecture with technical, control and metadata.
+- [Generate Documentation](generate-documentation) - Generate human readable architecture content.
+- [Key Takeaways](tutorial-key-takeaways) - Summary of key points made in this tutorial.

@@ -24,7 +24,7 @@ Welcome to the CALM learning path! These tutorials take you from zero CALM knowl
 │   ├── Metadata                                                              │
 │   └── Complete Architecture                                                 │
 │                                                                             │
-│   PRACTIONER TUTORIAL                                                       │
+│   PRACTITIONER TUTORIAL                                                     │
 │   ├── Tool Setup                                                            │
 │   ├── Understand the Business Context                                       │
 │   ├── Define Initial Architecture                                           │
@@ -79,9 +79,9 @@ By completing all tutorials, you'll be able to:
 
 Ready to begin? [Start your CALM journey →](beginner/01-setup)
 
-## Start Here: Practioner
+## Start Here: Practitioner
 
-### 🛠️ Practioner Tutorial
+### 🛠️ Practitioner Tutorial
 
 **Some CALM knowledge required, similar to what is covered in the Beginner tutorial.**
 

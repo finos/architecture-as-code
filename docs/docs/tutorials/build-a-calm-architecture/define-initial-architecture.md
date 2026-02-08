@@ -10,13 +10,13 @@ To start off, we will create a minimal CALM architecture file.
 
 **Prompt to AI Assistant**
 ```text
-User: create a minimal CALM architecture file called trading-system.architecture.json 
-      with no nodes or relationships
+create a minimal CALM architecture file called trading-system.architecture.json 
+with no nodes or relationships
 ```
 
 **Response from AI Assistant**
 ```text
-GitHub Copilot: Loading FINOS CALM instructions...
+Loading FINOS CALM instructions...
 
 Let me read the CALM tool prompts to understand the current guidance. 
 
@@ -58,9 +58,9 @@ The validation confirms no errors or warnings.
 
 **Prompt to AI Assistant**
 ```text
-User: identify candidate CALM nodes with type for an event driven architecture for the provided 
-      business design.  Use only information found in the business design provided.  List each 
-      node with its type and a short description.
+identify candidate CALM nodes with type for an event driven architecture for the provided 
+business design.  Use only information found in the business design provided.  List each 
+node with its type and a short description.
 ## Business Design
 
 ### Core Business Functions
@@ -175,7 +175,7 @@ The application demonstrates essential trading operations including order entry,
 
 **Response from AI Assitant**
 ```text
-GitHub Copilot: Based on the event-driven architecture described in the business design, here are the candidate CALM nodes:
+Based on the event-driven architecture described in the business design, here are the candidate CALM nodes:
 
 ## User Interface Nodes
 
@@ -227,14 +227,14 @@ After reviewing the proposed list of nodes, the architect determines a node repr
 
 **Prompt to AI Assistant**
 ```text
-User: add a node called "Trader" of type actor to the node inventory.  display the updated 
-      node inventory.  I want to review and approve any changes.
+add a node called "Trader" of type actor to the node inventory.  display the updated 
+node inventory.  I want to review and approve any changes.
 ```
 _Note_: Reviewing and approving changes is a guardrail to help ensure the AI Assistant does not stray from the architect intent.  
 
 **Response from AI Assistant**
 ```text
-GitHub Copilot: Here's the proposed addition to the node inventory:
+Here's the proposed addition to the node inventory:
 
 ## Updated Node Inventory
 
@@ -296,12 +296,12 @@ Do you approve this addition?
 
 **Prompt to AI Assistant**
 ```text
-User: yes
+yes
 ```
 
 **Response from AI Assistant**
 ```text
-GitHub Copilot: The node inventory has been updated to include the "trader" actor node. The inventory now contains 12 nodes total:
+The node inventory has been updated to include the "trader" actor node. The inventory now contains 12 nodes total:
 
 - 1 actor node (trader)
 - 1 user interface system (web-gui)
@@ -311,17 +311,17 @@ GitHub Copilot: The node inventory has been updated to include the "trader" acto
 - 1 external data source system (ticker-csv-file)
 ```
 
-## Create the basline node and relationship definitions for the CALM architecture
+## Create the baseline node and relationship definitions for the CALM architecture
 
 **Prompt to AI Assistant**
 ```text
-User: update the calm architecture file trading-system.architecture.json with 
-      nodes and relationships.
+update the calm architecture file trading-system.architecture.json with 
+nodes and relationships.
 ```
 
 **Response from AI Assistant**
 ```text
-GitHub Copilot: Ran terminal command:  cat "/Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts/node-creation.md"
+Ran terminal command:  cat "/Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts/node-creation.md"
 
 Ran terminal command:  cat "/Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts/relationship-creation.md"
 
@@ -373,12 +373,12 @@ Another good practice is to commit the architecture json file after signficant u
 
 **Prompt to AI Assistant**
 ```text
-User: git commit the architecture file with message "initial version"
+git commit the architecture file with message "initial version"
 ```
 
 **Response from AI Assistant**
 ```text
-GitHub Copilot: Ran terminal command:  git add trading-system.architecture.json && git commit -m "initial version"
+Ran terminal command:  git add trading-system.architecture.json && git commit -m "initial version"
 
 Committed successfully. The trading-system.architecture.json file has been added to the repository with commit message "initial version".
 ```
@@ -387,12 +387,12 @@ Committed successfully. The trading-system.architecture.json file has been added
 
 **Prompt to AI Assistant**
 ```text
-User: list candidate CALM flows described in the business design.
+list candidate CALM flows described in the business design.
 ```
 
 **Response from AI Assistant**
 ```text
-GitHub Copilot: Based on the business design, here are the candidate CALM flows:
+Based on the business design, here are the candidate CALM flows:
 
 ## Candidate Flows
 
@@ -427,12 +427,12 @@ GitHub Copilot: Based on the business design, here are the candidate CALM flows:
 
 **Prompt to AI Assistant**
 ```text
-User: add flows to the trading-system.architecture.json
+add flows to the trading-system.architecture.json
 ```
 
 **Response from AI Assistant**
 ```text
-GitHub Copilot: Ran terminal command:  cat "/Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts/flow-creation.md"
+Ran terminal command:  cat "/Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts/flow-creation.md"
 
 Using "Replace String in File"
 
@@ -463,12 +463,12 @@ Made changes.
 
 **Prompt to AI Assistant**
 ```text
-User: git commit architecture file with message "add initial flow definitions"
+git commit architecture file with message "add initial flow definitions"
 ```
 
 **Response from AI Assistant**
 ```text
-GitHub Copilot: Ran terminal command:  git add trading-system.architecture.json && git commit -m "add initial flow definitions"
+Ran terminal command:  git add trading-system.architecture.json && git commit -m "add initial flow definitions"
 
 Committed successfully with message "add initial flow definitions".
 ```
@@ -488,15 +488,15 @@ Based on this review the architect determines the `Trader` node is missing from 
 
 **Prompt to AI Assistant**
 ```text
-User: add Trader node to submit-trade-flow where Trader interacts with the webgui to submit 
-      the trade ticket. add Trader to the process-trade-flow where the Trader receives 
-      notification from the webgui at the end to receive trade and position updates. 
-      Do not update architecture file.  I want review and approve changes.
+add Trader node to submit-trade-flow where Trader interacts with the webgui to submit 
+the trade ticket. add Trader to the process-trade-flow where the Trader receives 
+notification from the webgui at the end to receive trade and position updates. 
+Do not update architecture file.  I want review and approve changes.
 ```
 
 **Response from AI Assistant**
 ```text
-GitHub Copilot: Here are the proposed changes to add the Trader node to the flows:
+Here are the proposed changes to add the Trader node to the flows:
 
 ## submit-trade-flow
 
@@ -538,12 +538,12 @@ Before accepting the change, the architect wants to see the complete updated pro
 
 **Prompt to AI Assistant**
 ```text
-User: Show full definition of submit-trade-flow and process-trade-flow
+Show full definition of submit-trade-flow and process-trade-flow
 ```
 
 **Response from AI Assistant**
 ```text
-GitHub Copilot: ## submit-trade-flow (with proposed changes)
+## submit-trade-flow (with proposed changes)
 
 json
 {
@@ -673,12 +673,12 @@ The updated process flows look good, so the architect tells the AI Assistant tha
 
 **Prompt to AI Assistant**
 ```text
-User: I accept the proposed changes
+I accept the proposed changes
 ```
 
 **Response from AI Assistant**
 ```text
-GitHub Copilot: Using "Multi-Replace String in Files"
+Using "Multi-Replace String in Files"
 
 Ran terminal command:  calm validate -a trading-system.architecture.json -f pretty
 
@@ -709,12 +709,12 @@ At this point the architect has completed the initial definition of the architec
 
 **Prompt to AI Assistant**
 ```text
-User: git commit architecture file with mesasge "revised trade-submit and process-trade flows"
+git commit architecture file with mesasge "revised trade-submit and process-trade flows"
 ```
 
 **Response from AI Assistant**
 ```text
-GitHub Copilot: Ran terminal command:  git add trading-system.architecture.json && git commit -m "revised trade-submit and process-trade flows"
+Ran terminal command:  git add trading-system.architecture.json && git commit -m "revised trade-submit and process-trade flows"
 
 Committed successfully with message "revised trade-submit and process-trade flows".
 ```

@@ -1,7 +1,7 @@
 ---
 id: generate-documentation
 title: Generate Architecture Documentation
-sidebar_position: 4
+sidebar_position: 5
 ---
 
 We demonstrate two ways to generate viewable architecture documention.  The first method generates content that is viewable via a web browser.  The second approach uses CALM templating functions to generate a custom view of the architecture
