@@ -23,7 +23,7 @@ To further enhance your CALM modeling experience, install the FINOS CALM Tools e
 4. **Click "Install"** on the CALM Tools extension published by FINOS.
 5. **Reload VS Code** if prompted.
 
-The extension provides syntax highlighting, validation, and additional CALM modeling features directly in your editor.
+The extension provides syntax highlighting, validation, and additional CALM modeling features directly in the VSCode editor.
 
 ---
 
@@ -40,7 +40,8 @@ To enable AI-powered assistance for CALM architecture modeling in VS Code using 
 For more details, see the CALM documentation or run `calm init-ai --help`.
 
 **Note to the Reader**: 
-- Large language models, which underly CALM's AI Support, are inherently non-deterministic.  Running the same prompt may produce slightly different results.
-- Responses from the LLM are suggestions and must be reviewed by the architect for accuracy.  The architect should revise responses to reflect their organization's objectives and standards.
+- Large Language Models (LLM), which underly CALM's AI Support, are inherently non-deterministic.  Running the same prompt may produce slightly different results.
+- Given LLM capabilities, the prompts shown in the tutorial are not prespective.  The reader is encouraged to experiment with alternative wordings to see what works best for the particular AI Assistant being used.
+- Responses from the LLM should be viewed as suggestions and must be reviewed by the architect for accuracy.  The architect should revise responses to reflect their organization's objectives and standards.
 - CALM AI Support is an evolving function and capabilities may change in the future.
 
