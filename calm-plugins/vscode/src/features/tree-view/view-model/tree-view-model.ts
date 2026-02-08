@@ -20,9 +20,6 @@ export class TreeViewModel {
     private readonly _revealRequest = new Emitter<{ id: string }>()
     readonly onRevealRequest = this._revealRequest.event
 
-    private readonly _navigateToArchitecture = new Emitter<{ architectureRef: string; momentId: string }>()
-    readonly onNavigateToArchitecture = this._navigateToArchitecture.event
-
     constructor(private store: ApplicationStoreApi) {
         // Debounced rebuild to avoid excessive updates
         this.debouncedRebuild = debounce(() => {
@@ -132,9 +129,8 @@ export class TreeViewModel {
             })
         }
 
-        // Timeline root - name comes from original JSON
-        const timelineLabel = (timeline.originalJson as any).name || 'Architecture Timeline'
-        const timelineDescription = (timeline.originalJson as any).description
+        // Timeline root - use generic label (metadata.title is optional per spec)
+        const timelineLabel = 'Architecture Timeline'
         const momentIds = timeline.moments
             .filter(m => this.momentMatchesSearch(m, searchFilter))
             .map(m => `moment:${m.uniqueId}`)
@@ -142,7 +138,6 @@ export class TreeViewModel {
         this.itemsById.set('group:timeline', {
             id: 'group:timeline',
             label: `📅 ${timelineLabel}`,
-            description: timelineDescription,
             childrenIds: momentIds,
             collapsibleState: 'expanded',
             iconPath: 'calendar'
@@ -186,12 +181,6 @@ export class TreeViewModel {
         )
     }
 
-    /**
-     * Request navigation to an architecture from a timeline moment
-     */
-    navigateToArchitecture(architectureRef: string, momentId: string) {
-        this._navigateToArchitecture.fire({ architectureRef, momentId })
-    }
 
     private buildNodesGroup(modelIndex: any, searchFilter: string) {
         const grouped = groupBy(modelIndex.nodes, (node: any) =>
@@ -371,6 +360,5 @@ export class TreeViewModel {
         this.unsubscribers = []
         this._changed.dispose()
         this._revealRequest.dispose()
-        this._navigateToArchitecture.dispose()
     }
 }

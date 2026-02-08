@@ -177,8 +177,6 @@ describe('TreeViewModel', () => {
         // Mock that matches CalmTimeline class structure from @finos/calm-models
         const mockTimeline = {
             originalJson: {
-                name: 'Architecture Evolution',
-                description: 'Evolution from insecure to secure',
                 'current-moment': 'insecure',
                 moments: []
             },
@@ -220,7 +218,7 @@ describe('TreeViewModel', () => {
             const items = treeViewModel.rootItems()
             expect(items).toHaveLength(1)
             expect(items[0].id).toBe('group:timeline')
-            expect(items[0].label).toContain('Architecture Evolution')
+            expect(items[0].label).toContain('Architecture Timeline')
         })
 
         it('should display milestones as children of timeline group', () => {

@@ -23,7 +23,7 @@ export function detectCalmTimeline(text: string): boolean {
         if (!json || typeof json !== 'object') return false
         const schema = (json as any)['$schema'] || ''
         const hasMoments = Array.isArray((json as any).moments)
-        return hasMoments || schema.includes('timeline')
+        return schema.includes('timeline') && hasMoments
     } catch { return false }
 }
 
