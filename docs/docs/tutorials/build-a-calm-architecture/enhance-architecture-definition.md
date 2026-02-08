@@ -216,3 +216,202 @@ Ran terminal command:  git add trading-system.architecture.json && git commit -m
 
 Committed! The architecture file with the two encryption controls has been saved with the message "add architecture controls definition".
 ```
+
+## Add architecture and node level metadata
+
+For the architecture level, let's add metadata about the version and team responsible for the architecture.
+
+**Prompt to AI Assistant**
+```text
+add following metadata at the architecture level:
+* "version" : "0.1.0"
+* "created-by" : "Trading System Team"
+```
+
+**Response from AI Assistant**
+```text
+I'll add the metadata to your architecture document. 
+
+Searched codebase for "trading-system.architecture.json metadata architecture level", 23 results
+
+Now let me read the current architecture file to see its structure: 
+
+Ran terminal command:  head -30 /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json
+
+Using "Replace String in File"
+
+Now let me validate the architecture to ensure the change is correct: 
+
+Ran terminal command:  calm validate -a trading-system.architecture.json
+
+Perfect! The metadata has been successfully added to the architecture level with:
+- **version**: "0.1.0"
+- **created-by**: "Trading System Team"
+
+The validation confirms the architecture is valid with no errors or warnings.
+
+Made changes.
+```
+
+Screenshot of the metadata added to the architecture json file.
+
+![Architecture Level Metadata](./images/10_archtecture_level_metadata.png)
+
+
+For the nodes, we will add a data classification metadata.
+
+**Prompt to AI Assistant**
+```text
+For all nodes except `Trader` and `User Directory` add metadata "data-classification" : "Private"
+For `User Directory` node add metadata "data-classification" : "PII"
+Show me the proposed changes.  I want to review and approve any changes.
+```
+
+**Response from AI Assistant**
+```text
+I'll examine the current architecture and show you the proposed changes for adding data classification metadata to the nodes. 
+
+Ran terminal command:  cat /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json | jq '.nodes[] | {id: ."unique-id", name: .name, current_metadata: .metadata}'
+
+Now let me get a sample of the node structure to show you the exact changes: 
+
+Ran terminal command:  cat /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json | jq '.nodes[0:3]'
+
+Perfect! Now I can show you the proposed changes. Here's what will be added to each node:
+
+## Proposed Changes Summary
+
+### Nodes that will get `"data-classification": "Private"` (10 nodes):
+1. **Web GUI** - system
+2. **Account Service** - service
+3. **Trade Service** - service
+4. **Position Service** - service
+5. **People Service** - service
+6. **Security Master** - service
+7. **Trade Processor** - service
+8. **Trade Feed** - service
+9. **Trade Data Store** - database
+10. **Ticker CSV File** - system
+
+### Node that will get `"data-classification": "PII"` (1 node):
+11. **User Directory** - system
+
+### Node with NO changes (1 node):
+12. **Trader** - actor (no metadata added)
+
+---
+
+## Example of Changes
+
+**Before** (e.g., Web GUI node):
+```json
+{
+  "unique-id": "web-gui",
+  "node-type": "system",
+  "name": "Web GUI",
+  "description": "Browser-based graphical user interface..."
+}
+```
+
+**After** (Web GUI node):
+```json
+{
+  "unique-id": "web-gui",
+  "node-type": "system",
+  "name": "Web GUI",
+  "description": "Browser-based graphical user interface...",
+  "metadata": [
+    {
+      "data-classification": "Private"
+    }
+  ]
+}
+```
+
+**User Directory** (PII classification):
+```json
+{
+  "unique-id": "user-directory",
+  "node-type": "system",
+  "name": "User Directory",
+  "description": "...",
+  "metadata": [
+    {
+      "data-classification": "PII"
+    }
+  ]
+}
+```
+
+---
+
+**Would you like me to proceed with these changes?** Please confirm and I'll apply them to the architecture file.
+```
+
+**Prompt to AI Assistant**
+```text
+yes
+```
+
+**Response from AI Assistant**
+```text
+Ran terminal command:  cat /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json
+
+Using "Multi-Replace String in Files"
+
+Perfect! I've successfully added the data classification metadata to all the requested nodes. Let me verify the changes: 
+
+Ran terminal command:  cat /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json | jq '.nodes[] | {id: ."unique-id", name: .name, data_classification: .metadata[0]."data-classification"}'
+
+✅ **Changes successfully applied!**
+
+**Summary:**
+- **Trader** - No metadata added (as requested)
+- **User Directory** - `data-classification: "PII"` ✓
+- **All other 10 nodes** - `data-classification: "Private"` ✓
+
+All data classification metadata has been added correctly to your trading system architecture.
+
+Made changes.
+```
+
+After making the change, the AI Assistant did not validate the integrity of the architecture file.  We explicitly ask the AI Assistant to validate the architecture file.
+
+**Prompt to AI Assistant**
+```text
+validate the architecture file
+```
+
+**Response from AI Assistant**
+```text
+Ran terminal command:  calm validate -a /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json
+
+✅ **Architecture validation successful!**
+
+The trading-system.architecture.json file is valid with:
+- No schema validation errors
+- No warnings
+- All metadata additions conform to the CALM 1.1 specification
+```
+
+## Commit metadata changes to the GIT Repo
+
+With the architectue file validate with the metadata changes, commit the changes to the GIT repo.
+
+**Prompt to AI Assistant**
+```text
+git commit with message "add architecture and node metadata"
+```
+
+**Response from AI Assistant**
+```text
+Ran terminal command:  git add trading-system.architecture.json && git commit -m "add architecture and node metadata"
+
+✅ Committed successfully! The changes to trading-system.architecture.json (66 insertions, 5 deletions) have been committed with message "add architecture and node metadata".
+```
+
+## Summary
+
+In this portion of the tutorial we have enhanced the architecture definition with technical information, i.e., endpoint specifications, Controls, and metadata.
+
+In the next section we look at two methods for communicating the content of the architecture.
