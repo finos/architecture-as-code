@@ -15,6 +15,7 @@ const base = (includeContainers: NormalizedOptions['includeContainers']): Normal
     edgeLabels: 'description',
     collapseRelationships: false,
     theme: 'light',
+    layoutEngine: 'elk',
 });
 
 describe('ContainerStrategy', () => {

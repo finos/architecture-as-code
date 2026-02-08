@@ -62,6 +62,7 @@ export interface BlockArchOptions {
     ['node-type-map']?: string;
     ['theme']?: string;
     ['theme-colors']?: string | ThemeColors;
+    ['layout-engine']?: string;
 }
 
 /** -----------------------------
@@ -84,6 +85,7 @@ export type BlockArchVM = {
     linkMap?: Record<string, string>;
     nodeTypeMap?: Record<string, string>;
     themeColors?: ThemeColors;
+    layoutEngine?: string;
     warnings?: string[];
 };
 
@@ -111,6 +113,7 @@ export type NormalizedOptions = {
     nodeTypeMap?: Record<string, string>;
     theme: string;
     themeColors?: ThemeColors;
+    layoutEngine: string;
 };
 
 

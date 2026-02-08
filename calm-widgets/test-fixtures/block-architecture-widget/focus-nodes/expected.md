@@ -10,7 +10,7 @@ config:
     edgeLabelBackground: '#d5d7e1'
     lineColor: '#000000'
 ---
-%%{init: {"flowchart": {"htmlLabels": false}}}%%
+%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#e1e4f0,stroke:#204485,stroke-dasharray: 5 4,stroke-width:1px,color:#000000;
 classDef node fill:#eef1ff,stroke:#007dff,stroke-width:1px,color:#000000;
@@ -40,7 +40,7 @@ config:
     edgeLabelBackground: '#d5d7e1'
     lineColor: '#000000'
 ---
-%%{init: {"flowchart": {"htmlLabels": false}}}%%
+%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#e1e4f0,stroke:#204485,stroke-dasharray: 5 4,stroke-width:1px,color:#000000;
 classDef node fill:#eef1ff,stroke:#007dff,stroke-width:1px,color:#000000;
@@ -80,7 +80,7 @@ config:
     edgeLabelBackground: '#d5d7e1'
     lineColor: '#000000'
 ---
-%%{init: {"flowchart": {"htmlLabels": false}}}%%
+%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#e1e4f0,stroke:#204485,stroke-dasharray: 5 4,stroke-width:1px,color:#000000;
 classDef node fill:#eef1ff,stroke:#007dff,stroke-width:1px,color:#000000;
@@ -124,7 +124,7 @@ config:
     edgeLabelBackground: '#d5d7e1'
     lineColor: '#000000'
 ---
-%%{init: {"flowchart": {"htmlLabels": false}}}%%
+%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#e1e4f0,stroke:#204485,stroke-dasharray: 5 4,stroke-width:1px,color:#000000;
 classDef node fill:#eef1ff,stroke:#007dff,stroke-width:1px,color:#000000;
@@ -160,7 +160,7 @@ config:
     edgeLabelBackground: '#d5d7e1'
     lineColor: '#000000'
 ---
-%%{init: {"flowchart": {"htmlLabels": false}}}%%
+%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#e1e4f0,stroke:#204485,stroke-dasharray: 5 4,stroke-width:1px,color:#000000;
 classDef node fill:#eef1ff,stroke:#007dff,stroke-width:1px,color:#000000;

@@ -25,7 +25,7 @@ export class ConfigService implements Config {
     }
 
     previewLayout(): string {
-        return this.config.get<string>('preview.layout', 'dagre')
+        return this.config.get<string>('preview.layout', 'elk')
     }
 
     showLabels(): boolean {
