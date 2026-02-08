@@ -13,8 +13,10 @@ export function createOpenPreviewCommand(store: ApplicationStoreApi) {
             // Valid architecture file
         } else if (fileInfo.type === FileType.TemplateFile && fileInfo.isValid) {
             // Valid template file with architecture reference
+        } else if (fileInfo.type === FileType.TimelineFile && fileInfo.isValid) {
+            // Valid timeline file - TreeView will show milestones
         } else {
-            vscode.window.showWarningMessage('This file is not a CALM architecture file or a template file with architecture reference.')
+            vscode.window.showWarningMessage('This file is not a CALM architecture, timeline, or template file.')
             return
         }
 

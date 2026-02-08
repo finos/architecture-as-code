@@ -1,10 +1,13 @@
 import { parse as parseYaml } from 'yaml'
+import { CalmTimeline } from '@finos/calm-models/model'
+import type { CalmTimelineSchema } from '@finos/calm-models/types'
 
 export type CalmModel = {
     nodes?: Array<{ id: string; type?: string; name?: string; label?: string; description?: string; raw?: any }>
     relationships?: Array<{ id: string; type?: string; source: string; target: string; label?: string; description?: string; raw?: any }>
     flows?: Array<{ id: string; source?: string; target?: string; label?: string; description?: string; raw?: any }>
 }
+
 
 export function detectCalmModel(text: string): boolean {
     try {
@@ -14,9 +17,32 @@ export function detectCalmModel(text: string): boolean {
     } catch { return false }
 }
 
+export function detectCalmTimeline(text: string): boolean {
+    try {
+        const json = tryParse(text)
+        if (!json || typeof json !== 'object') return false
+        const schema = (json as any)['$schema'] || ''
+        const hasMoments = Array.isArray((json as any).moments)
+        return hasMoments || schema.includes('timeline')
+    } catch { return false }
+}
+
 export function loadCalmModel(text: string): CalmModel {
     const json = tryParse(text)
     return normalizeModel(json)
+}
+
+/**
+ * Load a CALM timeline document using @finos/calm-models
+ */
+export function loadCalmTimeline(text: string): CalmTimeline | null {
+    try {
+        const json = tryParse(text) as CalmTimelineSchema
+        if (!json || !Array.isArray(json.moments)) return null
+        return CalmTimeline.fromSchema(json)
+    } catch {
+        return null
+    }
 }
 
 function tryParse(text: string): any {
@@ -25,6 +51,7 @@ function tryParse(text: string): any {
     if (trimmed.startsWith('{') || trimmed.startsWith('[')) return JSON.parse(text)
     return parseYaml(text)
 }
+
 
 
 

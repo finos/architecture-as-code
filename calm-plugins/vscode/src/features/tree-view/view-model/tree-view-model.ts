@@ -2,6 +2,7 @@ import { debounce, groupBy } from 'lodash'
 import type { ApplicationStoreApi } from '../../../application-store'
 import { Emitter } from '../../../core/emitter'
 import { ItemVM } from "./tree-item-view-model";
+import type { CalmTimeline } from '@finos/calm-models/model'
 
 
 /**
@@ -18,6 +19,9 @@ export class TreeViewModel {
 
     private readonly _revealRequest = new Emitter<{ id: string }>()
     readonly onRevealRequest = this._revealRequest.event
+
+    private readonly _navigateToArchitecture = new Emitter<{ architectureRef: string; momentId: string }>()
+    readonly onNavigateToArchitecture = this._navigateToArchitecture.event
 
     constructor(private store: ApplicationStoreApi) {
         // Debounced rebuild to avoid excessive updates
@@ -49,6 +53,13 @@ export class TreeViewModel {
                 collapsibleState: 'none',
                 iconPath: 'info'
             })
+            this._changed.fire()
+            return
+        }
+
+        // In timeline mode, show timeline structure
+        if (state.isTimelineMode && state.currentTimeline) {
+            this.buildTimelineTree(state.currentTimeline, state.searchFilter)
             this._changed.fire()
             return
         }
@@ -106,6 +117,80 @@ export class TreeViewModel {
         }
 
         this._changed.fire()
+    }
+
+    private buildTimelineTree(timeline: CalmTimeline, searchFilter: string) {
+        // Add filter status if search is active
+        if (searchFilter) {
+            this.itemsById.set('filter-status', {
+                id: 'filter-status',
+                label: `Filtering by "${searchFilter}"`,
+                description: 'Click the clear button (🗑️) in the header to remove filter',
+                contextValue: 'filter-status',
+                collapsibleState: 'none',
+                iconPath: 'search'
+            })
+        }
+
+        // Timeline root - name comes from original JSON
+        const timelineLabel = (timeline.originalJson as any).name || 'Architecture Timeline'
+        const timelineDescription = (timeline.originalJson as any).description
+        const momentIds = timeline.moments
+            .filter(m => this.momentMatchesSearch(m, searchFilter))
+            .map(m => `moment:${m.uniqueId}`)
+
+        this.itemsById.set('group:timeline', {
+            id: 'group:timeline',
+            label: `📅 ${timelineLabel}`,
+            description: timelineDescription,
+            childrenIds: momentIds,
+            collapsibleState: 'expanded',
+            iconPath: 'calendar'
+        })
+
+        // Add milestones - clicking directly navigates to architecture
+        for (const moment of timeline.moments) {
+            if (!this.momentMatchesSearch(moment, searchFilter)) continue
+
+            const isCurrent = timeline.currentMoment === moment.uniqueId
+            const momentId = `moment:${moment.uniqueId}`
+            const architectureRef = moment.details?.detailedArchitecture?.reference
+
+            // Format date if available
+            const dateStr = moment.validFrom ? ` (${moment.validFrom})` : ''
+            const currentMarker = isCurrent ? ' ★' : ''
+
+            this.itemsById.set(momentId, {
+                id: momentId,
+                label: `📍 ${moment.name}${dateStr}${currentMarker}`,
+                parentId: 'group:timeline',
+                collapsibleState: 'none',
+                contextValue: architectureRef ? 'moment-with-architecture' : 'moment',
+                iconPath: isCurrent ? 'star-full' : 'circle-outline',
+                command: architectureRef ? {
+                    command: 'calm.navigateToArchitecture',
+                    title: 'Open Architecture',
+                    arguments: [architectureRef]
+                } : undefined
+            })
+        }
+    }
+
+    private momentMatchesSearch(moment: { uniqueId: string; name: string; description?: string }, searchFilter: string): boolean {
+        if (!searchFilter) return true
+        const filter = searchFilter.toLowerCase()
+        return (
+            moment.uniqueId.toLowerCase().includes(filter) ||
+            moment.name.toLowerCase().includes(filter) ||
+            (moment.description?.toLowerCase().includes(filter) ?? false)
+        )
+    }
+
+    /**
+     * Request navigation to an architecture from a timeline moment
+     */
+    navigateToArchitecture(architectureRef: string, momentId: string) {
+        this._navigateToArchitecture.fire({ architectureRef, momentId })
     }
 
     private buildNodesGroup(modelIndex: any, searchFilter: string) {
@@ -206,9 +291,13 @@ export class TreeViewModel {
         const templateMessage = this.itemsById.get('template-mode-message')
         if (templateMessage) items.push(templateMessage)
 
-        // Add architecture group if not in template mode
+        // Add timeline group if in timeline mode
+        const timelineGroup = this.itemsById.get('group:timeline')
+        if (timelineGroup) items.push(timelineGroup)
+
+        // Add architecture group if not in template mode and not in timeline mode
         const archGroup = this.itemsById.get('group:architecture')
-        if (archGroup) items.push(archGroup)
+        if (archGroup && !timelineGroup) items.push(archGroup)
 
         return items
     }
@@ -282,5 +371,6 @@ export class TreeViewModel {
         this.unsubscribers = []
         this._changed.dispose()
         this._revealRequest.dispose()
+        this._navigateToArchitecture.dispose()
     }
 }
