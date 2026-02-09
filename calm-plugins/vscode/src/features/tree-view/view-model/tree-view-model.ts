@@ -150,14 +150,11 @@ export class TreeViewModel {
             const isCurrent = timeline.currentMoment === moment.uniqueId
             const momentId = `moment:${moment.uniqueId}`
             const architectureRef = moment.details?.detailedArchitecture?.reference
-
-            // Format date if available
             const dateStr = moment.validFrom ? ` (${moment.validFrom})` : ''
-            const currentMarker = isCurrent ? ' ★' : ''
 
             this.itemsById.set(momentId, {
                 id: momentId,
-                label: `📍 ${moment.name}${dateStr}${currentMarker}`,
+                label: `${moment.name}${dateStr}`,
                 parentId: 'group:timeline',
                 collapsibleState: 'none',
                 contextValue: architectureRef ? 'moment-with-architecture' : 'moment',
