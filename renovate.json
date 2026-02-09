@@ -155,6 +155,11 @@
       "description": "Ignore pre-release versions",
       "matchCurrentVersion": "/^0\\./",
       "automerge": false
+    },
+    {
+      "description": "Pin @types/node to v22 to match CI Node version",
+      "matchPackageNames": ["@types/node"],
+      "allowedVersions": "<23.0.0"
     }
   ]
 }
