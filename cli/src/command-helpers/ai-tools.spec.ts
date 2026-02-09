@@ -153,7 +153,7 @@ describe('ai-tools', () => {
 
                 // For agent files in test directory, return mock content
                 if (path.includes('/test/directory/') && (path.includes('CALM.agent.md') || path.includes('CALM.chatmode.md') || path.includes('SKILL.md'))) {
-                    return Promise.resolve('# Mock CALM agent content with sufficient length for validation to pass successfully');
+                    return Promise.resolve('# Mock CALM agent content used for tests (may not meet minimum length validation)');
                 }
 
                 return actual.readFile(actualPath, encoding as BufferEncoding);

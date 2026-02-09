@@ -60,8 +60,8 @@ export async function setupAiTools(provider: string, targetDirectory: string, ve
         logger.info(`AI assistant top level directory: ${aiConfig.topLevelDirectory}`);
 
         // Create AI Assistant top level directory if it doesn't exist
-        const agentsDir = join(resolvedPath, aiConfig.topLevelDirectory);
-        await mkdir(agentsDir, { recursive: true });
+        const assistantDir = join(resolvedPath, aiConfig.topLevelDirectory);
+        await mkdir(assistantDir, { recursive: true });
         logger.debug(`Created ${aiConfig.topLevelDirectory} directory following AI Assistant ${provider} conventions`);
 
         // Create agent configuration
@@ -69,16 +69,16 @@ export async function setupAiTools(provider: string, targetDirectory: string, ve
         logger.debug(`Using AI assistant template: ${aiTemplatePath}`);
 
         // form top level prompt file name in the context of the agents directory
-        const aiAgentFile = join(agentsDir, aiConfig.topLevelPromptFileName);
+        const aiAgentFile = join(assistantDir, aiConfig.topLevelPromptFileName);
         logger.debug(`AI assistant top level AI Agent file: ${aiAgentFile}`);
         logger.debug(`AI assistant values path: ${valuesPath}`);
         await createAgentConfig(aiAgentFile, aiTemplatePath, valuesPath, logger);
 
         // Create tool prompt files
-        await createToolPrompts(agentsDir, logger);
+        await createToolPrompts(assistantDir, logger);
 
         logger.info('✅ CALM AI tools setup completed successfully!');
-        logger.info('🚀 To use: Open this repository in with your IDE and start a chat with the CALM agent');
+        logger.info('🚀 To use: Open this repository in your IDE and start a chat with the CALM agent');
         logger.info(`📁 Files created in ${aiConfig.topLevelDirectory} directory following ${provider} AI Assistant conventions`);
 
     } catch (error) {
@@ -183,7 +183,7 @@ async function createAgentConfig(agentFile: string, aiTemplatePath: string, valu
             );
         }
 
-        logger.info('✅ Created CALM agent configuration from bundled resource');
+        logger.info('✅ Created configuration from bundled resource');
     } catch (error) {
         logger.error(`❌  Could not load bundled agent config: ${error}`);
         throw new Error(`Agent configuration setup failed: ${error}`);
@@ -202,8 +202,8 @@ async function createAgentConfig(agentFile: string, aiTemplatePath: string, valu
 }
 
 
-async function createToolPrompts(agentsDir: string, logger: Logger): Promise<void> {
-    const promptsDir = join(agentsDir, 'calm-prompts');
+async function createToolPrompts(assistantDir: string, logger: Logger): Promise<void> {
+    const promptsDir = join(assistantDir, 'calm-prompts');
     await mkdir(promptsDir, { recursive: true });
     logger.info('📁 Created calm-prompts directory');
 

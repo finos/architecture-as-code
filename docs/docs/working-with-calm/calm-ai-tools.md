@@ -101,7 +101,7 @@ info [calm-ai-tools]:     ✅ Created configuration from bundled resource
 info [calm-ai-tools]:     📁 Created calm-prompts directory
 info [calm-ai-tools]:     ✅ Successfully created all 11 tool prompt files
 info [calm-ai-tools]:     ✅ CALM AI tools setup completed successfully!
-info [calm-ai-tools]:     🚀 To use: Open this repository in with your IDE and start a chat with the CALM agent
+info [calm-ai-tools]:     🚀 To use: Open this repository in your IDE and start a chat with the CALM agent
 info [calm-ai-tools]:     📁 Files created in .github/agents directory following copilot AI Assistant conventions
 ```
 
