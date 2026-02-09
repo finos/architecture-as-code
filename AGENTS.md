@@ -60,6 +60,23 @@ architecture-as-code/
 - Docusaurus for main docs
 - Astro for advent-of-calm website
 
+## Node Version Requirements
+
+**CRITICAL**: This project is pinned to **Node 22**. All CI workflows run on Node 22.
+
+- **`.nvmrc`** pins Node 22 — run `nvm use` to switch automatically
+- **`.npmrc`** has `engine-strict=true` — `npm install` will refuse to run on unsupported Node versions
+- **`engines`** in `package.json` defines the supported range (`^22.14.0 || >=24.10.0`)
+- **`@types/node`** is overridden to `^22.0.0` in root `package.json` to prevent transitive dependencies from pulling in a different major version
+- **Renovate** is configured with `allowedVersions: "<23.0.0"` for `@types/node`
+
+### Why this matters
+
+Running `npm install` on a different Node major version (e.g. Node 25) causes:
+1. **Native binding failures** — platform-specific packages (`@swc/core`, `@tailwindcss/oxide`) resolve for the wrong Node ABI, breaking CI builds
+2. **`@types/node` version drift** — transitive deps with loose constraints (`>=18`, `*`) allow `@types/node@25` to be hoisted to root, masking usage of APIs unavailable in Node 22
+3. **Noisy lockfile diffs** — Renovate's `npmDedupe` recalculates the dependency tree, producing large spurious changes
+
 ## Quick Navigation
 
 ### Package-Specific Guides
