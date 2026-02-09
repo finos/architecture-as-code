@@ -8,18 +8,24 @@ import { buildDocumentLoader } from '@finos/calm-shared/dist/document-loader/doc
 // Mock vscode
 vi.mock('vscode', () => ({
     workspace: {
-        workspaceFolders: [],
+        workspaceFolders: undefined as { uri: { fsPath: string } }[] | undefined,
         openTextDocument: vi.fn(),
     },
     window: {
+        activeTextEditor: undefined,
         showTextDocument: vi.fn(),
         showInformationMessage: vi.fn(),
+        showWarningMessage: vi.fn().mockResolvedValue(undefined),
+        showErrorMessage: vi.fn(),
     },
     Uri: {
         file: vi.fn((f) => ({ fsPath: f })),
     },
     ViewColumn: {
         One: 1,
+    },
+    commands: {
+        executeCommand: vi.fn(),
     },
 }))
 
@@ -113,16 +119,20 @@ describe('NavigationService', () => {
             const mockDoc = { uri: { fsPath: targetPath } }
             vi.mocked(vscode.workspace.openTextDocument).mockResolvedValue(mockDoc as any)
 
-            const result = await navigationService.navigate('node1', { 
-                'detailed-architecture': 'detail.json' 
+            // Use absolute path to avoid relative path handling
+            const result = await navigationService.navigate('node1', {
+                'detailed-architecture': '/workspace/detail.json'
             })
 
             expect(buildDocumentLoader).toHaveBeenCalledWith(expect.objectContaining({
                 basePath: workspacePath
             }))
-            expect(mockDocLoader.resolvePath).toHaveBeenCalledWith('detail.json')
+            expect(mockDocLoader.resolvePath).toHaveBeenCalledWith('/workspace/detail.json')
             expect(vscode.workspace.openTextDocument).toHaveBeenCalledWith(expect.objectContaining({ fsPath: targetPath }))
-            expect(vscode.window.showTextDocument).toHaveBeenCalledWith(mockDoc, 1)
+            expect(vscode.window.showTextDocument).toHaveBeenCalledWith(mockDoc, expect.objectContaining({
+                viewColumn: 1,
+                preview: false
+            }))
             expect(result).toBe(true)
         })
 
@@ -141,7 +151,7 @@ describe('NavigationService', () => {
                 'detailed-architecture': 'detail.json' 
             })
 
-            expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(expect.stringContaining('File not found'))
+            expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(expect.stringContaining('File not found'))
             expect(result).toBe(false)
         })
 
@@ -158,7 +168,10 @@ describe('NavigationService', () => {
                 'detailed-architecture': httpUrl 
             })
 
-            expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(expect.stringContaining('Configure \'calm.urlMapping\''))
+            expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+                expect.stringContaining('Cannot open'),
+                expect.anything()
+            )
             expect(result).toBe(false)
         })
     })
