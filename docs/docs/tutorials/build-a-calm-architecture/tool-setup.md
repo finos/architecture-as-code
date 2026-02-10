@@ -41,7 +41,7 @@ For more details, see the CALM documentation or run `calm init-ai --help`.
 
 **Note to the Reader**: 
 - Large Language Models (LLM), which underly CALM's AI Support, are inherently non-deterministic.  Running the same prompt may produce slightly different results.
-- Given LLM capabilities, the prompts shown in the tutorial are not prespective.  The reader is encouraged to experiment with alternative wordings to see what works best for the particular AI Assistant being used.
+- Given LLM capabilities, the prompts shown in the tutorial are not prescriptive and reusable with different AI Assistants integrated with CALM.  The reader is encouraged to experiment with alternative wordings to see what works best for the particular AI Assistant being used.  
 - Responses from the LLM should be viewed as suggestions and must be reviewed by the architect for accuracy.  The architect should revise responses to reflect their organization's objectives and standards.
 - CALM AI Support is an evolving function and capabilities may change in the future.
 
