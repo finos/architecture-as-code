@@ -230,12 +230,12 @@ describe('TreeViewModel', () => {
             expect(milestones[1].id).toBe('moment:secure')
         })
 
-        it('should mark current moment with star', () => {
+        it('should mark current moment with star icon', () => {
             treeViewModel = new TreeViewModel(mockStore)
 
             const milestones = treeViewModel.childrenOf('group:timeline')
             const currentMoment = milestones.find(m => m.id === 'moment:insecure')
-            expect(currentMoment?.label).toContain('★')
+            expect(currentMoment?.iconPath).toBe('star-full')
         })
 
         it('should have command on milestones with architectureRef', () => {
