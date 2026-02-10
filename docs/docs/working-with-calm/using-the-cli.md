@@ -33,7 +33,6 @@ Commands:
   server [options]            Start a HTTP server to proxy CLI commands. (experimental)
   template [options]          Generate files from a CALM model using a template bundle, a single file, or a directory of templates
   docify [options]            Generate a documentation website from your CALM model using a template or template directory
-  copilot-chatmode [options]  DEPRECATED (use init-ai): Augment a git repository with a CALM VSCode chatmode for AI assistance
   init-ai [options]           Augment a git repository with AI assistance for CALM
   help [command]              display help for command
   ```

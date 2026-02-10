@@ -1,11 +1,11 @@
 # Day 2: Create Your First Node
 
 ## Overview
-Use the CALM chatmode you configured on Day 1 to create your first architecture file with AI assistance.
+Use the CALM agent you configured on Day 1 to create your first architecture file with AI assistance.
 
 ## Objective and Rationale
-- **Objective:** Create a valid CALM architecture JSON file containing a single node using GitHub Copilot and the CALM chatmode
-- **Rationale:** Learn to leverage AI for architecture authoring. The chatmode you installed provides Copilot with deep CALM schema knowledge, making it an expert assistant. This teaches both CALM concepts AND effective AI-powered workflows.
+- **Objective:** Create a valid CALM architecture JSON file containing a single node using GitHub Copilot and the CALM agent
+- **Rationale:** Learn to leverage AI for architecture authoring. The agent you installed provides Copilot with deep CALM schema knowledge, making it an expert assistant. This teaches both CALM concepts AND effective AI-powered workflows.
 
 ## Requirements
 
@@ -24,15 +24,15 @@ A **node** in CALM represents a distinct architectural component. CALM provides 
 
 **Custom node types:** You can define your own node types (e.g., "message-queue", "cache", "api-gateway") to better represent components specific to your architecture.
 
-### 2. Open the CALM Chatmode in VSCode
+### 2. Open the CALM Agent in VSCode
 
 1. Open your `advent-of-calm-2025` repository in VSCode
 2. Open the Copilot Chat panel:
    - **Windows/Linux**: `Ctrl+Alt+I` or click the chat icon in the sidebar
    - **Mac**: `Cmd+Shift+I` or click the chat icon in the sidebar
-3. **Select the CALM chatmode** to maintain context across multiple prompts:
-   - Click the chatmode selector dropdown in the chat panel (it shows "General Purpose" by default)
-   - Select **"CALM"** from the list of available chatmodes
+3. **Select the CALM agent** to maintain context across multiple prompts:
+   - Click the agent selector dropdown in the chat panel (it shows "Agent" by default)
+   - Select **"CALM"** from the list of available agents
    - The chat panel will now show "CALM" as the active mode
    - This keeps you in CALM mode for all subsequent prompts in this conversation
 
@@ -133,8 +133,8 @@ git tag | grep -q "day-2"
 - [GitHub Copilot Chat Documentation](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide)
 
 ## Tips
-- The chatmode makes Copilot a CALM expert - use it liberally!
-- **Remember to select the CALM chatmode** from the dropdown to maintain conversation context across multiple prompts
+- The agent makes Copilot a CALM expert - use it liberally!
+- **Remember to select the CALM agent** from the dropdown to maintain conversation context across multiple prompts
 - If you don't have Copilot access, you can manually create the file following this structure:
   ```json
   {
@@ -151,13 +151,13 @@ git tag | grep -q "day-2"
   }
   ```
 - Ask Copilot follow-up questions if you don't understand something
-- Use the CALM chatmode selector to stay in CALM mode across all your prompts
+- Use the CALM agent selector to stay in CALM mode across all your prompts
 
 ## Troubleshooting
 
-**"I don't see CALM in the chatmode list"**
-- Make sure you ran `calm copilot-chatmode -d .` on Day 1
-- Check that `.github/chatmodes/CALM.chatmode.md` exists
+**"I don't see CALM in the agent list"**
+- Make sure you ran `calm init-ai -p copilot -d .` on Day 1
+- Check that `.github/agents/CALM.agent.md` exists
 - Restart VSCode and try again
 
 **"Copilot generated an invalid file"**
@@ -167,7 +167,7 @@ git tag | grep -q "day-2"
 
 **"I don't have GitHub Copilot"**
 - You can manually create the file using the example structure above
-- The chatmode file itself is good documentation you can reference
+- The agent file itself is good documentation you can reference
 - Consider this a prompt for what you need to create
 
 ## Next Steps

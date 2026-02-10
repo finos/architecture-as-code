@@ -74,12 +74,12 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
   "description": string,
   
   // Directory where AI assistant looks for custom prompts
-  // Examples: ".github/chatmodes" (Copilot), ".kiro" (Kiro)
+  // Examples: ".github/agents" (Copilot), ".kiro" (Kiro)
   "topLevelDirectory": string,
   
   // Filename for the main prompt file (may include subdirectory)
   // This file is located within the context of "topLevelDirectory"
-  // Examples: "CALM.chatmode.md", "steering/CALM.chatmode.md"
+  // Examples: "CALM.agent.md", "steering/CALM.chatmode.md"
   "topLevelPromptFileName": string,
   
   // Delimiter placed before skill prompt references in templates
@@ -105,8 +105,8 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
 | Property | Description | Example Values |
 |----------|-------------|----------------|
 | `description` | Short description for display/README | `"Github Copilot integrated with FINOS CALM"` |
-| `topLevelDirectory` | Where provider expects custom prompts | `.github/chatmodes`, `.kiro` |
-| `topLevelPromptFileName` | Name of generated prompt file | `CALM.chatmode.md`, `steering/CALM.chatmode.md` |
+| `topLevelDirectory` | Where provider expects custom prompts | `.github/agents`, `.kiro` |
+| `topLevelPromptFileName` | Name of generated prompt file | `CALM.agent.md`, `steering/CALM.chatmode.md` |
 | `skillPrefix` | Opening delimiter for skill references | `` ` ``, `#[[` |
 | `skillSuffix` | Closing delimiter for skill references | `` ` ``, `]]` |
 | `frontmatter` | YAML metadata for the provider | Model, tools, inclusion rules |
@@ -117,8 +117,8 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
 ```json
 {
     "description": "Github Copilot integrated with FINOS CALM",
-    "topLevelDirectory": ".github/chatmodes",
-    "topLevelPromptFileName": "CALM.chatmode.md",
+    "topLevelDirectory": ".github/agents",
+    "topLevelPromptFileName": "CALM.agent.md",
     "skillPrefix": "`",
     "skillSuffix": "`",
     "frontmatter": "---\ndescription: An AI Assistant for FINOS CALM development.\ntools: ['codebase', 'editFiles', 'fetch', 'runInTerminal']\nmodel: Claude Sonnet 4.5\n---",
@@ -141,7 +141,7 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
 **GitHub Copilot specifics:**
 - Uses backticks (`` ` ``) to reference skill files
 - Frontmatter specifies Claude Sonnet 4.5 model and available tools
-- Prompts placed in `.github/chatmodes/` directory
+- Prompts placed in `.github/agents/` directory
 - Skill prompts referenced as `` `calm-prompts/architecture-creation.md` ``
 
 ### Example: AWS Kiro/Q Configuration (`kiro.json`)

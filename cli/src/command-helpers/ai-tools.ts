@@ -60,25 +60,25 @@ export async function setupAiTools(provider: string, targetDirectory: string, ve
         logger.info(`AI assistant top level directory: ${aiConfig.topLevelDirectory}`);
 
         // Create AI Assistant top level directory if it doesn't exist
-        const chatmodesDir = join(resolvedPath, aiConfig.topLevelDirectory);
-        await mkdir(chatmodesDir, { recursive: true });
+        const assistantDir = join(resolvedPath, aiConfig.topLevelDirectory);
+        await mkdir(assistantDir, { recursive: true });
         logger.debug(`Created ${aiConfig.topLevelDirectory} directory following AI Assistant ${provider} conventions`);
 
-        // Create chatmode configuration
+        // Create agent configuration
         const aiTemplatePath = join(calmAIPath, 'templates', 'CALM.chatmode_template.md');
         logger.debug(`Using AI assistant template: ${aiTemplatePath}`);
 
-        // form top level prompt file name in the context of the chatmodes directory
-        const aiChatPromptFile = join(chatmodesDir, aiConfig.topLevelPromptFileName);
-        logger.debug(`AI assistant top level AI Chat Prompt file: ${aiChatPromptFile}`);
+        // form top level prompt file name in the context of the agents directory
+        const aiAgentFile = join(assistantDir, aiConfig.topLevelPromptFileName);
+        logger.debug(`AI assistant top level AI Agent file: ${aiAgentFile}`);
         logger.debug(`AI assistant values path: ${valuesPath}`);
-        await createChatmodeConfig(aiChatPromptFile, aiTemplatePath, valuesPath, logger);
+        await createAgentConfig(aiAgentFile, aiTemplatePath, valuesPath, logger);
 
         // Create tool prompt files
-        await createToolPrompts(chatmodesDir, logger);
+        await createToolPrompts(assistantDir, logger);
 
         logger.info('✅ CALM AI tools setup completed successfully!');
-        logger.info('🚀 To use: Open this repository in with your IDE and start a chat with the CALM chatmode');
+        logger.info('🚀 To use: Open this repository in your IDE and start a chat with the CALM agent');
         logger.info(`📁 Files created in ${aiConfig.topLevelDirectory} directory following ${provider} AI Assistant conventions`);
 
     } catch (error) {
@@ -129,9 +129,8 @@ async function validateBundledResources(logger: Logger): Promise<void> {
 }
 
 
-async function createChatmodeConfig(chatmodeFile: string, aiTemplatePath: string, valuesPath: string, logger: Logger): Promise<void> {
-    // const chatmodeFile = join(aiChatPromptDirectory, 'CALM.chatmode.md');
-    logger.info(`Creating enhanced chatmode config at: ${chatmodeFile}`);
+async function createAgentConfig(agentFile: string, aiTemplatePath: string, valuesPath: string, logger: Logger): Promise<void> {
+    logger.info(`Creating enhanced agent config at: ${agentFile}`);
 
     try {
         logger.debug(`Using AI template path: ${aiTemplatePath}`);
@@ -158,53 +157,53 @@ async function createChatmodeConfig(chatmodeFile: string, aiTemplatePath: string
 
 
         // Ensure directory exists before writing
-        await mkdir(dirname(chatmodeFile), { recursive: true });
+        await mkdir(dirname(agentFile), { recursive: true });
 
-        // Write the compiled chatmode configuration to file
-        await writeFile(chatmodeFile, customAiAssistantPrompt, 'utf-8');
-        logger.debug(`Wrote chatmode configuration to: ${chatmodeFile}`);
+        // Write the compiled agent configuration to file
+        await writeFile(agentFile, customAiAssistantPrompt, 'utf-8');
+        logger.debug(`Wrote agent configuration to: ${agentFile}`);
 
 
-        // Get the bundled chatmode config file
-        const chatmodeContent = await readFile(chatmodeFile, 'utf8');
+        // Get the bundled agent config file
+        const agentContent = await readFile(agentFile, 'utf8');
 
         // Validate content quality
-        if (!chatmodeContent.trim()) {
-            throw new Error('Bundled chatmode file is empty');
+        if (!agentContent.trim()) {
+            throw new Error('Bundled agent file is empty');
         }
 
-        const MIN_CHATMODE_CONTENT_LENGTH = 500; // Minimum acceptable length for chatmode content
+        const MIN_AGENT_CONTENT_LENGTH = 500; // Minimum acceptable length for agent content
 
         if (
-            !chatmodeContent.includes('CALM') ||
-            chatmodeContent.length < MIN_CHATMODE_CONTENT_LENGTH
+            !agentContent.includes('CALM') ||
+            agentContent.length < MIN_AGENT_CONTENT_LENGTH
         ) {
             logger.warn(
-                `Bundled chatmode file appears incomplete or corrupted (length: ${chatmodeContent.length} < ${MIN_CHATMODE_CONTENT_LENGTH})`
+                `Bundled agent file appears incomplete or corrupted (length: ${agentContent.length} < ${MIN_AGENT_CONTENT_LENGTH})`
             );
         }
 
-        logger.info('✅ Created CALM chatmode configuration from bundled resource');
+        logger.info('✅ Created configuration from bundled resource');
     } catch (error) {
-        logger.error(`❌  Could not load bundled chatmode config: ${error}`);
-        throw new Error(`Chatmode configuration setup failed: ${error}`);
+        logger.error(`❌  Could not load bundled agent config: ${error}`);
+        throw new Error(`Agent configuration setup failed: ${error}`);
     }
 
     // Verify the file was created successfully
     try {
-        const createdStat = await stat(chatmodeFile);
+        const createdStat = await stat(agentFile);
         if (createdStat.size === 0) {
-            throw new Error('Created chatmode file is empty');
+            throw new Error('Created agent file is empty');
         }
     } catch (verifyError) {
-        logger.error(`❌ Failed to verify chatmode file creation: ${verifyError}`);
-        throw new Error(`Chatmode configuration verification failed: ${verifyError}`);
+        logger.error(`❌ Failed to verify agent file creation: ${verifyError}`);
+        throw new Error(`Agent configuration verification failed: ${verifyError}`);
     }
 }
 
 
-async function createToolPrompts(chatmodesDir: string, logger: Logger): Promise<void> {
-    const promptsDir = join(chatmodesDir, 'calm-prompts');
+async function createToolPrompts(assistantDir: string, logger: Logger): Promise<void> {
+    const promptsDir = join(assistantDir, 'calm-prompts');
     await mkdir(promptsDir, { recursive: true });
     logger.info('📁 Created calm-prompts directory');
 
