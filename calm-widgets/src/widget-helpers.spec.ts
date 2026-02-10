@@ -89,6 +89,35 @@ describe('Widget Helpers', () => {
         });
     });
 
+    describe('mermaidInitConfig helper', () => {
+        it('returns elk layout config when layoutEngine is "elk"', () => {
+            const result = helpers.mermaidInitConfig('elk');
+            expect(result).toBe('%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%');
+        });
+
+        it('returns dagre layout config when layoutEngine is "dagre"', () => {
+            const result = helpers.mermaidInitConfig('dagre');
+            expect(result).toBe('%%{init: {"layout": "dagre", "flowchart": {"htmlLabels": false}}}%%');
+        });
+
+        it('defaults to elk layout for invalid string values', () => {
+            const result = helpers.mermaidInitConfig('invalid');
+            expect(result).toBe('%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%');
+        });
+
+        it('defaults to elk layout for non-string inputs', () => {
+            expect(helpers.mermaidInitConfig(123)).toBe('%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%');
+            expect(helpers.mermaidInitConfig(null)).toBe('%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%');
+            expect(helpers.mermaidInitConfig(undefined)).toBe('%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%');
+            expect(helpers.mermaidInitConfig({})).toBe('%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%');
+        });
+
+        it('defaults to elk layout for empty string', () => {
+            const result = helpers.mermaidInitConfig('');
+            expect(result).toBe('%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%');
+        });
+    });
+
     describe('mermaidId helper', () => {
         it('returns sanitized identifiers for Mermaid', () => {
             expect(helpers.mermaidId('my-node')).toBe('my-node');

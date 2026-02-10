@@ -202,7 +202,7 @@
     "dependencies": {
         "@finos/calm-models": "file:../../calm-models",
         "@finos/calm-shared": "file:../../shared",
-        "@mermaid-js/layout-elk": "^0.2.0",
+        "@mermaid-js/layout-elk": "^0.1.9",
         "jsdom": "^22.1.0",
         "lodash": "^4.17.23",
         "markdown-it": "^13.0.1",
