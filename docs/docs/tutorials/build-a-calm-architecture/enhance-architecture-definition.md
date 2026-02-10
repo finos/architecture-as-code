@@ -304,17 +304,17 @@ Perfect! Now I can show you the proposed changes. Here's what will be added to e
 ## Example of Changes
 
 **Before** (e.g., Web GUI node):
-```json
+json
 {
   "unique-id": "web-gui",
   "node-type": "system",
   "name": "Web GUI",
   "description": "Browser-based graphical user interface..."
 }
-```
+
 
 **After** (Web GUI node):
-```json
+json
 {
   "unique-id": "web-gui",
   "node-type": "system",
@@ -326,10 +326,10 @@ Perfect! Now I can show you the proposed changes. Here's what will be added to e
     }
   ]
 }
-```
+
 
 **User Directory** (PII classification):
-```json
+json
 {
   "unique-id": "user-directory",
   "node-type": "system",
@@ -341,7 +341,7 @@ Perfect! Now I can show you the proposed changes. Here's what will be added to e
     }
   ]
 }
-```
+
 
 ---
 

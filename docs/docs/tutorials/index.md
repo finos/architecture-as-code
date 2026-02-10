@@ -92,7 +92,7 @@ Before you begin, make sure you have:
 - **Git** installed
 - **Node.js** (20+) and npm installed
 - **VSCode** editor (version 1.96+)
-- **GitHub Copilot** access (required)
+- **CALM AI Assistant** Copilot, Claude or KIRO AI Assistant is enabled
 - **calm cli** installed
 
 ## Skills You'll Acquire

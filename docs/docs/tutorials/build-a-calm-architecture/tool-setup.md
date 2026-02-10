@@ -25,11 +25,14 @@ To further enhance your CALM modeling experience, install the FINOS CALM Tools e
 
 The extension provides syntax highlighting, validation, and additional CALM modeling features directly in the VSCode editor.
 
+**Note to the Reader**: 
+- The CALM Tools Extension is not availble in the KIRO IDE.
+
 ---
 
 ## Enabling GitHub Copilot AI Support for CALM
 
-To enable AI-powered assistance for CALM architecture modeling in VS Code using GitHub Copilot, follow these steps:
+For purposes of this tutorial we are using VS Code with GitHub Copilot, follow these steps:
 
 **Run the following command in your project directory:**
    ```sh
@@ -40,8 +43,9 @@ To enable AI-powered assistance for CALM architecture modeling in VS Code using 
 For more details, see the CALM documentation or run `calm init-ai --help`.
 
 **Note to the Reader**: 
-- Large Language Models (LLM), which underly CALM's AI Support, are inherently non-deterministic.  Running the same prompt may produce slightly different results.
-- Given LLM capabilities, the prompts shown in the tutorial are not prescriptive and reusable with different AI Assistants integrated with CALM.  The reader is encouraged to experiment with alternative wordings to see what works best for the particular AI Assistant being used.  
+- This tutorial can be used with other CALM supported AI Assistants. 
+- Large Language Models (LLM), which underly CALM's AI Support, are inherently non-deterministic.  Running the same prompt may produce slightly different results, such as different but similar names, different wording in descriptions.
+- Given LLM capabilities, the prompts shown in the tutorial are not prescriptive and can be reused with different AI Assistants integrated with CALM.  The reader is encouraged to experiment with alternative wordings to see what works best for the particular AI Assistant being used.  
 - Responses from the LLM should be viewed as suggestions and must be reviewed by the architect for accuracy.  The architect should revise responses to reflect their organization's objectives and standards.
 - CALM AI Support is an evolving function and capabilities may change in the future.
 
