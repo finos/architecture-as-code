@@ -4,6 +4,7 @@ export type IncludeContainers = 'none' | 'parents' | 'all';
 export type IncludeChildren = 'none' | 'direct' | 'all';
 export type Edges = 'connected' | 'seeded' | 'all' | 'none';
 export type EdgeLabels = 'description' | 'none';
+export type LayoutEngine = 'dagre' | 'elk';
 
 /** -----------------------------
  * Theme Types
@@ -62,6 +63,7 @@ export interface BlockArchOptions {
     ['node-type-map']?: string;
     ['theme']?: string;
     ['theme-colors']?: string | ThemeColors;
+    ['layout-engine']?: LayoutEngine;
 }
 
 /** -----------------------------
@@ -84,6 +86,7 @@ export type BlockArchVM = {
     linkMap?: Record<string, string>;
     nodeTypeMap?: Record<string, string>;
     themeColors?: ThemeColors;
+    layoutEngine?: LayoutEngine;
     warnings?: string[];
 };
 
@@ -111,6 +114,7 @@ export type NormalizedOptions = {
     nodeTypeMap?: Record<string, string>;
     theme: string;
     themeColors?: ThemeColors;
+    layoutEngine: LayoutEngine;
 };
 
 

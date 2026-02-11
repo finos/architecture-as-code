@@ -10,7 +10,7 @@ config:
     edgeLabelBackground: '#585858'
     lineColor: '#ffffff'
 ---
-%%{init: {"flowchart": {"htmlLabels": false}}}%%
+%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#434343,stroke:#9cb4ff,stroke-dasharray: 5 4,stroke-width:1px,color:#ffffff;
 classDef node fill:#2f2f2f,stroke:#007dff,stroke-width:1px,color:#ffffff;
