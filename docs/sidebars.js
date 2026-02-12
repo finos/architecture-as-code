@@ -78,7 +78,7 @@ const sidebars = {
         },
         {
           type: 'category',
-          label: '🛠️ Build a Calm Architecture',
+          label: '🛠️ Practitioner',
           link: {type: 'doc', id: 'tutorials/build-a-calm-architecture/build-a-calm-architecture'},
           items: [
             'tutorials/build-a-calm-architecture/tool-setup',

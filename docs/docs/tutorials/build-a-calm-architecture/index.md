@@ -1,6 +1,6 @@
 ---
 id: build-a-calm-architecture
-title: 🛠️ Build a CALM Architecture
+title: 🛠️ Build A CALM Architecture
 sidebar_position: 2
 ---
 
