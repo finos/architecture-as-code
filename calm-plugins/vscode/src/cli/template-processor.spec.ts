@@ -36,15 +36,15 @@ describe('TemplateProcessor', () => {
         it('should return content unchanged when theme is "auto"', () => {
             const processor = new TemplateProcessor()
             const content = '{{block-architecture}}'
-            const result = processor.processTemplateForTheme(content, 'auto')
+            const result = processor.processTemplateForTheme(content, 'auto', 'elk')
             expect(result).toBe('{{block-architecture}}')
         })
 
         it('should inject widget-options frontmatter for light theme on content without frontmatter', () => {
             const processor = new TemplateProcessor()
             const content = '{{block-architecture}}'
-            const result = processor.processTemplateForTheme(content, 'light')
-            
+            const result = processor.processTemplateForTheme(content, 'light', 'elk')
+
             expect(result).toContain('---')
             expect(result).toContain('widget-options:')
             expect(result).toContain('block-architecture:')
@@ -56,8 +56,8 @@ describe('TemplateProcessor', () => {
         it('should inject widget-options frontmatter for dark theme on content without frontmatter', () => {
             const processor = new TemplateProcessor()
             const content = '# My Template\n{{block-architecture}}'
-            const result = processor.processTemplateForTheme(content, 'dark')
-            
+            const result = processor.processTemplateForTheme(content, 'dark', 'elk')
+
             expect(result).toContain('---')
             expect(result).toContain('widget-options:')
             expect(result).toContain('block-architecture:')
@@ -74,9 +74,9 @@ title: My Architecture
 description: A cool architecture
 ---
 {{block-architecture}}`
-            
-            const result = processor.processTemplateForTheme(content, 'light')
-            
+
+            const result = processor.processTemplateForTheme(content, 'light', 'elk')
+
             // Should have widget-options injected
             expect(result).toContain('widget-options:')
             expect(result).toContain('theme: light')
@@ -99,9 +99,9 @@ widget-options:
         columns: 3
 ---
 {{block-architecture}}`
-            
-            const result = processor.processTemplateForTheme(content, 'dark')
-            
+
+            const result = processor.processTemplateForTheme(content, 'dark', 'elk')
+
             // Should have both widget-options
             expect(result).toContain('widget-options:')
             expect(result).toContain('block-architecture:')
@@ -114,8 +114,8 @@ widget-options:
 
         it('should handle empty content', () => {
             const processor = new TemplateProcessor()
-            const result = processor.processTemplateForTheme('', 'light')
-            
+            const result = processor.processTemplateForTheme('', 'light', 'elk')
+
             expect(result).toContain('---')
             expect(result).toContain('widget-options:')
             expect(result).toContain('theme: light')
@@ -132,9 +132,9 @@ This is my architecture.
 ## Details
 
 More information here.`
-            
-            const result = processor.processTemplateForTheme(content, 'light')
-            
+
+            const result = processor.processTemplateForTheme(content, 'light', 'elk')
+
             expect(result).toContain('widget-options:')
             expect(result).toContain('theme: light')
             expect(result).toContain('# Architecture Diagram')

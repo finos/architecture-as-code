@@ -45,5 +45,6 @@ node_modules/
 coverage/
 /cli/test/template-bundles/
 .github/chatmodes
+.github/agents
 shared/test-output/
 .calm-workspace/

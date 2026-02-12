@@ -20,6 +20,12 @@ export function registerGlobalTemplateHelpers(): Record<string, (...args: unknow
             }
             return '';
         },
+        mermaidInitConfig: (layoutEngine: unknown): string => {
+            const layout = typeof layoutEngine === 'string' && ['dagre', 'elk'].includes(layoutEngine) 
+                ? layoutEngine 
+                : 'elk';
+            return `%%{init: {"layout": "${layout}", "flowchart": {"htmlLabels": false}}}%%`;
+        },
         themeClassDefs: (themeColors: unknown, renderNodeTypeShapes: unknown): string => {
             if (
                 typeof themeColors === 'object' &&

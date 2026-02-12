@@ -108,9 +108,9 @@ describe('CLI Integration Tests', () => {
             // Define expected paths based on provider
             const expectedPaths: Record<string, { topLevelDir: string; mainPromptFile: string; skillPromptsDir: string }> = {
                 copilot: {
-                    topLevelDir: '.github/chatmodes',
-                    mainPromptFile: '.github/chatmodes/CALM.chatmode.md',
-                    skillPromptsDir: '.github/chatmodes/calm-prompts',
+                    topLevelDir: '.github/agents',
+                    mainPromptFile: '.github/agents/CALM.agent.md',
+                    skillPromptsDir: '.github/agents/calm-prompts',
                 },
                 kiro: {
                     topLevelDir: '.kiro',

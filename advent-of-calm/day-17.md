@@ -336,7 +336,7 @@ git tag | grep -q "day-17"
 - Test both generation AND validation to ensure the pattern works
 
 ## Trouble Shooting
-- Remember AI can make mistakes, if for some reason your pattern won't generate a valid architecture ask CALM Chatmode to figure out why not, this prompt may be helpful.
+- Remember AI can make mistakes, if for some reason your pattern won't generate a valid architecture ask CALM Agent to figure out why not, this prompt may be helpful.
 
 ```text
 My pattern doesn't generate a valid architecture when I run the generate command, look at this valid pattern - https://raw.githubusercontent.com/finos/architecture-as-code/refs/heads/main/conferences/osff-ln-2025/workshop/conference-signup.pattern.json - identify the problem. 
