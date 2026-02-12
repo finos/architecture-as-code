@@ -12,22 +12,7 @@
                     "description": "Unique identifier for this decorator"
                 },
                 "type": {
-                    "anyOf": [
-                        {
-                            "enum": [
-                                "guide",
-                                "business",
-                                "threat-model",
-                                "security",
-                                "deployment",
-                                "operational",
-                                "observability"
-                            ]
-                        },
-                        {
-                            "type": "string"
-                        }
-                    ],
+                    "type": "string",
                     "description": "Type of decorator - predefined types or custom string"
                 },
                 "applies-to": {
