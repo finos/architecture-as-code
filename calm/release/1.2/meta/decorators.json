@@ -50,12 +50,6 @@
                 "data"
             ],
             "additionalProperties": false
-        },
-        "decorators": {
-            "type": "array",
-            "items": {
-                "$ref": "#/defs/decorator"
-            }
         }
     }
 }
