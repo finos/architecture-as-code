@@ -61,255 +61,259 @@ The validation confirms no errors or warnings.
 identify candidate CALM nodes with type for an event driven architecture for the provided 
 business design.  Use only information found in the business design provided.  List each 
 node with its type and a short description.
-## Business Design
+## Core Business Functions 
 
-### Core Business Functions
+### Trading Operations
 
-**Trading Operations:**
-- **Order Submission**: Users submit buy and sell orders for securities with specified quantities
-- **Account Selection**: Users select which trading account to execute trades against
-- **Position Management**: Track current holdings and quantities for each security in an account
-- **Trade History**: Maintain complete audit trail of all executed trades
+**Order Submission.** Users submit buy and sell orders for securities, specifying quantities 
+and other required trade details. This capability forms the primary interaction between users 
+and the trading system.
 
-**Account Administration:**
-- **Account Management**: Create and update trading accounts
-- **User Association**: Link multiple users to accounts for access and entitlements
-- **Account Inquiry**: View account details and associated users
+**Account Selection.** Before executing trades, users select the trading account against which 
+the transaction will be executed, ensuring that orders are associated with the correct portfolio 
+and entitlements.
 
-**Reference Information:**
-- **Security Master**: Maintains list of tradeable securities (stocks) with company information
-- **User Directory**: Stores user profiles and contact information
-- **Trade Data Store**: Central repository of all trading accounts
+**Position Management.** The system tracks current holdings and quantities for each security 
+within an account, maintaining an up-to-date view of positions as trades are executed and settled.
 
-**Real-time Information:**
-- **Trade Updates**: Users receive immediate notifications when trades execute
-- **Position Updates**: Account positions refresh automatically as trades settle
-- **Trade Status**: Monitor trade lifecycle from submission through execution
+**Trade History.** A complete audit trail of all executed trades is maintained, allowing users 
+and administrators to review historical activity for reporting, compliance, and analysis purposes.
 
-### Business Workflows
+---
 
-**1: Load List of Accounts**
-- **Actors**: Web GUI, Account Service, Trade Data Store.
-- **Steps**:
-  1. Web GUI asks Account Service to load the list of accounts.
-  2. Account Service queries the Trade Data Store for all accounts.
-  3. Trade Data Store returns the result set to Account Service.
-  4. Account Service returns the list of accounts to Web GUI.
+### Account Administration
 
-**2: Bootstrapping the Trade and Position Blotter**
-- **Actors**: Web GUI, Position Service, Trade Feed, Trade Data Store.
-- **Steps**:
-  1. Web GUI requests trades and positions for a selected account from Position Service.
-  2. Position Service queries the Trade Data Store for that account's trades and positions.
-  3. Position Service returns the initial trades and positions to Web GUI.
-  4. Web GUI subscribes to Trade Feed for account-specific trade and position updates.
-  5. Live Updates publishes ongoing trade and position updates to Web GUI.
+**Account Management.** The platform supports creating new trading accounts and updating 
+existing accounts, allowing administrators to manage account lifecycle and configuration.
 
-**3: Submitting a Trade Ticket**
-- **Actors**: Web GUI, Security Master, Trade Service, Account Service, Trade Feed.
-- **Steps**:
-  1. Web GUI requests the ticker list from the Security Master; Security Master returns it.
-  2. Web GUI submits a trade (account, ticker, side, quantity) to Trade Service.
-  3. Trade Service validates the ticker with the Security Master.
-  4. Trade Service validates the account with Account Service.
-  5. Trade Service publishes a new trade event to Trade Feed (trades/new).
-  6. Trade Service returns a trade submission completion response to Web GUI.
+**User Association.** Multiple users can be linked to accounts to provide appropriate 
+access and entitlements, enabling collaboration and shared account management.
 
-**4: Trade Processing**
-- **Actors**: Trade Feed, Trade Processor, Trade Data Store, Web GUI.
-- **Steps**:
-  1. Trade Feed delivers a new trade event to Trade Processor.
-  2. Trade Processor inserts the new trade into the Trade Data Store.
-  3. Trade Processor publishes a new account-specific trade event Trade Feed.
-  4. Trade Feed pushes the "new trade" event to Web GUI.
-  5. Trade Processor marks the trade as executed in the Trade Data Store.
-  6. Trade Processor inserts or updates the corresponding position (account, ticker, quantity) in the Trade Data Store.
-  7. Trade Processor publishes trade update events and a position event via Trade Feed.
-  8. Trade Feed forwards trade updates and position updates to Web GUI.
+**Account Inquiry.** Users can view account details and see which users are associated 
+with each account, providing transparency into ownership and permissions.
 
-**5: Add/Update Account**
-- **Actors**: Web GUI, Account Service, Trade Data Store.
-- **Steps**:
-  1. Web GUI sends an account create or update request to Account Service.
-  2. Account Service inserts or updates the account row in the Trade Data Store.
-  3. Account Service returns success or failure to Web GUI.
+---
 
-**6: Add/Update Users to Account**
-- **Actors**: Web GUI, Account Service, Trade Data Store, People Service, User Directory.
-- **Steps**:
-  1. Web GUI asks Account Service for the current list of people associated with an account.
-  2. Account Service queries the Trade Data Store for account-user mappings and returns them.
-  3. Web GUI asks the People Service to search for a user by name.
-  4. People Service queries User Directory and returns matching people records to People Service.
-  5. People Service returns search results to Web GUI.
-  6. Web GUI requests Account Service to add the selected user to the account.
-  7. Account Service validates the username via the People Service.
-  8. Account Service inserts or updates the account–user mapping in the Trade Data Store.
-  9. Account Service returns success or failure to Web GUI.
+### Reference Information
 
-**7: Security Master Bootstrap**
-- **Actors**: Security Master, CSV file, Web GUI.
-- **Steps**:
-  1. On startup, the Security Master loads the ticker CSV file.
-  2. The CSV file supplies the ticker list to the Security Master.
-  3. When Web GUI requests the ticker list, the Security Master returns it.
+**Security Master.** The system maintains a list of tradeable securities, including stock 
+tickers and associated company information, ensuring that trading operations reference 
+consistent and validated instrument data.
 
-### Business Entities
+**User Directory.** User profiles and contact information are stored in a centralized directory, 
+supporting authentication, search, and account association workflows.
 
-**Core Domain Objects:**
-- **Account**: Container for trades and positions with unique identifier
-- **Trade**: Record of a buy or sell transaction with security, quantity, price, and timestamp
-- **Position**: Current aggregate holding in a security within an account
-- **Security**: Tradeable instrument (stock) with ticker symbol and company name
-- **User**: Person who can be associated with accounts for trading access
+**Trade Data Store.** A central repository stores trading accounts, trades, and related data, 
+providing persistent storage and enabling queries by downstream services.
 
-**Business Relationships:**
-- Users have many-to-many relationships with accounts
-- Accounts contain many trades and positions
-- Each trade references one account and one security
-- Positions aggregate trades for the same security within an account
+---
 
-### Business Value
-The application demonstrates essential trading operations including order entry, execution, settlement, and position keeping - core functions required by any trading platform in financial services. It provides a complete view of how accounts, users, trades, and positions interrelate throughout the trading lifecycle.
+### Real-time Information
+
+**Trade Updates.** Users receive immediate notifications when trades execute, allowing them 
+to monitor activity without manual refresh.
+
+**Position Updates.** Account positions automatically refresh as trades settle, ensuring 
+that holdings reflect the most recent state.
+
+**Trade Status.** The system allows users to monitor the lifecycle of a trade from submission 
+through execution and settlement, providing transparency into processing stages.
+
+---
+
+## Business Workflows 
+
+### 1: Load List of Accounts
+
+In this workflow, the Web GUI requests the list of accounts from the Account Service. The Account Service 
+queries the Trade Data Store to retrieve all accounts, receives the result set, and then returns the 
+list to the Web GUI for display. 
+
+---
+
+### 2: Bootstrapping the Trade and Position Blotter
+
+To initialize the blotter, the Web GUI requests trades and positions for a selected account 
+from the Position Service. The Position Service queries the Trade Data Store and returns the 
+initial dataset. After initialization, the Web GUI subscribes to the Trade Feed so that live 
+trade and position updates are published and displayed in real time. 
+
+---
+
+### 3: Submitting a Trade Ticket
+
+When submitting a trade, the Web GUI first retrieves the list of valid tickers from the Security Master. 
+The user submits a trade request containing account, ticker, side, and quantity to the Trade Service. 
+The Trade Service validates the ticker with the Security Master and validates the account with the 
+Account Service. After validation, the Trade Service publishes a new trade event to the Trade Feed 
+and returns a completion response to the Web GUI. 
+
+---
+
+### 4: Trade Processing
+
+Trade processing begins when the Trade Feed delivers a new trade event to the Trade Processor. 
+The processor inserts the trade into the Trade Data Store and publishes an account-specific 
+trade event. The Web GUI receives this event through the Trade Feed. The Trade Processor 
+then marks the trade as executed, updates or inserts the corresponding position, and publishes 
+additional trade and position updates, which are forwarded to the Web GUI. 
+
+---
+
+### 5: Add or Update Account
+
+In this workflow, the Web GUI sends an account creation or update request to the Account Service. 
+The Account Service writes the new or updated account information to the Trade Data Store and 
+returns a success or failure response to the Web GUI. 
+
+---
+
+### 6: Add or Update Users to Account
+
+To associate users with an account, the Web GUI first retrieves the current list of 
+associated people from the Account Service, which queries the Trade Data Store. The GUI 
+then searches for users through the People Service, which queries the User Directory and 
+returns matching records. After a user is selected, the Web GUI requests that the 
+Account Service add the user to the account. The Account Service validates the user and 
+updates the account-user mapping in the Trade Data Store, returning a success or failure response. 
+
+---
+
+### 7: Security Master Bootstrap
+
+During startup, the Security Master loads a ticker list from a CSV file. This file 
+supplies the initial set of securities maintained by the service. When the Web GUI later 
+requests the ticker list, the Security Master returns the loaded data. 
+
+---
+
+## Business Entities
+
+### Core Domain Objects
+
+**Account.** An account is a container for trades and positions and is 
+uniquely identified so that transactions and holdings can be tracked accurately.
+
+**Trade.** A trade represents a buy or sell transaction and includes 
+details such as security, quantity, price, and timestamp.
+
+**Position.** A position represents the current aggregate holding of 
+a specific security within an account, calculated from executed trades.
+
+**Security.** A security is a tradeable instrument, such as a stock, 
+identified by a ticker symbol and associated company information.
+
+**User.** A user is a person who can be associated with accounts and granted trading access.
+
+---
+
+### Business Relationships
+
+Users and accounts have a many-to-many relationship, allowing multiple users 
+to access the same account and a user to be linked to multiple accounts. 
+Accounts contain many trades and positions, and each trade references exactly 
+one account and one security. Positions aggregate trades for the same 
+security within an account to provide a consolidated view of holdings. 
 ```
 
 **Response from AI Assitant**
 ```text
-Based on the event-driven architecture described in the business design, here are the candidate CALM nodes:
+Based on the business design, here are the candidate CALM nodes for this event-driven architecture:
 
-## User Interface Nodes
+## Application/Service Nodes
 
-**web-gui** (Type: `system`)
-- Browser-based graphical user interface for traders to submit orders, view positions, manage accounts, and receive real-time trade updates
+1. **web-gui** (Type: `service`)
+   - User-facing interface for trading operations, account management, and viewing positions
 
-## Service Nodes
+2. **trade-service** (Type: `service`)
+   - Handles trade submission, validates tickets against security master and account service
 
-**account-service** (Type: `service`)
-- Manages account creation, updates, and user associations; validates account data and queries account information from the data store
+3. **account-service** (Type: `service`)
+   - Manages account lifecycle, user associations, and account queries
 
-**trade-service** (Type: `service`)
-- Handles trade ticket submission; validates trades against security master and account service before publishing to the trade feed
+4. **position-service** (Type: `service`)
+   - Provides position and trade data for blotter initialization
 
-**position-service** (Type: `service`)
-- Provides initial bootstrap data for trades and positions when users select an account; queries historical data from the trade data store
+5. **people-service** (Type: `service`)
+   - Manages user search and validation against the user directory
 
-**people-service** (Type: `service`)
-- Searches for users by name and validates user information against the user directory for account associations
+6. **security-master** (Type: `service`)
+   - Maintains tradeable securities list, loads from CSV, validates tickers
 
-**security-master** (Type: `service`)
-- Maintains and serves the list of tradeable securities with ticker symbols and company information; bootstraps from CSV file on startup
-
-**trade-processor** (Type: `service`)
-- Asynchronous processor that consumes new trade events, persists trades to the data store, updates positions, and publishes account-specific trade and position events
-
-## Event Streaming Node
-
-**trade-feed** (Type: `service`)
-- Event-driven message broker that publishes and delivers trade events (new trades, trade updates, position updates) to subscribers including the web GUI and trade processor
+7. **trade-processor** (Type: `service`)
+   - Processes trade events, updates data store, publishes trade and position updates
 
 ## Data Store Nodes
 
-**trade-data-store** (Type: `datastore`)
-- Central persistent repository storing accounts, trades, positions, and account-user mappings
+8. **trade-data-store** (Type: `database`)
+   - Central repository for accounts, trades, positions, and account-user mappings
 
-**user-directory** (Type: `datastore`)
-- Repository of user profiles and contact information queried by people service
+9. **user-directory** (Type: `database`)
+   - Stores user profiles and contact information
 
-## External Data Source
+10. **ticker-csv-file** (Type: `data-store`)
+    - CSV file containing initial list of tradeable securities
 
-**ticker-csv-file** (Type: `system`)
-- Static CSV file containing the list of tradeable securities loaded by security master at startup
+## Event/Messaging Nodes
+
+11. **trade-feed** (Type: `message-broker`)
+    - Publishes and delivers real-time trade events, position updates, and trade status notifications
+
+## Actor Nodes
+
+12. **trader** (Type: `actor`)
+    - External user who submits orders, manages accounts, and monitors positions
+
+These nodes capture all the components mentioned in the business design that participate in the event-driven workflows described.
 ```
 
-## Review and revise the candidate list of CALM Nodes
+_Note_: Reviewing content is a guardrail to help ensure the AI Assistant does not stray from the architect intent.  
 
-After reviewing the proposed list of nodes, the architect determines a node representing the human trader is missing.  
+## Review candiate relationships defined in the business design
+
 
 **Prompt to AI Assistant**
 ```text
-add a node called "Trader" of type actor to the node inventory.  display the updated 
-node inventory.  I want to review and approve any changes.
+What relationships are found in the business design.
 ```
-_Note_: Reviewing and approving changes is a guardrail to help ensure the AI Assistant does not stray from the architect intent.  
+
 
 **Response from AI Assistant**
 ```text
-Here's the proposed addition to the node inventory:
+Based on the business design, here are the relationships identified:
 
-## Updated Node Inventory
+## Service-to-Service Relationships
 
-### Actor Nodes
+1. **web-gui → account-service** - Requests account lists, creates/updates accounts, manages user associations
+2. **web-gui → position-service** - Requests trades and positions for blotter initialization
+3. **web-gui → security-master** - Retrieves valid ticker lists for trade submission
+4. **web-gui → trade-service** - Submits trade requests
+5. **web-gui → people-service** - Searches for users to associate with accounts
+6. **trade-service → security-master** - Validates tickers during trade submission
+7. **trade-service → account-service** - Validates accounts during trade submission
+8. **people-service → user-directory** - Queries user profiles and contact information
+9. **account-service → trade-data-store** - Queries and writes account data, account-user mappings
+10. **position-service → trade-data-store** - Queries trades and positions
+11. **trade-processor → trade-data-store** - Inserts trades, updates positions
+12. **security-master → ticker-csv-file** - Loads initial ticker list during bootstrap
 
-**trader** (Type: `actor`)
-- Person who interacts with the trading system to submit orders, manage accounts, and monitor positions through the web GUI
+## Event-Driven Relationships
 
-### User Interface Nodes
+13. **trade-service → trade-feed** - Publishes new trade events after validation
+14. **trade-feed → trade-processor** - Delivers new trade events for processing
+15. **trade-processor → trade-feed** - Publishes account-specific trade events and position updates
+16. **trade-feed → web-gui** - Delivers real-time trade and position updates via subscription
 
-**web-gui** (Type: `system`)
-- Browser-based graphical user interface for traders to submit orders, view positions, manage accounts, and receive real-time trade updates
+## User Interaction Relationships
 
-### Service Nodes
+17. **trader → web-gui** - Users interact with the GUI to submit orders, manage accounts, view positions
 
-**account-service** (Type: `service`)
-- Manages account creation, updates, and user associations; validates account data and queries account information from the data store
-
-**trade-service** (Type: `service`)
-- Handles trade ticket submission; validates trades against security master and account service before publishing to the trade feed
-
-**position-service** (Type: `service`)
-- Provides initial bootstrap data for trades and positions when users select an account; queries historical data from the trade data store
-
-**people-service** (Type: `service`)
-- Searches for users by name and validates user information against the user directory for account associations
-
-**security-master** (Type: `service`)
-- Maintains and serves the list of tradeable securities with ticker symbols and company information; bootstraps from CSV file on startup
-
-**trade-processor** (Type: `service`)
-- Asynchronous processor that consumes new trade events, persists trades to the data store, updates positions, and publishes account-specific trade and position events
-
-### Event Streaming Node
-
-**trade-feed** (Type: `service`)
-- Event-driven message broker that publishes and delivers trade events (new trades, trade updates, position updates) to subscribers including the web GUI and trade processor
-
-### Data Store Nodes
-
-**trade-data-store** (Type: `datastore`)
-- Central persistent repository storing accounts, trades, positions, and account-user mappings
-
-**user-directory** (Type: `datastore`)
-- Repository of user profiles and contact information queried by people service
-
-### External Data Source
-
-**ticker-csv-file** (Type: `system`)
-- Static CSV file containing the list of tradeable securities loaded by security master at startup
-
----
-
-**Changes:** Added "trader" as an actor node to represent the human user who interacts with the system.
-
-Do you approve this addition?
+These relationships capture all the interactions described in the business workflows and core functions.
 
 ```
 
-**Prompt to AI Assistant**
-```text
-yes
-```
+_Note_: Reviewing content is a guardrail to help ensure the AI Assistant does not stray from the architect intent.  
 
-**Response from AI Assistant**
-```text
-The node inventory has been updated to include the "trader" actor node. The inventory now contains 12 nodes total:
-
-- 1 actor node (trader)
-- 1 user interface system (web-gui)
-- 6 service nodes (account-service, trade-service, position-service, people-service, security-master, trade-processor)
-- 1 event streaming service (trade-feed)
-- 2 datastore nodes (trade-data-store, user-directory)
-- 1 external data source system (ticker-csv-file)
-```
 
 ## Create the baseline node and relationship definitions for the CALM architecture
 
@@ -341,11 +345,33 @@ Perfect! Updated trading-system.architecture.json with:
 - 2 databases (trade-data-store, user-directory)
 - 2 systems (web-gui, ticker-csv-file)
 
-**18 Relationships:**
-- 1 interacts relationship (trader → web-gui)
-- 17 connects relationships showing data flows between components with appropriate protocols (HTTPS, JDBC, LDAP, AMQP, WebSocket)
+**18 Relationships:**Searched codebase for "CALM node creation examples unique-id name description node-type", 14 results
 
-The architecture validates successfully with no errors or warnings.
+Searched codebase for "CALM relationship creation examples unique-id relationship-type parties", 15 results
+
+Now I'll update the trading-system.architecture.json file with all the nodes and relationships identified from the business design. 
+
+Using "Replace String in File"
+
+Now I'll validate the updated architecture file: 
+
+Ran terminal command:  calm validate -a /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json -f pretty
+
+Perfect! I've successfully updated trading-system.architecture.json with:
+
+**12 Nodes:**
+- 1 actor (trader)
+- 1 webclient (web-gui)
+- 7 services (trade-service, account-service, position-service, people-service, security-master, trade-processor, trade-feed)
+- 1 database (trade-data-store)
+- 1 ldap (user-directory)
+- 1 data-asset (ticker-csv-file)
+
+**17 Relationships:**
+- 1 interacts relationship (trader → web-gui)
+- 16 connects relationships covering all service-to-service, service-to-data, and event-driven communication patterns
+
+The architecture has been validated successfully with no errors or warnings.
 
 Made changes.
 ```
@@ -394,36 +420,103 @@ list candidate CALM flows described in the business design.
 ```text
 Based on the business design, here are the candidate CALM flows:
 
-## Candidate Flows
+## Business Workflows
 
 1. **load-accounts-flow**
-   - Load the list of trading accounts for display in the UI
-   - Actors: Web GUI, Account Service, Trade Data Store
+   - Load List of Accounts workflow
+   - Web GUI → Account Service → Trade Data Store → return account list
 
 2. **bootstrap-blotter-flow**
-   - Bootstrap the trade and position blotter with historical data and subscribe to live updates
-   - Actors: Web GUI, Position Service, Trade Feed, Trade Data Store
+   - Bootstrapping the Trade and Position Blotter
+   - Web GUI requests initial data from Position Service → Trade Data Store, then subscribes to Trade Feed for live updates
 
 3. **submit-trade-flow**
-   - Submit a trade ticket with validation and event publishing
-   - Actors: Web GUI, Security Master, Trade Service, Account Service, Trade Feed
+   - Submitting a Trade Ticket
+   - Web GUI retrieves tickers from Security Master → User submits trade to Trade Service → validates with Security Master and Account Service → publishes to Trade Feed → returns response
 
 4. **process-trade-flow**
-   - Process new trade events, persist to storage, update positions, and publish updates
-   - Actors: Trade Feed, Trade Processor, Trade Data Store, Web GUI
+   - Trade Processing
+   - Trade Feed delivers event to Trade Processor → inserts into Trade Data Store → publishes trade event → Web GUI receives update → marks executed → updates position → publishes updates to Web GUI
 
 5. **manage-account-flow**
-   - Create or update trading account information
-   - Actors: Web GUI, Account Service, Trade Data Store
+   - Add or Update Account
+   - Web GUI sends account request to Account Service → writes to Trade Data Store → returns response
 
 6. **manage-account-users-flow**
-   - Add or update user associations to trading accounts
-   - Actors: Web GUI, Account Service, Trade Data Store, People Service, User Directory
+   - Add or Update Users to Account
+   - Web GUI retrieves users from Account Service → searches via People Service → User Directory → selects user → Account Service adds user to account → updates Trade Data Store
 
 7. **bootstrap-security-master-flow**
-   - Load the security master with ticker data from CSV file on startup
-   - Actors: Security Master, Ticker CSV File, Web GUI
+   - Security Master Bootstrap
+   - Security Master loads ticker list from CSV file → Web GUI requests ticker list → returns data
+
+These flows capture all seven business workflows described in the business design document.
 ```
+
+**Prompt to AI Assistant**
+```text
+list process flows with each transition listed out
+```
+
+**Response from AI Assistant**
+```text
+Here are the process flows with detailed transitions:
+
+## 1. load-accounts-flow
+1. **web-gui-account-service** (seq 1): Web GUI requests list of accounts from Account Service
+2. **account-service-trade-data-store** (seq 2): Account Service queries Trade Data Store for all accounts
+3. **account-service-trade-data-store** (seq 3, reverse): Trade Data Store returns account list to Account Service
+4. **web-gui-account-service** (seq 4, reverse): Account Service returns account list to Web GUI
+
+## 2. bootstrap-blotter-flow
+1. **web-gui-position-service** (seq 1): Web GUI requests trades and positions for selected account
+2. **position-service-trade-data-store** (seq 2): Position Service queries Trade Data Store
+3. **position-service-trade-data-store** (seq 3, reverse): Trade Data Store returns initial dataset
+4. **web-gui-position-service** (seq 4, reverse): Position Service returns data to Web GUI
+5. **trade-feed-web-gui** (seq 5): Web GUI subscribes to Trade Feed for live updates
+
+## 3. submit-trade-flow
+1. **web-gui-security-master** (seq 1): Web GUI retrieves list of valid tickers
+2. **web-gui-security-master** (seq 2, reverse): Security Master returns ticker list
+3. **web-gui-trade-service** (seq 3): User submits trade request (account, ticker, side, quantity)
+4. **trade-service-security-master** (seq 4): Trade Service validates ticker
+5. **trade-service-account-service** (seq 5): Trade Service validates account
+6. **trade-service-trade-feed** (seq 6): Trade Service publishes new trade event
+7. **web-gui-trade-service** (seq 7, reverse): Trade Service returns completion response
+
+## 4. process-trade-flow
+1. **trade-feed-trade-processor** (seq 1): Trade Feed delivers new trade event
+2. **trade-processor-trade-data-store** (seq 2): Trade Processor inserts trade
+3. **trade-processor-trade-feed** (seq 3): Trade Processor publishes account-specific trade event
+4. **trade-feed-web-gui** (seq 4): Trade Feed forwards event to Web GUI
+5. **trade-processor-trade-data-store** (seq 5): Trade Processor marks trade as executed and updates position
+6. **trade-processor-trade-feed** (seq 6): Trade Processor publishes trade and position updates
+7. **trade-feed-web-gui** (seq 7): Trade Feed forwards updates to Web GUI
+
+## 5. manage-account-flow
+1. **web-gui-account-service** (seq 1): Web GUI sends account creation/update request
+2. **account-service-trade-data-store** (seq 2): Account Service writes account information
+3. **web-gui-account-service** (seq 3, reverse): Account Service returns success/failure response
+
+## 6. manage-account-users-flow
+1. **web-gui-account-service** (seq 1): Web GUI retrieves current list of associated people
+2. **account-service-trade-data-store** (seq 2): Account Service queries Trade Data Store
+3. **web-gui-people-service** (seq 3): Web GUI searches for users
+4. **people-service-user-directory** (seq 4): People Service queries User Directory
+5. **people-service-user-directory** (seq 5, reverse): User Directory returns matching records
+6. **web-gui-people-service** (seq 6, reverse): People Service returns results to Web GUI
+7. **web-gui-account-service** (seq 7): Web GUI requests to add user to account
+8. **account-service-trade-data-store** (seq 8): Account Service validates user and updates mapping
+9. **web-gui-account-service** (seq 9, reverse): Account Service returns success/failure response
+
+## 7. bootstrap-security-master-flow
+1. **security-master-ticker-csv-file** (seq 1): Security Master loads ticker list from CSV during startup
+2. **web-gui-security-master** (seq 2): Web GUI requests ticker list
+3. **web-gui-security-master** (seq 3, reverse): Security Master returns loaded data
+
+```
+
+_Note_: Reviewing content is a guardrail to help ensure the AI Assistant does not stray from the architect intent.  
 
 **Prompt to AI Assistant**
 ```text
@@ -432,29 +525,25 @@ add flows to the trading-system.architecture.json
 
 **Response from AI Assistant**
 ```text
-Ran terminal command:  cat "/Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts/flow-creation.md"
+Searched codebase for "CALM flow creation schema transitions sequence-number direction source-to-destination", 20 results
 
 Using "Replace String in File"
 
-Ran terminal command:  tail -20 "/Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json"
+Now I'll validate the architecture file with the flows: 
 
-Using "Replace String in File"
+Ran terminal command:  calm validate -a /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json -f pretty
 
-Now let me validate the updated architecture with flows: 
+Perfect! I've successfully added 7 flows to the trading system architecture:
 
-Ran terminal command:  calm validate -a trading-system.architecture.json -f pretty
+1. **load-accounts-flow** (4 transitions) - Retrieve and display account list
+2. **bootstrap-blotter-flow** (5 transitions) - Initialize blotter with data and subscribe to updates
+3. **submit-trade-flow** (7 transitions) - Submit and validate trade orders
+4. **process-trade-flow** (7 transitions) - Process trade events and update positions
+5. **manage-account-flow** (3 transitions) - Create or update accounts
+6. **manage-account-users-flow** (11 transitions) - Associate users with accounts
+7. **bootstrap-security-master-flow** (3 transitions) - Load and serve ticker data
 
-Perfect! Added 7 flows to trading-system.architecture.json:
-
-1. **load-accounts-flow** - 4 transitions
-2. **bootstrap-blotter-flow** - 5 transitions  
-3. **submit-trade-flow** - 7 transitions
-4. **process-trade-flow** - 8 transitions
-5. **manage-account-flow** - 3 transitions
-6. **manage-account-users-flow** - 12 transitions
-7. **bootstrap-security-master-flow** - 4 transitions
-
-All flows use existing relationships with bidirectional transitions where needed. The architecture validates successfully with no errors or warnings.
+All flows reference existing relationships in the architecture and have been validated successfully with no errors or warnings.
 
 Made changes.
 ```
@@ -496,177 +585,52 @@ Do not update architecture file.  I want review and approve changes.
 
 **Response from AI Assistant**
 ```text
-Here are the proposed changes to add the Trader node to the flows:
+Based on the business design, here are the proposed changes to add the Trader actor to the flows:
 
-## submit-trade-flow
+## submit-trade-flow Changes
 
-Add these transitions at the **beginning** of the flow:
-
-   **New Transition 1:**
-   {
-      "relationship-unique-id": "trader-web-gui",
-      "sequence-number": 1,
-      "description": "Trader submits trade ticket through Web GUI",
-      "direction": "source-to-destination"
-   }
-
-
-**Renumber existing transitions:** All current transitions shift from sequence 1-7 to sequence 2-8.
-
-## process-trade-flow
-
-Add this transition at the **end** of the flow:
-
-**New Transition 9:**
-   json
-   {
-      "relationship-unique-id": "trader-web-gui",
-      "sequence-number": 9,
-      "description": "Web GUI notifies Trader of trade and position updates",
-      "direction": "destination-to-source"
-   }
-
-
-**Summary of Changes:**
-- **submit-trade-flow**: Adds Trader initiating the trade submission (1 new transition at start, renumber existing 1-7 → 2-8)
-- **process-trade-flow**: Adds Trader receiving updates at the end (1 new transition after current sequence 8)
-
-Do you approve these changes?
-```
-
-Before accepting the change, the architect wants to see the complete updated process flow definitions.
-
-**Prompt to AI Assistant**
-```text
-Show full definition of submit-trade-flow and process-trade-flow
-```
-
-**Response from AI Assistant**
-```text
-## submit-trade-flow (with proposed changes)
+Add a new transition at the **beginning** of the flow:
 
 json
 {
-    "unique-id": "submit-trade-flow",
-    "name": "Submit Trade Ticket",
-    "description": "Submit a trade ticket with validation and event publishing",
-    "transitions": [
-        {
-            "relationship-unique-id": "trader-web-gui",
-            "sequence-number": 1,
-            "description": "Trader submits trade ticket through Web GUI",
-            "direction": "source-to-destination"
-        },
-        {
-            "relationship-unique-id": "web-gui-security-master",
-            "sequence-number": 2,
-            "description": "Web GUI requests ticker list from Security Master",
-            "direction": "source-to-destination"
-        },
-        {
-            "relationship-unique-id": "web-gui-security-master",
-            "sequence-number": 3,
-            "description": "Security Master returns ticker list to Web GUI",
-            "direction": "destination-to-source"
-        },
-        {
-            "relationship-unique-id": "web-gui-trade-service",
-            "sequence-number": 4,
-            "description": "Web GUI submits trade with account, ticker, side, and quantity",
-            "direction": "source-to-destination"
-        },
-        {
-            "relationship-unique-id": "trade-service-security-master",
-            "sequence-number": 5,
-            "description": "Trade Service validates ticker with Security Master",
-            "direction": "source-to-destination"
-        },
-        {
-            "relationship-unique-id": "trade-service-account-service",
-            "sequence-number": 6,
-            "description": "Trade Service validates account with Account Service",
-            "direction": "source-to-destination"
-        },
-        {
-            "relationship-unique-id": "trade-service-trade-feed",
-            "sequence-number": 7,
-            "description": "Trade Service publishes new trade event to Trade Feed",
-            "direction": "source-to-destination"
-        },
-        {
-            "relationship-unique-id": "web-gui-trade-service",
-            "sequence-number": 8,
-            "description": "Trade Service returns submission confirmation to Web GUI",
-            "direction": "destination-to-source"
-        }
-    ]
+    "relationship-unique-id": "trader-web-gui",
+    "sequence-number": 1,
+    "description": "Trader interacts with Web GUI to submit trade ticket"
 }
 
 
-## process-trade-flow (with proposed changes)
+This would shift all existing transitions down by 1 (current sequence 1 becomes 2, etc.).
+
+The updated flow would have **8 transitions** (currently has 7):
+1. Trader → Web GUI (NEW)
+2. Web GUI → Security Master (get tickers)
+3. Security Master → Web GUI (return tickers)
+4. Web GUI → Trade Service (submit trade)
+5. Trade Service → Security Master (validate ticker)
+6. Trade Service → Account Service (validate account)
+7. Trade Service → Trade Feed (publish event)
+8. Trade Service → Web GUI (return response)
+
+## process-trade-flow Changes
+
+Add a new transition at the **end** of the flow:
 
 json
 {
-    "unique-id": "process-trade-flow",
-    "name": "Process Trade Event",
-    "description": "Process new trade events, persist to storage, update positions, and publish updates",
-    "transitions": [
-        {
-            "relationship-unique-id": "trade-feed-trade-processor",
-            "sequence-number": 1,
-            "description": "Trade Feed delivers new trade event to Trade Processor",
-            "direction": "source-to-destination"
-        },
-        {
-            "relationship-unique-id": "trade-processor-trade-data-store",
-            "sequence-number": 2,
-            "description": "Trade Processor inserts new trade into Trade Data Store",
-            "direction": "source-to-destination"
-        },
-        {
-            "relationship-unique-id": "trade-processor-trade-feed",
-            "sequence-number": 3,
-            "description": "Trade Processor publishes account-specific trade event",
-            "direction": "source-to-destination"
-        },
-        {
-            "relationship-unique-id": "web-gui-trade-feed",
-            "sequence-number": 4,
-            "description": "Trade Feed pushes new trade event to Web GUI",
-            "direction": "destination-to-source"
-        },
-        {
-            "relationship-unique-id": "trade-processor-trade-data-store",
-            "sequence-number": 5,
-            "description": "Trade Processor marks trade as executed in Trade Data Store",
-            "direction": "source-to-destination"
-        },
-        {
-            "relationship-unique-id": "trade-processor-trade-data-store",
-            "sequence-number": 6,
-            "description": "Trade Processor updates position in Trade Data Store",
-            "direction": "source-to-destination"
-        },
-        {
-            "relationship-unique-id": "trade-processor-trade-feed",
-            "sequence-number": 7,
-            "description": "Trade Processor publishes trade update and position events",
-            "direction": "source-to-destination"
-        },
-        {
-            "relationship-unique-id": "web-gui-trade-feed",
-            "sequence-number": 8,
-            "description": "Trade Feed forwards updates to Web GUI",
-            "direction": "destination-to-source"
-        },
-        {
-            "relationship-unique-id": "trader-web-gui",
-            "sequence-number": 9,
-            "description": "Web GUI notifies Trader of trade and position updates",
-            "direction": "destination-to-source"
-        }
-    ]
+    "relationship-unique-id": "trader-web-gui",
+    "sequence-number": 8,
+    "description": "Web GUI notifies Trader of trade execution and position updates",
+    "direction": "destination-to-source"
 }
+
+
+The updated flow would have **8 transitions** (currently has 7):
+1-7. (existing transitions unchanged)
+8. Web GUI → Trader (NEW - notification of updates)
+
+**Note:** The `trader-web-gui` relationship uses `interacts` type, which doesn't have explicit source/destination. For consistency with CALM semantics, the direction indicates the information flow.
+
+Would you like me to proceed with these changes?
 ```
 
 The updated process flows look good, so the architect tells the AI Assistant that the proposed changes should be accepted.
@@ -680,14 +644,12 @@ I accept the proposed changes
 ```text
 Using "Multi-Replace String in Files"
 
-Ran terminal command:  calm validate -a trading-system.architecture.json -f pretty
+Ran terminal command:  calm validate -a /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json -f pretty
 
-Changes applied successfully:
+Changes applied successfully and validated with no errors:
 
-- **submit-trade-flow**: Added Trader initiating trade at sequence 1, renumbered all transitions (now 8 total)
-- **process-trade-flow**: Added Trader receiving updates at sequence 9 (now 9 total transitions)
-
-Architecture validates with no errors or warnings.
+- **submit-trade-flow**: Now has 8 transitions (added Trader interaction at sequence 1)
+- **process-trade-flow**: Now has 8 transitions (added Trader notification at sequence 8)
 
 Made changes.
 ```

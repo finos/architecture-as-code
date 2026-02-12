@@ -12,116 +12,114 @@ This document walks through practical examples of CALM architecture constructs t
 
 The application used in this tutorial is based on [FINOS TraderX](https://github.com/finos/traderX)
 
-## Business Design
 
-### Core Business Functions
+## Core Business Functions 
 
-**Trading Operations:**
-- **Order Submission**: Users submit buy and sell orders for securities with specified quantities
-- **Account Selection**: Users select which trading account to execute trades against
-- **Position Management**: Track current holdings and quantities for each security in an account
-- **Trade History**: Maintain complete audit trail of all executed trades
+### Trading Operations
 
-**Account Administration:**
-- **Account Management**: Create and update trading accounts
-- **User Association**: Link multiple users to accounts for access and entitlements
-- **Account Inquiry**: View account details and associated users
+**Order Submission.** Users submit buy and sell orders for securities, specifying quantities and other required trade details. This capability forms the primary interaction between users and the trading system.
 
-**Reference Information:**
-- **Security Master**: Maintains list of tradeable securities (stocks) with company information
-- **User Directory**: Stores user profiles and contact information
-- **Trade Data Store**: Central repository of all trading accounts
+**Account Selection.** Before executing trades, users select the trading account against which the transaction will be executed, ensuring that orders are associated with the correct portfolio and entitlements.
 
-**Real-time Information:**
-- **Trade Updates**: Users receive immediate notifications when trades execute
-- **Position Updates**: Account positions refresh automatically as trades settle
-- **Trade Status**: Monitor trade lifecycle from submission through execution
+**Position Management.** The system tracks current holdings and quantities for each security within an account, maintaining an up-to-date view of positions as trades are executed and settled.
 
-### Business Workflows
+**Trade History.** A complete audit trail of all executed trades is maintained, allowing users and administrators to review historical activity for reporting, compliance, and analysis purposes.
 
-**1: Load List of Accounts**
-- **Actors**: Web GUI, Account Service, Trade Data Store.
-- **Steps**:
-  1. Web GUI asks Account Service to load the list of accounts.
-  2. Account Service queries the Trade Data Store for all accounts.
-  3. Trade Data Store returns the result set to Account Service.
-  4. Account Service returns the list of accounts to Web GUI.
+---
 
-**2: Bootstrapping the Trade and Position Blotter**
-- **Actors**: Web GUI, Position Service, Trade Feed, Trade Data Store.
-- **Steps**:
-  1. Web GUI requests trades and positions for a selected account from Position Service.
-  2. Position Service queries the Trade Data Store for that account's trades and positions.
-  3. Position Service returns the initial trades and positions to Web GUI.
-  4. Web GUI subscribes to Trade Feed for account-specific trade and position updates.
-  5. Live Updates publishes ongoing trade and position updates to Web GUI.
+### Account Administration
 
-**3: Submitting a Trade Ticket**
-- **Actors**: Web GUI, Security Master, Trade Service, Account Service, Trade Feed.
-- **Steps**:
-  1. Web GUI requests the ticker list from the Security Master; Security Master returns it.
-  2. Web GUI submits a trade (account, ticker, side, quantity) to Trade Service.
-  3. Trade Service validates the ticker with the Security Master.
-  4. Trade Service validates the account with Account Service.
-  5. Trade Service publishes a new trade event to Trade Feed (trades/new).
-  6. Trade Service returns a trade submission completion response to Web GUI.
+**Account Management.** The platform supports creating new trading accounts and updating existing accounts, allowing administrators to manage account lifecycle and configuration.
 
-**4: Trade Processing**
-- **Actors**: Trade Feed, Trade Processor, Trade Data Store, Web GUI.
-- **Steps**:
-  1. Trade Feed delivers a new trade event to Trade Processor.
-  2. Trade Processor inserts the new trade into the Trade Data Store.
-  3. Trade Processor publishes a new account-specific trade event Trade Feed.
-  4. Trade Feed pushes the "new trade" event to Web GUI.
-  5. Trade Processor marks the trade as executed in the Trade Data Store.
-  6. Trade Processor inserts or updates the corresponding position (account, ticker, quantity) in the Trade Data Store.
-  7. Trade Processor publishes trade update events and a position event via Trade Feed.
-  8. Trade Feed forwards trade updates and position updates to Web GUI.
+**User Association.** Multiple users can be linked to accounts to provide appropriate access and entitlements, enabling collaboration and shared account management.
 
-**5: Add/Update Account**
-- **Actors**: Web GUI, Account Service, Trade Data Store.
-- **Steps**:
-  1. Web GUI sends an account create or update request to Account Service.
-  2. Account Service inserts or updates the account row in the Trade Data Store.
-  3. Account Service returns success or failure to Web GUI.
+**Account Inquiry.** Users can view account details and see which users are associated with each account, providing transparency into ownership and permissions.
 
-**6: Add/Update Users to Account**
-- **Actors**: Web GUI, Account Service, Trade Data Store, People Service, User Directory.
-- **Steps**:
-  1. Web GUI asks Account Service for the current list of people associated with an account.
-  2. Account Service queries the Trade Data Store for account-user mappings and returns them.
-  3. Web GUI asks the People Service to search for a user by name.
-  4. People Service queries User Directory and returns matching people records to People Service.
-  5. People Service returns search results to Web GUI.
-  6. Web GUI requests Account Service to add the selected user to the account.
-  7. Account Service validates the username via the People Service.
-  8. Account Service inserts or updates the account–user mapping in the Trade Data Store.
-  9. Account Service returns success or failure to Web GUI.
+---
 
-**7: Security Master Bootstrap**
-- **Actors**: Security Master, CSV file, Web GUI.
-- **Steps**:
-  1. On startup, the Security Master loads the ticker CSV file.
-  2. The CSV file supplies the ticker list to the Security Master.
-  3. When Web GUI requests the ticker list, the Security Master returns it.
+### Reference Information
 
-### Business Entities
+**Security Master.** The system maintains a list of tradeable securities, including stock tickers and associated company information, ensuring that trading operations reference consistent and validated instrument data.
 
-**Core Domain Objects:**
-- **Account**: Container for trades and positions with unique identifier
-- **Trade**: Record of a buy or sell transaction with security, quantity, price, and timestamp
-- **Position**: Current aggregate holding in a security within an account
-- **Security**: Tradeable instrument (stock) with ticker symbol and company name
-- **User**: Person who can be associated with accounts for trading access
+**User Directory.** User profiles and contact information are stored in a centralized directory, supporting authentication, search, and account association workflows.
 
-**Business Relationships:**
-- Users have many-to-many relationships with accounts
-- Accounts contain many trades and positions
-- Each trade references one account and one security
-- Positions aggregate trades for the same security within an account
+**Trade Data Store.** A central repository stores trading accounts, trades, and related data, providing persistent storage and enabling queries by downstream services.
 
-### Business Value
-The application demonstrates essential trading operations including order entry, execution, settlement, and position keeping - core functions required by any trading platform in financial services. It provides a complete view of how accounts, users, trades, and positions interrelate throughout the trading lifecycle.
+---
+
+### Real-time Information
+
+**Trade Updates.** Users receive immediate notifications when trades execute, allowing them to monitor activity without manual refresh.
+
+**Position Updates.** Account positions automatically refresh as trades settle, ensuring that holdings reflect the most recent state.
+
+**Trade Status.** The system allows users to monitor the lifecycle of a trade from submission through execution and settlement, providing transparency into processing stages.
+
+---
+
+## Business Workflows 
+
+### 1: Load List of Accounts
+
+In this workflow, the Web GUI requests the list of accounts from the Account Service. The Account Service queries the Trade Data Store to retrieve all accounts, receives the result set, and then returns the list to the Web GUI for display. 
+
+---
+
+### 2: Bootstrapping the Trade and Position Blotter
+
+To initialize the blotter, the Web GUI requests trades and positions for a selected account from the Position Service. The Position Service queries the Trade Data Store and returns the initial dataset. After initialization, the Web GUI subscribes to the Trade Feed so that live trade and position updates are published and displayed in real time. 
+
+---
+
+### 3: Submitting a Trade Ticket
+
+When submitting a trade, the Web GUI first retrieves the list of valid tickers from the Security Master. The user submits a trade request containing account, ticker, side, and quantity to the Trade Service. The Trade Service validates the ticker with the Security Master and validates the account with the Account Service. After validation, the Trade Service publishes a new trade event to the Trade Feed and returns a completion response to the Web GUI. 
+
+---
+
+### 4: Trade Processing
+
+Trade processing begins when the Trade Feed delivers a new trade event to the Trade Processor. The processor inserts the trade into the Trade Data Store and publishes an account-specific trade event. The Web GUI receives this event through the Trade Feed. The Trade Processor then marks the trade as executed, updates or inserts the corresponding position, and publishes additional trade and position updates, which are forwarded to the Web GUI. 
+
+---
+
+### 5: Add or Update Account
+
+In this workflow, the Web GUI sends an account creation or update request to the Account Service. The Account Service writes the new or updated account information to the Trade Data Store and returns a success or failure response to the Web GUI. 
+
+---
+
+### 6: Add or Update Users to Account
+
+To associate users with an account, the Web GUI first retrieves the current list of associated people from the Account Service, which queries the Trade Data Store. The GUI then searches for users through the People Service, which queries the User Directory and returns matching records. After a user is selected, the Web GUI requests that the Account Service add the user to the account. The Account Service validates the user and updates the account-user mapping in the Trade Data Store, returning a success or failure response. 
+
+---
+
+### 7: Security Master Bootstrap
+
+During startup, the Security Master loads a ticker list from a CSV file. This file supplies the initial set of securities maintained by the service. When the Web GUI later requests the ticker list, the Security Master returns the loaded data. 
+
+---
+
+## Business Entities
+
+### Core Domain Objects
+
+**Account.** An account is a container for trades and positions and is uniquely identified so that transactions and holdings can be tracked accurately.
+
+**Trade.** A trade represents a buy or sell transaction and includes details such as security, quantity, price, and timestamp.
+
+**Position.** A position represents the current aggregate holding of a specific security within an account, calculated from executed trades.
+
+**Security.** A security is a tradeable instrument, such as a stock, identified by a ticker symbol and associated company information.
+
+**User.** A user is a person who can be associated with accounts and granted trading access.
+
+---
+
+### Business Relationships
+
+Users and accounts have a many-to-many relationship, allowing multiple users to access the same account and a user to be linked to multiple accounts. Accounts contain many trades and positions, and each trade references exactly one account and one security. Positions aggregate trades for the same security within an account to provide a consolidated view of holdings. 
 
 ---
 
