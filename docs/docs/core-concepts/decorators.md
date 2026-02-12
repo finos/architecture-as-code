@@ -72,13 +72,13 @@ Decorator types can define their own schema for the `data` field by inheriting f
 
 This creates a composable schema inheritance chain where each layer owns its own namespace within `data`.
 
-## Deployment Decorators
+## Example: Deployment Decorators
 
-Deployment decorators track when and how architecture components are deployed, including status, timing, and observability links. They enable architecture owners to see which components are deployed, where they're running, and their current operational state.
+To illustrate how the base decorator schema can be extended, consider deployment decorators that track when and how architecture components are deployed, including status, timing, and observability links.
 
 ### Deployment Decorator Schema
 
-The deployment decorator schema constrains `type` to `"deployment"` and defines the base deployment attributes in `data`:
+A deployment decorator schema could constrain `type` to `"deployment"` and define deployment-specific attributes in `data`:
 
 ```json
 {
@@ -130,9 +130,9 @@ The deployment decorator schema constrains `type` to `"deployment"` and defines 
 
 The `data` object uses `additionalProperties: true` so that extension schemas can add domain-specific sub-objects.
 
-## Kubernetes Deployment Decorators
+## Example: Kubernetes Deployment Decorators
 
-For Kubernetes-based deployments, a further extension adds a `kubernetes` sub-object inside `data` with cluster-specific attributes. The Kubernetes properties are nested to avoid conflicts with the base deployment properties and to allow each schema layer to lock down its own scope.
+Taking the extension pattern further, a Kubernetes-specific decorator could add a `kubernetes` sub-object inside `data` with cluster-specific attributes. The Kubernetes properties are nested to avoid conflicts with the base deployment properties and to allow each schema layer to lock down its own scope.
 
 ### Kubernetes Decorator Schema
 
@@ -181,15 +181,15 @@ For Kubernetes-based deployments, a further extension adds a `kubernetes` sub-ob
 
 ## Schema Inheritance
 
-The schema inheritance chain allows each layer to define its own properties while composing cleanly:
+The examples above demonstrate how the schema inheritance chain allows each layer to define its own properties while composing cleanly:
 
 ```
 decorators.json (base: unique-id, type, applies-to, data)
-  └── deployment.decorator.schema.json (type="deployment", deployment attributes in data)
-        └── kubernetes.decorator.schema.json (kubernetes sub-object in data)
+  └── deployment decorator (type="deployment", deployment attributes in data)
+        └── kubernetes decorator (kubernetes sub-object in data)
 ```
 
-Other deployment targets (e.g. AWS ECS, Azure Container Apps) can follow the same pattern — extend the deployment schema and add their own sub-object inside `data`.
+Other deployment targets (e.g. AWS ECS, Azure Container Apps) could follow the same pattern — extend a deployment decorator schema and add their own sub-object inside `data`.
 
 ## Worked Example
 
@@ -210,7 +210,7 @@ Given a simple architecture with a single AKS cluster node:
 }
 ```
 
-A Kubernetes deployment decorator for this node looks like:
+A Kubernetes deployment decorator for this node could look like:
 
 ```json
 {
@@ -238,7 +238,3 @@ This decorator:
 - Satisfies the base decorator schema (has `unique-id`, `type`, `target`, `applies-to`, `data`)
 - Satisfies the deployment schema (`deployment-start-time`, `deployment-status` are present)
 - Satisfies the Kubernetes schema (`helm-chart`, `cluster` are present inside the `kubernetes` sub-object)
-
-## Related
-
-- [CALM Deployments Proposal (#1908)](https://github.com/finos/architecture-as-code/issues/1908)
