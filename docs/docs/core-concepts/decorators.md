@@ -1,0 +1,245 @@
+---
+id: decorators
+title: Decorators
+sidebar_position: 8
+---
+
+# Decorators
+
+Decorators attach supplementary information to nodes, relationships, and other architecture elements without modifying the core architecture definition. They enable cross-cutting concerns — such as deployment tracking, security context, business metadata, and operational information — to be managed separately from the architecture itself.
+
+## What is a Decorator?
+
+A decorator is a standalone object that references one or more architecture elements via their `unique-id` and attaches typed data to them. This keeps the architecture file clean and focused while allowing rich contextual information to be layered on top.
+
+### Key Properties
+
+- **unique-id**: A unique identifier for this decorator instance
+- **type**: The category of decorator — predefined types include `guide`, `business`, `threat-model`, `security`, `deployment`, `operational`, and `observability`, or any custom string
+- **applies-to**: An array of `unique-id` values referencing the architecture elements this decorator relates to
+- **data**: A JSON object containing the decorator's payload, whose shape is determined by the decorator type
+
+### Base Decorator Schema
+
+The base decorator schema defines the top-level structure that all decorators must follow:
+
+```json
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://calm.finos.org/release/1.2/meta/decorators.json",
+    "title": "Common Architecture Language Model Decorators",
+    "defs": {
+        "decorator": {
+            "type": "object",
+            "properties": {
+                "unique-id": {
+                    "type": "string"
+                },
+                "type": {
+                    "anyOf": [
+                        {
+                            "enum": [
+                                "guide", "business", "threat-model",
+                                "security", "deployment", "operational",
+                                "observability"
+                            ]
+                        },
+                        { "type": "string" }
+                    ]
+                },
+                "applies-to": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "minItems": 1
+                },
+                "data": {
+                    "type": "object"
+                }
+            },
+            "required": ["unique-id", "type", "applies-to", "data"],
+            "additionalProperties": false
+        }
+    }
+}
+```
+
+The top-level properties are locked down via `additionalProperties: false`, while the `data` object is intentionally open — its shape is defined by decorator-type-specific schemas.
+
+## Extending Decorators with Schemas
+
+Decorator types can define their own schema for the `data` field by inheriting from the base decorator using `allOf`. Each extension schema:
+
+- Constrains `type` to a specific value (e.g. `"deployment"`)
+- Adds required and optional properties to `data`
+- Can be further extended by more specific schemas
+
+This creates a composable schema inheritance chain where each layer owns its own namespace within `data`.
+
+## Deployment Decorators
+
+Deployment decorators track when and how architecture components are deployed, including status, timing, and observability links. They enable architecture owners to see which components are deployed, where they're running, and their current operational state.
+
+### Deployment Decorator Schema
+
+The deployment decorator schema constrains `type` to `"deployment"` and defines the base deployment attributes in `data`:
+
+```json
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://calm.finos.org/release/1.2/meta/deployment.decorator.schema.json",
+    "title": "CALM Deployment Decorator Schema",
+    "allOf": [
+        {
+            "$ref": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator"
+        },
+        {
+            "type": "object",
+            "properties": {
+                "type": { "const": "deployment" },
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "deployment-start-time": {
+                            "type": "string",
+                            "format": "date-time"
+                        },
+                        "deployment-status": {
+                            "type": "string",
+                            "enum": [
+                                "in-progress", "failed", "completed",
+                                "rolled-back", "pending"
+                            ]
+                        },
+                        "deployment-observability": {
+                            "type": "string",
+                            "format": "uri"
+                        }
+                    },
+                    "required": ["deployment-start-time", "deployment-status"],
+                    "additionalProperties": true
+                }
+            },
+            "required": ["type", "data"]
+        }
+    ]
+}
+```
+
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `deployment-start-time` | string (date-time) | Yes | ISO 8601 timestamp of when the deployment started |
+| `deployment-status` | string (enum) | Yes | Current status: `in-progress`, `failed`, `completed`, `rolled-back`, `pending` |
+| `deployment-observability` | string (uri) | No | Link to logs, metrics, or observability dashboards |
+
+The `data` object uses `additionalProperties: true` so that extension schemas can add domain-specific sub-objects.
+
+## Kubernetes Deployment Decorators
+
+For Kubernetes-based deployments, a further extension adds a `kubernetes` sub-object inside `data` with cluster-specific attributes. The Kubernetes properties are nested to avoid conflicts with the base deployment properties and to allow each schema layer to lock down its own scope.
+
+### Kubernetes Decorator Schema
+
+```json
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://calm.finos.org/release/1.2/meta/kubernetes.decorator.schema.json",
+    "title": "CALM Kubernetes Deployment Decorator Schema",
+    "allOf": [
+        {
+            "$ref": "https://calm.finos.org/release/1.2/meta/deployment.decorator.schema.json"
+        },
+        {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "kubernetes": {
+                            "type": "object",
+                            "properties": {
+                                "helm-chart": {
+                                    "type": "string",
+                                    "pattern": "^[a-z0-9-]+:[0-9]+\\.[0-9]+\\.[0-9]+$"
+                                },
+                                "cluster": { "type": "string" },
+                                "namespace": { "type": "string" }
+                            },
+                            "required": ["helm-chart", "cluster"],
+                            "additionalProperties": false
+                        }
+                    },
+                    "required": ["kubernetes"]
+                }
+            }
+        }
+    ]
+}
+```
+
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `kubernetes.helm-chart` | string (pattern) | Yes | Helm chart name and semver version (e.g. `my-app:1.2.3`) |
+| `kubernetes.cluster` | string | Yes | Kubernetes cluster identifier |
+| `kubernetes.namespace` | string | No | Kubernetes namespace for the deployment |
+
+## Schema Inheritance
+
+The schema inheritance chain allows each layer to define its own properties while composing cleanly:
+
+```
+decorators.json (base: unique-id, type, applies-to, data)
+  └── deployment.decorator.schema.json (type="deployment", deployment attributes in data)
+        └── kubernetes.decorator.schema.json (kubernetes sub-object in data)
+```
+
+Other deployment targets (e.g. AWS ECS, Azure Container Apps) can follow the same pattern — extend the deployment schema and add their own sub-object inside `data`.
+
+## Worked Example
+
+Given a simple architecture with a single AKS cluster node:
+
+```json
+{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "nodes": [
+        {
+            "unique-id": "aks-cluster",
+            "node-type": "system",
+            "name": "Azure Kubernetes Service Cluster",
+            "description": "A Kubernetes cluster running on Azure AKS"
+        }
+    ],
+    "relationships": []
+}
+```
+
+A Kubernetes deployment decorator for this node looks like:
+
+```json
+{
+    "$schema": "https://calm.finos.org/release/1.2/meta/kubernetes.decorator.schema.json",
+    "unique-id": "aks-cluster-deployment-001",
+    "type": "deployment",
+    "applies-to": ["aks-cluster"],
+    "data": {
+        "deployment-start-time": "2026-02-12T09:30:00Z",
+        "deployment-status": "completed",
+        "deployment-observability": "https://grafana.example.com/d/aks-prod/aks-cluster-overview",
+        "kubernetes": {
+            "helm-chart": "aks-platform:3.2.1",
+            "cluster": "prod-uksouth-aks-01",
+            "namespace": "trading-system"
+        }
+    }
+}
+```
+
+This decorator:
+- References the `aks-cluster` node via `applies-to`
+- Satisfies the base decorator schema (has `unique-id`, `type`, `applies-to`, `data`)
+- Satisfies the deployment schema (`deployment-start-time`, `deployment-status` are present)
+- Satisfies the Kubernetes schema (`helm-chart`, `cluster` are present inside the `kubernetes` sub-object)
+
+## Related
+
+- [CALM Deployments Proposal (#1908)](https://github.com/finos/architecture-as-code/issues/1908)

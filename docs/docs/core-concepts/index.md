@@ -15,6 +15,7 @@ Explore each concept below:
 - [Relationships](relationships): Discover how nodes connect and interact.
 - [Controls](controls): Understand how to apply domain controls to your architecture.
 - [Standards](standards): Learn how to extend CALM components with organizational requirements.
+- [Decorators](decorators): Attach supplementary information like deployments, security context, and business metadata to architecture elements.
 - [Metadata](metadata): Learn how to enrich your architecture with additional information.
 - [Timelines](timelines): Track how your architecture evolves over time through significant moments.
 
