@@ -17,6 +17,7 @@ CALM enables modeling of:
 - **Controls** – compliance policies and enforcement mechanisms
 - **Metadata** – supplemental, non-structural annotations
 - **Timelines** – evolution of architectures over time
+- **Decorators** – supplementary cross-cutting data (deployment, security, business context) attached to architecture elements without modifying the core definition
 
 ## Your Role
 

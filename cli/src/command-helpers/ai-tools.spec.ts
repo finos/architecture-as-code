@@ -652,7 +652,7 @@ describe('ai-tools', () => {
             mocks.readFile.mockImplementation(async (path: string) => {
                 const pathStr = String(path);
 
-                // Fail specific tool files (7 out of 11)
+                // Fail specific tool files (8 out of 14)
                 const failingFiles = [
                     'architecture-creation.md',
                     'node-creation.md',
@@ -660,7 +660,8 @@ describe('ai-tools', () => {
                     'interface-creation.md',
                     'metadata-creation.md',
                     'control-creation.md',
-                    'flow-creation.md'
+                    'flow-creation.md',
+                    'decorator-creation.md'
                 ];
 
                 if (pathStr.includes('tools/') && !pathStr.includes('templates/')) {
