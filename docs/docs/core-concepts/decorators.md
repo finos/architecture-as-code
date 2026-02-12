@@ -15,8 +15,9 @@ A decorator is a standalone object that references one or more architecture elem
 ### Key Properties
 
 - **unique-id**: A unique identifier for this decorator instance
-- **type**: The category of decorator — predefined types include `guide`, `business`, `threat-model`, `security`, `deployment`, `operational`, and `observability`, or any custom string
-- **applies-to**: An array of `unique-id` values referencing the architecture elements this decorator relates to
+- **type**: The category of decorator (e.g. `guide`, `business`, `threat-model`, `security`, `deployment`, `operational`, `observability`) or any custom string
+- **target**: An array of file paths or URLs referencing the CALM documents (patterns, architectures, or controls) this decorator targets
+- **applies-to**: An array of `unique-id` values referencing the architecture elements within the targeted documents this decorator relates to
 - **data**: A JSON object containing the decorator's payload, whose shape is determined by the decorator type
 
 ### Base Decorator Schema
@@ -36,16 +37,12 @@ The base decorator schema defines the top-level structure that all decorators mu
                     "type": "string"
                 },
                 "type": {
-                    "anyOf": [
-                        {
-                            "enum": [
-                                "guide", "business", "threat-model",
-                                "security", "deployment", "operational",
-                                "observability"
-                            ]
-                        },
-                        { "type": "string" }
-                    ]
+                    "type": "string"
+                },
+                "target": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "minItems": 1
                 },
                 "applies-to": {
                     "type": "array",
@@ -56,7 +53,7 @@ The base decorator schema defines the top-level structure that all decorators mu
                     "type": "object"
                 }
             },
-            "required": ["unique-id", "type", "applies-to", "data"],
+            "required": ["unique-id", "type", "target", "applies-to", "data"],
             "additionalProperties": false
         }
     }
@@ -220,6 +217,7 @@ A Kubernetes deployment decorator for this node looks like:
     "$schema": "https://calm.finos.org/release/1.2/meta/kubernetes.decorator.schema.json",
     "unique-id": "aks-cluster-deployment-001",
     "type": "deployment",
+    "target": ["aks-architecture.json"],
     "applies-to": ["aks-cluster"],
     "data": {
         "deployment-start-time": "2026-02-12T09:30:00Z",
@@ -235,8 +233,9 @@ A Kubernetes deployment decorator for this node looks like:
 ```
 
 This decorator:
-- References the `aks-cluster` node via `applies-to`
-- Satisfies the base decorator schema (has `unique-id`, `type`, `applies-to`, `data`)
+- Targets the architecture document `aks-architecture.json` via `target`
+- References the `aks-cluster` node within that architecture via `applies-to`
+- Satisfies the base decorator schema (has `unique-id`, `type`, `target`, `applies-to`, `data`)
 - Satisfies the deployment schema (`deployment-start-time`, `deployment-status` are present)
 - Satisfies the Kubernetes schema (`helm-chart`, `cluster` are present inside the `kubernetes` sub-object)
 

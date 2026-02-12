@@ -15,6 +15,14 @@
                     "type": "string",
                     "description": "Type of decorator - predefined types or custom string"
                 },
+                "target": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1,
+                    "description": "Array of file paths or URLs referencing the CALM documents (patterns, architectures, or controls) this decorator targets"
+                },
                 "applies-to": {
                     "type": "array",
                     "items": {
@@ -32,6 +40,7 @@
             "required": [
                 "unique-id",
                 "type",
+                "target",
                 "applies-to",
                 "data"
             ],
