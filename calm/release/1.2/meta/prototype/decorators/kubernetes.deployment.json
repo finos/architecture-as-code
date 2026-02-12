@@ -9,8 +9,10 @@
         "deployment-start-time": "2026-02-12T09:30:00Z",
         "deployment-status": "completed",
         "deployment-observability": "https://grafana.example.com/d/aks-prod/aks-cluster-overview",
-        "helm-chart": "aks-platform:3.2.1",
-        "cluster": "prod-uksouth-aks-01",
-        "namespace": "trading-system"
+        "kubernetes": {
+            "helm-chart": "aks-platform:3.2.1",
+            "cluster": "prod-uksouth-aks-01",
+            "namespace": "trading-system"
+        }
     }
 }
