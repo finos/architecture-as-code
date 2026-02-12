@@ -1,0 +1,54 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://calm.finos.org/release/1.2/meta/prototype/deployment.decorator.schema.json",
+    "title": "CALM Deployment Decorator Schema",
+    "description": "Base schema for deployment-type decorators. Inherits from the CALM decorators schema and constrains the data element to include deployment-specific attributes. This schema can be extended for specific deployment targets (e.g. Kubernetes, cloud providers).",
+    "allOf": [
+        {
+            "$ref": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator"
+        },
+        {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "deployment"
+                },
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "deployment-start-time": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Deployment start time in ISO 8601 format"
+                        },
+                        "deployment-status": {
+                            "type": "string",
+                            "enum": [
+                                "in-progress",
+                                "failed",
+                                "completed",
+                                "rolled-back",
+                                "pending"
+                            ],
+                            "description": "Current status of the deployment"
+                        },
+                        "deployment-observability": {
+                            "type": "string",
+                            "format": "uri",
+                            "description": "Link to deployment logs, metrics, or observability dashboards"
+                        }
+                    },
+                    "required": [
+                        "deployment-start-time",
+                        "deployment-status"
+                    ],
+                    "additionalProperties": true
+                }
+            },
+            "required": [
+                "type",
+                "data"
+            ]
+        }
+    ]
+}

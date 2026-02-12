@@ -1,0 +1,12 @@
+{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "nodes": [
+        {
+            "unique-id": "aks-cluster",
+            "node-type": "system",
+            "name": "Azure Kubernetes Service Cluster",
+            "description": "A Kubernetes cluster running on Azure AKS, serving as the primary container orchestration platform"
+        }
+    ],
+    "relationships": []
+}
