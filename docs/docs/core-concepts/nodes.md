@@ -1,7 +1,7 @@
 ---
 id: nodes
 title: Nodes
-sidebar_position: 2
+sidebar_position: 5
 ---
 
 # Nodes in CALM
