@@ -6,6 +6,14 @@ sidebar_position: 2
 
 # Decorators
 
+:::info Schema Version
+Decorators were introduced in **CALM schema version 1.2**. To use decorators, reference the following schema in your decorator document:
+
+```json
+"$schema": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator"
+```
+:::
+
 Decorators attach supplementary information to nodes, relationships, and other architecture elements without modifying the core architecture definition. They enable cross-cutting concerns — such as deployment tracking, security context, business metadata, and operational information — to be managed separately from the architecture itself.
 
 ## What is a Decorator?
@@ -15,7 +23,7 @@ A decorator is a standalone object that references one or more architecture elem
 ### Key Properties
 
 - **unique-id**: A unique identifier for this decorator instance
-- **type**: The category of decorator (e.g. `guide`, `business`, `threat-model`, `security`, `deployment`, `operational`, `observability`) or any custom string
+- **type**: A string identifying the category of decorator (e.g. `guide`, `business`, `threat-model`, `deployment`). This is a free-form string, not an enum — any value is valid
 - **target**: An array of file paths or URLs referencing the CALM documents (patterns, architectures, or controls) this decorator targets
 - **applies-to**: An array of `unique-id` values referencing the architecture elements within the targeted documents this decorator relates to
 - **data**: A JSON object containing the decorator's payload, whose shape is determined by the decorator type

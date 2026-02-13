@@ -13,7 +13,7 @@
                 },
                 "type": {
                     "type": "string",
-                    "description": "Type of decorator - predefined types or custom string"
+                    "description": "Type of decorator - a free-form string identifying the decorator category"
                 },
                 "target": {
                     "type": "array",

@@ -2,7 +2,7 @@
 
 ## Critical Requirements
 
-🚨 **ALWAYS call the decorator creation tool before creating any decorators**
+🚨 **ALWAYS read this guide fully before creating any decorators**
 🚨 **Decorators are standalone documents — they do NOT modify the architecture file**
 
 ## What Are Decorators?
@@ -35,7 +35,7 @@ The complete base decorator schema from the FINOS CALM v1.2 specification:
                 },
                 "type": {
                     "type": "string",
-                    "description": "Type of decorator - predefined types or custom string"
+                    "description": "Type of decorator - a free-form string identifying the decorator category"
                 },
                 "target": {
                     "type": "array",
@@ -77,7 +77,7 @@ The complete base decorator schema from the FINOS CALM v1.2 specification:
 | Property | Type | Description |
 |---|---|---|
 | `unique-id` | string | Unique identifier for this decorator instance |
-| `type` | string | Category of decorator (e.g. `guide`, `business`, `threat-model`, `security`, `deployment`, `operational`, `observability`) or any custom string |
+| `type` | string | A free-form string identifying the decorator category (e.g. `guide`, `business`, `threat-model`, `deployment`). Not an enum — any value is valid |
 | `target` | array of strings | File paths or URLs referencing the CALM documents this decorator targets (min 1 item) |
 | `applies-to` | array of strings | `unique-id` values of the architecture elements within the targeted documents (min 1 item) |
 | `data` | object | JSON payload whose shape is determined by the decorator type (min 1 property) |
@@ -86,11 +86,9 @@ The complete base decorator schema from the FINOS CALM v1.2 specification:
 
 ## Decorator Types
 
-### Predefined Types
+The `type` field is a **free-form string** — there is no enum constraint. You can use any value that makes sense for your domain. Common conventions include:
 
-Common decorator types include:
-
-- **`guide`** — Attach design guidance or architectural decision records
+- **`guide`** — Design guidance or architectural decision records
 - **`business`** — Business context such as cost centers, ownership, or regulatory classification
 - **`threat-model`** — Security threat modeling information
 - **`security`** — Security controls and compliance context
@@ -98,9 +96,7 @@ Common decorator types include:
 - **`operational`** — Operational runbook links, SLAs, incident contacts
 - **`observability`** — Monitoring dashboards, alerting rules, health check endpoints
 
-### Custom Types
-
-You can use any string as the `type` value — it does not need to be from the predefined list. Custom types enabled domain-specific extensions.
+These are conventions, not schema-enforced values. Use whatever string best describes your decorator's purpose.
 
 ## Extending Decorators with Schemas
 
@@ -119,107 +115,6 @@ decorators.json (base: unique-id, type, target, applies-to, data)
 ```
 
 Other deployment targets (e.g. AWS ECS, Azure Container Apps) follow the same pattern — extend the deployment schema and add their own sub-object inside `data`.
-
-## Deployment Decorator Schema
-
-The deployment decorator constrains `type` to `"deployment"` and defines base deployment attributes:
-
-```json
-{
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://calm.finos.org/release/1.2/meta/deployment.decorator.schema.json",
-    "title": "CALM Deployment Decorator Schema",
-    "allOf": [
-        {
-            "$ref": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator"
-        },
-        {
-            "type": "object",
-            "properties": {
-                "type": { "const": "deployment" },
-                "data": {
-                    "type": "object",
-                    "properties": {
-                        "deployment-start-time": {
-                            "type": "string",
-                            "format": "date-time"
-                        },
-                        "deployment-status": {
-                            "type": "string",
-                            "enum": [
-                                "in-progress", "failed", "completed",
-                                "rolled-back", "pending"
-                            ]
-                        },
-                        "deployment-observability": {
-                            "type": "string",
-                            "format": "uri"
-                        }
-                    },
-                    "required": ["deployment-start-time", "deployment-status"],
-                    "additionalProperties": true
-                }
-            },
-            "required": ["type", "data"]
-        }
-    ]
-}
-```
-
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `deployment-start-time` | string (date-time) | Yes | ISO 8601 timestamp of when the deployment started |
-| `deployment-status` | string (enum) | Yes | Current status: `in-progress`, `failed`, `completed`, `rolled-back`, `pending` |
-| `deployment-observability` | string (uri) | No | Link to logs, metrics, or observability dashboards |
-
-The `data` object uses `additionalProperties: true` so extension schemas can add domain-specific sub-objects.
-
-## Kubernetes Deployment Decorator Schema
-
-For Kubernetes-based deployments, a further extension adds a `kubernetes` sub-object inside `data`:
-
-```json
-{
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://calm.finos.org/release/1.2/meta/kubernetes.decorator.schema.json",
-    "title": "CALM Kubernetes Deployment Decorator Schema",
-    "allOf": [
-        {
-            "$ref": "https://calm.finos.org/release/1.2/meta/deployment.decorator.schema.json"
-        },
-        {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "object",
-                    "properties": {
-                        "kubernetes": {
-                            "type": "object",
-                            "properties": {
-                                "helm-chart": {
-                                    "type": "string",
-                                    "pattern": "^[a-z0-9-]+:[0-9]+\\.[0-9]+\\.[0-9]+$"
-                                },
-                                "cluster": { "type": "string" },
-                                "namespace": { "type": "string" }
-                            },
-                            "required": ["helm-chart", "cluster"],
-                            "additionalProperties": false
-                        }
-                    },
-                    "required": ["kubernetes"]
-                }
-            }
-        }
-    ]
-}
-```
-
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `kubernetes.helm-chart` | string (pattern) | Yes | Helm chart name and semver version (e.g. `my-app:1.2.3`) |
-| `kubernetes.cluster` | string | Yes | Kubernetes cluster identifier |
-| `kubernetes.namespace` | string | No | Kubernetes namespace for the deployment |
 
 ## Examples
 
@@ -258,11 +153,11 @@ For Kubernetes-based deployments, a further extension adds a `kubernetes` sub-ob
 }
 ```
 
-### Deployment Decorator (Kubernetes)
+### Deployment Decorator
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.2/meta/kubernetes.decorator.schema.json",
+    "$schema": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator",
     "unique-id": "aks-cluster-deployment-001",
     "type": "deployment",
     "target": ["aks-architecture.json"],
@@ -271,11 +166,8 @@ For Kubernetes-based deployments, a further extension adds a `kubernetes` sub-ob
         "deployment-start-time": "2026-02-12T09:30:00Z",
         "deployment-status": "completed",
         "deployment-observability": "https://grafana.example.com/d/aks-prod/aks-cluster-overview",
-        "kubernetes": {
-            "helm-chart": "aks-platform:3.2.1",
-            "cluster": "prod-uksouth-aks-01",
-            "namespace": "trading-system"
-        }
+        "cluster": "prod-uksouth-aks-01",
+        "namespace": "trading-system"
     }
 }
 ```
@@ -392,9 +284,7 @@ To create a reusable decorator type with a defined schema for the `data` field:
 
 ## File Naming Conventions
 
-- Base decorators: `<name>.decorator.json` (e.g. `trading-security.decorator.json`)
-- Deployment decorators: `<name>.deployment.decorator.json`
-- Kubernetes decorators: `<name>.k8s.decorator.json`
+- Decorator instances: `<name>.decorator.json` (e.g. `trading-security.decorator.json`)
 - Custom type schemas: `<type>.decorator.schema.json`
 
 ## Decorator Selection Guide
@@ -403,16 +293,6 @@ Use **base decorators** (`decorators.json#/defs/decorator`) when:
 - Attaching ad-hoc contextual information (business, security, guides)
 - No predefined schema exists for your data shape
 - Quick annotations that don't need strict validation
-
-Use **deployment decorators** (`deployment.decorator.schema.json`) when:
-- Tracking deployment status and timing
-- Recording observability links for deployed components
-- Need standardized deployment lifecycle tracking
-
-Use **kubernetes decorators** (`kubernetes.decorator.schema.json`) when:
-- Deploying to Kubernetes clusters
-- Need to track Helm charts, clusters, and namespaces
-- Building on top of deployment tracking with K8s specifics
 
 Use **custom decorator schemas** when:
 - You need consistent data shapes across multiple decorators
@@ -427,10 +307,7 @@ Use **custom decorator schemas** when:
 4. `data` must contain at least one property (`minProperties: 1`)
 5. No additional top-level properties are allowed (`additionalProperties: false`)
 6. The `unique-id` values in `applies-to` must correspond to elements that exist in the targeted documents
-7. For typed decorators (deployment, kubernetes), `type` must match the schema constraint
-8. For deployment decorators, `deployment-start-time` must be a valid ISO 8601 date-time
-9. For deployment decorators, `deployment-status` must be one of: `in-progress`, `failed`, `completed`, `rolled-back`, `pending`
-10. For kubernetes decorators, `helm-chart` must match the pattern `name:semver` (e.g. `my-app:1.2.3`)
+7. For typed decorators using custom schemas, `type` must match the schema constraint
 
 ## Decorator vs Other CALM Concepts
 
