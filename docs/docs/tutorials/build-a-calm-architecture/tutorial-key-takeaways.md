@@ -5,7 +5,7 @@ sidebar_position: 6
 ---
 
 
-## Tutorial Summary
+## Tutorial Summary 
 
 ### What was accomplished in the tutorial (high level)
 
