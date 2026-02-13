@@ -31,14 +31,14 @@ const sidebars = {
       label: 'Core Concepts',
       link: {type: 'doc', id: 'core-concepts/core-concepts-index'},
       items: [
-        'core-concepts/controls',
-        'core-concepts/decorators',
-        'core-concepts/interfaces',
-        'core-concepts/metadata',
         'core-concepts/nodes',
         'core-concepts/relationships',
+        'core-concepts/interfaces',
+        'core-concepts/controls',
         'core-concepts/standards',
         'core-concepts/timelines',
+        'core-concepts/decorators',
+        'core-concepts/metadata',
       ],
     },
     {

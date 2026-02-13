@@ -1,7 +1,7 @@
 ---
 id: decorators
 title: Decorators
-sidebar_position: 2
+sidebar_position: 7
 ---
 
 # Decorators

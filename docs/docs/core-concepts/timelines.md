@@ -1,7 +1,7 @@
 ---
 id: timelines
 title: Timelines
-sidebar_position: 8
+sidebar_position: 6
 ---
 
 # Timelines in CALM
