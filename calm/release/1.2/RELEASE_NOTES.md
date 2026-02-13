@@ -1,10 +1,14 @@
 # CALM Schema v1.2 Release Notes
 
-CALM v1.2 builds on v1.1 to introduce architecture timelines.
+CALM v1.2 builds on v1.1 to introduce architecture timelines and decorators.
 
 ## Core Schema Concepts
 
 Unchanged.
+
+## Decorator Schema Concepts
+
+Decorators attach supplementary information to nodes, relationships, and other architecture elements **without modifying** the core architecture definition. They enable cross-cutting concerns — such as deployment tracking, security context, business metadata, and operational information — to be managed separately from the architecture itself.
 
 ## Timeline Schema Concepts
 
@@ -15,10 +19,3 @@ architecture changes over time.
 
 For questions or feedback, please engage with the CALM community through the
 appropriate channels.
-
-## Change Log
-### 2025-11-18
-Added CALM timeline schema, chatmode, models, and support for `calm validate --timeline` CLI command.
-
-### 2025-11-17
-Initial creation of release-1.2 schema to manage proposed changes, only change is schema reference from 1.1 -> 1.2
