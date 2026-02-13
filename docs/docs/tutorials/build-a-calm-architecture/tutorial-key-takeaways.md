@@ -36,5 +36,5 @@ sidebar_position: 6
 
 - **Use the CALM VSCode extension for fast reviews**: To preview and interactively inspect CALM JSON files inside your editor. Key benefits and a simple workflow:
   - Preview & validate: Open your architecture JSON and use the extension's preview pane to render the model and run inline validation before saving.
-  - Quick diffs: Use VSCode's Source Control diff UI together with the extension preview to compare prior and current renders (helps spot unintended structural changes).
+  - Quick diffs: Use VSCode's Source Control diff UI to compare prior and current helps spot unintended structural changes.
   
