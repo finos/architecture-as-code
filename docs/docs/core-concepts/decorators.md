@@ -58,7 +58,8 @@ The base decorator schema defines the top-level structure that all decorators mu
                     "minItems": 1
                 },
                 "data": {
-                    "type": "object"
+                    "type": "object",
+                    "minProperties": 1
                 }
             },
             "required": ["unique-id", "type", "target", "applies-to", "data"],
@@ -84,7 +85,7 @@ This creates a composable schema inheritance chain where each layer owns its own
 
 To illustrate how the base decorator schema can be extended, consider deployment decorators that track when and how architecture components are deployed, including status, timing, and observability links.
 
-### Deployment Decorator Schema
+### Example: Deployment Decorator Schema
 
 A deployment decorator schema could constrain `type` to `"deployment"` and define deployment-specific attributes in `data`:
 
