@@ -153,6 +153,7 @@ describe('CLI Integration Tests', () => {
                 'pattern-creation.md',
                 'documentation-creation.md',
                 'standards-creation.md',
+                'decorator-creation.md',
             ];
 
             expectedSkillFiles.forEach((skillFile) => {

@@ -35,9 +35,10 @@ const sidebars = {
         'core-concepts/relationships',
         'core-concepts/interfaces',
         'core-concepts/controls',
-        'core-concepts/metadata',
         'core-concepts/standards',
         'core-concepts/timelines',
+        'core-concepts/decorators',
+        'core-concepts/metadata',
       ],
     },
     {
