@@ -33,7 +33,8 @@ Looking at the CALM architecture file, here are the nodes with `node-type: "serv
 6. **Trade Processor** - Processes trade events, updates data store, publishes trade and position updates
 7. **Trade Feed** - Publishes and delivers real-time trade events, position updates, and trade status notifications
 
-These 7 services form the core processing layer of the trading system architecture, sitting between the web GUI and the data storage/directory components.
+These 7 services form the core processing layer of the trading system architecture, 
+sitting between the web GUI and the data storage/directory components.
 ```
 
 We will now ask the AI Assistant to review the application source code to pull out the endpoint information for each of the services.
@@ -153,7 +154,8 @@ Based on my search of the codebase, here are the service endpoints I found:
 |-------------|------|--------|
 | Process trade order | `/tradeservice/order` | POST |
 
-*Note: This service primarily operates via the trade feed message bus (WebSocket/SocketIO) and this REST endpoint appears to be for testing/alternate invocation.*
+*Note: This service primarily operates via the trade feed message bus (WebSocket/SocketIO) and 
+this REST endpoint appears to be for testing/alternate invocation.*
 
 ---
 
@@ -168,7 +170,8 @@ This service uses **WebSocket/SocketIO** for publish-subscribe messaging pattern
 
 ### REST API Endpoint specifications
 
-Since there are two types of endpoints: REST and WebSocket, we will first create CALM interface specfications for the RESTful services.
+Since there are two types of endpoints: REST and WebSocket, we will first create CALM interface specfications 
+for the RESTful services.
 
 **Prompt to AI Assistant**
 ```text
@@ -426,7 +429,9 @@ Based on the endpoints I found in the codebase, here are my proposed CALM interf
 
 ---
 
-**Summary**: These interface specifications add the `interfaces` property to each service node, documenting their REST APIs with port numbers, protocols, and detailed operation paths. All port numbers and endpoints are based on actual code in the repository.
+**Summary**: These interface specifications add the `interfaces` property to each service node, 
+documenting their REST APIs with port numbers, protocols, and detailed operation paths. All port 
+numbers and endpoints are based on actual code in the repository.
 
 **Please review and approve if you'd like me to add these interfaces to the architecture file.**
 ````
