@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { CalmSchemaRegistry } from './calm-schema-registry'
 import type { Logger } from '../ports/logger'
 import type { Config } from '../ports/config'
-import { TEST_1_2_SCHEMA_AND_ABOVE, TEST_ALL_SCHEMA } from '../../test-utils'
+import { TEST_1_2_SCHEMA_AND_ABOVE, TEST_ALL_SCHEMA } from '../../test/test-utils'
 
 // Mock vscode module
 vi.mock('vscode', () => ({
