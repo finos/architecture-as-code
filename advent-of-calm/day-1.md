@@ -74,12 +74,12 @@ This directory will contain CALM patterns for architectural governance.
 Generated documentation from CALM models.
 ```
 
-### 5. Enable AI Assistance with Copilot Chatmode
+### 5. Enable AI Assistance with Copilot Agent
 ```bash
-calm copilot-chatmode -d .
+calm init-ai -p copilot -d .
 ```
 
-This creates `.github/chatmodes/CALM.chatmode.md` with specialized CALM knowledge for GitHub Copilot.
+This creates `.github/agents/CALM.agent.md` with specialized CALM knowledge for GitHub Copilot.
 
 ### 6. Add a .gitignore
 Create `.gitignore`:
@@ -118,7 +118,7 @@ Your Day 1 submission should include a commit tagged `day-1` containing:
 
 ✅ **Required Files:**
 - `README.md` - Project introduction with progress checklist
-- `.github/chatmodes/CALM.chatmode.md` - Copilot configuration
+- `.github/agents/CALM.agent.md` - Copilot configuration
 - `.gitignore` - Basic ignore patterns
 - `architectures/` - Empty directory (ready for Day 2)
 - `patterns/` - Empty directory
@@ -129,8 +129,8 @@ Your Day 1 submission should include a commit tagged `day-1` containing:
 # Test CALM CLI is installed
 calm --version
 
-# Verify chatmode file exists and contains CALM schema guidance
-test -f .github/chatmodes/CALM.chatmode.md && grep -q "CALM" .github/chatmodes/CALM.chatmode.md
+# Verify agent file exists and contains CALM schema guidance
+test -f .github/agents/CALM.agent.md && grep -q "CALM" .github/agents/CALM.agent.md
 
 # Check git tag exists
 git tag | grep -q "day-1"
@@ -142,7 +142,7 @@ git tag | grep -q "day-1"
 - [GitHub Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide)
 
 ## Tips
-- If you don't have GitHub Copilot access, the chatmode file is still useful as documentation for you to reference
+- If you don't have GitHub Copilot access, the agent file is still useful as documentation for you to reference
 - Use descriptive commit messages - they tell the story of your learning
 - Consider making your repository public to inspire others
 - Tag each day's work (`day-1`, `day-2`, etc.) to create clear milestones

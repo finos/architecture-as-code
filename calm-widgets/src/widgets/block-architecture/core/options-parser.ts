@@ -37,6 +37,7 @@ export function parseOptions(raw?: BlockArchOptions): NormalizedOptions {
         edgeLabels: 'description',
         collapseRelationships: false,
         theme: 'light',
+        layoutEngine: 'elk',
     };
 
     if (!raw) return o;
@@ -102,6 +103,9 @@ export function parseOptions(raw?: BlockArchOptions): NormalizedOptions {
     const { theme, themeColors } = parseTheme(raw['theme'], raw['theme-colors']);
     o.theme = theme;
     o.themeColors = resolveThemeColors(theme, themeColors);
+
+    // Parse layout engine (dagre or elk, default: elk)
+    o.layoutEngine = pickEnum(raw['layout-engine'], ['dagre', 'elk'] as const, 'elk');
 
     return o;
 }

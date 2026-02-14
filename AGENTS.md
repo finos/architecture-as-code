@@ -33,7 +33,7 @@ architecture-as-code/
 ├── calm-plugins/vscode/       # VSCode extension
 ├── calm-models/               # TypeScript data models
 ├── calm-widgets/              # React visualization components
-├── calm-ai/                   # AI chatmode tools & prompts
+├── calm-ai/                   # AI agent tools & prompts
 ├── shared/                    # Shared TypeScript utilities
 ├── docs/                      # Docusaurus documentation site
 ├── advent-of-calm/            # Educational content (24-day challenge)
@@ -59,6 +59,24 @@ architecture-as-code/
 **Documentation**:
 - Docusaurus for main docs
 - Astro for advent-of-calm website
+
+## Node Version Requirements
+
+**CRITICAL**: This project targets **Node 22** as its CI baseline. All CI workflows run on Node 22, and lockfiles must be compatible with Node 22.
+
+The `engines` field in `package.json` (`^22.14.0 || >=24.10.0`) also permits Node 24+ for local development, but **Node 22 is the canonical version** used to validate builds and tests.
+
+- **`.nvmrc`** pins `22.14.0` — run `nvm use` to switch automatically
+- **`.npmrc`** has `engine-strict=true` — `npm install` will refuse to run on Node versions outside the `engines` range (e.g. Node 18, 20, or 23)
+- **`@types/node`** is overridden to `^22.0.0` in root `package.json` to prevent transitive dependencies from pulling in a different major version
+- **Renovate** is configured with `allowedVersions: "<23.0.0"` for `@types/node`
+
+### Why this matters
+
+Running `npm install` on a different Node major version (e.g. Node 25) causes:
+1. **Native binding failures** — platform-specific packages (`@swc/core`, `@tailwindcss/oxide`) resolve for the wrong Node ABI, breaking CI builds
+2. **`@types/node` version drift** — transitive deps with loose constraints (`>=18`, `*`) allow `@types/node@25` to be hoisted to root, masking usage of APIs unavailable in Node 22
+3. **Noisy lockfile diffs** — Renovate's `npmDedupe` recalculates the dependency tree, producing large spurious changes
 
 ## Quick Navigation
 

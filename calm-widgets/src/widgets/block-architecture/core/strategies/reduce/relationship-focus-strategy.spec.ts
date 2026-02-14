@@ -16,6 +16,7 @@ const baseOpts = (): NormalizedOptions => ({
     edgeLabels: 'description',
     collapseRelationships: false,
     theme: 'light',
+    layoutEngine: 'elk',
 });
 
 function relConnects(id: string, sourceNode: string, sourceIface: string, destNode: string, destIface: string): CalmRelationshipCanonicalModel {

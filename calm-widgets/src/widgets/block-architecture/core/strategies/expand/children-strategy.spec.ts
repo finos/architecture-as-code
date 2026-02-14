@@ -15,6 +15,7 @@ const base = (overrides: Partial<NormalizedOptions> = {}): NormalizedOptions => 
     edgeLabels: 'description',
     collapseRelationships: false,
     theme: 'light',
+    layoutEngine: 'elk',
     ...overrides,
 });
 

@@ -5,6 +5,75 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.32.0] - 2026-02-11
+
+## [1.32.0](https://github.com/finos/architecture-as-code/compare/cli-v1.31.0...cli-v1.32.0) (2026-02-11)
+
+* Merge branch 'main' into bye-bye-chatmode ([](https://github.com/finos/architecture-as-code/commit/b802f4cd5d3d69b829a908c26e82d49b39b2d218))
+* Merge branch 'main' into chore/enforce-node-22-types ([](https://github.com/finos/architecture-as-code/commit/deb43a78a11e788d89ac2d5e55ed8f4a4c79bef4))
+* Merge branch 'main' into chore/override-lodash-version ([](https://github.com/finos/architecture-as-code/commit/469b15c31433b5db56bfe92b246298669750cb1b))
+* Merge branch 'main' into governance ([](https://github.com/finos/architecture-as-code/commit/330c6ab922baa87158541d9a23dcee0a9b49ca9b))
+* Merge branch 'main' into governance ([](https://github.com/finos/architecture-as-code/commit/07dd2df3cac511c61967bd87333cd04eb581a46a))
+* Merge branch 'main' into renovate/actions-checkout-digest ([](https://github.com/finos/architecture-as-code/commit/117829fe7c410a68ac9dfb7199ef98bf388c5e17))
+* Merge branch 'main' into renovate/semgrep-semgrep ([](https://github.com/finos/architecture-as-code/commit/e87d2ebced2ae1379472f90030f4bb4deedbf39f))
+* Merge branch 'main' into renovate/step-security-harden-runner-digest ([](https://github.com/finos/architecture-as-code/commit/4c513b2e5062d47e4c974ce3b7ad90eec550ed6e))
+* Merge pull request #2088 from rocketstack-matt/chore/upgrade-semantic-release-v25 ([](https://github.com/finos/architecture-as-code/commit/ccfad8f0c769003b952b0ff8482eed138fe74675))
+* Merge pull request #2118 from markscott-ms/bye-bye-chatmode ([](https://github.com/finos/architecture-as-code/commit/114480055e084a9cf19240ab6a8e6014e035e9f7))
+* Merge pull request #2124 from rocketstack-matt/chore/enforce-node-22-types ([](https://github.com/finos/architecture-as-code/commit/fd9498384ac41397bdd980fe2e7d1b15a2167aac))
+
+### chore
+
+* **deps:** update actions/cache digest to cdf6c1f ([](https://github.com/finos/architecture-as-code/commit/08933c1dbb1a3193bc5ba6bf126280819229c83e))
+* **deps:** update actions/cache digest to cdf6c1f ([](https://github.com/finos/architecture-as-code/commit/f3138ebaac8ec30f4c2e4ad6c1aca98e2638f130))
+* **deps:** update actions/checkout digest to de0fac2 ([](https://github.com/finos/architecture-as-code/commit/f8a45a2f11c0c1a2fa0f48a7151f099bd9228ae6))
+* **deps:** update actions/checkout digest to de0fac2 ([](https://github.com/finos/architecture-as-code/commit/07eeb349048365c6bd73144a420d6ca27a7cb598))
+* **deps:** update docker/login-action digest to c94ce9f ([](https://github.com/finos/architecture-as-code/commit/89c966724311a4f1f82ab1f4e53e22cde0905fde))
+* **deps:** update docker/login-action digest to c94ce9f ([](https://github.com/finos/architecture-as-code/commit/08ed92e02d9e1fe29ecc475174282242c85e6f1a))
+* **deps:** update security updates ([](https://github.com/finos/architecture-as-code/commit/abfdf176cbbca3f1d0a019e2481a35b54cae0614))
+* **deps:** update security updates ([](https://github.com/finos/architecture-as-code/commit/866d63b385116ba81aa2e770783bdc944f5b6dc9))
+* **deps:** update semgrep/semgrep docker digest to b6a1bae ([](https://github.com/finos/architecture-as-code/commit/932b1625663a934de8ccd12592802fc707eb63f8))
+* **deps:** update semgrep/semgrep docker digest to b6a1bae ([](https://github.com/finos/architecture-as-code/commit/0a5a54666fbc78054225681ad242cf3170c2976f))
+* **deps:** update semgrep/semgrep docker digest to e520bbf ([](https://github.com/finos/architecture-as-code/commit/d4afc64f281b16f5952b4c2b0c4fe33b91976374))
+* **deps:** update semgrep/semgrep docker digest to e520bbf ([](https://github.com/finos/architecture-as-code/commit/13d7439be2b828f50d45948434aa9421aea7c071))
+* **deps:** update step-security/harden-runner digest to 5ef0c07 ([](https://github.com/finos/architecture-as-code/commit/72215488c4062113d132c5b5cadbf1d9e148e520))
+* **deps:** update step-security/harden-runner digest to 5ef0c07 ([](https://github.com/finos/architecture-as-code/commit/d3849a0cf68b5fadf947fea104241d6b021f66ee))
+* **docs:** propose addition of markscott-ms as listed maintainer subprojects ([](https://github.com/finos/architecture-as-code/commit/ea80062c7528c9bf4d25b59f89869cfbd57e393e))
+* **docs:** Revise Maintainers list in README.md ([](https://github.com/finos/architecture-as-code/commit/f60de774b8f43e9aa3657a5029783070e026f51d))
+* **docs:** update CODEOWNERS file in line with README.md ([](https://github.com/finos/architecture-as-code/commit/09229b1c10a79c87b2bf71a0a38c93a4d91bb8dc))
+* override lodash to 4.17.23 for all dependencies ([](https://github.com/finos/architecture-as-code/commit/fdcc22e7fd7eae03b1cc45043fe00a135cf6ac66))
+* override lodash to 4.17.23 for all dependencies ([](https://github.com/finos/architecture-as-code/commit/41fb3ac1735a07c5fd06f043d1bda709a51f533f))
+* recreate package-lock files from linux ([](https://github.com/finos/architecture-as-code/commit/36a3be3745df435aad555b26e05a695bdecd2289))
+* upgrade semantic-release to v25 to fix tar vulnerability ([](https://github.com/finos/architecture-as-code/commit/021845b4fecbefbdd9b897e7f1f6d5fc3400cd34))
+
+### docs
+
+* Add governance policy around removing maintainers ([](https://github.com/finos/architecture-as-code/commit/d10e062378590541a4a6ff92102e490df91c8bc5))
+* Add governance policy around removing maintainers ([](https://github.com/finos/architecture-as-code/commit/bef14e62f4770adc47ae59ee0187a05e51f1b46f))
+* add maintainer update issue template ([](https://github.com/finos/architecture-as-code/commit/a2a76d10644329ada84a84163dc88f99f7c256ae))
+* add Node version requirements to AGENTS.md ([](https://github.com/finos/architecture-as-code/commit/2e19b46ce8dcc78d1318459b70bb0b104fcf4f62)), closes [#2123](https://github.com/finos/architecture-as-code/issues/2123)
+* **ai:** require VSCode 1.106+ for Copilot Agent ([](https://github.com/finos/architecture-as-code/commit/26cb30c89cae0de9ae14448ad72b30252eede1bf))
+* **docs:** fix references to CALM Tools extension ([](https://github.com/finos/architecture-as-code/commit/442872e3791079a207c86785cb5b6c2d4d121752))
+* **docs:** fix references to CALM Tools extension ([](https://github.com/finos/architecture-as-code/commit/caf731b9ee2427dcd9d20ebbf3b843d3e3b53c9c))
+* **vscode:** rename plugin to 'CALM Tools', as 'calm' is taken ([](https://github.com/finos/architecture-as-code/commit/7f5892d58539a869c1d9bf9620193d4fe4316c33))
+* **vscode:** rename plugin to 'CALM Tools', as 'calm' is taken ([](https://github.com/finos/architecture-as-code/commit/f80c0903739bbf84b8706d0f7e17454719ba10fc))
+
+### feat
+
+* **ai,docs:** change Copilot from chatmode to agent ([](https://github.com/finos/architecture-as-code/commit/f2ae430a77b16fbdba4a0cf65ab796ccd6a8049f))
+* **cli,docs:** address review comments ([](https://github.com/finos/architecture-as-code/commit/e51ec463036dc0224f354c861749aca22b8f13ec))
+* **cli,docs:** remove `copilot-chatmode` option from CLI ([](https://github.com/finos/architecture-as-code/commit/dc5cd54026da77e0259a42616eed815d2ba9372e))
+
+### fix
+
+* address review comments — pin .nvmrc, reword AGENTS.md, align calm-models to Node 22 types ([](https://github.com/finos/architecture-as-code/commit/e5c091b7ad36e5b722a6cf589381b995ca0aa340))
+* **calm-widgets:** render primitive arrays inline with comma separator for MDX compatibility (#2080) ([](https://github.com/finos/architecture-as-code/commit/ce513296cdd88a5110809c30994e1fe85c7b29ef)), closes [#2080](https://github.com/finos/architecture-as-code/issues/2080)
+* **calm-widgets:** render primitive arrays inline with comma separator list for for MDX compatibility (#2080) ([](https://github.com/finos/architecture-as-code/commit/25eee61bedfba3502bcf9916bf7979cf8dc568a2)), closes [#2080](https://github.com/finos/architecture-as-code/issues/2080)
+* **deps:** enforce @types/node v22 and pin Node version for lockfile consistency ([](https://github.com/finos/architecture-as-code/commit/0e35d4f2cbf633c567bee574d32d33aa09557eee)), closes [#2123](https://github.com/finos/architecture-as-code/issues/2123)
+* override lodash to 4.17.23 to fix commitizen dependency ([](https://github.com/finos/architecture-as-code/commit/0e10b92f27c595ca1fd859d5db7d2170e94ab4f3))
+* **vscode:** correct focusing for all  relationship types and increase test coverage ([](https://github.com/finos/architecture-as-code/commit/65be0a1d3f61c5672301cebfcbe88343c0b64972))
+* **vscode:** correct focusing for all  relationship types and increase test coverage ([](https://github.com/finos/architecture-as-code/commit/8c683194cfbb8aecddf48ec6811d2582e788a559))
+* **vscode:** more reliable focusing for flows and increase test coverage ([](https://github.com/finos/architecture-as-code/commit/cbefdd160d7cfa9ec171902de093cac006232904))
+
 ## [1.31.0] - 2026-01-28
 
 ## 1.31.0 (2026-01-28)
