@@ -20,13 +20,13 @@ Loading FINOS CALM instructions...
 
 Let me read the CALM tool prompts to understand the current guidance. 
 
-Ran terminal command:  cat "/Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts/architecture-creation.md"
+Ran terminal command:  cat ".github/chatmodes/calm-prompts/architecture-creation.md"
 
-Ran terminal command:  cat "/Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts/calm-cli-instructions.md"
+Ran terminal command:  cat ".github/chatmodes/calm-prompts/calm-cli-instructions.md"
 
 I'm ready to assist with CALM architectures. Let me create the minimal architecture file for you. 
 
-Ran terminal command:  cat > "/Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json" << 'EOF'
+Ran terminal command:  cat > "trading-system.architecture.json" << 'EOF'
 {
     "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
     "unique-id": "trading-system",
@@ -325,9 +325,9 @@ nodes and relationships.
 
 **Response from AI Assistant**
 ```text
-Ran terminal command:  cat "/Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts/node-creation.md"
+Ran terminal command:  cat ".github/chatmodes/calm-prompts/node-creation.md"
 
-Ran terminal command:  cat "/Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts/relationship-creation.md"
+Ran terminal command:  cat ".github/chatmodes/calm-prompts/relationship-creation.md"
 
 Now let me update the architecture file with all the nodes and relationships based on the business design: 
 
@@ -355,7 +355,7 @@ Using "Replace String in File"
 
 Now I'll validate the updated architecture file: 
 
-Ran terminal command:  calm validate -a /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json -f pretty
+Ran terminal command:  calm validate -a trading-system.architecture.json -f pretty
 
 Perfect! I've successfully updated trading-system.architecture.json with:
 
@@ -531,7 +531,7 @@ Using "Replace String in File"
 
 Now I'll validate the architecture file with the flows: 
 
-Ran terminal command:  calm validate -a /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json -f pretty
+Ran terminal command:  calm validate -a trading-system.architecture.json -f pretty
 
 Perfect! I've successfully added 7 flows to the trading system architecture:
 
@@ -644,7 +644,7 @@ I accept the proposed changes
 ```text
 Using "Multi-Replace String in Files"
 
-Ran terminal command:  calm validate -a /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json -f pretty
+Ran terminal command:  calm validate -a trading-system.architecture.json -f pretty
 
 Changes applied successfully and validated with no errors:
 
