@@ -10,10 +10,12 @@ export const TEST_1_2_SCHEMA_AND_ABOVE = TEST_1_1_SCHEMA_AND_ABOVE.filter(s => s
  * that match the CALM schema reference pattern are updated accordingly.
  * The function also updates the top-level $schema property to point to the new version.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function setCalmSchema(arch: any, schemaVersion: string): any {
     /**
      * Deep clone and update all $ref values that are CALM schema references
      */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function updateCalmRefs(obj: any): any {
         if (obj === null || obj === undefined) {
             return obj;
@@ -24,6 +26,7 @@ export function setCalmSchema(arch: any, schemaVersion: string): any {
         }
 
         if (typeof obj === 'object') {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result: any = {};
             for (const key in obj) {
                 if (Object.prototype.hasOwnProperty.call(obj, key)) {
