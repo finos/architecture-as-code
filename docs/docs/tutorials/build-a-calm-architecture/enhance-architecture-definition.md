@@ -4,194 +4,704 @@ title: Refine Architecture Definition
 sidebar_position: 4
 ---
 
-## Add inteface specifications for RESTful Services
+## Add inteface specifications for Services
 
-We will now enhance the trading system architecture definition by adding interface definitions for the RESTful services.  Here are the specifications by serivce.
+We will now enhance the trading system architecture definition by adding interface definitions for the services.
 
-### REST API End Point specifications
+## Identify application end points
 
-#### Account Service Interfaces
-
-- unique-id: account-service-api, host: service-host, port: 18088, protocol: https
-- unique-id: get-all-account-users, host: service-host, port: 18088, method: GET, description: Gets all user-account mappings, url: https://service-host:18088/api/accountuser
-- unique-id: update-account-user, host: service-host, port: 18088, method: PUT, description: Update user-account mapping, url: https://service-host:18088/api/accountuser
-- unique-id: create-account-user, host: service-host, port: 18088, method: POST, description: Creates a user-account mapping, url: https://service-host:18088/api/accountuser
-- unique-id: get-account-user-by-id, host: service-host, port: 18088, method: GET, description: Gets an account-user mapping, url: https://service-host:18088/api/accountuser/{accountId}
-- unique-id: get-all-account, host: service-host, port: 18088, method: GET, description: Retrieves all accounts, url: https://service-host:18088/api/account
-- unique-id: update-account, host: service-host, port: 18088, method: PUT, description: Updates an account, url: https://service-host:18088/api/account
-- unique-id: create-account, host: service-host, port: 18088, method: POST, description: Creates an account, url: https://service-host:18088/api/account
-- unique-id: get-account-by-id, host: service-host, port: 18088, method: GET, description: Gets an account by ID, url: https://service-host:18088/api/account/{accountId}
-
-#### Position Service Interfaces
-
-- unique-id: position-service-api, host: service-host, port: 18090, protocol: https
-- unique-id: get-trades-by-account-id, host: service-host, port: 18090, method: GET, description: Get trades by account ID, url: https://service-host:18090/api/trades/{accountId}
-- unique-id: get-all-trades, host: service-host, port: 18090, method: GET, description: Get all trades, url: https://service-host:18090/api/trades
-- unique-id: get-positions-by-account-id, host: service-host, port: 18090, method: GET, description: Get positions by account ID, url: https://service-host:18090/api/positions/{accountId}
-- unique-id: get-all-positions, host: service-host, port: 18090, method: GET, description: Get all positions, url: https://service-host:18090/api/positions
-
-#### Trade Service Interfaces
-
-- unique-id: trade-service-api, host: service-host, port: 18092, protocol: https
-- unique-id: create-trade-order, host: service-host, port: 18092, method: POST, description: Create a trade order, url: https://service-host:18092/api/trade
-
-#### Trade Processor Interfaces
-
-- unique-id: trade-processor-api, host: service-host, port: 18091, protocol: https
-- unique-id: health, host: service-host, port: 18091, method: GET, description: Simple Healthcheck Endpoint, url: https://service-host:18091/api/health
-- unique-id: get-trades-by-account, host: service-host, port: 18091, method: GET, description: Gets trades for a specific account, url: https://service-host:18091/api/trades
-- unique-id: get-positions-by-account, host: service-host, port: 18091, method: GET, description: Gets all Positions for a specific account, url: https://service-host:18091/api/positions
-
-#### People Service Interfaces
-
-- unique-id: people-service-api, host: service-host, port: 18089, protocol: https
-- unique-id: get-person, host: service-host, port: 18089, method: GET, description: Get a person from directory by logon or employee ID, url: https://service-host:18089/api/People/GetPerson
-- unique-id: get-matching-people, host: service-host, port: 18089, method: GET, description: Get all the people from the directory whose logonId or full name contain the search text, url: https://service-host:18089/api/People/GetMatchingPeople
-- unique-id: validate-person, host: service-host, port: 18089, method: GET, description: Validate a person against the firmwide directory without returning any attributes, url: https://service-host:18089/api/People/ValidatePerson
-
-#### Reference Data Service Interfaces
-
-- unique-id: reference-data-service-api, host: service-host, port: 18085, protocol: https
-- unique-id: get-all-stocks, host: service-host, port: 18085, method: GET, description: Get all securities, url: https://service-host:18085/api/stocks
-- unique-id: get-stock-by-ticker, host: service-host, port: 18085, method: GET, description: Get a single security by ticker, url: https://service-host:18085/api/stocks/{tickerSymbol}
-
-
-We accomplish this by copy/paste the REST specifications into the following prompt.
+Using the AI Assistant identify all the nodes that are services.  
 
 **Prompt to AI Assistant**
 ```text
-add the following interface definitions to the respective services.
-#### Account Service Interfaces
+what are the nodes that are services
+```
 
-- unique-id: account-service-api, host: service-host, port: 18088, protocol: https
-- unique-id: get-all-account-users, host: service-host, port: 18088, method: GET, description: Gets all user-account mappings, url: https://service-host:18088/api/accountuser
-- unique-id: update-account-user, host: service-host, port: 18088, method: PUT, description: Update user-account mapping, url: https://service-host:18088/api/accountuser
-- unique-id: create-account-user, host: service-host, port: 18088, method: POST, description: Creates a user-account mapping, url: https://service-host:18088/api/accountuser
-- unique-id: get-account-user-by-id, host: service-host, port: 18088, method: GET, description: Gets an account-user mapping, url: https://service-host:18088/api/accountuser/{accountId}
-- unique-id: get-all-account, host: service-host, port: 18088, method: GET, description: Retrieves all accounts, url: https://service-host:18088/api/account
-- unique-id: update-account, host: service-host, port: 18088, method: PUT, description: Updates an account, url: https://service-host:18088/api/account
-- unique-id: create-account, host: service-host, port: 18088, method: POST, description: Creates an account, url: https://service-host:18088/api/account
-- unique-id: get-account-by-id, host: service-host, port: 18088, method: GET, description: Gets an account by ID, url: https://service-host:18088/api/account/{accountId}
+_Note_: The `trading-syste.achicture.json` file is added to the context for this prompt.
 
-#### Position Service Interfaces
+**Response from AI Assistant**
+```text
+Looking at the CALM architecture file, here are the nodes with `node-type: "service"`:
 
-- unique-id: position-service-api, host: service-host, port: 18090, protocol: https
-- unique-id: get-trades-by-account-id, host: service-host, port: 18090, method: GET, description: Get trades by account ID, url: https://service-host:18090/api/trades/{accountId}
-- unique-id: get-all-trades, host: service-host, port: 18090, method: GET, description: Get all trades, url: https://service-host:18090/api/trades
-- unique-id: get-positions-by-account-id, host: service-host, port: 18090, method: GET, description: Get positions by account ID, url: https://service-host:18090/api/positions/{accountId}
-- unique-id: get-all-positions, host: service-host, port: 18090, method: GET, description: Get all positions, url: https://service-host:18090/api/positions
+1. **Trade Service** - Handles trade submission, validates tickets against security master and account service
+2. **Account Service** - Manages account lifecycle, user associations, and account queries
+3. **Position Service** - Provides position and trade data for blotter initialization
+4. **People Service** - Manages user search and validation against the user directory
+5. **Security Master** - Maintains tradeable securities list, loads from CSV, validates tickers
+6. **Trade Processor** - Processes trade events, updates data store, publishes trade and position updates
+7. **Trade Feed** - Publishes and delivers real-time trade events, position updates, and trade status notifications
 
-#### Trade Service Interfaces
+These 7 services form the core processing layer of the trading system architecture, sitting between the web GUI and the data storage/directory components.
+```
 
-- unique-id: trade-service-api, host: service-host, port: 18092, protocol: https
-- unique-id: create-trade-order, host: service-host, port: 18092, method: POST, description: Create a trade order, url: https://service-host:18092/api/trade
+We will now ask the AI Assistant to review the application source code to pull out the end point information for each of the services.
 
-#### Trade Processor Interfaces
+**Prompt to AI Assistant**
+```text
+for each of the services listed, identify the service endpoints in the #codebase.  
+For each enpoint, extract the following:
+-description
+-path
+-method
+-port
 
-- unique-id: trade-processor-api, host: service-host, port: 18091, protocol: https
-- unique-id: health, host: service-host, port: 18091, method: GET, description: Simple Healthcheck Endpoint, url: https://service-host:18091/api/health
-- unique-id: get-trades-by-account, host: service-host, port: 18091, method: GET, description: Gets trades for a specific account, url: https://service-host:18091/api/trades
-- unique-id: get-positions-by-account, host: service-host, port: 18091, method: GET, description: Gets all Positions for a specific account, url: https://service-host:18091/api/positions
-
-#### People Service Interfaces
-
-- unique-id: people-service-api, host: service-host, port: 18089, protocol: https
-- unique-id: get-person, host: service-host, port: 18089, method: GET, description: Get a person from directory by logon or employee ID, url: https://service-host:18089/api/People/GetPerson
-- unique-id: get-matching-people, host: service-host, port: 18089, method: GET, description: Get all the people from the directory whose logonId or full name contain the search text, url: https://service-host:18089/api/People/GetMatchingPeople
-- unique-id: validate-person, host: service-host, port: 18089, method: GET, description: Validate a person against the firmwide directory without returning any attributes, url: https://service-host:18089/api/People/ValidatePerson
-
-#### Reference Data Service Interfaces
-
-- unique-id: reference-data-service-api, host: service-host, port: 18085, protocol: https
-- unique-id: get-all-stocks, host: service-host, port: 18085, method: GET, description: Get all securities, url: https://service-host:18085/api/stocks
-- unique-id: get-stock-by-ticker, host: service-host, port: 18085, method: GET, description: Get a single security by ticker, url: https://service-host:18085/api/stocks/{tickerSymbol}
-
+If you are unable to find endpoint information for that service in the code, 
+respond "Unable to find endpoint information"
 ```
 
 **Response from AI Assistant**
 ```text
-Loading FINOS CALM instructions...
+Searched codebase for "for each of the services listed, identify the service endpoints in the #codebase.  For each enpoint, extract the following:
+-description
+-path
+-method
+-port
 
-Let me first read the CALM instruction files to understand the current guidance. 
+If you are unable to find endpoint information for that service in the code, respond "Unable to find endpoint information"", 26 results
 
-Searched codebase for "read CALM instruction files architecture creation node relationship interface metadata control flow pattern documentation standards", 22 results
+I'll search the codebase for endpoint information for each service.       
 
-Ran terminal command:  find /Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts -type f -name "*.md" 2>/dev/null | head -20
+Searched codebase for "Trade Service API endpoints routes controller REST methods paths", 20 results
 
-I've loaded all the CALM instruction files and I'm ready to assist with CALM architectures.
+Searched codebase for "Account Service API endpoints routes controller REST methods paths", 16 results
 
-Now I'll add the interface definitions to the respective services in your trading system architecture. I can see you have several services that need interfaces defined:
+Searched codebase for "Position Service API endpoints routes controller REST methods paths", 22 results
 
-1. Account Service
-2. Position Service
-3. Trade Service
-4. Trade Processor
-5. People Service
-6. Security Master (Reference Data Service)
+Searched codebase for "People Service API endpoints routes controller REST methods paths", 15 results
 
-Let me add these interfaces to each corresponding node: 
+Searched codebase for "Security Master reference data API endpoints routes controller REST methods paths", 25 results
 
-Using "Multi-Replace String in Files"
+Searched codebase for "Trade Processor API endpoints routes controller REST methods paths", 23 results
 
-All interface definitions have been successfully added to the respective services. Let me validate the architecture to ensure everything is correct: 
+Searched codebase for "Trade Feed API endpoints routes controller WebSocket paths", 24 results
 
-Ran terminal command:  calm validate -a trading-system.architecture.json
+Let me search for specific port configurations and README files for each service to get complete endpoint information.  
 
-Perfect! The architecture has been successfully updated and validated. I've added all the interface definitions to the respective services:
+Searched codebase for "service port 18088 18089 18090 18091 18092 18085 18086 configuration environment variable", 27 results
 
-✅ **Account Service** - 9 interfaces (API base + 8 endpoints)
-✅ **Position Service** - 5 interfaces (API base + 4 endpoints)
-✅ **Trade Service** - 2 interfaces (API base + 1 endpoint)
-✅ **Trade Processor** - 4 interfaces (API base + 3 endpoints)
-✅ **People Service** - 4 interfaces (API base + 3 endpoints)
-✅ **Security Master** - 3 interfaces (API base + 2 endpoints)
+Searched codebase for "openapi.json swagger spec API documentation endpoint paths", 21 results
 
-The CALM validation confirms there are no errors or warnings. All interfaces follow the `interface-type` approach with flexible properties (`unique-id`, `host`, `port`, `protocol`, `method`, `url`, `description`).
+Based on my search of the codebase, here are the service endpoints I found:
+
+
+## **1. Trade Service**
+**Port:** 18092
+
+| Description | Path | Method |
+|-------------|------|--------|
+| Submit a new trade order | `/trade/` | POST |
+
+---
+
+## **2. Account Service**
+**Port:** 18088
+
+| Description | Path | Method |
+|-------------|------|--------|
+| Get all accounts | `/account/` | GET |
+| Get account by ID | `/account/{id}` | GET |
+| Create account | `/account/` | POST |
+| Update account | `/account/` | PUT |
+| Get all account users | `/accountuser/` | GET |
+| Get account user by ID | `/accountuser/{id}` | GET |
+| Create account user | `/accountuser/` | POST |
+| Update account user | `/accountuser/` | PUT |
+
+---
+
+## **3. Position Service**
+**Port:** 18090
+
+| Description | Path | Method |
+|-------------|------|--------|
+| Get all positions | `/positions/` | GET |
+| Get positions by account ID | `/positions/{accountId}` | GET |
+| Get all trades | `/trades/` | GET |
+| Get trades by account ID | `/trades/{accountId}` | GET |
+
+---
+
+## **4. People Service**
+**Port:** 18089
+
+| Description | Path | Method |
+|-------------|------|--------|
+| Get a person by logonId or employeeId | `/People/GetPerson` | GET |
+| Get matching people by search text | `/People/GetMatchingPeople` | GET |
+| Validate a person | `/People/ValidatePerson` | GET |
+
+---
+
+## **5. Security Master (Reference Data Service)**
+**Port:** 18085
+
+| Description | Path | Method |
+|-------------|------|--------|
+| Get all stocks | `/stocks` | GET |
+| Get stock by ticker | `/stocks/{ticker}` | GET |
+
+---
+
+## **6. Trade Processor**
+**Port:** 18091
+
+| Description | Path | Method |
+|-------------|------|--------|
+| Process trade order | `/tradeservice/order` | POST |
+
+*Note: This service primarily operates via the trade feed message bus (WebSocket/SocketIO) and this REST endpoint appears to be for testing/alternate invocation.*
+
+---
+
+## **7. Trade Feed**
+**Port:** 18086
+
+This service uses **WebSocket/SocketIO** for publish-subscribe messaging pattern rather than traditional REST endpoints. It provides:
+- WebSocket connection for real-time trade and position updates
+- Publish/Subscribe topics for trades and positions
+- GET `/` - HTML viewer page for monitoring messages
+```
+
+### REST API End Point specifications
+
+Since there are two types of endpoints: REST and WebSocket, we will first create CALM interface specfications for the RESTful services.
+
+**Prompt to AI Assistant**
+```text
+Except for the "Trade Feed" service node propose endpoint CALM interface specifications for the node.  
+Show the recommendation.  I want to review and approve the change.
+```
+
+**Response from AI Assistant**
+````text
+Based on the endpoints I found in the codebase, here are my proposed CALM interface specifications for each service node (excluding Trade Feed):
+
+## **1. Trade Service**
+```json
+{
+  "unique-id": "trade-service",
+  "node-type": "service",
+  "name": "Trade Service",
+  "description": "Handles trade submission, validates tickets against security master and account service",
+  "interfaces": [
+    {
+      "unique-id": "trade-service-api",
+      "name": "Trade Service REST API",
+      "description": "HTTP API for submitting and validating trade orders",
+      "protocol": "HTTPS",
+      "port": 18092,
+      "schema": {
+        "specification": "OpenAPI",
+        "operations": [
+          {
+            "path": "/trade/",
+            "method": "POST",
+            "description": "Submit a new trade order with validation against security master and account service"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+## **2. Account Service**
+
+```json
+{
+  "unique-id": "account-service",
+  "node-type": "service",
+  "name": "Account Service",
+  "description": "Manages account lifecycle, user associations, and account queries",
+  "interfaces": [
+    {
+      "unique-id": "account-service-api",
+      "name": "Account Service REST API",
+      "description": "HTTP API for managing accounts and account-user associations",
+      "protocol": "HTTPS",
+      "port": 18088,
+      "schema": {
+        "specification": "OpenAPI",
+        "operations": [
+          {
+            "path": "/account/",
+            "method": "GET",
+            "description": "Get all accounts"
+          },
+          {
+            "path": "/account/{id}",
+            "method": "GET",
+            "description": "Get account by ID"
+          },
+          {
+            "path": "/account/",
+            "method": "POST",
+            "description": "Create new account"
+          },
+          {
+            "path": "/account/",
+            "method": "PUT",
+            "description": "Update existing account"
+          },
+          {
+            "path": "/accountuser/",
+            "method": "GET",
+            "description": "Get all account users"
+          },
+          {
+            "path": "/accountuser/{id}",
+            "method": "GET",
+            "description": "Get account user by ID"
+          },
+          {
+            "path": "/accountuser/",
+            "method": "POST",
+            "description": "Create account user association"
+          },
+          {
+            "path": "/accountuser/",
+            "method": "PUT",
+            "description": "Update account user association"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+## **3. Position Service**
+
+```json
+{
+  "unique-id": "position-service",
+  "node-type": "service",
+  "name": "Position Service",
+  "description": "Provides position and trade data for blotter initialization",
+  "interfaces": [
+    {
+      "unique-id": "position-service-api",
+      "name": "Position Service REST API",
+      "description": "HTTP API for retrieving trades and positions by account",
+      "protocol": "HTTPS",
+      "port": 18090,
+      "schema": {
+        "specification": "OpenAPI",
+        "operations": [
+          {
+            "path": "/positions/",
+            "method": "GET",
+            "description": "Get all positions"
+          },
+          {
+            "path": "/positions/{accountId}",
+            "method": "GET",
+            "description": "Get positions for specific account"
+          },
+          {
+            "path": "/trades/",
+            "method": "GET",
+            "description": "Get all trades"
+          },
+          {
+            "path": "/trades/{accountId}",
+            "method": "GET",
+            "description": "Get trades for specific account"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+## **4. People Service**
+
+```json
+{
+  "unique-id": "people-service",
+  "node-type": "service",
+  "name": "People Service",
+  "description": "Manages user search and validation against the user directory",
+  "interfaces": [
+    {
+      "unique-id": "people-service-api",
+      "name": "People Service REST API",
+      "description": "HTTP API for user search and validation against directory",
+      "protocol": "HTTPS",
+      "port": 18089,
+      "schema": {
+        "specification": "OpenAPI",
+        "operations": [
+          {
+            "path": "/People/GetPerson",
+            "method": "GET",
+            "description": "Get person by logonId or employeeId"
+          },
+          {
+            "path": "/People/GetMatchingPeople",
+            "method": "GET",
+            "description": "Search people by logonId or fullName"
+          },
+          {
+            "path": "/People/ValidatePerson",
+            "method": "GET",
+            "description": "Validate person exists in directory"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+## **5. Security Master (Reference Data)**
+
+```json
+{
+  "unique-id": "security-master",
+  "node-type": "service",
+  "name": "Security Master",
+  "description": "Maintains tradeable securities list, loads from CSV, validates tickers",
+  "interfaces": [
+    {
+      "unique-id": "security-master-api",
+      "name": "Security Master REST API",
+      "description": "HTTP API for retrieving tradeable securities and ticker validation",
+      "protocol": "HTTPS",
+      "port": 18085,
+      "schema": {
+        "specification": "OpenAPI",
+        "operations": [
+          {
+            "path": "/stocks",
+            "method": "GET",
+            "description": "Get all tradeable securities"
+          },
+          {
+            "path": "/stocks/{ticker}",
+            "method": "GET",
+            "description": "Get security by ticker symbol"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+## **6. Trade Processor**
+
+```json
+{
+  "unique-id": "trade-processor",
+  "node-type": "service",
+  "name": "Trade Processor",
+  "description": "Processes trade events, updates data store, publishes trade and position updates",
+  "interfaces": [
+    {
+      "unique-id": "trade-processor-api",
+      "name": "Trade Processor REST API",
+      "description": "HTTP API for direct trade processing (primarily operates via trade feed)",
+      "protocol": "HTTPS",
+      "port": 18091,
+      "schema": {
+        "specification": "OpenAPI",
+        "operations": [
+          {
+            "path": "/tradeservice/order",
+            "method": "POST",
+            "description": "Process trade order directly"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+---
+
+**Summary**: These interface specifications add the `interfaces` property to each service node, documenting their REST APIs with port numbers, protocols, and detailed operation paths. All port numbers and endpoints are based on actual code in the repository.
+
+**Please review and approve if you'd like me to add these interfaces to the architecture file.**
+````
+
+The architect spot checks the proposed interface specifications against the application source code and the proposal looks good.
+
+**Prompt to AI Assistant**
+```text
+I approve the interfaces, please add to the architecture file
+```
+
+**Response from AI Assistant**
+```text
+Replacing 36 lines with 215 lines in [](file:trading-system.architecture.json)
+
+Done! I've successfully added the interface specifications to all six service nodes in the architecture file:
+
+✅ **Trade Service** - 1 POST endpoint on port 18092
+✅ **Account Service** - 8 endpoints (GET/POST/PUT) on port 18088
+✅ **Position Service** - 4 GET endpoints on port 18090
+✅ **People Service** - 3 GET endpoints on port 18089
+✅ **Security Master** - 2 GET endpoints on port 18085
+✅ **Trade Processor** - 1 POST endpoint on port 18091
+
+The Trade Feed service was left unchanged as requested. Each interface specification includes the protocol (HTTPS), port number, and detailed operation information with paths, methods, and descriptions based on the actual endpoints found in the codebase.
 
 Made changes.
 ```
 
-Let's look at how the architecture JSON file was updated with the interface definitions.
-![Added Interface Definitions](./images/07_added_interface_definitions.png)
-
-
-## Commit architecture file with interface definition to GIT repo
-
-Since the CALM validation passes and a review of the architecture JSON file shows the interface definitions were added, we'll commit the updated architecture file to the GIT repo.
+Since an update was made to the architecture file, we need to validate that the updates conform to the CALM schema.  If there any issues, it is better to catch problems early.
 
 **Prompt to AI Assistant**
 ```text
-git commit architecture file with message "add interface definition for REST services"
+validate the architecture file
 ```
 
 **Response from AI Assistant**
 ```text
-Ran terminal command:  git add trading-system.architecture.json && git commit -m "add interface definition for REST services"
+Ran terminal command:  calm validate -a trading-system.architecture.json -f pretty
 
-Done! The architecture file has been committed with the message "add interface definition for REST services". The commit shows 222 insertions and 6 deletions, reflecting all the interface definitions added to the six services.
+✅ **Validation successful!** 
+
+The architecture file passes validation with:
+- **0 errors**
+- **0 warnings**  
+- **0 info/hints**
+
+The CALM architecture file is valid and conforms to the CALM 1.1 schema.
 ```
+
+The RESTful interface specfications pass validation, we can now commit the changes to the repo.
+
+**Prompt to AI Assistant**
+```text
+commit the interface updates with message "add interface specification for REST services"
+```
+
+**Response from AI Assistant**
+```text
+Ran terminal command:  git add trading-system.architecture.json && git commit -m "add interface specification for REST services"
+
+✅ **Committed successfully!**
+
+- **Commit:** 5abc08e
+- **Changes:** 1 file changed, 809 insertions
+- **Message:** "add interface specification for REST services"
+
+The interface specifications for all six REST services have been committed to the repository.
+```
+
+### Trade Feed Sevice interface specification
+
+Let's now focus on the Trade Feed WebSocket/SocketIO interface.
+
+**Prompt to AI Assistant**
+```text
+For the "Trade Feed" service, propose a CALM interface specfication. Display the propsal. 
+I want to review and approve any changes.
+```
+
+**Response from AI Assistant**
+````text
+Based on the Trade Feed service code, here's my proposed CALM interface specification:
+
+## **Trade Feed Service Interface Proposal**
+
+```json
+{
+  "unique-id": "trade-feed",
+  "node-type": "service",
+  "name": "Trade Feed",
+  "description": "Publishes and delivers real-time trade events, position updates, and trade status notifications",
+  "interfaces": [
+    {
+      "unique-id": "trade-feed-websocket",
+      "name": "Trade Feed WebSocket API",
+      "description": "WebSocket/SocketIO interface for pub-sub messaging of trade and position events",
+      "protocol": "WebSocket",
+      "port": 18086,
+      "schema": {
+        "specification": "SocketIO",
+        "operations": [
+          {
+            "event": "subscribe",
+            "direction": "inbound",
+            "description": "Subscribe to a topic to receive real-time updates (e.g., /trades, /accounts/{id}/trades, /accounts/{id}/positions)"
+          },
+          {
+            "event": "unsubscribe",
+            "direction": "inbound",
+            "description": "Unsubscribe from a topic to stop receiving updates"
+          },
+          {
+            "event": "publish",
+            "direction": "inbound",
+            "description": "Publish a message to a topic for broadcast to all subscribers"
+          },
+          {
+            "event": "publish",
+            "direction": "outbound",
+            "description": "Receive published messages from subscribed topics including trade events and position updates"
+          }
+        ]
+      }
+    },
+    {
+      "unique-id": "trade-feed-viewer",
+      "name": "Trade Feed Viewer",
+      "description": "HTML interface for monitoring real-time message flow",
+      "protocol": "HTTPS",
+      "port": 18086,
+      "schema": {
+        "specification": "HTML",
+        "operations": [
+          {
+            "path": "/",
+            "method": "GET",
+            "description": "Serve HTML viewer page for monitoring trade feed messages"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+---
+
+## **Key Points:**
+
+1. **Two interfaces** are defined:
+   - **WebSocket interface** for the pub-sub messaging system (primary functionality)
+   - **HTTP interface** for the viewer HTML page
+
+2. **WebSocket operations** include both inbound (client actions) and outbound (server messages) events
+
+3. **Common topic patterns** mentioned in description:
+   - `/trades` - new trade events
+   - `/accounts/{id}/trades` - account-specific trade updates  
+   - `/accounts/{id}/positions` - account-specific position updates
+
+4. **Protocol** is WebSocket (using SocketIO library)
+
+5. **Port** is 18086 for both interfaces
+
+---
+
+**Please review and let me know if you approve this interface specification for the Trade Feed service, 
+or if you'd like any modifications.**
+````
+
+**Prompt to AI Assistant**
+```text
+I approve change, add to architecture file and validate the updated architecture file
+```
+
+**Response from AI Assistant**
+```text
+Replacing 6 lines with 57 lines in [](file:trading-system.architecture.json)
+
+
+Ran terminal command:  calm validate -a trading-system.architecture.json -f pretty
+
+✅ **Changes applied and validated successfully!**
+
+**Added to Trade Feed service:**
+- **WebSocket interface** (port 18086) with 4 SocketIO operations:
+  - Subscribe to topics (inbound)
+  - Unsubscribe from topics (inbound)
+  - Publish messages (inbound)
+  - Receive published messages (outbound)
+  
+- **Viewer interface** (port 18086) with HTTP GET endpoint for monitoring page
+
+**Validation results:**
+- **0 errors**
+- **0 warnings**
+- **0 info/hints**
+
+The architecture file now has complete interface specifications for all 7 services and passes CALM 1.1 schema validation.
+
+Made changes.
+```
+
+**Prompt to AI Assistant**
+```text
+commit change to architecture file with message "add Trade Feed websocket interface specification"
+```
+
+**Response from AI Assistant**
+```
+Ran terminal command:  git add trading-system.architecture.json && git commit -m "add Trade Feed websocket interface specification"
+
+✅ **Committed successfully!**
+
+- **Commit:** b5742af
+- **Changes:** 1 file changed, 52 insertions(+), 1 deletion(-)
+- **Message:** "add Trade Feed websocket interface specification"
+
+The Trade Feed WebSocket and viewer interface specifications have been committed to the repository.
+```
+
+Let's look at how the architecture JSON file was updated with the interface definitions.
+
+**REST Example**
+![Added Interface Definitions REST Example](./images/07_added_interface_definitions_01.png)
+
+**WebSocket Example**
+![Added Interface Definitions WebSocket Example](./images/07_added_interface_definitions_02.png)
+
 
 ## Add Control Specification
 
 **Prompt to AI Assistant**
 ```text
-add at the overall architecture level, two controls:
-* data is encrypted in-transit
-* data is encrypted at rest
+Add architecture level controls for:
+
+Encryption in Transit
+- All data transmitted between system components must be encrypted.
+- Use TLS with a minimum version of 1.3.
+- Use modern cipher suites suitable for strong encryption.
+- Certificates must be validated.
+- Mutual TLS is recommended for internal service-to-service communication.
+
+Encryption at Rest
+- All stored data must be encrypted at rest.
+- Use strong encryption equivalent to AES-256.
+- Encryption keys must be managed using a hardware-backed or managed key system.
+- Keys should be rotated regularly (for example, every 90 days).
+- This applies to:
+  - Databases
+  - File systems
+  - Object storage
+  - Backups
 ```
 
 **Response from AI Assistant**
 ```text
-Using "Replace String in File"
+I'll add architecture-level controls for encryption in transit and encryption at rest to your trading system architecture. 
+
+Replacing 6 lines with 46 lines in [](file:trading-system.architecture.json)
 
 Ran terminal command:  calm validate -a trading-system.architecture.json
 
-Perfect! I've added two architecture-level controls:
+Architecture-level controls have been successfully added to trading-system.architecture.json. The controls include:
 
-1. **data-encryption-in-transit** - Requires TLS 1.2+ for all data transmission between components
-2. **data-encryption-at-rest** - Requires AES-256 encryption for all stored data
+**Encryption in Transit**
+- TLS 1.3 minimum version
+- Modern cipher suites (TLS_AES_256_GCM_SHA384, TLS_CHACHA20_POLY1305_SHA256, TLS_AES_128_GCM_SHA256)
+- Required certificate validation
+- Recommended mutual TLS for service-to-service communication
 
-The architecture validates successfully with no errors or warnings. These controls apply to the entire system and all its components.
+**Encryption at Rest**  
+- AES-256 encryption algorithm
+- Hardware-backed key management
+- 90-day key rotation period
+- Applies to databases, file systems, object storage, and backups
+
+The architecture validates successfully with no errors or warnings. To regenerate the HTML documentation with these controls, run:
 
 Made changes.
 ```
@@ -214,7 +724,7 @@ git commit architecture file with message "add architecture controls definition"
 ```text
 Ran terminal command:  git add trading-system.architecture.json && git commit -m "add architecture controls definition"
 
-Committed! The architecture file with the two encryption controls has been saved with the message "add architecture controls definition".
+Committed successfully on branch (commit `4dacbf9`). The architecture file with the new encryption controls has been saved.
 ```
 
 ## Add architecture and node level metadata
@@ -225,37 +735,23 @@ For the architecture level, let's add metadata about the version and team respon
 ```text
 add following metadata at the architecture level:
 * "version" : "0.1.0"
-* "created-by" : "Trading System Team"
+* "created-by" : "Trading System Team - Copilot"
 ```
 
 **Response from AI Assistant**
 ```text
-I'll add the metadata to your architecture document. 
-
-Searched codebase for "trading-system.architecture.json metadata architecture level", 23 results
-
-Now let me read the current architecture file to see its structure: 
-
-Ran terminal command:  head -30 /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json
-
-Using "Replace String in File"
-
-Now let me validate the architecture to ensure the change is correct: 
+Replacing 6 lines with 12 lines in [](file:trading-system.architecture.json)
 
 Ran terminal command:  calm validate -a trading-system.architecture.json
 
-Perfect! The metadata has been successfully added to the architecture level with:
-- **version**: "0.1.0"
-- **created-by**: "Trading System Team"
-
-The validation confirms the architecture is valid with no errors or warnings.
+Architecture-level metadata added successfully. The architecture validates with no errors or warnings.
 
 Made changes.
 ```
 
 Screenshot of the metadata added to the architecture json file.
 
-![Architecture Level Metadata](./images/10_archtecture_level_metadata.png)
+![Architecture Level Metadata](./images/10_architecture_level_metadata.png)
 
 
 For the nodes, we will add a data classification metadata.
@@ -268,85 +764,69 @@ Show me the proposed changes.  I want to review and approve any changes.
 ```
 
 **Response from AI Assistant**
-```text
-I'll examine the current architecture and show you the proposed changes for adding data classification metadata to the nodes. 
+````text
+I'll show you the proposed metadata additions for each node:
 
-Ran terminal command:  cat /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json | jq '.nodes[] | {id: ."unique-id", name: .name, current_metadata: .metadata}'
+## Proposed Changes
 
-Now let me get a sample of the node structure to show you the exact changes: 
+### Nodes with NO changes:
+- **trader** - No metadata added (as requested)
 
-Ran terminal command:  cat /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json | jq '.nodes[0:3]'
+### Nodes receiving `"data-classification": "Private"`:
+1. **web-gui** (Web GUI)
+2. **trade-service** (Trade Service)
+3. **account-service** (Account Service)
+4. **position-service** (Position Service)
+5. **people-service** (People Service)
+6. **security-master** (Security Master)
+7. **trade-processor** (Trade Processor)
+8. **trade-data-store** (Trade Data Store)
+9. **ticker-csv-file** (Ticker CSV File)
+10. **trade-feed** (Trade Feed)
 
-Perfect! Now I can show you the proposed changes. Here's what will be added to each node:
+### Nodes receiving `"data-classification": "PII"`:
+- **user-directory** (User Directory)
 
-## Proposed Changes Summary
+## Example of how it will look:
 
-### Nodes that will get `"data-classification": "Private"` (10 nodes):
-1. **Web GUI** - system
-2. **Account Service** - service
-3. **Trade Service** - service
-4. **Position Service** - service
-5. **People Service** - service
-6. **Security Master** - service
-7. **Trade Processor** - service
-8. **Trade Feed** - service
-9. **Trade Data Store** - database
-10. **Ticker CSV File** - system
-
-### Node that will get `"data-classification": "PII"` (1 node):
-11. **User Directory** - system
-
-### Node with NO changes (1 node):
-12. **Trader** - actor (no metadata added)
-
----
-
-## Example of Changes
-
-**Before** (e.g., Web GUI node):
-json
+**Before (web-gui):**
+```json
 {
-  "unique-id": "web-gui",
-  "node-type": "system",
-  "name": "Web GUI",
-  "description": "Browser-based graphical user interface..."
+    "unique-id": "web-gui",
+    "node-type": "webclient",
+    "name": "Web GUI",
+    "description": "User-facing interface for trading operations, account management, and viewing positions"
 }
-
-
-**After** (Web GUI node):
-json
-{
-  "unique-id": "web-gui",
-  "node-type": "system",
-  "name": "Web GUI",
-  "description": "Browser-based graphical user interface...",
-  "metadata": [
-    {
-      "data-classification": "Private"
-    }
-  ]
-}
-
-
-**User Directory** (PII classification):
-json
-{
-  "unique-id": "user-directory",
-  "node-type": "system",
-  "name": "User Directory",
-  "description": "...",
-  "metadata": [
-    {
-      "data-classification": "PII"
-    }
-  ]
-}
-
-
----
-
-**Would you like me to proceed with these changes?** Please confirm and I'll apply them to the architecture file.
 ```
+
+**After (web-gui):**
+```json
+{
+    "unique-id": "web-gui",
+    "node-type": "webclient",
+    "name": "Web GUI",
+    "description": "User-facing interface for trading operations, account management, and viewing positions",
+    "metadata": {
+        "data-classification": "Private"
+    }
+}
+```
+
+**After (user-directory):**
+```json
+{
+    "unique-id": "user-directory",
+    "node-type": "ldap",
+    "name": "User Directory",
+    "description": "Stores user profiles and contact information",
+    "metadata": {
+        "data-classification": "PII"
+    }
+}
+```
+
+Would you like me to proceed with these changes?
+````
 
 **Prompt to AI Assistant**
 ```text
@@ -355,43 +835,18 @@ yes
 
 **Response from AI Assistant**
 ```text
-Ran terminal command:  cat /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json
+Replacing 66 lines with 99 lines in [](file:trading-system.architecture.json)
 
-Using "Multi-Replace String in Files"
+Ran terminal command:  calm validate -a trading-system.architecture.json
 
-Perfect! I've successfully added the data classification metadata to all the requested nodes. Let me verify the changes: 
+Successfully added data classification metadata to all nodes:
+- 10 nodes with `"data-classification": "Private"`
+- 1 node (user-directory) with `"data-classification": "PII"`
+- trader node unchanged (as requested)
 
-Ran terminal command:  cat /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json | jq '.nodes[] | {id: ."unique-id", name: .name, data_classification: .metadata[0]."data-classification"}'
-
-✅ **Changes successfully applied!**
-
-**Summary:**
-- **Trader** - No metadata added (as requested)
-- **User Directory** - `data-classification: "PII"` ✓
-- **All other 10 nodes** - `data-classification: "Private"` ✓
-
-All data classification metadata has been added correctly to your trading system architecture.
+The architecture validates successfully with no errors or warnings.
 
 Made changes.
-```
-
-After making the change, the AI Assistant did not validate the integrity of the architecture file.  We explicitly ask the AI Assistant to validate the architecture file.
-
-**Prompt to AI Assistant**
-```text
-validate the architecture file
-```
-
-**Response from AI Assistant**
-```text
-Ran terminal command:  calm validate -a /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system.architecture.json
-
-✅ **Architecture validation successful!**
-
-The trading-system.architecture.json file is valid with:
-- No schema validation errors
-- No warnings
-- All metadata additions conform to the CALM 1.1 specification
 ```
 
 ## Commit metadata changes to the GIT Repo
@@ -407,7 +862,7 @@ git commit with message "add architecture and node metadata"
 ```text
 Ran terminal command:  git add trading-system.architecture.json && git commit -m "add architecture and node metadata"
 
-✅ Committed successfully! The changes to trading-system.architecture.json (66 insertions, 5 deletions) have been committed with message "add architecture and node metadata".
+Committed successfully on branch (commit `8393257`). The changes include architecture-level and node-level metadata additions.
 ```
 
 ## Summary
