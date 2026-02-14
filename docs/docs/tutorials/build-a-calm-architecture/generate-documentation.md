@@ -4,6 +4,8 @@ title: Generate Architecture Documentation
 sidebar_position: 5
 ---
 
+_Note_: Responses from the AI Assistant were lightly editted for readbility.
+
 We demonstrate two ways to generate viewable architecture documention.  The first method generates content that is viewable via a web browser.  The second approach uses CALM templating functions to generate a custom view of the architecture
 
 ## Method 1: Create view web content
@@ -21,33 +23,33 @@ Loading FINOS CALM instructions...
 
 Searched codebase for "CALM architecture documentation creation HTML web viewable", 9 results
 
-Ran terminal command:  cat /Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts/architecture-creation.md
+Ran terminal command:  cat .github/chatmodes/calm-prompts/architecture-creation.md
 
-Ran terminal command:  cat /Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts/documentation-creation.md
+Ran terminal command:  cat .github/chatmodes/calm-prompts/documentation-creation.md
 
-Ran terminal command:  cat /Users/jim/Desktop/calm-demos/build-calm-architecture/.github/chatmodes/calm-prompts/calm-cli-instructions.md | grep -A 30 "## Docify Command"
+Ran terminal command:  cat .github/chatmodes/calm-prompts/calm-cli-instructions.md | grep -A 30 "## Docify Command"
 
-Ran terminal command:  ls -la /Users/jim/Desktop/calm-demos/build-calm-architecture/
+Ran terminal command:  ls -la calm-demos/build-calm-architecture/
 
 Ran terminal command:  which calm
 
 Ready to assist with CALM architectures! I'll now create web-viewable HTML documentation for your trading system architecture. 
 
-Ran terminal command:  mkdir -p /Users/jim/Desktop/calm-demos/build-calm-architecture/docs/html
+Ran terminal command:  mkdir -p calm-demos/build-calm-architecture/docs/html
 
 Ran terminal command:  calm docify -a trading-system.architecture.json -o docs/html --verbose
 
 Perfect! The documentation has been generated. Now let me check what was created and set up the viewing environment: 
 
-Ran terminal command:  ls -la /Users/jim/Desktop/calm-demos/build-calm-architecture/docs/html/
+Ran terminal command:  ls -la calm-demos/build-calm-architecture/docs/html/
 
-Ran terminal command:  cd /Users/jim/Desktop/calm-demos/build-calm-architecture/docs/html && npm install
+Ran terminal command:  cd calm-demos/build-calm-architecture/docs/html && npm install
 
 Ran terminal command:  npm start
 
-Ran terminal command:  cat /Users/jim/Desktop/calm-demos/build-calm-architecture/docs/html/package.json
+Ran terminal command:  cat calm-demos/build-calm-architecture/docs/html/package.json
 
-Ran terminal command:  cd /Users/jim/Desktop/calm-demos/build-calm-architecture/docs/html && npx docusaurus start
+Ran terminal command:  cd calm-demos/build-calm-architecture/docs/html && npx docusaurus start
 
 Excellent! I've successfully created web-viewable HTML architecture documentation in the html folder. Here's what was accomplished:
 
@@ -101,7 +103,7 @@ This should generate output similar to the following and create a file called `t
 ```text
 info [_TemplateProcessor]:     Using SelfProvidedTemplateLoader for single template file
 [WidgetEngine] ⚠️ Helper 'lookup' is already registered. Skipping registration.
-info [_TemplateProcessor]:     ✅ Output directory exists: /Users/jim/Desktop/calm-demos/build-calm-architecture
+info [_TemplateProcessor]:     ✅ Output directory exists: calm-demos/build-calm-architecture
 warn [_TemplateProcessor]:     ⚠️ Output directory is not empty. Any files not overwritten will remain untouched.
 info [_TemplateProcessor]:     ℹ️ No transformer specified in index.json. Will use TemplateDefaultTransformer.
 info [_TemplateProcessor]:     🔁 No transformer provided. Using TemplateDefaultTransformer.
@@ -124,7 +126,7 @@ info [_TemplateEngine]:     ✅ Registered helper: isArray
 info [_TemplateEngine]:     ✅ Registered helper: join
 info [_TemplateEngine]:     
 🔹 Starting Template Generation...
-info [_TemplateEngine]:     ✅ Generated: /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system-sad.md
+info [_TemplateEngine]:     ✅ Generated: calm-demos/build-calm-architecture/trading-system-sad.md
 info [_TemplateEngine]:     
 ✅ Template Generation Completed!
 info [_TemplateProcessor]:     

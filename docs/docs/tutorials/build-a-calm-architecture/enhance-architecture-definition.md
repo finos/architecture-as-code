@@ -4,11 +4,13 @@ title: Refine Architecture Definition
 sidebar_position: 4
 ---
 
+_Note_: Responses from the AI Assistant were lightly editted for readbility.
+
 ## Add inteface specifications for Services
 
 We will now enhance the trading system architecture definition by adding interface definitions for the services.
 
-## Identify application end points
+## Identify application endpoints
 
 Using the AI Assistant identify all the nodes that are services.  
 
@@ -34,7 +36,7 @@ Looking at the CALM architecture file, here are the nodes with `node-type: "serv
 These 7 services form the core processing layer of the trading system architecture, sitting between the web GUI and the data storage/directory components.
 ```
 
-We will now ask the AI Assistant to review the application source code to pull out the end point information for each of the services.
+We will now ask the AI Assistant to review the application source code to pull out the endpoint information for each of the services.
 
 **Prompt to AI Assistant**
 ```text
@@ -48,6 +50,8 @@ For each enpoint, extract the following:
 If you are unable to find endpoint information for that service in the code, 
 respond "Unable to find endpoint information"
 ```
+
+_Note_: It is a good practice to be explicit with how the AI Assistant should respond if information is not present.  Othewerise the AI Assistant may hallucinate incorrect information.
 
 **Response from AI Assistant**
 ```text
@@ -162,7 +166,7 @@ This service uses **WebSocket/SocketIO** for publish-subscribe messaging pattern
 - GET `/` - HTML viewer page for monitoring messages
 ```
 
-### REST API End Point specifications
+### REST API Endpoint specifications
 
 Since there are two types of endpoints: REST and WebSocket, we will first create CALM interface specfications for the RESTful services.
 
