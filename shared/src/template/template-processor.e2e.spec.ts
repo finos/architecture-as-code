@@ -1,8 +1,7 @@
 import fs from 'fs';
 import path, { join } from 'path';
 import { TemplateProcessor } from './template-processor';
-import { CalmNodeSchema } from '../types/core-types';
-import { CalmInterfaceTypeSchema } from '../types/interface-types';
+import { CalmNodeSchema, CalmInterfaceTypeSchema } from '@finos/calm-models/types';
 import { expectDirectoryMatch } from '../test/file-comparison';
 const FIXTURES_DIR = path.resolve(__dirname, '../../test_fixtures/template');
 const WORKSHOP_DIR = path.resolve(

@@ -66,6 +66,7 @@ describe('JsonSchemaValidator', () => {
 });
 
 describe('JsonSchemaValidator integration', () => {
+    // this test is specifically using schema 1.1, because it is about a pattern non-compliant with JSON Schema
     const schemaDir = path.join(__dirname, '../../../../calm/release/1.1/meta/');
     const badPatternPath = path.join(__dirname, '../../../test_fixtures/bad-schema/bad-json-schema.json');
 
