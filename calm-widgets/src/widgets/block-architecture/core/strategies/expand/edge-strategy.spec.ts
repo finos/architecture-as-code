@@ -16,6 +16,7 @@ const opts = (edges: NormalizedOptions['edges'], direction: NormalizedOptions['d
     edgeLabels: 'description',
     collapseRelationships: false,
     theme: 'light',
+    layoutEngine: 'elk',
 });
 
 const relConnects = (id: string, a: string, b: string): CalmRelationshipCanonicalModel => ({

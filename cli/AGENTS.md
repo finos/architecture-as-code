@@ -34,7 +34,7 @@ calm --help            # Test globally linked CLI
 npm run copy-calm-schema      # Copy CALM JSON schemas from ../calm/
 npm run copy-docify-templates # Copy docify templates from ../shared/
 npm run copy-widgets          # Copy widget files from ../calm-widgets/
-npm run copy-ai-tools         # Copy AI chatmode files from ../calm-ai/
+npm run copy-ai-tools         # Copy AI agent files from ../calm-ai/
 ```
 
 ## Architecture Overview
@@ -69,7 +69,7 @@ After `npm run build`, the `dist/` directory contains:
 dist/
 ├── index.js              # Compiled CLI entry point (bin)
 ├── calm/release/         # Copied CALM schemas
-├── calm-ai/              # Copied AI chatmode files
+├── calm-ai/              # Copied AI agent files
 ├── template-bundles/     # Copied docify templates
 └── cli/widgets/          # Copied widget files
 ```

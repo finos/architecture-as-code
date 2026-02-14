@@ -21,7 +21,7 @@ Run `calm` with no arguments to see the top-level help:
 calm
 ```
 
-This displays available commands such as `generate`, `validate`, `copilot-chatmode`, `server`, `template`, and `docify`.
+This displays available commands such as `generate`, `validate`, `init-ai`, `server`, `template`, and `docify`.
 
 ## Generate Architectures from Patterns
 
@@ -134,19 +134,6 @@ At present Github Copilot (`copilot`), AWS Kiro (`kiro`), and Claude Code (`clau
 
 This generates custom prompts for the specified <provider> to use CALM-aware tools (nodes, relationships, interfaces, controls, flows, patterns, metadata).
 
-## Copilot Chatmode Setup
-
-**Note**:  This command has been Deprecated.  The user is encourged to use the new `init-ai` command, which has equivalent functionality.
-
-Configure CALM-specific AI assistance with Github Copilot inside a repo:
-
-```shell
-calm copilot-chatmode [--directory <path>] [--verbose]
-```
-
-This generates `.github/chatmodes/CALM.chatmode.md`, enabling GitHub Copilot Chat to use CALM-aware tools (nodes, relationships, interfaces, controls, flows, patterns, metadata).
-
-
 ## CLI Server (Experimental)
 
 Expose CLI functionality over HTTP:
@@ -222,4 +209,4 @@ calm docify -a architecture.json -o docs/ --url-to-local-file-mapping url-mappin
 - Keep schema files accessible via `--schema-directory` for offline use.
 - Use `calm generate` + `calm validate` workflow to quickly iterate on architectures.
 - Leverage warnings to replace placeholder values before production.
-- Combine `calm copilot-chatmode` with VS Code for CALM-aware AI assistance.
+- Combine `calm init-ai` with VS Code for CALM-aware AI assistance.

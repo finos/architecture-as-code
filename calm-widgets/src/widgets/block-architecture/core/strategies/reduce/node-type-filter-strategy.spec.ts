@@ -24,6 +24,7 @@ describe('NodeTypeFilterStrategy', () => {
             edgeLabels: 'description',
             collapseRelationships: false,
             theme: 'light',
+            layoutEngine: 'elk',
             nodeTypes: ['service']
         };
 
@@ -53,6 +54,7 @@ describe('NodeTypeFilterStrategy', () => {
             edgeLabels: 'description',
             collapseRelationships: false,
             theme: 'light',
+            layoutEngine: 'elk',
             // nodeTypes omitted
         };
 
@@ -83,6 +85,7 @@ describe('NodeTypeFilterStrategy', () => {
             edgeLabels: 'description',
             collapseRelationships: false,
             theme: 'light',
+            layoutEngine: 'elk',
             nodeTypes: ['service', 'database']
         };
 
@@ -110,6 +113,7 @@ describe('NodeTypeFilterStrategy', () => {
             edgeLabels: 'description',
             collapseRelationships: false,
             theme: 'light',
+            layoutEngine: 'elk',
             nodeTypes: ['service']
         };
 

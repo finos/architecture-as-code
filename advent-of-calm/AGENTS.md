@@ -43,7 +43,7 @@ advent-of-calm/
 
 **Week 2 (Days 8-14): Controls, Flows & AI-Assisted Operations**
 - Days 8-10: Controls (security), ADRs, Flows (business processes)
-- Days 11-14: AI integration (chatmode, analysis, documentation generation)
+- Days 11-14: AI integration (agent, analysis, documentation generation)
 - Outcome: Governed architecture with AI-assisted workflows
 
 **Week 3 (Days 15-18): Patterns & Automation**
@@ -102,7 +102,7 @@ Questions to consolidate learning
 
 ### AI-First Approach
 - GitHub Copilot integration starts Day 1
-- CALM chatmode introduced Day 11
+- CALM agent introduced Day 11
 - AI used for generation, validation, and documentation
 - Teaches both CALM and AI-assisted workflows
 

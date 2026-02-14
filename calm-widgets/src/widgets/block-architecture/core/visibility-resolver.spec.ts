@@ -90,6 +90,7 @@ describe('resolveVisibilityWithStrategies functional', () => {
         edgeLabels: 'description',
         collapseRelationships: false,
         theme: 'light',
+        layoutEngine: 'elk',
         ...over,
     });
 

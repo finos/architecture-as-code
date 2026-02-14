@@ -1,5 +1,6 @@
 import MarkdownIt from 'markdown-it'
-import mermaid from 'mermaid'
+import mermaid from 'mermaid';
+import elkLayouts from '@mermaid-js/layout-elk';
 import { PanZoomManager, PanZoomOptions } from './pan-zoom-manager'
 
 export default class MermaidRenderer {
@@ -17,6 +18,7 @@ export default class MermaidRenderer {
 
     private ensureMermaid() {
         if (!this.mermaidReady) {
+            mermaid.registerLayoutLoaders(elkLayouts);
             mermaid.initialize({
                 startOnLoad: false,
                 securityLevel: 'loose', // Required for webview environments to avoid structuredClone issues
@@ -48,25 +50,25 @@ export default class MermaidRenderer {
             // First, check for raw Mermaid blocks in markdown (```mermaid)
             const rawMermaidRegex = /```mermaid\s*\n([\s\S]*?)```/g
             let processedContent = content
-            
+
             // Process raw Mermaid blocks first
             let match
             while ((match = rawMermaidRegex.exec(content)) !== null) {
                 const mermaidCode = match[1].trim()
                 const diagramSize = mermaidCode.length
-                
+
                 try {
                     // Generate a unique ID for this diagram
                     const diagramId = `mermaid-${Math.random().toString(36).substr(2, 9)}`
-                    
+
                     // Log large diagram warnings
                     if (diagramSize > 50000) {
                         console.warn(`[mermaid-renderer] Large diagram detected (${Math.round(diagramSize / 1024)}KB). Rendering may be slow.`)
                     }
-                    
+
                     // Render the Mermaid diagram
                     const { svg } = await mermaid.render(diagramId, mermaidCode)
-                    
+
                     // Wrap the SVG in a container for pan/zoom controls
                     const wrappedSvg = this.wrapSvgWithContainer(svg, diagramId)
 
@@ -79,7 +81,7 @@ export default class MermaidRenderer {
                     processedContent = processedContent.replace(match[0], errorMessage)
                 }
             }
-            
+
             // Then, render the remaining markdown using markdown-it
             let html = this.md.render(processedContent)
 
@@ -90,7 +92,7 @@ export default class MermaidRenderer {
                 const encodedCode = match[1].trim()
                 const mermaidCode = this.decodeHtmlEntities(encodedCode)
                 const diagramSize = mermaidCode.length
-                
+
                 try {
                     // Generate a unique ID for this diagram
                     const diagramId = `mermaid-${Math.random().toString(36).substr(2, 9)}`
@@ -138,10 +140,10 @@ export default class MermaidRenderer {
     private createErrorDisplay(error: unknown, diagramSize: number): string {
         const sizeKB = Math.round(diagramSize / 1024)
         const errorMessage = error instanceof Error ? error.message : String(error)
-        
+
         // Check if it's likely a size-related issue
         const isSizeIssue = sizeKB > 50 || errorMessage.includes('Maximum text size') || errorMessage.includes('timeout')
-        
+
         let suggestion = ''
         if (isSizeIssue) {
             suggestion = `

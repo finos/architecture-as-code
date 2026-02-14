@@ -34,7 +34,8 @@ export class TemplateService {
       content = this.processor.processTemplateForLabels(content, showLabels)
       const configService: Config = new ConfigService();
       const docifyTheme = configService.docifyTheme();
-      return this.processor.processTemplateForTheme(content, docifyTheme);
+      const layoutEngine = configService.previewLayout();
+      return this.processor.processTemplateForTheme(content, docifyTheme, layoutEngine);
     } catch {
       this.log.info(`[preview] loadTemplate: using fallback template for ${name}`)
       return this.processor.generateFallbackTemplate(showLabels)

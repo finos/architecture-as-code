@@ -81,6 +81,29 @@ Four themes are supported for the live preview diagrams:
 
 - `calm.docify.theme` - set to `light`, `dark`, `high-contrast-light` or `high-contrast-dark`, or `auto` to automatically align to your VSCode theme.
 
+### Layout Engine
+
+Choose the diagram layout engine for architecture visualizations:
+
+- `calm.preview.layout` - set to `elk` (default) or `dagre`
+  - **ELK** (Eclipse Layout Kernel): Provides better automatic layout for complex diagrams with improved edge routing and hierarchy handling. Recommended for most use cases.
+  - **Dagre**: Classic Mermaid layout engine. Use if you prefer the traditional Mermaid layout behavior.
+
+This setting applies workspace-wide to all block-architecture diagrams. Individual templates can override this setting using widget frontmatter:
+
+```yaml
+---
+widget-options:
+  block-architecture:
+    layout-engine: dagre
+---
+```
+
+Or inline in the template:
+```handlebars
+{{block-architecture this layout-engine="dagre"}}
+```
+
 ## Getting Involved
 
 Architecture as Code was developed as part of the [DevOps Automation Special Interest Group](https://devops.finos.org/) before graduating as a top level project in it's own right. Our community Zoom meetups take place on the fourth Tuesday of every month, see [here](https://github.com/finos/architecture-as-code/issues?q=label%3Ameeting) for upcoming and previous meetings. For active contributors we have Office Hours every Thursday, see the [FINOS Event Calendar](http://calendar.finos.org) for meeting details.
