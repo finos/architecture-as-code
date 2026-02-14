@@ -15,12 +15,36 @@ export class CalmTreeItem extends vscode.TreeItem {
         this.tooltip = vm.description
 
         if (vm.iconPath) {
-            if (vm.iconPath === 'info' || vm.iconPath === 'search') {
-                this.iconPath = new vscode.ThemeIcon(vm.iconPath)
-            } else {
-                this.iconPath = vm.iconPath
+            this.iconPath = CalmTreeItem.getIcon(vm.iconPath)
+        }
+
+        if (vm.command) {
+            this.command = {
+                command: vm.command.command,
+                title: vm.command.title,
+                arguments: vm.command.arguments
             }
         }
+    }
+
+    private static getIcon(iconPath: string): vscode.ThemeIcon | string {
+        // Map known icon names to VSCode ThemeIcons
+        const themeIconMap: Record<string, string> = {
+            'info': 'info',
+            'search': 'search',
+            'calendar': 'calendar',
+            'star-full': 'star-full',
+            'circle-outline': 'circle-outline',
+            'link-external': 'link-external',
+            'milestone': 'milestone',
+            'history': 'history'
+        }
+
+        if (themeIconMap[iconPath]) {
+            return new vscode.ThemeIcon(themeIconMap[iconPath])
+        }
+
+        return iconPath
     }
 
     private static getCollapsibleState(vm: ItemVM): vscode.TreeItemCollapsibleState {

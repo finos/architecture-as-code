@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import * as fs from 'fs'
 import { detectFileType, FileType } from '../../models/file-types'
-import { loadCalmModel, toGraph } from '../../models/model'
+import { loadCalmModel, loadCalmTimeline, toGraph } from '../../models/model'
 import { Config } from '../ports/config'
 import type { Logger } from '../ports/logger'
 import { ModelIndex } from '../../models/model-index'
@@ -10,6 +10,7 @@ import type { ApplicationStoreApi } from '../../application-store'
 export interface RefreshResult {
     modelIndex: ModelIndex | undefined
     isTemplateMode: boolean
+    isTimelineMode: boolean
 }
 
 export class RefreshService {
@@ -43,6 +44,11 @@ export class RefreshService {
             this.log.info('[extension] Refreshing for document: ' + doc.uri.fsPath)
             const fileInfo = detectFileType(doc.uri.fsPath)
             this.log.info(`[extension] File type detected: ${fileInfo.type}, valid: ${fileInfo.isValid}`)
+
+            // Handle timeline files
+            if (fileInfo.type === FileType.TimelineFile && fileInfo.isValid) {
+                return this.refreshForTimeline(doc)
+            }
 
             let model: any
             let text: string
@@ -79,6 +85,7 @@ export class RefreshService {
             // Update store with new model and state - ViewModels will react automatically
             const store = this.store.getState()
             store.setModelIndex(modelIndex)
+            store.setTimeline(undefined) // Clear timeline when viewing architecture
             // NOTE: Don't call setCurrentDocument here - it would re-trigger store reactions
             // The caller (command or store reaction) is responsible for setting the document
 
@@ -135,11 +142,34 @@ export class RefreshService {
                 }
             }
 
-            return { modelIndex, isTemplateMode }
+            return { modelIndex, isTemplateMode, isTimelineMode: false }
         } catch (e: any) {
             this.log.error?.(`Failed to refresh preview: ${e?.message || e}`)
             if (e?.stack) this.log.error?.(`Stack trace: ${e.stack}`)
         }
+    }
+
+    private async refreshForTimeline(doc: vscode.TextDocument): Promise<RefreshResult | undefined> {
+        this.log.info('[extension] Processing timeline document')
+
+        const text = doc.getText()
+        const timeline = loadCalmTimeline(text)
+
+        if (!timeline) {
+            this.log.error?.('[extension] Failed to parse timeline document')
+            return
+        }
+
+        this.log.info(`[extension] Timeline loaded with ${timeline.moments.length} moments`)
+
+        // Update store with timeline
+        const store = this.store.getState()
+        store.setTimeline(timeline)
+        store.setModelIndex(undefined) // Clear architecture model
+        store.setTemplateMode(false)
+
+
+        return { modelIndex: undefined, isTemplateMode: false, isTimelineMode: true }
     }
 
     private getPreviewSettings() {

@@ -1,0 +1,31 @@
+{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm-timeline.json",
+    "current-moment": "initial",
+    "moments": [
+        {
+            "unique-id": "initial",
+            "node-type": "moment",
+            "name": "Initial Architecture",
+            "description": "The initial architecture design",
+            "valid-from": "2024-01-01",
+            "details": {
+                "detailed-architecture": "arch-v1.json"
+            }
+        },
+        {
+            "unique-id": "enhanced",
+            "node-type": "moment",
+            "name": "Enhanced Architecture",
+            "description": "Architecture with additional components",
+            "valid-from": "2024-06-01",
+            "details": {
+                "detailed-architecture": "arch-v2.json"
+            }
+        }
+    ],
+    "metadata": {
+        "title": "Test Timeline",
+        "description": "Timeline for testing VSCode plugin timeline navigation"
+    }
+}
+

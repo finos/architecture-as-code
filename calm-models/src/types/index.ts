@@ -7,6 +7,7 @@ export * from './metadata-types.js';
 export * from './adr-types.js';
 export * from './control-requirement-types.js';
 export * from './units-types.js';
+export * from './timeline-types.js';
 
 // Export relationship type classes
 export {

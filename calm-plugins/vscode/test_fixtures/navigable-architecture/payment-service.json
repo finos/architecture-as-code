@@ -1,5 +1,5 @@
 {
-  "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
   "nodes": [
     {
       "unique-id": "api-gateway",
@@ -7,7 +7,9 @@
       "node-type": "component",
       "description": "API Entry point",
       "interfaces": [
-          { "unique-id": "http-in" }
+        {
+          "unique-id": "http-in"
+        }
       ]
     },
     {
@@ -16,7 +18,9 @@
       "node-type": "component",
       "description": "Business logic",
       "interfaces": [
-          { "unique-id": "proc-in" }
+        {
+          "unique-id": "proc-in"
+        }
       ]
     },
     {
@@ -25,7 +29,9 @@
       "node-type": "database",
       "description": "Persistence",
       "interfaces": [
-          { "unique-id": "db-in" }
+        {
+          "unique-id": "db-in"
+        }
       ]
     }
   ],
@@ -34,8 +40,15 @@
       "unique-id": "gw-to-proc",
       "relationship-type": {
         "connects": {
-          "source": { "node": "api-gateway" },
-          "destination": { "node": "payment-processor", "interfaces": ["proc-in"] }
+          "source": {
+            "node": "api-gateway"
+          },
+          "destination": {
+            "node": "payment-processor",
+            "interfaces": [
+              "proc-in"
+            ]
+          }
         }
       }
     },
@@ -43,8 +56,15 @@
       "unique-id": "proc-to-db",
       "relationship-type": {
         "connects": {
-           "source": { "node": "payment-processor" },
-           "destination": { "node": "payment-db", "interfaces": ["db-in"] }
+          "source": {
+            "node": "payment-processor"
+          },
+          "destination": {
+            "node": "payment-db",
+            "interfaces": [
+              "db-in"
+            ]
+          }
         }
       }
     }

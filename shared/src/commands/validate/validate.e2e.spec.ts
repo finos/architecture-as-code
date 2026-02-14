@@ -24,13 +24,14 @@ const validationPath = path.join(
 
 const schemaDir_10 = path.join(__dirname, '../../../../calm/release/1.0/meta/');
 const schemaDir_11 = path.join(__dirname, '../../../../calm/release/1.1/meta/');
+const schemaDir_12 = path.join(__dirname, '../../../../calm/release/1.2/meta/');
 
 describe('validate E2E', () => {
     let documentLoader: FileSystemDocumentLoader;
     let schemaDirectory: SchemaDirectory;
 
     beforeEach(async () => {
-        documentLoader = new FileSystemDocumentLoader([schemaDir_10, schemaDir_11], true);
+        documentLoader = new FileSystemDocumentLoader([schemaDir_10, schemaDir_11, schemaDir_12], true);
         schemaDirectory = new SchemaDirectory(documentLoader);
         await schemaDirectory.loadSchemas();
     });
@@ -40,7 +41,7 @@ describe('validate E2E', () => {
         // attempt to load any other JSON schema draft but not register it,
         // leading to an infinite loop.
         const badPattern = { '$schema': 'https://json-schema.org/draft/2019-09/schema' };
-        const response = await validate(undefined, badPattern, schemaDirectory, false);
+        const response = await validate(undefined, badPattern, undefined, schemaDirectory, false);
 
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
@@ -51,7 +52,7 @@ describe('validate E2E', () => {
 
     it('accepts pattern with valid JSON Schema', async () => {
         const validPattern = { '$schema': 'https://json-schema.org/draft/2020-12/schema' };
-        const response = await validate(undefined, validPattern, schemaDirectory, false);
+        const response = await validate(undefined, validPattern, undefined, schemaDirectory, false);
 
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
@@ -61,7 +62,7 @@ describe('validate E2E', () => {
     it('validates architecture against pattern with options', async () => {
         const inputPattern = JSON.parse(readFileSync(inputPatternPath, 'utf-8'));
         const inputArch = JSON.parse(readFileSync(inputArchPath, 'utf-8'));
-        const response = await validate(inputArch, inputPattern, schemaDirectory, true);
+        const response = await validate(inputArch, inputPattern, undefined, schemaDirectory, true);
 
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
@@ -78,7 +79,7 @@ describe('validate E2E', () => {
         const badPattern = JSON.parse(readFileSync(badPatternPath, 'utf-8'));
         const inputArch = JSON.parse(readFileSync(inputArchPath, 'utf-8'));
 
-        const response = await validate(inputArch, badPattern, schemaDirectory, false);
+        const response = await validate(inputArch, badPattern, undefined, schemaDirectory, false);
 
         expect(response.hasErrors).toBeTruthy();
         expect(response.jsonSchemaValidationOutputs).toHaveLength(1);
@@ -90,7 +91,7 @@ describe('validate E2E', () => {
         const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'empty-string-property.json'), 'utf-8'));
         const pattern = await schemaDirectory.getSchema(inputArch['$schema']);
 
-        const response = await validate(inputArch, pattern, schemaDirectory, false);
+        const response = await validate(inputArch, pattern, undefined, schemaDirectory, false);
 
         expect(response.hasErrors).toBeTruthy();
         expect(response.spectralSchemaValidationOutputs).toHaveLength(1);
@@ -103,7 +104,7 @@ describe('validate E2E', () => {
         const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'false-boolean-property.json'), 'utf-8'));
         const pattern = await schemaDirectory.getSchema(inputArch['$schema']);
 
-        const response = await validate(inputArch, pattern, schemaDirectory, false);
+        const response = await validate(inputArch, pattern, undefined, schemaDirectory, false);
 
         expect(response.hasErrors).toBeFalsy();
     });
@@ -113,7 +114,7 @@ describe('validate E2E', () => {
         const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'zero-integer-property.json'), 'utf-8'));
         const pattern = await schemaDirectory.getSchema(inputArch['$schema']);
 
-        const response = await validate(inputArch, pattern, schemaDirectory, false);
+        const response = await validate(inputArch, pattern, undefined, schemaDirectory, false);
 
         expect(response.hasErrors).toBeFalsy();
     });
@@ -140,7 +141,7 @@ describe('validate E2E', () => {
             const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'flows/flows-1.0-bad.json'), 'utf-8'));
             const schema = await schemaDirectory.getSchema(inputArch['$schema']);
 
-            const response = await validate(inputArch, schema, schemaDirectory, false);
+            const response = await validate(inputArch, schema, undefined, schemaDirectory, false);
 
             expect(response.hasErrors).toBeFalsy(); // schema 1.0 has a bug in flow definition
         });
@@ -149,8 +150,7 @@ describe('validate E2E', () => {
             const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'flows/flows-1.1-bad.json'), 'utf-8'));
             const schema = await schemaDirectory.getSchema(inputArch['$schema']);
 
-            const response = await validate(inputArch, schema, schemaDirectory, false);
-
+            const response = await validate(inputArch, schema, undefined, schemaDirectory, false);
             expect(response.hasErrors).toBeTruthy();
             expect(response.jsonSchemaValidationOutputs).toHaveLength(3);
             expect(response.jsonSchemaValidationOutputs[0].message).toContain('relationship-unique-id');
@@ -161,7 +161,7 @@ describe('validate E2E', () => {
             const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'flows/flows-1.1-good.json'), 'utf-8'));
             const schema = await schemaDirectory.getSchema(inputArch['$schema']);
 
-            const response = await validate(inputArch, schema, schemaDirectory, false);
+            const response = await validate(inputArch, schema, undefined, schemaDirectory, false);
 
             expect(response.hasErrors).toBeFalsy();
         });
@@ -170,7 +170,7 @@ describe('validate E2E', () => {
             const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'flows/flows-spectral-sequence-non-unique.json'), 'utf-8'));
             const schema = await schemaDirectory.getSchema(inputArch['$schema']);
 
-            const response = await validate(inputArch, schema, schemaDirectory, false);
+            const response = await validate(inputArch, schema, undefined, schemaDirectory, false);
 
             expect(response.hasErrors).toBeTruthy();
             expect(response.spectralSchemaValidationOutputs).toHaveLength(1);
@@ -182,7 +182,7 @@ describe('validate E2E', () => {
             const inputArch = JSON.parse(readFileSync(path.join(validationPath, 'flows/flows-spectral-unknown-relationship.json'), 'utf-8'));
             const schema = await schemaDirectory.getSchema(inputArch['$schema']);
 
-            const response = await validate(inputArch, schema, schemaDirectory, false);
+            const response = await validate(inputArch, schema, undefined, schemaDirectory, false);
 
             expect(response.hasErrors).toBeTruthy();
             expect(response.spectralSchemaValidationOutputs).toHaveLength(1);

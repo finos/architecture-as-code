@@ -82,7 +82,7 @@ The interface should:
 
 This should be an inline interface, not an external definition.
 
-Ensure the file still validates against CALM 1.1.
+Ensure the file still validates against CALM 1.2.
 ```
 
 ### 3. Add a Database Interface
@@ -260,7 +260,7 @@ The `definition-url` points to a JSON Schema that defines what properties the `c
 
 ## Resources
 
-- [CALM Interface Schema](https://github.com/finos/architecture-as-code/blob/main/calm/release/1.1/meta/interface.json)
+- [CALM Interface Schema](https://github.com/finos/architecture-as-code/blob/main/calm/release/1.2/meta/interface.json)
 - [JSON Schema Documentation](https://json-schema.org/)
 
 ## Tips

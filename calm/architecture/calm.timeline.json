@@ -1,0 +1,31 @@
+{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm-timeline.json",
+    "current-moment": "calm-2",
+    "moments": [
+        {
+            "unique-id": "calm-1",
+            "node-type": "moment",
+            "name": "Initial CALM Architecture",
+            "description": "The FINOS CALM architecture including CLI, Hub API, and Hub UI",
+            "details": {
+                "detailed-architecture": "calm-1.json"
+            }
+        },
+        {
+            "unique-id": "calm-2",
+            "node-type": "moment",
+            "name": "CALM with VSCode Extension",
+            "description": "The FINOS CALM architecture including CLI, VSCode extension, Hub API, and Hub UI",
+            "valid-from": "2025-09-30",
+            "details": {
+                "detailed-architecture": "calm-2.json"
+            }
+        }
+    ],
+    "metadata": {
+        "title": "CALM Architecture Timeline",
+        "description": "Timeline documenting the evolution of the FINOS CALM architecture over time",
+        "owner": "FINOS Architecture as Code Team",
+        "created": "2026-02-02"
+    }
+}

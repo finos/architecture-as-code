@@ -1,5 +1,5 @@
 {
-  "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
   "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/pattern/api-gateway",
   "title": "API Gateway Pattern",
   "type": "object",
@@ -9,7 +9,7 @@
       "minItems": 4,
       "prefixItems": [
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
           "properties": {
             "well-known-endpoint": {
               "type": "string"
@@ -47,7 +47,7 @@
           ]
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
           "properties": {
             "description": {
               "const": "The API Consumer making an authenticated and authorized request"
@@ -64,7 +64,7 @@
           }
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
           "properties": {
             "description": {
               "const": "The API Producer serving content"
@@ -83,12 +83,22 @@
               "minItems": 1,
               "prefixItems": [
                 {
-                  "$ref": "https://calm.finos.org/release/1.0-rc1/meta/interface.json#/defs/host-port-interface",
+                  "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type",
                   "properties": {
                     "unique-id": {
                       "const": "producer-ingress"
+                    },
+                    "host": {
+                      "type": "string"
+                    },
+                    "port": {
+                      "type": "integer"
                     }
-                  }
+                  },
+                  "required": [
+                    "host",
+                    "port"
+                  ]
                 }
               ]
             }
@@ -98,7 +108,7 @@
           ]
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
           "properties": {
             "description": {
               "const": "The Identity Provider used to verify the bearer token"
@@ -121,13 +131,13 @@
       "minItems": 4,
       "prefixItems": [
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
+          "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
           "properties": {
             "unique-id": {
               "const": "api-consumer-api-gateway"
             },
             "description": {
-                "const": "Issue calculation request"
+              "const": "Issue calculation request"
             },
             "relationship-type": {
               "const": {
@@ -154,13 +164,13 @@
           }
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
+          "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
           "properties": {
             "unique-id": {
               "const": "api-gateway-idp"
             },
             "description": {
-                "const": "Validate bearer token"
+              "const": "Validate bearer token"
             },
             "relationship-type": {
               "const": {
@@ -180,13 +190,13 @@
           }
         },
         {
-          "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
+          "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
           "properties": {
             "unique-id": {
               "const": "api-gateway-api-producer"
             },
             "description": {
-                "const": "Forward request"
+              "const": "Forward request"
             },
             "relationship-type": {
               "const": {
@@ -209,31 +219,31 @@
           }
         },
         {
-            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
-            "properties": {
-              "unique-id": {
-                "const": "api-consumer-idp"
-              },
-              "description": {
-                  "const": "Acquire a bearer token"
-              },
-              "relationship-type": {
-                "const": {
-                  "connects": {
-                    "source": {
-                      "node": "api-consumer"
-                    },
-                    "destination": {
-                      "node": "idp"
-                    }
+          "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
+          "properties": {
+            "unique-id": {
+              "const": "api-consumer-idp"
+            },
+            "description": {
+              "const": "Acquire a bearer token"
+            },
+            "relationship-type": {
+              "const": {
+                "connects": {
+                  "source": {
+                    "node": "api-consumer"
+                  },
+                  "destination": {
+                    "node": "idp"
                   }
                 }
-              },
-              "protocol": {
-                "const": "HTTPS"
               }
+            },
+            "protocol": {
+              "const": "HTTPS"
             }
           }
+        }
       ]
     }
   },

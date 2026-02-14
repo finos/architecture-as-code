@@ -1,7 +1,7 @@
 ---
 id: relationships
 title: Relationships
-sidebar_position: 4
+sidebar_position: 2
 ---
 
 # Relationships in CALM

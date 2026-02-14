@@ -1,3 +1,9 @@
+export interface ItemVMCommand {
+    command: string
+    title: string
+    arguments?: any[]
+}
+
 export interface ItemVM {
     id: string
     label: string
@@ -7,4 +13,5 @@ export interface ItemVM {
     contextValue?: string
     collapsibleState?: 'expanded' | 'collapsed' | 'none'
     iconPath?: string
+    command?: ItemVMCommand
 }

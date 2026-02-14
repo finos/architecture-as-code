@@ -16,6 +16,9 @@
         "calm-prompts/flow-creation.md",
         "calm-prompts/pattern-creation.md",
         "calm-prompts/documentation-creation.md",
-        "calm-prompts/standards-creation.md"
+        "calm-prompts/standards-creation.md",
+        "calm-prompts/moment-creation.md",
+        "calm-prompts/timeline-creation.md",
+        "calm-prompts/decorator-creation.md"
     ]
 }

@@ -12,6 +12,8 @@ const dummyPattern = { dummy: 'pattern' };
 const dummyArchOfAPattern = { '$schema': 'pattern.json', dummy: 'arch' };
 const dummyArchOfCalmSchema = { '$schema': 'calm-schema.json', dummy: 'arch' };
 const dummyCalmSchema = { '$id': 'calm-schema.json', dummy: 'calm schema' };
+const dummyTimeline = { '$schema': 'calm-timeline-schema.json', dummy: 'timeline' };
+const dummyCalmTimelineSchema = { '$id': 'calm-timeline-schema.json', dummy: 'calm timeline schema' };
 
 const mocks = vi.hoisted(() => ({
     validate: vi.fn(),
@@ -79,11 +81,13 @@ describe('runValidate', () => {
             if (filePath === 'pattern.json') return Promise.resolve(dummyPattern);
             // Handle resolved absolute paths for $schema references
             if (filePath.endsWith('pattern.json')) return Promise.resolve(dummyPattern);
+            if (filePath === 'timeline.json') return Promise.resolve(dummyTimeline);
             return Promise.resolve();
         });
         mocks.getSchema.mockImplementation((schemaId: string) => {
             // Handle both relative and resolved absolute paths
             if (schemaId === 'calm-schema.json' || schemaId.endsWith('calm-schema.json')) return dummyCalmSchema;
+            if (schemaId === 'calm-timeline-schema.json' || schemaId.endsWith('calm-timeline-schema.json')) return dummyCalmTimelineSchema;
             throw new Error(`Schema ${schemaId} not found`);
         });
         (validate as Mock).mockResolvedValue(fakeOutcome);
@@ -107,7 +111,7 @@ describe('runValidate', () => {
         expect(mocks.loadSchemas).toHaveBeenCalled();
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch.json', 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
-        expect(validate).toHaveBeenCalledWith(dummyArch, dummyPattern, expect.anything(), true);
+        expect(validate).toHaveBeenCalledWith(dummyArch, dummyPattern, undefined, expect.anything(), true);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
@@ -131,7 +135,7 @@ describe('runValidate', () => {
 
         expect(mocks.loadSchemas).toHaveBeenCalled();
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch.json', 'architecture');
-        expect(validate).toHaveBeenCalledWith(dummyArch, undefined, expect.anything(), true);
+        expect(validate).toHaveBeenCalledWith(dummyArch, undefined, undefined, expect.anything(), true);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
@@ -159,7 +163,7 @@ describe('runValidate', () => {
         expect(mocks.getSchema).toHaveBeenCalledWith(resolvedPatternPath);
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch-of-pattern.json', 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith(resolvedPatternPath, 'pattern');
-        expect(validate).toHaveBeenCalledWith(dummyArchOfAPattern, dummyPattern, expect.anything(), true);
+        expect(validate).toHaveBeenCalledWith(dummyArchOfAPattern, dummyPattern, undefined, expect.anything(), true);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
@@ -187,7 +191,7 @@ describe('runValidate', () => {
         expect(mocks.getSchema).toHaveBeenCalledWith(resolvedSchemaPath);
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch-of-calm.json', 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledOnce();
-        expect(validate).toHaveBeenCalledWith(dummyArchOfCalmSchema, dummyCalmSchema, expect.anything(), true);
+        expect(validate).toHaveBeenCalledWith(dummyArchOfCalmSchema, dummyCalmSchema, undefined, expect.anything(), true);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
@@ -211,7 +215,35 @@ describe('runValidate', () => {
 
         expect(mocks.loadSchemas).toHaveBeenCalled();
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
-        expect(validate).toHaveBeenCalledWith(undefined, dummyPattern, expect.anything(), true);
+        expect(validate).toHaveBeenCalledWith(undefined, dummyPattern, undefined, expect.anything(), true);
+        expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
+        expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
+
+        expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
+        expect(writeFileSync).toHaveBeenCalledWith('out.json', 'formatted output');
+    });
+
+    it('should process validation successfully with timeline', async () => {
+        const options: ValidateOptions = {
+            architecturePath: undefined,
+            patternPath: undefined,
+            timelinePath: 'timeline.json',
+            metaSchemaPath: 'schemas',
+            verbose: true,
+            outputFormat: 'json',
+            outputPath: 'out.json',
+            strict: false,
+        };
+
+
+        await runValidate(options);
+
+        expect(mocks.loadSchemas).toHaveBeenCalled();
+        // $schema reference is resolved to absolute path relative to architecture file
+        const resolvedSchemaPath = path.resolve(process.cwd(), 'calm-timeline-schema.json');
+        expect(mocks.getSchema).toHaveBeenCalledWith(resolvedSchemaPath);
+        expect(mocks.loadMissingDocument).toHaveBeenCalledWith('timeline.json', 'timeline');
+        expect(validate).toHaveBeenCalledWith(undefined, dummyCalmTimelineSchema, dummyTimeline, expect.anything(), true);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
@@ -271,11 +303,12 @@ describe('writeOutputFile', () => {
 
 
 describe('checkValidateOptions', () => {
-    it('should call program.error if neither pattern nor architecture is provided', () => {
+    it('should call program.error if neither pattern, architecture nor timeline is provided', () => {
         const program = new Command();
         const errorSpy = vi.spyOn(program, 'error').mockImplementation((msg: string) => { throw new Error(msg); });
         const options = {};
-        expect(() => checkValidateOptions(program, options, '-p, --pattern <file>', '-a, --architecture <file>')).toThrow(/one of the required options/);
+        expect(() => checkValidateOptions(program, options, '-p, --pattern <file>',
+            '-a, --architecture <file>', '--timeline <file>')).toThrow(/one of the required options/);
         errorSpy.mockRestore();
     });
 
@@ -283,7 +316,8 @@ describe('checkValidateOptions', () => {
         const program = new Command();
         const errorSpy = vi.spyOn(program, 'error').mockImplementation((msg: string) => { throw new Error(msg); });
         const options = { pattern: 'pattern.json' };
-        expect(() => checkValidateOptions(program, options, '-p, --pattern <file>', '-a, --architecture <file>')).not.toThrow();
+        expect(() => checkValidateOptions(program, options, '-p, --pattern <file>',
+            '-a, --architecture <file>', '--timeline <file>')).not.toThrow();
         errorSpy.mockRestore();
     });
 
@@ -291,7 +325,35 @@ describe('checkValidateOptions', () => {
         const program = new Command();
         const errorSpy = vi.spyOn(program, 'error').mockImplementation((msg: string) => { throw new Error(msg); });
         const options = { architecture: 'arch.json' };
-        expect(() => checkValidateOptions(program, options, '-p, --pattern <file>', '-a, --architecture <file>')).not.toThrow();
+        expect(() => checkValidateOptions(program, options, '-p, --pattern <file>',
+            '-a, --architecture <file>', '--timeline <file>')).not.toThrow();
+        errorSpy.mockRestore();
+    });
+
+    it('should call program.error if pattern and timeline are provided', () => {
+        const program = new Command();
+        const errorSpy = vi.spyOn(program, 'error').mockImplementation((msg: string) => { throw new Error(msg); });
+        const options = { pattern: 'pattern.json', timeline: 'timeline.json' };
+        expect(() => checkValidateOptions(program, options, '-p, --pattern <file>',
+            '-a, --architecture <file>', '--timeline <file>')).toThrow(/cannot be used with either of the options/);
+        errorSpy.mockRestore();
+    });
+
+    it('should call program.error if architecture and timeline are provided', () => {
+        const program = new Command();
+        const errorSpy = vi.spyOn(program, 'error').mockImplementation((msg: string) => { throw new Error(msg); });
+        const options = { architecture: 'arch.json', timeline: 'timeline.json' };
+        expect(() => checkValidateOptions(program, options, '-p, --pattern <file>',
+            '-a, --architecture <file>', '--timeline <file>')).toThrow(/cannot be used with either of the options/);
+        errorSpy.mockRestore();
+    });
+
+    it('should not call program.error if an timeline is provided', () => {
+        const program = new Command();
+        const errorSpy = vi.spyOn(program, 'error').mockImplementation((msg: string) => { throw new Error(msg); });
+        const options = { timeline: 'timeline.json' };
+        expect(() => checkValidateOptions(program, options, '-p, --pattern <file>',
+            '-a, --architecture <file>', '--timeline <file>')).not.toThrow();
         errorSpy.mockRestore();
     });
 });

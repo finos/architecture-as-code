@@ -1,0 +1,46 @@
+{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "nodes": [
+        {
+            "unique-id": "web-app",
+            "name": "Web Application",
+            "description": "Frontend web application",
+            "node-type": "webclient"
+        },
+        {
+            "unique-id": "api-service",
+            "name": "API Service",
+            "description": "Backend API service",
+            "node-type": "service"
+        },
+        {
+            "unique-id": "database",
+            "name": "Database",
+            "description": "Persistent data store",
+            "node-type": "database"
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "web-to-api",
+            "description": "Web app calls API",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "web-app" },
+                    "destination": { "node": "api-service" }
+                }
+            }
+        },
+        {
+            "unique-id": "api-to-db",
+            "description": "API stores data",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "api-service" },
+                    "destination": { "node": "database" }
+                }
+            }
+        }
+    ]
+}
+

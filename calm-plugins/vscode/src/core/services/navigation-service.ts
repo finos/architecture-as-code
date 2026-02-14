@@ -93,7 +93,44 @@ export class NavigationService {
             return false
         }
 
+        return this.navigateToDetailedArchitecture(detailedArch)
+    }
+
+    /**
+     * Navigate to a detailed-architecture reference, resolving via url mapping if configured
+     * For relative paths, resolves from the current active document's directory
+     */
+    async navigateToDetailedArchitecture(detailedArch: string): Promise<boolean> {
         this.logger.info(`[navigation] Attempting to navigate to detailed-architecture: ${detailedArch}`)
+
+        // For relative paths (not URLs), resolve from current document's directory
+        if (!detailedArch.startsWith('http') && !path.isAbsolute(detailedArch)) {
+            const activeEditor = vscode.window.activeTextEditor
+            if (activeEditor) {
+                const currentDir = path.dirname(activeEditor.document.uri.fsPath)
+                const resolvedPath = path.resolve(currentDir, detailedArch)
+                this.logger.info(`[navigation] Resolved relative path to: ${resolvedPath}`)
+
+                if (fs.existsSync(resolvedPath)) {
+                    try {
+                        const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(resolvedPath))
+                        await vscode.window.showTextDocument(doc, {
+                            viewColumn: vscode.ViewColumn.One,
+                            preview: false
+                        })
+                        return true
+                    } catch (error) {
+                        const message = error instanceof Error ? error.message : String(error)
+                        this.logger.error?.(`[navigation] Failed to open file ${resolvedPath}: ${message}`)
+                        vscode.window.showErrorMessage(`Failed to open file: ${resolvedPath}. ${message}`)
+                        return false
+                    }
+                } else {
+                    vscode.window.showWarningMessage(`File not found: ${resolvedPath}`)
+                    return false
+                }
+            }
+        }
 
         // Initialize loader with current workspace context if needed
         if (!this.docLoader && vscode.workspace.workspaceFolders?.[0]) {
@@ -106,14 +143,17 @@ export class NavigationService {
         }
 
         // Use DocumentLoader to resolve the path (encapsulates mapping and relative path logic)
-        let targetPath = this.docLoader.resolvePath(detailedArch)
+        const targetPath = this.docLoader.resolvePath(detailedArch)
 
         if (targetPath && fs.existsSync(targetPath)) {
             this.logger.info(`[navigation] Resolved to local file: ${targetPath}`)
             try {
                 const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(targetPath))
-                // Open in Column 1 to avoid replacing the preview panel (which is usually in Column 2)
-                await vscode.window.showTextDocument(doc, vscode.ViewColumn.One)
+                // Open in a new tab (preview: false) in Column 1, don't replace existing tabs
+                await vscode.window.showTextDocument(doc, {
+                    viewColumn: vscode.ViewColumn.One,
+                    preview: false  // Opens as a permanent tab, not a preview that gets replaced
+                })
                 return true
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error)
@@ -123,12 +163,44 @@ export class NavigationService {
             }
         } else {
             this.logger.warn?.(`[navigation] Could not resolve local file for: ${detailedArch}`)
-            
-            // If we have a URL but no mapping, maybe prompt the user?
+
+            const mappingPath = this.config.urlMapping()
+
             if (detailedArch.startsWith('http')) {
-                vscode.window.showInformationMessage(`No local mapping found for URL: ${detailedArch}. Configure 'calm.urlMapping'.`)
+                if (!mappingPath) {
+                    vscode.window.showWarningMessage(
+                        `Cannot open "${detailedArch}". No URL mapping configured.\n\nSet "calm.urlMapping" in settings to point to a JSON file that maps URLs to local paths.`,
+                        'Open Settings'
+                    ).then(selection => {
+                        if (selection === 'Open Settings') {
+                            vscode.commands.executeCommand('workbench.action.openSettings', 'calm.urlMapping')
+                        }
+                    })
+                } else {
+                    vscode.window.showWarningMessage(
+                        `Cannot open "${detailedArch}".\n\nAdd a mapping for this URL in your calm-mapping.json file:\n"${detailedArch}": "./path/to/local/file.json"`,
+                        'Open Mapping File'
+                    ).then(async selection => {
+                        if (selection === 'Open Mapping File') {
+                            const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+                            if (!workspaceRoot && !path.isAbsolute(mappingPath)) {
+                                vscode.window.showErrorMessage('Cannot open mapping file: no workspace folder open and path is relative')
+                                return
+                            }
+                            try {
+                                const resolvedPath = path.isAbsolute(mappingPath)
+                                    ? mappingPath
+                                    : path.join(workspaceRoot!, mappingPath)
+                                const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(resolvedPath))
+                                await vscode.window.showTextDocument(doc)
+                            } catch {
+                                vscode.window.showErrorMessage(`Could not open mapping file: ${mappingPath}`)
+                            }
+                        }
+                    })
+                }
             } else {
-                 vscode.window.showInformationMessage(`File not found: ${detailedArch}`)
+                vscode.window.showWarningMessage(`File not found: ${detailedArch}`)
             }
             
             return false

@@ -14,6 +14,12 @@ Live-visualize CALM architecture models while you edit them. Features an interac
 - **Quick Navigation**: Jump between editor and preview
 - **Search & Filter**: Find elements across large models
 
+### 📅 Timeline Navigation
+- **Architecture Evolution**: View milestones in your architecture timeline
+- **One-Click Navigation**: Click any milestone to open its detailed architecture
+- **Current Moment Indicator**: Star marker shows the current architecture state
+- **Relative Path Support**: Navigate to architecture files using relative paths
+
 ### ✅ Real-Time Validation
 - **Automatic Validation**: Documents are validated on open, save, and when switching editors
 - **Problems Panel Integration**: Errors and warnings appear in the VS Code Problems panel

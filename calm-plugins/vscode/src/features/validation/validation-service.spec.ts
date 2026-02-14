@@ -72,6 +72,7 @@ vi.mock('@finos/calm-shared', async () => {
         ...actual,
         validate: vi.fn(),
         loadArchitectureAndPattern: vi.fn(),
+        loadTimeline: vi.fn(),
         SchemaDirectory: vi.fn().mockImplementation(() => ({
             loadSchemas: vi.fn()
         }))
@@ -97,6 +98,16 @@ vi.mock('../../core/services/calm-schema-registry', () => ({
     }))
 }))
 
+// Mock detectCalmTimeline from model module (uses in-memory text, not filesystem)
+const { mockDetectCalmTimeline } = vi.hoisted(() => ({
+    mockDetectCalmTimeline: vi.fn()
+}))
+
+vi.mock('../../models/model', () => ({
+    detectCalmTimeline: mockDetectCalmTimeline
+}))
+
+
 describe('ValidationService', () => {
     let service: ValidationService
     let mockLogger: Logger
@@ -118,7 +129,8 @@ describe('ValidationService', () => {
             previewLayout: vi.fn(() => 'dagre'),
             showLabels: vi.fn(() => true),
             urlMapping: vi.fn(() => undefined),
-            schemaAdditionalFolders: vi.fn(() => [])
+            schemaAdditionalFolders: vi.fn(() => []),
+            docifyTheme: vi.fn(() => 'auto')
         }
 
         service = new ValidationService(mockLogger, mockConfig)
@@ -288,6 +300,67 @@ describe('ValidationService', () => {
         it('should clear all diagnostics', () => {
             service.clearAll()
             // Should not throw
+        })
+    })
+
+    describe('validateDocument file type detection', () => {
+        it('should validate timeline files using loadTimeline when detectCalmTimeline returns true', async () => {
+            // detectCalmTimeline works on in-memory text content, not filesystem
+            mockDetectCalmTimeline.mockReturnValue(true)
+
+            const timelineContent = JSON.stringify({
+                $schema: 'https://calm.finos.org/release/1.2/meta/calm-timeline.json',
+                moments: []
+            })
+
+            const mockDoc = {
+                uri: { fsPath: '/test/timeline.json', toString: () => '/test/timeline.json' },
+                getText: () => timelineContent,
+                languageId: 'json',
+                lineAt: () => ({ text: '' })
+            }
+
+            // Timeline files should be validated using loadTimeline
+            try {
+                await service.validateDocument(mockDoc as any)
+            } catch {
+                // Expected - other mocks may not be set up
+            }
+
+            // detectCalmTimeline should be called with the document text content
+            expect(mockDetectCalmTimeline).toHaveBeenCalledWith(timelineContent)
+
+            // For timeline files, we should log that we're validating a timeline
+            expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Validating timeline file'))
+        })
+
+        it('should validate architecture files using loadArchitectureAndPattern when detectCalmTimeline returns false', async () => {
+            // detectCalmTimeline returns false for architecture files
+            mockDetectCalmTimeline.mockReturnValue(false)
+
+            const architectureContent = JSON.stringify({
+                $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
+                nodes: []
+            })
+
+            const mockDoc = {
+                uri: { fsPath: '/test/architecture.json', toString: () => '/test/architecture.json' },
+                getText: () => architectureContent,
+                languageId: 'json',
+                lineAt: () => ({ text: '' })
+            }
+
+            // Architecture files should proceed with validation
+            try {
+                await service.validateDocument(mockDoc as any)
+            } catch {
+                // Expected - other mocks may not be set up
+            }
+
+            // detectCalmTimeline should be called with document text content
+            expect(mockDetectCalmTimeline).toHaveBeenCalledWith(architectureContent)
+            // Should NOT log the timeline validation message for architecture files
+            expect(mockLogger.info).not.toHaveBeenCalledWith(expect.stringContaining('Validating timeline file'))
         })
     })
 })

@@ -33,7 +33,7 @@ describe('model', () => {
     describe('loadCalmModel', () => {
         it('should parse test.architecture.json and extract relationships', () => {
             // Use path relative to project root (vscode plugin directory)
-            const testArchPath = resolve(process.cwd(), 'test-architectures/test.architecture.json')
+            const testArchPath = resolve(process.cwd(), 'test_fixtures/architecture/test.architecture.json')
             const content = readFileSync(testArchPath, 'utf-8')
             const model = loadCalmModel(content)
 

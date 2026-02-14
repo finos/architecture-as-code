@@ -80,7 +80,7 @@ The metadata should include:
 
 Use the object format for metadata.
 
-Ensure the file still validates against CALM 1.1.
+Ensure the file still validates against CALM 1.2.
 ```
 
 **Review the output:**
@@ -91,7 +91,7 @@ Ensure the file still validates against CALM 1.1.
 **Example result:**
 ```json
 {
-  "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
   "metadata": {
     "owner": "jane.doe@example.com",
     "version": "1.0.0",
@@ -221,7 +221,7 @@ Metadata transforms architecture files from anonymous diagrams into living docum
 
 ## Resources
 
-- [CALM Metadata Schema](https://github.com/finos/architecture-as-code/blob/main/calm/release/1.1/meta/core.json)
+- [CALM Metadata Schema](https://github.com/finos/architecture-as-code/blob/main/calm/release/1.2/meta/core.json)
 - [JSON Schema Documentation](https://json-schema.org/)
 
 ## Tips
