@@ -14,7 +14,7 @@ public class MongoSetup {
             database.createCollection("namespaces");
             // Insert multiple documents into 'namespaces'
             database.getCollection("namespaces").insertMany(Arrays.asList(
-                    new Document("namespace", "finos")
+                    new Document("name", "finos").append("description", "FINOS namespace")
             ));
         }
     }
