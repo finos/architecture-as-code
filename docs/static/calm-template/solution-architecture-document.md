@@ -1,4 +1,8 @@
 
+# {{name}}
+
+{{description}}
+
 ## Overview
 
 {{block-architecture}}
@@ -50,27 +54,30 @@
 #### Description
 {{description}}
 
+
+This component exposes the following interfaces:
+
 {{#if interfaces}}
 #### Interfaces
 
 This component exposes the following interfaces:
 
 {{#each interfaces}}
-- **{{unique-id}}**{{#if description}} - {{description}}{{/if}}
-  {{#if url}}
-  - **URL:** {{url}}
-  {{/if}}
-  {{#if host}}
-  - **Host:** {{host}}{{#if port}}:{{port}}{{/if}}
-  {{/if}}
-  {{#if method}}
-  - **Method:** {{method}}
-  {{/if}}
-  {{#if path}}
-  - **Path:** {{path}}
-  {{/if}}
-  {{#if protocol}}
-  - **Protocol:** {{protocol}}
+- **{{name}}** (`{{unique-id}}`)
+  - **Protocol:** {{protocol}}{{#if port}} / **Port:** {{port}}{{/if}}
+  - **Description:** {{description}}
+  {{#if schema}}
+  - **Schema:** {{schema.specification}}
+    {{#if schema.operations}}
+    - **Operations**
+    {{#each schema.operations}}
+      {{#if path}}
+      - `{{method}} {{path}}` — {{description}}
+      {{else}}
+      - `{{event}}` ({{direction}}) — {{description}}
+      {{/if}}
+    {{/each}}
+    {{/if}}
   {{/if}}
 {{/each}}
 {{/if}}

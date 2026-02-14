@@ -873,4 +873,6 @@ Committed successfully on branch (commit `8393257`). The changes include archite
 
 In this portion of the tutorial we have enhanced the architecture definition with technical information, i.e., endpoint specifications, Controls, and metadata.
 
+Here is the <a href="/calm-example/trading-system.architecture.json" target="_blank">completed CALM Architecture</a>
+
 In the next section we look at two methods for communicating the content of the architecture.
