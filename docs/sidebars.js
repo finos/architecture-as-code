@@ -49,7 +49,7 @@ const sidebars = {
         'working-with-calm/validate',
         'working-with-calm/generate',
         'working-with-calm/calm-ai-tools',
-        'working-with-calm/voice-mode',
+        'working-with-calm/voice-mode'
       ],
     },
   ],
@@ -76,6 +76,19 @@ const sidebars = {
             'tutorials/beginner/07-complete-architecture',
           ],
         },
+        {
+          type: 'category',
+          label: '🛠️ Practitioner',
+          link: {type: 'doc', id: 'tutorials/build-a-calm-architecture/build-a-calm-architecture'},
+          items: [
+            'tutorials/build-a-calm-architecture/tool-setup',
+            'tutorials/build-a-calm-architecture/business-context',
+            'tutorials/build-a-calm-architecture/define-initial-architecture',
+            'tutorials/build-a-calm-architecture/refine-architecture-definition',
+            'tutorials/build-a-calm-architecture/generate-documentation',
+            'tutorials/build-a-calm-architecture/tutorial-key-takeaways',
+           ],
+        }
       ],
     },
   ],
