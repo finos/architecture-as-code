@@ -2,12 +2,15 @@
 architecture: trading-system.architecture.json
 ---
 
-# 
 
+## Architecture Metadata
 
+- **name:** Trading System
+- **description:** An event-driven trading system architecture supporting order submission, account management, position tracking, and real-time trade processing.
+- **version:** 0.1.0
+- **created-by:** Trading System Team - Copilot
 
-## Overview
-
+## System Architecutre
 ```mermaid
 ---
 config:
@@ -61,11 +64,6 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
 
 
 ```
-
-## Architecture Metadata
-
-- **version:** 0.1.0
-- **created-by:** Trading System Team - Copilot
 
 ## Architecture-Level Controls
 

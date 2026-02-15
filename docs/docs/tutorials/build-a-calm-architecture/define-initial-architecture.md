@@ -386,6 +386,8 @@ _Note_:  Whenever an update is made to the architecture file, the `calm validate
 
 ## Using CALM Tool VSCode extenstion, review parts of the architecture representation
 
+Review the updated architecture file content.  If any issues are detected, prompt the AI Assistant or manually update the JSON file for corrections.
+
 ### Preview of the Overall Architecture
 ![Overall Architecturee](./images/01_initial_architecture_overall_preview.png)
 
@@ -574,7 +576,7 @@ _Note_: For purposes of this tutorial, only two process flows are reviewed.  In 
 ### Review Process Trade Flow
 ![Process Trade Flow](./images/05_initial_flow_process-trade_flow_preview.png)
 
-Based on this review the architect determines the `Trader` node is missing from this flows and requests the AI Assistant to add the missing node.
+Based on this review the architect determines the `Trader` node is missing from these flows and requests the AI Assistant to add the missing node.
 
 
 **Prompt to AI Assistant**

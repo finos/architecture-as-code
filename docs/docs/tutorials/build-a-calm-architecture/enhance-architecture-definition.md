@@ -743,6 +743,8 @@ For the architecture level, let's add metadata about the version and team respon
 **Prompt to AI Assistant**
 ```text
 add following metadata at the architecture level:
+* "name": "Trading System"
+* "description": "An event-driven trading system architecture supporting order submission, account management, position tracking, and real-time trade processing."
 * "version" : "0.1.0"
 * "created-by" : "Trading System Team - Copilot"
 ```

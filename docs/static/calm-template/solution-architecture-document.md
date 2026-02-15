@@ -1,19 +1,15 @@
 
-# {{name}}
-
-{{description}}
-
-## Overview
-
-{{block-architecture}}
-
 {{#if metadata}}
+
 ## Architecture Metadata
 
 {{#each metadata}}
 - **{{@key}}:** {{.}}
 {{/each}}
 {{/if}}
+
+## System Architecutre
+{{block-architecture}}
 
 {{#if controls}}
 ## Architecture-Level Controls

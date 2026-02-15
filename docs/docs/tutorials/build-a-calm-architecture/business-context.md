@@ -8,7 +8,7 @@ sidebar_position: 2
 
 ## Introduction
 
-This document walks through practical examples of CALM architecture constructs that will be used to build the complete architecture for the application. Each section demonstrates how to model different aspects of the system—from nodes and interfaces to relationships and data flows—using CALM's declarative JSON-based language. By working through these examples, you'll learn how to capture the essential architectural elements of a real-world trading platform in a machine-readable format that can be validated, visualized, and analyzed.
+This document walks through practical examples of CALM architecture constructs that will be used to build the complete architecture for the application. Each section demonstrates how to model different aspects of the system—from nodes and interfaces to relationships and process flows—using CALM's declarative JSON-based language. By working through these examples, you'll learn how to capture the essential architectural elements of an application in a machine-readable format that can be validated, visualized, and analyzed.
 
 The application used in this tutorial is based on [FINOS TraderX](https://github.com/finos/traderX)
 
