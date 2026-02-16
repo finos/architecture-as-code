@@ -25,6 +25,7 @@ calm-ai/
 │   ├── architecture-creation.md
 │   ├── calm-cli-instructions.md
 │   ├── control-creation.md
+│   ├── decorator-creation.md
 │   ├── documentation-creation.md
 │   ├── flow-creation.md
 │   ├── interface-creation.md
@@ -47,6 +48,7 @@ Individual markdown files providing detailed guidance for specific CALM modeling
 | `architecture-creation.md` | Guide for creating complete CALM architecture documents with required schema structure |
 | `calm-cli-instructions.md` | Summary of CALM CLI commands, validation modes, and usage flags |
 | `control-creation.md` | Guide for defining control requirements and compliance configurations |
+| `decorator-creation.md` | Guide for creating decorators |
 | `documentation-creation.md` | Guide for generating documentation from CALM models |
 | `flow-creation.md` | Guide for modeling business process flows through architecture |
 | `interface-creation.md` | Critical guidance for interface definitions and oneOf constraints |
@@ -139,7 +141,8 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
         "calm-prompts/documentation-creation.md",
         "calm-prompts/standards-creation.md",
         "calm-prompts/moment-creation.md",
-        "calm-prompts/timeline-creation.md"
+        "calm-prompts/timeline-creation.md",
+        "calm-prompts/decorator-creation.md"
     ]
 }
 ```
@@ -173,7 +176,8 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
         "calm-prompts/documentation-creation.md",
         "calm-prompts/standards-creation.md",
         "calm-prompts/moment-creation.md",
-        "calm-prompts/timeline-creation.md"
+        "calm-prompts/timeline-creation.md",
+        "calm-prompts/decorator-creation.md"
     ]
 }
 ```

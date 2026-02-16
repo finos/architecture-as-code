@@ -3,6 +3,7 @@ import { ValidationService } from './validation-service'
 import type { Logger } from '../../core/ports/logger'
 import type { Config } from '../../core/ports/config'
 import { ValidationOutcome, ValidationOutput } from '@finos/calm-shared'
+import { TEST_ALL_SCHEMA } from '../../test/test-utils'
 
 /**
  * Known CALM schema URL pattern (mirrors the pattern in calm-schema-registry.ts).
@@ -144,13 +145,13 @@ describe('ValidationService', () => {
     })
 
     describe('extractSchemaUrl', () => {
-        it('should extract $schema from valid JSON document', () => {
+        it.each(TEST_ALL_SCHEMA)('should extract $schema from valid JSON document with CALM %s schema', (schema) => {
             const doc = {
                 languageId: 'json',
-                getText: () => JSON.stringify({ $schema: 'https://calm.finos.org/release/1.1/meta/calm.json' })
+                getText: () => JSON.stringify({ $schema: `https://calm.finos.org/release/${schema}/meta/calm.json` })
             }
             const result = (service as any).extractSchemaUrl(doc)
-            expect(result).toBe('https://calm.finos.org/release/1.1/meta/calm.json')
+            expect(result).toBe(`https://calm.finos.org/release/${schema}/meta/calm.json`)
         })
 
         it('should return undefined for JSON without $schema', () => {
