@@ -63,6 +63,33 @@ We accept contributions via Pull Request, to make a contribution:
 6. Push to the branch (`git push origin feature/fooBar`)
 7. Create a new Pull Request
 
+<!-- PROJECT SETUP -->
+## Project Setup
+
+### Prerequisites
+
+* Node 22+
+
+### Installation and development
+
+1. [Install Node 22+](https://nodejs.org/en/download)
+2. Install dependencies
+```bash
+npm ci
+```
+3. Build the project
+```bash
+npm run build
+```
+4. Run tests
+```bash
+npm run test
+```
+5. Lint the project
+```bash
+npm run lint
+```
+
 ## GitHub actions
 
 There aren't many standards to follow when it comes to Github actions - but some good rules of thumb for this project are;
