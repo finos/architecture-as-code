@@ -5,6 +5,37 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.33.0] - 2026-02-16
+
+## [1.33.0](https://github.com/finos/architecture-as-code/compare/cli-v1.32.0...cli-v1.33.0) (2026-02-16)
+
+* Merge branch 'main' into bugs/2115 ([](https://github.com/finos/architecture-as-code/commit/629e575ee5909506f9e539bf5c2346cbcc7ecdea))
+* Merge branch 'main' into bugs/2115 ([](https://github.com/finos/architecture-as-code/commit/545c5e4df5523a02baea5f50de351a18afbcdb86))
+* Merge branch 'main' into bugs/2115 ([](https://github.com/finos/architecture-as-code/commit/e97d7ec24e489c1c54af03e94491f434f4644a44))
+* Merge branch 'main' into bugs/2115 ([](https://github.com/finos/architecture-as-code/commit/7bd3ebdafae0ea67d0fad27b3fef37f1fae78dbf))
+* Merge pull request #2125 from jpgough-ms/workshop ([](https://github.com/finos/architecture-as-code/commit/75ad2ab16c7c4d7464d2bbbe0e80d8969ec158b4))
+
+### chore
+
+* **README:** remove Olivia from maintainers list ([](https://github.com/finos/architecture-as-code/commit/e639be9b2ff8fc847d8c8980ac75696d9449d3d3))
+* **README:** remove Olivia from maintainers list ([](https://github.com/finos/architecture-as-code/commit/35cc7788d556c043792617d88021889e900122c0))
+* **vscode:** move complex-layout-arch.json into test_fixtures folder ([](https://github.com/finos/architecture-as-code/commit/887b795053307e994d364d50b0fb7ac90ffe4d0a))
+* **vscode:** move complex-layout-arch.json into test_fixtures folder ([](https://github.com/finos/architecture-as-code/commit/d0f72f1155715111e6cbd0e09d78feaa9094d052))
+* **workshop:** add Calico global deny policy for network segmentation demo ([](https://github.com/finos/architecture-as-code/commit/04037146f3448b9c5cc658bec8a6c612542973a9))
+
+### feat
+
+* **shared,cli:** address copilot review comments ([](https://github.com/finos/architecture-as-code/commit/69df7021a450caf903057399777750c143ac9b1f))
+* **shared,cli:** fix docify and e2e tests ([](https://github.com/finos/architecture-as-code/commit/43d1b08a73b048210375ab8209bb36d2cd08b60e))
+* **widgets,vscode:** choice of elk and dagre layout engines for block-architecture visualiation ([](https://github.com/finos/architecture-as-code/commit/5514c311d891eca8954afb24027ae407d9108837))
+* **widgets,vscode:** choice of elk and dagre layout engines for block-architecture visualisation ([](https://github.com/finos/architecture-as-code/commit/049de6fe13bc17f3eb303a74e8d38dabc72ee1de))
+* **widgets,vscode:** consistent elk-layout version, tests for mermaidInitConfig ([](https://github.com/finos/architecture-as-code/commit/2b69dd96e20520b98ffdc636ab702f0f65ac84fb))
+* **workshop:** add dependency verification with version reporting to walkthrough script ([](https://github.com/finos/architecture-as-code/commit/48d0fcdd0aabe4c85628edadfb712aee2db50305))
+
+### fix
+
+* **shared:** add layout-elk to the required dependencies of docusaurus output template ([](https://github.com/finos/architecture-as-code/commit/d829ca1af860a1e7c0441e3e2840c29b8d8b89b3))
+
 ## [1.32.0] - 2026-02-11
 
 ## [1.32.0](https://github.com/finos/architecture-as-code/compare/cli-v1.31.0...cli-v1.32.0) (2026-02-11)
