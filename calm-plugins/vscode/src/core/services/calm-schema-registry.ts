@@ -5,6 +5,7 @@ import type { Config } from '../ports/config'
 /**
  * Known CALM schema URL pattern.
  * Matches URLs like:
+ * - https://calm.finos.org/release/1.2/meta/calm-timeline.json
  * - https://calm.finos.org/release/1.1/meta/calm.json
  * - https://calm.finos.org/draft/2025-03/meta/calm.json
  */
@@ -22,7 +23,7 @@ export class CalmSchemaRegistry {
         private readonly extensionUri: vscode.Uri,
         private readonly logger: Logger,
         private readonly config: Config
-    ) {}
+    ) { }
 
     /**
      * Initialize the registry by scanning bundled schemas and additional folders.

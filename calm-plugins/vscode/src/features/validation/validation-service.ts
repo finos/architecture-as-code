@@ -5,6 +5,7 @@ import {
     ValidationOutput,
     SchemaDirectory,
     loadArchitectureAndPattern,
+    loadTimeline,
     enrichWithDocumentPositions,
     parseDocumentWithPositions
 } from '@finos/calm-shared'
@@ -12,6 +13,7 @@ import { buildDocumentLoader, DocumentLoader } from '@finos/calm-shared/dist/doc
 import type { Logger } from '../../core/ports/logger'
 import type { Config } from '../../core/ports/config'
 import { CalmSchemaRegistry } from '../../core/services/calm-schema-registry'
+import { detectCalmTimeline } from '../../models/model'
 
 /**
  * Service that validates CALM documents and reports diagnostics to VS Code.
@@ -25,7 +27,7 @@ export class ValidationService implements vscode.Disposable {
     private readonly diagnosticCollection: vscode.DiagnosticCollection
     private readonly disposables: vscode.Disposable[] = []
     private schemaRegistry: CalmSchemaRegistry | undefined
-    
+
     // Debouncing: track pending validations and last validated document versions
     private readonly pendingValidations = new Map<string, ReturnType<typeof setTimeout>>()
     private readonly lastValidatedVersion = new Map<string, number>()
@@ -186,9 +188,14 @@ export class ValidationService implements vscode.Disposable {
 
         try {
             const text = doc.getText()
-            
+
+            // Determine document type from in-memory content (not filesystem)
+            // This handles unsaved changes and non-file URIs (untitled/remote)
+            const isTimeline = detectCalmTimeline(text)
+            const docType = isTimeline ? 'timeline' : 'architecture'
+
             // Parse with location information for precise error positioning
-            const parseContext = parseDocumentWithPositions(text, 'architecture')
+            const parseContext = parseDocumentWithPositions(text, docType)
             if (!parseContext) {
                 // JSON parse error - report it
                 const diagnostic = new vscode.Diagnostic(
@@ -201,32 +208,58 @@ export class ValidationService implements vscode.Disposable {
                 return
             }
 
-            const architecture = parseContext.data as object
+            const documentData = parseContext.data as object
 
             // Build document loader for resolving patterns
             const docLoader = await this.buildDocumentLoader()
             const schemaDirectory = new SchemaDirectory(docLoader, false)
             await schemaDirectory.loadSchemas()
 
-            // Load architecture and pattern (pattern may be inferred from $schema)
-            const { architecture: loadedArch, pattern } = await loadArchitectureAndPattern(
-                doc.uri.fsPath,
-                undefined, // no explicit pattern path
-                docLoader,
-                schemaDirectory,
-                this.logger as any
-            )
+            let outcome: ValidationOutcome
 
-            // Run validation
-            const outcome = await validate(
-                loadedArch || architecture,
-                pattern,
-                schemaDirectory,
-                false // debug
-            )
+            if (isTimeline) {
+                // Load timeline and its schema
+                this.logger.info?.(`[validation] Validating timeline file: ${doc.uri.fsPath}`)
+                const { timeline, pattern: timelineSchema } = await loadTimeline(
+                    doc.uri.fsPath,
+                    docLoader,
+                    schemaDirectory,
+                    this.logger as any
+                )
 
-            // Enrich validation outputs with line numbers using shared function
-            enrichWithDocumentPositions(outcome, { architecture: parseContext })
+                // Run timeline validation (architecture=undefined, pattern=schema, timeline=document)
+                outcome = await validate(
+                    undefined as any, // no architecture
+                    timelineSchema,
+                    timeline,
+                    schemaDirectory,
+                    false // debug
+                )
+
+                // Enrich validation outputs with line numbers
+                enrichWithDocumentPositions(outcome, { timeline: parseContext })
+            } else {
+                // Load architecture and pattern (pattern may be inferred from $schema)
+                const { architecture: loadedDoc, pattern } = await loadArchitectureAndPattern(
+                    doc.uri.fsPath,
+                    '', // no explicit pattern path
+                    docLoader,
+                    schemaDirectory,
+                    this.logger as any
+                )
+
+                // Run architecture validation
+                outcome = await validate(
+                    loadedDoc || documentData,
+                    pattern,
+                    undefined, // no timeline
+                    schemaDirectory,
+                    false // debug
+                )
+
+                // Enrich validation outputs with line numbers using shared function
+                enrichWithDocumentPositions(outcome, { architecture: parseContext })
+            }
 
             // Convert to VS Code diagnostics
             const diagnostics = this.convertToDiagnostics(outcome, doc)
@@ -354,7 +387,7 @@ export class ValidationService implements vscode.Disposable {
         }
         this.pendingValidations.clear()
         this.lastValidatedVersion.clear()
-        
+
         this.disposables.forEach(d => d.dispose())
     }
 }

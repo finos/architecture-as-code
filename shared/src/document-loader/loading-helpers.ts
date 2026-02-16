@@ -16,7 +16,14 @@ export async function loadArchitectureAndPattern(architecturePath: string, patte
         return { architecture, pattern };
     }
     // architecture is set, but pattern is not; try to load pattern from architecture if present 
-    return { architecture, pattern: await loadPatternFromArchitectureIfPresent(architecture, architecturePath, docLoader, schemaDirectory, logger) };
+    return { architecture, pattern: await loadPatternFromDocumentIfPresent(architecture, architecturePath, docLoader, schemaDirectory, logger) };
+}
+
+export async function loadTimeline(timelinePath: string, docLoader: DocumentLoader, schemaDirectory: SchemaDirectory, logger: Logger): Promise<{ timeline: object, pattern: object }> {
+    const timeline = await docLoader.loadMissingDocument(timelinePath, 'timeline');
+    logger.debug(`Loaded timeline from ${timelinePath}`);
+
+    return { timeline, pattern: await loadPatternFromDocumentIfPresent(timeline, timelinePath, docLoader, schemaDirectory, logger) };
 }
 
 export function resolveSchemaRef(schemaRef: string, architecturePath: string, logger: Logger): string {
@@ -39,21 +46,21 @@ export function resolveSchemaRef(schemaRef: string, architecturePath: string, lo
     return schemaRef;
 }
 
-export async function loadPatternFromArchitectureIfPresent(architecture: object, architecturePath: string, docLoader: DocumentLoader, schemaDirectory: SchemaDirectory, logger: Logger): Promise<object> {
-    if (!architecture || !architecture['$schema']) {
+export async function loadPatternFromDocumentIfPresent(document: object, documentPath: string, docLoader: DocumentLoader, schemaDirectory: SchemaDirectory, logger: Logger): Promise<object> {
+    if (!document || !document['$schema']) {
         return;
     }
-    const schemaRef = resolveSchemaRef(architecture['$schema'], architecturePath, logger);
+    const schemaRef = resolveSchemaRef(document['$schema'], documentPath, logger);
     try {
         const schema = await schemaDirectory.getSchema(schemaRef);
-        logger.debug(`Loaded schema from architecture: ${schemaRef}`);
+        logger.debug(`Loaded schema: ${schemaRef}`);
         return schema;
     }
     catch (_) {
-        logger.debug(`Trying to load pattern from architecture schema: ${schemaRef}`);
+        logger.debug(`Trying to load pattern from schema: ${schemaRef}`);
     }
     const pattern = await docLoader.loadMissingDocument(schemaRef, 'pattern');
-    logger.debug(`Loaded pattern from architecture schema: ${schemaRef}`);
+    logger.debug(`Loaded pattern from schema: ${schemaRef}`);
     return pattern;
 }
 
