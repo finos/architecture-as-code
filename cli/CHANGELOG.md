@@ -5,6 +5,116 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.33.0] - 2026-02-16
+
+## [1.33.0](https://github.com/finos/architecture-as-code/compare/cli-v1.32.0...cli-v1.33.0) (2026-02-16)
+
+* Merge branch 'main' into bugs/2115 ([](https://github.com/finos/architecture-as-code/commit/629e575ee5909506f9e539bf5c2346cbcc7ecdea))
+* Merge branch 'main' into bugs/2115 ([](https://github.com/finos/architecture-as-code/commit/545c5e4df5523a02baea5f50de351a18afbcdb86))
+* Merge branch 'main' into bugs/2115 ([](https://github.com/finos/architecture-as-code/commit/e97d7ec24e489c1c54af03e94491f434f4644a44))
+* Merge branch 'main' into bugs/2115 ([](https://github.com/finos/architecture-as-code/commit/7bd3ebdafae0ea67d0fad27b3fef37f1fae78dbf))
+* Merge branch 'release-1.2-revised' into timelines-ai ([](https://github.com/finos/architecture-as-code/commit/ca46546c37f65fe84c663b61ff66bd352e2d9f56))
+* Merge pull request #2091 from markscott-ms/release-1.2-revised ([](https://github.com/finos/architecture-as-code/commit/2035c7a5934e69e3a9905b27b93481f366e37540))
+* Merge pull request #2100 from markscott-ms/timelines-ai ([](https://github.com/finos/architecture-as-code/commit/af635d68a33e3afdea62c30e696bf13de217a09e))
+* Merge pull request #2101 from finos/main ([](https://github.com/finos/architecture-as-code/commit/3cc3a36e133002833b81d07f19244343a59484ba))
+* Merge pull request #2104 from finos/release-1.2-revised ([](https://github.com/finos/architecture-as-code/commit/99377f5fcda6b8778cb5df3d738d12065d86dc14))
+* Merge pull request #2125 from jpgough-ms/workshop ([](https://github.com/finos/architecture-as-code/commit/75ad2ab16c7c4d7464d2bbbe0e80d8969ec158b4))
+* Merge pull request #2126 from finos/main ([](https://github.com/finos/architecture-as-code/commit/02d6b01ee5ef23278ea775090df1a000cee3eec0))
+* Merge pull request #2127 from LeighFinegold/release-1.2-revised ([](https://github.com/finos/architecture-as-code/commit/96d2b3c57397399f0be83722461463451c6719d1))
+* Merge pull request #2131 from jpgough-ms/release-1.2-revised ([](https://github.com/finos/architecture-as-code/commit/46a7e7f18c5d4efbd611fb1768377b36bbc50081))
+* Merge pull request #2135 from markscott-ms/release-1.2-revised ([](https://github.com/finos/architecture-as-code/commit/a5cc7c49d86dc01ef9d2a4b298696ec2c564b22a))
+
+### chore
+
+* **calm:** move draft/1764-alt to releases/1.2 ([](https://github.com/finos/architecture-as-code/commit/afca8fd1f1fd3913ea530eb9823eb28d8573ba06))
+* **calm:** remove 1.2/meta/prototype/decorators folder ([](https://github.com/finos/architecture-as-code/commit/bb6f6fe080272a4bb7f3c82585c874939bc03bc6))
+* **calm:** remove examples that shouldn't have been committed ([](https://github.com/finos/architecture-as-code/commit/73353c03a207f2ab645c41a69e6bce1a53cf8a38))
+* **calm:** Update architecture file of CALM to schema 1.2 ([](https://github.com/finos/architecture-as-code/commit/886564c1f9f393e38985acd16fa45756aae5c5e0))
+* **deps:** update docker/build-push-action digest to 10e90e3 ([](https://github.com/finos/architecture-as-code/commit/94ed8127315738ad9e91139587cf6b6b3ff50b25))
+* **deps:** update docker/build-push-action digest to 10e90e3 ([](https://github.com/finos/architecture-as-code/commit/a6796aa3ef88d8996b443f217168895d60a7a128))
+* **deps:** update security updates ([](https://github.com/finos/architecture-as-code/commit/072302edc5ee051d4571276e4de2cd581ea3ff81))
+* **deps:** update security updates ([](https://github.com/finos/architecture-as-code/commit/3e2e964ddae27d7f3493c1cc2d50a5a9025f077e))
+* **deps:** update semgrep/semgrep docker digest to d3d1be3 ([](https://github.com/finos/architecture-as-code/commit/ada98efe6b2eba2c36321f1f75edb0f361e78573))
+* **deps:** update semgrep/semgrep docker digest to d3d1be3 ([](https://github.com/finos/architecture-as-code/commit/45e98ae91cae315a819b2407682654837aa35bf2))
+* **models:** lint ([](https://github.com/finos/architecture-as-code/commit/1b27854e8dc081573ba48f5969a6113495e68890))
+* **README:** remove Olivia from maintainers list ([](https://github.com/finos/architecture-as-code/commit/e639be9b2ff8fc847d8c8980ac75696d9449d3d3))
+* **README:** remove Olivia from maintainers list ([](https://github.com/finos/architecture-as-code/commit/35cc7788d556c043792617d88021889e900122c0))
+* **vscode:** move complex-layout-arch.json into test_fixtures folder ([](https://github.com/finos/architecture-as-code/commit/887b795053307e994d364d50b0fb7ac90ffe4d0a))
+* **vscode:** move complex-layout-arch.json into test_fixtures folder ([](https://github.com/finos/architecture-as-code/commit/d0f72f1155715111e6cbd0e09d78feaa9094d052))
+* **vscode:** update 1.1 references to 1.2 in vscode plugin ([](https://github.com/finos/architecture-as-code/commit/cc25b7ca6356f204ba204c04fd730eb60fbd5abe))
+* **workshop:** add Calico global deny policy for network segmentation demo ([](https://github.com/finos/architecture-as-code/commit/04037146f3448b9c5cc658bec8a6c612542973a9))
+
+### docs
+
+* alphabetically sort core concepts sidebar and add decorators ([](https://github.com/finos/architecture-as-code/commit/7a600561fcf868d6c9ebe5a34153113d13a2b12a))
+* **calm:** add DECORATORS.md explaining deployment decorator prototype ([](https://github.com/finos/architecture-as-code/commit/a71f18ca2e17a7e011c75e622883715ea6241940)), closes [#1908](https://github.com/finos/architecture-as-code/issues/1908)
+* **calm:** address markscott-ms PR review feedback for decorators ([](https://github.com/finos/architecture-as-code/commit/096ad0e59248a965fa941fd923539d7480dab8b1))
+* **calm:** address PR review feedback for decorators ([](https://github.com/finos/architecture-as-code/commit/fe72487bb553b9f85e9c766f391ffa095955fff1))
+* **calm:** move decorators guide to core-concepts ([](https://github.com/finos/architecture-as-code/commit/f912e10517588a09cc3b828c5853ff1149693b23)), closes [#1908](https://github.com/finos/architecture-as-code/issues/1908)
+* **docs:** update to 1.2 schema in docs ([](https://github.com/finos/architecture-as-code/commit/264018bcea81b78931b5de2848650c6ab2e115e0))
+* remove references to deleted deployment and kubernetes decorator schemas ([](https://github.com/finos/architecture-as-code/commit/cb9e2478bf2679c0691584496cdcb904a6cef62b))
+* reorder Core Concepts sidebar and index listing ([](https://github.com/finos/architecture-as-code/commit/8ce514f10a383b9dcf6b53dd1f25661db0cafded))
+
+### feat
+
+* **ai:** timeline support ([](https://github.com/finos/architecture-as-code/commit/639027bed61e3ecaa525387db0834e2dd514d5b4))
+* **calm-ai,calm:** fix timeline AI tools. Add a CALM timeline of CALM ([](https://github.com/finos/architecture-as-code/commit/90fb38892eac25258e80498141b7ce1744e11db6))
+* **calm-ai:** add decorator creation tool for AI assistants ([](https://github.com/finos/architecture-as-code/commit/e894ae9bf4d3776936230f2791770a23a4e8d76f))
+* **calm-ai:** fix invisible bullet in AI instructions ([](https://github.com/finos/architecture-as-code/commit/ebc2cd499e3e19af17024f1b95224c8b47679761))
+* **calm:** add deployment decorator schemas with examples ([](https://github.com/finos/architecture-as-code/commit/6d8c8a190cd3b68b80e3791ef6fc759179fcc376)), closes [#1908](https://github.com/finos/architecture-as-code/issues/1908)
+* **calm:** add target array to decorator schema ([](https://github.com/finos/architecture-as-code/commit/762244c14918959de1ce4e8e0ced759ca00a19c9)), closes [#2114](https://github.com/finos/architecture-as-code/issues/2114)
+* **cli:** implement `calm validate --timeline` ([](https://github.com/finos/architecture-as-code/commit/2f4162b71e64d284b845df106f3b51ec361b07fd))
+* **docs:** add timelines to core concepts ([](https://github.com/finos/architecture-as-code/commit/1ffab96abdf2e3788c2c6fd76cb3327184884b00))
+* **docs:** add timelines to core concepts ([](https://github.com/finos/architecture-as-code/commit/50f5b6717778ad79c559249cdfe7955018645c1c))
+* **docs:** revise timelines core concepts for correctness ([](https://github.com/finos/architecture-as-code/commit/412acfcb3e951d1b6f067103861346ce6134e580))
+* **models:** timeline support ([](https://github.com/finos/architecture-as-code/commit/e258608ef7785681084863542ac676be711f58bd))
+* **release:** add minProperties constraint to decorator data ([](https://github.com/finos/architecture-as-code/commit/6fd66fd8deb51b3b6c3ce3dca57bc3367daef8c9))
+* **schema:** alternative schema representation of timelines ([](https://github.com/finos/architecture-as-code/commit/eaef1c4cfccfa2a84c250cd345f3064099ebf297))
+* **schema:** Proposal for CALM timelines finos#1762 ([](https://github.com/finos/architecture-as-code/commit/b9a62faa471cc9d9a2f7316b422a85ddd19697af)), closes [finos#1762](https://github.com/finos/finos/issues/1762)
+* **schema:** remove non-architectural timeline ([](https://github.com/finos/architecture-as-code/commit/1026a4fc816f015d4c178c5194a97987eef49146))
+* **schema:** Updated proposal for CALM timelines finos#1762 ([](https://github.com/finos/architecture-as-code/commit/c69aff0d2e2a88358783a7e319a79a374a421554)), closes [finos#1762](https://github.com/finos/finos/issues/1762)
+* **shared,cli:** address copilot review comments ([](https://github.com/finos/architecture-as-code/commit/69df7021a450caf903057399777750c143ac9b1f))
+* **shared,cli:** fix docify and e2e tests ([](https://github.com/finos/architecture-as-code/commit/43d1b08a73b048210375ab8209bb36d2cd08b60e))
+* **shared:** Additional timeline validations ([](https://github.com/finos/architecture-as-code/commit/9893f8b408f48d88accc96b1cd92a42c56cea185))
+* **shared:** Additional timeline validations ([](https://github.com/finos/architecture-as-code/commit/4fb2c40194c41bf69e8781f07c0b2e175512bd57))
+* **vscode:** add navigable timeline in TreeView ([](https://github.com/finos/architecture-as-code/commit/619ed17983ae8aa64c876116dc73ac659480f050))
+* **vscode:** add navigatable timeline in TreeView ([](https://github.com/finos/architecture-as-code/commit/1133c5d8db02552af49d5ab67a70df4aa93a4eef))
+* **vscode:** add support for timeline validation ([](https://github.com/finos/architecture-as-code/commit/5e14f30069fecc3ba06d65248ef0ddfd33a065a4))
+* **widgets,vscode:** choice of elk and dagre layout engines for block-architecture visualiation ([](https://github.com/finos/architecture-as-code/commit/5514c311d891eca8954afb24027ae407d9108837))
+* **widgets,vscode:** choice of elk and dagre layout engines for block-architecture visualisation ([](https://github.com/finos/architecture-as-code/commit/049de6fe13bc17f3eb303a74e8d38dabc72ee1de))
+* **widgets,vscode:** consistent elk-layout version, tests for mermaidInitConfig ([](https://github.com/finos/architecture-as-code/commit/2b69dd96e20520b98ffdc636ab702f0f65ac84fb))
+* **workshop:** add dependency verification with version reporting to walkthrough script ([](https://github.com/finos/architecture-as-code/commit/48d0fcdd0aabe4c85628edadfb712aee2db50305))
+
+### fix
+
+* **calm-ai:** fix minimal architecture timeline ([](https://github.com/finos/architecture-as-code/commit/2321d81c3a8e4c24a9f35bea36be9f18b5a67915))
+* **calm,docs:** remove unnecessary files, ensure docs mention timelines and decorators where missed ([](https://github.com/finos/architecture-as-code/commit/f8bdd6f9955e12feac22b8ba32184d083ea8032f))
+* **calm:** make 'moments' a required property ([](https://github.com/finos/architecture-as-code/commit/5c60220ca0d0a9ac394604874e52810532316899))
+* **calm:** remove errant merge marker ([](https://github.com/finos/architecture-as-code/commit/90d2d2594a5eeb7b32df1f932fe18805d28bc366))
+* **cli:** fix test pattern to consistent use a single schema version ([](https://github.com/finos/architecture-as-code/commit/6d4976fe5fdcf1459eacf36d1c884d01cb001cbd))
+* **deps:** update dependency markdown-it to v14 [security] ([](https://github.com/finos/architecture-as-code/commit/5027319d146ac9408c8fac7615c2f58a3010e331))
+* **deps:** update dependency markdown-it to v14 [security] ([](https://github.com/finos/architecture-as-code/commit/9bd1a39fa64245311104dd5257dcf2df673539f1))
+* **models:** remove console.log from canonical model test and update import path ([](https://github.com/finos/architecture-as-code/commit/9bfce728704517c6524a874a0e2f82862134c9be))
+* **schema:** Simplify prevention of 'interfaces' property ([](https://github.com/finos/architecture-as-code/commit/d75b23dc99d449e4611069e9856e0559401cfa01))
+* **shared,vscode:** correct signature of validate method ([](https://github.com/finos/architecture-as-code/commit/f3723368469bbedaf7a40c240f7700e5ee131c59))
+* **shared:** add ajv-formats explicitly to dependencies ([](https://github.com/finos/architecture-as-code/commit/6e3fe54f107b713cf05cc9768df5d3bd50cae532))
+* **shared:** add layout-elk to the required dependencies of docusaurus output template ([](https://github.com/finos/architecture-as-code/commit/d829ca1af860a1e7c0441e3e2840c29b8d8b89b3))
+* **shared:** fail validation of timelines with no implicit or explict schema ([](https://github.com/finos/architecture-as-code/commit/3faf0b3d17bba597b822ba14d5cb6e33de6ee5d0))
+* **shared:** lint ([](https://github.com/finos/architecture-as-code/commit/dffca0b72f89b94ac817ab830951985823fd5855))
+* **shared:** make tests applicable to all schema versions ([](https://github.com/finos/architecture-as-code/commit/e34e4a3ecdc54ab74c1a92ee8993c5c11d70b0c5))
+* **shared:** rename loadPatternFromArchitectureIfPresent to loadPatternFromDocumentIfPresent ([](https://github.com/finos/architecture-as-code/commit/5b3c9b2254245c9cce7ac617d53e28d9e85dfdbe))
+* **shared:** rename loadPatternFromArchitectureIfPresent to loadPatternFromDocumentIfPresent ([](https://github.com/finos/architecture-as-code/commit/c02d4cfa39aae9b3919fa525830298133ec3e9bc))
+* **vscode:** address copilot review feedback for timeline feature ([](https://github.com/finos/architecture-as-code/commit/a78174e87c94436c0e7ce2d70a49d2987ca13ff5))
+* **vscode:** fix duplicate test ([](https://github.com/finos/architecture-as-code/commit/b263f3fa9b44e5f5caf0181574f4100f5461fc9d))
+* **vscode:** Fix visualization of the timeline so no need for pin ([](https://github.com/finos/architecture-as-code/commit/aa353e6ce520b804041b0897394b504314aeba14))
+* **vscode:** make tests applicable to all schema versions ([](https://github.com/finos/architecture-as-code/commit/06e032d57539ead2a39b45a31ed70c99a0824120))
+
+### refactor
+
+* **calm:** nest kubernetes properties inside data sub-object ([](https://github.com/finos/architecture-as-code/commit/ed00d1e0eaad62af3aa3cb34e4f7aa349b7f0a63)), closes [#1908](https://github.com/finos/architecture-as-code/issues/1908)
+* **calm:** remove decorators array, use single decorator objects ([](https://github.com/finos/architecture-as-code/commit/625c07aae0eb4187e5c18938009da21df07bb64f)), closes [#1908](https://github.com/finos/architecture-as-code/issues/1908)
+* **calm:** simplify decorator type to plain string ([](https://github.com/finos/architecture-as-code/commit/12f78e7c415f9782ccc28efd80ac0049342408e2)), closes [#2114](https://github.com/finos/architecture-as-code/issues/2114)
+
 ## [1.32.0] - 2026-02-11
 
 ## [1.32.0](https://github.com/finos/architecture-as-code/compare/cli-v1.31.0...cli-v1.32.0) (2026-02-11)
