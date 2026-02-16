@@ -53,6 +53,12 @@
     ],
     "nodes": [
         {
+            "unique-id": "trading-system",
+            "node-type": "system",
+            "name": "Trading System",
+            "description": "Complete trading system composed of services, data stores, and user interfaces for order management and trade processing"
+        },
+        {
             "unique-id": "trader",
             "node-type": "actor",
             "name": "Trader",
@@ -389,6 +395,27 @@
         }
     ],
     "relationships": [
+        {
+            "unique-id": "trading-system-composition",
+            "description": "Trading System is composed of all internal components including services, data stores, and user interfaces",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "trading-system",
+                    "nodes": [
+                        "web-gui",
+                        "trade-service",
+                        "account-service",
+                        "position-service",
+                        "people-service",
+                        "security-master",
+                        "trade-processor",
+                        "trade-data-store",
+                        "ticker-csv-file",
+                        "trade-feed"
+                    ]
+                }
+            }
+        },
         {
             "unique-id": "trader-web-gui",
             "description": "Trader interacts with web GUI to submit orders, manage accounts, and view positions",

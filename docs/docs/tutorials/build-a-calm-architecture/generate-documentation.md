@@ -137,16 +137,16 @@ info [_TemplateProcessor]:
 
 These are screenshots of portions of the generated markdown document.
 
-#### Overall Architecture with metadata
+### Overall Architecture with metadata
 ![Overall Architecture](./images/11_custom_doc_01.png)
 
-#### Overall Architecture Controls
+### Architecture Controls and Statistics
 ![Overall Architecture Controls](./images/11_custom_doc_02.png)
 
-#### Example Node information
+### Example Node information
 ![Node Level Information](./images/11_custom_doc_03.png)
 
-#### Example Process Flow information
+### Example Process Flow information
 ![Process Flow Information](./images/11_custom_doc_04.png)
 
 ---

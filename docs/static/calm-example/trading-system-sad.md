@@ -22,26 +22,30 @@ config:
     edgeLabelBackground: '#d5d7e1'
     lineColor: '#000000'
 ---
-%%{init: {"flowchart": {"htmlLabels": false}}}%%
+%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%
 flowchart TB
 classDef boundary fill:#e1e4f0,stroke:#204485,stroke-dasharray: 5 4,stroke-width:1px,color:#000000;
 classDef node fill:#eef1ff,stroke:#007dff,stroke-width:1px,color:#000000;
 classDef iface fill:#f0f0f0,stroke:#b6b6b6,stroke-width:1px,font-size:10px,color:#000000;
 classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
 
+        subgraph trading-system["Trading System"]
+        direction TB
+            account-service["Account Service"]:::node
+            people-service["People Service"]:::node
+            position-service["Position Service"]:::node
+            security-master["Security Master"]:::node
+            ticker-csv-file["Ticker CSV File"]:::node
+            trade-data-store["Trade Data Store"]:::node
+            trade-feed["Trade Feed"]:::node
+            trade-processor["Trade Processor"]:::node
+            trade-service["Trade Service"]:::node
+            web-gui["Web GUI"]:::node
+        end
+        class trading-system boundary
 
-    account-service["Account Service"]:::node
-    people-service["People Service"]:::node
-    position-service["Position Service"]:::node
-    security-master["Security Master"]:::node
-    ticker-csv-file["Ticker CSV File"]:::node
-    trade-data-store["Trade Data Store"]:::node
-    trade-feed["Trade Feed"]:::node
-    trade-processor["Trade Processor"]:::node
-    trade-service["Trade Service"]:::node
     trader["Trader"]:::node
     user-directory["User Directory"]:::node
-    web-gui["Web GUI"]:::node
 
     trader -->|Trader interacts with web GUI to submit orders, manage accounts, and view positions| web-gui
     web-gui -->|Web GUI requests account lists, creates/updates accounts, and manages user associations| account-service
@@ -85,11 +89,27 @@ All stored data must be encrypted at rest using AES-256 equivalent encryption wi
 
 ## Architecture Statistics
 
-- **Total Nodes:** 12
-- **Total Relationships:** 17
+- **Total Nodes:** 13
+- **Total Relationships:** 18
 - **Total Flows:** 7
 
 ## Components by Type
+
+### Trading System
+
+**Type:** `system`  
+**Unique ID:** `trading-system`
+
+#### Description
+Complete trading system composed of services, data stores, and user interfaces for order management and trade processing
+
+
+This component exposes the following interfaces:
+
+
+
+
+---
 
 ### Trader
 

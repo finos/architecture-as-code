@@ -876,6 +876,60 @@ Ran terminal command:  git add trading-system.architecture.json && git commit -m
 Committed successfully on branch (commit `8393257`). The changes include architecture-level and node-level metadata additions.
 ```
 
+## Document Trading System Boundary
+
+Finally we now want to delineate the boundary of Trading System.
+
+**Prompt to AI Assistant**
+```text
+add a node called "Trading System" of type "system" and create a "composed-of" relationship that adds all nodes 
+except for "Trader" and "User Directory" to the "Trading System" node.
+```
+
+**Response from AI Assistant**
+```text
+I'll add the "Trading System" node and create the composed-of relationship. 
+
+Replacing 18 lines with 45 lines in [](file: trading-system.architecture.json)
+
+Ran terminal command:  calm validate -a trading-system.architecture.json -f pretty
+
+Done! I've added:
+
+1. **New node**: "Trading System" (type: `system`) as the first node in the architecture
+2. **Composed-of relationship**: Links the Trading System container to 10 internal components:
+   - web-gui
+   - trade-service
+   - account-service
+   - position-service
+   - people-service
+   - security-master
+   - trade-processor
+   - trade-data-store
+   - ticker-csv-file
+   - trade-feed
+
+The architecture validates successfully with no errors or warnings. The "trader" actor and "user-directory" LDAP remain external to the Trading System as requested.
+
+Made changes.
+```
+
+Architecture with system boundary depicted.
+
+![Trading System Boundary](./images/12_trading_system_boundary.png)
+
+**Prompt to AI Assistant**
+```text
+commit changes with message "add trading system boundary"
+```
+
+**Response from AI Assistant**
+```text
+Ran terminal command:  git add trading-system.architecture.json && git commit -m "add trading system boundary"
+
+Committed successfully! The changes have been saved to the repository with commit hash `b93691c`.
+```
+
 ## Summary
 
 In this portion of the tutorial we have enhanced the architecture definition with technical information, i.e., endpoint specifications, Controls, and metadata.

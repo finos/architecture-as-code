@@ -384,7 +384,7 @@ _Note_:  Whenever an update is made to the architecture file, the `calm validate
 ![Raw Architecture JSON](./images/00_initial_architecture_json.png)
 
 
-## Using CALM Tool VSCode extenstion, review parts of the architecture representation
+## Using CALM Tool VSCode extension, review parts of the architecture representation
 
 Review the updated architecture file content.  If any issues are detected, prompt the AI Assistant or manually update the JSON file for corrections.
 
