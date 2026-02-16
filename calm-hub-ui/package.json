@@ -63,7 +63,7 @@
         "eslint": "^9.25.0",
         "eslint-plugin-react": "^7.37.2",
         "eslint-plugin-react-hooks": "^5.2.0",
-        "eslint-plugin-react-refresh": "^0.4.19",
+        "eslint-plugin-react-refresh": "^0.5.0",
         "globals": "^16.0.0",
         "jsdom": "^26.0.0",
         "npm-force-resolutions": "^0.0.10",
@@ -80,7 +80,7 @@
         "express": "5.2.1",
         "nth-check": "2.1.1",
         "postcss": "8.5.6",
-        "rollup": "4.54.0"
+        "rollup": "4.57.1"
     },
     "proxy": "http://127.0.0.1:8080/",
     "eslintConfig": {
