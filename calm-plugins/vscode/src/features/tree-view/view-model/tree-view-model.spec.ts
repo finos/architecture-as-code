@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from 'vitest'
 import type { ApplicationStoreApi, ApplicationStore } from '../../../application-store'
 import { TreeViewModel } from './tree-view-model'
+import type { CalmTimeline } from '@finos/calm-models/model'
 
 describe('TreeViewModel', () => {
     let mockStore: ApplicationStoreApi
@@ -11,18 +12,24 @@ describe('TreeViewModel', () => {
         mockState = {
             currentModelIndex: undefined,
             currentDocumentUri: undefined,
+            currentTimeline: undefined,
+            isTimelineMode: false,
             isTemplateMode: false,
             templateFilePath: undefined,
             architectureFilePath: undefined,
             selectedElementId: undefined,
             searchFilter: '',
             showLabels: true,
+            forceCreatePreview: false,
             setModelIndex: vi.fn(),
             setCurrentDocument: vi.fn(),
+            setTimeline: vi.fn(),
+            setTimelineMode: vi.fn(),
             setTemplateMode: vi.fn(),
             setSelectedElement: vi.fn(),
             setSearchFilter: vi.fn(),
             setShowLabels: vi.fn(),
+            setForceCreatePreview: vi.fn(),
             clearSelection: vi.fn(),
             resetDocument: vi.fn()
         }
@@ -163,6 +170,111 @@ describe('TreeViewModel', () => {
             treeViewModel.dispose()
 
             expect(unsubscribeMock).toHaveBeenCalled()
+        })
+    })
+
+    describe('timeline mode', () => {
+        // Mock that matches CalmTimeline class structure from @finos/calm-models
+        const mockTimeline = {
+            originalJson: {
+                'current-moment': 'insecure',
+                moments: []
+            },
+            currentMoment: 'insecure',
+            moments: [
+                {
+                    uniqueId: 'insecure',
+                    name: 'Initial Design',
+                    description: 'Before security measures',
+                    validFrom: '2024-06-01',
+                    details: {
+                        detailedArchitecture: {
+                            reference: 'https://example.com/arch-insecure.json'
+                        }
+                    }
+                },
+                {
+                    uniqueId: 'secure',
+                    name: 'Secured Design',
+                    description: 'With security controls',
+                    details: {
+                        detailedArchitecture: {
+                            reference: 'https://example.com/arch-secure.json'
+                        }
+                    }
+                }
+            ]
+        } as unknown as CalmTimeline
+
+        beforeEach(() => {
+            mockState.isTimelineMode = true
+            mockState.currentTimeline = mockTimeline
+            mockState.currentModelIndex = undefined
+        })
+
+        it('should show timeline structure when in timeline mode', () => {
+            treeViewModel = new TreeViewModel(mockStore)
+
+            const items = treeViewModel.rootItems()
+            expect(items).toHaveLength(1)
+            expect(items[0].id).toBe('group:timeline')
+            expect(items[0].label).toContain('Architecture Timeline')
+        })
+
+        it('should display milestones as children of timeline group', () => {
+            treeViewModel = new TreeViewModel(mockStore)
+
+            const milestones = treeViewModel.childrenOf('group:timeline')
+            expect(milestones).toHaveLength(2)
+            expect(milestones[0].id).toBe('moment:insecure')
+            expect(milestones[1].id).toBe('moment:secure')
+        })
+
+        it('should mark current moment with star icon', () => {
+            treeViewModel = new TreeViewModel(mockStore)
+
+            const milestones = treeViewModel.childrenOf('group:timeline')
+            const currentMoment = milestones.find(m => m.id === 'moment:insecure')
+            expect(currentMoment?.iconPath).toBe('star-full')
+        })
+
+        it('should have command on milestones with architectureRef', () => {
+            treeViewModel = new TreeViewModel(mockStore)
+
+            const milestone = treeViewModel.getItem('moment:insecure')
+            expect(milestone?.command).toBeDefined()
+            expect(milestone?.command?.command).toBe('calm.navigateToArchitecture')
+            expect(milestone?.contextValue).toBe('moment-with-architecture')
+        })
+
+        it('should filter milestones based on search filter', () => {
+            mockState.searchFilter = 'secure'
+            treeViewModel = new TreeViewModel(mockStore)
+
+            const items = treeViewModel.rootItems()
+            expect(items.some(item => item.id === 'filter-status')).toBe(true)
+
+            const milestones = treeViewModel.childrenOf('group:timeline')
+            // Both 'insecure' and 'secure' contain 'secure'
+            expect(milestones.length).toBeGreaterThan(0)
+        })
+
+        it('should not show architecture group when in timeline mode', () => {
+            treeViewModel = new TreeViewModel(mockStore)
+
+            const items = treeViewModel.rootItems()
+            expect(items.some(item => item.id === 'group:architecture')).toBe(false)
+        })
+
+        it('should not have nested children for milestones', () => {
+            treeViewModel = new TreeViewModel(mockStore)
+
+            // Milestones should have collapsibleState 'none' (no children)
+            const milestone = treeViewModel.getItem('moment:insecure')
+            expect(milestone?.collapsibleState).toBe('none')
+
+            const children = treeViewModel.childrenOf('moment:insecure')
+            expect(children).toHaveLength(0)
         })
     })
 })

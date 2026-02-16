@@ -21,7 +21,7 @@ A CALM pattern is a JSON schema that:
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
     "$id": "https://your-domain.com/patterns/my-pattern.json",
     "title": "My Architecture Pattern",
     "type": "object",
@@ -31,7 +31,7 @@ A CALM pattern is a JSON schema that:
             "maxItems": 3,
             "prefixItems": [
                 {
-                    "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node",
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
                     "type": "object",
                     "properties": {
                         "unique-id": {
@@ -73,7 +73,7 @@ Patterns use JSON schema constructs to provide choices and options:
                 {
                     "anyOf": [
                         {
-                            "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": { "const": "postgres-db" },
@@ -82,7 +82,7 @@ Patterns use JSON schema constructs to provide choices and options:
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": { "const": "mysql-db" },
@@ -106,7 +106,7 @@ Patterns use JSON schema constructs to provide choices and options:
         "type": "array",
         "prefixItems": [
             {
-                "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship",
+                "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
                 "type": "object",
                 "properties": {
                     "unique-id": { "const": "database-choice" },
@@ -122,7 +122,7 @@ Patterns use JSON schema constructs to provide choices and options:
                                     {
                                         "oneOf": [
                                             {
-                                                "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/decision",
+                                                "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/decision",
                                                 "type": "object",
                                                 "properties": {
                                                     "description": {
@@ -139,7 +139,7 @@ Patterns use JSON schema constructs to provide choices and options:
                                                 }
                                             },
                                             {
-                                                "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/decision",
+                                                "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/decision",
                                                 "type": "object",
                                                 "properties": {
                                                     "description": {
@@ -174,7 +174,7 @@ Patterns use JSON schema constructs to provide choices and options:
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
     "$id": "https://patterns.company.com/conference-signup.pattern.json",
     "title": "Conference Signup Pattern",
     "description": "A reusable architecture pattern for conference signup systems with Kubernetes deployment",
@@ -186,7 +186,7 @@ Patterns use JSON schema constructs to provide choices and options:
             "maxItems": 4,
             "prefixItems": [
                 {
-                    "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node",
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
                     "type": "object",
                     "properties": {
                         "unique-id": { "const": "frontend" },
@@ -199,7 +199,7 @@ Patterns use JSON schema constructs to provide choices and options:
                             "maxItems": 1,
                             "prefixItems": [
                                 {
-                                    "$ref": "https://calm.finos.org/release/1.1/meta/interface.json#/defs/url-interface",
+                                    "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/url-interface",
                                     "properties": {
                                         "unique-id": { "const": "frontend-url" }
                                     }
@@ -210,7 +210,7 @@ Patterns use JSON schema constructs to provide choices and options:
                     "required": ["description"]
                 },
                 {
-                    "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node",
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
                     "type": "object",
                     "properties": {
                         "unique-id": { "const": "api-service" },
@@ -223,13 +223,13 @@ Patterns use JSON schema constructs to provide choices and options:
                             "maxItems": 2,
                             "prefixItems": [
                                 {
-                                    "$ref": "https://calm.finos.org/release/1.1/meta/interface.json#/defs/container-image-interface",
+                                    "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/container-image-interface",
                                     "properties": {
                                         "unique-id": { "const": "api-image" }
                                     }
                                 },
                                 {
-                                    "$ref": "https://calm.finos.org/release/1.1/meta/interface.json#/defs/port-interface",
+                                    "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/port-interface",
                                     "properties": {
                                         "unique-id": { "const": "api-port" }
                                     }
@@ -242,7 +242,7 @@ Patterns use JSON schema constructs to provide choices and options:
                 {
                     "anyOf": [
                         {
-                            "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": { "const": "postgres-db" },
@@ -254,7 +254,7 @@ Patterns use JSON schema constructs to provide choices and options:
                                     "maxItems": 2,
                                     "prefixItems": [
                                         {
-                                            "$ref": "https://calm.finos.org/release/1.1/meta/interface.json#/defs/container-image-interface",
+                                            "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/container-image-interface",
                                             "properties": {
                                                 "unique-id": {
                                                     "const": "postgres-image"
@@ -262,7 +262,7 @@ Patterns use JSON schema constructs to provide choices and options:
                                             }
                                         },
                                         {
-                                            "$ref": "https://calm.finos.org/release/1.1/meta/interface.json#/defs/port-interface",
+                                            "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/port-interface",
                                             "properties": {
                                                 "unique-id": {
                                                     "const": "postgres-port"
@@ -274,7 +274,7 @@ Patterns use JSON schema constructs to provide choices and options:
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": { "const": "mysql-db" },
@@ -286,7 +286,7 @@ Patterns use JSON schema constructs to provide choices and options:
                                     "maxItems": 2,
                                     "prefixItems": [
                                         {
-                                            "$ref": "https://calm.finos.org/release/1.1/meta/interface.json#/defs/container-image-interface",
+                                            "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/container-image-interface",
                                             "properties": {
                                                 "unique-id": {
                                                     "const": "mysql-image"
@@ -294,7 +294,7 @@ Patterns use JSON schema constructs to provide choices and options:
                                             }
                                         },
                                         {
-                                            "$ref": "https://calm.finos.org/release/1.1/meta/interface.json#/defs/port-interface",
+                                            "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/port-interface",
                                             "properties": {
                                                 "unique-id": {
                                                     "const": "mysql-port"
@@ -308,7 +308,7 @@ Patterns use JSON schema constructs to provide choices and options:
                     ]
                 },
                 {
-                    "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node",
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
                     "type": "object",
                     "properties": {
                         "unique-id": { "const": "k8s-cluster" },
@@ -326,7 +326,7 @@ Patterns use JSON schema constructs to provide choices and options:
             "maxItems": 3,
             "prefixItems": [
                 {
-                    "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship",
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
                     "type": "object",
                     "properties": {
                         "unique-id": { "const": "frontend-to-api" },
@@ -344,7 +344,7 @@ Patterns use JSON schema constructs to provide choices and options:
                     "required": ["description"]
                 },
                 {
-                    "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship",
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
                     "type": "object",
                     "properties": {
                         "unique-id": { "const": "api-to-database" },
@@ -362,7 +362,7 @@ Patterns use JSON schema constructs to provide choices and options:
                     "required": ["description"]
                 },
                 {
-                    "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship",
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
                     "properties": {
                         "unique-id": { "const": "deployed-in-k8s" },
                         "description": { "type": "string" },
@@ -467,7 +467,7 @@ Patterns can include security controls on relationships:
 
 ```json
 "controls": {
-    "$ref": "https://calm.finos.org/release/1.1/meta/control.json#/defs/controls",
+    "$ref": "https://calm.finos.org/release/1.2/meta/control.json#/defs/controls",
     "properties": {
         "security": {
             "type": "object",
@@ -481,7 +481,7 @@ Patterns can include security controls on relationships:
                     "maxItems": 1,
                     "prefixItems": [
                         {
-                            "$ref": "https://calm.finos.org/release/1.1/meta/control.json#/defs/control-detail",
+                            "$ref": "https://calm.finos.org/release/1.2/meta/control.json#/defs/control-detail",
                             "properties": {
                                 "requirement-url": {
                                     "const": "https://schemas.company.com/security/connection-security.json"
@@ -557,14 +557,14 @@ The CLI will prompt for choices when encountering `anyOf`/`oneOf` options, or yo
 ### Schema References
 
 - `$ref` - Reference base CALM schema definitions
-- Always reference `https://calm.finos.org/release/1.1/meta/core.json#/defs/node` for nodes
-- Always reference `https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship` for relationships
-- Reference specific interface schemas from `https://calm.finos.org/release/1.1/meta/interface.json#/defs/`
+- Always reference `https://calm.finos.org/release/1.2/meta/core.json#/defs/node` for nodes
+- Always reference `https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship` for relationships
+- Reference specific interface schemas from `https://calm.finos.org/release/1.2/meta/interface.json#/defs/`
 
 ## Validation Rules
 
 1. Pattern must be a valid JSON schema extending CALM architecture schema
-2. Must reference base CALM schema: `"$schema": "https://calm.finos.org/release/1.1/meta/calm.json"`
+2. Must reference base CALM schema: `"$schema": "https://calm.finos.org/release/1.2/meta/calm.json"`
 3. Node definitions must use `$ref` to core node schema
 4. Relationship definitions must use `$ref` to core relationship schema
 5. Use `const` for fixed values, `anyOf`/`oneOf` for options

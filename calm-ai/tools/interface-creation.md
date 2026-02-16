@@ -6,7 +6,7 @@
 
 ## Official JSON Schema Definition
 
-The complete interface schema from the FINOS CALM v1.1 specification:
+The complete interface schema from the FINOS CALM v1.2 specification:
 
 ```json
 {

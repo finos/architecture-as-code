@@ -144,10 +144,11 @@ describe('validation support functions', () => {
                 1,
                 2,
                 1,
-                1
+                1,
+                'architecture'
             )];
 
-            const actual = convertSpectralDiagnosticToValidationOutputs(given);
+            const actual = convertSpectralDiagnosticToValidationOutputs(given, 'architecture');
 
             expect(actual).toStrictEqual(expected);
         });
@@ -172,10 +173,11 @@ describe('validation support functions', () => {
                 1,
                 2,
                 1,
-                1
+                1,
+                'architecture'
             )];
 
-            const actual = convertSpectralDiagnosticToValidationOutputs(given);
+            const actual = convertSpectralDiagnosticToValidationOutputs(given, 'architecture');
 
             expect(actual).toStrictEqual(expected);
         });
@@ -183,7 +185,7 @@ describe('validation support functions', () => {
         it('should return an empty array when spectral reports no issues', () => {
             const given: ISpectralDiagnostic[] = [];
             const expected: ValidationOutput[] = [];
-            const actual = convertSpectralDiagnosticToValidationOutputs(given);
+            const actual = convertSpectralDiagnosticToValidationOutputs(given, 'architecture');
             expect(actual).toStrictEqual(expected);
         });
 
@@ -194,7 +196,7 @@ describe('validation support functions', () => {
             const given: ErrorObject[] = [
                 {
                     'instancePath': '/nodes/0/interfaces/0/port',
-                    'schemaPath': 'https://calm.finos.org/release/1.1/meta/interface.json#/defs/host-port-interface/properties/port/type',
+                    'schemaPath': 'https://calm.finos.org/release/any/meta/interface.json#/defs/host-port-interface/properties/port/type',
                     'keyword': 'type',
                     'params': {
                         'type': 'integer'
@@ -209,7 +211,7 @@ describe('validation support functions', () => {
                     'error',
                     'must be integer',
                     '/nodes/0/interfaces/0/port',
-                    'https://calm.finos.org/release/1.1/meta/interface.json#/defs/host-port-interface/properties/port/type',
+                    'https://calm.finos.org/release/any/meta/interface.json#/defs/host-port-interface/properties/port/type',
                     undefined,
                     undefined,
                     undefined,
@@ -422,7 +424,7 @@ describe('validate pattern and architecture', () => {
     });
 
     it('throws error when the the Pattern and the Architecture are undefined', async () => {
-        await expect(validate(undefined, undefined, schemaDirectory, debugDisabled))
+        await expect(validate(undefined, undefined, undefined, schemaDirectory, debugDisabled))
             .rejects
             .toThrow();
     });
@@ -443,7 +445,7 @@ describe('validate pattern and architecture', () => {
         const dummyArchitecture = { dummy: 'architecture' };
         schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
 
-        const response = await validate(dummyArchitecture, dummyPattern, schemaDirectory, debugDisabled);
+        const response = await validate(dummyArchitecture, dummyPattern, undefined, schemaDirectory, debugDisabled);
 
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
@@ -472,7 +474,7 @@ describe('validate pattern and architecture', () => {
         const dummyArchitecture = { dummy: 'architecture' };
         schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
 
-        const response = await validate(dummyArchitecture, dummyPattern, schemaDirectory, debugDisabled);
+        const response = await validate(dummyArchitecture, dummyPattern, undefined, schemaDirectory, debugDisabled);
 
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
@@ -501,7 +503,7 @@ describe('validate pattern and architecture', () => {
         const dummyArchitecture = { dummy: 'architecture' };
         schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
 
-        const response = await validate(dummyArchitecture, dummyPattern, schemaDirectory, debugDisabled);
+        const response = await validate(dummyArchitecture, dummyPattern, undefined, schemaDirectory, debugDisabled);
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).toBeTruthy();
@@ -529,7 +531,7 @@ describe('validate pattern and architecture', () => {
         const dummyArchitecture = { dummy: 'architecture' };
         schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
 
-        const response = await validate(dummyArchitecture, dummyPattern, schemaDirectory, debugDisabled);
+        const response = await validate(dummyArchitecture, dummyPattern, undefined, schemaDirectory, debugDisabled);
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).not.toBeTruthy();
@@ -545,6 +547,13 @@ describe('validate pattern only', () => {
             getSchema: vi.fn(),
             getAllSchemas: vi.fn(),
         } as unknown as SchemaDirectory;
+        mocks.jsonSchemaValidatorConstructor.mockReset()
+            .mockImplementation(() => {
+                return {
+                    validate: mocks.jsonSchemaValidate,
+                    initialize: vi.fn().mockResolvedValue(undefined), // Mock initialize to resolve immediately
+                };
+            });
     });
 
     it('has errors when the pattern does not pass all the spectral validations ', async () => {
@@ -564,7 +573,7 @@ describe('validate pattern only', () => {
         const dummyPattern = { dummy: 'pattern' };
         schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
 
-        const response = await validate(undefined, dummyPattern, schemaDirectory, debugDisabled);
+        const response = await validate(undefined, dummyPattern, undefined, schemaDirectory, debugDisabled);
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).toBeTruthy();
@@ -583,7 +592,7 @@ describe('validate pattern only', () => {
         // Use dummy object
         const dummyPattern = { dummy: 'pattern' };
 
-        const response = await validate(undefined, dummyPattern, schemaDirectory, debugDisabled);
+        const response = await validate(undefined, dummyPattern, undefined, schemaDirectory, debugDisabled);
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).toBeTruthy();
@@ -617,7 +626,7 @@ describe('validate - architecture only', () => {
         const dummyPattern = { dummy: 'pattern' };
         schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
 
-        const response = await validate(dummyPattern, undefined, schemaDirectory, debugDisabled);
+        const response = await validate(dummyPattern, undefined, undefined, schemaDirectory, debugDisabled);
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
         expect(response.hasErrors).toBeTruthy();
@@ -634,7 +643,7 @@ describe('validate - architecture only', () => {
         const dummyPattern = { dummy: 'pattern' };
         schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
 
-        const response = await validate(dummyPattern, undefined, schemaDirectory, debugDisabled);
+        const response = await validate(dummyPattern, undefined, undefined, schemaDirectory, debugDisabled);
 
         expect(response).not.toBeNull();
         expect(response).not.toBeUndefined();
@@ -642,6 +651,126 @@ describe('validate - architecture only', () => {
         expect(response.hasWarnings).not.toBeTruthy();
         expect(response.allValidationOutputs()).not.toBeNull();
         expect(response.allValidationOutputs().length).toBe(0);
+    });
+});
+
+describe('validate timeline and schema', () => {
+    beforeEach(() => {
+        mocks.jsonSchemaValidate.mockReset().mockReturnValue([]); // default: always valid
+        mocks.jsonSchemaValidatorConstructor.mockReset()
+            .mockImplementation(() => {
+                return {
+                    validate: mocks.jsonSchemaValidate,
+                    initialize: vi.fn().mockResolvedValue(undefined), // Mock initialize to resolve immediately
+                };
+            });
+        mocks.spectralRun.mockReset();
+        vi.useFakeTimers();
+        schemaDirectory = {
+            getSchema: vi.fn(),
+            getAllSchemas: vi.fn(),
+        } as unknown as SchemaDirectory;
+    });
+
+    it('throws error when the Schema and the Timeline are undefined', async () => {
+        await expect(validate(undefined, undefined, undefined, schemaDirectory, debugDisabled))
+            .rejects
+            .toThrow();
+    });
+
+    it('throws error when the Timeline is provided with an Architecture', async () => {
+        await expect(validate({}, undefined, {}, schemaDirectory, debugDisabled))
+            .rejects
+            .toThrow();
+    });
+
+    it('throws error when the Timeline is provided without an Schema', async () => {
+        await expect(validate(undefined, undefined, {}, schemaDirectory, debugDisabled))
+            .rejects
+            .toThrow();
+    });
+
+    it('has error when the timeline does not match the json schema', async () => {
+        // Simulate invalid schema validation
+        mocks.jsonSchemaValidate.mockReturnValue([
+            {
+                instancePath: '/current-moment',
+                schemaPath: 'schema-path',
+                keyword: 'type',
+                params: { type: 'string' },
+                message: 'must be string'
+            }
+        ]);
+        // Use dummy objects
+        const dummySchema = { dummy: 'schema' };
+        const dummyTimeline = { dummy: 'timeline' };
+        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
+
+        const response = await validate(undefined, dummySchema, dummyTimeline, schemaDirectory, debugDisabled);
+
+        expect(response).not.toBeNull();
+        expect(response).not.toBeUndefined();
+        expect(response.hasErrors).toBeTruthy();
+        expect(response.allValidationOutputs()).not.toBeNull();
+        expect(response.allValidationOutputs().length).toBeGreaterThan(0);
+    });
+
+    it('has error when the timeline does not pass all the spectral validations', async () => {
+        // Simulate valid schema validation
+        mocks.jsonSchemaValidate.mockReturnValue([]);
+        const expectedSpectralOutput: ISpectralDiagnostic[] = [
+            {
+                code: 'no-empty-properties',
+                message: 'Must not contain string properties set to the empty string or numerical properties set to zero',
+                severity: 0,
+                path: ['/moments'],
+                range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
+            }
+        ];
+
+        mocks.spectralRun.mockReturnValue(expectedSpectralOutput);
+
+        // Use dummy objects
+        const dummySchema = { dummy: 'schema' };
+        const dummyTimeline = { dummy: 'timeline' };
+        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
+
+        const response = await validate(undefined, dummySchema, dummyTimeline, schemaDirectory, debugDisabled);
+
+        expect(response).not.toBeNull();
+        expect(response).not.toBeUndefined();
+        expect(response.hasErrors).toBeTruthy();
+        expect(response.allValidationOutputs()).not.toBeNull();
+        expect(response.allValidationOutputs().length).toBeGreaterThan(0);
+    });
+
+    it('completes successfully when the spectral validation returns warnings and errors', async () => {
+        // Simulate valid schema validation
+        mocks.jsonSchemaValidate.mockReturnValue([]);
+        const expectedSpectralOutput: ISpectralDiagnostic[] = [
+            {
+                code: 'warning-test',
+                message: 'Test warning',
+                severity: 1,
+                path: ['nodes'],
+                range: { start: { line: 1, character: 1 }, end: { line: 2, character: 1 } }
+            }
+        ];
+
+        mocks.spectralRun.mockReturnValue(expectedSpectralOutput);
+
+        // Use dummy objects
+        const dummySchema = { dummy: 'schema' };
+        const dummyTimeline = { dummy: 'timeline' };
+        schemaDirectory.getSchema = vi.fn(() => Promise.resolve({}));
+
+        const response = await validate(undefined, dummySchema, dummyTimeline, schemaDirectory, debugDisabled);
+        expect(response).not.toBeNull();
+        expect(response).not.toBeUndefined();
+        expect(response.hasErrors).not.toBeTruthy();
+        expect(response.hasWarnings).toBeTruthy();
+        expect(response.allValidationOutputs()).not.toBeNull();
+        expect(response.allValidationOutputs().length).toBeGreaterThan(0);
     });
 });
 
