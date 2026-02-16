@@ -205,7 +205,7 @@
         "@mermaid-js/layout-elk": "^0.1.9",
         "jsdom": "^22.1.0",
         "lodash": "^4.17.23",
-        "markdown-it": "^13.0.1",
+        "markdown-it": "^14.1.1",
         "mermaid": "^11.0.0",
         "svg-pan-zoom": "^3.6.2",
         "yaml": "^2.5.1",

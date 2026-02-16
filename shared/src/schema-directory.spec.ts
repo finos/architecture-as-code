@@ -2,6 +2,7 @@ import { SchemaDirectory } from '.';
 import { DocumentLoader } from './document-loader/document-loader';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { TEST_ALL_SCHEMA } from './test/test-utils';
 
 vi.mock('./logger', () => {
     return {
@@ -51,11 +52,11 @@ describe('SchemaDirectory', () => {
     });
 
 
-    it('resolves a reference from a stored schema', async () => {
+    it.each(TEST_ALL_SCHEMA)('resolves a reference from a stored schema %s', async (schema) => {
         const schemaDir = new SchemaDirectory(mockDocLoader);
 
-        const nodeJson = loadSchema(path.join(__dirname, '../../calm/release/1.1/meta/core.json'));
-        const nodeRef = 'https://calm.finos.org/release/1.1/meta/core.json#/defs/node';
+        const nodeJson = loadSchema(path.join(__dirname, `../../calm/release/${schema}/meta/core.json`));
+        const nodeRef = `https://calm.finos.org/release/${schema}/meta/core.json#/defs/node`;
 
         mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => resolve(nodeJson)));
 

@@ -8,4 +8,6 @@ export * from './flow.js';
 export * from './interface.js';
 export * from './metadata.js';
 export * from './resolvable.js';
+export * from './moment.js';
+export * from './timeline.js';
 

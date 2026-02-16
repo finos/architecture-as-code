@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { loadCalmModel, detectCalmModel, toGraph } from './model'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
+import { TEST_ALL_SCHEMA } from '../test/test-utils';
 
 describe('model', () => {
     describe('detectCalmModel', () => {
@@ -31,41 +32,42 @@ describe('model', () => {
     })
 
     describe('loadCalmModel', () => {
-        it('should parse test.architecture.json and extract relationships', () => {
-            // Use path relative to project root (vscode plugin directory)
-            const testArchPath = resolve(process.cwd(), 'test-architectures/test.architecture.json')
-            const content = readFileSync(testArchPath, 'utf-8')
-            const model = loadCalmModel(content)
+        it.each(TEST_ALL_SCHEMA)
+            ('should parse test.architecture.json and extract relationships - schema %s', (schema) => {
+                // Use path relative to project root (vscode plugin directory)
+                const testArchPath = resolve(process.cwd(), `test_fixtures/architecture/test.architecture.${schema}.json`)
+                const content = readFileSync(testArchPath, 'utf-8')
+                const model = loadCalmModel(content)
 
-            // Check nodes
-            expect(model.nodes).toBeDefined()
-            expect(model.nodes?.length).toBe(4)
-            expect(model.nodes?.map(n => n.id)).toEqual(['user', 'web-frontend', 'api-server', 'database'])
+                // Check nodes
+                expect(model.nodes).toBeDefined()
+                expect(model.nodes?.length).toBe(4)
+                expect(model.nodes?.map(n => n.id)).toEqual(['user', 'web-frontend', 'api-server', 'database'])
 
-            // Check relationships are parsed correctly
-            expect(model.relationships).toBeDefined()
-            expect(model.relationships?.length).toBeGreaterThan(0)
+                // Check relationships are parsed correctly
+                expect(model.relationships).toBeDefined()
+                expect(model.relationships?.length).toBeGreaterThan(0)
 
-            // Check interacts relationship (user -> web-frontend)
-            const interactsRel = model.relationships?.find(r => r.type === 'interacts')
-            expect(interactsRel).toBeDefined()
-            expect(interactsRel?.source).toBe('user')
-            expect(interactsRel?.target).toBe('web-frontend')
+                // Check interacts relationship (user -> web-frontend)
+                const interactsRel = model.relationships?.find(r => r.type === 'interacts')
+                expect(interactsRel).toBeDefined()
+                expect(interactsRel?.source).toBe('user')
+                expect(interactsRel?.target).toBe('web-frontend')
 
-            // Check connects relationships (frontend -> api, api -> database)
-            const connectsRels = model.relationships?.filter(r => r.type === 'connects')
-            expect(connectsRels?.length).toBe(2)
+                // Check connects relationships (frontend -> api, api -> database)
+                const connectsRels = model.relationships?.filter(r => r.type === 'connects')
+                expect(connectsRels?.length).toBe(2)
 
-            const frontendToApi = connectsRels?.find(r => r.source === 'web-frontend' && r.target === 'api-server')
-            expect(frontendToApi).toBeDefined()
-            expect(frontendToApi?.label).toBe('Sends API requests to')
-            expect(frontendToApi?.raw?.protocol).toBe('HTTPS')
+                const frontendToApi = connectsRels?.find(r => r.source === 'web-frontend' && r.target === 'api-server')
+                expect(frontendToApi).toBeDefined()
+                expect(frontendToApi?.label).toBe('Sends API requests to')
+                expect(frontendToApi?.raw?.protocol).toBe('HTTPS')
 
-            const apiToDb = connectsRels?.find(r => r.source === 'api-server' && r.target === 'database')
-            expect(apiToDb).toBeDefined()
-            expect(apiToDb?.label).toBe('Reads and writes application data to')
-            expect(apiToDb?.raw?.protocol).toBe('JDBC')
-        })
+                const apiToDb = connectsRels?.find(r => r.source === 'api-server' && r.target === 'database')
+                expect(apiToDb).toBeDefined()
+                expect(apiToDb?.label).toBe('Reads and writes application data to')
+                expect(apiToDb?.raw?.protocol).toBe('JDBC')
+            })
 
         it('should handle empty input', () => {
             const model = loadCalmModel('')
