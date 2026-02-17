@@ -882,8 +882,8 @@ Finally we now want to delineate the boundary of Trading System.
 
 **Prompt to AI Assistant**
 ```text
-add a node called "Trading System" of type "system" and create a "composed-of" relationship that adds all nodes 
-except for "Trader" and "User Directory" to the "Trading System" node.
+add a node called "Trading System" of type "system" and create a "composed-of" relationship 
+that adds all nodes except for "Trader" and "User Directory" to the "Trading System" node.
 ```
 
 **Response from AI Assistant**
@@ -909,7 +909,8 @@ Done! I've added:
    - ticker-csv-file
    - trade-feed
 
-The architecture validates successfully with no errors or warnings. The "trader" actor and "user-directory" LDAP remain external to the Trading System as requested.
+The architecture validates successfully with no errors or warnings. The "trader" actor 
+and "user-directory" LDAP remain external to the Trading System as requested.
 
 Made changes.
 ```

@@ -8,7 +8,7 @@ _Note_: Responses from the AI Assistant were lightly editted for readbility.
 
 We demonstrate two ways to generate viewable architecture documention.  The first method generates content that is viewable via a web browser.  The second approach uses CALM templating functions to generate a custom view of the architecture
 
-## Method 1: Create view web content
+## Method 1: Create viewable web content
 
 Here are going to use the AI Assistant to create architecture documentation that viewable via a web browser.
 
@@ -79,7 +79,8 @@ You can:
 2. **Build static HTML** for deployment: `cd docs/html && npm run build`
 3. **Deploy the built site** from the `docs/html/build` folder to any web server
 
-The documentation includes interactive navigation, search functionality, and full visualization of your trading system architecture with all nodes, relationships, and business flows.
+The documentation includes interactive navigation, search functionality, and full visualization 
+of your trading system architecture with all nodes, relationships, and business flows.
 
 ```
 
@@ -151,7 +152,7 @@ These are screenshots of portions of the generated markdown document.
 
 ---
 
-This is the custom <a href="/calm-example/trading-system-sad.md" target="_blank">Solution Architecture Markdown Document</a> generated from the CALM architecture
+This is the fully generated custom <a href="/calm-example/trading-system-sad.md" target="_blank">Solution Architecture Markdown Document</a> based on the custom template.
 
 
 ## Summary
