@@ -1,493 +1,488 @@
 name: CLI - Automated Release
 
 concurrency:
-  group: cli-release
-  cancel-in-progress: false
+    group: cli-release
+    cancel-in-progress: false
 
 permissions:
-  contents: write # needed for semantic-release to create releases and update files
-  issues: write # needed for semantic-release to comment on issues
-  pull-requests: write # needed for semantic-release to comment on PRs
-  id-token: write # needed for npm provenance
+    contents: write # needed for semantic-release to create releases and update files
+    issues: write # needed for semantic-release to comment on issues
+    pull-requests: write # needed for semantic-release to comment on PRs
+    id-token: write # needed for npm provenance
 
 on:
-  schedule:
-    - cron: '30 7 * * 1,3'  # Run at 7:30 AM GMT on Monday and Wednesday
-  workflow_dispatch:
-    inputs:
-      force-release:
-        description: 'Force a release even if no relevant changes are detected'
-        required: false
-        type: boolean
-        default: false
-      release-type:
-        description: 'Release type (only used with force-release)'
-        required: false
-        type: choice
-        default: 'patch'
-        options:
-          - patch
-          - minor
-          - major
-  pull_request:
-    types:
-      - closed
+    schedule:
+        - cron: '30 7 * * 1,3' # Run at 7:30 AM GMT on Monday and Wednesday
+    workflow_dispatch:
+        inputs:
+            force-release:
+                description: 'Force a release even if no relevant changes are detected'
+                required: false
+                type: boolean
+                default: false
+            release-type:
+                description: 'Release type (only used with force-release)'
+                required: false
+                type: choice
+                default: 'patch'
+                options:
+                    - patch
+                    - minor
+                    - major
+    pull_request:
+        types:
+            - closed
 
 jobs:
-  analyze:
-    runs-on: ubuntu-latest
-    # Only run analysis on schedule or manual trigger, not on PR merge
-    if: github.event_name != 'pull_request'
-    outputs:
-      should-release: ${{ steps.check.outputs.should-release }}
-      release-type: ${{ steps.check.outputs.release-type }}
-      next-version: ${{ steps.check.outputs.next-version }}
-      current-version: ${{ steps.check.outputs.current-version }}
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+    analyze:
+        runs-on: ubuntu-latest
+        # Only run analysis on schedule or manual trigger, not on PR merge
+        if: github.event_name != 'pull_request'
+        outputs:
+            should-release: ${{ steps.check.outputs.should-release }}
+            release-type: ${{ steps.check.outputs.release-type }}
+            next-version: ${{ steps.check.outputs.next-version }}
+            current-version: ${{ steps.check.outputs.current-version }}
+        steps:
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              with:
+                  fetch-depth: 0
+                  token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
-        with:
-          node-version: 22
+            - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
+              with:
+                  node-version: 22
 
-      - run: npm ci
+            - run: npm ci
 
-      - name: Check for existing changelog/version PRs
-        run: |
-          echo "Checking for open PRs with changelog & version updates..."
-          
-          # Search for open PRs with the specific title pattern
-          PR_LIST=$(gh pr list \
-            --state open \
-            --search "ci(cli): update changelog & versions for v" \
-            --json title,number,headRefName 2>/dev/null || echo "[]")
-          
-          echo "PR search result: $PR_LIST"
-          
-          if [ "$PR_LIST" != "[]" ] && [ "$PR_LIST" != "" ]; then
-            echo "❌ Found existing changelog/version PR(s):"
-            
-            # Parse JSON without jq dependency - extract key fields manually
-            echo "$PR_LIST" | grep -o '"number":[0-9]*' | sed 's/"number":/PR #/' || echo "  - Found matching PR(s)"
-            echo "$PR_LIST" | grep -o '"title":"[^"]*"' | sed 's/"title":"//;s/"$//' | sed 's/^/  Title: /' || true
-            echo "$PR_LIST" | grep -o '"headRefName":"[^"]*"' | sed 's/"headRefName":"//;s/"$//' | sed 's/^/  Branch: /' || true
-            
-            echo ""
-            echo "Please merge or close the existing changelog/version PR before running a new release."
-            echo "This prevents conflicts between multiple version updates."
-            exit 1
-          else
-            echo "✅ No existing changelog/version PRs found. Proceeding with release checks."
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: Check for existing changelog/version PRs
+              run: |
+                  echo "Checking for open PRs with changelog & version updates..."
 
-      - name: Check build-cli workflow status
-        run: |
-          echo "Checking if build-cli.yml has passed on main branch..."
-          
-          # Get the latest build-cli workflow run for main branch
-          BUILD_CLI_OUTPUT=$(gh run list \
-            --workflow=build-cli.yml \
-            --branch=main \
-            --limit=1)
-          
-          echo "Latest build-cli run details:"
-          echo "$BUILD_CLI_OUTPUT"
-          
-          if echo "$BUILD_CLI_OUTPUT" | grep -q "success"; then
-            echo "✅ build-cli.yml has passed on main branch."
-          else
-            echo "❌ build-cli.yml has not passed on main branch. Skipping release."
-            echo "Please ensure the CLI build is successful before releasing."
-            exit 1
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  # Search for open PRs with the specific title pattern
+                  PR_LIST=$(gh pr list \
+                    --state open \
+                    --search "ci(cli): update changelog & versions for v" \
+                    --json title,number,headRefName 2>/dev/null || echo "[]")
 
-      - name: Check build-shared workflow status
-        run: |
-          echo "Checking if build-shared.yml has passed on main branch..."
-          
-          # Get the latest build-shared workflow run for main branch
-          BUILD_SHARED_OUTPUT=$(gh run list \
-            --workflow=build-shared.yml \
-            --branch=main \
-            --limit=1)
-          
-          echo "Latest build-shared run details:"
-          echo "$BUILD_SHARED_OUTPUT"
-          
-          if echo "$BUILD_SHARED_OUTPUT" | grep -q "success"; then
-            echo "✅ build-shared.yml has passed on main branch. Proceeding with release check."
-          else
-            echo "❌ build-shared.yml has not passed on main branch. Skipping release."
-            echo "Please ensure the shared library build is successful before releasing."
-            exit 1
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  echo "PR search result: $PR_LIST"
 
-      - name: Check release type
-        id: check
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
-        run: |
-          cd cli
-          
-          # Check if force-release is enabled
-          FORCE_RELEASE="${{ github.event.inputs.force-release }}"
-          FORCE_RELEASE_TYPE="${{ github.event.inputs.release-type }}"
-          
-          if [ "$FORCE_RELEASE" = "true" ]; then
-            echo "🔨 Force release enabled with type: $FORCE_RELEASE_TYPE"
-            
-            # Get current version from package.json (the source of truth)
-            CURRENT_VERSION=$(node -p "require('./package.json').version")
-            
-            # Calculate next version based on force release type
-            CURRENT_MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
-            CURRENT_MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
-            CURRENT_PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
-            
-            case "$FORCE_RELEASE_TYPE" in
-              major)
-                NEXT_VERSION="$((CURRENT_MAJOR + 1)).0.0"
-                ;;
-              minor)
-                NEXT_VERSION="$CURRENT_MAJOR.$((CURRENT_MINOR + 1)).0"
-                ;;
-              patch)
-                NEXT_VERSION="$CURRENT_MAJOR.$CURRENT_MINOR.$((CURRENT_PATCH + 1))"
-                ;;
-            esac
-            
-            echo "should-release=true" >> $GITHUB_OUTPUT
-            echo "release-type=$FORCE_RELEASE_TYPE" >> $GITHUB_OUTPUT
-            echo "next-version=$NEXT_VERSION" >> $GITHUB_OUTPUT
-            echo "current-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-            
-            echo "🔍 Forced Release: $CURRENT_VERSION → $NEXT_VERSION ($FORCE_RELEASE_TYPE)"
-          else
-            # Normal semantic-release analysis
-            npx semantic-release --dry-run > analysis.txt 2>&1 || true
-            
-            echo "=== SEMANTIC RELEASE ANALYSIS OUTPUT ==="
-            cat analysis.txt
-            echo "========================================"
-            
-            if grep -q "The next release version is" analysis.txt; then
-              NEXT_VERSION=$(grep "The next release version is" analysis.txt | sed 's/.*The next release version is \([^[:space:]]\+\).*/\1/')
-              
-              # Get current version from latest git tag instead of package.json
-              CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/cli-v//')
-              
-              echo "📋 Extracted versions:"
-              echo "  Current: $CURRENT_VERSION"
-              echo "  Next: $NEXT_VERSION"
-              
-              CURRENT_MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
-              NEXT_MAJOR=$(echo $NEXT_VERSION | cut -d. -f1)
-              
-              if [ "$NEXT_MAJOR" -gt "$CURRENT_MAJOR" ]; then
-                RELEASE_TYPE="major"
-              else
-                CURRENT_MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
-                NEXT_MINOR=$(echo $NEXT_VERSION | cut -d. -f2)
-                RELEASE_TYPE=$([ "$NEXT_MINOR" -gt "$CURRENT_MINOR" ] && echo "minor" || echo "patch")
-              fi
-              
-              echo "should-release=true" >> $GITHUB_OUTPUT
-              echo "release-type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
-              echo "next-version=$NEXT_VERSION" >> $GITHUB_OUTPUT
-              echo "current-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-              
-              echo "🔍 Release: $CURRENT_VERSION → $NEXT_VERSION ($RELEASE_TYPE)"
-            else
-              echo "should-release=false" >> $GITHUB_OUTPUT
-              echo "ℹ️ No release needed"
-              echo "🔍 Checking for common patterns in analysis:"
-              echo "  - No relevant changes: $(grep -c "There are no relevant changes" analysis.txt || echo "0")"
-              echo "  - Branch restrictions: $(grep -c "only publish from" analysis.txt || echo "0")"
-              echo "  - Configuration errors: $(grep -c -i "error" analysis.txt || echo "0")"
-            fi
-          fi
+                  if [ "$PR_LIST" != "[]" ] && [ "$PR_LIST" != "" ]; then
+                    echo "❌ Found existing changelog/version PR(s):"
+                    
+                    # Parse JSON without jq dependency - extract key fields manually
+                    echo "$PR_LIST" | grep -o '"number":[0-9]*' | sed 's/"number":/PR #/' || echo "  - Found matching PR(s)"
+                    echo "$PR_LIST" | grep -o '"title":"[^"]*"' | sed 's/"title":"//;s/"$//' | sed 's/^/  Title: /' || true
+                    echo "$PR_LIST" | grep -o '"headRefName":"[^"]*"' | sed 's/"headRefName":"//;s/"$//' | sed 's/^/  Branch: /' || true
+                    
+                    echo ""
+                    echo "Please merge or close the existing changelog/version PR before running a new release."
+                    echo "This prevents conflicts between multiple version updates."
+                    exit 1
+                  else
+                    echo "✅ No existing changelog/version PRs found. Proceeding with release checks."
+                  fi
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  create-version-pr:
-    needs: analyze
-    runs-on: ubuntu-latest
-    if: needs.analyze.outputs.should-release == 'true' && needs.analyze.outputs.release-type != 'major'
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.SRB_TOKEN }}
+            - name: Check build-cli workflow status
+              run: |
+                  echo "Checking if build-cli.yml has passed on main branch..."
 
-      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
-        with:
-          node-version: 22
+                  # Get the latest build-cli workflow run for main branch
+                  BUILD_CLI_OUTPUT=$(gh run list \
+                    --workflow=build-cli.yml \
+                    --branch=main \
+                    --limit=1)
 
-      - run: npm ci
-      - run: npm run build
+                  echo "Latest build-cli run details:"
+                  echo "$BUILD_CLI_OUTPUT"
 
-      - name: Create version update PR
-        run: |
-          cd cli
-          
-          # Check if this is a forced release
-          if [ "${{ github.event.inputs.force-release }}" = "true" ]; then
-            echo "🔨 Creating forced release PR"
-            
-            # Update package.json version manually
-            npm version ${{ needs.analyze.outputs.next-version }} --no-git-tag-version
-            
-            # Update CHANGELOG.md
-            cat > temp_changelog.md << EOF
-          # Changelog
-          
-          All notable changes to the CALM CLI will be documented in this file.
-          
-          The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-          and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-          
-          ## [${{ needs.analyze.outputs.next-version }}] - $(date +%Y-%m-%d)
-          
-          ### Changed
-          - Manual release triggered
-          
-          EOF
-            
-            # Append existing changelog content (skip the header)
-            if [ -f "CHANGELOG.md" ]; then
-              tail -n +8 CHANGELOG.md >> temp_changelog.md
-            fi
-            mv temp_changelog.md CHANGELOG.md
-            
-            # Create release branch
-            git checkout -b "release/cli-v${{ needs.analyze.outputs.next-version }}"
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add CHANGELOG.md package.json
-            git commit -m "ci(cli): release version ${{ needs.analyze.outputs.next-version }}"
-            git push origin "release/cli-v${{ needs.analyze.outputs.next-version }}"
-          else
-            echo "🤖 Preparing automated release artifacts without tagging"
-            NEXT_VERSION="${{ needs.analyze.outputs.next-version }}"
-            RELEASE_DATE=$(date +%Y-%m-%d)
-            
-            # Update package.json version
-            npm version "$NEXT_VERSION" --no-git-tag-version
-            
-            # Generate release notes via semantic-release dry run (no tags)
-            node -e "const fs=require('fs');const {default: semanticRelease}=require('semantic-release');(async()=>{try{const result=await semanticRelease({ci:false,dryRun:true});const notes=result&&result.nextRelease&&result.nextRelease.notes?result.nextRelease.notes.trim():'';fs.writeFileSync('release-notes.md',notes?notes+'\\n':'');}catch(error){console.error('Failed to generate release notes via semantic-release dry run');console.error(error);fs.writeFileSync('release-notes.md','');}})();"
-            
-            # Build changelog entry with generated notes (fallback to simple entry)
-            cat > temp_changelog.md << EOF
-          # Changelog
-          
-          All notable changes to the CALM CLI will be documented in this file.
-          
-          The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-          and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-          
-          ## [$NEXT_VERSION] - $RELEASE_DATE
-          
-          EOF
-            
-            if [ -s "release-notes.md" ]; then
-              cat release-notes.md >> temp_changelog.md
-              echo "" >> temp_changelog.md
-            else
-              cat >> temp_changelog.md <<'EOF'
-          ### Changed
-          - Automated release
-          
-          EOF
-            fi
-            
-            if [ -f "CHANGELOG.md" ]; then
-              tail -n +8 CHANGELOG.md >> temp_changelog.md
-            fi
-            mv temp_changelog.md CHANGELOG.md
-            rm -f release-notes.md
-            
-            # Create release branch
-            git checkout -b "release/cli-v$NEXT_VERSION"
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add CHANGELOG.md package.json
-            git commit -m "ci(cli): release version $NEXT_VERSION"
-            git push origin "release/cli-v$NEXT_VERSION"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.SRB_TOKEN }}
+                  if echo "$BUILD_CLI_OUTPUT" | grep -q "success"; then
+                    echo "✅ build-cli.yml has passed on main branch."
+                  else
+                    echo "❌ build-cli.yml has not passed on main branch. Skipping release."
+                    echo "Please ensure the CLI build is successful before releasing."
+                    exit 1
+                  fi
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create Pull Request
-        run: |
-          RELEASE_BRANCH="release/cli-v${{ needs.analyze.outputs.next-version }}"
-          
-          if git ls-remote --heads origin $RELEASE_BRANCH | grep -q $RELEASE_BRANCH; then
-            PR_BODY="🚀 **Automated Release PR**
-          
-          This PR updates the CLI version from ${{ needs.analyze.outputs.current-version }} to ${{ needs.analyze.outputs.next-version }}.
-          
-          **Changes:**
-          - Updated package.json version to ${{ needs.analyze.outputs.next-version }}
-          - Updated CHANGELOG.md with release notes
-          
-          **Next Steps:**
-          Upon merging this PR, the automated publish workflow will publish the package to npm and create a GitHub release.
-          
-          ⚠️ Do not edit this PR manually - it is generated automatically by semantic-release"
-          
-            gh pr create \
-              --title "ci(cli): release version ${{ needs.analyze.outputs.next-version }}" \
-              --body "$PR_BODY" \
-              --head "$RELEASE_BRANCH" \
-              --base main \
-              --label "automated-release"
-            
-            echo "📋 Version update PR created for branch: $RELEASE_BRANCH" >> $GITHUB_STEP_SUMMARY
-            echo "**Version**: ${{ needs.analyze.outputs.current-version }} → ${{ needs.analyze.outputs.next-version }}" >> $GITHUB_STEP_SUMMARY
-            echo "**Type**: ${{ needs.analyze.outputs.release-type }}" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Release branch not found - semantic-release may have failed"
-            exit 1
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: Check build-shared workflow status
+              run: |
+                  echo "Checking if build-shared.yml has passed on main branch..."
 
-  prepare-major-release:
-    needs: analyze
-    runs-on: ubuntu-latest
-    if: needs.analyze.outputs.should-release == 'true' && needs.analyze.outputs.release-type == 'major'
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+                  # Get the latest build-shared workflow run for main branch
+                  BUILD_SHARED_OUTPUT=$(gh run list \
+                    --workflow=build-shared.yml \
+                    --branch=main \
+                    --limit=1)
 
-      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
-        with:
-          node-version: 22
+                  echo "Latest build-shared run details:"
+                  echo "$BUILD_SHARED_OUTPUT"
 
-      - run: npm ci
+                  if echo "$BUILD_SHARED_OUTPUT" | grep -q "success"; then
+                    echo "✅ build-shared.yml has passed on main branch. Proceeding with release check."
+                  else
+                    echo "❌ build-shared.yml has not passed on main branch. Skipping release."
+                    echo "Please ensure the shared library build is successful before releasing."
+                    exit 1
+                  fi
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create draft release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
-        run: |
-          cd  cli
-          # Generate release notes without creating tags
-          npx semantic-release --dry-run --ci false > release-output.txt 2>&1 || true
-          
-          cat > release-notes.md << EOF
-          ## 🚨 Major Version Release
-          
-          This major release contains breaking changes and requires manual approval.
-          
-          ### 💥 Breaking Changes
-          $(grep -i "BREAKING CHANGE" release-output.txt | head -5 || echo "Please review the changes below for breaking changes.")
-          
-          ### 📋 Changes
-          $(git log --oneline \$(git describe --tags --abbrev=0 2>/dev/null || echo "HEAD~10")..HEAD --grep="feat\|fix" -- cli/ | head -10)
-          
-          ### ⚠️ Before Publishing
-          - [ ] Review breaking changes
-          - [ ] Update documentation
-          - [ ] Notify users
-          
-          **Publishing will immediately deploy to NPM.**
-          EOF
-          
-          # Create draft release
-          gh release create "${{ needs.analyze.outputs.next-version }}" \
-            --title "v${{ needs.analyze.outputs.next-version }}" \
-            --notes-file release-notes.md \
-            --draft \
-            --target "${{ github.sha }}"
+            - name: Check release type
+              id: check
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  cd cli
 
-      - run: |
-          echo "## 🚨 Major Release Draft Created" >> $GITHUB_STEP_SUMMARY
-          echo "**Version**: ${{ needs.analyze.outputs.current-version }} → ${{ needs.analyze.outputs.next-version }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Action Required**: Review and publish the draft release" >> $GITHUB_STEP_SUMMARY
+                  # Check if force-release is enabled
+                  FORCE_RELEASE="${{ github.event.inputs.force-release }}"
+                  FORCE_RELEASE_TYPE="${{ github.event.inputs.release-type }}"
 
-  publish-on-merge:
-    runs-on: ubuntu-latest
-    if: |
-      github.event.pull_request.merged == true &&
-      contains(github.event.pull_request.labels.*.name, 'automated-release')
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2
-        with:
-          egress-policy: audit
+                  if [ "$FORCE_RELEASE" = "true" ]; then
+                    echo "🔨 Force release enabled with type: $FORCE_RELEASE_TYPE"
+                    
+                    # Get current version from package.json (the source of truth)
+                    CURRENT_VERSION=$(node -p "require('./package.json').version")
+                    
+                    # Calculate next version based on force release type
+                    CURRENT_MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
+                    CURRENT_MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
+                    CURRENT_PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
+                    
+                    case "$FORCE_RELEASE_TYPE" in
+                      major)
+                        NEXT_VERSION="$((CURRENT_MAJOR + 1)).0.0"
+                        ;;
+                      minor)
+                        NEXT_VERSION="$CURRENT_MAJOR.$((CURRENT_MINOR + 1)).0"
+                        ;;
+                      patch)
+                        NEXT_VERSION="$CURRENT_MAJOR.$CURRENT_MINOR.$((CURRENT_PATCH + 1))"
+                        ;;
+                    esac
+                    
+                    echo "should-release=true" >> $GITHUB_OUTPUT
+                    echo "release-type=$FORCE_RELEASE_TYPE" >> $GITHUB_OUTPUT
+                    echo "next-version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+                    echo "current-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+                    
+                    echo "🔍 Forced Release: $CURRENT_VERSION → $NEXT_VERSION ($FORCE_RELEASE_TYPE)"
+                  else
+                    # Normal semantic-release analysis
+                    npx semantic-release --dry-run > analysis.txt 2>&1 || true
+                    
+                    echo "=== SEMANTIC RELEASE ANALYSIS OUTPUT ==="
+                    cat analysis.txt
+                    echo "========================================"
+                    
+                    if grep -q "The next release version is" analysis.txt; then
+                      NEXT_VERSION=$(grep "The next release version is" analysis.txt | sed 's/.*The next release version is \([^[:space:]]\+\).*/\1/')
+                      
+                      # Get current version from latest git tag instead of package.json
+                      CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/cli-v//')
+                      
+                      echo "📋 Extracted versions:"
+                      echo "  Current: $CURRENT_VERSION"
+                      echo "  Next: $NEXT_VERSION"
+                      
+                      CURRENT_MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
+                      NEXT_MAJOR=$(echo $NEXT_VERSION | cut -d. -f1)
+                      
+                      if [ "$NEXT_MAJOR" -gt "$CURRENT_MAJOR" ]; then
+                        RELEASE_TYPE="major"
+                      else
+                        CURRENT_MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
+                        NEXT_MINOR=$(echo $NEXT_VERSION | cut -d. -f2)
+                        RELEASE_TYPE=$([ "$NEXT_MINOR" -gt "$CURRENT_MINOR" ] && echo "minor" || echo "patch")
+                      fi
+                      
+                      echo "should-release=true" >> $GITHUB_OUTPUT
+                      echo "release-type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+                      echo "next-version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+                      echo "current-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+                      
+                      echo "🔍 Release: $CURRENT_VERSION → $NEXT_VERSION ($RELEASE_TYPE)"
+                    else
+                      echo "should-release=false" >> $GITHUB_OUTPUT
+                      echo "ℹ️ No release needed"
+                      echo "🔍 Checking for common patterns in analysis:"
+                      echo "  - No relevant changes: $(grep -c "There are no relevant changes" analysis.txt || echo "0")"
+                      echo "  - Branch restrictions: $(grep -c "only publish from" analysis.txt || echo "0")"
+                      echo "  - Configuration errors: $(grep -c -i "error" analysis.txt || echo "0")"
+                    fi
+                  fi
 
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-          ref: main
+    create-version-pr:
+        needs: analyze
+        runs-on: ubuntu-latest
+        if: needs.analyze.outputs.should-release == 'true' && needs.analyze.outputs.release-type != 'major'
+        steps:
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              with:
+                  fetch-depth: 0
+                  token: ${{ secrets.SRB_TOKEN }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
-        with:
-          node-version: 22
+            - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
+              with:
+                  node-version: 22
 
-      - name: Install dependencies
-        run: npm ci
+            - run: npm ci
+            - run: npm run build
 
-      - name: Build CLI and dependencies
-        run: npm run build:cli
+            - name: Create version update PR
+              run: |
+                  cd cli
 
-      - name: Get version from package.json
-        id: version
-        run: |
-          cd cli
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Publishing CLI version: $VERSION"
+                  # Check if this is a forced release
+                  if [ "${{ github.event.inputs.force-release }}" = "true" ]; then
+                    echo "🔨 Creating forced release PR"
+                    
+                    # Update package.json version manually
+                    npm version ${{ needs.analyze.outputs.next-version }} --no-git-tag-version
+                    
+                    # Update CHANGELOG.md
+                    cat > temp_changelog.md << EOF
+                  # Changelog
 
-      - name: Create Git tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "cli-v${{ steps.version.outputs.version }}"
-          git push origin "cli-v${{ steps.version.outputs.version }}"
+                  All notable changes to the CALM CLI will be documented in this file.
 
-      - name: Create GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cd cli
-          
-          # Extract changelog for this version
-          if [ -f "CHANGELOG.md" ]; then
-            # Try to extract the section for this version from CHANGELOG.md
-            RELEASE_NOTES=$(awk '/^## \['${{ steps.version.outputs.version }}'\]/, /^## \[/{//!p}' CHANGELOG.md | sed '/^## \[/d' || echo "")
-          fi
-          
-          if [ -z "$RELEASE_NOTES" ]; then
-            RELEASE_NOTES="Release of CLI version ${{ steps.version.outputs.version }}"
-          fi
-          
-          gh release create "cli-v${{ steps.version.outputs.version }}" \
-            --title "CLI v${{ steps.version.outputs.version }}" \
-            --notes "$RELEASE_NOTES" \
-            --target main
+                  The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+                  and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-      - name: Publish to NPM
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
-        run: |
-          cd cli
-          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
-          npm publish
-          
-          echo "✅ Successfully published @finos/calm-cli@${{ steps.version.outputs.version }} to NPM" >> $GITHUB_STEP_SUMMARY
+                  ## [${{ needs.analyze.outputs.next-version }}] - $(date +%Y-%m-%d)
+
+                  ### Changed
+                  - Manual release triggered
+
+                  EOF
+                    
+                    # Append existing changelog content (skip the header)
+                    if [ -f "CHANGELOG.md" ]; then
+                      tail -n +8 CHANGELOG.md >> temp_changelog.md
+                    fi
+                    mv temp_changelog.md CHANGELOG.md
+                    
+                    # Create release branch
+                    git checkout -b "release/cli-v${{ needs.analyze.outputs.next-version }}"
+                    git config user.name "github-actions[bot]"
+                    git config user.email "github-actions[bot]@users.noreply.github.com"
+                    git add CHANGELOG.md package.json
+                    git commit -m "ci(cli): release version ${{ needs.analyze.outputs.next-version }}"
+                    git push origin "release/cli-v${{ needs.analyze.outputs.next-version }}"
+                  else
+                    echo "🤖 Preparing automated release artifacts without tagging"
+                    NEXT_VERSION="${{ needs.analyze.outputs.next-version }}"
+                    RELEASE_DATE=$(date +%Y-%m-%d)
+                    
+                    # Update package.json version
+                    npm version "$NEXT_VERSION" --no-git-tag-version
+                    
+                    # Generate release notes via semantic-release dry run (no tags)
+                    node -e "const fs=require('fs');const {default: semanticRelease}=require('semantic-release');(async()=>{try{const result=await semanticRelease({ci:false,dryRun:true});const notes=result&&result.nextRelease&&result.nextRelease.notes?result.nextRelease.notes.trim():'';fs.writeFileSync('release-notes.md',notes?notes+'\\n':'');}catch(error){console.error('Failed to generate release notes via semantic-release dry run');console.error(error);fs.writeFileSync('release-notes.md','');}})();"
+                    
+                    # Build changelog entry with generated notes (fallback to simple entry)
+                    cat > temp_changelog.md << EOF
+                  # Changelog
+
+                  All notable changes to the CALM CLI will be documented in this file.
+
+                  The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+                  and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+                  ## [$NEXT_VERSION] - $RELEASE_DATE
+
+                  EOF
+                    
+                    if [ -s "release-notes.md" ]; then
+                      cat release-notes.md >> temp_changelog.md
+                      echo "" >> temp_changelog.md
+                    else
+                      cat >> temp_changelog.md <<'EOF'
+                  ### Changed
+                  - Automated release
+
+                  EOF
+                    fi
+                    
+                    if [ -f "CHANGELOG.md" ]; then
+                      tail -n +8 CHANGELOG.md >> temp_changelog.md
+                    fi
+                    mv temp_changelog.md CHANGELOG.md
+                    rm -f release-notes.md
+                    
+                    # Create release branch
+                    git checkout -b "release/cli-v$NEXT_VERSION"
+                    git config user.name "github-actions[bot]"
+                    git config user.email "github-actions[bot]@users.noreply.github.com"
+                    git add CHANGELOG.md package.json
+                    git commit -m "ci(cli): release version $NEXT_VERSION"
+                    git push origin "release/cli-v$NEXT_VERSION"
+                  fi
+              env:
+                  GITHUB_TOKEN: ${{ secrets.SRB_TOKEN }}
+
+            - name: Create Pull Request
+              run: |
+                  RELEASE_BRANCH="release/cli-v${{ needs.analyze.outputs.next-version }}"
+
+                  if git ls-remote --heads origin $RELEASE_BRANCH | grep -q $RELEASE_BRANCH; then
+                    PR_BODY="🚀 **Automated Release PR**
+
+                  This PR updates the CLI version from ${{ needs.analyze.outputs.current-version }} to ${{ needs.analyze.outputs.next-version }}.
+
+                  **Changes:**
+                  - Updated package.json version to ${{ needs.analyze.outputs.next-version }}
+                  - Updated CHANGELOG.md with release notes
+
+                  **Next Steps:**
+                  Upon merging this PR, the automated publish workflow will publish the package to npm and create a GitHub release.
+
+                  ⚠️ Do not edit this PR manually - it is generated automatically by semantic-release"
+
+                    gh pr create \
+                      --title "ci(cli): release version ${{ needs.analyze.outputs.next-version }}" \
+                      --body "$PR_BODY" \
+                      --head "$RELEASE_BRANCH" \
+                      --base main \
+                      --label "automated-release"
+                    
+                    echo "📋 Version update PR created for branch: $RELEASE_BRANCH" >> $GITHUB_STEP_SUMMARY
+                    echo "**Version**: ${{ needs.analyze.outputs.current-version }} → ${{ needs.analyze.outputs.next-version }}" >> $GITHUB_STEP_SUMMARY
+                    echo "**Type**: ${{ needs.analyze.outputs.release-type }}" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo "❌ Release branch not found - semantic-release may have failed"
+                    exit 1
+                  fi
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    prepare-major-release:
+        needs: analyze
+        runs-on: ubuntu-latest
+        if: needs.analyze.outputs.should-release == 'true' && needs.analyze.outputs.release-type == 'major'
+        steps:
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              with:
+                  fetch-depth: 0
+                  token: ${{ secrets.GITHUB_TOKEN }}
+
+            - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
+              with:
+                  node-version: 22
+
+            - run: npm ci
+
+            - name: Create draft release
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  cd  cli
+                  # Generate release notes without creating tags
+                  npx semantic-release --dry-run --ci false > release-output.txt 2>&1 || true
+
+                  cat > release-notes.md << EOF
+                  ## 🚨 Major Version Release
+
+                  This major release contains breaking changes and requires manual approval.
+
+                  ### 💥 Breaking Changes
+                  $(grep -i "BREAKING CHANGE" release-output.txt | head -5 || echo "Please review the changes below for breaking changes.")
+
+                  ### 📋 Changes
+                  $(git log --oneline \$(git describe --tags --abbrev=0 2>/dev/null || echo "HEAD~10")..HEAD --grep="feat\|fix" -- cli/ | head -10)
+
+                  ### ⚠️ Before Publishing
+                  - [ ] Review breaking changes
+                  - [ ] Update documentation
+                  - [ ] Notify users
+
+                  **Publishing will immediately deploy to NPM.**
+                  EOF
+
+                  # Create draft release
+                  gh release create "${{ needs.analyze.outputs.next-version }}" \
+                    --title "v${{ needs.analyze.outputs.next-version }}" \
+                    --notes-file release-notes.md \
+                    --draft \
+                    --target "${{ github.sha }}"
+
+            - run: |
+                  echo "## 🚨 Major Release Draft Created" >> $GITHUB_STEP_SUMMARY
+                  echo "**Version**: ${{ needs.analyze.outputs.current-version }} → ${{ needs.analyze.outputs.next-version }}" >> $GITHUB_STEP_SUMMARY
+                  echo "**Action Required**: Review and publish the draft release" >> $GITHUB_STEP_SUMMARY
+
+    publish-on-merge:
+        runs-on: ubuntu-latest
+        if: |
+            github.event.pull_request.merged == true &&
+            contains(github.event.pull_request.labels.*.name, 'automated-release')
+        steps:
+            - name: Harden Runner
+              uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2
+              with:
+                  egress-policy: audit
+
+            - name: Checkout
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              with:
+                  fetch-depth: 0
+                  token: ${{ secrets.GITHUB_TOKEN }}
+                  ref: main
+
+            - name: Setup Node.js
+              uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
+              with:
+                  node-version: 22
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Build CLI and dependencies
+              run: npm run build:cli
+
+            - name: Get version from package.json
+              id: version
+              run: |
+                  cd cli
+                  VERSION=$(node -p "require('./package.json').version")
+                  echo "version=$VERSION" >> $GITHUB_OUTPUT
+                  echo "Publishing CLI version: $VERSION"
+
+            - name: Create Git tag
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+                  git tag "cli-v${{ steps.version.outputs.version }}"
+                  git push origin "cli-v${{ steps.version.outputs.version }}"
+
+            - name: Create GitHub Release
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  cd cli
+
+                  # Extract changelog for this version
+                  if [ -f "CHANGELOG.md" ]; then
+                    # Try to extract the section for this version from CHANGELOG.md
+                    RELEASE_NOTES=$(awk '/^## \['${{ steps.version.outputs.version }}'\]/, /^## \[/{//!p}' CHANGELOG.md | sed '/^## \[/d' || echo "")
+                  fi
+
+                  if [ -z "$RELEASE_NOTES" ]; then
+                    RELEASE_NOTES="Release of CLI version ${{ steps.version.outputs.version }}"
+                  fi
+
+                  gh release create "cli-v${{ steps.version.outputs.version }}" \
+                    --title "CLI v${{ steps.version.outputs.version }}" \
+                    --notes "$RELEASE_NOTES" \
+                    --target main
+
+            - name: Publish to NPM
+              run: |
+                  cd cli
+                  npm publish --provenance
+
+                  echo "✅ Successfully published @finos/calm-cli@${{ steps.version.outputs.version }} to NPM" >> $GITHUB_STEP_SUMMARY
