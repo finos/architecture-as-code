@@ -47,3 +47,4 @@ coverage/
 .github/chatmodes
 .github/agents
 shared/test-output/
+.calm-workspace/

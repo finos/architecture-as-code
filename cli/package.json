@@ -45,6 +45,7 @@
         "execa": "^9.6.0",
         "express-rate-limit": "^8.0.0",
         "mkdirp": "^3.0.1",
+        "tree-dump": "^1.1.0",
         "ts-node": "10.9.2"
     },
     "devDependencies": {
