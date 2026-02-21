@@ -1,17 +1,6 @@
 import { useEffect, useState } from 'react';
 import { IoCompassOutline } from 'react-icons/io5';
-import {
-    fetchNamespaces,
-    fetchPatternIDs,
-    fetchFlowIDs,
-    fetchArchitectureIDs,
-    fetchPatternVersions,
-    fetchFlowVersions,
-    fetchArchitectureVersions,
-    fetchPattern,
-    fetchFlow,
-    fetchArchitecture,
-} from '../../../service/calm-service.js';
+import { CalmService } from '../../../service/calm-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
 import { Data, Adr } from '../../../model/calm.js';
 
@@ -217,10 +206,11 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
     const [flowVersions, setFlowVersions] = useState<string[]>([]);
     const [adrRevisions, setAdrRevisions] = useState<string[]>([]);
 
+    const calmService = new CalmService();
     const adrService = new AdrService();
 
     useEffect(() => {
-        fetchNamespaces(setNamespaces);
+        calmService.fetchNamespaces().then(setNamespaces);
     }, []);
 
     const handleNamespaceClick = (namespace: string) => {
@@ -240,11 +230,11 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
         } else {
             setSelectedType(type);
             if (type === 'Architectures') {
-                fetchArchitectureIDs(selectedNamespace, setArchitectureIDs);
+                calmService.fetchArchitectureIDs(selectedNamespace).then(setArchitectureIDs);
             } else if (type === 'Patterns') {
-                fetchPatternIDs(selectedNamespace, setPatternIDs);
+                calmService.fetchPatternIDs(selectedNamespace).then(setPatternIDs);
             } else if (type === 'Flows') {
-                fetchFlowIDs(selectedNamespace, setFlowIDs);
+                calmService.fetchFlowIDs(selectedNamespace).then(setFlowIDs);
             } else if (type === 'ADRs') {
                 adrService
                     .fetchAdrIDs(selectedNamespace)
@@ -260,11 +250,15 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
         setSelectedVersion('');
 
         if (type === 'Architectures') {
-            fetchArchitectureVersions(selectedNamespace, resourceID, setArchitectureVersions);
+            calmService
+                .fetchArchitectureVersions(selectedNamespace, resourceID)
+                .then(setArchitectureVersions);
         } else if (type === 'Patterns') {
-            fetchPatternVersions(selectedNamespace, resourceID, setPatternVersions);
+            calmService
+                .fetchPatternVersions(selectedNamespace, resourceID)
+                .then(setPatternVersions);
         } else if (type === 'Flows') {
-            fetchFlowVersions(selectedNamespace, resourceID, setFlowVersions);
+            calmService.fetchFlowVersions(selectedNamespace, resourceID).then(setFlowVersions);
         } else if (type === 'ADRs') {
             adrService
                 .fetchAdrRevisions(selectedNamespace, resourceID)
@@ -276,11 +270,17 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
         setSelectedVersion(version);
 
         if (type === 'Architectures') {
-            fetchArchitecture(selectedNamespace, selectedResourceID, version, onDataLoad);
+            calmService
+                .fetchArchitecture(selectedNamespace, selectedResourceID, version)
+                .then(onDataLoad);
         } else if (type === 'Patterns') {
-            fetchPattern(selectedNamespace, selectedResourceID, version, onDataLoad);
+            calmService
+                .fetchPattern(selectedNamespace, selectedResourceID, version)
+                .then(onDataLoad);
         } else if (type === 'Flows') {
-            fetchFlow(selectedNamespace, selectedResourceID, version, onDataLoad);
+            calmService
+                .fetchFlow(selectedNamespace, selectedResourceID, version)
+                .then(onDataLoad);
         } else if (type === 'ADRs') {
             adrService.fetchAdr(selectedNamespace, selectedResourceID, version).then(onAdrLoad);
         }
