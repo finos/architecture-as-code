@@ -24,6 +24,14 @@ Welcome to the CALM learning path! These tutorials take you from zero CALM knowl
 │   ├── Metadata                                                              │
 │   └── Complete Architecture                                                 │
 │                                                                             │
+│   PRACTITIONER TUTORIAL                                                     │
+│   ├── Tool Setup                                                            │
+│   ├── Understand the Business Context                                       │
+│   ├── Define Initial Architecture                                           │
+│   ├── Refine Architecture Definition                                        │
+│   ├── Generate Archcitecture Documentation                                  │
+│   └── Key Take-aways                                                        │
+│                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -70,3 +78,31 @@ By completing all tutorials, you'll be able to:
 ✅ **Build** realistic multi-service architectures  
 
 Ready to begin? [Start your CALM journey →](beginner/01-setup)
+
+## Start Here: Practitioner
+
+### 🛠️ Practitioner Tutorial
+
+**Some CALM knowledge required, similar to what is covered in the Beginner tutorial.**
+
+## Prerequisites
+
+Before you begin, make sure you have:
+
+- **Git** installed
+- **Node.js** (20+) and npm installed
+- **VSCode** editor (version 1.96+)
+- **CALM AI Assistant** Copilot, Claude or KIRO AI Assistant is enabled
+- **calm cli** installed
+
+## Skills You'll Acquire
+
+By completing this tutorial, you'll see how to use the CALM AI Assistant to:
+
+✅ **Create** complete architecture document from a business design  
+✅ **Enhance** definition of nodes, relationships, interfaces, and metadata with organizational specific information  
+✅ **Use** the VSCode extension for visualization   
+✅ **Generate** views of the archcitecture  
+✅ **Learn** best practices in working with CALM architectures  
+
+[Start Building a CALM Architecture →](./build-a-calm-architecture/)
