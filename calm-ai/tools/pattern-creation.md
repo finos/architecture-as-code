@@ -433,7 +433,7 @@ Patterns use JSON schema constructs to provide choices and options:
                                     "container": "k8s-cluster",
                                     "nodes": [
                                         "api-service",
-                                        "postgres-db"
+                                        "registration-database"
                                     ]
                                 }
                             }
