@@ -267,7 +267,7 @@ Patterns use JSON schema constructs to provide choices and options:
                             "type": "object",
                             "properties": {
                                 "unique-id": {
-                                    "const": "postgres-db"
+                                    "const": "registraton-database"
                                 },
                                 "name": {
                                     "const": "PostgreSQL Database"
@@ -300,7 +300,7 @@ Patterns use JSON schema constructs to provide choices and options:
                             "type": "object",
                             "properties": {
                                 "unique-id": {
-                                    "const": "mysql-db"
+                                    "const": "registraion-database"
                                 },
                                 "name": {
                                     "const": "MySQL Database"
@@ -393,7 +393,7 @@ Patterns use JSON schema constructs to provide choices and options:
                     "type": "object",
                     "properties": {
                         "unique-id": {
-                            "const": "api-to-database"
+                            "const": "api-service-to-database"
                         },
                         "description": {
                             "type": "string"
@@ -408,7 +408,7 @@ Patterns use JSON schema constructs to provide choices and options:
                                         "node": "api-service"
                                     },
                                     "destination": {
-                                        "node": "postgres-db"
+                                        "node": "registration-database"
                                     }
                                 }
                             }
