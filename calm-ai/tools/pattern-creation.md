@@ -355,9 +355,59 @@ Patterns use JSON schema constructs to provide choices and options:
         },
         "relationships": {
             "type": "array",
-            "minItems": 3,
-            "maxItems": 3,
+            "minItems": 4,
+            "maxItems": 4,
             "prefixItems": [
+                {
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
+                    "type": "object",
+                    "properties": {
+                        "unique-id": {
+                            "const": "database-choice"
+                        },
+                        "description": {
+                            "const": "Which database technology should be used?"
+                        },
+                        "relationship-type": {
+                            "type": "object",
+                            "properties": {
+                                "options": {
+                                    "type": "array",
+                                    "prefixItems": [
+                                        {
+                                            "oneOf": [
+                                                {
+                                                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/decision",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "description": {
+                                                            "const": "Use PostgreSQL"
+                                                        },
+                                                        "nodes": {
+                                                            "const": ["registraton-database"]
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/decision",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "description": {
+                                                            "const": "Use MySQL"
+                                                        },
+                                                        "nodes": {
+                                                            "const": ["registraion-database"]
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
                 {
                     "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
                     "type": "object",
