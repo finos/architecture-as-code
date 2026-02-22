@@ -52,7 +52,7 @@ If you are unable to find endpoint information for that service in the code,
 respond "Unable to find endpoint information"
 ```
 
-_Note_: It is a good practice to be explicit with how the AI Assistant should respond if information is not present.  Othewerise the AI Assistant may hallucinate incorrect information.
+_Note_: It is a good practice to be explicit with how the AI Assistant should respond if information is not present.  Otherwise the AI Assistant may hallucinate incorrect information.
 
 **Response from AI Assistant**
 ```text
