@@ -6,7 +6,7 @@ sidebar_position: 4
 
 _Note_: Responses from the AI Assistant were lightly edited for readability.
 
-## Add inteface specifications for Services
+## Add interface specifications for Services
 
 We will now enhance the trading system architecture definition by adding interface definitions for the services.
 
@@ -19,7 +19,7 @@ Using the AI Assistant identify all the nodes that are services.
 what are the nodes that are services
 ```
 
-_Note_: The `trading-syste.achicture.json` file is added to the context for this prompt.
+_Note_: The `trading-system.architecture.json` file is added to the context for this prompt.
 
 **Response from AI Assistant**
 ```text
@@ -42,7 +42,7 @@ We will now ask the AI Assistant to review the application source code to pull o
 **Prompt to AI Assistant**
 ```text
 for each of the services listed, identify the service endpoints in the #codebase.  
-For each enpoint, extract the following:
+For each endpoint, extract the following:
 -description
 -path
 -method
@@ -56,13 +56,13 @@ _Note_: It is a good practice to be explicit with how the AI Assistant should re
 
 **Response from AI Assistant**
 ```text
-Searched codebase for "for each of the services listed, identify the service endpoints in the #codebase.  For each enpoint, extract the following:
+Searched codebase for "for each of the services listed, identify the service endpoints in the #codebase.  For each endpoint, extract the following:
 -description
 -path
 -method
 -port
 
-If you are unable to find endpoint information for that service in the code, respond "Unable to find endpoint information"", 26 results
+If you are unable to find endpoint information for that service in the code, respond "Unable to find endpoint information", 26 results
 
 I'll search the codebase for endpoint information for each service.       
 
@@ -170,7 +170,7 @@ This service uses **WebSocket/SocketIO** for publish-subscribe messaging pattern
 
 ### REST API Endpoint specifications
 
-Since there are two types of endpoints: REST and WebSocket, we will first create CALM interface specfications 
+Since there are two types of endpoints: REST and WebSocket, we will first create CALM interface specifications 
 for the RESTful services.
 
 **Prompt to AI Assistant**
@@ -482,7 +482,7 @@ The architecture file passes validation with:
 The CALM architecture file is valid and conforms to the CALM 1.1 schema.
 ```
 
-The RESTful interface specfications pass validation, we can now commit the changes to the repo.
+The RESTful interface specifications pass validation, we can now commit the changes to the repo.
 
 **Prompt to AI Assistant**
 ```text
@@ -502,13 +502,13 @@ Ran terminal command:  git add trading-system.architecture.json && git commit -m
 The interface specifications for all six REST services have been committed to the repository.
 ```
 
-### Trade Feed Sevice interface specification
+### Trade Feed Service interface specification
 
 Let's now focus on the Trade Feed WebSocket/SocketIO interface.
 
 **Prompt to AI Assistant**
 ```text
-For the "Trade Feed" service, propose a CALM interface specfication. Display the propsal. 
+For the "Trade Feed" service, propose a CALM interface specification. Display the proposal. 
 I want to review and approve any changes.
 ```
 
@@ -862,7 +862,7 @@ Made changes.
 
 ## Commit metadata changes to the GIT Repo
 
-With the architectue file validate with the metadata changes, commit the changes to the GIT repo.
+Now that the architecture file validates with the metadata changes, commit the changes to the GIT repo.
 
 **Prompt to AI Assistant**
 ```text
