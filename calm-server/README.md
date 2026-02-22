@@ -6,6 +6,7 @@ The `calm-server` executable provides HTTP endpoints for CALM architecture valid
 
 ## Features
 
+- **Bundled CALM Schemas** - All CALM schemas (release and draft) are bundled with the executable
 - **Health Check Endpoint** (`GET /health`) - Status endpoint for monitoring
 - **Validation Endpoint** (`POST /calm/validate`) - Validate CALM architectures against schemas
 
@@ -14,14 +15,17 @@ The `calm-server` executable provides HTTP endpoints for CALM architecture valid
 ### Starting the Server
 
 ```bash
-# Basic usage (requires schema directory)
-calm-server -s /path/to/calm/schemas
+# Basic usage (uses bundled schemas by default)
+calm-server
 
 # With custom port
-calm-server -s ./calm/release --port 8080
+calm-server --port 8080
 
 # With verbose logging
-calm-server -s ./calm/release --port 3000 --verbose
+calm-server --port 3000 --verbose
+
+# Or provide a custom schema directory
+calm-server -s /path/to/calm/schemas --port 3000
 ```
 
 ### Command-Line Options
@@ -32,7 +36,8 @@ Usage: calm-server [options]
 Options:
   -V, --version                  output the version number
   --port <port>                  Port to run the server on (default: "3000")
-  -s, --schema-directory <path>  Path to the directory containing the meta schemas (required)
+  -s, --schema-directory <path>  Path to the directory containing the meta schemas
+                                 (default: bundled schemas in dist/calm)
   -v, --verbose                  Enable verbose logging (default: false)
   -c, --calm-hub-url <url>       URL to CALMHub instance
   -h, --help                     display help for command

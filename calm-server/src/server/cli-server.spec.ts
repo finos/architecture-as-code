@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { startServer } from './cli-server';
 import { SchemaDirectory } from '@finos/calm-shared';
 import fetch from 'node-fetch';

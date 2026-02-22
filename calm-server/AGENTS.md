@@ -6,6 +6,7 @@ The `calm-server` executable provides a standalone HTTP server implementation of
 
 The calm-server implements the same server functionality as the `calm server` CLI command, providing:
 
+- **Bundled CALM Schemas** - All CALM schemas (release and draft) are bundled during build
 - **Health Check Endpoint** (`/health`) - Status endpoint for monitoring
 - **Validation Endpoint** (`/calm/validate`) - POST endpoint for validating CALM architectures
 - **Rate Limiting** - Protects against abuse with 100 requests per 15 minutes per IP
@@ -24,6 +25,11 @@ calm-server/
 │   │       ├── health-route.ts     # Health check endpoint
 │   │       └── validation-route.ts # Architecture validation endpoint
 │   └── *.spec.ts                   # Unit tests
+├── dist/
+│   ├── index.js                    # Compiled executable
+│   └── calm/                       # Bundled CALM schemas
+│       ├── release/                # Released schema versions
+│       └── draft/                  # Draft schema versions
 ├── package.json
 ├── tsconfig.json
 ├── tsconfig.build.json
@@ -39,19 +45,29 @@ calm-server/
 npm run build:calm-server
 ```
 
+This builds the TypeScript code and copies all CALM schemas from `calm/release` and `calm/draft` into `dist/calm/`.
+
 ### Run the server locally
 ```bash
-# With verbose logging
+# Using bundled schemas (default)
+./calm-server/dist/index.js --port 3000 --verbose
+
+# Or with custom schemas
 ./calm-server/dist/index.js -s ../calm/release --port 3000 --verbose
 
 # Or using npm
 npm run build:calm-server
-node calm-server/dist/index.js -s calm/release --port 3000
+node calm-server/dist/index.js --port 3000
 ```
 
 ### Global installation (for development)
 ```bash
 npm run link:calm-server
+
+# Use bundled schemas (default)
+calm-server --port 3000
+
+# Or provide custom schemas
 calm-server -s /path/to/schemas --port 3000
 ```
 
@@ -65,7 +81,8 @@ CALM Server - A server implementation for the Common Architecture Language Model
 Options:
   -V, --version                  output the version number
   --port <port>                  Port to run the server on (default: "3000")
-  -s, --schema-directory <path>  Path to the directory containing the meta schemas to use. (required)
+  -s, --schema-directory <path>  Path to the directory containing the meta schemas to use.
+                                 (default: bundled schemas in dist/calm)
   -v, --verbose                  Enable verbose logging. (default: false)
   -c, --calm-hub-url <url>       URL to CALMHub instance
   -h, --help                      display help for message
@@ -80,8 +97,8 @@ npm run test:calm-server
 
 ### Test the health endpoint
 ```bash
-# Start the server
-node calm-server/dist/index.js -s calm/release &
+# Start the server (uses bundled schemas)
+node calm-server/dist/index.js &
 SERVER_PID=$!
 
 # Test health

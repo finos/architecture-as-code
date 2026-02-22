@@ -22,7 +22,7 @@ export async function loadCliConfig(): Promise<CLIConfig | null> {
         logger.debug('Parsed user config: ' + config);
         return parsed;
     } catch (err) {
-        if ((err as any).code === 'ENOENT') {
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
             logger.debug('No config file found at ' + configFilePath);
             return null;
         }

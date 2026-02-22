@@ -6,8 +6,11 @@ import { Command } from 'commander';
 import { version } from '../package.json';
 import { startServer } from './server/cli-server';
 import { SchemaDirectory, initLogger } from '@finos/calm-shared';
-import { buildDocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
+import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { loadCliConfig } from './cli-config';
+import path from 'path';
+
+const BUNDLED_SCHEMA_PATH = path.join(__dirname, 'calm');
 
 const PORT_OPTION = '--port <port>';
 const SCHEMAS_OPTION = '-s, --schema-directory <path>';
@@ -42,7 +45,7 @@ async function parseDocumentLoaderConfig(
     return docLoaderOpts;
 }
 
-async function buildSchemaDirectory(docLoader: any, debug: boolean): Promise<SchemaDirectory> {
+async function buildSchemaDirectory(docLoader: DocumentLoader, debug: boolean): Promise<SchemaDirectory> {
     return new SchemaDirectory(docLoader, debug);
 }
 
@@ -53,7 +56,7 @@ program
     .version(version)
     .description('CALM Server - A server implementation for the Common Architecture Language Model')
     .option(PORT_OPTION, 'Port to run the server on', '3000')
-    .requiredOption(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
+    .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.', BUNDLED_SCHEMA_PATH)
     .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
     .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
     .action(async (options) => {
