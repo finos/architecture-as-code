@@ -479,28 +479,10 @@ The architecture file passes validation with:
 - **0 warnings**  
 - **0 info/hints**
 
-The CALM architecture file is valid and conforms to the CALM 1.1 schema.
+The CALM architecture file is valid and conforms to the CALM 1.2 schema.
 ```
 
-The RESTful interface specifications pass validation, we can now commit the changes to the repo.
-
-**Prompt to AI Assistant**
-```text
-commit the interface updates with message "add interface specification for REST services"
-```
-
-**Response from AI Assistant**
-```text
-Ran terminal command:  git add trading-system.architecture.json && git commit -m "add interface specification for REST services"
-
-✅ **Committed successfully!**
-
-- **Commit:** 5abc08e
-- **Changes:** 1 file changed, 809 insertions
-- **Message:** "add interface specification for REST services"
-
-The interface specifications for all six REST services have been committed to the repository.
-```
+The RESTful interface specifications pass validation, we can now commit the changes to the repo with message "add interface specification for REST services"
 
 ### Trade Feed Service interface specification
 
@@ -631,28 +613,12 @@ Ran terminal command:  calm validate -a trading-system.architecture.json -f pret
 - **0 warnings**
 - **0 info/hints**
 
-The architecture file now has complete interface specifications for all 7 services and passes CALM 1.1 schema validation.
+The architecture file now has complete interface specifications for all 7 services and passes CALM 1.2 schema validation.
 
 Made changes.
 ```
 
-**Prompt to AI Assistant**
-```text
-commit change to architecture file with message "add Trade Feed websocket interface specification"
-```
-
-**Response from AI Assistant**
-```
-Ran terminal command:  git add trading-system.architecture.json && git commit -m "add Trade Feed websocket interface specification"
-
-✅ **Committed successfully!**
-
-- **Commit:** b5742af
-- **Changes:** 1 file changed, 52 insertions(+), 1 deletion(-)
-- **Message:** "add Trade Feed websocket interface specification"
-
-The Trade Feed WebSocket and viewer interface specifications have been committed to the repository.
-```
+Now issue a GIT commit with message "add Trade Feed websocket interface specification"
 
 Let's look at how the architecture JSON file was updated with the interface definitions.
 
@@ -722,19 +688,7 @@ _Note_: The values shown in the `requirements` list are illustrative only.  In a
 
 ## Commit architecture file with controls definition to GIT repo
 
-Since the CALM validation passes and a review of the architecture JSON file shows the controls definitions were added, we'll commit the updated architecture file to the GIT repo.
-
-**Prompt to AI Assistant**
-```text
-git commit architecture file with message "add architecture controls definition"
-```
-
-**Response from AI Assistant**
-```text
-Ran terminal command:  git add trading-system.architecture.json && git commit -m "add architecture controls definition"
-
-Committed successfully on branch (commit `4dacbf9`). The architecture file with the new encryption controls has been saved.
-```
+Since the CALM validation passes and a review of the architecture JSON file shows the controls definitions were added, we'll commit the updated architecture file to the GIT repo with message "add architecture controls definition".
 
 ## Add architecture and node level metadata
 
@@ -862,19 +816,7 @@ Made changes.
 
 ## Commit metadata changes to the GIT Repo
 
-Now that the architecture file validates with the metadata changes, commit the changes to the GIT repo.
-
-**Prompt to AI Assistant**
-```text
-git commit with message "add architecture and node metadata"
-```
-
-**Response from AI Assistant**
-```text
-Ran terminal command:  git add trading-system.architecture.json && git commit -m "add architecture and node metadata"
-
-Committed successfully on branch (commit `8393257`). The changes include architecture-level and node-level metadata additions.
-```
+Now that the architecture file validates with the metadata changes, commit the changes to the GIT repo with message "add architecture and node metadata".
 
 ## Document Trading System Boundary
 
@@ -919,17 +861,8 @@ Architecture with system boundary depicted.
 
 ![Trading System Boundary](./images/12_trading_system_boundary.png)
 
-**Prompt to AI Assistant**
-```text
-commit changes with message "add trading system boundary"
-```
 
-**Response from AI Assistant**
-```text
-Ran terminal command:  git add trading-system.architecture.json && git commit -m "add trading system boundary"
-
-Committed successfully! The changes have been saved to the repository with commit hash `b93691c`.
-```
+Commit the changes to the GIT repo with the message "add trading system boundary".
 
 ## Summary
 

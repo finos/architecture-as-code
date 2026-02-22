@@ -30,7 +30,7 @@ I'm ready to assist with CALM architectures. Let me create the minimal architect
 
 Ran terminal command:  cat > "trading-system.architecture.json" << 'EOF'
 {
-    "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
     "unique-id": "trading-system",
     "name": "Trading System",
     "description": "A minimal trading system architecture",
@@ -46,7 +46,7 @@ Ran terminal command:  calm validate -a trading-system.architecture.json
 
 Perfect! Created trading-system.architecture.json with the minimal required structure and validated successfully. The file includes:
 
-- `$schema`: Reference to CALM v1.1 schema
+- `$schema`: Reference to CALM v1.2 schema
 - `unique-id`: "trading-system"
 - `name`: "Trading System"
 - `description`: A minimal description
@@ -399,19 +399,7 @@ Review the updated architecture file content.  If any issues are detected, promp
 
 ## Commit Architecture to GIT repo
 
-Another good practice is to commit the architecture json file after significant updates.   The AI Assistant can help you with this task.
-
-**Prompt to AI Assistant**
-```text
-git commit the architecture file with message "initial version"
-```
-
-**Response from AI Assistant**
-```text
-Ran terminal command:  git add trading-system.architecture.json && git commit -m "initial version"
-
-Committed successfully. The trading-system.architecture.json file has been added to the repository with commit message "initial version".
-```
+Another good practice is to issue a GIT commit of the architecture json file after significant updates.  At this point, commit the `trading-system.architecture.json` to the repo with the message "initial version".
 
 ## Add process flows to the architecture definition
 
@@ -554,17 +542,7 @@ Made changes.
 
 ## Commit addition of process flow to GIT repo
 
-**Prompt to AI Assistant**
-```text
-git commit architecture file with message "add initial flow definitions"
-```
-
-**Response from AI Assistant**
-```text
-Ran terminal command:  git add trading-system.architecture.json && git commit -m "add initial flow definitions"
-
-Committed successfully with message "add initial flow definitions".
-```
+Issue a git commit for the architecture file with message "add initial flow definitions"
 
 ## Review process flows with CALM Tool VSCode extension
 
@@ -671,20 +649,8 @@ The `Trader` node is now present in both flows.
 
 ## Commit the architecture definition with revised process flow to GIT Repo
 
-At this point the architect has completed the initial definition of the architecture.
-
-**Prompt to AI Assistant**
-```text
-git commit architecture file with message "revised trade-submit and process-trade flows"
-```
-
-**Response from AI Assistant**
-```text
-Ran terminal command:  git add trading-system.architecture.json && git commit -m "revised trade-submit and process-trade flows"
-
-Committed successfully with message "revised trade-submit and process-trade flows".
-```
+At this point the architect has completed the initial definition of the architecture.  We can now issue a GIT commit architecture file with message "revised trade-submit and process-trade flows".
 
 ## Summary 
 
-At this point we have a baseline architecture defined and reviewed by an architect that reflects the business design.  The next step is to enhance the architecture with technical and other key information.
+We have a baseline architecture defined and reviewed by an architect that reflects the business design.  The next step is to enhance the architecture with technical and other key information.
