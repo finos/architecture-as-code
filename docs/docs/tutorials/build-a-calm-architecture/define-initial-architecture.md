@@ -40,7 +40,7 @@ Ran terminal command:  cat > "trading-system.architecture.json" << 'EOF'
 EOF
 
 
-Now let me validate the architecture file to ensure it's compliant with CALM v1.1: 
+Now let me validate the architecture file to ensure it's compliant with CALM v1.2: 
 
 Ran terminal command:  calm validate -a trading-system.architecture.json
 
@@ -218,7 +218,7 @@ one account and one security. Positions aggregate trades for the same
 security within an account to provide a consolidated view of holdings. 
 ```
 
-**Response from AI Assitant**
+**Response from AI Assistant**
 ```text
 Based on the business design, here are the candidate CALM nodes for this event-driven architecture:
 
@@ -269,9 +269,9 @@ Based on the business design, here are the candidate CALM nodes for this event-d
 These nodes capture all the components mentioned in the business design that participate in the event-driven workflows described.
 ```
 
-_Note_: Reviewing content is a guardrail to help ensure the AI Assistant does not stray from the architect intent.  
+_Note_: Reviewing content is a guardrail to help ensure the AI Assistant does not stray from the architect's intent.  
 
-## Review candiate relationships defined in the business design
+## Review candidate relationships defined in the business design
 
 
 **Prompt to AI Assistant**
@@ -378,7 +378,7 @@ The architecture has been validated successfully with no errors or warnings.
 Made changes.
 ```
 
-_Note_:  Whenever an update is made to the architecture file, the `calm validate` command should be used to ensure syntatic correctness.  If the AI Assistant does not run it, the architect should request it to be run.
+_Note_:  Whenever an update is made to the architecture file, the `calm validate` command should be used to ensure syntactic correctness.  If the AI Assistant does not run it, the architect should request it to be run.
 
 ### Excerpt of the CALM Architecture JSON
 ![Raw Architecture JSON](./images/00_initial_architecture_json.png)
@@ -389,7 +389,7 @@ _Note_:  Whenever an update is made to the architecture file, the `calm validate
 Review the updated architecture file content.  If any issues are detected, prompt the AI Assistant or manually update the JSON file for corrections.
 
 ### Preview of the Overall Architecture
-![Overall Architecturee](./images/01_initial_architecture_overall_preview.png)
+![Overall Architecture](./images/01_initial_architecture_overall_preview.png)
 
 ### Preview of Trade Service
 ![Trade Service](./images/02_initial_architecture_trade_service_preview.png)
@@ -399,7 +399,7 @@ Review the updated architecture file content.  If any issues are detected, promp
 
 ## Commit Architecture to GIT repo
 
-Another good practice is to commit the architecture json file after signficant updates.   The AI Assistant can help you with this task.
+Another good practice is to commit the architecture json file after significant updates.   The AI Assistant can help you with this task.
 
 **Prompt to AI Assistant**
 ```text
@@ -566,7 +566,7 @@ Ran terminal command:  git add trading-system.architecture.json && git commit -m
 Committed successfully with message "add initial flow definitions".
 ```
 
-## Review process flows with CALM Tool VSCode extesion
+## Review process flows with CALM Tool VSCode extension
 
 _Note_: For purposes of this tutorial, only two process flows are reviewed.  In actual work, all process flows should be reviewed for completeness and accuracy.
 
@@ -675,7 +675,7 @@ At this point the architect has completed the initial definition of the architec
 
 **Prompt to AI Assistant**
 ```text
-git commit architecture file with mesasge "revised trade-submit and process-trade flows"
+git commit architecture file with message "revised trade-submit and process-trade flows"
 ```
 
 **Response from AI Assistant**
