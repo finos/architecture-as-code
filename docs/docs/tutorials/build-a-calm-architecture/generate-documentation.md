@@ -92,7 +92,7 @@ This method uses CALM's templating function to create a custom markdown view of 
 
 In this section we will show how to generate the custom view given that a template already exists.  For this exercise we are using this <a href="/calm-template/solution-architecture-document.md" target="_blank">custom template</a>.
 
-To reproduce this example, download the template file and save it as `solution-architecture-document.md`.   Now run the following commmand
+To reproduce this example, download the template file and save it as `solution-architecture-document.md`.   Now run the following command
 
 ```shell
 $ calm docify -a trading-system.architecture.json \
