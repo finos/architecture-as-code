@@ -29,7 +29,7 @@ Welcome to the CALM learning path! These tutorials take you from zero CALM knowl
 │   ├── Understand the Business Context                                       │
 │   ├── Define Initial Architecture                                           │
 │   ├── Refine Architecture Definition                                        │
-│   ├── Generate Archcitecture Documentation                                  │
+│   ├── Generate Architecture Documentation                                  │
 │   └── Key Takeaways                                                         │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -102,7 +102,7 @@ By completing this tutorial, you'll see how to use the CALM AI Assistant to:
 ✅ **Create** complete architecture document from a business design  
 ✅ **Enhance** definition of nodes, relationships, interfaces, and metadata with organizational specific information  
 ✅ **Use** the VSCode extension for visualization   
-✅ **Generate** views of the archcitecture  
+✅ **Generate** views of the architecture  
 ✅ **Learn** best practices in working with CALM architectures  
 
 [Start Building a CALM Architecture →](./build-a-calm-architecture/)
