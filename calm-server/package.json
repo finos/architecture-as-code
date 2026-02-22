@@ -16,7 +16,6 @@
     },
     "scripts": {
         "build": "tsup",
-        "watch": "tsup --watch",
         "test": "vitest run",
         "lint": "eslint src",
         "lint-fix": "eslint src --fix"
@@ -29,7 +28,10 @@
     "author": "",
     "license": "Apache-2.0",
     "dependencies": {
-        "@finos/calm-shared": "file:../shared"
+        "@finos/calm-shared": "file:../shared",
+        "commander": "^14.0.0",
+        "express": "^4.18.2",
+        "express-rate-limit": "^8.0.0"
     },
     "devDependencies": {
         "@types/node": "^22.15.0",
