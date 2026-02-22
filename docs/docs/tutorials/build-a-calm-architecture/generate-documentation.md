@@ -159,7 +159,7 @@ This is the fully generated custom <a href="/calm-example/trading-system-sad.md"
 
 In this section of the tutorial we showed two different methods for generating human readable architecture content.
 
-The next and final section will summarize key take-aways from this Practioner's tutorial.
+The next and final section will summarize key takeaways from this Practioner's tutorial.
 
 
 
