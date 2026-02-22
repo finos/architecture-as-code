@@ -104,16 +104,16 @@ This should generate output similar to the following and create a file called `t
 ```text
 info [_TemplateProcessor]:     Using SelfProvidedTemplateLoader for single template file
 [WidgetEngine] ⚠️ Helper 'lookup' is already registered. Skipping registration.
-info [_TemplateProcessor]:     ✅ Output directory exists: calm-demos/build-calm-architecture
+info [_TemplateProcessor]:     ✅ Output directory exists: /Users/jim/Desktop/calm-demos/build-calm-architecture
 warn [_TemplateProcessor]:     ⚠️ Output directory is not empty. Any files not overwritten will remain untouched.
 info [_TemplateProcessor]:     ℹ️ No transformer specified in index.json. Will use TemplateDefaultTransformer.
 info [_TemplateProcessor]:     🔁 No transformer provided. Using TemplateDefaultTransformer.
-info [_HttpReferenceResolver]:     Fetching reference via HTTP: https://schemas.company.com/security/encryption-in-transit.json
-info [_CompositeReferenceResolver]:     HTTP resolution failed for https://schemas.company.com/security/encryption-in-transit.json with Error: HTTP request failed for https://schemas.company.com/security/encryption-in-transit.json: getaddrinfo ENOTFOUND schemas.company.com
-Failed to dereference Resolvable: https://schemas.company.com/security/encryption-in-transit.json Composite resolver: Unable to resolve reference https://schemas.company.com/security/encryption-in-transit.json
-info [_HttpReferenceResolver]:     Fetching reference via HTTP: https://schemas.company.com/security/encryption-at-rest.json
-info [_CompositeReferenceResolver]:     HTTP resolution failed for https://schemas.company.com/security/encryption-at-rest.json with Error: HTTP request failed for https://schemas.company.com/security/encryption-at-rest.json: getaddrinfo ENOTFOUND schemas.company.com
-Failed to dereference Resolvable: https://schemas.company.com/security/encryption-at-rest.json Composite resolver: Unable to resolve reference https://schemas.company.com/security/encryption-at-rest.json
+info [_HttpReferenceResolver]:     Fetching reference via HTTP: https://example.com/security/encryption-in-transit.json
+info [_CompositeReferenceResolver]:     HTTP resolution failed for https://example.com/security/encryption-in-transit.json with Error: HTTP request failed for https://example.com/security/encryption-in-transit.json: unable to get local issuer certificate
+Failed to dereference Resolvable: https://example.com/security/encryption-in-transit.json Composite resolver: Unable to resolve reference https://example.com/security/encryption-in-transit.json
+info [_HttpReferenceResolver]:     Fetching reference via HTTP: https://example.com/security/encryption-at-rest.json
+info [_CompositeReferenceResolver]:     HTTP resolution failed for https://example.com/security/encryption-at-rest.json with Error: HTTP request failed for https://example.com/security/encryption-at-rest.json: unable to get local issuer certificate
+Failed to dereference Resolvable: https://example.com/security/encryption-at-rest.json Composite resolver: Unable to resolve reference https://example.com/security/encryption-at-rest.json
 info [_TemplateEngine]:     ✅ Compiled 1 Templates
 info [_TemplateEngine]:     🔧 Registering Handlebars Helpers...
 info [_TemplateEngine]:     ✅ Registered helper: eq
@@ -127,12 +127,14 @@ info [_TemplateEngine]:     ✅ Registered helper: isArray
 info [_TemplateEngine]:     ✅ Registered helper: join
 info [_TemplateEngine]:     
 🔹 Starting Template Generation...
-info [_TemplateEngine]:     ✅ Generated: calm-demos/build-calm-architecture/trading-system-sad.md
+info [_TemplateEngine]:     ✅ Generated: /Users/jim/Desktop/calm-demos/build-calm-architecture/trading-system-sad.md
 info [_TemplateEngine]:     
 ✅ Template Generation Completed!
 info [_TemplateProcessor]:     
 ✅ Template Generation Completed!
 ```
+
+_Note_:  The "HTTP resolution failed ..." messages can be ignored because "example.com" is a reserved, safe-to-use domain name created by the IANA for documentation, testing, and educational purposes. It serves as a placeholder in tutorials and technical guides, allowing users to illustrate web addresses or email configurations without using real, active domains. It is not a real website.
 
 ---
 
