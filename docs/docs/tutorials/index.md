@@ -30,7 +30,7 @@ Welcome to the CALM learning path! These tutorials take you from zero CALM knowl
 │   ├── Define Initial Architecture                                           │
 │   ├── Refine Architecture Definition                                        │
 │   ├── Generate Archcitecture Documentation                                  │
-│   └── Key Take-aways                                                        │
+│   └── Key Takeaways                                                         │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```

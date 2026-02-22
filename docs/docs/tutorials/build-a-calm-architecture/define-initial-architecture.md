@@ -4,7 +4,7 @@ title: Define Initial Architecture
 sidebar_position: 3
 ---
 
-_Note_: Responses from the AI Assistant were lightly editted for readbility.
+_Note_: Responses from the AI Assistant were lightly edited for readability.
 
 ## Create a minimal CALM architecture file
 

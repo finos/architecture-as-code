@@ -26,7 +26,7 @@ To further enhance your CALM modeling experience, install the FINOS CALM Tools e
 The extension provides syntax highlighting, validation, and additional CALM modeling features directly in the VSCode editor.
 
 **Note to the Reader**: 
-- The CALM Tools Extension is not availble in the KIRO IDE.
+- The CALM Tools Extension is not available in the KIRO IDE.
 
 ---
 
