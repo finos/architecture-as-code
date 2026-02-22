@@ -4,7 +4,7 @@ title: Refine Architecture Definition
 sidebar_position: 4
 ---
 
-_Note_: Responses from the AI Assistant were lightly editted for readbility.
+_Note_: Responses from the AI Assistant were lightly edited for readability.
 
 ## Add inteface specifications for Services
 
