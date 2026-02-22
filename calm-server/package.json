@@ -1,0 +1,43 @@
+{
+    "name": "@finos/calm-server",
+    "version": "0.1.0",
+    "description": "CALM Server - A server implementation for the Common Architecture Language Model",
+    "homepage": "https://calm.finos.org",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/finos/architecture-as-code.git"
+    },
+    "main": "dist/index.js",
+    "files": [
+        "dist/"
+    ],
+    "bin": {
+        "calm-server": "dist/index.js"
+    },
+    "scripts": {
+        "build": "tsup",
+        "watch": "tsup --watch",
+        "test": "vitest run",
+        "lint": "eslint src",
+        "lint-fix": "eslint src --fix"
+    },
+    "keywords": [
+        "calm",
+        "server",
+        "architecture"
+    ],
+    "author": "",
+    "license": "Apache-2.0",
+    "dependencies": {
+        "@finos/calm-shared": "file:../shared"
+    },
+    "devDependencies": {
+        "@types/node": "^22.15.0",
+        "@typescript-eslint/eslint-plugin": "^8.0.0",
+        "@typescript-eslint/parser": "^8.0.0",
+        "eslint": "^9.0.0",
+        "tsup": "^8.3.5",
+        "typescript": "^5.8.2",
+        "vitest": "^3.1.1"
+    }
+}
