@@ -10,7 +10,7 @@ architecture: trading-system.architecture.json
 - **version:** 0.1.0
 - **created-by:** Trading System Team - Copilot
 
-## System Architecutre
+## System Architecture
 ```mermaid
 ---
 config:
@@ -76,14 +76,14 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
 All data transmitted between system components must be encrypted using TLS 1.3 or higher with modern cipher suites, validated certificates, and mutual TLS recommended for service-to-service communication
 
 #### Requirements
-- **Requirement:** https://schemas.company.com/security/encryption-in-transit.json
+- **Requirement:** https://example.com/security/encryption-in-transit.json
 
 ### encryption-at-rest
 
 All stored data must be encrypted at rest using AES-256 equivalent encryption with hardware-backed or managed key systems, regular key rotation every 90 days, applying to databases, file systems, object storage, and backups
 
 #### Requirements
-- **Requirement:** https://schemas.company.com/security/encryption-at-rest.json
+- **Requirement:** https://example.com/security/encryption-at-rest.json
 
 
 
