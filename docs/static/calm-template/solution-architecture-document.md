@@ -8,7 +8,7 @@
 {{/each}}
 {{/if}}
 
-## System Architecutre
+## System Architecture
 {{block-architecture}}
 
 {{#if controls}}
@@ -50,8 +50,6 @@
 #### Description
 {{description}}
 
-
-This component exposes the following interfaces:
 
 {{#if interfaces}}
 #### Interfaces
