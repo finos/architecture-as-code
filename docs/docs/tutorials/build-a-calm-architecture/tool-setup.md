@@ -7,7 +7,7 @@ sidebar_position: 1
 # Tool setup
 
 ## Prerequisites
-- Visual Studio Code (v1.104 or later)
+- Visual Studio Code (v1.106 or later)
 - An active GitHub Copilot subscription
 - GitHub Copilot and Copilot Chat extensions installed in VS Code
 - CALM CLI installed globally (`npm install -g @finos/calm-cli`)
