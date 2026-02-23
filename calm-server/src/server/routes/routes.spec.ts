@@ -25,7 +25,7 @@ vi.mock('./health-route', () => {
     };
 });
 
-vi.mock('@finos/calm-shared', () =>{
+vi.mock('@finos/calm-shared', () => {
     return {
         SchemaDirectory: vi.fn()
     };

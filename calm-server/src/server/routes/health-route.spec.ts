@@ -13,7 +13,7 @@ describe('HealthRouter', () => {
         const router: express.Router = express.Router();
         app.use('/health', router);
         new HealthRouter(router);
-        
+
     });
 
     test('should return 200 for health check', async () => {
