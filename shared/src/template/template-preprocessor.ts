@@ -289,6 +289,8 @@ export class TemplatePreprocessor {
     /**
      * Constructs helper call with convertFromDotNotation wrapper for complex context paths.
      * Maintains helper name while wrapping the context path and preserving all parameters.
+     * Note: kvsPart is passed to BOTH convertFromDotNotation (for filter/sort/limit) AND
+     * the outer helper (for widget-specific options like sections, empty-message, etc.)
      */
     private static buildHelperRewrite(helper: string, safePath: string, kvsPart: string, posPart: string): string {
         return `{{${helper} (${TemplatePreprocessor.CONVERT_FN} this "${safePath}"${kvsPart})${posPart}${kvsPart}}}`;

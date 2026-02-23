@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/patterns/test-pattern-with-id.json",
+  "title": "Test Pattern With ID",
+  "description": "A pattern that references a standard via URL (requires mapping file)",
+  "type": "object",
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "https://example.com/standards/test-node-standard.json"
+      }
+    },
+    "relationships": {
+      "type": "array"
+    }
+  }
+}

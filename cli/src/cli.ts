@@ -5,11 +5,14 @@ import { promptUserForOptions } from './command-helpers/generate-options';
 import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components/options';
 import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { loadCliConfig } from './cli-config';
+import path from 'path';
+import inquirer from 'inquirer';
 
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
 const OUTPUT_OPTION = '-o, --output <file>';
 const SCHEMAS_OPTION = '-s, --schema-directory <path>';
+const TIMELINE_OPTION = '--timeline <file>';
 const VERBOSE_OPTION = '-v, --verbose';
 
 // Generate command options
@@ -30,6 +33,11 @@ const TEMPLATE_DIR_OPTION = '-d, --template-dir <path>';
 const URL_MAPPING_OPTION = '-u, --url-to-local-file-mapping <path>';
 const CLEAR_OUTPUT_DIRECTORY_OPTION = '--clear-output-directory';
 
+// init-ai command options
+const AI_DIRECTORY_OPTION = '-d, --directory <path>';
+const AI_PROVIDER_OPTION = '-p, --provider <provider>';
+const AI_PROVIDER_CHOICES = ['copilot', 'kiro', 'claude'];
+
 export function setupCLI(program: Command) {
     program
         .name('calm')
@@ -43,10 +51,14 @@ export function setupCLI(program: Command) {
         .requiredOption(OUTPUT_OPTION, 'Path location at which to output the generated file.', 'architecture.json')
         .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
             const debug = !!options.verbose;
-            const docLoaderOpts = await parseDocumentLoaderConfig(options);
+            const { getUrlToLocalFileMap } = await import('./command-helpers/template');
+            const urlToLocalMap = getUrlToLocalFileMap(options.urlToLocalFileMapping);
+            const patternBasePath = options.pattern ? path.dirname(path.resolve(options.pattern)) : undefined;
+            const docLoaderOpts = await parseDocumentLoaderConfig(options, urlToLocalMap, patternBasePath);
             const docLoader = buildDocumentLoader(docLoaderOpts);
             const schemaDirectory = await buildSchemaDirectory(docLoader, debug);
             const pattern: object = await docLoader.loadMissingDocument(options.pattern, 'pattern');
@@ -56,11 +68,20 @@ export function setupCLI(program: Command) {
 
     program
         .command('validate')
-        .description('Validate that an architecture conforms to a given CALM pattern.')
+        .description('Validate a CALM document.')
+        .addHelpText('after', `
+
+Validation requires:
+  - an architecture:             to validate against CALM schema
+  - an architecture and pattern: to validate the architecture against the CALM pattern
+  - a pattern:                   to validate the pattern against CALM schema
+  - a timeline:                  to validate the timeline against CALM timeline schema`)
         .option(PATTERN_OPTION, 'Path to the pattern file to use. May be a file path or a URL.')
         .option(ARCHITECTURE_OPTION, 'Path to the architecture file to use. May be a file path or a URL.')
+        .option(TIMELINE_OPTION, 'Path to the timeline file to validate. May be a file path or a URL.')
         .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.', CALM_META_SCHEMA_DIRECTORY)
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
         .option(STRICT_OPTION, 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
         .addOption(
             new Option(FORMAT_OPTION, 'The format of the output')
@@ -71,12 +92,14 @@ export function setupCLI(program: Command) {
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
             const { checkValidateOptions, runValidate } = await import('./command-helpers/validate');
-            checkValidateOptions(program, options, PATTERN_OPTION, ARCHITECTURE_OPTION);
+            checkValidateOptions(program, options, PATTERN_OPTION, ARCHITECTURE_OPTION, TIMELINE_OPTION);
             await runValidate({
                 architecturePath: options.architecture,
                 patternPath: options.pattern,
+                timelinePath: options.timeline,
                 metaSchemaPath: options.schemaDirectory,
                 calmHubUrl: options.calmHubUrl,
+                urlToLocalFileMapping: options.urlToLocalFileMapping,
                 verbose: !!options.verbose,
                 strict: options.strict,
                 outputFormat: options.format,
@@ -161,16 +184,15 @@ export function setupCLI(program: Command) {
         .option(TEMPLATE_OPTION, 'Path to a single .hbs or .md template file')
         .option(TEMPLATE_DIR_OPTION, 'Path to a directory of .hbs/.md templates')
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
+        .option('--scaffold', 'Copy template files without processing (for customization/live docify)', false)
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
-            const { getUrlToLocalFileMap } = await import('./command-helpers/template');
             const { Docifier } = await import('@finos/calm-shared');
 
             if (options.verbose) {
                 process.env.DEBUG = 'true';
             }
 
-            const localDirectory = getUrlToLocalFileMap(options.urlToLocalFileMapping);
             const flagsUsed = [options.template, options.templateDir].filter(Boolean);
 
             if (flagsUsed.length > 1) {
@@ -196,37 +218,62 @@ export function setupCLI(program: Command) {
                 docifyMode,
                 options.architecture,
                 options.output,
-                localDirectory,
+                options.urlToLocalFileMapping,
                 templateProcessingMode,
                 templatePath,
-                options.clearOutputDirectory
+                options.clearOutputDirectory,
+                options.scaffold
             );
 
             await docifier.docify();
         });
 
+    const providerOption = new Option(AI_PROVIDER_OPTION, 'AI provider to initialize')
+        .choices(AI_PROVIDER_CHOICES);
+
     program
-        .command('copilot-chatmode')
-        .description('Augment a git repository with a CALM VSCode chatmode for AI assistance')
-        .option('-d, --directory <path>', 'Target directory (defaults to current directory)', '.')
+        .command('init-ai')
+        .description('Augment a git repository with AI assistance for CALM')
+        .addOption(providerOption)
+        .option(AI_DIRECTORY_OPTION, 'Target directory (defaults to current directory)', '.')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
             const { setupAiTools } = await import('./command-helpers/ai-tools');
-
-            if (options.verbose) {
-                process.env.DEBUG = 'true';
+            const providers = AI_PROVIDER_CHOICES;
+            let selectedProvider: string = options.provider;
+            if (!selectedProvider) {
+                const answer = await inquirer.prompt({
+                    type: 'list',
+                    name: 'provider',
+                    message: 'Select an AI provider:',
+                    choices: providers.map((p) => ({ name: p, value: p })),
+                });
+                selectedProvider = answer.provider;
             }
+            console.log(`Selected AI provider: ${selectedProvider}`);
 
-            await setupAiTools(options.directory, !!options.verbose);
+            await setupAiTools(selectedProvider, options.directory, !!options.verbose);
         });
 
 }
 
-export async function parseDocumentLoaderConfig(options): Promise<DocumentLoaderOptions> {
+interface ParseDocumentLoaderOptions {
+    verbose?: boolean;
+    calmHubUrl?: string;
+    schemaDirectory?: string;
+}
+
+export async function parseDocumentLoaderConfig(
+    options: ParseDocumentLoaderOptions,
+    urlToLocalMap?: Map<string, string>,
+    basePath?: string
+): Promise<DocumentLoaderOptions> {
     const logger = initLogger(options.verbose, 'calm-cli');
     const docLoaderOpts: DocumentLoaderOptions = {
         calmHubUrl: options.calmHubUrl,
         schemaDirectoryPath: options.schemaDirectory,
+        urlToLocalMap: urlToLocalMap,
+        basePath: basePath,
         debug: !!options.verbose
     };
 

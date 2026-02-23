@@ -18,13 +18,34 @@ Renders data as Markdown tables with support for nested objects and column filte
 {{!-- Filter specific columns --}}
 {{table services columns="name,port,version" key="id"}}
 
-{{table services oritentation='vertical' columns="name,status"}}
+{{!-- Vertical table layout --}}
+{{table services orientation='vertical' columns="name,status"}}
+
+{{!-- Using sections to filter columns for CALM nodes --}}
+{{table nodes["my-node"] orientation="vertical" sections="overview"}}
+{{table nodes["my-node"] orientation="vertical" sections="extended"}}
+{{table nodes["my-node"] orientation="vertical" sections="metadata"}}
+
+{{!-- Sections can also be combined into a single table --}}
+{{table nodes["my-node"] orientation="vertical" sections="overview,extended,metadata"}}
+
+{{!-- Display message when table is empty --}}
+{{table nodes["my-node"] sections="metadata" empty-message="There is no metadata"}}
 ```
+
 **Options:**
-- `oritentation` (vertical | horizontal): table layout (default: horizontal)
+- `orientation` (vertical | horizontal): Table layout (default: horizontal)
 - `headers` (boolean): Show/hide table headers (default: true)
 - `columns` (string): Comma-separated list of columns to include
 - `key` (string): Property to use as unique identifier (default: "unique-id")
+- `empty-message` (string): Message to display when the table has no data (renders as `<p class="empty-message">...</p>`)
+- `sections` (string): Comma-separated list of section types to include. Valid values:
+  - `overview`: Shows core node properties (unique-id, name, description, node-type)
+  - `extended`: Shows additional properties, excluding overview columns and schema properties (interfaces, controls, metadata, details)
+  - `metadata`: Shows only the metadata property if it exists and has content
+
+**Nested Objects:**
+When a cell value is an object or array, the table widget automatically renders it as a nested table, providing recursive display of complex data structures.
 
 ### List Widget
 
@@ -161,6 +182,20 @@ Renders a system architecture as a Mermaid flowchart with optional containers (s
 
 {{!-- Custom node type mapping to built-in shapes --}}
 {{block-architecture this render-node-type-shapes=true node-type-map='{"cache": "database", "queue": "messagebus", "proxy": "service"}'}}
+
+{{!-- Use a preset theme for different color palettes --}}
+{{block-architecture this theme="dark"}}
+{{block-architecture this theme="high-contrast-light"}}
+
+{{!-- Choose layout engine (elk provides better layout for complex diagrams) --}}
+{{block-architecture this layout-engine="elk"}}
+{{block-architecture this layout-engine="dagre"}}
+
+{{!-- Customize specific colors while keeping preset theme as base --}}
+{{block-architecture this theme="dark" theme-colors='{"highlight": {"fill": "#ff6b6b", "stroke": "#ee5a52"}}'}}
+
+{{!-- Provide complete custom theme colors --}}
+{{block-architecture this theme-colors='{"boundary": {"fill": "#e3f2fd", "stroke": "#1976d2"}, "node": {"fill": "#fff3e0", "stroke": "#f57c00"}, "iface": {"fill": "#f3e5f5", "stroke": "#7b1fa2"}, "highlight": {"fill": "#ffebee", "stroke": "#c62828"}}'}}
 ```
 
 **What it shows**
@@ -174,6 +209,9 @@ Renders a system architecture as a Mermaid flowchart with optional containers (s
 
 | Option                | Type | Default | Description |
 |-----------------------|---|---:|---|
+| `theme`               | `'light' \| 'dark' \| 'high-contrast-light' \| 'high-contrast-dark'` | `'light'` | Visual theme preset with predefined color palettes for diagram elements. |
+| `theme-colors`        | stringified JSON map | — | Custom color overrides or complete theme. Merges with preset theme or replaces it entirely. Must include `boundary`, `node`, `iface`, and `highlight` objects. Each object requires `fill` and `stroke` properties, and optionally `strokeDasharray`, `strokeWidth`, `fontSize`. |
+| `layout-engine`       | `'dagre' \| 'elk'` | `'elk'` | Mermaid layout engine for diagram rendering. **ELK** (Eclipse Layout Kernel) provides better automatic layout for complex diagrams with improved edge routing and hierarchy handling. **Dagre** is the classic Mermaid layout engine. |
 | `focus-nodes`         | string (CSV) | — | Restrict the view to these node IDs (and, if containers are shown, their parent/child context per other options). |
 | `focus-relationships` | string (CSV) | — | Restrict view to the specified relationship unique-ids. Only those relationships and the nodes they connect are included (plus containers per settings). |
 | `focus-flows`         | string (CSV) | — | Restrict edges to transitions that belong to the given **flow unique-ids or names** (case-insensitive). Only nodes touching those edges are included (plus containers per settings). |
@@ -205,6 +243,81 @@ When `render-node-type-shapes` is enabled, the following CALM node types are ren
 - `messagebus` → horizontal cylinder with web icon 📨  - this isn't in schema but think we need it
 
 > **Sorting:** Containers and nodes are always sorted **alphabetically by label** for stable layouts.
+
+**Theme Support**
+
+The block architecture widget supports visual themes to customize the appearance of diagram elements. You can use preset themes or provide custom color configurations.
+
+**Preset Themes:**
+
+- `light` (default): Clean, light background with subtle borders
+- `dark`: Dark mode optimized for low-light environments
+- `high-contrast-light` / `high-contrast-dark`: Accessibility-focused with strong color contrast
+
+**Custom Theme Colors:**
+
+You can customize colors in two ways:
+
+1. **Partial override**: Specify `theme` and `theme-colors` to merge custom colors with a preset theme:
+   ```handlebars
+   {{block-architecture this theme="dark" theme-colors='{"highlight": {"fill": "#ff6b6b", "stroke": "#ee5a52"}}'}}
+   ```
+
+2. **Complete custom theme**: Provide only `theme-colors` with all required properties:
+   ```handlebars
+   {{block-architecture this theme-colors='{"boundary": {...}, "node": {...}, "iface": {...}, "highlight": {...}}'}}
+   ```
+
+**Theme Color Structure:**
+
+Each theme must define four element types: `boundary`, `node`, `iface`, and `highlight`. Each element type can have:
+
+- `fill` (required): Background/fill color (hex format: `#rrggbb`)
+- `stroke` (required): Border/stroke color (hex format: `#rrggbb`)
+- `strokeDasharray` (optional): Dash pattern for borders (e.g., `"5 4"` for dashed lines)
+- `strokeWidth` (optional): Border thickness in pixels as a number (e.g., `2`)
+- `fontSize` (optional): Text size (e.g., `"10px"` for interface labels)
+
+**Node type shapes** (when `render-node-type-shapes=true`) can also have custom colors:
+- `actor`, `database`, `webclient`, `service`, `system`, `messagebus`
+
+Example complete custom theme:
+```json
+{
+  "boundary": {
+    "fill": "#e3f2fd",
+    "stroke": "#1976d2",
+    "strokeDasharray": "5 4",
+    "strokeWidth": 2
+  },
+  "node": {
+    "fill": "#fff3e0",
+    "stroke": "#f57c00",
+    "strokeWidth": 1
+  },
+  "iface": {
+    "fill": "#f3e5f5",
+    "stroke": "#7b1fa2",
+    "strokeWidth": 1,
+    "fontSize": "10px"
+  },
+  "highlight": {
+    "fill": "#ffebee",
+    "stroke": "#c62828",
+    "strokeWidth": 2
+  },
+  "actor": {
+    "fill": "#e8f5e9",
+    "stroke": "#388e3c"
+  }
+}
+```
+
+For theme examples, see the test fixtures:
+- [Light theme](./test-fixtures/block-architecture-widget/theme-light/)
+- [Dark theme](./test-fixtures/block-architecture-widget/theme-dark/)
+- [High contrast theme](./test-fixtures/block-architecture-widget/theme-high-contrast/)
+- [Custom theme colors](./test-fixtures/block-architecture-widget/theme-custom/)
 
 **Context requirements**
 - The context must be a **CALM core canonical model**, e.g. `{ nodes, relationships, flows? }`.

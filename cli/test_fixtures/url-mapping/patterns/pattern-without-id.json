@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Test Pattern Without ID",
+  "description": "A pattern that references a standard via relative path (no mapping needed)",
+  "type": "object",
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "standards/test-node-standard.json"
+      }
+    },
+    "relationships": {
+      "type": "array"
+    }
+  }
+}

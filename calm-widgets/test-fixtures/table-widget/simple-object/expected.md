@@ -11,8 +11,7 @@
         <tr>
             <td><b>Service A</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Type</b></td>
@@ -40,14 +39,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Service B</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Type</b></td>
@@ -75,14 +72,12 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         <tr>
             <td><b>Service C</b></td>
             <td>
-                <div class="table-container">
-                    <table>
+                <table class="nested-table">
                         <tbody>
                         <tr>
                             <td><b>Type</b></td>
@@ -110,7 +105,6 @@
                         </tr>
                         </tbody>
                     </table>
-                </div>
             </td>
         </tr>
         </tbody>

@@ -8,6 +8,7 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
+import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.store.NamespaceStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +28,8 @@ public class NitriteNamespaceStore implements NamespaceStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(NitriteNamespaceStore.class);
     private static final String COLLECTION_NAME = "namespaces";
-    private static final String NAMESPACE_FIELD = "namespace";
+    private static final String NAME_FIELD = "name";
+    private static final String DESCRIPTION_FIELD = "description";
 
     private final NitriteCollection namespaceCollection;
 
@@ -38,33 +40,34 @@ public class NitriteNamespaceStore implements NamespaceStore {
     }
 
     @Override
-    public List<String> getNamespaces() {
-        List<String> namespaces = new ArrayList<>();
+    public List<NamespaceInfo> getNamespaces() {
+        List<NamespaceInfo> namespaces = new ArrayList<>();
         for (Document doc : namespaceCollection.find()) {
-            namespaces.add(doc.get(NAMESPACE_FIELD, String.class));
+            namespaces.add(new NamespaceInfo(doc.get(NAME_FIELD, String.class), doc.get(DESCRIPTION_FIELD, String.class)));
         }
         LOG.debug("Retrieved {} namespaces from NitriteDB", namespaces.size());
         return namespaces;
     }
 
     @Override
-    public boolean namespaceExists(String namespace) {
-        Filter filter = where(NAMESPACE_FIELD).eq(namespace);
+    public boolean namespaceExists(String namespaceName) {
+        Filter filter = where(NAME_FIELD).eq(namespaceName);
         Document doc = namespaceCollection.find(filter).firstOrNull();
         boolean exists = doc != null;
-        LOG.debug("Namespace '{}' exists: {}", namespace, exists);
+        LOG.debug("Namespace '{}' exists: {}", namespaceName, exists);
         return exists;
     }
 
     @Override
-    public void createNamespace(String namespace) {
-        if (!namespaceExists(namespace)) {
+    public void createNamespace(String name, String description) {
+        if (!namespaceExists(name)) {
             Document namespaceDoc = Document.createDocument()
-                    .put(NAMESPACE_FIELD, namespace);
+                    .put(NAME_FIELD, name)
+                    .put(DESCRIPTION_FIELD, description);
             namespaceCollection.insert(namespaceDoc);
-            LOG.info("Created namespace: {}", namespace);
+            LOG.info("Created namespace: {}", name);
         } else {
-            LOG.debug("Namespace '{}' already exists, skipping creation", namespace);
+            LOG.debug("Namespace '{}' already exists, skipping creation", name);
         }
     }
 }

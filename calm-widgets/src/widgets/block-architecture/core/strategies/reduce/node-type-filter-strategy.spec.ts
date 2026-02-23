@@ -23,6 +23,8 @@ describe('NodeTypeFilterStrategy', () => {
             renderNodeTypeShapes: false,
             edgeLabels: 'description',
             collapseRelationships: false,
+            theme: 'light',
+            layoutEngine: 'elk',
             nodeTypes: ['service']
         };
 
@@ -50,7 +52,9 @@ describe('NodeTypeFilterStrategy', () => {
             renderInterfaces: false,
             renderNodeTypeShapes: false,
             edgeLabels: 'description',
-            collapseRelationships: false
+            collapseRelationships: false,
+            theme: 'light',
+            layoutEngine: 'elk',
             // nodeTypes omitted
         };
 
@@ -80,6 +84,8 @@ describe('NodeTypeFilterStrategy', () => {
             renderNodeTypeShapes: false,
             edgeLabels: 'description',
             collapseRelationships: false,
+            theme: 'light',
+            layoutEngine: 'elk',
             nodeTypes: ['service', 'database']
         };
 
@@ -106,6 +112,8 @@ describe('NodeTypeFilterStrategy', () => {
             renderNodeTypeShapes: false,
             edgeLabels: 'description',
             collapseRelationships: false,
+            theme: 'light',
+            layoutEngine: 'elk',
             nodeTypes: ['service']
         };
 

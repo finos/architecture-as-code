@@ -9,6 +9,11 @@ labels: meeting, office-hours
 
 _day-of-week_ DD MMM yyyy - _time_ EST / _time_ UK
 
+## Zoom info
+
+Join Zoom Meeting
+https://zoom-lfx.platform.linuxfoundation.org/meeting/98579493833?password=2af32413-a2a4-4ada-b064-ae8544c64c85
+
 ## Meeting notices
 - FINOS **Project leads** are responsible for observing the FINOS guidelines for [running project meetings](https://community.finos.org/docs/governance/meeting-procedures/). Project maintainers can find additional resources in the [FINOS Maintainers Cheatsheet](https://community.finos.org/docs/finos-maintainers-cheatsheet).
 
@@ -26,11 +31,3 @@ Office Hours is a meeting for maintainers to get together to discuss active deve
 - [ ] Item 2
 - [ ] Item 2
 
-
-### Zoom info
-
-Join Zoom Meeting
-https://zoom.us/j/95349776375
-
-Meeting ID: 953 4977 6375
-Passcode: 373428

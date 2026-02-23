@@ -3,6 +3,7 @@ import { Spectral, ISpectralDiagnostic, RulesetDefinition } from '@stoplight/spe
 
 import validationRulesForPattern from '../../spectral/rules-pattern';
 import validationRulesForArchitecture from '../../spectral/rules-architecture';
+import validationRulesForTimeline from '../../spectral/rules-timeline';
 import { DiagnosticSeverity } from '@stoplight/types';
 import { initLogger, Logger } from '../../logger.js';
 import { ValidationOutput, ValidationOutcome } from './validation.output.js';
@@ -16,6 +17,17 @@ import { selectChoices, CalmChoice } from '../generate/components/options.js';
 let logger: Logger; // defined later at startup
 
 export type ValidateOutputFormat = 'json' | 'junit' | 'pretty';
+
+export interface ValidationDocumentContext {
+    id: string;
+    label?: string;
+    filePath?: string;
+    lines?: string[];
+}
+
+export interface ValidationFormattingOptions {
+    documents?: Record<string, ValidationDocumentContext>;
+}
 
 /**
  * TODO - move this out of shared and into the CLI - this is process-management code.
@@ -37,7 +49,8 @@ export type OutputFormat = 'junit' | 'json' | 'pretty'
 
 export function formatOutput(
     validationOutcome: ValidationOutcome,
-    format: OutputFormat
+    format: OutputFormat,
+    options?: ValidationFormattingOptions
 ): string {
     logger.info(`Formatting output as ${format}`);
     switch (format) {
@@ -46,7 +59,7 @@ export function formatOutput(
         return createJUnitReport(validationOutcome, spectralRuleNames);
     }
     case 'pretty':
-        return prettyFormat(validationOutcome);
+        return prettyFormat(validationOutcome, options);
     case 'json':
         return prettifyJson(validationOutcome);
     }
@@ -55,7 +68,8 @@ export function formatOutput(
 
 async function runSpectralValidations(
     schema: string,
-    spectralRuleset: RulesetDefinition
+    spectralRuleset: RulesetDefinition,
+    source: string
 ): Promise<SpectralResult> {
     let errors = false;
     let warnings = false;
@@ -68,7 +82,7 @@ async function runSpectralValidations(
     if (issues && issues.length > 0) {
         logger.debug(`Spectral raw output: ${prettifyJson(issues)}`);
         sortSpectralIssueBySeverity(issues);
-        spectralIssues = convertSpectralDiagnosticToValidationOutputs(issues);
+        spectralIssues = convertSpectralDiagnosticToValidationOutputs(issues, source);
         if (issues.filter(issue => issue.severity === 0).length > 0) {
             logger.debug('Spectral output contains errors');
             errors = true;
@@ -85,32 +99,47 @@ async function runSpectralValidations(
 /**
  * Validation - with simple input parameters and output validation outcomes.
  * @param architecture The architecture as a JS object
- * @param pattern The pattern as a JS object
- * @param metaSchemaPath File path to meta schema directory
+ * @param patternOrSchema The pattern (or schema) as a JS object
+ * @param timeline The timeline as a JS object
+ * @param schemaDirectory SchemaDirectory instance for schema resolution
  * @param debug Whether to log at debug level
  * @returns Validation report
  */
 export async function validate(
     architecture: object,
-    pattern: object,
+    patternOrSchema: object,
+    timeline: object | undefined,
     schemaDirectory?: SchemaDirectory,
     debug: boolean = false
 ): Promise<ValidationOutcome> {
     logger = initLogger(debug, 'calm-validate');
 
     try {
-        if (architecture && pattern) {
-            return await validateArchitectureAgainstPattern(architecture, pattern, schemaDirectory, debug);
-        } else if (pattern) {
-            return await validatePatternOnly(pattern, schemaDirectory, debug);
+        if (timeline) {
+            if (architecture) {
+                throw new Error('You cannot provide an architecture when validating a timeline');
+            }
+            if (!patternOrSchema) {
+                throw new Error('You must provide a schema to validate the timeline against, or the timeline must reference it internally');
+            }
+            // It is acceptable, in fact desired, for `patternOrSchema` to be set, and be the CALM timeline schema.
+            return await validateTimeline(timeline, patternOrSchema, schemaDirectory, debug);
+        } else if (architecture && patternOrSchema) {
+            // Note that patternOrSchema may be a CALM pattern, or might be the CALM core schema.
+            // The caller is responsible for honoring the architecture's `$schema`, or using an explicitly provided pattern.
+            // In either case, we validate the architecture against it.
+            return await validateArchitectureAgainstPattern(architecture, patternOrSchema, schemaDirectory, debug);
+        } else if (patternOrSchema) {
+            // `patternOrSchema` should really be a CALM pattern in this case.
+            return await validatePatternOnly(patternOrSchema, schemaDirectory, debug);
         } else if (architecture) {
             return await validateArchitectureOnly(architecture);
         } else {
-            logger.debug('You must provide at least an architecture or a pattern');
-            throw new Error('You must provide at least an architecture or a pattern');
+            logger.debug('You must provide an architecture, a pattern, or a timeline');
+            throw new Error('You must provide an architecture, a pattern, or a timeline');
         }
     } catch (error) {
-        logger.error('An error occured:' + error);
+        logger.error('An error occurred:' + error);
         throw error;
     }
 }
@@ -125,8 +154,8 @@ export async function validate(
  * @returns the validation outcome with the results of the spectral and json schema validations.
  */
 async function validateArchitectureAgainstPattern(architecture: object, pattern: object, schemaDirectory: SchemaDirectory, debug: boolean): Promise<ValidationOutcome> {
-    const spectralResultForPattern: SpectralResult = await runSpectralValidations(stripRefs(pattern), validationRulesForPattern);
-    const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(JSON.stringify(architecture), validationRulesForArchitecture);
+    const spectralResultForPattern: SpectralResult = await runSpectralValidations(stripRefs(pattern), validationRulesForPattern, 'pattern');
+    const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(JSON.stringify(architecture), validationRulesForArchitecture, 'architecture');
 
     const spectralResult = mergeSpectralResults(spectralResultForPattern, spectralResultForArchitecture);
 
@@ -144,7 +173,7 @@ async function validateArchitectureAgainstPattern(architecture: object, pattern:
         const errorMessage = toErrorMessage(error);
         logger.error(`JSON Schema compilation failed: ${errorMessage}`);
         jsonSchemaValidations = [
-            new ValidationOutput('json-schema', 'error', errorMessage, '/')
+            new ValidationOutput('json-schema', 'error', errorMessage, '/', undefined, undefined, undefined, undefined, undefined, 'pattern')
         ];
         return new ValidationOutcome(jsonSchemaValidations, spectralResult.spectralIssues, true, warnings);
     }
@@ -153,7 +182,7 @@ async function validateArchitectureAgainstPattern(architecture: object, pattern:
     if (schemaErrors.length > 0) {
         logger.debug(`JSON Schema validation raw output: ${prettifyJson(schemaErrors)}`);
         errors = true;
-        jsonSchemaValidations = convertJsonSchemaIssuesToValidationOutputs(schemaErrors);
+        jsonSchemaValidations = convertJsonSchemaIssuesToValidationOutputs(schemaErrors, 'architecture');
     }
 
     return new ValidationOutcome(jsonSchemaValidations, spectralResult.spectralIssues, errors, warnings);
@@ -171,7 +200,7 @@ async function validateArchitectureAgainstPattern(architecture: object, pattern:
  */
 async function validatePatternOnly(pattern: object, schemaDirectory: SchemaDirectory, debug: boolean): Promise<ValidationOutcome> {
     logger.debug('Architecture was not provided, only the Pattern Schema will be validated');
-    const spectralValidationResults: SpectralResult = await runSpectralValidations(stripRefs(pattern), validationRulesForPattern);
+    const spectralValidationResults: SpectralResult = await runSpectralValidations(stripRefs(pattern), validationRulesForPattern, 'pattern');
 
     let errors = spectralValidationResults.errors;
     const warnings = spectralValidationResults.warnings;
@@ -183,7 +212,7 @@ async function validatePatternOnly(pattern: object, schemaDirectory: SchemaDirec
         await jsonSchemaValidator.initialize();
     } catch (error) {
         errors = true;
-        jsonSchemaErrors.push(new ValidationOutput('json-schema', 'error', toErrorMessage(error), '/'));
+        jsonSchemaErrors.push(new ValidationOutput('json-schema', 'error', toErrorMessage(error), '/', undefined, undefined, undefined, undefined, undefined, 'pattern'));
     }
 
     return new ValidationOutcome(jsonSchemaErrors, spectralValidationResults.spectralIssues, errors, warnings);// added spectral to return object
@@ -194,13 +223,13 @@ async function validatePatternOnly(pattern: object, schemaDirectory: SchemaDirec
  * Note that if only the architecture is provided, the CLI tool will attempt to validate the architecture against its specified CALM schema.
  * i.e. the validateArchitectureAgainstPattern method will be called instead of this method.
  * 
- * @param architectureSchemaLocation - The location of the architecture document.
+ * @param architecture - The architecture, as a JS object.
  * @returns the validation outcome with the results of the spectral validation 
  **/
 async function validateArchitectureOnly(architecture: object): Promise<ValidationOutcome> {
     logger.debug('Pattern was not provided, validating Architecture against its specified CALM schema');
 
-    const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(JSON.stringify(architecture), validationRulesForArchitecture);
+    const spectralResultForArchitecture: SpectralResult = await runSpectralValidations(JSON.stringify(architecture), validationRulesForArchitecture, 'architecture');
 
     const jsonSchemaValidations = [];
     const errors = spectralResultForArchitecture.errors;
@@ -211,11 +240,44 @@ async function validateArchitectureOnly(architecture: object): Promise<Validatio
 }
 
 /**
+ * Run validations for a timeline.
+ * This essentially runs the spectral validations and tries to compile the timeline.
+ *
+ * @param timeline - the timeline to validate.
+ * @param schema - the schema to validate against. This should be the CALM timeline schema.
+ * @param schemaDirectory - the SchemaDirectory instance to use for schema resolution.
+ * @param debug - the flag to enable debug logging.
+ * @returns the validation outcome with the results of the spectral validation and the timeline compilation.
+ */
+async function validateTimeline(timeline: object, schema: object, schemaDirectory: SchemaDirectory, debug: boolean): Promise<ValidationOutcome> {
+    logger.debug('Timeline will be validated');
+    const spectralValidationResults: SpectralResult = await runSpectralValidations(stripRefs(timeline), validationRulesForTimeline, 'timeline');
+
+    let errors = spectralValidationResults.errors;
+    const warnings = spectralValidationResults.warnings;
+
+    const jsonSchemaValidator = new JsonSchemaValidator(schemaDirectory, schema, debug);
+    await jsonSchemaValidator.initialize();
+
+    let jsonSchemaValidations = [];
+
+    const schemaErrors = jsonSchemaValidator.validate(timeline);
+    if (schemaErrors.length > 0) {
+        logger.debug(`JSON Schema validation raw output: ${prettifyJson(schemaErrors)}`);
+        errors = true;
+        jsonSchemaValidations = convertJsonSchemaIssuesToValidationOutputs(schemaErrors, 'timeline');
+    }
+
+    return new ValidationOutcome(jsonSchemaValidations, spectralValidationResults.spectralIssues, errors, warnings);
+}
+
+/**
  * If a pattern contains objects, we need to apply the chosen options recorded
  * in the architecture to the pattern to produce a JSON schema pattern that can
  * be used for validation.
  * @param architecture Architecture which may contain options.
  * @param pattern Pattern which may contain options.
+ * @param debug - the flag to enable debug logging.
  * @returns Pattern with options applied and flattened.
  */
 export function applyArchitectureOptionsToPattern(architecture: object, pattern: object, debug: boolean): object {
@@ -281,17 +343,26 @@ export function sortSpectralIssueBySeverity(issues: ISpectralDiagnostic[]): void
     );
 }
 
-export function convertJsonSchemaIssuesToValidationOutputs(jsonSchemaIssues: ErrorObject[]): ValidationOutput[] {
-    return jsonSchemaIssues.map(issue => new ValidationOutput(
-        'json-schema',
-        'error',
-        issue.message,
-        issue.instancePath,
-        issue.schemaPath
-    ));
+export function convertJsonSchemaIssuesToValidationOutputs(jsonSchemaIssues: ErrorObject[], source: string): ValidationOutput[] {
+    return jsonSchemaIssues.map(issue => {
+        const rawPath = issue.instancePath ?? '';
+        const path = rawPath === '' ? '/' : rawPath;
+        return new ValidationOutput(
+            'json-schema',
+            'error',
+            appendExpected(issue),
+            path,
+            issue.schemaPath,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            source
+        );
+    });
 }
 
-export function convertSpectralDiagnosticToValidationOutputs(spectralIssues: ISpectralDiagnostic[]): ValidationOutput[] {
+export function convertSpectralDiagnosticToValidationOutputs(spectralIssues: ISpectralDiagnostic[], source: string): ValidationOutput[] {
     const validationOutput: ValidationOutput[] = [];
 
     spectralIssues.forEach(issue => {
@@ -306,7 +377,8 @@ export function convertSpectralDiagnosticToValidationOutputs(spectralIssues: ISp
             startRange.line,
             endRange.line,
             startRange.character,
-            endRange.character
+            endRange.character,
+            source
         );
         validationOutput.push(formattedIssue);
     });
@@ -327,6 +399,40 @@ function getSeverity(spectralSeverity: DiagnosticSeverity): string {
         return 'hint';
     default:
         throw Error('The spectralSeverity does not match the known values');
+    }
+}
+
+function appendExpected(issue: ErrorObject): string {
+    if (!issue || !issue.params) {
+        return issue?.message ?? '';
+    }
+
+    const params = issue.params as Record<string, unknown>;
+
+    // const keyword: prefer params.allowedValue, fall back to schema (AJV sets schema to the const value)
+    if (issue.keyword === 'const') {
+        const allowed = 'allowedValue' in params ? params['allowedValue'] : (issue as unknown as { schema?: unknown }).schema;
+        if (allowed !== undefined) {
+            return `${issue.message} (expected ${safeStringify(allowed)})`;
+        }
+    }
+
+    // enum keyword: prefer params.allowedValues, fall back to schema array
+    if (issue.keyword === 'enum') {
+        const allowedValues = 'allowedValues' in params ? params['allowedValues'] : (issue as unknown as { schema?: unknown }).schema;
+        if (Array.isArray(allowedValues)) {
+            return `${issue.message} (expected one of ${safeStringify(allowedValues)})`;
+        }
+    }
+
+    return issue.message ?? '';
+}
+
+function safeStringify(value: unknown): string {
+    try {
+        return JSON.stringify(value);
+    } catch (_) {
+        return String(value);
     }
 }
 

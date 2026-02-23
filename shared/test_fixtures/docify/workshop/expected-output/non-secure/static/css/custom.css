@@ -1,42 +1,47 @@
 .table-container {
-    display: flex;
-    gap: 10px;
     width: 100%;
-    overflow-x: auto; /* Allow scrolling if necessary */
+    overflow-x: auto;
 }
 
 .table-container table {
-    flex: 1; /* Ensure all tables are equal width */
     width: 100%;
-    min-width: 600px; /* Prevent tables from being too small */
-    table-layout: fixed; /* Force table to obey column widths */
+    min-width: 600px;
     border-collapse: collapse;
+    table-layout: fixed;
 }
 
-.table-container thead {
-    display: inherit; /* Ensures correct header grouping */
-    width: 100%;
+/* Single-column table → use auto layout */
+.table-container table:has(tr > th:only-child),
+.table-container table:has(tr > td:only-child) {
+    table-layout: auto;
+    min-width: 0;
 }
 
+/* Cells */
 .table-container th,
 .table-container td {
     border: 1px solid #ddd;
     padding: 8px;
     text-align: left;
-    vertical-align: top; /* Ensure alignment stays consistent */
-    word-wrap: break-word; /* Ensure text wraps properly */
-    overflow-wrap: break-word;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
-/* Fix column widths */
-.table-container th:first-child,
-.table-container td:first-child {
-    min-width: 200px; /* Fix first column width */
-    max-width: 200px; /* Fix first column width */
-    white-space: wrap; /* Prevent wrapping */
+/* Fixed first column only when multiple columns exist */
+.table-container th:first-child:not(:only-child),
+.table-container td:first-child:not(:only-child) {
+    width: 200px;
+    max-width: 200px;
 }
 
-.table-container th:last-child,
-.table-container td:last-child {
-    width: 100%; /* Expand second column */
+/* Single column fills */
+.table-container th:only-child,
+.table-container td:only-child {
+    width: 100%;
+}
+
+/* MDX helper */
+.text-left {
+    text-align: left;
 }

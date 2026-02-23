@@ -2,14 +2,16 @@ import { runGenerate } from './generate';
 import { tmpdir } from 'node:os';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import { SchemaDirectory } from '../../schema-directory.js';
+import { setCalmSchema, TEST_ALL_SCHEMA } from '../../test/test-utils';
 
 vi.mock('../../logger', () => {
     return {
         initLogger: () => {
             return {
-                info: () => {},
-                debug: () => {}
+                info: () => { },
+                debug: () => { },
+                error: () => { },
+                warn: () => { }
             };
         }
     };
@@ -23,6 +25,10 @@ vi.mock('./components/instantiate', () => ({
     }))
 }));
 
+vi.mock('./components/flatten-allof', () => ({
+    flattenAllOf: vi.fn((schema) => Promise.resolve(schema))
+}));
+
 
 describe('runGenerate', () => {
     let tempDirectoryPath;
@@ -32,32 +38,37 @@ describe('runGenerate', () => {
 
     beforeEach(() => {
         tempDirectoryPath = mkdtempSync(path.join(tmpdir(), 'calm-test-'));
-        schemaDirectory = vi.mocked(SchemaDirectory);
+        schemaDirectory = {
+            loadSchemas: vi.fn().mockResolvedValue(undefined)
+        };
     });
 
     afterEach(() => {
         rmSync(tempDirectoryPath, { recursive: true, force: true });
     });
 
-    it('instantiates to given directory', async () => {
+    it.each(TEST_ALL_SCHEMA)('instantiates to given directory', async (schemaVersion) => {
+        const testPatternVersioned = setCalmSchema(testPattern, schemaVersion);
         const outPath = path.join(tempDirectoryPath, 'output.json');
-        await runGenerate(testPattern, outPath, false, schemaDirectory, []);
+        await runGenerate(testPatternVersioned, outPath, false, schemaDirectory, []);
 
         expect(existsSync(outPath))
             .toBeTruthy();
     });
 
-    it('instantiates to given directory with nested folders', async () => {
+    it.each(TEST_ALL_SCHEMA)('instantiates to given directory with nested folders', async (schemaVersion) => {
+        const testPatternVersioned = setCalmSchema(testPattern, schemaVersion);
         const outPath = path.join(tempDirectoryPath, 'output/test/output.json');
-        await runGenerate(testPattern, outPath, false, schemaDirectory, []);
+        await runGenerate(testPatternVersioned, outPath, false, schemaDirectory, []);
 
         expect(existsSync(outPath))
             .toBeTruthy();
     });
 
-    it('instantiates to calm architecture file', async () => {
+    it.each(TEST_ALL_SCHEMA)('instantiates to calm architecture file', async (schemaVersion) => {
+        const testPatternVersioned = setCalmSchema(testPattern, schemaVersion);
         const outPath = path.join(tempDirectoryPath, 'output.json');
-        await runGenerate(testPattern, outPath, false, schemaDirectory, []);
+        await runGenerate(testPatternVersioned, outPath, false, schemaDirectory, []);
 
         expect(existsSync(outPath))
             .toBeTruthy();

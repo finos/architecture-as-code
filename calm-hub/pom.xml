@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
-         xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<project
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+    xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -13,7 +14,7 @@
     <artifactId>calm-hub</artifactId>
     <version>0.7.6</version>
     <properties>
-        <compiler-plugin.version>3.14.1</compiler-plugin.version>
+        <compiler-plugin.version>3.15.0</compiler-plugin.version>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -26,8 +27,9 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-bom</artifactId>
-                <!-- Force patched Netty version to mitigate CVE-2025-58057 (affecting 4.1.124.Final) -->
-                <version>4.2.7.Final</version>
+                <!-- Force patched Netty version to mitigate CVE-2025-58057 (affecting
+                4.1.124.Final) -->
+                <version>4.2.9.Final</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -219,6 +221,8 @@
                         <exclude>**/*Constants.*</exclude>
                         <exclude>**/*NamespaceStandardSummary.*</exclude>
                         <exclude>**/*ArchitectureRequest.*</exclude>
+                        <exclude>**/config/**/*</exclude>
+                        <exclude>**/domain/**/*</exclude>
                     </excludes>
                 </configuration>
                 <executions>
@@ -280,25 +284,25 @@
                 <dependency>
                     <groupId>org.testcontainers</groupId>
                     <artifactId>testcontainers</artifactId>
-                    <version>1.21.3</version>
+                    <version>1.21.4</version>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>org.testcontainers</groupId>
                     <artifactId>mongodb</artifactId>
-                    <version>1.21.3</version>
+                    <version>1.21.4</version>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>org.testcontainers</groupId>
                     <artifactId>junit-jupiter</artifactId>
-                    <version>1.21.3</version>
+                    <version>1.21.4</version>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.github.dasniko</groupId>
                     <artifactId>testcontainers-keycloak</artifactId>
-                    <version>3.9.0</version>
+                    <version>3.9.1</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -354,7 +358,7 @@
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>12.1.9</version>
+                        <version>12.2.0</version>
                         <executions>
                             <execution>
                                 <goals>
@@ -372,7 +376,8 @@
                             <!-- Use environment-provided NVD API Key, fallback to Maven property -->
                             <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
                             <suppressionFiles>
-                                <suppressionFile>${project.basedir}/../.github/maven-cve-ignore-list.xml</suppressionFile>
+                                <suppressionFile>
+                                    ${project.basedir}/../.github/maven-cve-ignore-list.xml</suppressionFile>
                             </suppressionFiles>
                         </configuration>
                     </plugin>

@@ -1,3 +1,7 @@
+---
+architecture: ../../../getting-started/STEP-3/conference-signup-with-flow.arch.json
+url-to-local-file-mapping: ../../../getting-started/url-to-local-file-mapping.json
+---
 ### Nodes (Bullet)
 
 <ul>

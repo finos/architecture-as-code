@@ -9,7 +9,7 @@
     ],
     "private": true,
     "scripts": {
-        "build": "tsup && tsc -p ./tsconfig.build.json && npm run copy:docify-template-bundle",
+        "build": "tsc -p ./tsconfig.build.json && npm run copy:docify-template-bundle",
         "copy:docify-template-bundle": "node scripts/copy-templates.mjs",
         "watch": "tsc -watch -p ./tsconfig.build.json",
         "clean": "rimraf dist tsconfig.build.tsbuildinfo",
@@ -32,11 +32,14 @@
     "dependencies": {
         "@apidevtools/json-schema-ref-parser": "^14.0.0",
         "@finos/calm-models": "file:../calm-models",
+        "@finos/calm-widgets": "file:../calm-widgets",
+        "@stoplight/json": "^3.21.7",
         "@stoplight/spectral-cli": "^6.14.3",
         "@stoplight/spectral-core": "^1.19.5",
         "@stoplight/spectral-functions": "^1.9.4",
         "ajv": "^8.17.1",
-        "axios": "^1.12.0",
+        "ajv-formats": "^2.1.1",
+        "axios": "^1.13.5",
         "copyfiles": "^2.4.1",
         "handlebars": "^4.7.8",
         "js-yaml": "^4.1.0",
@@ -44,7 +47,7 @@
         "jsonpath-plus": "^10.3.0",
         "junit-report-builder": "^5.1.1",
         "lines-and-columns": "^2.0.4",
-        "lodash": "^4.17.21",
+        "lodash": "^4.17.23",
         "loglevel": "^1.9.2",
         "mkdirp": "^3.0.1",
         "regexparam": "^3.0.0",
@@ -71,7 +74,7 @@
     },
     "overrides": {
         "path-to-regexp": "3.3.0",
-        "rollup": "4.53.3",
+        "rollup": "4.57.1",
         "jsonpath-plus": "^10.3.0"
     }
 }

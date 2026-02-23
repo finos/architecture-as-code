@@ -9,15 +9,27 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REG
 
 public class NamespaceRequest {
     @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE)
-    @NotNull(message = "Namespace must not be null")
-    @NotBlank(message = "Namespace must not be blank")
-    private String namespace;
+    @NotNull(message = "Name must not be null")
+    @NotBlank(message = "Name must not be blank")
+    private String name;
 
-    public String getNamespace() {
-        return namespace;
+    @NotNull(message = "Description must not be null")
+    @NotBlank(message = "Description must not be blank")
+    private String description;
+
+    public String getName() {
+        return name;
     }
 
-    public void setNamespace(String namespace) {
-        this.namespace = namespace;
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }

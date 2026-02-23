@@ -7,5 +7,7 @@ export interface Config {
     templateGlobs(): string[]
     previewLayout(): string
     showLabels(): boolean
+    urlMapping(): string | undefined
+    docifyTheme(): string
+    schemaAdditionalFolders(): string[]
 }
-

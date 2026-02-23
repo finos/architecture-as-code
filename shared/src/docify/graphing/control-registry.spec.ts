@@ -133,17 +133,17 @@ describe('ControlRegistry', () => {
             const controls = controlRegistry.getControls();
             expect(controls).toHaveLength(9);
 
-            const config1 = controls.find(c => c.id === 'config1');
+            const config1 = controls.find(c => c.requirementUrl === 'https://example.org/requirement1' && c.scope === 'Node' && c.domain === 'node-control');
             expect(config1).toBeDefined();
-            expect(config1?.name).toBe('Config 1');
+            expect(config1?.appliedTo).toBe('node1');
 
-            const config2 = controls.find(c => c.id === 'config2');
+            const config2 = controls.find(c => c.requirementUrl === 'https://example.org/requirement2' && c.scope === 'Node' && c.domain === 'relationship-control');
             expect(config2).toBeDefined();
-            expect(config2?.description).toBe('Test config 2');
+            expect(config2?.appliedTo).toBe('node1');
 
-            const config3 = controls.find(c => c.id === 'config3');
+            const config3 = controls.find(c => c.requirementUrl === 'https://example.org/requirement1' && c.scope === 'Flow' && c.domain === 'flow-control');
             expect(config3).toBeDefined();
-            expect(config3?.schema).toBe('schema3');
+            expect(config3?.appliedTo).toBe('flow1');
         });
     });
 

@@ -14,6 +14,19 @@
   "schedule": ["before 7am on monday"],
   "prConcurrentLimit": 10,
   "prHourlyLimit": 2,
+  "postUpdateOptions": ["npmDedupe"],
+  "ignorePaths": [
+    "advent-of-calm/website/package-lock.json",
+    "calm-ai/package-lock.json",
+    "calm-models/package-lock.json",
+    "calm-plugins/vscode/package-lock.json",
+    "calm-widgets/package-lock.json",
+    "calm-hub-ui/package-lock.json",
+    "cli/package-lock.json",
+    "docs/package-lock.json",
+    "experimental/calm-explorer/package-lock.json",
+    "shared/package-lock.json"
+  ],
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["before 6am on monday"]
@@ -142,6 +155,11 @@
       "description": "Ignore pre-release versions",
       "matchCurrentVersion": "/^0\\./",
       "automerge": false
+    },
+    {
+      "description": "Pin @types/node to v22 to match CI Node version",
+      "matchPackageNames": ["@types/node"],
+      "allowedVersions": "<23.0.0"
     }
   ]
 }

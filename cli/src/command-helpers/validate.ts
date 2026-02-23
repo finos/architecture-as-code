@@ -1,19 +1,22 @@
-import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, SchemaDirectory } from '@finos/calm-shared';
+import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, ValidationFormattingOptions, loadArchitectureAndPattern, loadTimeline, enrichWithDocumentPositions, ParsedDocumentContext } from '@finos/calm-shared';
 import { initLogger } from '@finos/calm-shared';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
-import { writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { Command } from 'commander';
 import { ValidateOutputFormat } from '@finos/calm-shared/dist/commands/validate/validate';
 import { buildSchemaDirectory, parseDocumentLoaderConfig } from '../cli';
 import { buildDocumentLoader, DocumentLoader } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { Logger } from '@finos/calm-shared/dist/logger';
+import { parseWithPointers } from '@stoplight/json';
 
 export interface ValidateOptions {
     patternPath?: string;
     architecturePath?: string;
+    timelinePath?: string;
     metaSchemaPath: string;
     calmHubUrl?: string;
+    urlToLocalFileMapping?: string;
     verbose: boolean;
     strict: boolean;
     outputFormat: ValidateOutputFormat;
@@ -23,20 +26,43 @@ export interface ValidateOptions {
 export async function runValidate(options: ValidateOptions) {
     const logger = initLogger(options.verbose, 'calm-validate');
     try {
-        const docLoaderOpts = await parseDocumentLoaderConfig(options);
+        const { getUrlToLocalFileMap } = await import('./template');
+        const urlToLocalMap = getUrlToLocalFileMap(options.urlToLocalFileMapping);
+        const patternBasePath = options.patternPath ? path.dirname(path.resolve(options.patternPath)) : undefined;
+        const docLoaderOpts = await parseDocumentLoaderConfig(options, urlToLocalMap, patternBasePath);
         const docLoader: DocumentLoader = buildDocumentLoader(docLoaderOpts);
         const schemaDirectory = await buildSchemaDirectory(docLoader, options.verbose);
         await schemaDirectory.loadSchemas();
 
-        const { architecture, pattern } = await loadArchitectureAndPattern(
-            options.architecturePath,
-            options.patternPath,
-            docLoader,
-            schemaDirectory,
-            logger
-        );
-        const outcome = await validate(architecture, pattern, schemaDirectory, options.verbose);
-        const content = getFormattedOutput(outcome, options.outputFormat);
+        let architecture: object;
+        let pattern: object;
+        let timeline: object;
+
+        if (options.timelinePath) {
+            const result = await loadTimeline(
+                options.timelinePath,
+                docLoader,
+                schemaDirectory,
+                logger
+            );
+            timeline = result.timeline;
+            pattern = result.pattern;
+        }
+        else {
+            const result = await loadArchitectureAndPattern(
+                options.architecturePath,
+                options.patternPath,
+                docLoader,
+                schemaDirectory,
+                logger
+            );
+            architecture = result.architecture;
+            pattern = result.pattern;
+        }
+        const documentContexts = buildDocumentContexts(options, logger);
+        const outcome = await validate(architecture, pattern, timeline, schemaDirectory, options.verbose);
+        enrichWithDocumentPositions(outcome, documentContexts);
+        const content = getFormattedOutput(outcome, options.outputFormat, toFormattingOptions(documentContexts));
         writeOutputFile(options.outputPath, content);
         exitBasedOffOfValidationOutcome(outcome, options.strict);
     }
@@ -47,57 +73,7 @@ export async function runValidate(options: ValidateOptions) {
     }
 }
 
-// Update loadArchitectureAndPattern and helpers to use DocumentLoader type
-async function loadArchitectureAndPattern(architecturePath: string, patternPath: string, docLoader: DocumentLoader, schemaDirectory: SchemaDirectory, logger: Logger): Promise<{ architecture: object, pattern: object }> {
-    const architecture = await loadArchitecture(architecturePath, docLoader, logger);
-    if (!architecture) {
-        // we have already validated that at least one of the options is provided, so pattern must be set
-        const pattern = await loadPattern(patternPath, docLoader, logger);
-        return { architecture: undefined, pattern };
-    }
-    if (patternPath) {
-        // both options set
-        const pattern = await loadPattern(patternPath, docLoader, logger);
-        return { architecture, pattern };
-    }
-    // architecture is set, but pattern is not; try to load pattern from architecture if present 
-    return { architecture, pattern: await loadPatternFromArchitectureIfPresent(architecture, docLoader, schemaDirectory, logger) };
-}
 
-async function loadPatternFromArchitectureIfPresent(architecture: object, docLoader: DocumentLoader, schemaDirectory: SchemaDirectory, logger: Logger): Promise<object> {
-    if (!architecture || !architecture['$schema']) {
-        return;
-    }
-    try {
-        const schema = schemaDirectory.getSchema(architecture['$schema']);
-        logger.debug(`Loaded schema from architecture: ${architecture['$schema']}`);
-        return schema;
-    }
-    catch (_) {
-        logger.debug(`Trying to load pattern from architecture schema: ${architecture['$schema']}`);
-    }
-    const pattern = docLoader.loadMissingDocument(architecture['$schema'], 'pattern');
-    logger.debug(`Loaded pattern from architecture schema: ${architecture['$schema']}`);
-    return pattern;
-}
-
-async function loadPattern(patternPath: string, docLoader: DocumentLoader, logger: Logger): Promise<object> {
-    if (!patternPath) {
-        return undefined;
-    }
-    const pattern = docLoader.loadMissingDocument(patternPath, 'pattern');
-    logger.debug(`Loaded pattern from ${patternPath}`);
-    return pattern;
-}
-
-async function loadArchitecture(architecturePath: string, docLoader: DocumentLoader, logger: Logger): Promise<object> {
-    if (!architecturePath) {
-        return undefined;
-    }
-    const arch = docLoader.loadMissingDocument(architecturePath, 'architecture');
-    logger.debug(`Loaded architecture from ${architecturePath}`);
-    return arch;
-}
 
 
 export function writeOutputFile(output: string, validationsOutput: string) {
@@ -111,8 +87,68 @@ export function writeOutputFile(output: string, validationsOutput: string) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function checkValidateOptions(program: Command, options: any, patternOption: string, architectureOption: string) {
-    if (!options.pattern && !options.architecture) {
-        program.error(`error: one of the required options '${patternOption}' or '${architectureOption}' was not specified`);
+export function checkValidateOptions(program: Command, options: any, patternOption: string, architectureOption: string, timelineOption: string) {
+    if (options.timeline && (options.pattern || options.architecture)) {
+        program.error(`error: the option '${timelineOption}' cannot be used with either of the options '${patternOption}' or '${architectureOption}'`);
     }
+    if (!options.pattern && !options.architecture && !options.timeline) {
+        program.error(`error: one of the required options '${patternOption}', '${architectureOption}' or '${timelineOption}' was not specified`);
+    }
+}
+
+interface LoadedDocumentContext extends ParsedDocumentContext {
+    filePath: string;
+    lines: string[];
+}
+
+function buildDocumentContexts(options: ValidateOptions, logger: Logger): Record<string, LoadedDocumentContext> {
+    const contexts: Record<string, LoadedDocumentContext> = {};
+
+    if (options.architecturePath) {
+        const context = loadDocumentContext(options.architecturePath, 'architecture', logger);
+        if (context) {
+            contexts['architecture'] = context;
+        }
+    }
+
+    if (options.patternPath) {
+        const context = loadDocumentContext(options.patternPath, 'pattern', logger);
+        if (context) {
+            contexts['pattern'] = context;
+        }
+    }
+
+    return contexts;
+}
+
+function loadDocumentContext(filePath: string, id: string, logger: Logger): LoadedDocumentContext | undefined {
+    try {
+        const absolutePath = path.resolve(filePath);
+        const raw = readFileSync(absolutePath, 'utf-8');
+        const parsed = parseWithPointers(raw);
+        return {
+            id,
+            filePath: absolutePath,
+            lines: raw.split(/\r?\n/),
+            data: parsed.data,
+            parseResult: parsed
+        };
+    } catch (error) {
+        logger.debug(`Could not build document context for ${filePath}: ${error}`);
+        return undefined;
+    }
+}
+
+function toFormattingOptions(contexts: Record<string, LoadedDocumentContext>): ValidationFormattingOptions {
+    const documents: Record<string, { id: string; label: string; filePath: string; lines: string[] }> = {};
+    Object.entries(contexts).forEach(([id, ctx]) => {
+        documents[id] = {
+            id: ctx.id,
+            label: path.basename(ctx.filePath),
+            filePath: ctx.filePath,
+            lines: ctx.lines
+        };
+    });
+
+    return { documents };
 }

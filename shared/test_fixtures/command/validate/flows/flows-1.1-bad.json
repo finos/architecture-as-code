@@ -1,0 +1,40 @@
+{
+  "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+  "nodes": [
+    {
+      "unique-id": "node-1",
+      "name": "Frontend Service",
+      "node-type": "service",
+      "description": "Frontend Service"
+    },
+    {
+      "unique-id": "node-2",
+      "name": "Backend Service",
+      "node-type": "service",
+      "description": "Backend Service"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "node-1-to-node-2",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "node-1" },
+          "destination": { "node": "node-2" }
+        }
+      }
+    }
+  ],
+  "flows": [
+    {
+      "unique-id": "flow-1",
+      "name": "User Authentication Flow",
+      "description": "Test flow",
+      "transitions": [
+        {
+          "relationship": "node-1-to-node-2"
+        }
+      ]
+    }
+  ]
+}

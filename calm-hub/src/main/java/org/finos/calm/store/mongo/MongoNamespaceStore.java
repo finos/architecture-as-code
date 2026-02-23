@@ -5,6 +5,7 @@ import com.mongodb.client.MongoDatabase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
+import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.store.NamespaceStore;
 
 import java.util.ArrayList;
@@ -21,24 +22,25 @@ public class MongoNamespaceStore implements NamespaceStore {
     }
 
     @Override
-    public List<String> getNamespaces() {
-        List<String> namespaces = new ArrayList<>();
+    public List<NamespaceInfo> getNamespaces() {
+        List<NamespaceInfo> namespaces = new ArrayList<>();
         for (Document doc : namespaceCollection.find()) {
-            namespaces.add(doc.getString("namespace"));
+            namespaces.add(new NamespaceInfo(doc.getString("name"), doc.getString("description")));
         }
         return namespaces;
     }
 
     @Override
-    public boolean namespaceExists(String namespace) {
-        Document query = new Document("namespace", namespace);
+    public boolean namespaceExists(String namespaceName) {
+        Document query = new Document("name", namespaceName);
         return namespaceCollection.find(query).first() != null;
     }
 
     @Override
-    public void createNamespace(String namespace) {
-        if (!namespaceExists(namespace)) {
-            Document namespaceDoc = new Document("namespace", namespace);
+    public void createNamespace(String name, String description) {
+        if (!namespaceExists(name)) {
+            Document namespaceDoc = new Document("name", name)
+                    .append("description", description);
             namespaceCollection.insertOne(namespaceDoc);
         }
     }

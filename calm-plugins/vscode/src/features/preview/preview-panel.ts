@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
 import { detectFileType, FileType } from '../../models/file-types'
-import { parseFrontMatter } from '../../cli/front-matter'
+import { parseFrontMatter, parseFrontMatterFromContent } from '@finos/calm-shared'
 import { ModelService } from '../../core/services/model-service'
 import { TemplateService } from '../../cli/template-service'
 import { HtmlBuilder } from '../../cli/html-builder'
@@ -196,7 +196,9 @@ export class CalmPreviewPanel {
 
     // Listen for docify results and post them to webview
     this.viewModel.docify.onDocifyResult((result) => {
-      this.post({ type: 'docifyResult', content: result.content, format: result.format, sourceFile: result.sourceFile })
+      // Strip front-matter from the content before displaying in preview
+      const parsed = parseFrontMatterFromContent(result.content)
+      this.post({ type: 'docifyResult', content: parsed.content, format: result.format, sourceFile: result.sourceFile })
     })
 
     // Listen for docify errors and post them to webview
@@ -270,6 +272,8 @@ export class CalmPreviewPanel {
 
   dispose() {
     this.viewModel.setVisible(false)
+    this.viewModel.setReady(false)  // Reset ready state so new panel can trigger state changes
+    this.viewModel.clearCurrentUri()  // Clear URI so reopening will trigger proper data loading
     CalmPreviewPanel.currentPanel = undefined
     while (this.disposables.length) {
       const d = this.disposables.pop()
@@ -326,7 +330,7 @@ export class CalmPreviewPanel {
   }
 
   // Implementation methods triggered by ViewModel
-  private handleRequestModelDataImpl() {
+  private async handleRequestModelDataImpl() {
     const uri = this.getCurrentUri()
     if (!uri) { this.post({ type: 'modelData', data: null }); return }
 
@@ -340,7 +344,8 @@ export class CalmPreviewPanel {
 
       this.log.info(`[preview] Reading ${isTemplate ? 'architecture file for template mode' : 'current file'}: ${fileToRead}`)
 
-      const fullModelData = this.modelService.readModel(fileToRead)
+      // Use async file reading for better performance with large files
+      const fullModelData = await this.modelService.readModelAsync(fileToRead)
       const filteredData = this.modelService.filterBySelection(fullModelData, state.selectedId)
       this.post({ type: 'modelData', data: filteredData })
       this.log.info(`[preview] Sent filtered model data for selection: ${state.selectedId || 'none'}`)
