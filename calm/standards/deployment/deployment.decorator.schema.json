@@ -64,42 +64,5 @@
                 "data"
             ]
         }
-    ],
-    "examples": [
-        {
-            "$schema": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json",
-            "unique-id": "api-deployment-001",
-            "type": "deployment",
-            "target": [
-                "my-architecture.json"
-            ],
-            "applies-to": [
-                "api-service"
-            ],
-            "data": {
-                "deployment-start-time": "2026-02-23T10:00:00Z",
-                "deployment-end-time": "2026-02-23T10:15:00Z",
-                "deployment-status": "completed",
-                "deployment-environment": "production",
-                "deployment-observability": "https://grafana.example.com/d/api-prod",
-                "deployment-notes": "Hotfix for authentication issue"
-            }
-        },
-        {
-            "$schema": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json",
-            "unique-id": "database-deployment-002",
-            "type": "deployment",
-            "target": [
-                "my-architecture.json"
-            ],
-            "applies-to": [
-                "postgres-database"
-            ],
-            "data": {
-                "deployment-start-time": "2026-02-23T09:30:00Z",
-                "deployment-status": "in-progress",
-                "deployment-environment": "staging"
-            }
-        }
     ]
 }
