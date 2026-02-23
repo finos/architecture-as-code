@@ -229,8 +229,17 @@ Patterns use JSON schema constructs to provide choices and options:
                                     "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type",
                                     "properties": {
                                         "unique-id": {"const": "api-image"},
-                                        "api-port": { "type": "integer" }
-                                    }
+                                        "image": {"type": "string"}
+                                    },
+                                    "required": ["image"]
+                                },
+                                {
+                                    "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type",
+                                    "properties": {
+                                        "unique-id": {"const": "api-port"},
+                                        "port": { "type": "integer" }
+                                    },
+                                    "required": ["port"]
                                 }
                             ]
                         }
@@ -258,8 +267,17 @@ Patterns use JSON schema constructs to provide choices and options:
                                             "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type",
                                             "properties": {
                                                 "unique-id": {"const": "postgres-image"},
-                                                "postgres-port": {"type": "integer"}
-                                            }
+                                                "image": {"type": "string"}
+                                            },
+                                            "required": ["image"]
+                                        },
+                                        {
+                                            "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type",
+                                            "properties": {
+                                                "unique-id": {"const": "postgres-port"},
+                                                "port": { "type": "integer" }
+                                            },
+                                            "required": ["port"]
                                         }
                                     ]
                                 }
@@ -282,8 +300,17 @@ Patterns use JSON schema constructs to provide choices and options:
                                             "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type",
                                             "properties": {
                                                 "unique-id": {"const": "mysql-image"},
-                                                "mysql-port": {"type": "integer"}
-                                            }
+                                                "image": {"type": "string"}
+                                            },
+                                            "required": ["image"]
+                                        },
+                                        {
+                                            "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type",
+                                            "properties": {
+                                                "unique-id": {"const": "mysql-port"},
+                                                "port": { "type": "integer" }
+                                            },
+                                            "required": ["port"]
                                         }
                                     ]
                                 }
