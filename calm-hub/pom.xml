@@ -14,7 +14,7 @@
     <artifactId>calm-hub</artifactId>
     <version>0.7.6</version>
     <properties>
-        <compiler-plugin.version>3.14.1</compiler-plugin.version>
+        <compiler-plugin.version>3.15.0</compiler-plugin.version>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -222,6 +222,7 @@
                         <exclude>**/*NamespaceStandardSummary.*</exclude>
                         <exclude>**/*ArchitectureRequest.*</exclude>
                         <exclude>**/config/**/*</exclude>
+                        <exclude>**/domain/**/*</exclude>
                     </excludes>
                 </configuration>
                 <executions>
@@ -357,7 +358,7 @@
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>12.1.9</version>
+                        <version>12.2.0</version>
                         <executions>
                             <execution>
                                 <goals>
