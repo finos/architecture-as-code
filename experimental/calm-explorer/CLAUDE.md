@@ -124,9 +124,14 @@ To modify layout, adjust parameters in `getLayoutedElements()` in ArchitectureGr
 - Git is already configured correctly with author: Paul Merrison <paul@tetrate.io>
 - **DO NOT** modify git author configuration
 - **DO NOT** use any other author name or email in commits
+- **DO NOT** add "Co-Authored-By: Claude" or similar lines to commit messages (breaks CLA check)
 - All commits must pass CLA checks to be accepted into the upstream repository
 
 When creating commits, the configured git author will automatically be used. No additional action is required.
+
+**Files to Exclude from Commits:**
+- CLAUDE.md files should NOT be committed to the repository
+- Add CLAUDE.md to .gitignore or exclude when staging changes
 
 ## Project Configuration
 

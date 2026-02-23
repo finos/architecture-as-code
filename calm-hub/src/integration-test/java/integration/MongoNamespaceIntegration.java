@@ -45,6 +45,7 @@ public class MongoNamespaceIntegration {
                 .when().get("/calm/namespaces")
                 .then()
                 .statusCode(200)
-                .body("values", hasItem("finos"));
+                .body("values.name", hasItem("finos"))
+                .body("values.description", hasItem("FINOS namespace"));
     }
 }
