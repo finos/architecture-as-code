@@ -187,6 +187,10 @@ Renders a system architecture as a Mermaid flowchart with optional containers (s
 {{block-architecture this theme="dark"}}
 {{block-architecture this theme="high-contrast-light"}}
 
+{{!-- Choose layout engine (elk provides better layout for complex diagrams) --}}
+{{block-architecture this layout-engine="elk"}}
+{{block-architecture this layout-engine="dagre"}}
+
 {{!-- Customize specific colors while keeping preset theme as base --}}
 {{block-architecture this theme="dark" theme-colors='{"highlight": {"fill": "#ff6b6b", "stroke": "#ee5a52"}}'}}
 
@@ -207,6 +211,7 @@ Renders a system architecture as a Mermaid flowchart with optional containers (s
 |-----------------------|---|---:|---|
 | `theme`               | `'light' \| 'dark' \| 'high-contrast-light' \| 'high-contrast-dark'` | `'light'` | Visual theme preset with predefined color palettes for diagram elements. |
 | `theme-colors`        | stringified JSON map | — | Custom color overrides or complete theme. Merges with preset theme or replaces it entirely. Must include `boundary`, `node`, `iface`, and `highlight` objects. Each object requires `fill` and `stroke` properties, and optionally `strokeDasharray`, `strokeWidth`, `fontSize`. |
+| `layout-engine`       | `'dagre' \| 'elk'` | `'elk'` | Mermaid layout engine for diagram rendering. **ELK** (Eclipse Layout Kernel) provides better automatic layout for complex diagrams with improved edge routing and hierarchy handling. **Dagre** is the classic Mermaid layout engine. |
 | `focus-nodes`         | string (CSV) | — | Restrict the view to these node IDs (and, if containers are shown, their parent/child context per other options). |
 | `focus-relationships` | string (CSV) | — | Restrict view to the specified relationship unique-ids. Only those relationships and the nodes they connect are included (plus containers per settings). |
 | `focus-flows`         | string (CSV) | — | Restrict edges to transitions that belong to the given **flow unique-ids or names** (case-insensitive). Only nodes touching those edges are included (plus containers per settings). |

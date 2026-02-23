@@ -25,14 +25,17 @@ calm-ai/
 │   ├── architecture-creation.md
 │   ├── calm-cli-instructions.md
 │   ├── control-creation.md
+│   ├── decorator-creation.md
 │   ├── documentation-creation.md
 │   ├── flow-creation.md
 │   ├── interface-creation.md
 │   ├── metadata-creation.md
+│   ├── moment-creation.md
 │   ├── node-creation.md
 │   ├── pattern-creation.md
 │   ├── relationship-creation.md
-│   └── standards-creation.md
+│   ├── standards-creation.md
+│   └── timeline-creation.md
 └── package.json           # Package metadata
 ```
 
@@ -45,14 +48,17 @@ Individual markdown files providing detailed guidance for specific CALM modeling
 | `architecture-creation.md` | Guide for creating complete CALM architecture documents with required schema structure |
 | `calm-cli-instructions.md` | Summary of CALM CLI commands, validation modes, and usage flags |
 | `control-creation.md` | Guide for defining control requirements and compliance configurations |
+| `decorator-creation.md` | Guide for creating decorators |
 | `documentation-creation.md` | Guide for generating documentation from CALM models |
 | `flow-creation.md` | Guide for modeling business process flows through architecture |
 | `interface-creation.md` | Critical guidance for interface definitions and oneOf constraints |
 | `metadata-creation.md` | Guide for adding metadata arrays with proper validation |
+| `moment-creation.md` | Guide for adding moments to timelines with proper validation |
 | `node-creation.md` | Guide for creating nodes (components) with proper validation |
 | `pattern-creation.md` | Guide for defining reusable architectural patterns |
 | `relationship-creation.md` | Guide for creating relationships between nodes |
 | `standards-creation.md` | Guide for creating JSON Schema Standards extending CALM with organizational requirements |
+| `timeline-creation.md` | Guide for creating architecture timelines |
 
 Each tool prompt follows a consistent structure:
 - Overview and purpose
@@ -74,12 +80,12 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
   "description": string,
   
   // Directory where AI assistant looks for custom prompts
-  // Examples: ".github/chatmodes" (Copilot), ".kiro" (Kiro)
+  // Examples: ".github/agents" (Copilot), ".kiro" (Kiro)
   "topLevelDirectory": string,
   
   // Filename for the main prompt file (may include subdirectory)
   // This file is located within the context of "topLevelDirectory"
-  // Examples: "CALM.chatmode.md", "steering/CALM.chatmode.md"
+  // Examples: "CALM.agent.md", "steering/CALM.chatmode.md"
   "topLevelPromptFileName": string,
   
   // Delimiter placed before skill prompt references in templates
@@ -105,8 +111,8 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
 | Property | Description | Example Values |
 |----------|-------------|----------------|
 | `description` | Short description for display/README | `"Github Copilot integrated with FINOS CALM"` |
-| `topLevelDirectory` | Where provider expects custom prompts | `.github/chatmodes`, `.kiro` |
-| `topLevelPromptFileName` | Name of generated prompt file | `CALM.chatmode.md`, `steering/CALM.chatmode.md` |
+| `topLevelDirectory` | Where provider expects custom prompts | `.github/agents`, `.kiro` |
+| `topLevelPromptFileName` | Name of generated prompt file | `CALM.agent.md`, `steering/CALM.chatmode.md` |
 | `skillPrefix` | Opening delimiter for skill references | `` ` ``, `#[[` |
 | `skillSuffix` | Closing delimiter for skill references | `` ` ``, `]]` |
 | `frontmatter` | YAML metadata for the provider | Model, tools, inclusion rules |
@@ -117,8 +123,8 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
 ```json
 {
     "description": "Github Copilot integrated with FINOS CALM",
-    "topLevelDirectory": ".github/chatmodes",
-    "topLevelPromptFileName": "CALM.chatmode.md",
+    "topLevelDirectory": ".github/agents",
+    "topLevelPromptFileName": "CALM.agent.md",
     "skillPrefix": "`",
     "skillSuffix": "`",
     "frontmatter": "---\ndescription: An AI Assistant for FINOS CALM development.\ntools: ['codebase', 'editFiles', 'fetch', 'runInTerminal']\nmodel: Claude Sonnet 4.5\n---",
@@ -133,7 +139,10 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
         "calm-prompts/flow-creation.md",
         "calm-prompts/pattern-creation.md",
         "calm-prompts/documentation-creation.md",
-        "calm-prompts/standards-creation.md"
+        "calm-prompts/standards-creation.md",
+        "calm-prompts/moment-creation.md",
+        "calm-prompts/timeline-creation.md",
+        "calm-prompts/decorator-creation.md"
     ]
 }
 ```
@@ -141,7 +150,7 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
 **GitHub Copilot specifics:**
 - Uses backticks (`` ` ``) to reference skill files
 - Frontmatter specifies Claude Sonnet 4.5 model and available tools
-- Prompts placed in `.github/chatmodes/` directory
+- Prompts placed in `.github/agents/` directory
 - Skill prompts referenced as `` `calm-prompts/architecture-creation.md` ``
 
 ### Example: AWS Kiro/Q Configuration (`kiro.json`)
@@ -165,7 +174,10 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
         "calm-prompts/flow-creation.md",
         "calm-prompts/pattern-creation.md",
         "calm-prompts/documentation-creation.md",
-        "calm-prompts/standards-creation.md"
+        "calm-prompts/standards-creation.md",
+        "calm-prompts/moment-creation.md",
+        "calm-prompts/timeline-creation.md",
+        "calm-prompts/decorator-creation.md"
     ]
 }
 ```
@@ -210,7 +222,7 @@ The template includes:
 ### 2. Prompt Management
 - Provides modular, focused guidance for specific CALM tasks
 - Enforces validation requirements and best practices
-- References CALM schema v1.1 for accuracy
+- References CALM schema v1.2 for accuracy
 - Includes working examples and common pitfall warnings
 
 ### 3. Multi-provider Support
@@ -282,7 +294,7 @@ When editing `templates/CALM.chatmode_template.md`:
 ## Validation Requirements
 
 All tool prompts must:
-- Reference CALM schema v1.1
+- Reference CALM schema v1.2
 - Include mandatory validation steps
 - Provide `calm validate` commands
 - Emphasize `hasErrors: false` requirement
@@ -292,6 +304,6 @@ All tool prompts must:
 ## Related Documentation
 
 - **CALM CLI**: See `cli/AGENTS.md` for CLI command details
-- **CALM Schema**: https://calm.finos.org/release/1.1/meta/calm.json
+- **CALM Schema**: https://calm.finos.org/release/1.2/meta/calm.json
 - **User Docs**: https://calm.finos.org
 - **VSCode Extension**: See `calm-plugins/vscode/AGENTS.md`

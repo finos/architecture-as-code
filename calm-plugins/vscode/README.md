@@ -14,6 +14,12 @@ Live-visualize CALM architecture models while you edit them. Features an interac
 - **Quick Navigation**: Jump between editor and preview
 - **Search & Filter**: Find elements across large models
 
+### 📅 Timeline Navigation
+- **Architecture Evolution**: View milestones in your architecture timeline
+- **One-Click Navigation**: Click any milestone to open its detailed architecture
+- **Current Moment Indicator**: Star marker shows the current architecture state
+- **Relative Path Support**: Navigate to architecture files using relative paths
+
 ### ✅ Real-Time Validation
 - **Automatic Validation**: Documents are validated on open, save, and when switching editors
 - **Problems Panel Integration**: Errors and warnings appear in the VS Code Problems panel
@@ -80,6 +86,29 @@ Customize how the extension finds your CALM models and templates.
 Four themes are supported for the live preview diagrams:
 
 - `calm.docify.theme` - set to `light`, `dark`, `high-contrast-light` or `high-contrast-dark`, or `auto` to automatically align to your VSCode theme.
+
+### Layout Engine
+
+Choose the diagram layout engine for architecture visualizations:
+
+- `calm.preview.layout` - set to `elk` (default) or `dagre`
+  - **ELK** (Eclipse Layout Kernel): Provides better automatic layout for complex diagrams with improved edge routing and hierarchy handling. Recommended for most use cases.
+  - **Dagre**: Classic Mermaid layout engine. Use if you prefer the traditional Mermaid layout behavior.
+
+This setting applies workspace-wide to all block-architecture diagrams. Individual templates can override this setting using widget frontmatter:
+
+```yaml
+---
+widget-options:
+  block-architecture:
+    layout-engine: dagre
+---
+```
+
+Or inline in the template:
+```handlebars
+{{block-architecture this layout-engine="dagre"}}
+```
 
 ## Getting Involved
 

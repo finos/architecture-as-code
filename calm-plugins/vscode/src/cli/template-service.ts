@@ -34,7 +34,8 @@ export class TemplateService {
       content = this.processor.processTemplateForLabels(content, showLabels)
       const configService: Config = new ConfigService();
       const docifyTheme = configService.docifyTheme();
-      return this.processor.processTemplateForTheme(content, docifyTheme);
+      const layoutEngine = configService.previewLayout();
+      return this.processor.processTemplateForTheme(content, docifyTheme, layoutEngine);
     } catch {
       this.log.info(`[preview] loadTemplate: using fallback template for ${name}`)
       return this.processor.generateFallbackTemplate(showLabels)
@@ -74,6 +75,13 @@ export class TemplateService {
 
       const edge = graph.edges?.find((x: any) => x.id === selectedId)
       if (edge) {
+        if (edge.type === 'flow') {
+          const template = await this.loadTemplate('flow-focus-template.hbs', showLabels)
+          return this.processor.replacePlaceholders(template, {
+            'focused-flow-id': selectedId
+          })
+        }
+
         const template = await this.loadTemplate('relationship-focus-template.hbs', showLabels)
         return this.processor.replacePlaceholders(template, {
           'focused-relationship-id': selectedId
@@ -84,7 +92,15 @@ export class TemplateService {
     const modelFile = isTemplateMode && architectureFilePath ? architectureFilePath : currentModelPath
     if (modelFile) {
       try {
-        const data = this.modelService.readModel(modelFile)
+        const data = await this.modelService.readModelAsync(modelFile)
+
+        // Check for relationships by original unique-id (handles all relationship types: connects, interacts, deployed-in, composed-of)
+        if (data?.relationships?.find((r: any) => r['unique-id'] === selectedId)) {
+          const template = await this.loadTemplate('relationship-focus-template.hbs', showLabels)
+          return this.processor.replacePlaceholders(template, {
+            'focused-relationship-id': selectedId
+          })
+        }
 
         if (data?.flows?.find((f: any) => f['unique-id'] === selectedId)) {
           const template = await this.loadTemplate('flow-focus-template.hbs', showLabels)

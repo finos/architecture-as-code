@@ -108,9 +108,9 @@ describe('CLI Integration Tests', () => {
             // Define expected paths based on provider
             const expectedPaths: Record<string, { topLevelDir: string; mainPromptFile: string; skillPromptsDir: string }> = {
                 copilot: {
-                    topLevelDir: '.github/chatmodes',
-                    mainPromptFile: '.github/chatmodes/CALM.chatmode.md',
-                    skillPromptsDir: '.github/chatmodes/calm-prompts',
+                    topLevelDir: '.github/agents',
+                    mainPromptFile: '.github/agents/CALM.agent.md',
+                    skillPromptsDir: '.github/agents/calm-prompts',
                 },
                 kiro: {
                     topLevelDir: '.kiro',
@@ -153,6 +153,7 @@ describe('CLI Integration Tests', () => {
                 'pattern-creation.md',
                 'documentation-creation.md',
                 'standards-creation.md',
+                'decorator-creation.md',
             ];
 
             expectedSkillFiles.forEach((skillFile) => {
@@ -313,7 +314,7 @@ describe('CLI Integration Tests', () => {
     test('validate command fails when neither architecture nor pattern is provided', async () => {
         await expect(run(calm(), ['validate'])).rejects.toMatchObject({
             stderr: expect.stringContaining(
-                'error: one of the required options \'-p, --pattern <file>\' or \'-a, --architecture <file>\' was not specified'
+                'error: one of the required options \'-p, --pattern <file>\', \'-a, --architecture <file>\' or \'--timeline <file>\' was not specified'
             )
         });
     });
@@ -333,6 +334,32 @@ describe('CLI Integration Tests', () => {
         removeLineNumbers(expectedOutput);
 
         expect(parsedOutput).toEqual(expectedOutput);
+    });
+
+    test('validate command validates a timeline only', async () => {
+        const apiGatewayTimelinePath = path.join(__dirname, '../test_fixtures/api-gateway/api-gateway-timeline.json');
+        const targetOutputFile = path.join(tempDir, 'validate-timeline-output2.json');
+
+        await expect(run(calm(), ['validate', '--timeline', apiGatewayTimelinePath, '-o', targetOutputFile]))
+            .rejects.toHaveProperty('exitCode', 1);
+        const outputFile = fs.readFileSync(targetOutputFile, 'utf-8');
+
+        const parsedOutput = JSON.parse(outputFile);
+        const expectedFilePath = path.join(__dirname, '../test_fixtures/validate_timeline_output.json');
+        const expectedOutput = JSON.parse(fs.readFileSync(expectedFilePath, 'utf-8'));
+
+        removeLineNumbers(parsedOutput);
+        removeLineNumbers(expectedOutput);
+
+        expect(parsedOutput).toEqual(expectedOutput);
+    });
+
+    test('validate command rejects a timeline with no schema', async () => {
+        const apiGatewayTimelinePath = path.join(__dirname, '../test_fixtures/timeline/timeline-no-schema.json');
+        const targetOutputFile = path.join(tempDir, 'validate-timeline-output3.json');
+
+        await expect(run(calm(), ['validate', '--timeline', apiGatewayTimelinePath, '-o', targetOutputFile]))
+            .rejects.toHaveProperty('exitCode', 1);
     });
 
     describe('validate command with URL mapping', () => {
@@ -390,7 +417,6 @@ describe('CLI Integration Tests', () => {
             }
         });
     });
-
 
     test('generate command produces the expected output', async () => {
         const p = path.join(

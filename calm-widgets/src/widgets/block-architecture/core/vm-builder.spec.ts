@@ -13,6 +13,7 @@ const baseOpts = (over: Partial<NormalizedOptions> = {}): NormalizedOptions => (
     edgeLabels: 'description',
     collapseRelationships: false,
     theme: 'light',
+    layoutEngine: 'elk',
     ...over,
 });
 

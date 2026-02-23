@@ -10,14 +10,14 @@ sidebar_position: 2
 
 ## Overview
 
-Use the CALM chatmode you configured in the previous tutorial to create your first architecture file with AI assistance.
+Use the CALM agent you configured in the previous tutorial to create your first architecture file with AI assistance.
 
 ## Learning Objectives
 
 By the end of this tutorial, you will:
 - Understand what a node represents in CALM
 - Create a valid CALM architecture JSON file
-- Use GitHub Copilot with the CALM chatmode
+- Use GitHub Copilot with the CALM agent
 - Validate your architecture using the CLI
 
 ## Prerequisites
@@ -42,14 +42,14 @@ A **node** in CALM represents a distinct architectural component. CALM provides 
 
 **Custom node types:** You can define your own (e.g., "message-queue", "cache", "api-gateway") to better represent your specific architecture.
 
-### 2. Open the CALM Chatmode in VSCode
+### 2. Open the CALM Agent in VSCode
 
 1. Open your `calm-learning` repository in VSCode
 2. Open the Copilot Chat panel:
    - **Windows/Linux**: `Ctrl+Alt+I` or click the chat icon in the sidebar
    - **Mac**: `Cmd+Shift+I` or click the chat icon in the sidebar
-3. **Select the CALM chatmode**:
-   - Click the chatmode selector dropdown (shows "General Purpose" by default)
+3. **Select the CALM agent**:
+   - Click the agent selector dropdown (shows "Agent" by default)
    - Select **"CALM"** from the list
    - The chat panel will now show "CALM" as the active mode
 
@@ -64,7 +64,7 @@ The architecture should contain a single node representing [describe a system yo
 
 Use appropriate node-type, and include a meaningful unique-id, name, and description.
 
-Make sure the file includes the correct $schema reference and validates against the CALM 1.1 specification.
+Make sure the file includes the correct $schema reference and validates against the CALM 1.2 specification.
 ```
 
 **Example customized prompt:**
@@ -75,7 +75,7 @@ The architecture should contain a single node representing a customer authentica
 
 Use appropriate node-type, and include a meaningful unique-id, name, and description.
 
-Make sure the file includes the correct $schema reference and validates against the CALM 1.1 specification.
+Make sure the file includes the correct $schema reference and validates against the CALM 1.2 specification.
 ```
 
 ### 4. Review the AI's Output
@@ -83,7 +83,7 @@ Make sure the file includes the correct $schema reference and validates against 
 Copilot will generate the file. **Important:** Don't blindly accept it! Review and verify:
 
 - ✅ File is in the correct location: `architectures/my-first-architecture.json`
-- ✅ Contains `$schema` property pointing to the [CALM 1.1](https://calm.finos.org/release/1.1/meta/calm.json) JSON schema
+- ✅ Contains `$schema` property pointing to the [CALM 1.2](https://calm.finos.org/release/1.2/meta/calm.json) JSON schema
 - ✅ Has a `nodes` array with your node
 - ✅ Node has all required properties: `unique-id`, `node-type`, `name`, `description`
 - ✅ The `node-type` is appropriate for what you're modeling
@@ -144,7 +144,7 @@ The `$schema` property tells validation tools which version of CALM to use:
 
 ```json
 {
-  "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
   "nodes": [...],
   "relationships": []
 }
@@ -156,7 +156,7 @@ A valid CALM architecture requires both `nodes` and `relationships` arrays at th
 
 ## Resources
 
-- [CALM Node Schema](https://github.com/finos/architecture-as-code/blob/main/calm/release/1.1/meta/core.json)
+- [CALM Node Schema](https://github.com/finos/architecture-as-code/blob/main/calm/release/1.2/meta/core.json)
 - [JSON Schema Documentation](https://json-schema.org/)
 
 ## Tips

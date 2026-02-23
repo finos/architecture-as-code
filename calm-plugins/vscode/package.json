@@ -2,7 +2,7 @@
     "name": "calm-vscode-plugin",
     "displayName": "CALM Tools",
     "description": "Live-visualize CALM architecture models, validate, and generate docs.",
-    "version": "0.4.3",
+    "version": "0.5.0",
     "publisher": "FINOS",
     "homepage": "https://calm.finos.org",
     "repository": {
@@ -113,6 +113,15 @@
                     "default": "auto",
                     "description": "Default theme for CALM diagrams."
                 },
+                "calm.preview.layout": {
+                    "type": "string",
+                    "enum": [
+                        "dagre",
+                        "elk"
+                    ],
+                    "default": "elk",
+                    "markdownDescription": "Mermaid layout engine for architecture diagrams. **ELK** provides better automatic layout for complex diagrams with improved edge routing."
+                },
                 "calm.urlMapping": {
                     "type": "string",
                     "description": "Path to a JSON file mapping URLs to local file paths for detailed-architecture navigation.",
@@ -193,9 +202,10 @@
     "dependencies": {
         "@finos/calm-models": "file:../../calm-models",
         "@finos/calm-shared": "file:../../shared",
+        "@mermaid-js/layout-elk": "^0.1.9",
         "jsdom": "^22.1.0",
         "lodash": "^4.17.23",
-        "markdown-it": "^13.0.1",
+        "markdown-it": "^14.1.1",
         "mermaid": "^11.0.0",
         "svg-pan-zoom": "^3.6.2",
         "yaml": "^2.5.1",
