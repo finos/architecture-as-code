@@ -222,8 +222,8 @@ Patterns use JSON schema constructs to provide choices and options:
                         "description": {"type": "string"},
                         "interfaces": {
                             "type": "array",
-                            "minItems": 1,
-                            "maxItems": 1,
+                            "minItems": 2,
+                            "maxItems": 2,
                             "prefixItems": [
                                 {
                                     "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type",
@@ -251,8 +251,8 @@ Patterns use JSON schema constructs to provide choices and options:
                                 "description": {"const": "conference registration database using PostgreSQL"},
                                 "interfaces": {
                                     "type": "array",
-                                    "minItems": 1,
-                                    "maxItems": 1,
+                                    "minItems": 2,
+                                    "maxItems": 2,
                                     "prefixItems": [
                                         {
                                             "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type",
@@ -275,8 +275,8 @@ Patterns use JSON schema constructs to provide choices and options:
                                 "description": {"const": "conference registration database using MySQL"},
                                 "interfaces": {
                                     "type": "array",
-                                    "minItems": 1,
-                                    "maxItems": 1,
+                                    "minItems": 2,
+                                    "maxItems": 2,
                                     "prefixItems": [
                                         {
                                             "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type",
@@ -518,8 +518,8 @@ Based on real CALM patterns, patterns should include:
 
 ### Complete Node Definitions
 
-- **Interfaces**: Define specific interface types (interface-definition, interface-type, node-interface)
-- **Constraints**: Use `const` for structural identifiers, `anyOf` for choices
+- **Interfaces**: Define specific interface types (interface-definition, interface-type)
+- **Constraints**: Use `const` for structural identifiers, `anyOf` or `oneOf` for choices
 - **Array constraints**: Use `minItems`, `maxItems`, and `prefixItems`
 
 ### Detailed Relationships
@@ -583,7 +583,6 @@ Always use specific interface schema references:
 
 - `interface-definition` is a formal interface definition that references an external schema for standardization and validation.
 - `interface-type` is a simple, inline interface allowing any properties for quick documentation and basic connectivity.
-- `node-interface` used in relationships (specifically connects relationships) to reference specific interfaces on nodes.
 
 ### Relationship Types
 
