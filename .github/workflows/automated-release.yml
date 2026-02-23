@@ -135,7 +135,6 @@ jobs:
         id: check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
         run: |
           cd cli
           
@@ -380,7 +379,6 @@ jobs:
       - name: Create draft release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
         run: |
           cd  cli
           # Generate release notes without creating tags
@@ -483,11 +481,8 @@ jobs:
             --target main
 
       - name: Publish to NPM
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
         run: |
           cd cli
-          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
-          npm publish
+          npm publish --provenance
           
           echo "✅ Successfully published @finos/calm-cli@${{ steps.version.outputs.version }} to NPM" >> $GITHUB_STEP_SUMMARY
