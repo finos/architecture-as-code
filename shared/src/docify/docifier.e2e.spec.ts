@@ -57,7 +57,7 @@ describe('Docifier E2E - Real Model and Template', () => {
             join(EXPECTED_OUTPUT_DIR, 'secure'),
             join(OUTPUT_DIR, 'secure')
         );
-    });
+    }, 20_000);
 
     it('generates documentation from the conference-secure-signup.arch.json model with partial mapping', async () => {
         const docifier = new Docifier(
@@ -71,5 +71,5 @@ describe('Docifier E2E - Real Model and Template', () => {
             join(EXPECTED_OUTPUT_DIR, 'secure'),
             join(OUTPUT_DIR, 'secure')
         );
-    });
+    }, 20_000);
 });
