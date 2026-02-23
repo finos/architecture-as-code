@@ -92,7 +92,7 @@ A deployment decorator schema could constrain `type` to `"deployment"` and defin
 ```json
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://calm.finos.org/release/1.2/meta/deployment.decorator.schema.json",
+    "$id": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json",
     "title": "CALM Deployment Decorator Schema",
     "allOf": [
         {
@@ -109,16 +109,26 @@ A deployment decorator schema could constrain `type` to `"deployment"` and defin
                             "type": "string",
                             "format": "date-time"
                         },
+                        "deployment-end-time": {
+                            "type": "string",
+                            "format": "date-time"
+                        },
                         "deployment-status": {
                             "type": "string",
                             "enum": [
-                                "in-progress", "failed", "completed",
-                                "rolled-back", "pending"
+                                "pending", "in-progress", "completed",
+                                "failed", "rolled-back"
                             ]
+                        },
+                        "deployment-environment": {
+                            "type": "string"
                         },
                         "deployment-observability": {
                             "type": "string",
                             "format": "uri"
+                        },
+                        "deployment-notes": {
+                            "type": "string"
                         }
                     },
                     "required": ["deployment-start-time", "deployment-status"],
@@ -134,8 +144,11 @@ A deployment decorator schema could constrain `type` to `"deployment"` and defin
 | Property | Type | Required | Description |
 |---|---|---|---|
 | `deployment-start-time` | string (date-time) | Yes | ISO 8601 timestamp of when the deployment started |
-| `deployment-status` | string (enum) | Yes | Current status: `in-progress`, `failed`, `completed`, `rolled-back`, `pending` |
+| `deployment-status` | string (enum) | Yes | Current status: `pending`, `in-progress`, `completed`, `failed`, `rolled-back` |
+| `deployment-end-time` | string (date-time) | No | ISO 8601 timestamp of when the deployment completed or failed |
+| `deployment-environment` | string | No | Target environment (e.g., production, staging, development) |
 | `deployment-observability` | string (uri) | No | Link to logs, metrics, or observability dashboards |
+| `deployment-notes` | string | No | Free-form notes or comments about the deployment |
 
 The `data` object uses `additionalProperties: true` so that extension schemas can add domain-specific sub-objects.
 
@@ -148,11 +161,11 @@ Taking the extension pattern further, a Kubernetes-specific decorator could add 
 ```json
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://calm.finos.org/release/1.2/meta/kubernetes.decorator.schema.json",
+    "$id": "https://calm.finos.org/standards/deployment/kubernetes.decorator.schema.json",
     "title": "CALM Kubernetes Deployment Decorator Schema",
     "allOf": [
         {
-            "$ref": "https://calm.finos.org/release/1.2/meta/deployment.decorator.schema.json"
+            "$ref": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json"
         },
         {
             "type": "object",
@@ -223,15 +236,18 @@ A Kubernetes deployment decorator for this node could look like:
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.2/meta/kubernetes.decorator.schema.json",
+    "$schema": "https://calm.finos.org/standards/deployment/kubernetes.decorator.schema.json",
     "unique-id": "aks-cluster-deployment-001",
     "type": "deployment",
     "target": ["aks-architecture.json"],
     "applies-to": ["aks-cluster"],
     "data": {
         "deployment-start-time": "2026-02-12T09:30:00Z",
+        "deployment-end-time": "2026-02-12T09:38:00Z",
         "deployment-status": "completed",
+        "deployment-environment": "production",
         "deployment-observability": "https://grafana.example.com/d/aks-prod/aks-cluster-overview",
+        "deployment-notes": "Routine upgrade to latest platform version",
         "kubernetes": {
             "helm-chart": "aks-platform:3.2.1",
             "cluster": "prod-uksouth-aks-01",
@@ -245,5 +261,5 @@ This decorator:
 - Targets the architecture document `aks-architecture.json` via `target`
 - References the `aks-cluster` node within that architecture via `applies-to`
 - Satisfies the base decorator schema (has `unique-id`, `type`, `target`, `applies-to`, `data`)
-- Satisfies the deployment schema (`deployment-start-time`, `deployment-status` are present)
+- Satisfies the deployment schema (`deployment-start-time`, `deployment-status` are present, with optional fields `deployment-end-time`, `deployment-environment`, `deployment-observability`, `deployment-notes`)
 - Satisfies the Kubernetes schema (`helm-chart`, `cluster` are present inside the `kubernetes` sub-object)
