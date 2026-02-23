@@ -1,0 +1,38 @@
+{
+    "$schema": "https://calm.finos.org/standards/deployment/kubernetes.decorator.schema.json",
+    "unique-id": "k8s-deployment-example",
+    "type": "deployment",
+    "target": [
+        "example-architecture.json"
+    ],
+    "applies-to": [
+        "api-gateway",
+        "auth-service"
+    ],
+    "data": {
+        "deployment-start-time": "2026-02-23T14:30:00Z",
+        "deployment-end-time": "2026-02-23T14:42:15Z",
+        "deployment-status": "completed",
+        "deployment-environment": "production",
+        "deployment-observability": "https://grafana.example.com/d/platform-services",
+        "deployment-notes": "Rolling update with new authentication features",
+        "kubernetes": {
+            "helm-chart": "platform-services:2.1.0",
+            "cluster": "prod-eu-west-01",
+            "namespace": "platform",
+            "release-name": "platform-services",
+            "workload-type": "Deployment",
+            "replicas": 5,
+            "image": "registry.example.com/platform-services:2.1.0",
+            "config-maps": [
+                "platform-config",
+                "feature-flags"
+            ],
+            "secrets": [
+                "platform-secrets",
+                "jwt-keys"
+            ],
+            "service-account": "platform-sa"
+        }
+    }
+}

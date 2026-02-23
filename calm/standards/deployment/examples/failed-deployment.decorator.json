@@ -1,0 +1,19 @@
+{
+    "$schema": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json",
+    "unique-id": "failed-deployment-example",
+    "type": "deployment",
+    "target": [
+        "example-architecture.json"
+    ],
+    "applies-to": [
+        "payment-processor"
+    ],
+    "data": {
+        "deployment-start-time": "2026-02-23T08:15:00Z",
+        "deployment-end-time": "2026-02-23T08:23:45Z",
+        "deployment-status": "failed",
+        "deployment-environment": "production",
+        "deployment-observability": "https://grafana.example.com/d/payment-processor-prod",
+        "deployment-notes": "Deployment failed due to database migration timeout. Rolling back to 2.9.1."
+    }
+}

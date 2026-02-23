@@ -1,0 +1,158 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://calm.finos.org/standards/deployment/kubernetes.decorator.schema.json",
+    "title": "CALM Kubernetes Deployment Decorator Schema",
+    "description": "Kubernetes-specific deployment decorator schema. Extends the base deployment decorator with Kubernetes cluster, namespace, and Helm chart information.",
+    "allOf": [
+        {
+            "$ref": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json"
+        },
+        {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "kubernetes": {
+                            "type": "object",
+                            "description": "Kubernetes-specific deployment information",
+                            "properties": {
+                                "helm-chart": {
+                                    "type": "string",
+                                    "pattern": "^[a-z0-9-]+:[0-9]+\\.[0-9]+\\.[0-9]+$",
+                                    "description": "Helm chart name and semantic version in format 'chart-name:major.minor.patch'"
+                                },
+                                "cluster": {
+                                    "type": "string",
+                                    "description": "Kubernetes cluster identifier or name"
+                                },
+                                "namespace": {
+                                    "type": "string",
+                                    "description": "Kubernetes namespace where the resource is deployed",
+                                    "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                                },
+                                "release-name": {
+                                    "type": "string",
+                                    "description": "Helm release name for this deployment"
+                                },
+                                "context": {
+                                    "type": "string",
+                                    "description": "Kubernetes context name from kubeconfig"
+                                },
+                                "workload-type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "Deployment",
+                                        "StatefulSet",
+                                        "DaemonSet",
+                                        "Job",
+                                        "CronJob"
+                                    ],
+                                    "description": "Type of Kubernetes workload"
+                                },
+                                "replicas": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "description": "Number of pod replicas"
+                                },
+                                "image": {
+                                    "type": "string",
+                                    "description": "Container image with tag (e.g., 'myapp:1.2.3' or 'registry.example.com/myapp:v1')"
+                                },
+                                "config-maps": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "description": "List of ConfigMap names used by this deployment"
+                                },
+                                "secrets": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "description": "List of Secret names used by this deployment"
+                                },
+                                "service-account": {
+                                    "type": "string",
+                                    "description": "Kubernetes ServiceAccount used by the pods"
+                                }
+                            },
+                            "required": [
+                                "cluster"
+                            ],
+                            "additionalProperties": false
+                        }
+                    },
+                    "required": [
+                        "kubernetes"
+                    ]
+                }
+            }
+        }
+    ],
+    "examples": [
+        {
+            "$schema": "https://calm.finos.org/standards/deployment/kubernetes.decorator.schema.json",
+            "unique-id": "k8s-api-deployment-001",
+            "type": "deployment",
+            "target": [
+                "trading-system.architecture.json"
+            ],
+            "applies-to": [
+                "trading-api-service"
+            ],
+            "data": {
+                "deployment-start-time": "2026-02-23T10:00:00Z",
+                "deployment-end-time": "2026-02-23T10:08:00Z",
+                "deployment-status": "completed",
+                "deployment-version": "1.2.3",
+                "deployment-environment": "production",
+                "deployment-observability": "https://grafana.example.com/d/k8s-trading-api",
+                "deployment-initiator": "ci-pipeline-bot",
+                "kubernetes": {
+                    "helm-chart": "trading-api:1.2.3",
+                    "cluster": "prod-us-east-01",
+                    "namespace": "trading",
+                    "release-name": "trading-api-prod",
+                    "workload-type": "Deployment",
+                    "replicas": 3,
+                    "image": "registry.example.com/trading-api:1.2.3",
+                    "config-maps": [
+                        "trading-api-config",
+                        "shared-config"
+                    ],
+                    "secrets": [
+                        "trading-api-secrets",
+                        "database-credentials"
+                    ],
+                    "service-account": "trading-api-sa"
+                }
+            }
+        },
+        {
+            "$schema": "https://calm.finos.org/standards/deployment/kubernetes.decorator.schema.json",
+            "unique-id": "k8s-worker-deployment-002",
+            "type": "deployment",
+            "target": [
+                "background-jobs.architecture.json"
+            ],
+            "applies-to": [
+                "job-processor"
+            ],
+            "data": {
+                "deployment-start-time": "2026-02-23T11:30:00Z",
+                "deployment-status": "in-progress",
+                "deployment-version": "2.0.0-rc1",
+                "deployment-environment": "staging",
+                "kubernetes": {
+                    "cluster": "staging-us-west-01",
+                    "namespace": "background-jobs",
+                    "workload-type": "StatefulSet",
+                    "replicas": 2,
+                    "image": "registry.example.com/job-processor:2.0.0-rc1"
+                }
+            }
+        }
+    ]
+}

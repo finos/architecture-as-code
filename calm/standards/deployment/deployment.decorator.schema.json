@@ -1,0 +1,105 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json",
+    "title": "CALM Deployment Decorator Schema",
+    "description": "Deployment decorator schema for tracking deployment information across various platforms and environments. Extends the base CALM decorator schema to add deployment-specific attributes.",
+    "allOf": [
+        {
+            "$ref": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator"
+        },
+        {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "deployment",
+                    "description": "Must be 'deployment' for deployment decorators"
+                },
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "deployment-start-time": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "ISO 8601 timestamp indicating when the deployment started"
+                        },
+                        "deployment-end-time": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "ISO 8601 timestamp indicating when the deployment completed or failed"
+                        },
+                        "deployment-status": {
+                            "type": "string",
+                            "enum": [
+                                "pending",
+                                "in-progress",
+                                "completed",
+                                "failed",
+                                "rolled-back"
+                            ],
+                            "description": "Current status of the deployment"
+                        },
+                        "deployment-environment": {
+                            "type": "string",
+                            "description": "Target environment for the deployment (e.g., production, staging, development)"
+                        },
+                        "deployment-observability": {
+                            "type": "string",
+                            "format": "uri",
+                            "description": "URI linking to deployment logs, metrics, dashboards, or observability platform"
+                        },
+                        "deployment-notes": {
+                            "type": "string",
+                            "description": "Free-form notes or comments about the deployment"
+                        }
+                    },
+                    "required": [
+                        "deployment-start-time",
+                        "deployment-status"
+                    ],
+                    "additionalProperties": true
+                }
+            },
+            "required": [
+                "type",
+                "data"
+            ]
+        }
+    ],
+    "examples": [
+        {
+            "$schema": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json",
+            "unique-id": "api-deployment-001",
+            "type": "deployment",
+            "target": [
+                "my-architecture.json"
+            ],
+            "applies-to": [
+                "api-service"
+            ],
+            "data": {
+                "deployment-start-time": "2026-02-23T10:00:00Z",
+                "deployment-end-time": "2026-02-23T10:15:00Z",
+                "deployment-status": "completed",
+                "deployment-environment": "production",
+                "deployment-observability": "https://grafana.example.com/d/api-prod",
+                "deployment-notes": "Hotfix for authentication issue"
+            }
+        },
+        {
+            "$schema": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json",
+            "unique-id": "database-deployment-002",
+            "type": "deployment",
+            "target": [
+                "my-architecture.json"
+            ],
+            "applies-to": [
+                "postgres-database"
+            ],
+            "data": {
+                "deployment-start-time": "2026-02-23T09:30:00Z",
+                "deployment-status": "in-progress",
+                "deployment-environment": "staging"
+            }
+        }
+    ]
+}
