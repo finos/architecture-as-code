@@ -66,8 +66,8 @@ Organizations can reference these standards directly in their decorator document
   "target": ["my-architecture.json"],
   "applies-to": ["my-service"],
   "data": {
-    "deployment-start-time": "2026-02-23T10:00:00Z",
-    "deployment-status": "completed"
+    "start-time": "2026-02-23T10:00:00Z",
+    "status": "completed"
   }
 }
 ```

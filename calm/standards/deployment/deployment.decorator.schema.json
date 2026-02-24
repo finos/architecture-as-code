@@ -17,17 +17,17 @@
                 "data": {
                     "type": "object",
                     "properties": {
-                        "deployment-start-time": {
+                        "start-time": {
                             "type": "string",
                             "format": "date-time",
                             "description": "ISO 8601 timestamp indicating when the deployment started"
                         },
-                        "deployment-end-time": {
+                        "end-time": {
                             "type": "string",
                             "format": "date-time",
                             "description": "ISO 8601 timestamp indicating when the deployment completed or failed"
                         },
-                        "deployment-status": {
+                        "status": {
                             "type": "string",
                             "enum": [
                                 "pending",
@@ -38,23 +38,23 @@
                             ],
                             "description": "Current status of the deployment"
                         },
-                        "deployment-environment": {
+                        "environment": {
                             "type": "string",
                             "description": "Target environment for the deployment (e.g., production, staging, development)"
                         },
-                        "deployment-observability": {
+                        "observability": {
                             "type": "string",
                             "format": "uri",
                             "description": "URI linking to deployment logs, metrics, dashboards, or observability platform"
                         },
-                        "deployment-notes": {
+                        "notes": {
                             "type": "string",
                             "description": "Free-form notes or comments about the deployment"
                         }
                     },
                     "required": [
-                        "deployment-start-time",
-                        "deployment-status"
+                        "start-time",
+                        "status"
                     ],
                     "additionalProperties": true
                 }

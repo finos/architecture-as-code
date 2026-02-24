@@ -62,8 +62,8 @@ Document deployment failures with context for troubleshooting:
 ```json
 {
   "data": {
-    "deployment-status": "failed",
-    "deployment-notes": "Deployment failed due to..."
+    "status": "failed",
+    "notes": "Deployment failed due to..."
   }
 }
 ```
@@ -74,7 +74,7 @@ See: `failed-deployment.decorator.json`
 
 ### Kubernetes
 
-Use the Kubernetes decorator schema when deploying to Kubernetes clusters:
+When deploying to Kubernetes clusters, add Kubernetes-specific information as a sub-object:
 
 - Include Helm chart information
 - Specify cluster and namespace
@@ -100,7 +100,7 @@ Validate decorator instances using the CALM CLI:
 calm validate --schema https://calm.finos.org/standards/deployment/deployment.decorator.schema.json \
   simple-deployment.decorator.json
 
-# Validate a Kubernetes deployment decorator
-calm validate --schema https://calm.finos.org/standards/deployment/kubernetes.decorator.schema.json \
+# All examples use the base deployment.decorator.schema.json
+calm validate --schema https://calm.finos.org/standards/deployment/deployment.decorator.schema.json \
   kubernetes-deployment.decorator.json
 ```

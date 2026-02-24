@@ -12,11 +12,11 @@
         "graphql-gateway"
     ],
     "data": {
-        "deployment-start-time": "2026-02-23T12:00:00Z",
-        "deployment-status": "in-progress",
-        "deployment-environment": "staging",
-        "deployment-observability": "https://datadog.example.com/dashboard/release-2024-02-23",
-        "deployment-notes": "Coordinated release across frontend and backend services for new feature rollout",
+        "start-time": "2026-02-23T12:00:00Z",
+        "status": "in-progress",
+        "environment": "staging",
+        "observability": "https://datadog.example.com/dashboard/release-2024-02-23",
+        "notes": "Coordinated release across frontend and backend services for new feature rollout",
         "kubernetes": {
             "cluster": "staging-us-central-01",
             "namespace": "apps",

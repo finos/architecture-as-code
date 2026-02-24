@@ -9,11 +9,11 @@
         "web-service"
     ],
     "data": {
-        "deployment-start-time": "2026-02-23T10:00:00Z",
-        "deployment-end-time": "2026-02-23T10:05:30Z",
-        "deployment-status": "completed",
-        "deployment-environment": "production",
-        "deployment-observability": "https://grafana.example.com/d/web-service-prod",
-        "deployment-notes": "Initial production deployment"
+        "start-time": "2026-02-23T10:00:00Z",
+        "end-time": "2026-02-23T10:05:30Z",
+        "status": "completed",
+        "environment": "production",
+        "observability": "https://grafana.example.com/d/web-service-prod",
+        "notes": "Initial production deployment with baseline configuration"
     }
 }

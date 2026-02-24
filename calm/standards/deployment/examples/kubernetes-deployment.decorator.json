@@ -10,12 +10,12 @@
         "auth-service"
     ],
     "data": {
-        "deployment-start-time": "2026-02-23T14:30:00Z",
-        "deployment-end-time": "2026-02-23T14:42:15Z",
-        "deployment-status": "completed",
-        "deployment-environment": "production",
-        "deployment-observability": "https://grafana.example.com/d/platform-services",
-        "deployment-notes": "Rolling update with new authentication features",
+        "start-time": "2026-02-23T14:30:00Z",
+        "end-time": "2026-02-23T14:42:15Z",
+        "status": "completed",
+        "environment": "production",
+        "observability": "https://grafana.example.com/d/platform-services",
+        "notes": "Rolling update with new authentication features",
         "kubernetes": {
             "helm-chart": "platform-services:2.1.0",
             "cluster": "prod-eu-west-01",
