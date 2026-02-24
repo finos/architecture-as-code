@@ -85,9 +85,9 @@ This creates a composable schema inheritance chain where each layer owns its own
 
 To illustrate how the base decorator schema can be extended, consider deployment decorators that track when and how architecture components are deployed, including status, timing, and observability links.
 
-### Example: Deployment Decorator Schema
+### Example: Deployment Decorator Standard
 
-A deployment decorator schema could constrain `type` to `"deployment"` and define deployment-specific attributes in `data`:
+A deployment decorator standard constrains `type` to `"deployment"` and defines deployment-specific attributes in `data`:
 
 ```json
 {
@@ -105,33 +105,33 @@ A deployment decorator schema could constrain `type` to `"deployment"` and defin
                 "data": {
                     "type": "object",
                     "properties": {
-                        "deployment-start-time": {
+                        "start-time": {
                             "type": "string",
                             "format": "date-time"
                         },
-                        "deployment-end-time": {
+                        "end-time": {
                             "type": "string",
                             "format": "date-time"
                         },
-                        "deployment-status": {
+                        "status": {
                             "type": "string",
                             "enum": [
                                 "pending", "in-progress", "completed",
                                 "failed", "rolled-back"
                             ]
                         },
-                        "deployment-environment": {
+                        "environment": {
                             "type": "string"
                         },
-                        "deployment-observability": {
+                        "observability": {
                             "type": "string",
                             "format": "uri"
                         },
-                        "deployment-notes": {
+                        "notes": {
                             "type": "string"
                         }
                     },
-                    "required": ["deployment-start-time", "deployment-status"],
+                    "required": ["start-time", "status"],
                     "additionalProperties": true
                 }
             },
@@ -143,75 +143,43 @@ A deployment decorator schema could constrain `type` to `"deployment"` and defin
 
 | Property | Type | Required | Description |
 |---|---|---|---|
-| `deployment-start-time` | string (date-time) | Yes | ISO 8601 timestamp of when the deployment started |
-| `deployment-status` | string (enum) | Yes | Current status: `pending`, `in-progress`, `completed`, `failed`, `rolled-back` |
-| `deployment-end-time` | string (date-time) | No | ISO 8601 timestamp of when the deployment completed or failed |
-| `deployment-environment` | string | No | Target environment (e.g., production, staging, development) |
-| `deployment-observability` | string (uri) | No | Link to logs, metrics, or observability dashboards |
-| `deployment-notes` | string | No | Free-form notes or comments about the deployment |
+| `start-time` | string (date-time) | Yes | ISO 8601 timestamp of when the deployment started |
+| `status` | string (enum) | Yes | Current status: `pending`, `in-progress`, `completed`, `failed`, `rolled-back` |
+| `end-time` | string (date-time) | No | ISO 8601 timestamp of when the deployment completed or failed |
+| `environment` | string | No | Target environment (e.g., production, staging, development) |
+| `observability` | string (uri) | No | Link to logs, metrics, or observability dashboards |
+| `notes` | string | No | Free-form notes or comments about the deployment |
 
 The `data` object uses `additionalProperties: true` so that extension schemas can add domain-specific sub-objects.
 
 ## Example: Kubernetes Deployment Decorators
 
-Taking the extension pattern further, a Kubernetes-specific decorator could add a `kubernetes` sub-object inside `data` with cluster-specific attributes. The Kubernetes properties are nested to avoid conflicts with the base deployment properties and to allow each schema layer to lock down its own scope.
+Taking the extension pattern further, a Kubernetes-specific decorator can add a `kubernetes` sub-object inside `data` with cluster-specific attributes. The Kubernetes properties are nested to avoid conflicts with the base deployment properties.
 
-### Kubernetes Decorator Schema
+### Kubernetes-Specific Properties
 
-```json
-{
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://calm.finos.org/standards/deployment/kubernetes.decorator.schema.json",
-    "title": "CALM Kubernetes Deployment Decorator Schema",
-    "allOf": [
-        {
-            "$ref": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json"
-        },
-        {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "object",
-                    "properties": {
-                        "kubernetes": {
-                            "type": "object",
-                            "properties": {
-                                "helm-chart": {
-                                    "type": "string",
-                                    "pattern": "^[a-z0-9-]+:[0-9]+\\.[0-9]+\\.[0-9]+$"
-                                },
-                                "cluster": { "type": "string" },
-                                "namespace": { "type": "string" }
-                            },
-                            "required": ["helm-chart", "cluster"],
-                            "additionalProperties": false
-                        }
-                    },
-                    "required": ["kubernetes"]
-                }
-            }
-        }
-    ]
-}
-```
+When deploying to Kubernetes, add platform-specific details in a `kubernetes` sub-object:
 
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `kubernetes.helm-chart` | string (pattern) | Yes | Helm chart name and semver version (e.g. `my-app:1.2.3`) |
-| `kubernetes.cluster` | string | Yes | Kubernetes cluster identifier |
-| `kubernetes.namespace` | string | No | Kubernetes namespace for the deployment |
+| Property | Type | Description |
+|---|---|---|
+| `kubernetes.helm-chart` | string | Helm chart name and semver version (e.g. `my-app:1.2.3`) |
+| `kubernetes.cluster` | string | Kubernetes cluster identifier |
+| `kubernetes.namespace` | string | Kubernetes namespace for the deployment |
+| `kubernetes.workload-type` | string | Type of workload (e.g. `Deployment`, `StatefulSet`) |
+| `kubernetes.replicas` | number | Number of replicas deployed |
 
-## Schema Inheritance
+The deployment decorator standard allows `additionalProperties: true` in the `data` object, so platform-specific sub-objects like `kubernetes`, `aws-ecs`, or `azure` can be added without modifying the base standard.
 
-The examples above demonstrate how the schema inheritance chain allows each layer to define its own properties while composing cleanly:
+## Standard Inheritance
+
+The deployment decorator standard demonstrates how standards build upon the base decorator schema:
 
 ```
-decorators.json (base: unique-id, type, applies-to, data)
-  └── deployment decorator (type="deployment", deployment attributes in data)
-        └── kubernetes decorator (kubernetes sub-object in data)
+decorators.json (base: unique-id, type, target, applies-to, data)
+  └── deployment.decorator.schema.json (type="deployment", deployment-specific properties)
 ```
 
-Other deployment targets (e.g. AWS ECS, Azure Container Apps) could follow the same pattern — extend a deployment decorator schema and add their own sub-object inside `data`.
+The deployment standard constrains `type` to `"deployment"` and defines the structure of the `data` field with standard deployment properties (`start-time`, `status`, etc.). Organizations can add platform-specific sub-objects within `data` (like `kubernetes`, `aws-ecs`, or `azure`) to capture deployment details specific to their infrastructure.
 
 ## Worked Example
 
@@ -236,18 +204,18 @@ A Kubernetes deployment decorator for this node could look like:
 
 ```json
 {
-    "$schema": "https://calm.finos.org/standards/deployment/kubernetes.decorator.schema.json",
+    "$schema": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json",
     "unique-id": "aks-cluster-deployment-001",
     "type": "deployment",
     "target": ["aks-architecture.json"],
     "applies-to": ["aks-cluster"],
     "data": {
-        "deployment-start-time": "2026-02-12T09:30:00Z",
-        "deployment-end-time": "2026-02-12T09:38:00Z",
-        "deployment-status": "completed",
-        "deployment-environment": "production",
-        "deployment-observability": "https://grafana.example.com/d/aks-prod/aks-cluster-overview",
-        "deployment-notes": "Routine upgrade to latest platform version",
+        "start-time": "2026-02-12T09:30:00Z",
+        "end-time": "2026-02-12T09:38:00Z",
+        "status": "completed",
+        "environment": "production",
+        "observability": "https://grafana.example.com/d/aks-prod/aks-cluster-overview",
+        "notes": "Routine upgrade to latest platform version",
         "kubernetes": {
             "helm-chart": "aks-platform:3.2.1",
             "cluster": "prod-uksouth-aks-01",
@@ -261,5 +229,5 @@ This decorator:
 - Targets the architecture document `aks-architecture.json` via `target`
 - References the `aks-cluster` node within that architecture via `applies-to`
 - Satisfies the base decorator schema (has `unique-id`, `type`, `target`, `applies-to`, `data`)
-- Satisfies the deployment schema (`deployment-start-time`, `deployment-status` are present, with optional fields `deployment-end-time`, `deployment-environment`, `deployment-observability`, `deployment-notes`)
-- Satisfies the Kubernetes schema (`helm-chart`, `cluster` are present inside the `kubernetes` sub-object)
+- Satisfies the deployment standard (`start-time`, `status` are present, with optional fields `end-time`, `environment`, `observability`, `notes`)
+- Includes platform-specific Kubernetes details in the `kubernetes` sub-object (helm chart, cluster, namespace)

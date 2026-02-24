@@ -163,12 +163,12 @@ Other deployment targets (e.g. AWS ECS, Azure Container Apps) follow the same pa
     "target": ["aks-architecture.json"],
     "applies-to": ["aks-cluster"],
     "data": {
-        "deployment-start-time": "2026-02-12T09:30:00Z",
-        "deployment-end-time": "2026-02-12T09:38:00Z",
-        "deployment-status": "completed",
-        "deployment-environment": "production",
-        "deployment-observability": "https://grafana.example.com/d/aks-prod/aks-cluster-overview",
-        "deployment-notes": "Routine upgrade to latest platform version"
+        "start-time": "2026-02-12T09:30:00Z",
+        "end-time": "2026-02-12T09:38:00Z",
+        "status": "completed",
+        "environment": "production",
+        "observability": "https://grafana.example.com/d/aks-prod/aks-cluster-overview",
+        "notes": "Routine upgrade to latest platform version"
     }
 }
 ```
