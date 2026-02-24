@@ -37,6 +37,12 @@ Ready to get started? Read the [CALM quickstart guide](https://calm.finos.org/qu
 | [Docs](./docs)                                                                                 | [@rocketstack-matt](https://github.com/rocketstack-matt)                                                                                                                                                                             | [![Sync Docs to S3](https://github.com/finos/architecture-as-code/actions/workflows/s3-docs-sync.yml/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/s3-docs-sync.yml) [![Build Docs](https://github.com/finos/architecture-as-code/actions/workflows/build-docs.yml/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/build-docs.yml) |
 | [CALM VSCode Plugin](./calm-plugins/vscode)                                                    | [@LeighFinegold](https://github.com/LeighFinegold), [@rocketstack-matt](https://github.com/rocketstack-matt), [@markscott-ms](https://github.com/markscott-ms)                                                                                                                         | ![Build VS Code Extension](https://github.com/finos/architecture-as-code/workflows/Build%20VS%20Code%20Extension/badge.svg)                                                                                                                                                                                                                                                                 |
 
+## Roadmap
+
+[![Roadmap](https://roadmapper.rocketstack.co/finos/architecture-as-code/ffffff/24292f)](https://roadmapper.rocketstack.co/view/finos/architecture-as-code/ffffff/24292f)
+
+> Click the roadmap to view the interactive version with clickable cards.
+
 ## Getting Involved
 
 Architecture as Code was developed as part of the [DevOps Automation Special Interest Group](https://devops.finos.org/) before graduating as a top level project in it's own right. Our community Zoom meetups
