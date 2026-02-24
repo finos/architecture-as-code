@@ -1,17 +1,22 @@
-import { SchemaDirectory, validate } from '@finos/calm-shared';
+import { SchemaDirectory, validate, ValidationOutcome, initLogger } from '@finos/calm-shared';
+import type { Logger } from '@finos/calm-shared/dist/logger';
 import { Router, Request, Response } from 'express';
-import { ValidationOutcome } from '@finos/calm-shared';
 import rateLimit from 'express-rate-limit';
-import { initLogger, Logger } from '@finos/calm-shared/dist/logger';
 
 export class ValidationRouter {
     private schemaDirectory: SchemaDirectory;
     private logger: Logger;
 
-    constructor(router: Router, schemaDirectory: SchemaDirectory, debug: boolean = false) {
+    constructor(
+        router: Router,
+        schemaDirectory: SchemaDirectory,
+        debug: boolean = false,
+        rateLimitWindowMs: number = 900000, // 15 minutes
+        rateLimitMaxRequests: number = 100
+    ) {
         const limiter = rateLimit({
-            windowMs: 15 * 60 * 1000, // 15 minutes
-            max: 100, // limit each IP to 100 requests per windowMs
+            windowMs: rateLimitWindowMs,
+            max: rateLimitMaxRequests,
         });
         this.schemaDirectory = schemaDirectory;
         this.logger = initLogger(debug, 'calm-server');

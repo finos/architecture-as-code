@@ -21,7 +21,7 @@ describe('startServer', () => {
     });
 
     it('should start the server and respond to /health', async () => {
-        serverInstance = startServer(port, host, schemaDirectory, false);
+        serverInstance = startServer(port, host, schemaDirectory, false, 900000, 100);
 
         // Wait for server to be ready
         await new Promise((resolve) => setTimeout(resolve, 100));
