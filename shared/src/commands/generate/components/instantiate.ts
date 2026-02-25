@@ -1,4 +1,3 @@
-import { initLogger } from '../../../logger';
 import { SchemaDirectory } from '../../../schema-directory';
 import { getPropertyValue, JsonSchema } from './property';
 
@@ -111,7 +110,12 @@ async function instantiateFromProperties(
                 })
             );
         } else {
-            output[key] = await instantiateObject(resolvedDef, schemaDir, [key]);
+            // Check for const values at the top level
+            if (resolvedDef.const !== undefined) {
+                output[key] = resolvedDef.const;
+            } else {
+                output[key] = await instantiateObject(resolvedDef, schemaDir, [key]);
+            }
         }
     }
 
@@ -145,11 +149,9 @@ export async function instantiate(
     debug: boolean,
     schemaDirectory: SchemaDirectory
 ): Promise<unknown> {
-    // I could cast this to CALMCoreSchema here but then need to change test to not show its completely generic
-    initLogger(debug, 'calm-generate');
-
     await schemaDirectory.loadSchemas();
 
+    // Pattern should already be flattened by caller (generate.ts)
     const pattern = patternObj as PatternDocument;
     schemaDirectory.loadCurrentPatternAsSchema(pattern);
 

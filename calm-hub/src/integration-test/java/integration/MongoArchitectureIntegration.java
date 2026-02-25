@@ -1,6 +1,5 @@
 package integration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
@@ -30,6 +29,7 @@ public class MongoArchitectureIntegration {
     @BeforeEach
     public void setupArchitectures() {
         String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
+        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
 
         // Safeguard: Fail fast if URI is not set
         if (mongoUri == null || mongoUri.isBlank()) {
@@ -38,7 +38,7 @@ public class MongoArchitectureIntegration {
         }
 
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
-            MongoDatabase database = mongoClient.getDatabase("calmSchemas");
+            MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("architectures")) {
                 database.createCollection("architectures");

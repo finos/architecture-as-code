@@ -7,11 +7,13 @@ const __dirname = path.dirname(__filename);
 
 
 const projectRoot = path.resolve(__dirname, '..');
-const srcDir = path.join(projectRoot, 'src/docify/template-bundles/docusaurus');
-const outDir = path.join(projectRoot, 'dist/template-bundles/docusaurus');
-const excludedFile = 'docusaurus-transformer.ts';
 
-function copyRecursive(currentDir, baseDir) {
+// Template bundles to copy
+const bundles = [
+    { src: 'src/docify/template-bundles/docusaurus', dest: 'dist/template-bundles/docusaurus', exclude: null },
+];
+
+function copyRecursive(currentDir, baseDir, outDir, excludedFile) {
     const entries = fs.readdirSync(currentDir, { withFileTypes: true });
 
     for (const entry of entries) {
@@ -20,13 +22,20 @@ function copyRecursive(currentDir, baseDir) {
         const destPath = path.join(outDir, relPath);
 
         if (entry.isDirectory()) {
-            copyRecursive(srcPath, baseDir);
-        } else if (entry.isFile() && entry.name !== excludedFile) {
+            copyRecursive(srcPath, baseDir, outDir, excludedFile);
+        } else if (entry.isFile() && entry.name !== excludedFile && !entry.name.endsWith('.spec.ts')) {
             fs.mkdirSync(path.dirname(destPath), { recursive: true });
             fs.copyFileSync(srcPath, destPath);
         }
     }
 }
 
-fs.mkdirSync(outDir, { recursive: true });
-copyRecursive(srcDir, srcDir);
+for (const bundle of bundles) {
+    const srcDir = path.join(projectRoot, bundle.src);
+    const outDir = path.join(projectRoot, bundle.dest);
+
+    if (fs.existsSync(srcDir)) {
+        fs.mkdirSync(outDir, { recursive: true });
+        copyRecursive(srcDir, srcDir, outDir, bundle.exclude);
+    }
+}

@@ -1,4 +1,8 @@
+import { debounce } from 'lodash'
 import { Emitter } from '../../../../core/emitter'
+
+/** Debounce delay for docify requests to prevent excessive processing */
+const DOCIFY_DEBOUNCE_MS = 300
 
 /**
  * DocifyViewModel - Framework-free ViewModel for docify tab
@@ -18,6 +22,14 @@ export class DocifyViewModel {
     private isLiveMode: boolean = false
     private lastError: string | undefined
     private autoRefreshTimer: NodeJS.Timeout | undefined
+
+    /** Debounced docify execution to prevent rapid successive requests */
+    private debouncedDocifyRequest = debounce(() => {
+        if (!this.isRunning) {
+            this.setRunning(true)
+            this.docifyRequestEmitter.fire()
+        }
+    }, DOCIFY_DEBOUNCE_MS)
 
     // Events
     onDocifyRequest = this.docifyRequestEmitter.event
@@ -118,9 +130,19 @@ export class DocifyViewModel {
     }
 
     /**
-     * Request docify execution
+     * Request docify execution (debounced to prevent rapid successive requests)
+     * This improves performance when selection changes quickly or during typing
      */
     requestDocify(): void {
+        this.debouncedDocifyRequest()
+    }
+
+    /**
+     * Request immediate docify execution (bypasses debounce)
+     * Use sparingly - only when immediate feedback is required
+     */
+    requestDocifyImmediate(): void {
+        this.debouncedDocifyRequest.cancel()
         if (!this.isRunning) {
             this.setRunning(true)
             this.docifyRequestEmitter.fire()
@@ -204,6 +226,7 @@ export class DocifyViewModel {
      * Reset all docify state
      */
     reset(): void {
+        this.debouncedDocifyRequest.cancel()
         this.clear()
         this.setLiveMode(false)
     }
@@ -212,6 +235,7 @@ export class DocifyViewModel {
      * Dispose all emitters and stop timers
      */
     dispose(): void {
+        this.debouncedDocifyRequest.cancel()
         this.stopAutoRefresh()
         this.docifyRequestEmitter.dispose()
         this.docifyResultEmitter.dispose()

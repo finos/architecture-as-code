@@ -21,6 +21,7 @@ export interface PreviewViewModelInterface {
     onRevealInEditor(handler: (id: string) => void): void
     onDidSelect(handler: (id: string) => void): void
     setGetCurrentTreeSelection(fn: () => string | undefined): void
+    configurationChanged(): void
 }
 
 /**
@@ -206,6 +207,14 @@ export class PreviewViewModel implements PreviewViewModelInterface {
     }
 
     /**
+     * Clear current URI (called when panel is disposed)
+     * This ensures that reopening the preview will trigger proper data loading
+     */
+    clearCurrentUri(): void {
+        this.currentUri = undefined
+    }
+
+    /**
      * Set extension version for announcements
      */
     setExtensionVersion(version: string): void {
@@ -243,6 +252,15 @@ export class PreviewViewModel implements PreviewViewModelInterface {
 
         if (data.selectedId) {
             this.calmModel.setSelectedId(data.selectedId)
+        }
+
+        // Clear docify content when switching documents
+        this.docify.clear()
+
+        // If we're currently on the docify tab, automatically trigger a fresh docify run
+        // This ensures the content updates when switching documents while viewing docify
+        if (this.activeTab === 'docify') {
+            this.docify.requestDocify()
         }
     }
 
@@ -346,6 +364,16 @@ export class PreviewViewModel implements PreviewViewModelInterface {
 
     handleRequestTemplateData(): void {
         this.template.requestTemplateData()
+    }
+
+    /**
+     * Handle configuration changes (e.g., theme changes)
+     * Refreshes the docify view if the docify tab is currently active
+     */
+    configurationChanged(): void {
+        if (this.activeTab === 'docify') {
+            this.docify.requestDocify()
+        }
     }
 
     /**

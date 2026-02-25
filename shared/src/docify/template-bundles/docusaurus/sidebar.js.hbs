@@ -11,18 +11,18 @@ module.exports = {
             label: 'Nodes',
             items: [
                 {{#each nodes}}
-                'nodes/{{id}}'{{#unless @last}},{{/unless}}
+                'nodes/{{unique-id}}'{{#unless @last}},{{/unless}}
                 {{/each}}
             ],
         },
         {{/if}}
-       {{#if (notEmpty relationships)}}
+        {{#if (notEmpty relationships)}}
         {
             type: 'category',
             label: 'Relationships',
             items: [
                 {{#each relationships}}
-                'relationships/{{id}}'{{#unless @last}},{{/unless}}
+                'relationships/{{unique-id}}'{{#unless @last}},{{/unless}}
                 {{/each}}
             ],
         },
@@ -33,10 +33,11 @@ module.exports = {
             label: 'Flows',
             items: [
                 {{#each flows}}
-                'flows/{{id}}'{{#unless @last}},{{/unless}}
+                'flows/{{unique-id}}'{{#unless @last}},{{/unless}}
                 {{/each}}
             ],
-        }
+        },
         {{/if}}
-    ]
+    ],
 };
+

@@ -1,4 +1,5 @@
 import { TemplateProcessingMode, TemplateProcessor } from '../template/template-processor.js';
+import { readUrlMappingFile } from '../template/url-mapping.js';
 
 export type DocifyMode = 'SAD' | 'WEBSITE' | 'USER_PROVIDED';
 
@@ -15,10 +16,11 @@ export class Docifier {
         mode: DocifyMode,
         inputPath: string,
         outputPath: string,
-        urlToLocalPathMapping: Map<string, string>,
+        urlMappingPath?: string,
         templateProcessingMode: TemplateProcessingMode = 'bundle',
         templatePath?: string,
-        clearOutputDirectory: boolean = false
+        clearOutputDirectory: boolean = false,
+        scaffoldOnly: boolean = false
     ) {
         if (mode === 'SAD') {
             throw new Error('Mode "SAD" is not supported.');
@@ -31,8 +33,7 @@ export class Docifier {
         const finalTemplatePath =
             templatePath ?? Docifier.TEMPLATE_BUNDLE_PATHS[mode];
 
-        //TODO: need to move docifier and graphing package to widget framework. Until then widgets will clash
-        const supportWidgetEngine = mode !== 'WEBSITE';
+        const urlToLocalPathMapping = readUrlMappingFile(urlMappingPath);
 
         this.templateProcessor = new TemplateProcessor(
             inputPath,
@@ -40,8 +41,10 @@ export class Docifier {
             outputPath,
             urlToLocalPathMapping,
             templateProcessingMode,
-            supportWidgetEngine,
-            clearOutputDirectory
+            true,
+            clearOutputDirectory,
+            scaffoldOnly,
+            urlMappingPath
         );
     }
 

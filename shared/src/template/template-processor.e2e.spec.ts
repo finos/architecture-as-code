@@ -1,8 +1,7 @@
 import fs from 'fs';
 import path, { join } from 'path';
 import { TemplateProcessor } from './template-processor';
-import { CalmNodeSchema } from '../types/core-types';
-import { CalmInterfaceTypeSchema } from '../types/interface-types';
+import { CalmNodeSchema, CalmInterfaceTypeSchema } from '@finos/calm-models/types';
 import { expectDirectoryMatch } from '../test/file-comparison';
 const FIXTURES_DIR = path.resolve(__dirname, '../../test_fixtures/template');
 const WORKSHOP_DIR = path.resolve(
@@ -206,6 +205,13 @@ describe('TemplateProcessor E2E', () => {
                 path.join(DATA_DIR, 'flow-document-upload.json'),
             ],
             [
+                'https://calm.finos.org/controls/owner.requirement.json',
+                path.join(
+                    DATA_DIR,
+                    'controls/owner-responsibility.requirement.json'
+                ),
+            ],
+            [
                 'https://calm.finos.org/controls/owner-responsibility.requirement.json',
                 path.join(
                     DATA_DIR,
@@ -247,7 +253,7 @@ describe('TemplateProcessor E2E', () => {
         const actualContent = fs.readFileSync(actualFile, 'utf8').trim();
         const expectedContent = fs.readFileSync(expectedFile, 'utf8').trim();
         expect(actualContent).toEqual(expectedContent);
-    });
+    }, 20_000);
 
     function simulateAmendmentsPostGenerate(archPath, amendedPath) {
         const original = fs.readFileSync(archPath, 'utf-8');
@@ -312,8 +318,19 @@ describe('TemplateProcessor E2E', () => {
                 ),
             ],
             [
+                'https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json',
+                join(WORKSHOP_DIR, 'controls/micro-segmentation.requirement.json'),
+            ],
+            [
                 'https://calm.finos.org/workshop/controls/micro-segmentation.config.json',
                 join(WORKSHOP_DIR, 'controls/micro-segmentation.config.json'),
+            ],
+            [
+                'https://calm.finos.org/workshop/controls/permitted-connection.requirement.json',
+                join(
+                    WORKSHOP_DIR,
+                    'controls/permitted-connection.requirement.json'
+                ),
             ],
             [
                 'https://calm.finos.org/workshop/controls/permitted-connection-http.config.json',
@@ -340,7 +357,7 @@ describe('TemplateProcessor E2E', () => {
         await expect(processor.processTemplate()).resolves.not.toThrow();
 
         await expectDirectoryMatch(EXPECTED_OUTPUT_WORKSHOP_DIR, OUTPUT_DIR);
-    });
+    }, 20_000);
 
     describe('C4 Architecture Diagram Generation', () => {
         const C4_BUNDLE_DIR = path.join(__dirname, '../../test_fixtures/docify/c4');

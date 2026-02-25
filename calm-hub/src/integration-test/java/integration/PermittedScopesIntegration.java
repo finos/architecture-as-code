@@ -34,6 +34,7 @@ public class PermittedScopesIntegration {
     @BeforeEach
     void setupPatterns() {
         String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
+        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
 
         // Safeguard: Fail fast if URI is not set
         if (mongoUri == null || mongoUri.isBlank()) {
@@ -42,7 +43,7 @@ public class PermittedScopesIntegration {
         }
 
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
-            MongoDatabase database = mongoClient.getDatabase("calmSchemas");
+            MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("patterns")) {
                 database.createCollection("patterns");
                 database.getCollection("patterns").insertOne(
@@ -158,7 +159,8 @@ public class PermittedScopesIntegration {
                 .when().get("/calm/namespaces")
                 .then()
                 .statusCode(200)
-                .body("values", hasItem("finos"));
+                .body("values.name", hasItem("finos"))
+                .body("values.description", hasItem("FINOS namespace"));
     }
 
     @Test

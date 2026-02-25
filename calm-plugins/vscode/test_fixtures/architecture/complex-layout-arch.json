@@ -1,0 +1,540 @@
+{
+    "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+    "metadata": {
+        "name": "Complex Layout Architecture",
+        "description": "A complex architecture model that breaks DAGRE layout, but works with ELK.",
+        "issue": "https://github.com/finos/architecture-as-code/issues/2115"
+    },
+    "nodes": [
+        {
+            "unique-id": "n99",
+            "node-type": "system",
+            "name": "n99",
+            "description": "n99"
+        },
+        {
+            "unique-id": "n24",
+            "node-type": "system",
+            "name": "n24",
+            "description": "n24"
+        },
+        {
+            "unique-id": "n1",
+            "node-type": "system",
+            "name": "n1",
+            "description": "n1"
+        },
+        {
+            "unique-id": "n2",
+            "node-type": "system",
+            "name": "n2",
+            "description": "n2"
+        },
+        {
+            "unique-id": "n3",
+            "node-type": "system",
+            "name": "n3",
+            "description": "n3"
+        },
+        {
+            "unique-id": "n4",
+            "node-type": "system",
+            "name": "n4",
+            "description": "n4"
+        },
+        {
+            "unique-id": "n5",
+            "node-type": "service",
+            "name": "n5",
+            "description": "n5"
+        },
+        {
+            "unique-id": "n6",
+            "node-type": "service",
+            "name": "n6",
+            "description": "n6"
+        },
+        {
+            "unique-id": "n7",
+            "node-type": "service",
+            "name": "n7",
+            "description": "n7"
+        },
+        {
+            "unique-id": "n8",
+            "node-type": "service",
+            "name": "n8",
+            "description": "n8"
+        },
+        {
+            "unique-id": "n9",
+            "node-type": "service",
+            "name": "n9",
+            "description": "n9"
+        },
+        {
+            "unique-id": "n10",
+            "node-type": "service",
+            "name": "n10",
+            "description": "n10"
+        },
+        {
+            "unique-id": "n11",
+            "node-type": "service",
+            "name": "n11",
+            "description": "n11"
+        },
+        {
+            "unique-id": "n12",
+            "node-type": "service",
+            "name": "n12",
+            "description": "n12"
+        },
+        {
+            "unique-id": "n14",
+            "node-type": "service",
+            "name": "n14",
+            "description": "n14"
+        },
+        {
+            "unique-id": "n15",
+            "node-type": "service",
+            "name": "n15",
+            "description": "n15"
+        },
+        {
+            "unique-id": "n16",
+            "node-type": "service",
+            "name": "n16",
+            "description": "n16"
+        },
+        {
+            "unique-id": "n17",
+            "node-type": "service",
+            "name": "n17",
+            "description": "n17"
+        },
+        {
+            "unique-id": "n18",
+            "node-type": "service",
+            "name": "n18",
+            "description": "n18"
+        },
+        {
+            "unique-id": "n19",
+            "node-type": "service",
+            "name": "n19",
+            "description": "n19"
+        },
+        {
+            "unique-id": "n20",
+            "node-type": "service",
+            "name": "n20",
+            "description": "n20"
+        },
+        {
+            "unique-id": "n21",
+            "node-type": "service",
+            "name": "n21",
+            "description": "n21"
+        },
+        {
+            "unique-id": "n22",
+            "node-type": "service",
+            "name": "n22",
+            "description": "n22"
+        },
+        {
+            "unique-id": "n23",
+            "node-type": "service",
+            "name": "n23",
+            "description": "n23"
+        },
+        {
+            "unique-id": "n25",
+            "node-type": "system",
+            "name": "n25",
+            "description": "n25"
+        },
+        {
+            "unique-id": "n26",
+            "node-type": "service",
+            "name": "n26",
+            "description": "n26"
+        },
+        {
+            "unique-id": "n27",
+            "node-type": "system",
+            "name": "n27",
+            "description": "n27"
+        },
+        {
+            "unique-id": "n28",
+            "node-type": "service",
+            "name": "n28",
+            "description": "n28"
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "n1-to-n23",
+            "description": "Connection from n1 to n23",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n1"
+                    },
+                    "destination": {
+                        "node": "n23"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n1-to-n26",
+            "description": "Connection from n1 to n26",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n1"
+                    },
+                    "destination": {
+                        "node": "n26"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n2-composed-of-n3-n4",
+            "description": "n2 is composed of n3 and n4",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "n2",
+                    "nodes": [
+                        "n3",
+                        "n4"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "n4-to-n6",
+            "description": "Connection from n4 to n6",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n4"
+                    },
+                    "destination": {
+                        "node": "n6"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n4-to-n7",
+            "description": "Connection from n4 to n7",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n4"
+                    },
+                    "destination": {
+                        "node": "n7"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n4-to-n8",
+            "description": "Connection from n4 to n8",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n4"
+                    },
+                    "destination": {
+                        "node": "n8"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n4-to-n26",
+            "description": "Connection from n4 to n26",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n4"
+                    },
+                    "destination": {
+                        "node": "n26"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n5-to-n4",
+            "description": "Connection from n5 to n4",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n5"
+                    },
+                    "destination": {
+                        "node": "n4"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n6-to-n16",
+            "description": "Connection from n6 to n16",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n6"
+                    },
+                    "destination": {
+                        "node": "n16"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n10-composed-of-n7-n8-n15-n19",
+            "description": "n10 is composed of n7, n8, n15, n19",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "n10",
+                    "nodes": [
+                        "n7",
+                        "n8",
+                        "n15",
+                        "n19"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "n11-to-n4",
+            "description": "Connection from n11 to n4",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n11"
+                    },
+                    "destination": {
+                        "node": "n4"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n12-composed-of-n11-n17",
+            "description": "n12 is composed of n11 and n17",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "n12",
+                    "nodes": [
+                        "n11",
+                        "n17"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "n15-to-n14",
+            "description": "Connection from n15 to n14",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n15"
+                    },
+                    "destination": {
+                        "node": "n14"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n14-to-n19",
+            "description": "Connection from n14 to n19",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n14"
+                    },
+                    "destination": {
+                        "node": "n19"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n16-to-n17",
+            "description": "Connection from n16 to n17",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n16"
+                    },
+                    "destination": {
+                        "node": "n17"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n17-to-n28",
+            "description": "Connection from n17 to n28",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n17"
+                    },
+                    "destination": {
+                        "node": "n28"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n19-to-n18",
+            "description": "Connection from n19 to n18",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n19"
+                    },
+                    "destination": {
+                        "node": "n18"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n18-to-n28",
+            "description": "Connection from n18 to n28",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n18"
+                    },
+                    "destination": {
+                        "node": "n28"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n20-to-n18",
+            "description": "Connection from n20 to n18",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n20"
+                    },
+                    "destination": {
+                        "node": "n18"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n21-to-n9",
+            "description": "Connection from n21 to n9",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n21"
+                    },
+                    "destination": {
+                        "node": "n9"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n9-to-n3",
+            "description": "Connection from n9 to n3",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n9"
+                    },
+                    "destination": {
+                        "node": "n3"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n22-to-n20",
+            "description": "Connection from n22 to n20",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "n22"
+                    },
+                    "destination": {
+                        "node": "n20"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "n24-composed-of-n5-n6",
+            "description": "n24 is composed of n5 and n6",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "n24",
+                    "nodes": [
+                        "n5",
+                        "n6"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "n25-deployed-in-n99",
+            "description": "n25 is deployed in n99",
+            "relationship-type": {
+                "deployed-in": {
+                    "container": "n99",
+                    "nodes": [
+                        "n25"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "n25-composed-of-n10-n12-n27",
+            "description": "n25 is composed of n10, n12, n27",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "n25",
+                    "nodes": [
+                        "n10",
+                        "n12",
+                        "n27"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "n27-composed-of-n21-n22-n28",
+            "description": "n27 is composed of n21, n22, n28",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "n27",
+                    "nodes": [
+                        "n21",
+                        "n22",
+                        "n28"
+                    ]
+                }
+            }
+        }
+    ]
+}

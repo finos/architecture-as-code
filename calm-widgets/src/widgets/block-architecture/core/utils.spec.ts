@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { prettyLabel, labelFor, sanitizeId, ifaceId, pickIface } from './utils';
+import { prettyLabel, labelFor, sanitizeId, ifaceId, pickIface, mermaidId } from './utils';
 import {
     CalmNodeCanonicalModel,
     CalmNodeInterfaceCanonicalModel,
@@ -89,6 +89,44 @@ describe('utils', () => {
         it('returns undefined when interfaces is not provided', () => {
             const ni: CalmNodeInterfaceCanonicalModel = { node: 'n' };
             expect(pickIface(ni)).toBeUndefined();
+        });
+    });
+
+    describe('mermaidId', () => {
+        it('returns sanitized identifiers for Mermaid', () => {
+            expect(mermaidId('my-node')).toBe('my-node');
+            expect(mermaidId('service')).toBe('service');
+        });
+
+        it('prefixes IDs that are exactly reserved words', () => {
+            expect(mermaidId('end')).toBe('node_end');
+            expect(mermaidId('graph')).toBe('node_graph');
+            expect(mermaidId('subgraph')).toBe('node_subgraph');
+            expect(mermaidId('END')).toBe('node_END'); // Case-insensitive check
+        });
+
+        it('prefixes IDs that contain reserved words at word boundaries', () => {
+            expect(mermaidId('end-user')).toBe('node_end-user');
+            expect(mermaidId('my-end-service')).toBe('node_my-end-service');
+            expect(mermaidId('graph-node')).toBe('node_graph-node');
+            expect(mermaidId('node-end')).toBe('node_node-end');
+        });
+
+        it('does not prefix IDs where reserved word is part of a larger word', () => {
+            expect(mermaidId('endpoint')).toBe('endpoint');
+            expect(mermaidId('backend')).toBe('backend');
+            expect(mermaidId('graphql')).toBe('graphql');
+        });
+
+        it('sanitizes special characters', () => {
+            expect(mermaidId('node/with/slashes')).toBe('node_with_slashes');
+            expect(mermaidId('node"with"quotes')).toBe('node_with_quotes');
+        });
+
+        it('handles special cases', () => {
+            expect(mermaidId('my service!')).toBe('my_service_');
+            expect(mermaidId('node:with:colon')).toBe('node:with:colon');
+            expect(mermaidId('')).toBe('node_empty');
         });
     });
 });

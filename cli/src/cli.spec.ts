@@ -7,6 +7,7 @@ import {
 } from '@finos/calm-shared';
 import { Command } from 'commander';
 import { MockInstance } from 'vitest';
+import { parseDocumentLoaderConfig } from './cli';
 
 let calmShared: typeof import('@finos/calm-shared');
 let validateModule: typeof import('./command-helpers/validate');
@@ -15,6 +16,7 @@ let templateModule: typeof import('./command-helpers/template');
 let optionsModule: typeof import('./command-helpers/generate-options');
 let fileSystemDocLoaderModule: typeof import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
 let setupCLI: typeof import('./cli').setupCLI;
+let cliConfigModule: typeof import('./cli-config');
 
 describe('CLI Commands', () => {
     let program: Command;
@@ -65,7 +67,7 @@ describe('CLI Commands', () => {
             expect(fileSystemDocLoaderModule.FileSystemDocumentLoader.prototype.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
             expect(optionsModule.promptUserForOptions).toHaveBeenCalled();
 
-            expect(fileSystemDocLoaderModule.FileSystemDocumentLoader).toHaveBeenCalledWith([CALM_META_SCHEMA_DIRECTORY, 'schemas'], true);
+            expect(fileSystemDocLoaderModule.FileSystemDocumentLoader).toHaveBeenCalledWith([CALM_META_SCHEMA_DIRECTORY, 'schemas'], true, process.cwd());
 
             expect(calmShared.runGenerate).toHaveBeenCalledWith(
                 {}, 'output.json', true, expect.any(calmShared.SchemaDirectory), []
@@ -227,7 +229,7 @@ describe('CLI Commands', () => {
                 mode: DocifyMode,
                 inputPath: string,
                 outputPath: string,
-                urlToLocalPathMapping: Map<string, string>,
+                urlMappingPath?: string,
                 templateProcessingMode?: TemplateProcessingMode,
                 templatePath?: string) => Docifier
         >;
@@ -251,9 +253,10 @@ describe('CLI Commands', () => {
                 'WEBSITE',
                 'model.json',
                 'outDir',
-                expect.any(Map),
+                undefined,
                 'bundle',
                 undefined,
+                false,
                 false
             );
         });
@@ -270,10 +273,11 @@ describe('CLI Commands', () => {
                 'WEBSITE',
                 'model.json',
                 'outDir',
-                expect.any(Map),
+                undefined,
                 'bundle',
                 undefined,
-                true
+                true,
+                false
             );
         });
 
@@ -289,9 +293,10 @@ describe('CLI Commands', () => {
                 'USER_PROVIDED',
                 'model.json',
                 'outDir',
-                expect.any(Map),
+                undefined,
                 'template',
                 'template.hbs',
+                false,
                 false
             );
         });
@@ -308,9 +313,10 @@ describe('CLI Commands', () => {
                 'USER_PROVIDED',
                 'model.json',
                 'outDir',
-                expect.any(Map),
+                undefined,
                 'template-directory',
                 'templateDir',
+                false,
                 false
             );
         });
@@ -335,6 +341,84 @@ describe('CLI Commands', () => {
             exitSpy.mockRestore();
             errorSpy.mockRestore();
         });
+
+        it('should use WEBSITE mode by default', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+            ]);
+
+            expect(docifierConstructorSpy).toHaveBeenCalledWith(
+                'WEBSITE',
+                'model.json',
+                'outDir',
+                undefined,
+                'bundle',
+                undefined,
+                false,
+                false
+            );
+        });
+
+        it('should use USER_PROVIDED mode when --template is specified', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+                '--template', 'template.hbs',
+            ]);
+
+            expect(docifierConstructorSpy).toHaveBeenCalledWith(
+                'USER_PROVIDED',
+                'model.json',
+                'outDir',
+                undefined,
+                'template',
+                'template.hbs',
+                false,
+                false
+            );
+        });
     });
 
+});
+
+describe('parseDocumentLoaderConfig', () => {
+    it('should parse calmhub url when provided', async () => {
+        const options = await parseDocumentLoaderConfig({
+            calmHubUrl: 'calmhub'
+        });
+        expect(options.calmHubUrl).toEqual('calmhub');
+    });
+
+    it('should override calmhub url in file when provided', async () => {
+        cliConfigModule = await import('./cli-config');
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({ calmHubUrl: 'calmhub-file' });
+
+        const options = await parseDocumentLoaderConfig({
+            calmHubUrl: 'calmhub-cli'
+        });
+        expect(options.calmHubUrl).toEqual('calmhub-cli');
+    });
+
+    it('should parse schemaDirectoryPath when provided', async () => {
+        const options = await parseDocumentLoaderConfig({
+            schemaDirectory: 'path'
+        });
+        expect(options.schemaDirectoryPath).toEqual('path');
+    });
+
+    it('should set debug to true when verbose passed along', async () => {
+        const options = await parseDocumentLoaderConfig({
+            verbose: true
+        });
+        expect(options.debug).toBeTruthy();
+    });
+
+    it('should default debug to false', async () => {
+        const options = await parseDocumentLoaderConfig({
+        });
+        expect(options.debug).toBeFalsy();
+    });
 });

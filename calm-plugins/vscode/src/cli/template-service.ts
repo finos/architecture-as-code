@@ -4,6 +4,8 @@ import * as vscode from 'vscode'
 import { Logger } from '../core/ports/logger'
 import { TemplateProcessor } from './template-processor'
 import { ModelService } from '../core/services/model-service'
+import { Config } from '../core/ports/config'
+import { ConfigService } from '../core/services/config-service'
 
 /**
  * TemplateService - VSCode-specific template file loading service
@@ -29,7 +31,11 @@ export class TemplateService {
     try {
       const templatePath = path.join(this.context.extensionUri.fsPath, 'templates', name)
       let content = await fs.promises.readFile(templatePath, 'utf8')
-      return this.processor.processTemplateForLabels(content, showLabels)
+      content = this.processor.processTemplateForLabels(content, showLabels)
+      const configService: Config = new ConfigService();
+      const docifyTheme = configService.docifyTheme();
+      const layoutEngine = configService.previewLayout();
+      return this.processor.processTemplateForTheme(content, docifyTheme, layoutEngine);
     } catch {
       this.log.info(`[preview] loadTemplate: using fallback template for ${name}`)
       return this.processor.generateFallbackTemplate(showLabels)
@@ -69,6 +75,13 @@ export class TemplateService {
 
       const edge = graph.edges?.find((x: any) => x.id === selectedId)
       if (edge) {
+        if (edge.type === 'flow') {
+          const template = await this.loadTemplate('flow-focus-template.hbs', showLabels)
+          return this.processor.replacePlaceholders(template, {
+            'focused-flow-id': selectedId
+          })
+        }
+
         const template = await this.loadTemplate('relationship-focus-template.hbs', showLabels)
         return this.processor.replacePlaceholders(template, {
           'focused-relationship-id': selectedId
@@ -79,7 +92,15 @@ export class TemplateService {
     const modelFile = isTemplateMode && architectureFilePath ? architectureFilePath : currentModelPath
     if (modelFile) {
       try {
-        const data = this.modelService.readModel(modelFile)
+        const data = await this.modelService.readModelAsync(modelFile)
+
+        // Check for relationships by original unique-id (handles all relationship types: connects, interacts, deployed-in, composed-of)
+        if (data?.relationships?.find((r: any) => r['unique-id'] === selectedId)) {
+          const template = await this.loadTemplate('relationship-focus-template.hbs', showLabels)
+          return this.processor.replacePlaceholders(template, {
+            'focused-relationship-id': selectedId
+          })
+        }
 
         if (data?.flows?.find((f: any) => f['unique-id'] === selectedId)) {
           const template = await this.loadTemplate('flow-focus-template.hbs', showLabels)

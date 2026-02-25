@@ -1,7 +1,6 @@
 import { Option } from '../../../model/adr/option.js';
 import { Link } from '../../../model/adr/link.js';
 import Markdown from 'react-markdown';
-import './adr-helper-function.css';
 import { Decision } from '../../../model/adr/decision.js';
 import { AdrStatus } from '../../../model/adr/adr-status/adrStatus.js';
 

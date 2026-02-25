@@ -1,12 +1,10 @@
 * @finos/architecture-as-code-maintainers
 
-/calm/ @finos/calm-schema-governance
+/calm/ @finos/calm-schema-governance  @markscott-ms
 
-/calm-hub/ @jpgough-ms @rocketstack-matt @grahampacker-ms @Thels
+/calm-hub/ @jpgough-ms @rocketstack-matt @grahampacker-ms @Thels  @markscott-ms
 
 /cli/ @aidanm3341 @lbulanti-ms @willosborne @grahampacker-ms @jpgough-ms @rocketstack-matt @Thels @LeighFinegold @markscott-ms
-
-/calm-visualizer/ @oliviajanejohns @aidanm3341 @jpgough-ms @rocketstack-matt
 
 /shared/ @aidanm3341 @lbulanti-ms @willosborne @grahampacker-ms @jpgough-ms @rocketstack-matt @Thels @LeighFinegold @markscott-ms
 

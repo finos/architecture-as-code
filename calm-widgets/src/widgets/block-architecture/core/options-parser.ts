@@ -1,5 +1,6 @@
 import { BlockArchOptions, NormalizedOptions } from '../types';
 import { compact } from 'lodash';
+import { parseTheme, resolveThemeColors } from './themes/theme-parser';
 
 /**
  * Parses a comma-separated string into an array of trimmed, non-empty strings.
@@ -35,6 +36,8 @@ export function parseOptions(raw?: BlockArchOptions): NormalizedOptions {
         renderNodeTypeShapes: false,
         edgeLabels: 'description',
         collapseRelationships: false,
+        theme: 'light',
+        layoutEngine: 'elk',
     };
 
     if (!raw) return o;
@@ -95,6 +98,14 @@ export function parseOptions(raw?: BlockArchOptions): NormalizedOptions {
             // keep nodeTypeMap undefined
         }
     }
+
+    // Parse theme options
+    const { theme, themeColors } = parseTheme(raw['theme'], raw['theme-colors']);
+    o.theme = theme;
+    o.themeColors = resolveThemeColors(theme, themeColors);
+
+    // Parse layout engine (dagre or elk, default: elk)
+    o.layoutEngine = pickEnum(raw['layout-engine'], ['dagre', 'elk'] as const, 'elk');
 
     return o;
 }

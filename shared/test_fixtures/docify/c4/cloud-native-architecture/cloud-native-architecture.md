@@ -1,3 +1,6 @@
+---
+architecture: ../cloud-native-architecture/cloud-native-architecture.arch.json
+---
 ```mermaid
 C4Deployment
 

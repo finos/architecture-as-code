@@ -39,6 +39,20 @@ export class ModelIndex {
     rangeOf(id: string): any | undefined {
         return this.idToRange.get(id)
     }
+
+    /**
+     * Returns the raw nodes array from the underlying CalmModel.
+     *
+     * Unlike the {@link nodes} getter, which returns a transformed view for UI,
+     * this method exposes the original node objects for navigation and other
+     * use cases that require access to the full/raw node data.
+     *
+     * @returns {any[]} The raw nodes array from the model, or an empty array if none exist.
+     */
+    getNodes() {
+        return this.model.nodes || []
+    }
+
     get nodes() {
         return (this.model.nodes || []).map(n => ({
             id: n.id,
@@ -52,9 +66,9 @@ export class ModelIndex {
         for (const r of rels) {
             const raw = r.raw || {}
             const rt = raw['relationship-type'] ?? r.type
-            const isContainment = rt && typeof rt === 'object' && (rt['deployed-in'] || rt['composed-of'])
+            const hasMultipleTargets = rt && typeof rt === 'object' && (rt['deployed-in'] || rt['composed-of'] || rt.interacts)
             const rawId = raw['unique-id'] ?? raw.id
-            const groupId = (isContainment && rawId) ? String(rawId) : String(r.id)
+            const groupId = (hasMultipleTargets && rawId) ? String(rawId) : String(r.id)
             if (grouped.has(groupId)) continue
             const label = (raw.label ?? raw.description ?? r.label ?? groupId) as string
             grouped.set(groupId, { id: groupId, label })

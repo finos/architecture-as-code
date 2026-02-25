@@ -1,7 +1,10 @@
 # {{nodes["{{focused-node-id}}"].name}}
 
 ## Overview
-{{table nodes["{{focused-node-id}}"] orientation="vertical" columns="unique-id,name, description, node-type"}}
+{{table nodes["{{focused-node-id}}"] orientation="vertical" sections="overview,extended"}}
+
+## Metadata
+{{table nodes["{{focused-node-id}}"] sections="metadata" orientation="vertical" empty-message="There is no metadata"}}
 
 ## Architecture 
 {{block-architecture focus-nodes="{{focused-node-id}}"}}

@@ -260,7 +260,9 @@ The calm-widgets framework supports multiple output formats:
 Always validate architectures before generating documentation:
 
 ```bash
-calm validate --architecture architecture.json --strict
+calm validate -a architecture.json --strict
 ```
 
 This ensures documentation is generated from valid, schema-compliant CALM models.
+
+> **Note:** See **calm-cli-instructions.md** for complete CLI usage, validation modes, and options.

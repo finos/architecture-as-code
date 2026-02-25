@@ -1,0 +1,74 @@
+{
+    "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+    "unique-id": "three-tier-web-app",
+    "name": "Three-Tier Web Application",
+    "description": "A classic three-tier web application architecture with presentation, application, and data tiers",
+    "nodes": [
+        {
+            "unique-id": "user",
+            "node-type": "actor",
+            "name": "End User",
+            "description": "Users accessing the web application through a browser"
+        },
+        {
+            "unique-id": "web-frontend",
+            "node-type": "webclient",
+            "name": "Web Frontend",
+            "description": "Presentation tier - React-based single page application served to users"
+        },
+        {
+            "unique-id": "api-server",
+            "node-type": "service",
+            "name": "API Server",
+            "description": "Application tier - RESTful API server handling business logic and request processing"
+        },
+        {
+            "unique-id": "database",
+            "node-type": "database",
+            "name": "PostgreSQL Database",
+            "description": "Data tier - Relational database storing application data"
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "user-to-frontend",
+            "description": "Accesses the web application through",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "user",
+                    "nodes": ["web-frontend"]
+                }
+            }
+        },
+        {
+            "unique-id": "frontend-to-api",
+            "description": "Sends API requests to",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "web-frontend"
+                    },
+                    "destination": {
+                        "node": "api-server"
+                    }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "api-to-database",
+            "description": "Reads and writes application data to",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "api-server"
+                    },
+                    "destination": {
+                        "node": "database"
+                    }
+                }
+            },
+            "protocol": "JDBC"
+        }
+    ]
+}

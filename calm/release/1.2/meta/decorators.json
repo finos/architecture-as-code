@@ -1,0 +1,50 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://calm.finos.org/release/1.2/meta/decorators.json",
+    "title": "Common Architecture Language Model Decorators",
+    "description": "Decorators attach supplementary information to multiple nodes and relationships simultaneously, enabling cross-cutting concerns like guides, threat models, business context, and deployment information",
+    "defs": {
+        "decorator": {
+            "type": "object",
+            "properties": {
+                "unique-id": {
+                    "type": "string",
+                    "description": "Unique identifier for this decorator"
+                },
+                "type": {
+                    "type": "string",
+                    "description": "Type of decorator - a free-form string identifying the decorator category"
+                },
+                "target": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1,
+                    "description": "Array of file paths or URLs referencing the CALM documents (patterns, architectures, or controls) this decorator targets"
+                },
+                "applies-to": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1,
+                    "description": "Array of unique-ids referencing nodes, relationships, flows, or other architecture elements"
+                },
+                "data": {
+                    "type": "object",
+                    "minProperties": 1,
+                    "description": "Free-form JSON object containing the decorator's data"
+                }
+            },
+            "required": [
+                "unique-id",
+                "type",
+                "target",
+                "applies-to",
+                "data"
+            ],
+            "additionalProperties": false
+        }
+    }
+}

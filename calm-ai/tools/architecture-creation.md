@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide provides instructions for creating complete CALM architecture documents that comply with the FINOS CALM v1.0 schema.
+This guide provides instructions for creating complete CALM architecture documents that comply with the FINOS CALM v1.2 schema.
 
 ## Required Schema Structure
 
@@ -10,7 +10,7 @@ Every CALM architecture MUST include:
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
     "unique-id": "string",
     "name": "string",
     "description": "string"
@@ -31,14 +31,22 @@ Every CALM architecture MUST include:
 
 ## Architecture Creation Checklist
 
-- [ ] Include required $schema reference to CALM v1.0
+- [ ] Include required $schema reference to CALM v1.2
 - [ ] Provide unique-id (kebab-case recommended)
 - [ ] Add descriptive name and description
 - [ ] Name file with `.architecture.json` suffix
 - [ ] Add nodes array (even if empty initially)
 - [ ] Add relationships array to connect nodes
 - [ ] Include metadata array for operational info
-- [ ] Validate against CALM schema before saving
+**🚨 MANDATORY VALIDATION (Do not skip):**
+- [ ] **Verify calm-cli is installed:** `which calm`
+- [ ] **Run CALM validation:** `calm validate -a <filename>.architecture.json`
+- [ ] **Review output for errors:** `jsonSchemaValidationOutputs`, `spectralSchemaValidationOutputs`
+- [ ] **Fix ALL errors before proceeding** - Do not assume JSON validity equals CALM validity
+- [ ] **Confirm output shows:** `"hasErrors": false, "hasWarnings": false`
+- [ ] **Document any warnings addressed**
+
+> **Note:** See **calm-cli-instructions.md** for complete CLI usage, validation modes, and options.
 
 ## Best Practices
 
@@ -53,7 +61,7 @@ Every CALM architecture MUST include:
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
     "unique-id": "example-trading-system",
     "name": "Example Trading System",
     "description": "A simple trading system architecture",

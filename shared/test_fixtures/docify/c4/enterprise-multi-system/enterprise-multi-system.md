@@ -1,3 +1,6 @@
+---
+architecture: ../enterprise-multi-system/enterprise-multi-system.arch.json
+---
 ```mermaid
 C4Deployment
 

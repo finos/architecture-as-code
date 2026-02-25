@@ -1,0 +1,10 @@
+{
+    "nodes": {
+        "mcp-client": {
+            "unique-id": "mcp-client",
+            "name": "Claude",
+            "description": "MCP Client for querying reports and analytics",
+            "node-type": "actor"
+        }
+    }
+}

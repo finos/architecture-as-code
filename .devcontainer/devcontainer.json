@@ -1,6 +1,10 @@
 {
 	"image": "mcr.microsoft.com/devcontainers/universal:3",
 	"features": {
+		"ghcr.io/devcontainers/features/node:1": {
+			"version": "lts",
+			"nodeGypDependencies": true
+		},
 		"ghcr.io/devcontainers/features/java:1": {
 			"version": "21",
 			"installMaven": true,
@@ -10,7 +14,7 @@
 	"containerEnv": {
 		"JAVA_HOME": "/usr/local/sdkman/candidates/java/current"
 	},
-	"postCreateCommand": "echo 'Container setup completed'",
+	"postCreateCommand": "npm install",
 	"hostRequirements": {
 		"cpus": 4,
 		"memory": "16gb"
@@ -18,8 +22,31 @@
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"vscjava.vscode-java-pack"
-			]
+                "bierner.markdown-mermaid",
+                "davidanson.vscode-markdownlint",
+                "esbenp.prettier-vscode",
+                "finos.calm-vscode-plugin",
+                "github.codespaces",
+                "github.copilot",
+                "github.copilot-chat",
+                "github.github-vscode-theme",
+                "github.remotehub",
+                "github.vscode-github-actions",
+                "github.vscode-pull-request-github",
+                "mermaidchart.vscode-mermaid-chart",
+                "mhutchie.git-graph",
+                "michelemelluso.gitignore",
+                "ms-vscode-remote.remote-containers",
+                "ms-vscode.remote-repositories",
+                "ms-vscode.vscode-speech",
+                "redhat.java",
+                "redhat.vscode-yaml",
+                "tintinweb.graphviz-interactive-preview",
+                "unifiedjs.vscode-mdx",
+                "vscjava.vscode-java-pack",
+                "vscjava.vscode-java-upgrade",
+                "vscjava.vscode-maven"
+            ]
 		}
 	}
 }

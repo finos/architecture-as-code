@@ -1,0 +1,20 @@
+{
+  "node": {
+    "unique-id": "test-node",
+    "name": "Test Node",
+    "description": "A test node for sections",
+    "node-type": "service",
+    "an-extra-property": "extra value",
+    "another-property": "another value",
+    "metadata": {
+      "key1": "value1",
+      "key2": "value2"
+    },
+    "interfaces": [
+      { "unique-id": "int1", "port": 8080 }
+    ],
+    "controls": {
+      "ctrl1": { "description": "control 1" }
+    }
+  }
+}

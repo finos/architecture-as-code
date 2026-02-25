@@ -36,6 +36,29 @@ function extractOptionsFromBlock(optionsRelationship: object, blockType: 'oneOf'
 }
 
 /**
+ * Gets the relationships prefixItems from a pattern, handling allOf structures.
+ * @param pattern - The pattern object
+ * @returns The prefixItems array from relationships, or empty array if not found
+ */
+function getRelationshipsPrefixItems(pattern: object): object[] {
+    // Direct access for standard patterns
+    if (pattern['properties']?.['relationships']?.['prefixItems']) {
+        return pattern['properties']['relationships']['prefixItems'];
+    }
+
+    // Handle allOf patterns - look for relationships in each allOf schema
+    if (pattern['allOf'] && Array.isArray(pattern['allOf'])) {
+        for (const schema of pattern['allOf']) {
+            if (schema['properties']?.['relationships']?.['prefixItems']) {
+                return schema['properties']['relationships']['prefixItems'];
+            }
+        }
+    }
+
+    return [];
+}
+
+/**
  * Extracts the potential choices that a user can make from a pattern
  * @param pattern - The pattern to extract options from
  * @param debug - Whether to enable debug logging
@@ -43,7 +66,12 @@ function extractOptionsFromBlock(optionsRelationship: object, blockType: 'oneOf'
  */
 export function extractOptions(pattern: object, debug: boolean = false): CalmOption[] {
     const logger = initLogger(debug, 'calm-generate-options');
-    const calmItems: object[] = pattern['properties']['relationships']['prefixItems'];
+    const calmItems: object[] = getRelationshipsPrefixItems(pattern);
+
+    if (calmItems.length === 0) {
+        logger.debug('No relationship prefixItems found in pattern');
+        return [];
+    }
 
     const options: CalmOption[] = calmItems
         .filter((rel: object) => isOptionsRelationship(rel))

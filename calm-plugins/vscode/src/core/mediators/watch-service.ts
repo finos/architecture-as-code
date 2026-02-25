@@ -42,17 +42,7 @@ export class WatchService {
 
     private registerDocumentLifecycle() {
         this.disposables.push(
-            vscode.workspace.onDidSaveTextDocument(doc => this.refresh.maybeRefresh(doc.uri)),
-            vscode.workspace.onDidOpenTextDocument(doc => {
-                if (!this.config.autoOpen()) return
-                const ft = detectFileType(doc.uri.fsPath)
-                if (
-                    (ft.type === FileType.ArchitectureFile && ft.isValid) ||
-                    (ft.type === FileType.TemplateFile && ft.isValid)
-                ) {
-                    void vscode.commands.executeCommand('calm.openPreview')
-                }
-            })
+            vscode.workspace.onDidSaveTextDocument(doc => this.refresh.maybeRefresh(doc.uri))
         )
     }
 
@@ -65,7 +55,8 @@ export class WatchService {
                 const ft = detectFileType(doc.uri.fsPath)
                 if (
                     (ft.type === FileType.ArchitectureFile && ft.isValid) ||
-                    (ft.type === FileType.TemplateFile && ft.isValid)
+                    (ft.type === FileType.TemplateFile && ft.isValid) ||
+                    (ft.type === FileType.TimelineFile && ft.isValid)
                 ) {
                     // Let the controller handle preview.reveal; we only refresh if the doc is valid
                     void this.refresh.refreshForDocument(doc)

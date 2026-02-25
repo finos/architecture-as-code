@@ -37,11 +37,15 @@ export class SchemaDirectory {
         await this.documentLoader.initialise(this);
     }
 
-    private async lookupDefinition(schemaId: string, ref: string): Promise<object> {
+    private async lookupDefinition(schemaId: string, ref: string | undefined): Promise<object> {
         const schema = await this.getSchema(schemaId);
         if (!schema) {
             this.logger.warn(`Schema with $id ${schemaId} not found. Returning placeholder with warning message.`);
-            return this.getMissingSchemaPlaceholder(ref);
+            return this.getMissingSchemaPlaceholder(ref || schemaId);
+        }
+        // If no ref (or empty ref), return the whole schema
+        if (!ref || ref === '') {
+            return schema;
         }
         return pointer.get(schema, ref);
     }
@@ -132,6 +136,10 @@ export class SchemaDirectory {
     public async getSchema(schemaId: string): Promise<object> {
         if (!this.schemas.has(schemaId)) {
             try {
+                if (/^https?:\/\/json-schema\.org/.test(schemaId)) {
+                    throw new Error(`Attempted to load standard JSON Schema with ID ${schemaId}. This is not supported.`);
+                }
+
                 const document = await this.documentLoader.loadMissingDocument(schemaId, 'schema');
                 this.storeDocument(schemaId, 'schema', document);
 

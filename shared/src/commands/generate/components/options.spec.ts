@@ -287,4 +287,77 @@ describe('Pattern Options', () => {
             expect(selectChoices(pattern, [])).toEqual(expectedPattern);
         });
     });
+
+    describe('allOf pattern support', () => {
+        it('should extract options from a pattern with allOf structure', () => {
+            const allOfPattern = {
+                allOf: [
+                    {
+                        '$ref': 'https://example.com/base-pattern.json'
+                    },
+                    {
+                        'properties': {
+                            'relationships': {
+                                'prefixItems': [
+                                    buildPatternOptionRelationship(
+                                        'option-id',
+                                        'Choose connection type',
+                                        buildPatternOption('oneOf', buildPatternChoice(applicationAtoC), buildPatternChoice(applicationBtoC))
+                                    )
+                                ]
+                            }
+                        }
+                    }
+                ]
+            };
+
+            const expectedOptions: CalmOption[] = [{
+                optionType: 'oneOf',
+                prompt: 'Choose connection type',
+                choices: [applicationAtoC, applicationBtoC]
+            }];
+
+            expect(extractOptions(allOfPattern)).toEqual(expectedOptions);
+        });
+
+        it('should return empty options when allOf pattern has no relationships', () => {
+            const allOfPattern = {
+                allOf: [
+                    { '$ref': 'https://example.com/base-pattern.json' },
+                    { 'properties': { 'nodes': { 'prefixItems': [] } } }
+                ]
+            };
+
+            expect(extractOptions(allOfPattern)).toEqual([]);
+        });
+
+        it('should find relationships in first allOf schema if present there', () => {
+            const allOfPattern = {
+                allOf: [
+                    {
+                        'properties': {
+                            'relationships': {
+                                'prefixItems': [
+                                    buildPatternOptionRelationship(
+                                        'option-id',
+                                        'Choose from base',
+                                        buildPatternOption('anyOf', buildPatternChoice(applicationXtoZ), buildPatternChoice(applicationYtoZ))
+                                    )
+                                ]
+                            }
+                        }
+                    },
+                    { '$ref': 'https://example.com/extension.json' }
+                ]
+            };
+
+            const expectedOptions: CalmOption[] = [{
+                optionType: 'anyOf',
+                prompt: 'Choose from base',
+                choices: [applicationXtoZ, applicationYtoZ]
+            }];
+
+            expect(extractOptions(allOfPattern)).toEqual(expectedOptions);
+        });
+    });
 });

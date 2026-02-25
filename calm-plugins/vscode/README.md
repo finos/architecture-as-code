@@ -1,6 +1,4 @@
-# CALM VS Code Extension
-
-> **Status**: Experimental - APIs, behavior, and visuals may change. Use at your own risk.
+# CALM Visual Studio Code Extension
 
 Live-visualize CALM architecture models while you edit them. Features an interactive preview, tree navigation, intelligent validation, and documentation generation.
 
@@ -15,6 +13,19 @@ Live-visualize CALM architecture models while you edit them. Features an interac
 - **Structured Overview**: Browse Nodes, Relationships, and Flows
 - **Quick Navigation**: Jump between editor and preview
 - **Search & Filter**: Find elements across large models
+
+### 📅 Timeline Navigation
+- **Architecture Evolution**: View milestones in your architecture timeline
+- **One-Click Navigation**: Click any milestone to open its detailed architecture
+- **Current Moment Indicator**: Star marker shows the current architecture state
+- **Relative Path Support**: Navigate to architecture files using relative paths
+
+### ✅ Real-Time Validation
+- **Automatic Validation**: Documents are validated on open, save, and when switching editors
+- **Problems Panel Integration**: Errors and warnings appear in the VS Code Problems panel
+- **Click-to-Navigate**: Click any issue to jump directly to the problematic line in your document
+- **Bundled Schemas**: CALM schemas are bundled with the extension - no network access required
+- **Schema Detection**: Documents are identified as CALM files by their `$schema` reference
 
 ### ✨ Smart Editor Features
 - **Hover Information**: Rich tooltips for model elements
@@ -34,6 +45,70 @@ Live-visualize CALM architecture models while you edit them. Features an interac
 
 ![Live Docify Mode](https://raw.githubusercontent.com/finos/architecture-as-code/main/calm-plugins/vscode/docs/LiveDocifyMode.png)
 *Live templating mode with real-time documentation generation*
+
+## Configuration
+    
+The extension can be configured via VS Code settings (`.vscode/settings.json` or User Settings).
+
+### Multi-Document Navigation
+Navigate between related CALM files using `detailed-architecture` references.
+
+1.  Create a mapping file (e.g., `calm-mapping.json`) in your workspace:
+    ```json
+    {
+      "https://specs.internal/payment-service": "./services/payment-service.json",
+      "https://specs.internal/inventory": "./services/inventory.json"
+    }
+    ```
+2.  Configure the extension to use this mapping:
+    ```json
+    "calm.urlMapping": "calm-mapping.json"
+    ```
+
+### Schema Development
+For schema developers working on custom CALM schemas, you can configure additional local folders to load schemas from:
+
+```json
+"calm.schemas.additionalFolders": ["./my-schemas", "./custom-calm-schemas"]
+```
+
+Schemas in these folders are indexed by their `$id` field and can be referenced in your CALM documents.
+
+### File Discovery
+Customize how the extension finds your CALM models and templates.
+
+-   `calm.files.globs`: Patterns for CALM model files (Default: `["calm/**/*.json", "calm/**/*.y?(a)ml"]`)
+-   `calm.template.globs`: Patterns for template files (Default: `["**/*.md", "**/*.hbs", ...]`)
+-   `calm.schemas.additionalFolders`: Additional folders containing CALM schemas for validation (Default: `[]`)
+
+### Visualisation Themes
+
+Four themes are supported for the live preview diagrams:
+
+- `calm.docify.theme` - set to `light`, `dark`, `high-contrast-light` or `high-contrast-dark`, or `auto` to automatically align to your VSCode theme.
+
+### Layout Engine
+
+Choose the diagram layout engine for architecture visualizations:
+
+- `calm.preview.layout` - set to `elk` (default) or `dagre`
+  - **ELK** (Eclipse Layout Kernel): Provides better automatic layout for complex diagrams with improved edge routing and hierarchy handling. Recommended for most use cases.
+  - **Dagre**: Classic Mermaid layout engine. Use if you prefer the traditional Mermaid layout behavior.
+
+This setting applies workspace-wide to all block-architecture diagrams. Individual templates can override this setting using widget frontmatter:
+
+```yaml
+---
+widget-options:
+  block-architecture:
+    layout-engine: dagre
+---
+```
+
+Or inline in the template:
+```handlebars
+{{block-architecture this layout-engine="dagre"}}
+```
 
 ## Getting Involved
 

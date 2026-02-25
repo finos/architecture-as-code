@@ -1,3 +1,6 @@
+---
+architecture: ../ecommerce-architecture/ecommerce-architecture.arch.json
+---
 ```mermaid
 C4Deployment
 

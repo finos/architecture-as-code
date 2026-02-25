@@ -4,6 +4,40 @@ export type IncludeContainers = 'none' | 'parents' | 'all';
 export type IncludeChildren = 'none' | 'direct' | 'all';
 export type Edges = 'connected' | 'seeded' | 'all' | 'none';
 export type EdgeLabels = 'description' | 'none';
+export type LayoutEngine = 'dagre' | 'elk';
+
+/** -----------------------------
+ * Theme Types
+ * ------------------------------ */
+export interface ThemeClassStyle {
+    fill: string;
+    stroke: string;
+    strokeWidth: number;
+    strokeDasharray?: string;
+    fontSize?: string;
+    color?: string;
+}
+
+interface ThemeBaseDetails {
+    darkMode?: boolean;
+    edgeLabelBackground?: string;
+    fontSize?: string;
+    lineColor?: string;
+}
+
+export interface ThemeColors {
+    base?: ThemeBaseDetails;
+    boundary: ThemeClassStyle;
+    node: ThemeClassStyle;
+    iface: ThemeClassStyle;
+    highlight: ThemeClassStyle;
+    actor?: ThemeClassStyle;
+    database?: ThemeClassStyle;
+    webclient?: ThemeClassStyle;
+    service?: ThemeClassStyle;
+    messagebus?: ThemeClassStyle;
+    system?: ThemeClassStyle;
+}
 
 /** -----------------------------
  * Options (external API: CSV strings, flags)
@@ -27,6 +61,9 @@ export interface BlockArchOptions {
     ['link-prefix']?: string;
     ['link-map']?: string;
     ['node-type-map']?: string;
+    ['theme']?: string;
+    ['theme-colors']?: string | ThemeColors;
+    ['layout-engine']?: LayoutEngine;
 }
 
 /** -----------------------------
@@ -48,6 +85,8 @@ export type BlockArchVM = {
     linkPrefix?: string;
     linkMap?: Record<string, string>;
     nodeTypeMap?: Record<string, string>;
+    themeColors?: ThemeColors;
+    layoutEngine?: LayoutEngine;
     warnings?: string[];
 };
 
@@ -73,6 +112,9 @@ export type NormalizedOptions = {
     linkPrefix?: string;
     linkMap?: Record<string, string>;
     nodeTypeMap?: Record<string, string>;
+    theme: string;
+    themeColors?: ThemeColors;
+    layoutEngine: LayoutEngine;
 };
 
 

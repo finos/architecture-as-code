@@ -1,9 +1,11 @@
 import * as path from 'path'
-import { detectCalmModel } from './model'
-import { parseFrontMatter } from '../cli/front-matter'
+import * as fs from 'fs'
+import { detectCalmModel, detectCalmTimeline } from './model'
+import { parseFrontMatter } from '@finos/calm-shared'
 
 export enum FileType {
     ArchitectureFile = 'architecture',
+    TimelineFile = 'timeline',
     TemplateFile = 'template',
     Other = 'other'
 }
@@ -12,7 +14,7 @@ export interface FileInfo {
     type: FileType
     filePath: string
     architecturePath?: string
-    urlToLocalPathMapping?: Map<string, string>
+    urlMappingPath?: string
     isValid: boolean
 }
 
@@ -25,7 +27,17 @@ export function detectFileType(filePath: string): FileInfo {
     // Check if it's a potential architecture file (JSON/YAML)
     if (['.json', '.yaml', '.yml'].includes(ext)) {
         try {
-            const content = require('fs').readFileSync(filePath, 'utf8')
+            const content = fs.readFileSync(filePath, 'utf8')
+
+            // Check for timeline first (more specific)
+            if (detectCalmTimeline(content)) {
+                return {
+                    type: FileType.TimelineFile,
+                    filePath,
+                    isValid: true
+                }
+            }
+
             const isArchitecture = detectCalmModel(content)
 
             return {
@@ -45,15 +57,14 @@ export function detectFileType(filePath: string): FileInfo {
     // For any other file type, check if it has front-matter with architecture reference
     try {
         const parsed = parseFrontMatter(filePath)
-        const hasArchitecture = parsed?.hasArchitecture || false
-        const architecturePath = parsed?.architecturePath
+        const hasArchitecture = !!parsed?.architecturePath
 
         return {
             type: FileType.TemplateFile,
             filePath,
-            architecturePath: architecturePath || undefined,
-            urlToLocalPathMapping: parsed?.urlToLocalPathMapping,
-            isValid: hasArchitecture && !!architecturePath
+            architecturePath: parsed?.architecturePath,
+            urlMappingPath: parsed?.urlMappingPath,
+            isValid: hasArchitecture
         }
     } catch {
         return {

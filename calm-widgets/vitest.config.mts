@@ -11,8 +11,14 @@ const v8CoverageSettings: CoverageV8Options = {
         lines: 75,
         statements: 75
     },
-    exclude: ['test_fixtures/**', '*.config.ts', 'src/test-utils/fixture-loader.ts'],
-    include: ['**/*.ts'],
+    exclude: [
+        'dist/**',
+        '**/*.d.ts',
+        'test_fixtures/**',
+        '*.config.ts',
+        'src/test-utils/fixture-loader.ts',
+    ],
+    include: ['src/**/*.ts'],
 };
 
 export default defineConfig({

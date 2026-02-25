@@ -95,10 +95,10 @@
       "serviceAccountsEnabled": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "https://localhost:8443"
+        "https://calm-hub.finos.org:8443"
       ],
       "webOrigins": [
-        "https://localhost:8443",
+        "https://calm-hub.finos.org:8443",
         "*"
       ],
       "notBefore": 0,
@@ -109,7 +109,7 @@
       "attributes": {
         "access.token.lifespan": "3600",
         "login_theme": "keycloak",
-        "post.logout.redirect.uris": "https://localhost:8443",
+        "post.logout.redirect.uris": "https://calm-hub.finos.org:8443",
         "oauth2.device.authorization.grant.enabled": "false",
         "backchannel.logout.revoke.offline.tokens": "false",
         "use.refresh.tokens": "true",

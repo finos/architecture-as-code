@@ -1,216 +1,233 @@
-import { Sidebar } from '../sidebar/Sidebar.js';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import {
     CalmArchitectureSchema,
     CalmNodeSchema,
+    CalmRelationshipSchema,
 } from '../../../../../calm-models/src/types/core-types.js';
-import { CytoscapeNode, Edge } from '../../contracts/contracts.js';
-import { VisualizerContainer } from '../visualizer-container/VisualizerContainer.js';
 import { Data } from '../../../model/calm.js';
 import { useDropzone } from 'react-dropzone';
+import { ReactFlowVisualizer } from '../reactflow/ReactFlowVisualizer.js';
+import { Sidebar } from '../sidebar/Sidebar.js';
+import { MetadataPanel } from '../reactflow/MetadataPanel.js';
+import { NodeData, EdgeData } from '../../contracts/contracts.js';
+import type { Flow } from '../reactflow/FlowsPanel.js';
+import type { Control } from '../reactflow/ControlsPanel.js';
 
 interface DrawerProps {
     data?: Data; // Optional data prop passed in from CALM Hub if user navigates from there
 }
 
-function getComposedOfRelationships(calmInstance: CalmArchitectureSchema) {
-    const composedOfRelationships: {
-        [idx: string]: {
-            type: 'parent' | 'child';
-            parent?: string;
-        };
-    } = {};
+// Selected item can be either node or edge data from the graph
+type SelectedItem = {
+    data: NodeData | EdgeData;
+} | null;
 
-    calmInstance.relationships?.forEach((relationship) => {
-        const rel = relationship['relationship-type']['composed-of'];
-        if (rel) {
-            composedOfRelationships[rel!['container']] = { type: 'parent' };
-            rel!['nodes'].forEach((node) => {
-                composedOfRelationships[node] = {
-                    type: 'child',
-                    parent: rel!['container'],
-                };
-            });
-        }
-    });
-
-    return composedOfRelationships;
-}
-
-function getDeployedInRelationships(calmInstance: CalmArchitectureSchema) {
-    const deployedInRelationships: {
-        [idx: string]: {
-            type: 'parent' | 'child';
-            parent?: string;
-        };
-    } = {};
-    calmInstance.relationships?.forEach((relationship) => {
-        const rel = relationship['relationship-type']['deployed-in'];
-        if (rel) {
-            deployedInRelationships[rel['container']] = { type: 'parent' };
-            rel['nodes'].forEach((node) => {
-                deployedInRelationships[node] = {
-                    type: 'child',
-                    parent: rel['container'],
-                };
-            });
-        }
-    });
-
-    return deployedInRelationships;
+/**
+ * Extract the unique-id from a CALM node or relationship
+ */
+function extractId(item: CalmNodeSchema | CalmRelationshipSchema): string {
+    return item?.['unique-id'] || '';
 }
 
 export function Drawer({ data }: DrawerProps) {
-    const [title, setTitle] = useState<string>('');
     const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
-    const [fileInstance, setFileInstance] = useState<string | undefined>(undefined);
-    const [selectedNode, setSelectedNode] = useState<CytoscapeNode | Edge | null>(null);
+    const [fileInstance, setFileInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
+    const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
+    const [title, setTitle] = useState<string>('');
+    // Default to collapsed as per user request
+    const [isMetadataCollapsed, setIsMetadataCollapsed] = useState(true);
+    // Height of the metadata panel when expanded (in pixels)
+    const [metadataPanelHeight, setMetadataPanelHeight] = useState(250);
 
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
         if (acceptedFiles[0]) {
-            setTitle(acceptedFiles[0].name);
             const fileText = await acceptedFiles[0].text();
             setFileInstance(JSON.parse(fileText));
+            setTitle(acceptedFiles[0].name);
         }
     }, []);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
     useEffect(() => {
-        // Only update title from data if data exists and title wasn't already set by file upload
+        setCALMInstance(fileInstance ?? data?.data);
+        // Set title from CALM Hub data if available
         if (data?.name && data?.id && data?.version) {
-            setTitle(data.name + '/' + data.id + '/' + data.version);
+            setTitle(`${data.name}/${data.id}/${data.version}`);
         }
-        setCALMInstance((fileInstance as CalmArchitectureSchema) ?? data?.data);
     }, [fileInstance, data]);
 
-    function closeSidebar() {
-        setSelectedNode(null);
-    }
+    // Extract flows from CALM data
+    const flows = useMemo((): Flow[] => {
+        const calmData = calmInstance as CalmArchitectureSchema & { flows?: Flow[] };
+        return calmData?.flows || [];
+    }, [calmInstance]);
 
-    function generateDisplayPlaceHolderWithoutDesc(node: CalmNodeSchema): string {
-        return `${node.name}\n[${node['node-type']}]`;
-    }
+    // Extract controls from CALM data (from root, nodes, and relationships)
+    const controls = useMemo((): Record<string, Control> => {
+        const calmData = calmInstance as CalmArchitectureSchema & { controls?: Record<string, Control> };
+        if (!calmData) return {};
 
-    function getNodes(): CytoscapeNode[] {
-        if (!calmInstance || !calmInstance.relationships) return [];
+        const rootControls: Record<string, Control> = calmData.controls || {};
+        const nodeControls: Record<string, Control> = {};
+        const relationshipControls: Record<string, Control> = {};
 
-        const composedOfRelationships = getComposedOfRelationships(calmInstance);
-        const deployedInRelationships = getDeployedInRelationships(calmInstance);
-
-        return (calmInstance.nodes ?? []).map((node) => {
-            const newData: CytoscapeNode = {
-                classes: 'node',
-                data: {
-                    id: node['unique-id'],
-                    name: node.name,
-                    description: node.description,
-                    type: node['node-type'],
-                    cytoscapeProps: {
-                        labelWithDescription: `${generateDisplayPlaceHolderWithoutDesc(node)}\n\n${node.description}\n`,
-                        labelWithoutDescription: `${generateDisplayPlaceHolderWithoutDesc(node)}`,
-                    },
-                },
-            };
-
-            if (node.interfaces) {
-                newData.data.interfaces = node.interfaces;
-            }
-
+        // Extract controls from nodes
+        const nodes = calmData.nodes || [];
+        nodes.forEach((node) => {
             if (node.controls) {
-                newData.data.controls = node.controls;
+                const nodeId = extractId(node);
+                Object.entries(node.controls).forEach(([controlId, control]) => {
+                    const uniqueControlId = `${nodeId}/${controlId}`;
+                    nodeControls[uniqueControlId] = {
+                        ...(control as Control),
+                        appliesTo: nodeId,
+                        nodeName: node.name || nodeId,
+                        appliesToType: 'node',
+                    };
+                });
             }
-
-            const composedOfRel = composedOfRelationships[node['unique-id']];
-            const deployedInRel = deployedInRelationships[node['unique-id']];
-
-            if (composedOfRel?.type === 'parent' || deployedInRel?.type === 'parent') {
-                newData.classes = 'group';
-            }
-
-            const parentId =
-                composedOfRel?.type === 'child' && composedOfRel.parent
-                    ? composedOfRel.parent
-                    : deployedInRel?.type === 'child' && deployedInRel.parent
-                      ? deployedInRel.parent
-                      : undefined;
-
-            if (parentId) {
-                newData.data.parent = parentId;
-            }
-            return newData;
         });
+
+        // Extract controls from relationships
+        const relationships = calmData.relationships || [];
+        relationships.forEach((relationship) => {
+            if (relationship.controls) {
+                const relId = extractId(relationship);
+                Object.entries(relationship.controls).forEach(([controlId, control]) => {
+                    const uniqueControlId = `${relId}/${controlId}`;
+                    relationshipControls[uniqueControlId] = {
+                        ...(control as Control),
+                        appliesTo: relId,
+                        relationshipDescription: relationship.description || relId,
+                        appliesToType: 'relationship',
+                    };
+                });
+            }
+        });
+
+        // Merge all control sources (root-level takes precedence)
+        return { ...nodeControls, ...relationshipControls, ...rootControls };
+    }, [calmInstance]);
+
+    const hasMetadata = flows.length > 0 || Object.keys(controls).length > 0;
+
+    function closeSidebar() {
+        setSelectedItem(null);
     }
 
-    function getEdges(): Edge[] {
-        if (!calmInstance || !calmInstance.relationships) return [];
+    // Handle node click - convert CalmNodeSchema to NodeData format
+    const handleNodeClick = (nodeData: CalmNodeSchema) => {
+        setSelectedItem({
+            data: {
+                id: nodeData['unique-id'],
+                type: nodeData['node-type'] || 'unknown',
+                name: nodeData.name,
+                description: nodeData.description,
+                interfaces: nodeData.interfaces,
+                controls: nodeData.controls,
+            } as NodeData,
+        });
+    };
 
-        return calmInstance.relationships
-            .filter(
-                (relationship) =>
-                    !relationship['relationship-type']['composed-of'] &&
-                    !relationship['relationship-type']['deployed-in']
-            )
-            .map((relationship) => {
-                if (relationship['relationship-type'].interacts) {
-                    return {
-                        data: {
-                            id: relationship['unique-id'],
-                            label: relationship.description || '',
-                            source: relationship['relationship-type'].interacts.actor,
-                            target: relationship['relationship-type'].interacts.nodes[0],
-                        },
-                    };
-                }
-                if (relationship['relationship-type'].connects) {
-                    const source = relationship['relationship-type'].connects.source.node;
-                    const target = relationship['relationship-type'].connects.destination.node;
-                    return {
-                        data: {
-                            id: relationship['unique-id'],
-                            label: relationship.description || '',
-                            source,
-                            target,
-                        },
-                    };
-                }
-            })
-            .filter((edge): edge is Edge => edge !== undefined);
-    }
+    // Handle edge click - convert relationship data to EdgeData format
+    const handleEdgeClick = (edgeData: CalmRelationshipSchema) => {
+        const connects = edgeData['relationship-type']?.connects;
+        setSelectedItem({
+            data: {
+                id: edgeData['unique-id'],
+                source: connects?.source?.node || '',
+                target: connects?.destination?.node || '',
+                description: edgeData.description,
+                protocol: edgeData.protocol,
+                controls: edgeData.controls,
+            } as EdgeData,
+        });
+    };
 
-    function createStorageKey(title: string, data?: Data): string {
-        if (!data || !data.name || !data.calmType || !data.id || !data.version) {
-            return title;
+    // Handle transition click from flows panel - highlight the relationship
+    const handleTransitionClick = (relationshipId: string) => {
+        // Find the relationship in the CALM data
+        const relationship = calmInstance?.relationships?.find((r) => r['unique-id'] === relationshipId);
+        if (relationship) {
+            handleEdgeClick(relationship);
         }
-        return `${data.name}/${data.calmType}/${data.id}/${data.version}`;
-    }
+    };
 
-    const edges = getEdges();
-    const nodes = getNodes();
+    // Handle node click from controls panel
+    const handleControlNodeClick = (nodeId: string) => {
+        // Find the node in the CALM data
+        const node = calmInstance?.nodes?.find((n) => n['unique-id'] === nodeId);
+        if (node) {
+            handleNodeClick(node);
+        }
+    };
 
     return (
-        <div {...getRootProps()} className="flex-1 flex overflow-hidden h-screen">
+        <div {...getRootProps()} className="flex-1 flex overflow-hidden h-full">
             {!calmInstance && <input {...getInputProps()} />}
-            <div className={`drawer drawer-end ${selectedNode ? 'drawer-open' : ''} w-full`}>
+            <div className={`drawer drawer-end ${selectedItem ? 'drawer-open' : ''} w-full h-full`}>
                 <input
                     type="checkbox"
                     aria-label="drawer-toggle"
                     className="drawer-toggle"
-                    checked={!!selectedNode}
+                    checked={!!selectedItem}
                     onChange={closeSidebar}
                 />
-                <div className="drawer-content">
+                <div className="drawer-content h-full flex flex-col">
                     {calmInstance ? (
-                        <VisualizerContainer
-                            title={title}
-                            nodes={nodes}
-                            edges={edges}
-                            calmKey={createStorageKey(title, data)}
-                            nodeClickedCallback={(nodeData) => setSelectedNode({ data: nodeData })}
-                            edgeClickedCallback={(edgeData) => setSelectedNode({ data: edgeData })}
-                            backgroundClickedCallback={closeSidebar}
-                            selectedItemId={selectedNode?.data?.id}
-                        />
+                        <>
+                            {title && (
+                                <div
+                                    style={{
+                                        padding: '8px 16px',
+                                        borderBottom: '1px solid #e2e8f0',
+                                        backgroundColor: '#f8fafc',
+                                        fontSize: '14px',
+                                        fontWeight: 500,
+                                        color: '#1e293b',
+                                        flexShrink: 0,
+                                    }}
+                                >
+                                    {title}
+                                </div>
+                            )}
+                            <div
+                                style={{
+                                    flex: 1,
+                                    minHeight: 0,
+                                    ...(hasMetadata && !isMetadataCollapsed
+                                        ? { height: `calc(100% - ${metadataPanelHeight}px)` }
+                                        : {}),
+                                }}
+                            >
+                                <ReactFlowVisualizer
+                                    calmData={calmInstance}
+                                    onNodeClick={handleNodeClick}
+                                    onEdgeClick={handleEdgeClick}
+                                    onBackgroundClick={closeSidebar}
+                                />
+                            </div>
+                            {hasMetadata && (
+                                <div
+                                    style={{
+                                        height: isMetadataCollapsed ? '48px' : `${metadataPanelHeight}px`,
+                                        flexShrink: 0,
+                                    }}
+                                >
+                                    <MetadataPanel
+                                        flows={flows}
+                                        controls={controls}
+                                        onTransitionClick={handleTransitionClick}
+                                        onNodeClick={handleControlNodeClick}
+                                        isCollapsed={isMetadataCollapsed}
+                                        onToggleCollapse={() => setIsMetadataCollapsed(!isMetadataCollapsed)}
+                                        height={metadataPanelHeight}
+                                        onHeightChange={setMetadataPanelHeight}
+                                    />
+                                </div>
+                            )}
+                        </>
                     ) : (
                         <div className="flex justify-center items-center h-full w-full">
                             {isDragActive ? (
@@ -218,17 +235,13 @@ export function Drawer({ data }: DrawerProps) {
                             ) : (
                                 <p>
                                     {'Drag and drop your file here or '}
-                                    <span className="border-b border-dotted border-black pb-1">
-                                        Browse
-                                    </span>
+                                    <span className="border-b border-dotted border-black pb-1">Browse</span>
                                 </p>
                             )}
                         </div>
                     )}
                 </div>
-                {selectedNode && (
-                    <Sidebar selectedData={selectedNode['data']} closeSidebar={closeSidebar} />
-                )}
+                {selectedItem && <Sidebar selectedData={selectedItem.data} closeSidebar={closeSidebar} />}
             </div>
         </div>
     );

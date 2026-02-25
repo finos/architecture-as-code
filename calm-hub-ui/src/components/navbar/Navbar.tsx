@@ -6,7 +6,7 @@ export function Navbar() {
         <div className="navbar bg-base-100 border-b-2 border-base-200 text-primary-content">
             <div className="navbar-start flex items-center">
                 <div className="dropdown lg:hidden">
-                    <div tabIndex={0} role="button" className="btn btn-ghost text-primary">
+                    <div tabIndex={0} role="button" className="btn btn-ghost text-primary" aria-label="Open Menu">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             className="h-5 w-5"

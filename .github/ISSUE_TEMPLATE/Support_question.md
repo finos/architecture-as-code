@@ -1,7 +1,6 @@
 ---
 name: 🤗 Support Question
 about: If you have a question about configuration, usage, etc. 💬
-
 ---
 
 ## Support Question

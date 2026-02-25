@@ -2,11 +2,15 @@
 
 CLIENT_ID="calm-hub-admin-app"
 SCOPE="namespace:admin"
-DEVICE_AUTH_ENDPOINT="https://localhost:9443/realms/calm-hub-realm/protocol/openid-connect/auth/device"
+DEVICE_AUTH_ENDPOINT="https://calm-hub.finos.org:9443/realms/calm-hub-realm/protocol/openid-connect/auth/device"
 DEVICE_AUTH_RESPONSE=$(curl --insecure -X POST \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "client_id=$CLIENT_ID" -d "scope=$SCOPE" \
   $DEVICE_AUTH_ENDPOINT)
+
+BLUE="\033[0;34m"
+YELLOW="\033[0;33m"
+NC="\033[0m"
 
 # Extract values from the device auth response.
 DEVICE_CODE=$(echo "$DEVICE_AUTH_RESPONSE" | jq -r '.device_code')
@@ -16,10 +20,12 @@ VERIFICATION_URI_COMPLETE=$(echo "$DEVICE_AUTH_RESPONSE" | jq -r '.verification_
 EXPIRES_IN=$(echo "$DEVICE_AUTH_RESPONSE" | jq -r '.expires_in')
 INTERVAL=$(echo "$DEVICE_AUTH_RESPONSE" | jq -r '.interval')
 
-echo -e "\nOpen the link in a browser \033[3m[$VERIFICATION_URI]\033[0m, and authenticate with the UserCode:[$USER_CODE] \n the associated device code for this request will expires in $EXPIRES_IN seconds.\n"
+echo -e "${YELLOW}\nThe user you use to authenticate must have the ${SCOPE} scope; otherwise, calm-hub will respond with a 401 or 403 error. For local development with a secure profile, you can use the *demo_admin* user, which is already created in Keycloak.\n${NC}"
+
+echo -e "\nOpen the link in a browser ${BLUE}[$VERIFICATION_URI]${NC}, and authenticate with the UserCode:[$USER_CODE],the associated device code for this request will expires in ${EXPIRES_IN} seconds.\n"
 
 # Poll the token endpoint
-TOKEN_URL="https://localhost:9443/realms/calm-hub-realm/protocol/openid-connect/token"
+TOKEN_URL="https://calm-hub.finos.org:9443/realms/calm-hub-realm/protocol/openid-connect/token"
 ACCESS_TOKEN=""
 POLL_INTERVAL=15 #Seconds
 
@@ -57,21 +63,21 @@ poll_token
 echo -e "\nPositive Case: Press enter to create a sample user-access for finos resources."
 read
 if [[ -n $ACCESS_TOKEN ]]; then
-  curl -X POST --insecure -v "https://localhost:8443/calm/namespaces/finos/user-access" \
+  curl -X POST --insecure -v "https://calm-hub.finos.org:8443/calm/namespaces/finos/user-access" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $ACCESS_TOKEN" \
     -d '{ "namespace": "finos", "resourceType": "patterns", "permission": "read", "username": "demo" }'
 
   echo -e "\nPositive Case: Press enter to get list of user-access details associated to namespace:finos"
   read
-  curl --insecure -v "https://localhost:8443/calm/namespaces/finos/user-access" \
+  curl --insecure -v "https://calm-hub.finos.org:8443/calm/namespaces/finos/user-access" \
       -H "Content-Type: application/json" \
       -H "Authorization: Bearer $ACCESS_TOKEN"
 
   echo
   echo -e "\nFailure Case: Press enter to create a sample user-access for traderx namespace."
   read
-  curl -X POST --insecure -v "https://localhost:8443/calm/namespaces/traderx/user-access" \
+  curl -X POST --insecure -v "https://calm-hub.finos.org:8443/calm/namespaces/traderx/user-access" \
       -H "Content-Type: application/json" \
       -H "Authorization: Bearer $ACCESS_TOKEN" \
       -d '{ "namespace": "traderx", "resourceType": "patterns", "permission": "read", "username": "demo" }'

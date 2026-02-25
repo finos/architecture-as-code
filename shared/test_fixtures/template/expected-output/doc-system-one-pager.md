@@ -1,3 +1,6 @@
+---
+architecture: ../data/document-system-with-controls.json
+---
 ## Nodes
 
 | ID            | Name           | Type     | Description                          |

@@ -1,1 +1,4 @@
-document-system
+---
+architecture: ../../model/document-system.json
+---
+  document-system

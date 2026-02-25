@@ -85,7 +85,7 @@ body {
 #docify-content, #validation-content {
     overflow: auto;
     flex: 1 1 auto;
-    padding: 6px;
+    padding: 6px;  /* Remove padding to allow diagram containers full width */
     background: transparent;
 }
 
@@ -275,6 +275,97 @@ body {
     border: 1px solid var(--vscode-editorWidget-border, #d1d9e0);
     border-radius: 6px;
     overflow: hidden;
+}
+
+/* Diagram zoom and pan controls */
+.diagram-controls {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 1000;
+    display: flex;
+    gap: 4px;
+    background: var(--vscode-editor-background, #fff);
+    border: 1px solid var(--vscode-editorWidget-border, #ddd);
+    border-radius: 6px;
+    padding: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.diagram-control-btn {
+    appearance: none;
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: 1px solid var(--vscode-button-border, transparent);
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    min-width: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.diagram-control-btn:hover {
+    background-color: var(--vscode-button-hoverBackground);
+}
+
+.diagram-control-btn:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: 2px;
+}
+
+.diagram-control-btn:active {
+    transform: translateY(1px);
+}
+
+.diagram-control-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Mermaid diagram container styling */
+.mermaid-diagram-container {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    margin: 16px 0;
+    border: 1px solid var(--vscode-editorWidget-border, #ddd);
+    border-radius: 6px;
+    background: var(--vscode-editor-background, #fff);
+    overflow: hidden;
+}
+
+.mermaid-diagram-container svg {
+    display: block;
+}
+
+/* Clickable nodes and edges in Mermaid diagrams */
+.clickable-node,
+.clickable-edge {
+    cursor: pointer !important;
+    transition: opacity 0.2s ease;
+}
+
+.clickable-node:hover {
+    opacity: 0.7;
+}
+
+.clickable-edge:hover {
+    opacity: 0.8;
+}
+
+/* Back button styles */
+#back-button:hover {
+    background: var(--vscode-button-secondaryHoverBackground);
+    opacity: 0.9;
+}
+
+#back-button:active {
+    transform: translateY(1px);
 }
 
 /* End of styles */

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/standards/test-node-standard.json",
+  "title": "Test Node Standard",
+  "description": "A test standard requiring owner field on nodes",
+  "allOf": [
+    { "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node" },
+    {
+      "type": "object",
+      "properties": {
+        "owner": { 
+          "type": "string",
+          "description": "The team or person responsible for this node"
+        }
+      },
+      "required": ["owner"]
+    }
+  ]
+}

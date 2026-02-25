@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 import type { ApplicationStoreApi } from '../../application-store'
 import type { PreviewViewModelInterface } from '../../features/preview/preview.view-model'
+import { NavigationService } from '../services/navigation-service'
 
 export interface TreeRevealer {
     revealById(id: string): Promise<void>
@@ -20,7 +21,8 @@ export class SelectionService {
         private store: ApplicationStoreApi,
         private getPreview: () => PreviewViewModelInterface | undefined,
         private tree: TreeRevealer,
-        private revealInEditor: (doc: vscode.TextDocument, id: string) => Promise<void>
+        private revealInEditor: (doc: vscode.TextDocument, id: string) => Promise<void>,
+        private navigation?: NavigationService
     ) { }
 
     /** Tree selection changed */
@@ -71,6 +73,23 @@ export class SelectionService {
         store.setSelectedElement(id)
 
         try { await this.tree.revealById(id) } catch { }
+
+        // Attempt navigation first if available
+        const model = store.currentModelIndex
+        const node = model?.getNodes().find((n: any) => n.id === id)
+        
+        if (this.navigation && model && node?.raw) {
+            try {
+                const navigated = await this.navigation.navigate(id, node.raw)
+                if (navigated) {
+                    // Navigated to a new file, skip editor reveal for current file
+                    return
+                }
+            } catch (error) {
+                console.error('[selection-service] Error during navigation for id:', id, error)
+                // Continue with normal selection flow
+            }
+        }
 
         const preview = this.getPreview()
         const uriPath = preview?.getCurrentUriPath()

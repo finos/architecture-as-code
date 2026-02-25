@@ -1,3 +1,6 @@
+import { buildThemeClassDefsString, buildThemeFrontMatter } from './widgets/block-architecture/core/themes/theme-builder';
+import { ThemeColors } from './widgets/block-architecture/types';
+
 export function registerGlobalTemplateHelpers(): Record<string, (...args: unknown[]) => unknown> {
     return {
         eq: (a: unknown, b: unknown): boolean => a === b,
@@ -11,6 +14,71 @@ export function registerGlobalTemplateHelpers(): Record<string, (...args: unknow
             return undefined;
         },
         json: (obj: unknown): string => JSON.stringify(obj, null, 2),
+        themeFrontMatter: (themeColors: unknown): string => {
+            if (typeof themeColors === 'object' && themeColors !== null) {
+                return buildThemeFrontMatter(themeColors as ThemeColors);
+            }
+            return '';
+        },
+        mermaidInitConfig: (layoutEngine: unknown): string => {
+            const layout = typeof layoutEngine === 'string' && ['dagre', 'elk'].includes(layoutEngine) 
+                ? layoutEngine 
+                : 'elk';
+            return `%%{init: {"layout": "${layout}", "flowchart": {"htmlLabels": false}}}%%`;
+        },
+        themeClassDefs: (themeColors: unknown, renderNodeTypeShapes: unknown): string => {
+            if (
+                typeof themeColors === 'object' &&
+                themeColors !== null &&
+                typeof renderNodeTypeShapes === 'boolean'
+            ) {
+                return buildThemeClassDefsString(themeColors as ThemeColors, renderNodeTypeShapes);
+            }
+            return '';
+        },
+        mermaidId: (id: unknown): string => {
+            if (typeof id !== 'string' || !id) return 'node_empty';
+
+            // Sanitize: replace non-word chars (except hyphen, colon, dot) with underscore
+            const sanitized = id.replace(/[^\w\-:.]/g, '_');
+
+            // Mermaid reserved words that need prefixing
+            const reservedWords = ['graph', 'subgraph', 'end', 'click', 'call', 'class', 'classDef',
+                'style', 'linkStyle', 'direction', 'TB', 'BT', 'RL', 'LR', 'TD', 'BR'];
+
+            // Check if any reserved word appears as a complete word in the ID
+            // Word boundaries are: start of string, end of string, or delimiters (-, _, ., :)
+            for (const reserved of reservedWords) {
+                // Create regex to match the reserved word at word boundaries
+                // \b doesn't work well with hyphens, so we explicitly check boundaries
+                const pattern = new RegExp(
+                    `(^|[-_.:])${reserved.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[-_.:])`,
+                    'i'
+                );
+
+                if (pattern.test(sanitized)) {
+                    return `node_${sanitized}`;
+                }
+            }
+
+            return sanitized;
+        },
+        mermaidText: (text: unknown): string => {
+            if (typeof text !== 'string') return '';
+            // Escape characters that have special meaning in Mermaid text/labels
+            // Mermaid uses # followed by character code and semicolon for escaping
+            // See: https://mermaid.js.org/syntax/flowchart.html
+            return text
+                .replace(/#/g, '#35;')
+                .replace(/\(/g, '#40;')
+                .replace(/\)/g, '#41;')
+                .replace(/\[/g, '#91;')
+                .replace(/\]/g, '#93;')
+                .replace(/\{/g, '#123;')
+                .replace(/\}/g, '#125;')
+                .replace(/\|/g, '#124;')
+                .replace(/"/g, '#quot;');
+        },
         instanceOf: (value: unknown, className: unknown): boolean =>
             typeof className === 'string' &&
             typeof value === 'object' &&

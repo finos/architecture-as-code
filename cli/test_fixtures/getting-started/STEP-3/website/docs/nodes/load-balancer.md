@@ -1,76 +1,56 @@
 ---
-id: load-balancer
-title: Load Balancer
+architecture: ../../../conference-signup.arch.json
+url-to-local-file-mapping: ../../../../url-to-local-file-mapping.json
+node-id: load-balancer
+id: "load-balancer"
+title: "Load Balancer"
 ---
 
-## Details
-<div className="table-container">
-| Field               | Value                    |
-|---------------------|--------------------------|
-| **Unique ID**       | load-balancer                   |
-| **Node Type**       | network             |
-| **Name**            | Load Balancer                 |
-| **Description**     | The attendees service, or a placeholder for another application          |
+# Load Balancer
 
+## Details
+<div class="table-container">
+    <table>
+        <tbody>
+        <tr>
+            <th>Unique Id</th>
+            <td>load-balancer</td>
+        </tr>
+        <tr>
+            <th>Name</th>
+            <td>Load Balancer</td>
+        </tr>
+        <tr>
+            <th>Description</th>
+            <td>The attendees service, or a placeholder for another application</td>
+        </tr>
+        <tr>
+            <th>Node Type</th>
+            <td>network</td>
+        </tr>
+        </tbody>
+    </table>
 </div>
 
 ## Interfaces
-        <div className="table-container">
-            <table>
-                <thead>
-                <tr>
-                    <th>Key</th>
-                    <th>Value</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr>
-                    <td>
-                        <b>UniqueId</b>
-                    </td>
-                    <td>
-                        load-balancer-host-port
-                            </td>
-                </tr>
-                <tr>
-                    <td>
-                        <b>AdditionalProperties</b>
-                    </td>
-                    <td>
-                        <div className="table-container">
-                            <table>
-                                <thead>
-                                <tr>
-                                    <th>Key</th>
-                                    <th>Value</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr>
-                                    <td>
-                                        <b>Host</b>
-                                    </td>
-                                    <td>
-                                        [[ HOST ]]
-                                            </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <b>Port</b>
-                                    </td>
-                                    <td>
-                                        -1
-                                            </td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-
+<div class="table-container">
+    <table>
+        <thead>
+        <tr>
+            <th>Unique Id</th>
+            <th>Host</th>
+            <th>Port</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>load-balancer-host-port</td>
+            <td>[[ HOST ]]</td>
+            <td>-1</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
 
 ## Related Nodes
 ```mermaid
@@ -78,12 +58,12 @@ graph TD;
 load-balancer[load-balancer]:::highlight;
 conference-website -- Connects --> load-balancer;
 load-balancer -- Connects --> attendees;
-k8s-cluster -- Deployed In --> load-balancer;
+load-balancer -- Deployed In --> k8s-cluster;
 classDef highlight fill:#f2bbae;
-
 ```
+
 ## Controls
-    _No controls defined._
+_No controls defined._
 
 ## Metadata
-  _No Metadata defined._
+<p class="empty-message">No metadata defined.</p>

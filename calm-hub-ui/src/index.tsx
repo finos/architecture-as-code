@@ -2,7 +2,7 @@ import './index.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import ProtectedRoute from './ProtectedRoute.js';
-import { authService } from './authService.js';
+import { isAuthServiceEnabled, authService } from './authService.js';
 import App from './App.js';
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
@@ -19,11 +19,11 @@ const LogoutButton: React.FC = () => {
     );
 };
 
-const isHttps = window.location.protocol === 'https:';
+const isAuthenticationEnabled = isAuthServiceEnabled();
 
 root.render(
     <React.StrictMode>
-        {isHttps ? (
+        {isAuthenticationEnabled ? (
             <ProtectedRoute>
                 <App />
                 <LogoutButton />

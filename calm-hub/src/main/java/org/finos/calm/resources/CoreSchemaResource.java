@@ -14,9 +14,7 @@ import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.CoreSchemaStore;
-import org.owasp.html.HtmlPolicyBuilder;
 import org.owasp.html.PolicyFactory;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -25,7 +23,7 @@ import java.util.Map;
 @Path("/calm/schemas")
 public class CoreSchemaResource {
 
-    private static final PolicyFactory STRICT_SANITIZATION_POLICY = new HtmlPolicyBuilder().toFactory();
+    private static final PolicyFactory STRICT_SANITIZATION_POLICY = ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
 
     private final CoreSchemaStore coreSchemaStore;
 

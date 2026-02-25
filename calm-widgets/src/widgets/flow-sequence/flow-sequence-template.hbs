@@ -3,12 +3,12 @@ sequenceDiagram
 {{#each transitions}}
 {{#if direction}}
     {{#if (eq direction 'destination-to-source')}}
-    {{target}} -->> {{source}}: {{description}}
+    {{target}} -->> {{source}}: {{{mermaidText description}}}
     {{else}}
-    {{source}} ->> {{target}}: {{description}}
+    {{source}} ->> {{target}}: {{{mermaidText description}}}
     {{/if}}
 {{else}}
-    {{source}} ->> {{target}}: {{description}}
+    {{source}} ->> {{target}}: {{{mermaidText description}}}
 {{/if}}
 {{/each}}
 ```

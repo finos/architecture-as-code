@@ -23,7 +23,7 @@ export class DocifyProcessor {
             }
         } else {
             return {
-                docifyMode: 'BUNDLE' as const,
+                docifyMode: 'WEBSITE' as const,
                 templateMode: 'bundle' as const
             }
         }

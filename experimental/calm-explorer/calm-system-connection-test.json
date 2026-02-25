@@ -1,0 +1,100 @@
+{
+  "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+  "metadata": {
+    "name": "System Node Connection Test",
+    "version": "1.0.0",
+    "description": "Demonstrates that nodes can connect directly to system-type nodes"
+  },
+  "nodes": [
+    {
+      "unique-id": "monitoring-service",
+      "name": "Monitoring Service",
+      "description": "External monitoring service that monitors the entire production system",
+      "node-type": "service"
+    },
+    {
+      "unique-id": "load-balancer",
+      "name": "Load Balancer",
+      "description": "External load balancer that routes traffic to the production system",
+      "node-type": "service"
+    },
+    {
+      "unique-id": "production-system",
+      "name": "Production System",
+      "description": "Production environment containing multiple microservices",
+      "node-type": "system"
+    },
+    {
+      "unique-id": "api-service",
+      "name": "API Service",
+      "description": "REST API service",
+      "node-type": "service"
+    },
+    {
+      "unique-id": "database-service",
+      "name": "Database Service",
+      "description": "PostgreSQL database",
+      "node-type": "database"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "monitoring-to-system",
+      "description": "Monitoring service monitors the entire production system",
+      "protocol": "HTTPS",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "monitoring-service"
+          },
+          "destination": {
+            "node": "production-system"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "lb-to-system",
+      "description": "Load balancer routes traffic to the production system",
+      "protocol": "HTTPS",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "load-balancer"
+          },
+          "destination": {
+            "node": "production-system"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "api-to-database",
+      "description": "API service queries the database",
+      "protocol": "PostgreSQL",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-service"
+          },
+          "destination": {
+            "node": "database-service"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "deployed-in-production",
+      "description": "Services deployed in the production system",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "production-system",
+          "nodes": [
+            "api-service",
+            "database-service"
+          ]
+        }
+      }
+    }
+  ]
+}

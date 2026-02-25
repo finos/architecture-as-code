@@ -89,6 +89,120 @@ describe('Widget Helpers', () => {
         });
     });
 
+    describe('mermaidInitConfig helper', () => {
+        it('returns elk layout config when layoutEngine is "elk"', () => {
+            const result = helpers.mermaidInitConfig('elk');
+            expect(result).toBe('%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%');
+        });
+
+        it('returns dagre layout config when layoutEngine is "dagre"', () => {
+            const result = helpers.mermaidInitConfig('dagre');
+            expect(result).toBe('%%{init: {"layout": "dagre", "flowchart": {"htmlLabels": false}}}%%');
+        });
+
+        it('defaults to elk layout for invalid string values', () => {
+            const result = helpers.mermaidInitConfig('invalid');
+            expect(result).toBe('%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%');
+        });
+
+        it('defaults to elk layout for non-string inputs', () => {
+            expect(helpers.mermaidInitConfig(123)).toBe('%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%');
+            expect(helpers.mermaidInitConfig(null)).toBe('%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%');
+            expect(helpers.mermaidInitConfig(undefined)).toBe('%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%');
+            expect(helpers.mermaidInitConfig({})).toBe('%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%');
+        });
+
+        it('defaults to elk layout for empty string', () => {
+            const result = helpers.mermaidInitConfig('');
+            expect(result).toBe('%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%');
+        });
+    });
+
+    describe('mermaidId helper', () => {
+        it('returns sanitized identifiers for Mermaid', () => {
+            expect(helpers.mermaidId('my-node')).toBe('my-node');
+            expect(helpers.mermaidId('service')).toBe('service');
+        });
+
+        it('prefixes IDs that are exactly reserved words', () => {
+            expect(helpers.mermaidId('end')).toBe('node_end');
+            expect(helpers.mermaidId('graph')).toBe('node_graph');
+            expect(helpers.mermaidId('subgraph')).toBe('node_subgraph');
+            expect(helpers.mermaidId('END')).toBe('node_END');
+        });
+
+        it('prefixes IDs that contain reserved words at word boundaries', () => {
+            expect(helpers.mermaidId('end-user')).toBe('node_end-user');
+            expect(helpers.mermaidId('my-end-service')).toBe('node_my-end-service');
+            expect(helpers.mermaidId('graph-node')).toBe('node_graph-node');
+            expect(helpers.mermaidId('node-end')).toBe('node_node-end');
+        });
+
+        it('does not prefix IDs where reserved word is part of a larger word', () => {
+            expect(helpers.mermaidId('endpoint')).toBe('endpoint');
+            expect(helpers.mermaidId('backend')).toBe('backend');
+            expect(helpers.mermaidId('graphql')).toBe('graphql');
+        });
+
+        it('sanitizes special characters', () => {
+            expect(helpers.mermaidId('my/node')).toBe('my_node');
+            expect(helpers.mermaidId('node with spaces')).toBe('node_with_spaces');
+        });
+
+        it('handles non-string input', () => {
+            expect(helpers.mermaidId(null)).toBe('node_empty');
+            expect(helpers.mermaidId(undefined)).toBe('node_empty');
+            expect(helpers.mermaidId(123)).toBe('node_empty');
+            expect(helpers.mermaidId('')).toBe('node_empty');
+        });
+    });
+
+    describe('mermaidText helper', () => {
+        it('escapes parentheses', () => {
+            expect(helpers.mermaidText('(RabbitMQ)')).toBe('#40;RabbitMQ#41;');
+            expect(helpers.mermaidText('test (value)')).toBe('test #40;value#41;');
+        });
+
+        it('escapes brackets', () => {
+            expect(helpers.mermaidText('[array]')).toBe('#91;array#93;');
+            expect(helpers.mermaidText('{object}')).toBe('#123;object#125;');
+        });
+
+        it('escapes pipe character', () => {
+            expect(helpers.mermaidText('A | B')).toBe('A #124; B');
+        });
+
+        it('escapes hash and quote characters', () => {
+            expect(helpers.mermaidText('#tag')).toBe('#35;tag');
+            expect(helpers.mermaidText('"quoted"')).toBe('#quot;quoted#quot;');
+        });
+
+        it('passes through HTML special characters unchanged', () => {
+            expect(helpers.mermaidText('<tag>')).toBe('<tag>');
+            expect(helpers.mermaidText('a & b')).toBe('a & b');
+            expect(helpers.mermaidText('x > y')).toBe('x > y');
+        });
+
+        it('handles multiple special characters', () => {
+            expect(helpers.mermaidText('func(a, b) -> [result]')).toBe('func#40;a, b#41; -> #91;result#93;');
+        });
+
+        it('returns empty string for non-string input', () => {
+            expect(helpers.mermaidText(null)).toBe('');
+            expect(helpers.mermaidText(undefined)).toBe('');
+            expect(helpers.mermaidText(123)).toBe('');
+        });
+
+        it('handles empty string', () => {
+            expect(helpers.mermaidText('')).toBe('');
+        });
+
+        it('passes through plain text unchanged', () => {
+            expect(helpers.mermaidText('simple text')).toBe('simple text');
+            expect(helpers.mermaidText('no-special-chars')).toBe('no-special-chars');
+        });
+    });
+
     describe('instanceOf helper', () => {
         it('returns true for matching constructor names', () => {
             const obj = new Date();

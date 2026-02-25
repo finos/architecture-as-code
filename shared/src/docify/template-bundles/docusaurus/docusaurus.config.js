@@ -1,13 +1,10 @@
 /* eslint-disable no-undef */
-import remarkReplaceLinks from './src/remark/remark-replace-links.mjs';
-
 module.exports = {
     title: 'My Docusaurus Docs',
     tagline: 'Generated documentation from CALM',
     url: 'http://localhost',
     baseUrl: '/',
     onBrokenLinks: 'throw',
-    onBrokenMarkdownLinks: 'warn',
     favicon: 'img/favicon.ico',
     organizationName: 'my-org',
     projectName: 'calm-docs',
@@ -26,7 +23,10 @@ module.exports = {
         '@docusaurus/theme-mermaid',
     ],
     markdown: {
-        mermaid: true
+        mermaid: true,
+        hooks: {
+            onBrokenMarkdownLinks: 'warn'
+        }
     },
     stylesheets: [
         '/css/custom.css'
@@ -37,8 +37,7 @@ module.exports = {
             {
                 docs: {
                     sidebarPath: require.resolve('./sidebars.js'),
-                    routeBasePath: '/',
-                    remarkPlugins: [remarkReplaceLinks]
+                    routeBasePath: '/'
                 },
             },
         ],

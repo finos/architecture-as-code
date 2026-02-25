@@ -24,7 +24,6 @@ const config = {
     projectName: 'architecture-as-code', // Usually your repo name.
 
     onBrokenLinks: 'throw',
-    onBrokenMarkdownLinks: 'warn',
 
     // Even if you don't use internationalization, you can use this field to set
     // useful metadata like html lang. For example, if your site is Chinese, you
@@ -32,6 +31,12 @@ const config = {
     i18n: {
         defaultLocale: 'en',
         locales: ['en'],
+    },
+
+    markdown: {
+        hooks: {
+            onBrokenMarkdownLinks: 'warn'
+        }
     },
 
     presets: [
@@ -58,16 +63,8 @@ const config = {
                 id: 'talks',
                 path: 'talks',
                 routeBasePath: 'talks',
-                sidebarPath: require.resolve('./sidebars.js'),
+                sidebarPath: require.resolve('./talksSidebar.js'),
             },
-        ],
-        [
-            '@docusaurus/plugin-content-docs',
-            {
-                id: 'quick-start',
-                path: 'quick-start',
-                routeBasePath: 'quick-start',
-            }
         ],
     ],
 
@@ -84,14 +81,14 @@ const config = {
                 },
                 items: [
                     {
-                        to: '/quick-start/',
-                        label: '🚀 Get Started in 5 Mins',
+                        type: 'docSidebar',
+                        sidebarId: 'learningSidebar',
+                        label: '📚 Learning',
                         position: 'left',
-                        activeBaseRegex: `/quick-start/`,
                     },
                     {
                         to: '/talks/',
-                        label: 'Talks',
+                        label: '🎤 Talks',
                         position: 'left',
                         activeBaseRegex: `/talks/`,
                     },
@@ -146,6 +143,36 @@ const config = {
             prism: {
                 theme: prismThemes.github,
                 darkTheme: prismThemes.dracula,
+            },
+            algolia: {
+                // The application ID provided by Algolia
+                appId: '87IS6TKJAE',
+
+                // Public API key: it is safe to commit it
+                apiKey: 'dfdc380d6e179c38f558cb610645257a',
+
+                indexName: 'calm-finos',
+
+                // Optional: see doc section below
+                contextualSearch: true,
+
+                // Optional: Specify domains where the navigation should occur through window.location instead on history.push. Useful when our Algolia config crawls multiple documentation sites
+                // externalUrlRegex: 'external\\.com|domain\\.com',
+
+                // Optional: Replace parts of the item URLs from Algolia. Useful when using the same search index for multiple deployments using a different baseUrl. You can use regexp or string in the `from` param. For example: localhost:3000 vs myCompany.com/docs
+                // replaceSearchResultPathname: {
+                //   from: '/docs/', // or as RegExp: /\/docs\//
+                //   to: '/',
+                // },
+
+                // Optional: Algolia search parameters
+                searchParameters: {},
+
+                // Optional: path for search page that enabled by default (`false` to disable it)
+                searchPagePath: 'search',
+
+                // Optional: whether the insights feature is enabled or not on Docsearch (`false` by default)
+                // insights: false,
             },
         }),
 };

@@ -1,0 +1,866 @@
+{
+    "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+    "unique-id": "enterprise-trading-platform",
+    "name": "Enterprise Trading Platform",
+    "description": "A complex enterprise trading platform architecture with multiple domains including trading, risk management, settlement, and reporting",
+    "nodes": [
+        {
+            "unique-id": "trader",
+            "node-type": "actor",
+            "name": "Trader",
+            "description": "Trading desk personnel executing trades"
+        },
+        {
+            "unique-id": "risk-manager",
+            "node-type": "actor",
+            "name": "Risk Manager",
+            "description": "Risk management personnel monitoring positions and exposure"
+        },
+        {
+            "unique-id": "operations-user",
+            "node-type": "actor",
+            "name": "Operations User",
+            "description": "Back office operations staff handling settlements"
+        },
+        {
+            "unique-id": "trading-ui",
+            "node-type": "webclient",
+            "name": "Trading UI",
+            "description": "Web-based trading interface for order entry and execution"
+        },
+        {
+            "unique-id": "risk-dashboard",
+            "node-type": "webclient",
+            "name": "Risk Dashboard",
+            "description": "Real-time risk monitoring and analytics dashboard"
+        },
+        {
+            "unique-id": "operations-portal",
+            "node-type": "webclient",
+            "name": "Operations Portal",
+            "description": "Settlement and reconciliation management interface"
+        },
+        {
+            "unique-id": "api-gateway",
+            "node-type": "service",
+            "name": "API Gateway",
+            "description": "Central API gateway handling authentication and routing"
+        },
+        {
+            "unique-id": "order-service",
+            "node-type": "service",
+            "name": "Order Management Service",
+            "description": "Handles order lifecycle from creation to execution"
+        },
+        {
+            "unique-id": "execution-service",
+            "node-type": "service",
+            "name": "Execution Service",
+            "description": "Executes orders against market venues"
+        },
+        {
+            "unique-id": "pricing-service",
+            "node-type": "service",
+            "name": "Pricing Service",
+            "description": "Real-time pricing and valuation calculations"
+        },
+        {
+            "unique-id": "position-service",
+            "node-type": "service",
+            "name": "Position Service",
+            "description": "Tracks and calculates trading positions"
+        },
+        {
+            "unique-id": "risk-engine",
+            "node-type": "service",
+            "name": "Risk Calculation Engine",
+            "description": "Calculates VaR, Greeks, and other risk metrics"
+        },
+        {
+            "unique-id": "limit-service",
+            "node-type": "service",
+            "name": "Limit Management Service",
+            "description": "Manages and enforces trading limits"
+        },
+        {
+            "unique-id": "settlement-service",
+            "node-type": "service",
+            "name": "Settlement Service",
+            "description": "Handles trade settlement and confirmation"
+        },
+        {
+            "unique-id": "reconciliation-service",
+            "node-type": "service",
+            "name": "Reconciliation Service",
+            "description": "Reconciles trades with counterparties and custodians"
+        },
+        {
+            "unique-id": "reporting-service",
+            "node-type": "service",
+            "name": "Reporting Service",
+            "description": "Generates regulatory and management reports"
+        },
+        {
+            "unique-id": "notification-service",
+            "node-type": "service",
+            "name": "Notification Service",
+            "description": "Sends alerts and notifications to users"
+        },
+        {
+            "unique-id": "auth-service",
+            "node-type": "service",
+            "name": "Authentication Service",
+            "description": "Handles user authentication and authorization"
+        },
+        {
+            "unique-id": "audit-service",
+            "node-type": "service",
+            "name": "Audit Service",
+            "description": "Records all system activities for compliance"
+        },
+        {
+            "unique-id": "market-data-service",
+            "node-type": "service",
+            "name": "Market Data Service",
+            "description": "Aggregates and distributes market data"
+        },
+        {
+            "unique-id": "reference-data-service",
+            "node-type": "service",
+            "name": "Reference Data Service",
+            "description": "Manages instrument and counterparty reference data"
+        },
+        {
+            "unique-id": "analytics-service",
+            "node-type": "service",
+            "name": "Analytics Service",
+            "description": "Provides trade analytics and performance metrics"
+        },
+        {
+            "unique-id": "compliance-service",
+            "node-type": "service",
+            "name": "Compliance Service",
+            "description": "Monitors trades for regulatory compliance"
+        },
+        {
+            "unique-id": "workflow-service",
+            "node-type": "service",
+            "name": "Workflow Service",
+            "description": "Manages approval workflows and escalations"
+        },
+        {
+            "unique-id": "cache-service",
+            "node-type": "service",
+            "name": "Cache Service",
+            "description": "Distributed caching layer for performance optimization"
+        },
+        {
+            "unique-id": "order-db",
+            "node-type": "database",
+            "name": "Order Database",
+            "description": "Stores order and execution data"
+        },
+        {
+            "unique-id": "position-db",
+            "node-type": "database",
+            "name": "Position Database",
+            "description": "Stores position and P&L data"
+        },
+        {
+            "unique-id": "risk-db",
+            "node-type": "database",
+            "name": "Risk Database",
+            "description": "Stores risk calculations and limits"
+        },
+        {
+            "unique-id": "settlement-db",
+            "node-type": "database",
+            "name": "Settlement Database",
+            "description": "Stores settlement and reconciliation records"
+        },
+        {
+            "unique-id": "reference-db",
+            "node-type": "database",
+            "name": "Reference Data Database",
+            "description": "Stores instrument and counterparty master data"
+        },
+        {
+            "unique-id": "audit-db",
+            "node-type": "database",
+            "name": "Audit Database",
+            "description": "Stores audit logs and compliance records"
+        },
+        {
+            "unique-id": "analytics-db",
+            "node-type": "database",
+            "name": "Analytics Database",
+            "description": "Time-series database for analytics data"
+        },
+        {
+            "unique-id": "cache-db",
+            "node-type": "database",
+            "name": "Redis Cache",
+            "description": "In-memory cache for frequently accessed data"
+        },
+        {
+            "unique-id": "message-broker",
+            "node-type": "service",
+            "name": "Message Broker",
+            "description": "Kafka-based message broker for event streaming"
+        },
+        {
+            "unique-id": "market-data-feed",
+            "node-type": "system",
+            "name": "Market Data Feed",
+            "description": "External market data provider connection"
+        },
+        {
+            "unique-id": "exchange-gateway",
+            "node-type": "system",
+            "name": "Exchange Gateway",
+            "description": "FIX protocol gateway to trading venues"
+        },
+        {
+            "unique-id": "swift-gateway",
+            "node-type": "system",
+            "name": "SWIFT Gateway",
+            "description": "SWIFT messaging gateway for settlements"
+        },
+        {
+            "unique-id": "regulatory-reporting",
+            "node-type": "system",
+            "name": "Regulatory Reporting System",
+            "description": "External regulatory reporting platform"
+        },
+        {
+            "unique-id": "ldap-server",
+            "node-type": "ldap",
+            "name": "LDAP Directory",
+            "description": "Enterprise directory for user authentication"
+        },
+        {
+            "unique-id": "k8s-cluster",
+            "node-type": "network",
+            "name": "Kubernetes Cluster",
+            "description": "Container orchestration platform hosting services"
+        },
+        {
+            "unique-id": "load-balancer",
+            "node-type": "network",
+            "name": "Load Balancer",
+            "description": "Application load balancer for traffic distribution"
+        },
+        {
+            "unique-id": "trade-data",
+            "node-type": "data-asset",
+            "name": "Trade Data",
+            "description": "Historical trade execution data"
+        },
+        {
+            "unique-id": "market-data-asset",
+            "node-type": "data-asset",
+            "name": "Market Data Asset",
+            "description": "Historical and real-time market data"
+        },
+        {
+            "unique-id": "risk-data",
+            "node-type": "data-asset",
+            "name": "Risk Data",
+            "description": "Risk metrics and calculations data"
+        },
+        {
+            "unique-id": "etl-service",
+            "node-type": "service",
+            "name": "ETL Service",
+            "description": "Extract, transform, load service for data pipelines"
+        },
+        {
+            "unique-id": "scheduler-service",
+            "node-type": "service",
+            "name": "Scheduler Service",
+            "description": "Job scheduler for batch processing"
+        },
+        {
+            "unique-id": "monitoring-service",
+            "node-type": "service",
+            "name": "Monitoring Service",
+            "description": "System monitoring and alerting service"
+        },
+        {
+            "unique-id": "config-service",
+            "node-type": "service",
+            "name": "Configuration Service",
+            "description": "Centralized configuration management"
+        },
+        {
+            "unique-id": "secrets-manager",
+            "node-type": "service",
+            "name": "Secrets Manager",
+            "description": "Secure secrets and credentials management"
+        },
+        {
+            "unique-id": "trading-platform",
+            "node-type": "system",
+            "name": "Trading Platform",
+            "description": "Overall trading platform system boundary"
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "trader-to-trading-ui",
+            "description": "Executes trades through",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "trader",
+                    "nodes": ["trading-ui"]
+                }
+            }
+        },
+        {
+            "unique-id": "risk-manager-to-dashboard",
+            "description": "Monitors risk metrics through",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "risk-manager",
+                    "nodes": ["risk-dashboard"]
+                }
+            }
+        },
+        {
+            "unique-id": "ops-to-portal",
+            "description": "Manages settlements through",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "operations-user",
+                    "nodes": ["operations-portal"]
+                }
+            }
+        },
+        {
+            "unique-id": "trading-ui-to-gateway",
+            "description": "Sends trading requests to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "trading-ui" },
+                    "destination": { "node": "api-gateway" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "risk-dashboard-to-gateway",
+            "description": "Fetches risk data from",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "risk-dashboard" },
+                    "destination": { "node": "api-gateway" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "ops-portal-to-gateway",
+            "description": "Sends settlement requests to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "operations-portal" },
+                    "destination": { "node": "api-gateway" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "gateway-to-auth",
+            "description": "Validates authentication with",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "api-gateway" },
+                    "destination": { "node": "auth-service" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "auth-to-ldap",
+            "description": "Authenticates users against",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "auth-service" },
+                    "destination": { "node": "ldap-server" }
+                }
+            },
+            "protocol": "LDAP"
+        },
+        {
+            "unique-id": "gateway-to-order",
+            "description": "Routes order requests to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "api-gateway" },
+                    "destination": { "node": "order-service" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "gateway-to-position",
+            "description": "Routes position queries to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "api-gateway" },
+                    "destination": { "node": "position-service" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "gateway-to-risk",
+            "description": "Routes risk queries to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "api-gateway" },
+                    "destination": { "node": "risk-engine" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "gateway-to-settlement",
+            "description": "Routes settlement requests to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "api-gateway" },
+                    "destination": { "node": "settlement-service" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "order-to-execution",
+            "description": "Sends orders for execution to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "order-service" },
+                    "destination": { "node": "execution-service" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "order-to-limit",
+            "description": "Validates limits with",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "order-service" },
+                    "destination": { "node": "limit-service" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "order-to-compliance",
+            "description": "Validates compliance with",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "order-service" },
+                    "destination": { "node": "compliance-service" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "execution-to-exchange",
+            "description": "Executes orders on",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "execution-service" },
+                    "destination": { "node": "exchange-gateway" }
+                }
+            },
+            "protocol": "TCP"
+        },
+        {
+            "unique-id": "execution-to-broker",
+            "description": "Publishes execution events to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "execution-service" },
+                    "destination": { "node": "message-broker" }
+                }
+            },
+            "protocol": "TCP"
+        },
+        {
+            "unique-id": "position-to-broker",
+            "description": "Consumes trade events from",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "position-service" },
+                    "destination": { "node": "message-broker" }
+                }
+            },
+            "protocol": "TCP"
+        },
+        {
+            "unique-id": "risk-to-broker",
+            "description": "Consumes position events from",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "risk-engine" },
+                    "destination": { "node": "message-broker" }
+                }
+            },
+            "protocol": "TCP"
+        },
+        {
+            "unique-id": "settlement-to-broker",
+            "description": "Consumes trade events from",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "settlement-service" },
+                    "destination": { "node": "message-broker" }
+                }
+            },
+            "protocol": "TCP"
+        },
+        {
+            "unique-id": "settlement-to-swift",
+            "description": "Sends settlement instructions to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "settlement-service" },
+                    "destination": { "node": "swift-gateway" }
+                }
+            },
+            "protocol": "TCP"
+        },
+        {
+            "unique-id": "settlement-to-recon",
+            "description": "Triggers reconciliation in",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "settlement-service" },
+                    "destination": { "node": "reconciliation-service" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "risk-to-pricing",
+            "description": "Requests valuations from",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "risk-engine" },
+                    "destination": { "node": "pricing-service" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "pricing-to-market-data",
+            "description": "Fetches market data from",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "pricing-service" },
+                    "destination": { "node": "market-data-service" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "market-data-to-feed",
+            "description": "Receives data from",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "market-data-service" },
+                    "destination": { "node": "market-data-feed" }
+                }
+            },
+            "protocol": "TCP"
+        },
+        {
+            "unique-id": "reporting-to-regulatory",
+            "description": "Submits reports to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "reporting-service" },
+                    "destination": { "node": "regulatory-reporting" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "order-to-order-db",
+            "description": "Persists orders to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "order-service" },
+                    "destination": { "node": "order-db" }
+                }
+            },
+            "protocol": "JDBC"
+        },
+        {
+            "unique-id": "position-to-position-db",
+            "description": "Persists positions to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "position-service" },
+                    "destination": { "node": "position-db" }
+                }
+            },
+            "protocol": "JDBC"
+        },
+        {
+            "unique-id": "risk-to-risk-db",
+            "description": "Persists risk metrics to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "risk-engine" },
+                    "destination": { "node": "risk-db" }
+                }
+            },
+            "protocol": "JDBC"
+        },
+        {
+            "unique-id": "limit-to-risk-db",
+            "description": "Reads limits from",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "limit-service" },
+                    "destination": { "node": "risk-db" }
+                }
+            },
+            "protocol": "JDBC"
+        },
+        {
+            "unique-id": "settlement-to-settlement-db",
+            "description": "Persists settlements to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "settlement-service" },
+                    "destination": { "node": "settlement-db" }
+                }
+            },
+            "protocol": "JDBC"
+        },
+        {
+            "unique-id": "recon-to-settlement-db",
+            "description": "Reads settlement data from",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "reconciliation-service" },
+                    "destination": { "node": "settlement-db" }
+                }
+            },
+            "protocol": "JDBC"
+        },
+        {
+            "unique-id": "reference-to-reference-db",
+            "description": "Reads and writes reference data to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "reference-data-service" },
+                    "destination": { "node": "reference-db" }
+                }
+            },
+            "protocol": "JDBC"
+        },
+        {
+            "unique-id": "audit-to-audit-db",
+            "description": "Persists audit logs to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "audit-service" },
+                    "destination": { "node": "audit-db" }
+                }
+            },
+            "protocol": "JDBC"
+        },
+        {
+            "unique-id": "analytics-to-analytics-db",
+            "description": "Reads and writes analytics data to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "analytics-service" },
+                    "destination": { "node": "analytics-db" }
+                }
+            },
+            "protocol": "JDBC"
+        },
+        {
+            "unique-id": "cache-to-cache-db",
+            "description": "Caches data in",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "cache-service" },
+                    "destination": { "node": "cache-db" }
+                }
+            },
+            "protocol": "TCP"
+        },
+        {
+            "unique-id": "etl-to-analytics-db",
+            "description": "Loads processed data to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "etl-service" },
+                    "destination": { "node": "analytics-db" }
+                }
+            },
+            "protocol": "JDBC"
+        },
+        {
+            "unique-id": "scheduler-to-etl",
+            "description": "Triggers ETL jobs in",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "scheduler-service" },
+                    "destination": { "node": "etl-service" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "scheduler-to-reporting",
+            "description": "Triggers report generation in",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "scheduler-service" },
+                    "destination": { "node": "reporting-service" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "notification-to-broker",
+            "description": "Consumes notification events from",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "notification-service" },
+                    "destination": { "node": "message-broker" }
+                }
+            },
+            "protocol": "TCP"
+        },
+        {
+            "unique-id": "audit-to-broker",
+            "description": "Consumes audit events from",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "audit-service" },
+                    "destination": { "node": "message-broker" }
+                }
+            },
+            "protocol": "TCP"
+        },
+        {
+            "unique-id": "workflow-to-broker",
+            "description": "Publishes and consumes workflow events",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "workflow-service" },
+                    "destination": { "node": "message-broker" }
+                }
+            },
+            "protocol": "TCP"
+        },
+        {
+            "unique-id": "services-to-config",
+            "description": "Fetches configuration from",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "api-gateway" },
+                    "destination": { "node": "config-service" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "services-to-secrets",
+            "description": "Retrieves secrets from",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "config-service" },
+                    "destination": { "node": "secrets-manager" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "monitoring-to-services",
+            "description": "Monitors health of",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "monitoring-service" },
+                    "destination": { "node": "api-gateway" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "lb-to-gateway",
+            "description": "Routes traffic to",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "load-balancer" },
+                    "destination": { "node": "api-gateway" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "analytics-to-trade-data",
+            "description": "Processes and analyzes",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "analytics-service" },
+                    "destination": { "node": "trade-data" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "market-data-to-asset",
+            "description": "Stores market data in",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "market-data-service" },
+                    "destination": { "node": "market-data-asset" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "risk-to-risk-data",
+            "description": "Produces risk metrics for",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "risk-engine" },
+                    "destination": { "node": "risk-data" }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "platform-composition",
+            "description": "Trading platform composed of core services",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "trading-platform",
+                    "nodes": ["order-service", "execution-service", "position-service", "risk-engine", "settlement-service"]
+                }
+            }
+        },
+        {
+            "unique-id": "k8s-deployment",
+            "description": "Services deployed in Kubernetes cluster",
+            "relationship-type": {
+                "deployed-in": {
+                    "container": "k8s-cluster",
+                    "nodes": ["api-gateway", "order-service", "execution-service", "pricing-service", "position-service", "risk-engine", "settlement-service", "reporting-service"]
+                }
+            }
+        }
+    ]
+}

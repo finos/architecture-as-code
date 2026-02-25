@@ -2,6 +2,7 @@ import { debounce, groupBy } from 'lodash'
 import type { ApplicationStoreApi } from '../../../application-store'
 import { Emitter } from '../../../core/emitter'
 import { ItemVM } from "./tree-item-view-model";
+import type { CalmTimeline } from '@finos/calm-models/model'
 
 
 /**
@@ -49,6 +50,13 @@ export class TreeViewModel {
                 collapsibleState: 'none',
                 iconPath: 'info'
             })
+            this._changed.fire()
+            return
+        }
+
+        // In timeline mode, show timeline structure
+        if (state.isTimelineMode && state.currentTimeline) {
+            this.buildTimelineTree(state.currentTimeline, state.searchFilter)
             this._changed.fire()
             return
         }
@@ -107,6 +115,69 @@ export class TreeViewModel {
 
         this._changed.fire()
     }
+
+    private buildTimelineTree(timeline: CalmTimeline, searchFilter: string) {
+        // Add filter status if search is active
+        if (searchFilter) {
+            this.itemsById.set('filter-status', {
+                id: 'filter-status',
+                label: `Filtering by "${searchFilter}"`,
+                description: 'Click the clear button (🗑️) in the header to remove filter',
+                contextValue: 'filter-status',
+                collapsibleState: 'none',
+                iconPath: 'search'
+            })
+        }
+
+        // Timeline root - use generic label (metadata.title is optional per spec)
+        const timelineLabel = 'Architecture Timeline'
+        const momentIds = timeline.moments
+            .filter(m => this.momentMatchesSearch(m, searchFilter))
+            .map(m => `moment:${m.uniqueId}`)
+
+        this.itemsById.set('group:timeline', {
+            id: 'group:timeline',
+            label: `📅 ${timelineLabel}`,
+            childrenIds: momentIds,
+            collapsibleState: 'expanded',
+            iconPath: 'calendar'
+        })
+
+        // Add milestones - clicking directly navigates to architecture
+        for (const moment of timeline.moments) {
+            if (!this.momentMatchesSearch(moment, searchFilter)) continue
+
+            const isCurrent = timeline.currentMoment === moment.uniqueId
+            const momentId = `moment:${moment.uniqueId}`
+            const architectureRef = moment.details?.detailedArchitecture?.reference
+            const dateStr = moment.validFrom ? ` (${moment.validFrom})` : ''
+
+            this.itemsById.set(momentId, {
+                id: momentId,
+                label: `${moment.name}${dateStr}`,
+                parentId: 'group:timeline',
+                collapsibleState: 'none',
+                contextValue: architectureRef ? 'moment-with-architecture' : 'moment',
+                iconPath: isCurrent ? 'star-full' : 'circle-outline',
+                command: architectureRef ? {
+                    command: 'calm.navigateToArchitecture',
+                    title: 'Open Architecture',
+                    arguments: [architectureRef]
+                } : undefined
+            })
+        }
+    }
+
+    private momentMatchesSearch(moment: { uniqueId: string; name: string; description?: string }, searchFilter: string): boolean {
+        if (!searchFilter) return true
+        const filter = searchFilter.toLowerCase()
+        return (
+            moment.uniqueId.toLowerCase().includes(filter) ||
+            moment.name.toLowerCase().includes(filter) ||
+            (moment.description?.toLowerCase().includes(filter) ?? false)
+        )
+    }
+
 
     private buildNodesGroup(modelIndex: any, searchFilter: string) {
         const grouped = groupBy(modelIndex.nodes, (node: any) =>
@@ -206,9 +277,13 @@ export class TreeViewModel {
         const templateMessage = this.itemsById.get('template-mode-message')
         if (templateMessage) items.push(templateMessage)
 
-        // Add architecture group if not in template mode
+        // Add timeline group if in timeline mode
+        const timelineGroup = this.itemsById.get('group:timeline')
+        if (timelineGroup) items.push(timelineGroup)
+
+        // Add architecture group if not in template mode and not in timeline mode
         const archGroup = this.itemsById.get('group:architecture')
-        if (archGroup) items.push(archGroup)
+        if (archGroup && !timelineGroup) items.push(archGroup)
 
         return items
     }

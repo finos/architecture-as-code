@@ -1,3 +1,6 @@
+---
+architecture: ../simple-banking/simple-banking.arch.json
+---
 ```mermaid
 C4Deployment
 

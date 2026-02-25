@@ -1,11 +1,18 @@
 ---
-name: 🤝 Architecture as Code Meeting Agenda (Part of the DevOps Automation SIG)
+name: 🤝 Architecture as Code Meeting Agenda
 about: To track Architecture as Code meeting agenda and attendance
+type: Meeting
+labels: meeting
 ---
 
 ## Date
 
 _day-of-week_ DD MMM yyyy - _time_ EST / _time_ UK
+
+## Zoom info
+
+Join Zoom Meeting
+https://zoom-lfx.platform.linuxfoundation.org/meeting/95612628024?password=bd0f263c-4fad-490f-8b36-56ff98932456
 
 ## Untracked attendees
 
@@ -40,14 +47,7 @@ _day-of-week_ DD MMM yyyy - _time_ EST / _time_ UK
 - [ ] Action 2
 - [ ] ...
 
-### Zoom info
-
-**Join Zoom Meeting**
-- https://zoom.us/j/94904595244
-- Meeting ID: 949 0459 5244
-- Passcode: 545224
-- Find your local number: https://zoom.us/u/aesEqmNODb
-
+## Project Details
 **Github Repo:** https://github.com/finos/architecture-as-code/
 
 **Project Board:** https://github.com/orgs/finos/projects/98

@@ -22,4 +22,4 @@ export function idsAreUnique(input, _, context) {
     detectDuplicates(interfaceIdMatches, seenIds, messages);
 
     return messages;
-};
+}

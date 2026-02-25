@@ -124,14 +124,14 @@ From the `calm-hub` directory
 
 From the `keycloak-dev` directory in `calm-hub`
 
-Create certs for KeyCloak:
+Create self-signed X.509 certificate for Keycloak:
 
 ```shell
   mkdir ./certs &&
   openssl req -x509 -newkey rsa:2048 \
     -keyout ./certs/key.pem \
     -out ./certs/cert.pem -days 90 -nodes \
-    -subj "/C=GB/ST=England/L=Manchester/O=finos/OU=Technology/CN=idp.finos.org"
+    -subj "/C=GB/ST=England/L=Manchester/O=finos/OU=Technology/CN=calm-hub.finos.org"
 ```
 
 Launch KeyCloak:
@@ -142,12 +142,12 @@ docker-compose up
 - Open KeyCloak UI: https://localhost:9443, login with admin user.
 - Switch realm from `master` to `calm-hub-realm`.
 - You can find a `demo` user with a temporary credentials under `calm-hub-realm` realm.
-- During the local development, the `demo` user you can use to authenticate with `keycloak-dev` when you integrate the `calm-ui` with `authorization-code` flow type.
+- During local development, you can use the `demo` user to authenticate with `keycloak-dev` when integrating calm-ui using the `authorization code flow`.
 
 #### Server Side with secure profile
 
 From the `calm-hub` directory
-1. Create a server side certificates
+1. Create a server-side certificate
     ```shell
     openssl req -x509 -newkey rsa:2048 \
       -keyout ./src/main/resources/key.pem \
@@ -156,7 +156,11 @@ From the `calm-hub` directory
     ```
 2. `../mvnw package`
 3. `../mvnw quarkus:dev -Dquarkus.profile=secure`
-4. Open Calm UI: https://localhost:8443
+4. When using a self-signed certificate, you have two options to avoid the `No name matching localhost found` CertificateException in the backend.
+   1. Add a host entry in `/etc/hosts` file, for example `127.0.0.1 calm-hub.finos.org`
+   2. Alternatively, create the self-signed certificate with localhost as the CN or SAN.
+5. Some browsers may block `.well-known` endpoints that use self-signed certificates (e.g., https://calm-hub.finos.org:9443/realms/calm-hub-realm/.well-known/openid-configuration). Ensure these endpoints are accessible in your browser before accessing `calm-hub-ui`.
+6. Open Calm UI at the URL matching your self-signed certificate’s CN: https://calm-hub.finos.org:8443 or https://localhost:8443.
 
 ### UI with hot reload (from src/main/webapp)
 

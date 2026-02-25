@@ -6,6 +6,7 @@ export type InMsg =
   | { type: 'runDocify'; templatePath?: string }
   | { type: 'requestModelData' }
   | { type: 'requestTemplateData' }
+  | { type: 'refreshAll' }
   | { type: 'toggleLabels'; showLabels: boolean }
   | { type: 'log'; message: string }
   | { type: 'error'; message: string; stack?: string }
@@ -22,6 +23,7 @@ export interface PreviewCommandTarget {
   handleRunDocify(): void
   handleRequestModelData(): void
   handleRequestTemplateData(): void
+  handleRefreshAll(): void
   handleToggleLabels(showLabels: boolean): void
   handleLog(message: string): void
   handleError(message: string, stack?: string): void
@@ -69,6 +71,11 @@ export class RequestTemplateDataCmd implements WebviewCommand<{ type: 'requestTe
   readonly type = 'requestTemplateData' as const
   constructor(private p: PreviewCommandTarget) { }
   execute() { this.p.handleRequestTemplateData() }
+}
+export class RefreshAllCmd implements WebviewCommand<{ type: 'refreshAll' }> {
+  readonly type = 'refreshAll' as const
+  constructor(private p: PreviewCommandTarget) { }
+  execute() { this.p.handleRefreshAll() }
 }
 export class ToggleLabelsCmd implements WebviewCommand<{ type: 'toggleLabels'; showLabels: boolean }> {
   readonly type = 'toggleLabels' as const
