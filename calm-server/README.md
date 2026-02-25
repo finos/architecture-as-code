@@ -34,14 +34,23 @@ calm-server -s /path/to/calm/schemas --port 3000
 Usage: calm-server [options]
 
 Options:
-  -V, --version                  output the version number
-  --port <port>                  Port to run the server on (default: "3000")
-  -s, --schema-directory <path>  Path to the directory containing the meta schemas
-                                 (default: bundled schemas in dist/calm)
-  -v, --verbose                  Enable verbose logging (default: false)
-  -c, --calm-hub-url <url>       URL to CALMHub instance
-  -h, --help                     display help for command
+  -V, --version                   output the version number
+  --port <port>                   Port to run the server on (default: "3000")
+  --host <host>                   Host to bind the server to (default: "127.0.0.1")
+  -s, --schema-directory <path>   Path to the directory containing the meta schemas
+                                  (default: bundled schemas in dist/calm)
+  -v, --verbose                   Enable verbose logging (default: false)
+  -c, --calm-hub-url <url>        URL to CALMHub instance
+  --rate-limit-window <ms>        Rate limit window in milliseconds (default: 900000 = 15 minutes)
+  --rate-limit-max <requests>     Max requests per IP within the rate limit window (default: 100)
+  -h, --help                      display help for command
 ```
+
+### Security Considerations
+
+- **Default Host is Localhost**: By default, the server binds to `127.0.0.1` for security
+- **No Built-in Authentication**: This server has no authentication or authorization controls
+- **Network Exposure**: When binding to non-localhost addresses, a security warning is logged. Only expose to the network in trusted environments
 
 ## API Endpoints
 

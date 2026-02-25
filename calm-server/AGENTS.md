@@ -1,10 +1,10 @@
 # @finos/calm-server
 
-The `calm-server` executable provides a standalone HTTP server implementation of CALM functionality.
+The `calm-server` executable provides a standalone HTTP server implementation of CALM validation functionality.
 
 ## Architecture
 
-The calm-server implements the same server functionality as the `calm server` CLI command, providing:
+The calm-server provides:
 
 - **Bundled CALM Schemas** - All CALM schemas (release and draft) are bundled during build
 - **Health Check Endpoint** (`/health`) - Status endpoint for monitoring
@@ -17,7 +17,6 @@ The calm-server implements the same server functionality as the `calm server` CL
 calm-server/
 ├── src/
 │   ├── index.ts                    # Entry point, CLI argument parsing
-│   ├── cli-config.ts               # Load user CALM configuration
 │   ├── server/
 │   │   ├── cli-server.ts           # Express server startup
 │   │   └── routes/
@@ -79,14 +78,23 @@ Usage: calm-server [options]
 CALM Server - A server implementation for the Common Architecture Language Model
 
 Options:
-  -V, --version                  output the version number
-  --port <port>                  Port to run the server on (default: "3000")
-  -s, --schema-directory <path>  Path to the directory containing the meta schemas to use.
-                                 (default: bundled schemas in dist/calm)
-  -v, --verbose                  Enable verbose logging. (default: false)
-  -c, --calm-hub-url <url>       URL to CALMHub instance
-  -h, --help                      display help for message
+  -V, --version                   output the version number
+  --port <port>                   Port to run the server on (default: "3000")
+  --host <host>                   Host to bind the server to (default: "127.0.0.1")
+  -s, --schema-directory <path>   Path to the directory containing the meta schemas to use.
+                                  (default: bundled schemas in dist/calm)
+  -v, --verbose                   Enable verbose logging (default: false)
+  -c, --calm-hub-url <url>        URL to CALMHub instance
+  --rate-limit-window <ms>        Rate limit window in milliseconds (default: 900000 = 15 minutes)
+  --rate-limit-max <requests>     Max requests per IP within the rate limit window (default: 100)
+  -h, --help                      display help for command
 ```
+
+### Security Notes
+
+- **Default Host**: The server binds to `127.0.0.1` (localhost) by default
+- **No Authentication**: The server has **NO authentication or authorization controls**
+- **Network Exposure Warning**: If you bind to a non-localhost host (e.g., `0.0.0.0`, `::`, public IP), a warning will be logged. Only do this in trusted network environments
 
 ## Testing
 
