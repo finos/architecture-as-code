@@ -10,6 +10,7 @@ export function DecisionGroupNode({ data }: NodeProps) {
     const subtitle = isOneOf
         ? 'Choose exactly one'
         : 'Choose one or more';
+    const prompt = data.prompt as string | undefined;
 
     return (
         <div
@@ -49,6 +50,22 @@ export function DecisionGroupNode({ data }: NodeProps) {
                     {subtitle}
                 </span>
             </div>
+            {prompt && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: '40px',
+                        left: '16px',
+                        fontSize: '11px',
+                        color: borderColor,
+                        fontStyle: 'italic',
+                        maxWidth: 'calc(100% - 32px)',
+                        pointerEvents: 'auto',
+                    }}
+                >
+                    {prompt}
+                </div>
+            )}
         </div>
     );
 }

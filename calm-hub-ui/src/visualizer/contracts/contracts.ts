@@ -20,8 +20,7 @@ export type NodeData = {
  */
 export type EdgeData = {
     'unique-id': string;
-    source: string;
-    target: string;
+    'relationship-type'?: unknown;
     description?: string;
     protocol?: string;
     controls?: CalmControlsSchema;

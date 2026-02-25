@@ -85,3 +85,17 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+## Future Features / Roadmap
+
+Planned visualization features for CALM Hub UI:
+
+1. **Search & Filter** — Search nodes by name, ID, or description and filter by node type. Non-matching nodes fade to help locate components in large architectures.
+2. **Pattern-to-Architecture Conformance Overlay** — Load both a pattern and an architecture side by side, with a color-coded overlay showing which pattern constraints the architecture satisfies or violates.
+3. **ADR (Architecture Decision Record) Links** — Surface ADR references from CALM metadata as clickable links on nodes and in the sidebar, connecting architecture components to their decision records.
+4. **Timeline / Version History View** — Visualize how an architecture evolves over time using CALM timeline data, with a scrubber to step through versions and see what changed.
+5. **Multi-Architecture Comparison (Diff View)** — Compare two architecture versions or two different architectures, highlighting added, removed, and modified nodes and relationships.
+6. **Export to SVG / PNG** — Export the current graph view as a high-resolution image for documentation, presentations, or architecture review boards.
+7. **Node Grouping & Collapse** — Manually group related nodes into collapsible clusters to manage visual complexity in large architectures.
+8. **Metadata Key-Value Explorer** — Display the full metadata tree for any node or relationship in a searchable, expandable panel.
+9. **Flow Sequence Animation** — Animate flow transitions step by step along edges, showing the order and direction of data or control flow through the architecture.

@@ -99,7 +99,6 @@ export const colors = {
     decision: {
         oneOf: '#ca8a04', // yellow-600 - "choose exactly one"
         anyOf: '#0284c7', // sky-600 - "choose one or more"
-        options: '#7c3aed', // violet-600 - options decision points
     },
 
     // Feedback colors (for markers, indicators)

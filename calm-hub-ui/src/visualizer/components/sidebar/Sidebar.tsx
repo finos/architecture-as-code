@@ -12,13 +12,7 @@ function isNodeData(data: NodeData | EdgeData): data is NodeData {
 }
 
 function isEdgeData(data: NodeData | EdgeData): data is EdgeData {
-    return (
-        'source' in data &&
-        'target' in data &&
-        data['unique-id'] != null &&
-        data.source != null &&
-        data.target != null
-    );
+    return data['unique-id'] != null && 'relationship-type' in data && !('node-type' in data);
 }
 
 export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {

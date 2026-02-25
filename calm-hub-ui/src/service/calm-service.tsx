@@ -16,7 +16,7 @@ export async function fetchNamespaces(setNamespaces: (namespaces: string[]) => v
         const namespaces = values
             .map((v: { name?: string }) => v?.name)
             .filter((name): name is string => typeof name === 'string');
-        setNamespaces(["finos"]);
+        setNamespaces(namespaces);
     } catch (error) {
         console.error('Error fetching namespaces:', error);
     }

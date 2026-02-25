@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactFlow, {
     Node,
     Edge,
     Background,
     Controls,
     MiniMap,
+    Panel,
     useNodesState,
     useEdgesState,
     NodeChange,
@@ -14,10 +15,11 @@ import { FloatingEdge } from './FloatingEdge';
 import { CustomNode } from './CustomNode';
 import { SystemGroupNode } from './SystemGroupNode';
 import { DecisionGroupNode } from './DecisionGroupNode';
-import { OptionsDecisionNode } from './OptionsDecisionNode';
+import { SearchBar } from './SearchBar.js';
 import { THEME } from './theme';
 import { parsePatternData } from './utils/patternTransformer';
 import { calculateGroupBounds } from './utils/layoutUtils.js';
+import { isNodeMatch, getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
 
 interface PatternGraphProps {
     patternData: Record<string, unknown>;
@@ -28,13 +30,14 @@ interface PatternGraphProps {
 export function PatternGraph({ patternData, onNodeClick, onEdgeClick }: PatternGraphProps) {
     const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [typeFilter, setTypeFilter] = useState('');
 
     const edgeTypes = useMemo(() => ({ custom: FloatingEdge }), []);
     const nodeTypes = useMemo(() => ({
         custom: CustomNode,
         group: SystemGroupNode,
         decisionGroup: DecisionGroupNode,
-        optionsDecision: OptionsDecisionNode,
     }), []);
 
     useEffect(() => {
@@ -42,6 +45,31 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick }: PatternG
         setNodes(parsedNodes);
         setEdges(parsedEdges);
     }, [patternData, setNodes, setEdges]);
+
+    // Search & filter
+    const isSearchActive = searchTerm !== '' || typeFilter !== '';
+    const availableNodeTypes = useMemo(() => getUniqueNodeTypes(nodes), [nodes]);
+
+    useEffect(() => {
+        if (!isSearchActive) {
+            setNodes((nds) => nds.map((n) => ({ ...n, style: { ...n.style, opacity: undefined } })));
+            setEdges((eds) => eds.map((e) => ({ ...e, style: { ...e.style, opacity: undefined } })));
+            return;
+        }
+        const matchingIds = getMatchingNodeIds(nodes, searchTerm, typeFilter);
+        setNodes((nds) =>
+            nds.map((n) => ({
+                ...n,
+                style: { ...n.style, opacity: isNodeMatch(n, searchTerm, typeFilter) ? 1 : 0.15 },
+            }))
+        );
+        setEdges((eds) =>
+            eds.map((e) => ({
+                ...e,
+                style: { ...e.style, opacity: isEdgeVisible(e, matchingIds) ? 1 : 0.1 },
+            }))
+        );
+    }, [searchTerm, typeFilter, isSearchActive, nodes.length, setNodes, setEdges]);
 
     const onNodesChange = useCallback(
         (changes: NodeChange[]) => {
@@ -190,6 +218,15 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick }: PatternG
                     nodeColor={THEME.colors.accent}
                     maskColor={`${THEME.colors.background}cc`}
                 />
+                <Panel position="top-right">
+                    <SearchBar
+                        searchTerm={searchTerm}
+                        onSearchChange={setSearchTerm}
+                        typeFilter={typeFilter}
+                        onTypeFilterChange={setTypeFilter}
+                        nodeTypes={availableNodeTypes}
+                    />
+                </Panel>
             </ReactFlow>
         </div>
     );

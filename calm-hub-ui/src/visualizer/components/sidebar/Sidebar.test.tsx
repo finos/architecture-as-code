@@ -41,8 +41,12 @@ describe('Sidebar Component', () => {
 
     const mockEdgeData: EdgeData = {
         'unique-id': 'edge-1',
-        source: 'node-1',
-        target: 'node-2',
+        'relationship-type': {
+            connects: {
+                source: { node: 'node-1' },
+                destination: { node: 'node-2' },
+            },
+        },
         description: 'Edge 1',
     };
 

@@ -170,13 +170,10 @@ export function Drawer({ data }: DrawerProps) {
 
     // Handle edge click - convert relationship data to EdgeData format
     const handleEdgeClick = (edgeData: CalmRelationshipSchema) => {
-        const connects = edgeData['relationship-type']?.connects;
         setSelectedItem({
             data: {
                 'unique-id': edgeData['unique-id'],
                 'relationship-type': edgeData['relationship-type'],
-                source: connects?.source?.node || '',
-                target: connects?.destination?.node || '',
                 description: edgeData.description,
                 protocol: edgeData.protocol,
                 controls: edgeData.controls,

@@ -19,16 +19,17 @@ type SchemaObject = Record<string, any>;
 // ---- Schema traversal helpers ----
 
 /**
- * Gets the nodes prefixItems from a pattern, handling allOf structures.
+ * Gets the prefixItems for a given top-level key (e.g. 'nodes' or 'relationships')
+ * from a pattern, handling allOf structures.
  */
-function getNodesPrefixItems(pattern: SchemaObject): SchemaObject[] {
-    if (pattern['properties']?.['nodes']?.['prefixItems']) {
-        return pattern['properties']['nodes']['prefixItems'];
+function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
+    if (pattern['properties']?.[key]?.['prefixItems']) {
+        return pattern['properties'][key]['prefixItems'];
     }
     if (pattern['allOf'] && Array.isArray(pattern['allOf'])) {
         for (const schema of pattern['allOf']) {
-            if (schema['properties']?.['nodes']?.['prefixItems']) {
-                return schema['properties']['nodes']['prefixItems'];
+            if (schema['properties']?.[key]?.['prefixItems']) {
+                return schema['properties'][key]['prefixItems'];
             }
         }
     }
@@ -36,24 +37,7 @@ function getNodesPrefixItems(pattern: SchemaObject): SchemaObject[] {
 }
 
 /**
- * Gets the relationships prefixItems from a pattern, handling allOf structures.
- */
-function getRelationshipsPrefixItems(pattern: SchemaObject): SchemaObject[] {
-    if (pattern['properties']?.['relationships']?.['prefixItems']) {
-        return pattern['properties']['relationships']['prefixItems'];
-    }
-    if (pattern['allOf'] && Array.isArray(pattern['allOf'])) {
-        for (const schema of pattern['allOf']) {
-            if (schema['properties']?.['relationships']?.['prefixItems']) {
-                return schema['properties']['relationships']['prefixItems'];
-            }
-        }
-    }
-    return [];
-}
-
-/**
- * Reads a value from a schema property, handling both `const` and `type` wrappers.
+ * Reads a value from a schema property, handling `const` wrappers.
  */
 function readSchemaValue(obj: SchemaObject | undefined, key: string): string | undefined {
     const prop = obj?.['properties']?.[key];
@@ -86,10 +70,53 @@ function extractInterfaces(item: SchemaObject): SchemaObject[] | undefined {
 }
 
 /**
- * Extracts controls schema from a pattern item if present.
+ * Extracts controls from a pattern item's JSON Schema by walking the schema
+ * and pulling `const` values to produce architecture-like instance data.
+ *
+ * Pattern controls schema:
+ *   { "$ref": "...", "properties": { "security": { "properties": { "description": { "const": "..." }, "requirements": { "prefixItems": [...] } } } } }
+ *
+ * Extracted result (matches CalmControlsSchema):
+ *   { "security": { "description": "...", "requirements": [{ "requirement-url": "...", "config-url": "..." }] } }
  */
-function extractControls(item: SchemaObject): SchemaObject | undefined {
-    return item['properties']?.['controls'] || undefined;
+function extractPatternControls(item: SchemaObject): SchemaObject | undefined {
+    const controlsSchema = item['properties']?.['controls'];
+    if (!controlsSchema) return undefined;
+
+    const controlProperties: SchemaObject | undefined = controlsSchema['properties'];
+    if (!controlProperties) return undefined;
+
+    const result: SchemaObject = {};
+
+    for (const [controlId, controlSchema] of Object.entries(controlProperties)) {
+        if (controlId.startsWith('$')) continue; // skip $ref etc.
+        const props = (controlSchema as SchemaObject)?.['properties'];
+        if (!props) continue;
+
+        const description = props['description']?.['const'] as string | undefined;
+        const requirementsSchema = props['requirements'];
+        const prefixItems: SchemaObject[] = requirementsSchema?.['prefixItems'] || [];
+
+        const requirements = prefixItems.map((reqItem: SchemaObject) => {
+            const reqProps = reqItem['properties'] || {};
+            const req: SchemaObject = {};
+            for (const [key, val] of Object.entries(reqProps)) {
+                if ((val as SchemaObject)?.['const'] !== undefined) {
+                    req[key] = (val as SchemaObject)['const'];
+                }
+            }
+            return req;
+        }).filter((req: SchemaObject) => Object.keys(req).length > 0);
+
+        if (description || requirements.length > 0) {
+            result[controlId] = {
+                ...(description && { description }),
+                requirements,
+            };
+        }
+    }
+
+    return Object.keys(result).length > 0 ? result : undefined;
 }
 
 // ---- Node extraction ----
@@ -113,7 +140,7 @@ function extractNodeFromSchemaItem(item: SchemaObject): ExtractedNode | null {
         nodeType: readSchemaValue(item, 'node-type') || 'service',
         description: readSchemaValue(item, 'description') || '',
         interfaces: extractInterfaces(item),
-        controls: extractControls(item),
+        controls: extractPatternControls(item),
     };
 }
 
@@ -124,7 +151,7 @@ interface DecisionGroup {
 }
 
 function extractNodesFromPattern(pattern: SchemaObject): { nodes: ExtractedNode[]; decisionGroups: DecisionGroup[] } {
-    const prefixItems = getNodesPrefixItems(pattern);
+    const prefixItems = getPrefixItems(pattern, 'nodes');
     const nodes: ExtractedNode[] = [];
     const decisionGroups: DecisionGroup[] = [];
 
@@ -179,8 +206,7 @@ interface ExtractedRelationship {
     decisionGroupId?: string;
 }
 
-interface ExtractedOptionsDecision {
-    uniqueId: string;
+interface OptionsMetadata {
     prompt: string;
     optionType: 'oneOf' | 'anyOf';
     choices: { description: string; nodes: string[]; relationships: string[] }[];
@@ -228,7 +254,7 @@ function extractSingleRelationship(item: SchemaObject): ExtractedRelationship | 
 
     const description = readSchemaValue(item, 'description') || '';
     const protocol = readSchemaValue(item, 'protocol');
-    const controls = extractControls(item);
+    const controls = extractPatternControls(item);
 
     // relationship-type can be in a const or in properties
     const relTypeConst = item['properties']?.['relationship-type']?.['const'];
@@ -242,8 +268,7 @@ function extractSingleRelationship(item: SchemaObject): ExtractedRelationship | 
     return null;
 }
 
-function extractOptionsDecision(item: SchemaObject): ExtractedOptionsDecision | null {
-    const uniqueId = readSchemaValue(item, 'unique-id') || 'options-decision';
+function extractOptionsMetadata(item: SchemaObject): OptionsMetadata | null {
     const prompt = readSchemaValue(item, 'description') || 'Decision';
 
     const optionsPrefixItems: SchemaObject[] =
@@ -271,7 +296,7 @@ function extractOptionsDecision(item: SchemaObject): ExtractedOptionsDecision | 
                 .filter((c) => c.description);
 
             if (choices.length > 0) {
-                return { uniqueId, prompt, optionType, choices };
+                return { prompt, optionType, choices };
             }
         }
     }
@@ -280,18 +305,18 @@ function extractOptionsDecision(item: SchemaObject): ExtractedOptionsDecision | 
 
 function extractRelationshipsFromPattern(pattern: SchemaObject): {
     relationships: ExtractedRelationship[];
-    optionsDecisions: ExtractedOptionsDecision[];
+    optionsMetadata: OptionsMetadata[];
 } {
-    const prefixItems = getRelationshipsPrefixItems(pattern);
+    const prefixItems = getPrefixItems(pattern, 'relationships');
     const relationships: ExtractedRelationship[] = [];
-    const optionsDecisions: ExtractedOptionsDecision[] = [];
+    const optionsMetadata: OptionsMetadata[] = [];
 
     prefixItems.forEach((item: SchemaObject, index: number) => {
         // Check for options relationship first
         if (isOptionsRelationship(item)) {
-            const decision = extractOptionsDecision(item);
-            if (decision) {
-                optionsDecisions.push(decision);
+            const meta = extractOptionsMetadata(item);
+            if (meta) {
+                optionsMetadata.push(meta);
             }
             return;
         }
@@ -321,7 +346,7 @@ function extractRelationshipsFromPattern(pattern: SchemaObject): {
         }
     });
 
-    return { relationships, optionsDecisions };
+    return { relationships, optionsMetadata };
 }
 
 // ---- ReactFlow conversion ----
@@ -351,6 +376,7 @@ function createReactFlowNodes(
     extractedNodes: ExtractedNode[],
     decisionGroups: DecisionGroup[],
     containerInfo: ContainerInfo,
+    groupOptionsMap?: Map<string, OptionsMetadata>,
 ): { regularNodes: Node[]; groupNodes: Node[] } {
     const regularNodes: Node[] = [];
     const groupNodes: Node[] = [];
@@ -358,6 +384,7 @@ function createReactFlowNodes(
 
     // Create decision group parent nodes
     decisionGroups.forEach((group) => {
+        const optionsMeta = groupOptionsMap?.get(group.groupId);
         groupNodes.push({
             id: group.groupId,
             type: 'decisionGroup',
@@ -367,6 +394,10 @@ function createReactFlowNodes(
                 id: group.groupId,
                 label: group.groupType,
                 decisionType: group.groupType,
+                ...(optionsMeta && {
+                    prompt: optionsMeta.prompt,
+                    choices: optionsMeta.choices,
+                }),
             },
         });
     });
@@ -423,26 +454,21 @@ function createReactFlowNodes(
 
 function createReactFlowEdges(
     relationships: ExtractedRelationship[],
-    optionsDecisions: ExtractedOptionsDecision[],
     allNodeIds: Set<string>,
-    nodeToGroupMap: Map<string, string>,
 ): Edge[] {
     const edges: Edge[] = [];
     let edgeIndex = 0;
 
     relationships.forEach((rel) => {
-        if (rel.type === 'deployed-in' || rel.type === 'composed-of') {
-            return; // handled as containment, not edges
-        }
+        if (rel.type === 'deployed-in' || rel.type === 'composed-of') return;
 
         if (rel.type === 'connects' && rel.sourceNode && rel.destinationNode) {
             if (!allNodeIds.has(rel.sourceNode) || !allNodeIds.has(rel.destinationNode)) return;
+
             const color = rel.decisionGroupId ? THEME.colors.decision.oneOf : THEME.colors.accent;
             const edgeData: Record<string, unknown> = {
                 'unique-id': rel.uniqueId,
                 description: rel.description,
-                source: rel.sourceNode,
-                target: rel.destinationNode,
                 'relationship-type': rel.relationshipTypeConst,
             };
             if (rel.protocol) edgeData['protocol'] = rel.protocol;
@@ -463,11 +489,10 @@ function createReactFlowEdges(
         if (rel.type === 'interacts' && rel.actor && rel.targetNodes) {
             rel.targetNodes.forEach((targetId, targetIndex) => {
                 if (!allNodeIds.has(rel.actor!) || !allNodeIds.has(targetId)) return;
+
                 const edgeData: Record<string, unknown> = {
                     'unique-id': rel.uniqueId,
                     description: rel.description,
-                    source: rel.actor!,
-                    target: targetId,
                     'relationship-type': rel.relationshipTypeConst,
                 };
                 if (rel.controls) edgeData['controls'] = rel.controls;
@@ -487,83 +512,9 @@ function createReactFlowEdges(
         }
     });
 
-    // Create edges from options decision nodes to the decision group that contains their choices
-    optionsDecisions.forEach((decision) => {
-        const decisionNodeId = `options-${decision.uniqueId}`;
-        // Collect all referenced node IDs across all choices
-        const allReferencedNodes = decision.choices.flatMap((c) => c.nodes);
-        // Find the unique decision group(s) those nodes belong to
-        const targetGroupIds = new Set<string>();
-        allReferencedNodes.forEach((nodeId) => {
-            const groupId = nodeToGroupMap.get(nodeId);
-            if (groupId) targetGroupIds.add(groupId);
-        });
-
-        if (targetGroupIds.size > 0) {
-            // Point to the decision group container(s)
-            targetGroupIds.forEach((groupId) => {
-                edges.push(
-                    createEdge({
-                        id: `pattern-edge-${edgeIndex++}`,
-                        source: decisionNodeId,
-                        target: groupId,
-                        label: decision.prompt,
-                        color: THEME.colors.decision.options,
-                        dashed: true,
-                        data: {
-                            'unique-id': decision.uniqueId,
-                            description: decision.prompt,
-                            source: decisionNodeId,
-                            target: groupId,
-                            'relationship-type': { options: decision.choices },
-                        },
-                    })
-                );
-            });
-        } else {
-            // Fallback: no matching group found, point to individual nodes
-            decision.choices.forEach((choice) => {
-                choice.nodes.forEach((nodeId) => {
-                    if (!allNodeIds.has(nodeId)) return;
-                    edges.push(
-                        createEdge({
-                            id: `pattern-edge-${edgeIndex++}`,
-                            source: decisionNodeId,
-                            target: nodeId,
-                            label: choice.description,
-                            color: THEME.colors.decision.options,
-                            dashed: true,
-                            data: {
-                                'unique-id': decision.uniqueId,
-                                description: choice.description,
-                                source: decisionNodeId,
-                                target: nodeId,
-                                'relationship-type': { options: decision.choices },
-                            },
-                        })
-                    );
-                });
-            });
-        }
-    });
-
     return edges;
 }
 
-function createOptionsDecisionNodes(optionsDecisions: ExtractedOptionsDecision[]): Node[] {
-    return optionsDecisions.map((decision) => ({
-        id: `options-${decision.uniqueId}`,
-        type: 'optionsDecision',
-        position: { x: 0, y: 0 },
-        data: {
-            id: `options-${decision.uniqueId}`,
-            label: decision.prompt,
-            prompt: decision.prompt,
-            optionType: decision.optionType,
-            choices: decision.choices,
-        },
-    }));
-}
 
 // ---- Layout ----
 
@@ -681,28 +632,38 @@ export function parsePatternData(pattern: SchemaObject): ParsedPatternData {
 
     try {
         const { nodes: extractedNodes, decisionGroups } = extractNodesFromPattern(pattern);
-        const { relationships, optionsDecisions } = extractRelationshipsFromPattern(pattern);
+        const { relationships, optionsMetadata } = extractRelationshipsFromPattern(pattern);
+
+        // Build map from node ID to its decision group for options metadata mapping
+        const nodeToGroupMap = new Map<string, string>();
+        decisionGroups.forEach((g) => g.nodeIds.forEach((nid) => nodeToGroupMap.set(nid, g.groupId)));
+
+        // Map options metadata to the decision groups they target
+        const groupOptionsMap = new Map<string, OptionsMetadata>();
+        optionsMetadata.forEach((meta) => {
+            const allNodes = meta.choices.flatMap((c) => c.nodes);
+            for (const nodeId of allNodes) {
+                const groupId = nodeToGroupMap.get(nodeId);
+                if (groupId && !groupOptionsMap.has(groupId)) {
+                    groupOptionsMap.set(groupId, meta);
+                    break;
+                }
+            }
+        });
 
         const containerInfo = buildContainerInfo(relationships);
-        const { regularNodes, groupNodes } = createReactFlowNodes(extractedNodes, decisionGroups, containerInfo);
-        const optionsNodes = createOptionsDecisionNodes(optionsDecisions);
+        const { regularNodes, groupNodes } = createReactFlowNodes(
+            extractedNodes, decisionGroups, containerInfo, groupOptionsMap,
+        );
 
         // Collect all node IDs for edge validation (include decision group IDs)
         const allNodeIds = new Set<string>();
         extractedNodes.forEach((n) => allNodeIds.add(n.uniqueId));
-        optionsDecisions.forEach((d) => allNodeIds.add(`options-${d.uniqueId}`));
         decisionGroups.forEach((g) => allNodeIds.add(g.groupId));
 
-        // Build map from node ID to its decision group for options-to-group edges
-        const nodeToGroupMap = new Map<string, string>();
-        decisionGroups.forEach((g) => g.nodeIds.forEach((nid) => nodeToGroupMap.set(nid, g.groupId)));
+        const edges = createReactFlowEdges(relationships, allNodeIds);
 
-        const edges = createReactFlowEdges(relationships, optionsDecisions, allNodeIds, nodeToGroupMap);
-
-        // Options decision nodes are regular top-level nodes
-        const allRegularNodes = [...regularNodes, ...optionsNodes];
-
-        return applyPatternLayout(allRegularNodes, groupNodes, edges);
+        return applyPatternLayout(regularNodes, groupNodes, edges);
     } catch (error) {
         console.error('Error parsing pattern data:', error);
         return { nodes: [], edges: [] };

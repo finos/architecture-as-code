@@ -13,7 +13,10 @@ export function toPatternNodeData(nodeData: Record<string, unknown>): NodeData {
 /**
  * Converts raw pattern edge data from ReactFlow into an EdgeData object for the sidebar.
  * Passes through all CALM schema fields (unique-id, relationship-type, protocol, controls, etc.)
+ * Strips ReactFlow artifacts: id (edge ID), label (duplicate of description), source/target
+ * (derived convenience fields — actual source/target lives inside relationship-type).
  */
 export function toPatternEdgeData(edgeData: Record<string, unknown>): EdgeData {
-    return edgeData as EdgeData;
+    const { id: _id, label: _label, source: _source, target: _target, ...calmFields } = edgeData;
+    return calmFields as EdgeData;
 }
