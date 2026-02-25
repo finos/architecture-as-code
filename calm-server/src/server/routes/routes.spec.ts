@@ -43,6 +43,7 @@ describe('CLIServerRoutes', () => {
             .mockImplementationOnce(() => validateRouter)
             .mockImplementationOnce(() => healthRouter);
         cliServerRoutes = new CLIServerRoutes(schemaDirectory);
+        void cliServerRoutes;
     });
 
     it('should initialize router', () => {
