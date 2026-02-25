@@ -134,25 +134,6 @@ npm run lint
 npm run lint-fix
 ```
 
-## Configuration
-
-The server can load configuration from `~/.calm.json`:
-
-```json
-{
-  "calmHubUrl": "https://calm-hub.example.com"
-}
-```
-
-This allows you to set a default CALM Hub URL without specifying it on every invocation.
-
-## Relationship to CLI
-
-The calm-server package extracts the server functionality from the `@finos/calm-cli` package into a standalone executable. Both implementations share the same core validation logic through `@finos/calm-shared`.
-
-**CLI**: `calm server -s ./calm/release --port 3000`  
-**Standalone**: `calm-server -s ./calm/release --port 3000`
-
 ## License
 
 Apache-2.0

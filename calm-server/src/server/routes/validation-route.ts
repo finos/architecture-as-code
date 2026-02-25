@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 export class ValidationRouter {
     private schemaDirectory: SchemaDirectory;
     private logger: Logger;
+    private schemaLoadPromise: Promise<void> | null = null;
 
     constructor(
         router: Router,
@@ -28,7 +29,21 @@ export class ValidationRouter {
         router.post('/', this.validateSchema);
     }
 
-    private validateSchema = async (req: Request<ValidationRequest>, res: Response<ValidationOutcome | ErrorResponse>) => {
+    private async ensureSchemasLoaded() {
+        if (!this.schemaLoadPromise) {
+            this.schemaLoadPromise = this.schemaDirectory.loadSchemas().catch((error) => {
+                this.schemaLoadPromise = null;
+                throw error;
+            });
+        }
+
+        await this.schemaLoadPromise;
+    }
+
+    private validateSchema = async (
+        req: Request<Record<string, never>, ValidationOutcome | ErrorResponse, ValidationRequest>,
+        res: Response<ValidationOutcome | ErrorResponse>
+    ) => {
         let architecture;
         try {
             architecture = JSON.parse(req.body.architecture);
@@ -43,7 +58,7 @@ export class ValidationRouter {
         }
 
         try {
-            await this.schemaDirectory.loadSchemas();
+            await this.ensureSchemasLoaded();
         } catch (error) {
             this.logger.error('Failed to load schemas: ' + error);
             return res.status(500).type('json').send(new ErrorResponse('Failed to load schemas'));

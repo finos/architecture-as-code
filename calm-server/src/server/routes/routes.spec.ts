@@ -4,13 +4,8 @@ import { ValidationRouter } from './validation-route';
 import { HealthRouter } from './health-route';
 import { SchemaDirectory } from '@finos/calm-shared';
 
-const mockUse = vi.fn();
-const mockRouter = {
-    use: mockUse
-};
-
 vi.mock('express', () => ({
-    Router: vi.fn(() => mockRouter)
+    Router: vi.fn()
 }));
 
 vi.mock('./validation-route', () => {
@@ -33,11 +28,21 @@ vi.mock('@finos/calm-shared', () => {
 describe('CLIServerRoutes', () => {
     let schemaDirectory: SchemaDirectory;
     let cliServerRoutes: CLIServerRoutes;
-    let mockRouter: Router;
+    let mainRouter: Router;
+    let validateRouter: Router;
+    let healthRouter: Router;
 
     beforeEach(() => {
+        mainRouter = { use: vi.fn() } as unknown as Router;
+        validateRouter = { use: vi.fn() } as unknown as Router;
+        healthRouter = { use: vi.fn() } as unknown as Router;
+        const routerMock = Router as unknown as vi.Mock;
+        routerMock.mockReset();
+        routerMock
+            .mockImplementationOnce(() => mainRouter)
+            .mockImplementationOnce(() => validateRouter)
+            .mockImplementationOnce(() => healthRouter);
         cliServerRoutes = new CLIServerRoutes(schemaDirectory);
-        mockRouter = cliServerRoutes.router;
     });
 
     it('should initialize router', () => {
@@ -45,12 +50,12 @@ describe('CLIServerRoutes', () => {
     });
 
     it('should set up validate route', () => {
-        expect(mockRouter.use).toHaveBeenCalledWith('/calm/validate', mockRouter);
-        expect(ValidationRouter).toHaveBeenCalled();
+        expect(mainRouter.use).toHaveBeenCalledWith('/calm/validate', validateRouter);
+        expect(ValidationRouter).toHaveBeenCalledWith(validateRouter, schemaDirectory, false, 900000, 100);
     });
 
     it('should set up health route', () => {
-        expect(mockRouter.use).toHaveBeenCalledWith('/health', mockRouter);
-        expect(HealthRouter).toHaveBeenCalled();
+        expect(mainRouter.use).toHaveBeenCalledWith('/health', healthRouter);
+        expect(HealthRouter).toHaveBeenCalledWith(healthRouter);
     });
 });

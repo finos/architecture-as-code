@@ -1,12 +1,12 @@
 {
   "extends": "../tsconfig.base.json",
-  "module": "Preserve",
-  "moduleResolution": "bundler",
   "compilerOptions": {
-    "outDir": "dist"
+    "outDir": "dist",
+    "module": "Preserve",
+    "moduleResolution": "bundler",
+    "lib": [
+      "esnext"
+    ]
   },
-  "include": ["src", "../vitest-globals.d.ts"],
-  "lib": [
-    "esnext"
-  ]
+  "include": ["src", "../vitest-globals.d.ts"]
 }

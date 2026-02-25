@@ -16,9 +16,12 @@ export class CLIServerRoutes {
         rateLimitMaxRequests: number = 100
     ) {
         this.router = Router();
-        const validateRoute = this.router.use(VALIDATE_ROUTE_PATH, this.router);
-        new ValidationRouter(validateRoute, schemaDirectory, debug, rateLimitWindowMs, rateLimitMaxRequests);
-        const healthRoute = this.router.use(HEALTH_ROUTE_PATH, this.router);
-        new HealthRouter(healthRoute);
+        const validateRouter = Router();
+        this.router.use(VALIDATE_ROUTE_PATH, validateRouter);
+        new ValidationRouter(validateRouter, schemaDirectory, debug, rateLimitWindowMs, rateLimitMaxRequests);
+
+        const healthRouter = Router();
+        this.router.use(HEALTH_ROUTE_PATH, healthRouter);
+        new HealthRouter(healthRouter);
     }
 }
