@@ -1,5 +1,10 @@
 import { Node, Edge } from 'reactflow';
 
+/** Resolves the CALM node type from either architecture (data.type) or pattern (data['node-type']) nodes. */
+function getNodeType(node: Node): string {
+    return node.data?.type || node.data?.['node-type'] || '';
+}
+
 /**
  * Checks if a node matches the current search term and type filter.
  * Group nodes (system, decisionGroup) are excluded from matching.
@@ -7,7 +12,8 @@ import { Node, Edge } from 'reactflow';
 export function isNodeMatch(node: Node, searchTerm: string, typeFilter: string): boolean {
     if (node.type === 'group' || node.type === 'decisionGroup') return true;
 
-    const matchesType = !typeFilter || node.data?.nodeType === typeFilter;
+    const nodeType = getNodeType(node);
+    const matchesType = !typeFilter || nodeType === typeFilter;
     if (!matchesType) return false;
 
     if (!searchTerm) return true;
@@ -15,9 +21,8 @@ export function isNodeMatch(node: Node, searchTerm: string, typeFilter: string):
     const term = searchTerm.toLowerCase();
     const label = (node.data?.label || '').toLowerCase();
     const uniqueId = (node.data?.['unique-id'] || node.id || '').toLowerCase();
-    const nodeType = (node.data?.nodeType || '').toLowerCase();
 
-    return label.includes(term) || uniqueId.includes(term) || nodeType.includes(term);
+    return label.includes(term) || uniqueId.includes(term) || nodeType.toLowerCase().includes(term);
 }
 
 /**
@@ -47,8 +52,9 @@ export function isEdgeVisible(edge: Edge, matchingNodeIds: Set<string>): boolean
 export function getUniqueNodeTypes(nodes: Node[]): string[] {
     const types = new Set<string>();
     for (const node of nodes) {
-        if (node.type !== 'group' && node.type !== 'decisionGroup' && node.data?.nodeType) {
-            types.add(node.data.nodeType);
+        const nodeType = getNodeType(node);
+        if (node.type !== 'group' && node.type !== 'decisionGroup' && nodeType) {
+            types.add(nodeType);
         }
     }
     return Array.from(types).sort();

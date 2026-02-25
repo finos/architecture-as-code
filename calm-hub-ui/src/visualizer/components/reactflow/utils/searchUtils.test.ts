@@ -10,7 +10,7 @@ function makeNode(id: string, overrides: Partial<Node> = {}): Node {
         data: {
             label: id,
             'unique-id': id,
-            nodeType: 'service',
+            type: 'service',
             ...overrides.data,
         },
         ...overrides,
@@ -23,55 +23,66 @@ function makeEdge(id: string, source: string, target: string): Edge {
 
 describe('isNodeMatch', () => {
     it('matches by label', () => {
-        const node = makeNode('n1', { data: { label: 'My Service', nodeType: 'service' } });
+        const node = makeNode('n1', { data: { label: 'My Service', type: 'service' } });
         expect(isNodeMatch(node, 'service', '')).toBe(true);
         expect(isNodeMatch(node, 'unknown', '')).toBe(false);
     });
 
     it('matches by unique-id', () => {
-        const node = makeNode('attendees-service', { data: { label: 'Attendees', 'unique-id': 'attendees-service', nodeType: 'service' } });
+        const node = makeNode('attendees-service', { data: { label: 'Attendees', 'unique-id': 'attendees-service', type: 'service' } });
         expect(isNodeMatch(node, 'attendees-service', '')).toBe(true);
     });
 
     it('does not match by description', () => {
-        const node = makeNode('n1', { data: { label: 'Svc', description: 'Handles payments', nodeType: 'service' } });
+        const node = makeNode('n1', { data: { label: 'Svc', description: 'Handles payments', type: 'service' } });
         expect(isNodeMatch(node, 'payment', '')).toBe(false);
     });
 
-    it('matches by node type', () => {
-        const node = makeNode('n1', { data: { label: 'DB', nodeType: 'database' } });
+    it('matches by node type (data.type)', () => {
+        const node = makeNode('n1', { data: { label: 'DB', type: 'database' } });
+        expect(isNodeMatch(node, 'database', '')).toBe(true);
+    });
+
+    it('matches by node type (data[node-type]) for pattern nodes', () => {
+        const node = makeNode('n1', { data: { label: 'DB', 'node-type': 'database' } });
         expect(isNodeMatch(node, 'database', '')).toBe(true);
     });
 
     it('is case insensitive', () => {
-        const node = makeNode('n1', { data: { label: 'Service A', nodeType: 'service' } });
+        const node = makeNode('n1', { data: { label: 'Service A', type: 'service' } });
         expect(isNodeMatch(node, 'SERVICE', '')).toBe(true);
     });
 
     it('always matches group nodes', () => {
-        const node = makeNode('g1', { type: 'group', data: { label: 'System', nodeType: 'system' } });
+        const node = makeNode('g1', { type: 'group', data: { label: 'System', type: 'system' } });
         expect(isNodeMatch(node, 'nonexistent', '')).toBe(true);
     });
 
     it('always matches decisionGroup nodes', () => {
-        const node = makeNode('d1', { type: 'decisionGroup', data: { label: 'Choice', nodeType: 'system' } });
+        const node = makeNode('d1', { type: 'decisionGroup', data: { label: 'Choice', type: 'system' } });
         expect(isNodeMatch(node, 'nonexistent', '')).toBe(true);
     });
 
     it('filters by type', () => {
-        const node = makeNode('n1', { data: { label: 'My Service', nodeType: 'service' } });
+        const node = makeNode('n1', { data: { label: 'My Service', type: 'service' } });
+        expect(isNodeMatch(node, '', 'service')).toBe(true);
+        expect(isNodeMatch(node, '', 'database')).toBe(false);
+    });
+
+    it('filters by type using node-type for pattern nodes', () => {
+        const node = makeNode('n1', { data: { label: 'My Service', 'node-type': 'service' } });
         expect(isNodeMatch(node, '', 'service')).toBe(true);
         expect(isNodeMatch(node, '', 'database')).toBe(false);
     });
 
     it('combines search term and type filter', () => {
-        const node = makeNode('n1', { data: { label: 'My DB', nodeType: 'database' } });
+        const node = makeNode('n1', { data: { label: 'My DB', type: 'database' } });
         expect(isNodeMatch(node, 'DB', 'database')).toBe(true);
         expect(isNodeMatch(node, 'DB', 'service')).toBe(false);
     });
 
     it('returns true for all nodes when search is empty', () => {
-        const node = makeNode('n1', { data: { label: 'Any', nodeType: 'service' } });
+        const node = makeNode('n1', { data: { label: 'Any', type: 'service' } });
         expect(isNodeMatch(node, '', '')).toBe(true);
     });
 });
@@ -87,8 +98,8 @@ describe('getMatchingNodeIds', () => {
 
     it('returns only matching IDs', () => {
         const nodes = [
-            makeNode('svc-1', { data: { label: 'Service A', nodeType: 'service' } }),
-            makeNode('db-1', { data: { label: 'Database B', nodeType: 'database' } }),
+            makeNode('svc-1', { data: { label: 'Service A', type: 'service' } }),
+            makeNode('db-1', { data: { label: 'Database B', type: 'database' } }),
         ];
         const ids = getMatchingNodeIds(nodes, 'Service', '');
         expect(ids.has('svc-1')).toBe(true);
@@ -116,19 +127,27 @@ describe('isEdgeVisible', () => {
 describe('getUniqueNodeTypes', () => {
     it('returns sorted unique types', () => {
         const nodes = [
-            makeNode('n1', { data: { nodeType: 'service' } }),
-            makeNode('n2', { data: { nodeType: 'database' } }),
-            makeNode('n3', { data: { nodeType: 'service' } }),
-            makeNode('n4', { data: { nodeType: 'actor' } }),
+            makeNode('n1', { data: { type: 'service' } }),
+            makeNode('n2', { data: { type: 'database' } }),
+            makeNode('n3', { data: { type: 'service' } }),
+            makeNode('n4', { data: { type: 'actor' } }),
         ];
         expect(getUniqueNodeTypes(nodes)).toEqual(['actor', 'database', 'service']);
     });
 
+    it('reads node-type for pattern nodes', () => {
+        const nodes = [
+            makeNode('n1', { data: { 'node-type': 'service' } }),
+            makeNode('n2', { data: { 'node-type': 'webclient' } }),
+        ];
+        expect(getUniqueNodeTypes(nodes)).toEqual(['service', 'webclient']);
+    });
+
     it('excludes group and decisionGroup nodes', () => {
         const nodes = [
-            makeNode('n1', { data: { nodeType: 'service' } }),
-            makeNode('g1', { type: 'group', data: { nodeType: 'system' } }),
-            makeNode('d1', { type: 'decisionGroup', data: { nodeType: 'system' } }),
+            makeNode('n1', { data: { type: 'service' } }),
+            makeNode('g1', { type: 'group', data: { type: 'system' } }),
+            makeNode('d1', { type: 'decisionGroup', data: { type: 'system' } }),
         ];
         expect(getUniqueNodeTypes(nodes)).toEqual(['service']);
     });

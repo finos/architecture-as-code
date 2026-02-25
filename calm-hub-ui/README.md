@@ -90,7 +90,7 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/t
 
 Planned visualization features for CALM Hub UI:
 
-1. **Search & Filter** — Search nodes by name, ID, or description and filter by node type. Non-matching nodes fade to help locate components in large architectures.
+1. **Search & Filter** — Search nodes by name, ID, or type and filter by node type. Non-matching nodes fade to help locate components in large architectures.
 2. **Pattern-to-Architecture Conformance Overlay** — Load both a pattern and an architecture side by side, with a color-coded overlay showing which pattern constraints the architecture satisfies or violates.
 3. **ADR (Architecture Decision Record) Links** — Surface ADR references from CALM metadata as clickable links on nodes and in the sidebar, connecting architecture components to their decision records.
 4. **Timeline / Version History View** — Visualize how an architecture evolves over time using CALM timeline data, with a scrubber to step through versions and see what changed.
