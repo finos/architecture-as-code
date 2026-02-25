@@ -5,6 +5,7 @@ import { Navbar } from '../components/navbar/Navbar.js';
 import { AdrRenderer } from './components/adr-renderer/AdrRenderer.js';
 import { DocumentDetailSection } from './components/document-detail-section/DocumentDetailSection.js';
 import { ArchitectureSection } from './components/architecture-section/ArchitectureSection.js';
+import { PatternSection } from './components/pattern-section/PatternSection.js';
 import './Hub.css';
 
 export default function Hub() {
@@ -38,7 +39,10 @@ export default function Hub() {
                             {data?.calmType === 'Architectures' && (
                                 <ArchitectureSection data={data} />
                             )}
-                            {data?.calmType !== 'Architectures' && !adrData && (
+                            {data?.calmType === 'Patterns' && (
+                                <PatternSection data={data} />
+                            )}
+                            {data?.calmType !== 'Architectures' && data?.calmType !== 'Patterns' && !adrData && (
                                 <DocumentDetailSection data={data} />
                             )}
                         </>

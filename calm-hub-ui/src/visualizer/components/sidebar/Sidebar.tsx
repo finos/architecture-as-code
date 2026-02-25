@@ -8,14 +8,14 @@ export interface SidebarProps {
 }
 
 function isNodeData(data: NodeData | EdgeData): data is NodeData {
-    return data.id != null && 'type' in data && data.type != null;
+    return data['unique-id'] != null && 'node-type' in data && data['node-type'] != null;
 }
 
 function isEdgeData(data: NodeData | EdgeData): data is EdgeData {
     return (
         'source' in data &&
         'target' in data &&
-        data.id != null &&
+        data['unique-id'] != null &&
         data.source != null &&
         data.target != null
     );

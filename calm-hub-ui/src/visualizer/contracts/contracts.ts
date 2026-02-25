@@ -5,9 +5,9 @@ import { CalmInterfaceSchema, CalmControlsSchema } from '@finos/calm-models/type
  * Compatible with CalmNodeSchema data passed from ReactFlow
  */
 export type NodeData = {
-    id: string;
+    'unique-id': string;
+    'node-type': string;
     description?: string;
-    type: string;
     name?: string;
     interfaces?: CalmInterfaceSchema[];
     controls?: CalmControlsSchema;
@@ -19,8 +19,7 @@ export type NodeData = {
  * Compatible with relationship data passed from ReactFlow
  */
 export type EdgeData = {
-    id: string;
-    label?: string;
+    'unique-id': string;
     source: string;
     target: string;
     description?: string;

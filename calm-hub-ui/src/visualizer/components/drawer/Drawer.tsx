@@ -7,11 +7,25 @@ import {
 import { Data } from '../../../model/calm.js';
 import { useDropzone } from 'react-dropzone';
 import { ReactFlowVisualizer } from '../reactflow/ReactFlowVisualizer.js';
+import { PatternVisualizer } from '../reactflow/PatternVisualizer.js';
 import { Sidebar } from '../sidebar/Sidebar.js';
 import { MetadataPanel } from '../reactflow/MetadataPanel.js';
 import { NodeData, EdgeData } from '../../contracts/contracts.js';
+import { toPatternNodeData, toPatternEdgeData } from '../reactflow/utils/patternClickHandlers.js';
 import type { Flow } from '../reactflow/FlowsPanel.js';
 import type { Control } from '../reactflow/ControlsPanel.js';
+
+/**
+ * Detect whether JSON data is a CALM pattern (JSON Schema) or an architecture instance.
+ * Patterns have properties.nodes.prefixItems; architectures have nodes directly.
+ */
+function isPatternData(data: unknown): boolean {
+    if (!data || typeof data !== 'object') return false;
+    const obj = data as Record<string, unknown>;
+    const props = obj['properties'] as Record<string, unknown> | undefined;
+    return !!(props?.['nodes'] && typeof props['nodes'] === 'object' &&
+        (props['nodes'] as Record<string, unknown>)['prefixItems']);
+}
 
 interface DrawerProps {
     data?: Data; // Optional data prop passed in from CALM Hub if user navigates from there
@@ -31,6 +45,7 @@ function extractId(item: CalmNodeSchema | CalmRelationshipSchema): string {
 
 export function Drawer({ data }: DrawerProps) {
     const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
+    const [patternInstance, setPatternInstance] = useState<Record<string, unknown> | undefined>(undefined);
     const [fileInstance, setFileInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
     const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
     const [title, setTitle] = useState<string>('');
@@ -42,7 +57,14 @@ export function Drawer({ data }: DrawerProps) {
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
         if (acceptedFiles[0]) {
             const fileText = await acceptedFiles[0].text();
-            setFileInstance(JSON.parse(fileText));
+            const parsed = JSON.parse(fileText);
+            if (isPatternData(parsed)) {
+                setPatternInstance(parsed);
+                setFileInstance(undefined);
+            } else {
+                setFileInstance(parsed);
+                setPatternInstance(undefined);
+            }
             setTitle(acceptedFiles[0].name);
         }
     }, []);
@@ -50,12 +72,17 @@ export function Drawer({ data }: DrawerProps) {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
     useEffect(() => {
-        setCALMInstance(fileInstance ?? data?.data);
+        if (patternInstance) {
+            // Pattern was loaded via file upload - architecture state is cleared
+            setCALMInstance(undefined);
+        } else {
+            setCALMInstance(fileInstance ?? data?.data);
+        }
         // Set title from CALM Hub data if available
         if (data?.name && data?.id && data?.version) {
             setTitle(`${data.name}/${data.id}/${data.version}`);
         }
-    }, [fileInstance, data]);
+    }, [fileInstance, patternInstance, data]);
 
     // Extract flows from CALM data
     const flows = useMemo((): Flow[] => {
@@ -112,16 +139,27 @@ export function Drawer({ data }: DrawerProps) {
 
     const hasMetadata = flows.length > 0 || Object.keys(controls).length > 0;
 
+    const hasContent = !!(calmInstance || patternInstance);
+
     function closeSidebar() {
         setSelectedItem(null);
     }
+
+    // Pattern-specific click handlers
+    const handlePatternNodeClick = (nodeData: Record<string, unknown>) => {
+        setSelectedItem({ data: toPatternNodeData(nodeData) });
+    };
+
+    const handlePatternEdgeClick = (edgeData: Record<string, unknown>) => {
+        setSelectedItem({ data: toPatternEdgeData(edgeData) });
+    };
 
     // Handle node click - convert CalmNodeSchema to NodeData format
     const handleNodeClick = (nodeData: CalmNodeSchema) => {
         setSelectedItem({
             data: {
-                id: nodeData['unique-id'],
-                type: nodeData['node-type'] || 'unknown',
+                'unique-id': nodeData['unique-id'],
+                'node-type': nodeData['node-type'] || 'unknown',
                 name: nodeData.name,
                 description: nodeData.description,
                 interfaces: nodeData.interfaces,
@@ -135,7 +173,8 @@ export function Drawer({ data }: DrawerProps) {
         const connects = edgeData['relationship-type']?.connects;
         setSelectedItem({
             data: {
-                id: edgeData['unique-id'],
+                'unique-id': edgeData['unique-id'],
+                'relationship-type': edgeData['relationship-type'],
                 source: connects?.source?.node || '',
                 target: connects?.destination?.node || '',
                 description: edgeData.description,
@@ -165,7 +204,7 @@ export function Drawer({ data }: DrawerProps) {
 
     return (
         <div {...getRootProps()} className="flex-1 flex overflow-hidden h-full">
-            {!calmInstance && <input {...getInputProps()} />}
+            {!hasContent && <input {...getInputProps()} />}
             <div className={`drawer drawer-end ${selectedItem ? 'drawer-open' : ''} w-full h-full`}>
                 <input
                     type="checkbox"
@@ -175,7 +214,7 @@ export function Drawer({ data }: DrawerProps) {
                     onChange={closeSidebar}
                 />
                 <div className="drawer-content h-full flex flex-col">
-                    {calmInstance ? (
+                    {hasContent ? (
                         <>
                             {title && (
                                 <div
@@ -201,14 +240,23 @@ export function Drawer({ data }: DrawerProps) {
                                         : {}),
                                 }}
                             >
-                                <ReactFlowVisualizer
-                                    calmData={calmInstance}
-                                    onNodeClick={handleNodeClick}
-                                    onEdgeClick={handleEdgeClick}
-                                    onBackgroundClick={closeSidebar}
-                                />
+                                {patternInstance ? (
+                                    <PatternVisualizer
+                                        patternData={patternInstance}
+                                        onNodeClick={handlePatternNodeClick}
+                                        onEdgeClick={handlePatternEdgeClick}
+                                        onBackgroundClick={closeSidebar}
+                                    />
+                                ) : calmInstance ? (
+                                    <ReactFlowVisualizer
+                                        calmData={calmInstance}
+                                        onNodeClick={handleNodeClick}
+                                        onEdgeClick={handleEdgeClick}
+                                        onBackgroundClick={closeSidebar}
+                                    />
+                                ) : null}
                             </div>
-                            {hasMetadata && (
+                            {hasMetadata && !patternInstance && (
                                 <div
                                     style={{
                                         height: isMetadataCollapsed ? '48px' : `${metadataPanelHeight}px`,

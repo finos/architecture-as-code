@@ -13,76 +13,64 @@ import 'reactflow/dist/style.css';
 import { FloatingEdge } from './FloatingEdge';
 import { CustomNode } from './CustomNode';
 import { SystemGroupNode } from './SystemGroupNode';
+import { DecisionGroupNode } from './DecisionGroupNode';
+import { OptionsDecisionNode } from './OptionsDecisionNode';
 import { THEME } from './theme';
-import { parseCALMData } from './utils/calmTransformer';
+import { parsePatternData } from './utils/patternTransformer';
 import { calculateGroupBounds } from './utils/layoutUtils.js';
-import {
-    CalmArchitectureSchema,
-    CalmNodeSchema,
-    CalmRelationshipSchema,
-} from '../../../../../calm-models/src/types/core-types.js';
 
-interface ArchitectureGraphProps {
-    jsonData: CalmArchitectureSchema;
-    onNodeClick?: (node: CalmNodeSchema) => void;
-    onEdgeClick?: (edge: CalmRelationshipSchema) => void;
+interface PatternGraphProps {
+    patternData: Record<string, unknown>;
+    onNodeClick?: (nodeData: Record<string, unknown>) => void;
+    onEdgeClick?: (edgeData: Record<string, unknown>) => void;
 }
 
-export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick }: ArchitectureGraphProps) {
+export function PatternGraph({ patternData, onNodeClick, onEdgeClick }: PatternGraphProps) {
     const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
     const edgeTypes = useMemo(() => ({ custom: FloatingEdge }), []);
-    const nodeTypes = useMemo(() => ({ custom: CustomNode, group: SystemGroupNode }), []);
+    const nodeTypes = useMemo(() => ({
+        custom: CustomNode,
+        group: SystemGroupNode,
+        decisionGroup: DecisionGroupNode,
+        optionsDecision: OptionsDecisionNode,
+    }), []);
 
     useEffect(() => {
-        const { nodes: parsedNodes, edges: parsedEdges } = parseCALMData(jsonData, onNodeClick);
+        const { nodes: parsedNodes, edges: parsedEdges } = parsePatternData(patternData);
         setNodes(parsedNodes);
         setEdges(parsedEdges);
-    }, [jsonData, setNodes, setEdges, onNodeClick]);
+    }, [patternData, setNodes, setEdges]);
 
-    // Custom onNodesChange that recalculates group bounds after node movements
     const onNodesChange = useCallback(
         (changes: NodeChange[]) => {
-            // Apply the base changes first
             onNodesChangeBase(changes);
 
-            // Check if any position changes occurred (from dragging)
             const hasPositionChanges = changes.some(
                 (change) => change.type === 'position' && change.dragging === false
             );
 
             if (hasPositionChanges) {
-                // Recalculate group bounds after drag completes
                 setNodes((currentNodes) => {
                     let updated = false;
-
                     const newNodes = currentNodes.map((node) => {
-                        if (node.type !== 'group') return node;
-
+                        if (node.type !== 'group' && node.type !== 'decisionGroup') return node;
                         const bounds = calculateGroupBounds(node.id, currentNodes);
                         if (!bounds) return node;
-
                         const currentWidth = (node.style?.width as number) || node.width || 0;
                         const currentHeight = (node.style?.height as number) || node.height || 0;
-
-                        // Only update if bounds have changed
                         if (bounds.width !== currentWidth || bounds.height !== currentHeight) {
                             updated = true;
                             return {
                                 ...node,
                                 width: bounds.width,
                                 height: bounds.height,
-                                style: {
-                                    ...node.style,
-                                    width: bounds.width,
-                                    height: bounds.height,
-                                },
+                                style: { ...node.style, width: bounds.width, height: bounds.height },
                             };
                         }
                         return node;
                     });
-
                     return updated ? newNodes : currentNodes;
                 });
             }
@@ -106,7 +94,9 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick }: Archit
                     ...n,
                     style: {
                         ...n.style,
-                        zIndex: n.id === node.id && n.type !== 'group' ? 1000 : n.type === 'group' ? -1 : 1,
+                        zIndex: n.id === node.id && n.type !== 'group' && n.type !== 'decisionGroup' ? 1000
+                            : (n.type === 'group' || n.type === 'decisionGroup') ? -1
+                            : 1,
                     },
                 }))
             );
@@ -120,7 +110,7 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick }: Archit
                 ...n,
                 style: {
                     ...n.style,
-                    zIndex: n.type === 'group' ? -1 : 1,
+                    zIndex: (n.type === 'group' || n.type === 'decisionGroup') ? -1 : 1,
                 },
             }))
         );
@@ -160,7 +150,7 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick }: Archit
                         textAlign: 'center',
                     }}
                 >
-                    No architecture data to display. Load a CALM architecture to visualize.
+                    No pattern data to display. Load a CALM pattern to visualize.
                 </div>
             </div>
         );
@@ -203,4 +193,4 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick }: Archit
             </ReactFlow>
         </div>
     );
-};
+}

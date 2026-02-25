@@ -13,9 +13,9 @@ describe('Sidebar Component', () => {
     const mockCloseSidebar = vi.fn();
 
     const mockNodeData: NodeData = {
-        id: 'node-1',
+        'unique-id': 'node-1',
         name: 'Node 1',
-        type: 'type-1',
+        'node-type': 'type-1',
         description: 'Mock Node',
         interfaces: [
             {
@@ -40,10 +40,10 @@ describe('Sidebar Component', () => {
     };
 
     const mockEdgeData: EdgeData = {
-        id: 'edge-1',
-        label: 'Edge 1',
+        'unique-id': 'edge-1',
         source: 'node-1',
         target: 'node-2',
+        description: 'Edge 1',
     };
 
     it('should display message unknown entity', () => {

@@ -89,3 +89,34 @@ export function createTopLevelLayout(
 
     return positions;
 }
+
+/**
+ * Calculate the minimum bounds for a group node based on its children.
+ * Used by both ArchitectureGraph and PatternGraph to resize groups after drag.
+ */
+export function calculateGroupBounds(
+    groupId: string,
+    allNodes: Node[]
+): { width: number; height: number } | null {
+    const children = allNodes.filter((n) => n.parentId === groupId);
+    if (children.length === 0) return null;
+
+    const padding = GRAPH_LAYOUT.SYSTEM_NODE_PADDING;
+    const nodeWidth = GRAPH_LAYOUT.NODE_WIDTH;
+    const nodeHeight = GRAPH_LAYOUT.NODE_HEIGHT;
+
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    children.forEach((child) => {
+        const childRight = child.position.x + nodeWidth;
+        const childBottom = child.position.y + nodeHeight;
+        maxX = Math.max(maxX, childRight);
+        maxY = Math.max(maxY, childBottom);
+    });
+
+    return {
+        width: maxX + padding,
+        height: maxY + padding,
+    };
+}
