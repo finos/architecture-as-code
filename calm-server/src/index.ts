@@ -7,7 +7,6 @@ import { version } from '../package.json';
 import { startServer } from './server/cli-server';
 import { SchemaDirectory, initLogger } from '@finos/calm-shared';
 import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
-import { loadCliConfig } from './cli-config';
 import path from 'path';
 
 const BUNDLED_SCHEMA_PATH = path.join(__dirname, 'calm');
@@ -42,11 +41,6 @@ async function parseDocumentLoaderConfig(
         debug: !!options.verbose
     };
 
-    const userConfig = await loadCliConfig();
-    if (userConfig && userConfig.calmHubUrl && !options.calmHubUrl) {
-        logger.info('Using CALMHub URL from config file: ' + userConfig.calmHubUrl);
-        docLoaderOpts.calmHubUrl = userConfig.calmHubUrl;
-    }
     return docLoaderOpts;
 }
 
