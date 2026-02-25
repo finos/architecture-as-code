@@ -32,7 +32,6 @@ async function parseDocumentLoaderConfig(
     urlToLocalMap?: Map<string, string>,
     basePath?: string
 ): Promise<DocumentLoaderOptions> {
-    const logger = initLogger(options.verbose, 'calm-server');
     const docLoaderOpts: DocumentLoaderOptions = {
         calmHubUrl: options.calmHubUrl,
         schemaDirectoryPath: options.schemaDirectory,

@@ -1,38 +1,79 @@
-import js from '@eslint/js';
-import tsParser from '@typescript-eslint/parser';
-import tsPlugin from '@typescript-eslint/eslint-plugin';
+import typescriptEslint from "@typescript-eslint/eslint-plugin";
+import globals from "globals";
+import tsParser from "@typescript-eslint/parser";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import js from "@eslint/js";
+import { FlatCompat } from "@eslint/eslintrc";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const compat = new FlatCompat({
+    baseDirectory: __dirname,
+    recommendedConfig: js.configs.recommended,
+    allConfig: js.configs.all
+});
 
 export default [
-  {
-    ignores: ['dist/', 'node_modules/', 'coverage/'],
-  },
-  {
-    files: ['src/**/*.ts'],
-    languageOptions: {
-      parser: tsParser,
-      parserOptions: {
-        ecmaVersion: 'latest',
-        sourceType: 'module',
-        project: './tsconfig.json',
-      },
-      globals: {
-        console: 'readonly',
-        process: 'readonly',
-        __dirname: 'readonly',
-        setTimeout: 'readonly',
-        NodeJS: 'readonly',
-      },
+    ...compat.extends("eslint:recommended", "plugin:@typescript-eslint/recommended"),
+    {
+        ignores: ['dist/', 'node_modules/', 'coverage/', 'test_fixtures/'],
     },
-    plugins: {
-      '@typescript-eslint': tsPlugin,
+    {
+        files: ['src/**/*.ts'],
+        plugins: {
+            "@typescript-eslint": typescriptEslint,
+        },
+
+        languageOptions: {
+            globals: {
+                ...globals.node,
+            },
+
+            parser: tsParser,
+            ecmaVersion: "latest",
+            sourceType: "module",
+        },
+
+        rules: {
+            indent: ["error", 4],
+            "linebreak-style": ["error", "unix"],
+            quotes: ["error", "single"],
+            semi: ["error", "always"],
+            "no-unused-vars": "off",
+            "@typescript-eslint/no-unused-vars": [
+              "error",
+              {
+                "argsIgnorePattern": "^_",
+                "varsIgnorePattern": "^_",
+                "caughtErrorsIgnorePattern": "^_"
+              }
+            ],
+            "@typescript-eslint/no-unused-expressions": [
+                "error",
+                {
+                    "allowShortCircuit": true,
+                    "allowTernary": true,
+                    "allowTaggedTemplates": true
+                }
+            ]
+        }
     },
-    rules: {
-      ...js.configs.recommended.rules,
-      ...tsPlugin.configs.recommended.rules,
-      '@typescript-eslint/no-unused-vars': [
-        'error',
-        { argsIgnorePattern: '^_' },
-      ],
+    {
+        files: ['src/**/*.spec.ts'],
+        languageOptions: {
+            globals: {
+                ...globals.node,
+                describe: 'readonly',
+                it: 'readonly',
+                test: 'readonly',
+                beforeEach: 'readonly',
+                afterEach: 'readonly',
+                beforeAll: 'readonly',
+                afterAll: 'readonly',
+                expect: 'readonly',
+                vi: 'readonly',
+            },
+        },
     },
-  },
 ];
