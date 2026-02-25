@@ -15,10 +15,9 @@ export function isNodeMatch(node: Node, searchTerm: string, typeFilter: string):
     const term = searchTerm.toLowerCase();
     const label = (node.data?.label || '').toLowerCase();
     const uniqueId = (node.data?.['unique-id'] || node.id || '').toLowerCase();
-    const description = (node.data?.description || '').toLowerCase();
     const nodeType = (node.data?.nodeType || '').toLowerCase();
 
-    return label.includes(term) || uniqueId.includes(term) || description.includes(term) || nodeType.includes(term);
+    return label.includes(term) || uniqueId.includes(term) || nodeType.includes(term);
 }
 
 /**

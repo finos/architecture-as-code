@@ -33,9 +33,9 @@ describe('isNodeMatch', () => {
         expect(isNodeMatch(node, 'attendees-service', '')).toBe(true);
     });
 
-    it('matches by description', () => {
+    it('does not match by description', () => {
         const node = makeNode('n1', { data: { label: 'Svc', description: 'Handles payments', nodeType: 'service' } });
-        expect(isNodeMatch(node, 'payment', '')).toBe(true);
+        expect(isNodeMatch(node, 'payment', '')).toBe(false);
     });
 
     it('matches by node type', () => {
