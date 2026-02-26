@@ -3,7 +3,7 @@ import {
   CalmArchitectureSchema,
   CalmNodeSchema,
   CalmRelationshipSchema,
-} from '../../../../../calm-models/src/types/core-types.js';
+} from '@finos/calm-models/types';
 
 export interface ReactFlowVisualizerProps {
   calmData: CalmArchitectureSchema;

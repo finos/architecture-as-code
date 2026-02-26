@@ -1,5 +1,5 @@
 import { Edge } from 'reactflow';
-import { CalmRelationshipSchema } from '../../../../../../calm-models/src/types/core-types.js';
+import { CalmRelationshipSchema } from '@finos/calm-models/types';
 import { createEdge } from './edgeFactory';
 import { extractId } from './calmHelpers';
 import { THEME } from '../theme';

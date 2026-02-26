@@ -3,7 +3,7 @@ import {
     CalmArchitectureSchema,
     CalmNodeSchema,
     CalmRelationshipSchema,
-} from '../../../../../calm-models/src/types/core-types.js';
+} from '@finos/calm-models/types';
 import { Data } from '../../../model/calm.js';
 import { useDropzone } from 'react-dropzone';
 import { ReactFlowVisualizer } from '../reactflow/ReactFlowVisualizer.js';
@@ -12,6 +12,7 @@ import { Sidebar } from '../sidebar/Sidebar.js';
 import { MetadataPanel } from '../reactflow/MetadataPanel.js';
 import { NodeData, EdgeData } from '../../contracts/contracts.js';
 import { toPatternNodeData, toPatternEdgeData } from '../reactflow/utils/patternClickHandlers.js';
+import { THEME } from '../reactflow/theme.js';
 import type { Flow } from '../reactflow/FlowsPanel.js';
 import type { Control } from '../reactflow/ControlsPanel.js';
 
@@ -217,11 +218,11 @@ export function Drawer({ data }: DrawerProps) {
                                 <div
                                     style={{
                                         padding: '8px 16px',
-                                        borderBottom: '1px solid #e2e8f0',
-                                        backgroundColor: '#f8fafc',
+                                        borderBottom: `1px solid ${THEME.colors.border}`,
+                                        backgroundColor: THEME.colors.backgroundSecondary,
                                         fontSize: '14px',
                                         fontWeight: 500,
-                                        color: '#1e293b',
+                                        color: THEME.colors.foreground,
                                         flexShrink: 0,
                                     }}
                                 >

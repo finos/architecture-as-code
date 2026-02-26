@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactFlow, {
     Node,
     Edge,
@@ -18,12 +18,15 @@ import { SearchBar } from './SearchBar.js';
 import { THEME } from './theme';
 import { parseCALMData } from './utils/calmTransformer';
 import { calculateGroupBounds } from './utils/layoutUtils.js';
-import { isNodeMatch, getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
+import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
 import {
     CalmArchitectureSchema,
     CalmNodeSchema,
     CalmRelationshipSchema,
-} from '../../../../../calm-models/src/types/core-types.js';
+} from '@finos/calm-models/types';
+
+const edgeTypes = { custom: FloatingEdge };
+const nodeTypes = { custom: CustomNode, group: SystemGroupNode };
 
 interface ArchitectureGraphProps {
     jsonData: CalmArchitectureSchema;
@@ -37,18 +40,23 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick }: Archit
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
 
-    const edgeTypes = useMemo(() => ({ custom: FloatingEdge }), []);
-    const nodeTypes = useMemo(() => ({ custom: CustomNode, group: SystemGroupNode }), []);
+    // Ref holds the structural node data from parsing.
+    // Filter effect reads from this instead of reactive state to avoid
+    // re-triggering when setNodes/setEdges update styles.
+    const sourceNodesRef = useRef<Node[]>([]);
+
+    const [availableNodeTypes, setAvailableNodeTypes] = useState<string[]>([]);
 
     useEffect(() => {
         const { nodes: parsedNodes, edges: parsedEdges } = parseCALMData(jsonData, onNodeClick);
+        sourceNodesRef.current = parsedNodes;
         setNodes(parsedNodes);
         setEdges(parsedEdges);
+        setAvailableNodeTypes(getUniqueNodeTypes(parsedNodes));
     }, [jsonData, setNodes, setEdges, onNodeClick]);
 
     // Search & filter
     const isSearchActive = searchTerm !== '' || typeFilter !== '';
-    const availableNodeTypes = useMemo(() => getUniqueNodeTypes(nodes), [nodes]);
 
     useEffect(() => {
         if (!isSearchActive) {
@@ -56,11 +64,12 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick }: Archit
             setEdges((eds) => eds.map((e) => ({ ...e, style: { ...e.style, opacity: undefined } })));
             return;
         }
-        const matchingIds = getMatchingNodeIds(nodes, searchTerm, typeFilter);
+        const srcNodes = sourceNodesRef.current;
+        const matchingIds = getMatchingNodeIds(srcNodes, searchTerm, typeFilter);
         setNodes((nds) =>
             nds.map((n) => ({
                 ...n,
-                style: { ...n.style, opacity: isNodeMatch(n, searchTerm, typeFilter) ? 1 : 0.15 },
+                style: { ...n.style, opacity: matchingIds.has(n.id) ? 1 : 0.15 },
             }))
         );
         setEdges((eds) =>
@@ -69,7 +78,7 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick }: Archit
                 style: { ...e.style, opacity: isEdgeVisible(e, matchingIds) ? 1 : 0.1 },
             }))
         );
-    }, [searchTerm, typeFilter, isSearchActive, nodes.length, setNodes, setEdges]);
+    }, [searchTerm, typeFilter, isSearchActive, setNodes, setEdges]);
 
     // Custom onNodesChange that recalculates group bounds after node movements
     const onNodesChange = useCallback(

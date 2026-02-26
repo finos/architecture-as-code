@@ -1,5 +1,5 @@
 import { Node } from 'reactflow';
-import { CalmNodeSchema, CalmRelationshipSchema } from '../../../../../../calm-models/src/types/core-types.js';
+import { CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
 
 /**
  * Container information extracted from relationships

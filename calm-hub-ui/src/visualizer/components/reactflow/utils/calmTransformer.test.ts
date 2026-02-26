@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { parseCALMData } from './calmTransformer';
-import { CalmArchitectureSchema } from '../../../../../../calm-models/src/types/core-types.js';
+import { CalmArchitectureSchema } from '@finos/calm-models/types';
 
 describe('parseCALMData', () => {
     it('returns empty arrays for null data', () => {
