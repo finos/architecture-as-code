@@ -13,6 +13,11 @@ Install the CLI on to your machine with this command:
 % npm install -g @finos/calm-cli
 ```
 
+or if you use [Homebrew](https://brew.sh):
+```shell
+brew install calm-cli
+```
+
 Type `calm` into your terminal, and you should see the help text printed out.
 
 ```shell
@@ -28,10 +33,10 @@ Options:
 Commands:
   generate [options]          Generate an architecture from a CALM pattern file.
   validate [options]          Validate that an architecture conforms to a given CALM pattern.
-  copilot-chatmode [options]  Augment a git repository with a CALM VSCode chatmode for AI assistance.
   server [options]            Start a HTTP server to proxy CLI commands. (experimental)
   template [options]          Generate files from a CALM model using a Handlebars template bundle.
   docify [options]            Generate a documentation website off your CALM model.
+  init-ai [options]           Augment a git repository with AI assistance for CALM
   help [command]              display help for command
 ```
 
@@ -261,23 +266,24 @@ curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/vali
 
 ```
 
-## CALM Copilot Chatmode
+## CALM init-ai
 
-The `copilot-chatmode` command sets up AI-powered development assistance for CALM architecture modeling by configuring a specialized VSCode chatmode with comprehensive tool prompts.
+The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring a specialized VSCode agent with comprehensive tool prompts.  At present two AI Assistant providers are supported:  Github Copilot and AWS Kiro.
 
 ```shell
-calm copilot-chatmode --help
-Usage: calm copilot-chatmode [options]
+calm init-ai --help
+Usage: calm init-ai [options]
 
-Augment a git repository with a CALM VSCode chatmode for AI assistance
+Augment a git repository with AI assistance for CALM
 
 Options:
-  -d, --directory <path>  Target directory (defaults to current directory) (default: ".")
-  -v, --verbose           Enable verbose logging. (default: false)
-  -h, --help              display help for command
+  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro")
+  -d, --directory <path>     Target directory (defaults to current directory) (default: ".")
+  -v, --verbose              Enable verbose logging. (default: false)
+  -h, --help                 display help for command
 ```
 
-This command creates a `.github/chatmodes/CALM.chatmode.md` configuration file that provides GitHub Copilot with specialized knowledge about CALM architecture modeling, including:
+This command creates a custom chat prompt configuration for the specified <provider> that provides AI assistance with specialized knowledge about CALM architecture modeling, including:
 
 - **Schema-accurate guidance**: Complete JSON schema definitions for all CALM components
 - **Critical validation requirements**: Emphasis on oneOf constraints and other validation rules
@@ -291,17 +297,17 @@ To set up AI assistance for your CALM project:
 
 ```shell
 # In your project directory
-calm copilot-chatmode
+calm init-ai -p <provider>
 
 # Or specify a different directory
-calm copilot-chatmode --directory /path/to/your/calm-project
+calm init-ai -p <provider> --directory /path/to/your/calm-project
 ```
 
-This will create the necessary VSCode configuration files to enable CALM-specific AI assistance. Once set up, you can use GitHub Copilot Chat with specialized CALM tools that understand schema requirements, validation rules, and best practices.
+This will create the necessary IDE-specific configuration files to enable CALM-specific AI assistance. Once set up, you can use GitHub Copilot Chat with specialized CALM tools that understand schema requirements, validation rules, and best practices.
 
 ### Tool Prompts
 
-The chatmode includes specialized tools for each CALM component:
+The agent includes specialized tools for each CALM component:
 
 - **Node Creation**: Guide for creating nodes with proper validation and interface definitions
 - **Relationship Creation**: Guide for creating relationships with correct types and constraints
@@ -313,6 +319,8 @@ The chatmode includes specialized tools for each CALM component:
 - **Standards Creation**: Guide for creating JSON Schema 2020-12 Standards that extend CALM components with organizational requirements
 
 Each tool includes complete schema definitions, validation rules, realistic examples, and cross-references to related tools.
+
+
 
 ## CALM Template
 
@@ -381,6 +389,7 @@ Options:
   -a, --architecture <path>               Path to the CALM model JSON file.
   -o, --output <path>                     Path to output directory.
       --clear-output-directory            Completely delete the contents of the output path before generation.
+      --scaffold                          Generate scaffold only (templates with placeholders, no rendering).
   -t, --template <path>                   Path to a single .hbs or .md template file
   -d, --template-dir <path>               Path to a directory of .hbs/.md templates
   -u, --url-to-local-file-mapping <path>  Path to mapping file which maps URLs to local paths.
@@ -395,8 +404,44 @@ exist. Other files will be unmodified.
 The `--clear-output-directory` option changes this behaviour to delete all
 files and subdirectories from the output path first.
 
+### Two-Stage Workflow (Scaffold Mode)
+
+Scaffold mode enables a two-stage documentation workflow where you can review and edit generated templates before final rendering:
+
+```shell
+# Stage 1: Generate scaffold with widget placeholders
+calm docify --scaffold -a ./architecture.json -o ./website
+
+# Edit generated MDX files in ./website/docs/ as needed
+
+# Stage 2: Render final website from scaffolded templates
+calm docify -a ./architecture.json --template-dir ./website -o ./final-site
+```
+
+This allows architects to customize the documentation before deployment, ensuring that what's previewed in the VSCode extension matches the final output.
+
+### Single-Stage Workflow
+
 Sample usage for you to try is as follows (assuming at root of project)
 
 ```shell
 calm docify -a ./cli/test_fixtures/template/model/document-system.json -o ./output/documentation -u ./cli/test_fixtures/template/model/url-to-file-directory.json
 ```
+
+### Default options for widgets in templates
+
+Frontmatter can be used in templates to provide default options for any widgets used:
+
+```
+---
+widget-options:
+  block-architecture:
+    render-node-type-shapes: true
+---
+These two are the same:
+{{ block-architecture }}
+and
+{{ block-architecture render-node-type-shapes=true }}
+
+This differs:
+{{ block-architecture render-node-type-shapes=false }}

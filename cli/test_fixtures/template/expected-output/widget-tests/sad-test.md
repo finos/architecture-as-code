@@ -1,12 +1,26 @@
+---
+architecture: ../../../getting-started/STEP-3/conference-signup-with-flow.arch.json
+url-to-local-file-mapping: ../../../getting-started/url-to-local-file-mapping.json
+---
 # Conference Registration System - Solution Architecture
 
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": false}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', sans-serif
+    darkMode: false
+    fontSize: 14px
+    edgeLabelBackground: '#d5d7e1'
+    lineColor: '#000000'
+---
+%%{init: {"layout": "elk", "flowchart": {"htmlLabels": false}}}%%
 flowchart TB
-classDef boundary fill:#f8fafc,stroke:#64748b,stroke-dasharray: 5 4,stroke-width:2px,color:#000;
-classDef node fill:#ffffff,stroke:#1f2937,stroke-width:1px,color:#000;
-classDef iface fill:#f1f5f9,stroke:#64748b,stroke-width:1px,font-size:10px,color:#000;
-classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
+classDef boundary fill:#e1e4f0,stroke:#204485,stroke-dasharray: 5 4,stroke-width:1px,color:#000000;
+classDef node fill:#eef1ff,stroke:#007dff,stroke-width:1px,color:#000000;
+classDef iface fill:#f0f0f0,stroke:#b6b6b6,stroke-width:1px,font-size:10px,color:#000000;
+classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
 
         subgraph k8s-cluster["Kubernetes Cluster"]
         direction TB
@@ -928,8 +942,8 @@ The system follows a microservices architecture pattern deployed on Kubernetes, 
                                                         <tr>
                                                             <td><b>Nodes</b></td>
                                                             <td>
-                                                                load-balancer
-                                                                attendees
+                                                                load-balancer, 
+                                                                attendees, 
                                                                 attendees-store
                                                             </td>
                                                         </tr>

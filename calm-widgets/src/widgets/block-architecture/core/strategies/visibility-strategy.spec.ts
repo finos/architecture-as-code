@@ -11,7 +11,9 @@ const baseOpts: NormalizedOptions = {
     renderInterfaces: false,
     renderNodeTypeShapes: false,
     edgeLabels: 'description',
-    collapseRelationships: false
+    collapseRelationships: false,
+    theme: 'light',
+    layoutEngine: 'elk',
 };
 
 const emptyContext: CalmCoreCanonicalModel = { nodes: [], relationships: [] };

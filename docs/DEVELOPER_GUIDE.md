@@ -25,3 +25,13 @@ The [OWASP dependency check tool](https://jeremylong.github.io/DependencyCheck/)
 To use the dependency check tool locally, first install the tool following the instructions for your operating system [here](https://jeremylong.github.io/DependencyCheck/dependency-check-cli/index.html).
 
 Once that is done the tool is configured as a script in the package.json, run `npm run dependency-check`; the reports will be output to `cli/dependency-check-report`.
+
+## Search Configuration
+
+The documentation uses [Algolia DocSearch](https://docsearch.algolia.com/) for full-text search.
+
+To configure search locally or for production:
+1. Apply for DocSearch at https://docsearch.algolia.com/apply
+2. Once approved, Algolia will provide an `appId` and `apiKey`
+3. Update `docusaurus.config.js` with these credentials
+4. The crawler configuration is managed by Algolia, but runs weekly to index the content

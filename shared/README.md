@@ -40,3 +40,27 @@ spectral lint --ruleset ./shared/dist/spectral/rules-architecture.js ./shared/sp
 
 ## Learn more
 See the [Spectral documentation](https://docs.stoplight.io/docs/spectral/674b27b261c3c-overview) for more information on how to configure the Spectral rules.
+
+# Template bundles
+## Widget Options
+
+To pass default options to widgets in a template bundle, e.g. `docify/template-bundles/docusaurus`,
+add something like the following to `index.json`:
+
+```
+    {
+      "template": "index.md.hbs",
+      "from": "document",
+      "output": "docs/index.md",
+      "output-type": "single"
+      "front-matter": {
+        "widgetOptions": {
+          "block-architecture": {
+            "theme": "light"
+          }
+        }
+      }
+    },
+```
+
+This will pass the option `theme` to all `block-architecture` widgets in `index.md.hbs`

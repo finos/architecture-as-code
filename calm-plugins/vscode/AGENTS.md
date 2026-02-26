@@ -14,19 +14,22 @@ This guide helps AI assistants work efficiently with the CALM VSCode extension c
 
 ## Key Commands
 
+**IMPORTANT**: Always run npm commands from the **repository root** using workspaces, not from within this package directory.
+
 ```bash
-# Development
-npm run build          # Build extension
-npm run watch          # Watch mode (no auto-reload in VSCode)
-npm test               # Run Vitest tests
-npm run lint           # ESLint check
-npm run lint-fix       # Auto-fix linting issues
-npm run package        # Create .vsix package for distribution
+# Development (from repository root)
+npm run build --workspace calm-plugins/vscode          # Build extension
+npm run watch --workspace calm-plugins/vscode          # Watch mode (no auto-reload in VSCode)
+npm test --workspace calm-plugins/vscode               # Run Vitest tests
+npm run lint --workspace calm-plugins/vscode           # ESLint check
+npm run lint-fix --workspace calm-plugins/vscode       # Auto-fix linting issues
+npm run package --workspace calm-plugins/vscode        # Create .vsix package for distribution
 
 # Testing Extension in VSCode
-# 1. Open calm-plugins/vscode/ folder in VSCode (File → Open Folder)
-# 2. Press F5 (or Run → Start Debugging) to launch Extension Development Host
-# 3. In the new Extension Development Host window, open a CALM JSON file to activate extension
+# 1. Open the repository root in VSCode (File → Open Folder)
+# 2. Use the "calm-plugin: watch" task or run: npm run watch --workspace calm-plugins/vscode
+# 3. Press F5 (or Run → Start Debugging) to launch Extension Development Host
+# 4. In the new Extension Development Host window, open a CALM JSON file to activate extension
 ```
 
 ## Architecture Overview
@@ -60,7 +63,7 @@ src/
 │
 ├── core/                           # Framework-free business logic
 │   ├── ports/                      # Interfaces for dependency inversion
-│   ├── services/                   # Core services (refresh, selection, watch)
+│   ├── services/                   # Core services (refresh, selection, watch, navigation)
 │   ├── mediators/                  # Cross-cutting coordinators
 │   └── emitter.ts                 # Event system (framework-free)
 │
@@ -166,6 +169,11 @@ export class StoreReactionMediator {
 }
 ```
 
+### Navigation Service
+- **Purpose**: Handles navigation between CALM documents via `detailed-architecture` references.
+- **Key Logic**: Uses `DocumentLoader` from `@finos/calm-shared` to resolve URLs/relative paths to local files based on `calm.urlMapping`.
+- **Integration**: Called by `SelectionService` when a node with details is clicked.
+
 ### Features
 
 #### Tree View
@@ -174,6 +182,19 @@ export class StoreReactionMediator {
 - **Key Files**:
   - `tree-data-provider.ts` - VSCode TreeDataProvider
   - `view-model/tree-view-model.ts` - Business logic (framework-free)
+
+#### Validation Service
+- **Purpose**: Real-time CALM document validation with Problems panel integration
+- **Location**: `src/features/validation/`
+- **Key Files**:
+  - `validation-service.ts` - Main service, handles document events and diagnostics
+  - `validation-service.spec.ts` - Unit tests
+- **Behavior**:
+  - Validates on document open, save, and editor activation
+  - Clears diagnostics when editor tab is closed
+  - Uses content-based detection (checks `$schema` field for known CALM schemas)
+  - Produces precise line numbers for error positioning using shared enrichment logic
+- **Dependencies**: Uses `runValidation`, `enrichWithDocumentPositions` from `@finos/calm-shared`
 
 #### Webview Preview
 - **Purpose**: Multi-tab preview (Model, Docify, Template)
@@ -196,9 +217,10 @@ export class StoreReactionMediator {
 
 ### Running Tests
 ```bash
-npm test              # All tests
-npm test -- --watch   # Watch mode
-npm test -- <file>    # Specific test file
+# From repository root (preferred)
+npm test --workspace calm-plugins/vscode              # All tests
+npm test --workspace calm-plugins/vscode -- --watch   # Watch mode
+npm test --workspace calm-plugins/vscode -- <file>    # Specific test file
 ```
 
 ### Testing ViewModels
@@ -314,9 +336,35 @@ vscode-plugin depends on:
 
 **Important**: Build dependencies first:
 ```bash
-# From root
+# From repository root (always use workspaces)
 npm run build:shared    # Builds models, widgets, shared
+# Or build individual packages:
+npm run build --workspace calm-models
+npm run build --workspace calm-widgets
+npm run build --workspace shared
 ```
+
+## Bundled CALM Schemas
+
+The extension bundles CALM schemas from the `calm/` directory at the repository root. This allows validation to work without network access.
+
+### Build Process
+The `postbuild` script (`scripts/copy-calm-schemas.js`) copies schemas from:
+- `calm/release/*/meta/*.json` → `dist/calm/release/*/meta/`
+- `calm/draft/*/meta/*.json` → `dist/calm/draft/*/meta/`
+
+Schemas are indexed by their `$id` field for lookup when validating documents.
+
+### Schema Registry
+`CalmSchemaRegistry` (`src/core/services/calm-schema-registry.ts`) manages schema discovery:
+- Loads bundled schemas from `dist/calm/`
+- Loads additional schemas from folders configured in `calm.schemas.additionalFolders`
+- Provides `isKnownCalmSchema(url)` to check if a schema URL is available locally
+
+### Adding New Schema Versions
+When new CALM schema versions are released:
+1. Add the schema files to `calm/{release|draft}/{version}/meta/`
+2. Rebuild the extension - schemas are automatically copied and indexed
 
 ## Common Pitfalls
 
@@ -326,6 +374,7 @@ npm run build:shared    # Builds models, widgets, shared
 4. **Extension Not Activating**: Check `activationEvents` in package.json
 5. **Webview Not Updating**: Remember to postMessage from webview to extension
 6. **toCanonicalSchema adds undefined values**: When using `toCanonicalSchema()` from calm-models, ALL optional properties are added with `undefined` values. Code checking for property existence must check for truthy values, not just key existence. See [calm-widgets/AGENTS.md](../../calm-widgets/AGENTS.md) for details.
+7. **URL Mapping**: To test multi-document navigation, you likely need to configure `calm.urlMapping` in `.vscode/settings.json` to point to a mapping file (e.g. `calm-mapping.json`) in the workspace root.
 
 ## Debugging
 
@@ -352,7 +401,8 @@ npm run build:shared    # Builds models, widgets, shared
 ## Publishing
 
 ```bash
-npm run package        # Creates .vsix file
+# From repository root
+npm run package --workspace calm-plugins/vscode        # Creates .vsix file
 # Then publish to VS Code Marketplace via GitHub Actions
 ```
 

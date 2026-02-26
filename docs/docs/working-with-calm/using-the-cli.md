@@ -24,19 +24,19 @@ Usage: calm [options] [command]
 A set of tools for interacting with the Common Architecture Language Model (CALM)
 
 Options:
-  -V, --version       output the version number
-  -h, --help          display help for command
+  -V, --version               output the version number
+  -h, --help                  display help for command
 
 Commands:
   generate [options]          Generate an architecture from a CALM pattern file.
   validate [options]          Validate that an architecture conforms to a given CALM pattern.
-  copilot-chatmode [options]  Augment a git repository with a CALM VSCode chatmode for AI assistance.
   server [options]            Start a HTTP server to proxy CLI commands. (experimental)
-  template [options]          Generate files from a CALM model using a Handlebars template bundle
-  docify [options]            Generate a documentation website off your CALM model
+  template [options]          Generate files from a CALM model using a template bundle, a single file, or a directory of templates
+  docify [options]            Generate a documentation website from your CALM model using a template or template directory
+  init-ai [options]           Augment a git repository with AI assistance for CALM
   help [command]              display help for command
-```
+  ```
 
 ## AI-Powered Development
 
-CALM CLI includes AI-powered development assistance through the `copilot-chatmode` command. This feature integrates with VS Code and GitHub Copilot to provide intelligent help with architecture modeling. Learn more in the [CALM Copilot Chatmode](copilot-chatmode) section.
+CALM CLI includes AI-powered development assistance through the `init-ai` command. This feature integrates with various IDEs and Coding Assistants to provide intelligent help with architecture modeling. Learn more in the [CALM AI Tools](calm-ai-tools) section.

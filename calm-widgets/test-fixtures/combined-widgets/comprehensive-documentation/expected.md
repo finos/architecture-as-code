@@ -184,8 +184,8 @@
                         <tr>
                             <td><b>Value</b></td>
                             <td>
-                                Product Catalog
-                                Inventory Management
+                                Product Catalog, 
+                                Inventory Management, 
                                 Price Calculation
                             </td>
                         </tr>
@@ -347,8 +347,8 @@
                         <tr>
                             <td><b>Value</b></td>
                             <td>
-                                Order Processing
-                                Payment Integration
+                                Order Processing, 
+                                Payment Integration, 
                                 Order Tracking
                             </td>
                         </tr>

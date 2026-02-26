@@ -4,16 +4,18 @@ title: Voice Mode
 sidebar_position: 7
 ---
 
-# Voice Mode with CALM Copilot Chat
+# Voice Mode with CALM AI Tools
 
 Voice Mode enables hands-free interaction with CALM Copilot Chat, allowing you to speak architecture queries and receive spoken responses directly in the chat interface.
+
+As of this Voice Mode is supported only in VSCode with Github Copilot.  The remainder of this document assumes this setup.
 
 ## Getting Started
 
 ### Prerequisites
 
-- **VS Code**: Version 1.94 or later
-- **CALM Copilot Chatmode**: Configured in your repository (see [CALM Copilot Chatmode](copilot-chatmode))
+- **VS Code**: Version 1.106+
+- **CALM Copilot Agent**: Configured in your repository (see [CALM AI Tools](calm-ai-tools))
 - **GitHub Copilot Chat**: Active subscription and extension installed
 - **Microphone**: A working microphone
 
@@ -47,7 +49,7 @@ Voice Mode enables hands-free interaction with CALM Copilot Chat, allowing you t
 ### Starting a Voice Query
 
 1. Open GitHub Copilot Chat (Ctrl+Shift+I or Cmd+Shift+I)
-2. Select the **CALM** chatmode
+2. Select the **CALM** agent
 3. Click the microphone icon in the chat input field or press Ctrl+I (Windows/Linux) / Cmd+I (macOS)
 4. Speak your query clearly
 5. The response will appear as you finish speaking (auto-submit after ~1.2 seconds of silence)
@@ -59,7 +61,7 @@ Say **"Hey Code"** to activate voice input without clicking anything (requires `
 
 ### Example Queries
 
-Speak naturally and clearly. Here are examples of how you can use CALM Chatmode via voice:
+Speak naturally and clearly. Here are examples of how you can use CALM Agent via voice:
 
 **Building Your Architecture:**
 

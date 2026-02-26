@@ -20,6 +20,11 @@ To update the CALM CLI to the latest version, run:
 npm install -g @finos/calm-cli
 ```
 
+or if you use [Homebrew](https://brew.sh):
+```shell
+brew install calm-cli
+```
+
 This will fetch and install the latest release from npm. We recommend doing this regularly, especially if you encounter any issues or want to use new features.
 
 ### Verify the Update
@@ -58,39 +63,39 @@ If auto-update is disabled, you can manually update:
 3. Click the gear icon and select "Check for Updates"
 4. Click "Update" if available
 
-## CALM Copilot Chatmode
+## CALM Copilot Agent
 
-The CALM Copilot Chatmode enhances GitHub Copilot with deep knowledge of the CALM specification, making it an expert assistant for architecture authoring.
+The CALM Copilot Agent enhances GitHub Copilot with deep knowledge of the CALM specification, making it an expert assistant for architecture authoring.
 
-### What is a Chatmode?
+### What is an Agent?
 
-Chatmodes are specialized configurations for GitHub Copilot Chat that provide domain-specific expertise. The CALM chatmode includes:
+Agents are specialized configurations for GitHub Copilot Chat that provide domain-specific expertise. The CALM agent includes:
 - Complete CALM schema knowledge
 - Best practices for architecture modeling
 - Examples and patterns
 
-### Install or Update the Chatmode
+### Install or Update the Agent
 
-Use the CALM CLI to install or update the chatmode:
+Use the CALM CLI to install or update the agent:
 
 ```bash
-calm copilot-chatmode
+calm init-ai -p copilot
 ```
 
 This command will:
 - Create or update `.github/copilot-instructions.md` in your repository
-- Download the latest chatmode configuration from the CALM project
+- Download the latest agent configuration from the CALM project
 - Ensure you have the most up-to-date CALM expertise for Copilot
 
 ### Apply the Update
 
-After installing or updating the chatmode:
+After installing or updating the agent:
 
 1. **Start a new Copilot Chat session** in VS Code
    - Close any existing chat panels
    - Open a fresh chat session (click the Copilot chat icon or use `Cmd+Shift+I` / `Ctrl+Shift+I`)
 
-2. The updated chatmode will be active in your new chat session
+2. The updated agent will be active in your new chat session
 
 **Note:** You don't need to restart VS Code - just start a new chat session!
 
@@ -123,12 +128,12 @@ If the extension isn't working properly:
 3. Uninstall and reinstall the extension
 4. Check the Output panel (View → Output → select "CALM" from dropdown)
 
-### Chatmode Issues
+### Agent Issues
 
-If Copilot doesn't seem to be using the chatmode:
+If Copilot doesn't seem to be using the agent:
 
-1. Verify `.github/copilot-instructions.md` exists in your repository root
-2. Run `calm copilot-chatmode` to ensure it's up to date
+1. Verify `.github/agents/CALM.agent.md` exists in your repository root
+2. Run `calm init-ai` to ensure it's up to date
 3. Start a completely new chat session (close and reopen)
 4. Ensure GitHub Copilot is active (check status bar)
 5. Make sure you're chatting from within your repository directory

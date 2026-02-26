@@ -10,13 +10,18 @@ Install globally via npm:
 npm install -g @finos/calm-cli
 ```
 
+or if you use [Homebrew](https://brew.sh):
+```shell
+brew install calm-cli
+```
+
 Run `calm` with no arguments to see the top-level help:
 
 ```shell
 calm
 ```
 
-This displays available commands such as `generate`, `validate`, `copilot-chatmode`, `server`, `template`, and `docify`.
+This displays available commands such as `generate`, `validate`, `init-ai`, `server`, `template`, and `docify`.
 
 ## Generate Architectures from Patterns
 
@@ -117,15 +122,17 @@ calm validate -a my-arch.json --strict -f pretty
 calm validate -p pattern.json -a arch.json -f junit -o results.xml
 ```
 
-## Copilot Chatmode Setup
+## AI Assistant Provider Setup
 
 Configure CALM-specific AI assistance inside a repo:
 
 ```shell
-calm copilot-chatmode [--directory <path>] [--verbose]
+calm init-ai -p <provider> [--directory <path>] [--verbose]
 ```
 
-This generates `.github/chatmodes/CALM.chatmode.md`, enabling GitHub Copilot Chat to use CALM-aware tools (nodes, relationships, interfaces, controls, flows, patterns, metadata).
+At present Github Copilot (`copilot`), AWS Kiro (`kiro`), and Claude Code (`claude`) are supported as providers.
+
+This generates custom prompts for the specified <provider> to use CALM-aware tools (nodes, relationships, interfaces, controls, flows, patterns, metadata).
 
 ## CLI Server (Experimental)
 
@@ -202,4 +209,4 @@ calm docify -a architecture.json -o docs/ --url-to-local-file-mapping url-mappin
 - Keep schema files accessible via `--schema-directory` for offline use.
 - Use `calm generate` + `calm validate` workflow to quickly iterate on architectures.
 - Leverage warnings to replace placeholder values before production.
-- Combine `calm copilot-chatmode` with VS Code for CALM-aware AI assistance.
+- Combine `calm init-ai` with VS Code for CALM-aware AI assistance.

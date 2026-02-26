@@ -1,5 +1,22 @@
 # FINOS CALM Monorepo - AI Assistant Guide
 
+## Sandbox Folder for Working Files
+
+**IMPORTANT:** Use the `/sandbox/` folder for all temporary working files, test outputs, notes, and drafts.
+
+- The `sandbox/` folder is in `.gitignore` and will not be committed
+- Store test plans, results, TODO lists, and exploration notes here
+- Do NOT create working files in other directories (they may accidentally be committed)
+- Clean up the sandbox when work is complete if appropriate
+
+```bash
+# Example: Create working files in sandbox
+mkdir -p sandbox
+echo "My notes" > sandbox/my-notes.md
+```
+
+---
+
 ## Project Overview
 
 This is the **FINOS Architecture as Code** monorepo containing the Common Architecture Language Model (CALM) specification and associated tools.
@@ -16,7 +33,7 @@ architecture-as-code/
 ├── calm-plugins/vscode/       # VSCode extension
 ├── calm-models/               # TypeScript data models
 ├── calm-widgets/              # React visualization components
-├── calm-ai/                   # AI chatmode tools & prompts
+├── calm-ai/                   # AI agent tools & prompts
 ├── shared/                    # Shared TypeScript utilities
 ├── docs/                      # Docusaurus documentation site
 ├── advent-of-calm/            # Educational content (24-day challenge)
@@ -43,6 +60,24 @@ architecture-as-code/
 - Docusaurus for main docs
 - Astro for advent-of-calm website
 
+## Node Version Requirements
+
+**CRITICAL**: This project targets **Node 22** as its CI baseline. All CI workflows run on Node 22, and lockfiles must be compatible with Node 22.
+
+The `engines` field in `package.json` (`^22.14.0 || >=24.10.0`) also permits Node 24+ for local development, but **Node 22 is the canonical version** used to validate builds and tests.
+
+- **`.nvmrc`** pins `22.14.0` — run `nvm use` to switch automatically
+- **`.npmrc`** has `engine-strict=true` — `npm install` will refuse to run on Node versions outside the `engines` range (e.g. Node 18, 20, or 23)
+- **`@types/node`** is overridden to `^22.0.0` in root `package.json` to prevent transitive dependencies from pulling in a different major version
+- **Renovate** is configured with `allowedVersions: "<23.0.0"` for `@types/node`
+
+### Why this matters
+
+Running `npm install` on a different Node major version (e.g. Node 25) causes:
+1. **Native binding failures** — platform-specific packages (`@swc/core`, `@tailwindcss/oxide`) resolve for the wrong Node ABI, breaking CI builds
+2. **`@types/node` version drift** — transitive deps with loose constraints (`>=18`, `*`) allow `@types/node@25` to be hoisted to root, masking usage of APIs unavailable in Node 22
+3. **Noisy lockfile diffs** — Renovate's `npmDedupe` recalculates the dependency tree, producing large spurious changes
+
 ## Quick Navigation
 
 ### Package-Specific Guides
@@ -64,25 +99,32 @@ Open the package-specific AGENTS.md when:
 
 ## Key Commands
 
+**IMPORTANT**: Always run npm commands from the **repository root** using workspaces, not from within individual package directories.
+
 ```bash
 # Root-level commands (npm workspaces)
 npm run build              # Build all TypeScript workspaces
-npm run test               # Test all TypeScript workspaces
+npm test                   # Test all TypeScript workspaces
 npm run lint               # Lint all workspaces
 npm run build:cli          # Build CLI and dependencies
 npm run build:shared       # Build shared packages
+
+# Package-specific builds (from root using workspaces)
+npm run build --workspace cli
+npm run build --workspace calm-widgets
+npm run build --workspace shared
+npm run build --workspace calm-plugins/vscode
 
 # Root-level Maven reactor build
 ./mvnw clean install       # Build all Maven modules (mainly calm-hub)
 ./mvnw test                # Test all Maven modules (mainly calm-hub)
 
-# Testing specific packages (from root)
-npm run test:cli           # Test CLI only
-npm run test:shared        # Test shared packages
-npm run test:vscode        # Test VSCode extension
-npm run test:models        # Test calm-models
-npm run test:calm-widgets  # Test calm-widgets
-
+# Testing specific packages (from root using workspaces)
+npm test --workspace cli              # Test CLI only
+npm test --workspace shared  # Test shared packages
+npm test --workspace calm-plugins/vscode # Test VSCode extension
+npm test --workspace calm-models      # Test calm-models
+npm test --workspace calm-widgets     # Test calm-widgets
 # Java/Maven (calm-hub specific)
 cd calm-hub
 ../mvnw quarkus:dev        # Development mode with hot reload
@@ -92,6 +134,11 @@ cd calm-hub
 # CLI (from root)
 npm run link:cli           # Link CLI globally for testing
 calm --version             # Test CLI
+
+# Watch modes (from root)
+npm run watch --workspace cli                  # Watch CLI
+npm run watch --workspace calm-plugins/vscode  # Watch VSCode extension
+npm run watch --workspace calm-widgets         # Watch widgets
 
 # Advent of CALM website
 cd advent-of-calm/website
@@ -119,16 +166,18 @@ Maven modules (reactor build):
 
 ### Working on the CLI
 ```bash
+# From repository root
 npm run build:cli          # Builds models, widgets, shared, cli
 npm run link:cli           # Link globally
 calm --version             # Verify
+npm test --workspace cli   # Run CLI tests
 ```
 
 ### Working on VSCode Extension
 ```bash
+# From repository root
 npm run build:shared       # Build dependencies
-cd calm-plugins/vscode
-npm run watch              # Watch mode
+npm run watch --workspace calm-plugins/vscode  # Watch mode
 # Press F5 in VSCode to debug
 ```
 
@@ -155,20 +204,27 @@ npm run dev                # Test in browser
 2. **All new code must have tests** (unit and/or integration)
 3. **Run linting** (see Linting section below)
 
+**IMPORTANT**: All workspaces use `vitest run` for the test script, which runs tests once and exits.
+Do NOT use `vitest` without `run` as it enters watch mode and will hang indefinitely.
+
+**IMPORTANT FOR SHARED PACKAGE**:
+If you modify the `shared` package, you **MUST** run tests for **ALL** workspaces (`npm run test`) because `shared` is a dependency for CLI, VSCode extension, and other packages. Changes in `shared` can break downstream consumers.
+
 ```bash
 # Run ALL tests with coverage (required before committing)
 npm test -- --coverage      # TypeScript packages with coverage
 cd calm-hub && ../mvnw verify  # Java tests with coverage (JaCoCo enabled by default)
 
 # Quick test runs (without coverage reports)
-npm test                    # TypeScript packages
+npm test                    # TypeScript packages (runs vitest run in each workspace)
 cd calm-hub && ../mvnw test # Java unit tests (still collects coverage data)
 
-# Package-specific tests
+# Package-specific tests (from repository root using workspaces)
 npm test --workspace cli
 npm test --workspace calm-plugins/vscode
-npm run test:cli            # With dependencies built
-npm run test:shared         # With dependencies built
+npm test --workspace shared
+npm test --workspace calm-widgets
+npm test --workspace calm-models
 
 # Java integration tests (requires Docker)
 cd calm-hub && ../mvnw -P integration verify
@@ -291,6 +347,8 @@ Before considering any code change ready:
 - **API Docs**: Generated from code (Swagger for calm-hub)
 
 ## Contributing
+
+**CRITICAL:** Always create a feature branch for your changes and submit a pull request. Never commit directly to the main branch—direct commits will be rejected.
 
 1. **Fork the repository**
 2. **Create a feature branch** with descriptive name (e.g., `feat/add-caching`, `fix/mongodb-timeout`)

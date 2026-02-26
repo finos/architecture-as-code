@@ -301,4 +301,4 @@ git tag | grep -q "day-15"
 
 ## Next Steps
 
-Tomorrow (Day 16) you'll use docify to generate operations documentation - runbooks, on-call guides, and incident report templates from your architecture metadata! This shows how the CALM Chatmode and documentation capabilities of CALM all work from the same source of truth, your CALM architecture! 
+Tomorrow (Day 16) you'll use docify to generate operations documentation - runbooks, on-call guides, and incident report templates from your architecture metadata! This shows how the CALM Agent and documentation capabilities of CALM all work from the same source of truth, your CALM architecture! 

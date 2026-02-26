@@ -22,6 +22,7 @@ If the architecture does not match the pattern, the command will output a list o
 
 - **`-p, --pattern <pattern>`**: Path to the pattern file. This can be a local file path or a URL.
 - **`-a, --architecture <architecture>`**: Path to the architecture file to validate.
+- **`    --timeline <timeline>`**: Path to the timeline file to validate.
 - **`-s, --schema-directory <path>`**: Path to the directory containing the meta schemas to use.
 - **`-c, --calm-hub-url <url>`**: URL to CALMHub instance.
 - **`-u, --url-to-local-file-mapping <path>`**: Path to a JSON file that maps URLs to local file paths (see [URL Mapping](#url-to-local-file-mapping) below).
@@ -30,7 +31,7 @@ If the architecture does not match the pattern, the command will output a list o
 - **`-o, --output <file>`**: Path location at which to output the validation results.
 - **`-v, --verbose`**: Enable verbose logging to see detailed validation output.
 
-## Example of Validation
+## Example of Architecture Validation
 
 Here is an example command that validates an architecture against a pattern and outputs the results in JSON format:
 
@@ -39,6 +40,16 @@ calm validate -p calm/pattern/api-pattern.json -a my-architecture.json -f json
 ```
 
 This command will check if `my-architecture.json` conforms to the `api-pattern.json` and display any validation errors or warnings.
+
+## Example of Timeline Validation
+
+Here is an example command that validates a timeline and outputs the results in JSON format:
+
+```shell
+calm validate --timeline calm/architecture/calm.timeline.json -f json
+```
+
+This command will check if `calm.timeline.json` conforms to the timeline schema and display any validation errors or warnings.
 
 ## URL to Local File Mapping
 

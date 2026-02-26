@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { TemplateBundleFileLoader, SelfProvidedTemplateLoader, SelfProvidedDirectoryTemplateLoader} from './template-bundle-file-loader';
+import { TemplateBundleFileLoader, SelfProvidedTemplateLoader, SelfProvidedDirectoryTemplateLoader } from './template-bundle-file-loader';
 import { IndexFile } from './types';
 import { Mock } from 'vitest';
 
@@ -129,12 +129,107 @@ describe('SelfProvidedTemplateLoader', () => {
     });
 });
 
+describe('SelfProvidedTemplateLoaderFrontmatter', () => {
+    const templatePath = '/mock/single/template.md';
+    const templateContent = `---
+widget-options:
+    a-widget:
+        option1: true
+---
+# Hello {{ name }}`;
+    const outputPath = '/mock/output/output.md';
+
+    beforeEach(() => {
+        vi.resetAllMocks();
+        (fs.readFileSync as Mock).mockReturnValue(templateContent);
+        (fs.existsSync as Mock).mockReturnValue(true);
+        (fs.statSync as Mock).mockReturnValue({ isDirectory: () => false });
+    });
+
+    it('should load a single template and default output file correctly', () => {
+        const loader = new SelfProvidedTemplateLoader(templatePath, outputPath);
+
+        expect(loader.getTemplateFiles()).toEqual({
+            'template.md': templateContent,
+        });
+
+        expect(loader.getConfig()).toEqual({
+            name: 'Self Provided Template',
+            templates: [{
+                template: 'template.md',
+                from: 'document',
+                output: 'output.md',
+                'output-type': 'single',
+                'front-matter': {
+                    widgetOptions: {
+                        'a-widget': {
+                            option1: true
+                        }
+                    }
+                }
+            }]
+        });
+    });
+});
+
+describe('SelfProvidedTemplateLoaderFrontmatterNull', () => {
+    const templatePath = '/mock/single/template.md';
+    const templateContent = `---
+name: Test Document
+widget-options:
+---
+# Hello {{ name }}`;
+    const outputPath = '/mock/output/output.md';
+
+    beforeEach(() => {
+        vi.resetAllMocks();
+        (fs.readFileSync as Mock).mockReturnValue(templateContent);
+        (fs.existsSync as Mock).mockReturnValue(true);
+        (fs.statSync as Mock).mockReturnValue({ isDirectory: () => false });
+    });
+
+    it('should load a single template and default output file correctly', () => {
+        const loader = new SelfProvidedTemplateLoader(templatePath, outputPath);
+
+        expect(loader.getTemplateFiles()).toEqual({
+            'template.md': templateContent,
+        });
+
+        expect(loader.getConfig()).toEqual({
+            name: 'Self Provided Template',
+            templates: [{
+                template: 'template.md',
+                from: 'document',
+                output: 'output.md',
+                'output-type': 'single',
+                'front-matter': {
+                    variables: {
+                        name: 'Test Document'
+                    }
+                }
+            }]
+        });
+    });
+});
+
 describe('SelfProvidedDirectoryTemplateLoader', () => {
     const templateDir = '/mock/templates';
-    const files = ['doc1.md', 'doc2.hbs', 'readme.txt'];
+    const files = ['doc1.md', 'doc2.hbs', 'doc3.md', 'readme.txt'];
     const fileContents = {
-        'doc1.md': '# Markdown template',
+        'doc1.md': `---
+name: Sample Document
+widget-options:
+    sample-widget:
+        enabled: false
+---
+# Markdown template`,
         'doc2.hbs': '{{data}} handlebars template',
+        'doc3.md': `---
+widget-options:
+    sample-widget:
+        enabled: false
+---
+# Markdown template`,
         'readme.txt': ''
     };
 
@@ -147,15 +242,28 @@ describe('SelfProvidedDirectoryTemplateLoader', () => {
             return fileContents[fileName] || '';
         });
         (fs.existsSync as Mock).mockReturnValue(true);
-        (fs.statSync as Mock).mockReturnValue({ isDirectory: () => true });
+        // Files should return isDirectory: false to prevent infinite recursion
+        (fs.statSync as Mock).mockReturnValue({ isDirectory: () => false });
     });
 
     it('should load all .md and .hbs files and build config entries', () => {
         const loader = new SelfProvidedDirectoryTemplateLoader(templateDir);
 
         expect(loader.getTemplateFiles()).toEqual({
-            'doc1.md': '# Markdown template',
+            'doc1.md': `---
+name: Sample Document
+widget-options:
+    sample-widget:
+        enabled: false
+---
+# Markdown template`,
             'doc2.hbs': '{{data}} handlebars template',
+            'doc3.md': `---
+widget-options:
+    sample-widget:
+        enabled: false
+---
+# Markdown template`,
             'readme.txt': ''
         });
 
@@ -166,13 +274,36 @@ describe('SelfProvidedDirectoryTemplateLoader', () => {
                     template: 'doc1.md',
                     from: 'document',
                     output: 'doc1.md',
-                    'output-type': 'single'
+                    'output-type': 'single',
+                    'front-matter': {
+                        variables: {
+                            name: 'Sample Document'
+                        },
+                        widgetOptions: {
+                            'sample-widget': {
+                                enabled: false
+                            }
+                        }
+                    }
                 },
                 {
                     template: 'doc2.hbs',
                     from: 'document',
                     output: 'doc2.hbs',
                     'output-type': 'single'
+                },
+                {
+                    template: 'doc3.md',
+                    from: 'document',
+                    output: 'doc3.md',
+                    'output-type': 'single',
+                    'front-matter': {
+                        widgetOptions: {
+                            'sample-widget': {
+                                enabled: false
+                            }
+                        }
+                    }
                 },
                 {
                     template: 'readme.txt',

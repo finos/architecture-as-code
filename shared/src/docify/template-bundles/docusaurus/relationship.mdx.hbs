@@ -1,39 +1,27 @@
 ---
-id: {{id}}
-title: {{kebabToTitleCase id}}
+id: "{{relationship-id}}"
+title: "{{kebabToTitleCase relationship-id}}"
 ---
 
+# {{kebabToTitleCase relationship-id}}
+
 ## Details
-<div className="table-container">
-| Field               | Value                    |
-|---------------------|--------------------------|
-| **Unique ID**       | {{uniqueId}}                   |
-| **Description**      |  {{description}}   |
-</div>
+{{table _architecture.relationships["{{relationship-id}}"] orientation="vertical" columns="unique-id,description,protocol"}}
 
 ## Related Nodes
-```mermaid
-graph TD;
-{{#if (eq relationshipType.kind "interacts")}}
-{{#each relationshipType.nodes}}
-{{../relationshipType.actor}} -- Interacts --> {{this}};
-{{/each}}
-{{else if (eq relationshipType.kind "connects")}}
-{{relationshipType.source.node}} -- Connects --> {{relationshipType.destination.node}};
-{{else if (eq relationshipType.kind "composed-of")}}
-{{#each relationshipType.nodes}}
-{{../relationshipType.container}} -- Composed Of --> {{this}};
-{{/each}}
-{{else if (eq relationshipType.kind "deployed-in")}}
-{{#each relationshipType.nodes}}
-{{../relationshipType.container}} -- Deployed In --> {{this}};
-{{/each}}
-{{/if}}
-
-```
+{{related-nodes _architecture relationship-id="{{relationship-id}}"}}
 
 ## Controls
-{{> controls.hbs}}
+{{#each _architecture.relationships["{{relationship-id}}"].controls}}
+### {{kebabToTitleCase @key}}
+
+{{this.description}}
+
+{{table this.requirements key="control-id" empty-message="No requirements defined."}}
+
+{{else}}
+_No controls defined._
+{{/each}}
 
 ## Metadata
-{{> metadata.hbs data=metadata.data}}
+{{table _architecture.relationships["{{relationship-id}}"].metadata orientation="vertical" empty-message="No metadata defined."}}

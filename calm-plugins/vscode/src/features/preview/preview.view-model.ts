@@ -21,6 +21,7 @@ export interface PreviewViewModelInterface {
     onRevealInEditor(handler: (id: string) => void): void
     onDidSelect(handler: (id: string) => void): void
     setGetCurrentTreeSelection(fn: () => string | undefined): void
+    configurationChanged(): void
 }
 
 /**
@@ -363,6 +364,16 @@ export class PreviewViewModel implements PreviewViewModelInterface {
 
     handleRequestTemplateData(): void {
         this.template.requestTemplateData()
+    }
+
+    /**
+     * Handle configuration changes (e.g., theme changes)
+     * Refreshes the docify view if the docify tab is currently active
+     */
+    configurationChanged(): void {
+        if (this.activeTab === 'docify') {
+            this.docify.requestDocify()
+        }
     }
 
     /**

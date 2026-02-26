@@ -16,23 +16,25 @@ This guide helps AI assistants work efficiently with the CALM CLI codebase.
 
 ## Key Commands
 
-```bash
-# Development
-npm run build          # Build CLI + copy schemas/templates/widgets/AI tools
-npm run watch          # Watch mode with live reload (uses watch.mjs)
-npm test               # Run Vitest tests
-npm run lint           # ESLint check
-npm run lint-fix       # Auto-fix linting issues
+**IMPORTANT**: Always run npm commands from the **repository root** using workspaces, not from within this package directory.
 
-# Local testing
-npm run link:cli       # From root: link CLI globally for testing
+```bash
+# Development (from repository root)
+npm run build --workspace cli          # Build CLI + copy schemas/templates/widgets/AI tools
+npm run watch --workspace cli          # Watch mode with live reload (uses watch.mjs)
+npm test --workspace cli               # Run Vitest tests
+npm run lint --workspace cli           # ESLint check
+npm run lint-fix --workspace cli       # Auto-fix linting issues
+
+# Local testing (from repository root)
+npm run link:cli       # Link CLI globally for testing
 calm --help            # Test globally linked CLI
 
 # Build steps (executed by npm run build)
 npm run copy-calm-schema      # Copy CALM JSON schemas from ../calm/
 npm run copy-docify-templates # Copy docify templates from ../shared/
 npm run copy-widgets          # Copy widget files from ../calm-widgets/
-npm run copy-ai-tools         # Copy AI chatmode files from ../calm-ai/
+npm run copy-ai-tools         # Copy AI agent files from ../calm-ai/
 ```
 
 ## Architecture Overview
@@ -45,10 +47,10 @@ npm run copy-ai-tools         # Copy AI chatmode files from ../calm-ai/
 ### Key Commands
 1. **generate** - Generate architecture from CALM pattern
 2. **validate** - Validate architecture against pattern
-3. **copilot-chatmode** - Install AI chatmode for CALM
+3. **init-ai** - Install AI Assistant support for CALM
 4. **server** - HTTP server proxy (experimental)
 5. **template** - Generate files from Handlebars templates
-6. **docify** - Generate documentation websites
+6. **docify** - Generate documentation websites (supports `--scaffold` for two-stage workflow)
 
 ### Important Directories
 ```
@@ -67,7 +69,7 @@ After `npm run build`, the `dist/` directory contains:
 dist/
 ├── index.js              # Compiled CLI entry point (bin)
 ├── calm/release/         # Copied CALM schemas
-├── calm-ai/              # Copied AI chatmode files
+├── calm-ai/              # Copied AI agent files
 ├── template-bundles/     # Copied docify templates
 └── cli/widgets/          # Copied widget files
 ```
@@ -101,9 +103,10 @@ dist/
 
 ### Running Tests
 ```bash
-npm test              # All tests
-npm test -- --watch   # Watch mode
-npm test -- <file>    # Specific test file
+# From repository root (preferred)
+npm test --workspace cli              # All tests
+npm test --workspace cli -- --watch   # Watch mode
+npm test --workspace cli -- <file>    # Specific test file
 ```
 
 ### Common Test Patterns
@@ -142,8 +145,13 @@ calm-cli depends on:
 
 **Important**: When working across packages, rebuild dependencies:
 ```bash
-# From root
+# From repository root (always use workspaces)
 npm run build:cli    # Builds models, widgets, shared, then CLI
+# Or build individual packages:
+npm run build --workspace calm-models
+npm run build --workspace calm-widgets
+npm run build --workspace shared
+npm run build --workspace cli
 ```
 
 ## Common Pitfalls

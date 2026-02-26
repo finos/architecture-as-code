@@ -1,11 +1,13 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
-import { parseFrontMatter } from './front-matter'
+import { injectWidgetOptionsIntoContent, parseFrontMatter, replaceVariables } from '@finos/calm-shared'
 import { DocifyProcessor } from './docify-processor'
 import { TemplateService } from './template-service'
 import { Logger } from '../core/ports/logger'
-import {GraphData} from "../models/model";
+import { GraphData } from "../models/model"
+import { IDocifierFactory, DocifierFactory } from './docifier-factory'
+
 type DocifyResult = { content: string; format: 'html' | 'markdown'; sourceFile: string }
 
 /**
@@ -15,7 +17,11 @@ type DocifyResult = { content: string; format: 'html' | 'markdown'; sourceFile: 
 export class DocifyService {
   private processor = new DocifyProcessor()
 
-  constructor(private log: Logger, private templateService: TemplateService) { }
+  constructor(
+    private log: Logger,
+    private templateService: TemplateService,
+    private docifierFactory: IDocifierFactory = new DocifierFactory()
+  ) { }
 
   async run(params: {
     currentFilePath: string | undefined
@@ -32,7 +38,7 @@ export class DocifyService {
     }
 
     // Determine architecture file and template content
-    const { archFilePath, templateContentToUse, urlToLocalPathMapping } = await this.prepareDocifyInputs(params)
+    const { archFilePath, templateContentToUse, urlMappingPath } = await this.prepareDocifyInputs(params)
 
     if (!fs.existsSync(archFilePath)) {
       throw new Error(`Architecture file not found: ${archFilePath}`)
@@ -65,7 +71,7 @@ export class DocifyService {
     this.log.info(`[docify-service] - architecture: ${archFilePath}`)
     this.log.info(`[docify-service] - template: ${templatePath}`)
     this.log.info(`[docify-service] - output: ${fileNames.outFile}`)
-    await this.executeDocify(archFilePath, fileNames.outFile, urlToLocalPathMapping, templatePath)
+    await this.executeDocify(archFilePath, fileNames.outFile, urlMappingPath, templatePath)
 
     // Process results - use the original template file path for image resolution
     const originalSourceFile = params.isTemplateMode && params.templateFilePath
@@ -78,16 +84,21 @@ export class DocifyService {
   private async prepareDocifyInputs(params: any) {
     let archFilePath: string
     let templateContentToUse: string | undefined
-    let urlToLocalPathMapping = new Map<string, string>()
+    let urlMappingPath: string | undefined
 
     if (params.isTemplateMode && params.architectureFilePath && params.templateFilePath) {
       archFilePath = params.architectureFilePath
       const parsed = parseFrontMatter(params.templateFilePath)
 
       if (parsed) {
-        templateContentToUse = parsed.content
-        if (parsed.urlToLocalPathMapping) {
-          urlToLocalPathMapping = parsed.urlToLocalPathMapping
+        templateContentToUse = replaceVariables(parsed.content, parsed.frontMatter)
+        urlMappingPath = parsed.urlMappingPath
+        const widgetOptions = parsed.frontMatter['widget-options']
+
+        // Reinstate widget options into the content as YAML frontmatter
+        if (widgetOptions && typeof widgetOptions === 'object') {
+          this.log.info('[docify-service] Widget options detected in front matter, reinstating into template content.')
+          templateContentToUse = injectWidgetOptionsIntoContent(templateContentToUse, widgetOptions)
         }
       } else {
         templateContentToUse = fs.readFileSync(params.templateFilePath, 'utf8')
@@ -96,7 +107,7 @@ export class DocifyService {
       archFilePath = params.currentFilePath as string
     }
 
-    return { archFilePath, templateContentToUse, urlToLocalPathMapping }
+    return { archFilePath, templateContentToUse, urlMappingPath }
   }
 
   private async prepareTemplate(
@@ -128,28 +139,21 @@ export class DocifyService {
   private async executeDocify(
     architectureFilePath: string,
     outputFilePath: string,
-    urlToLocalPathMapping: Map<string, string>,
+    urlMappingPath: string | undefined,
     templatePath: string | undefined
   ) {
     const config = this.processor.getDocifyConfiguration(templatePath)
 
-    // Import and execute external docifier
-    const mod: any = await import('@finos/calm-shared')
-    const Docifier = mod.Docifier || mod.default?.Docifier || (mod as any).Docifier
-
-    if (!Docifier) {
-      throw new Error('Docifier not found in @finos/calm-shared')
-    }
-
-    const docifier = new Docifier(
-      config.docifyMode,
-      architectureFilePath,
-      outputFilePath,
-      urlToLocalPathMapping,
-      config.templateMode,
-      templatePath,
-      false
-    )
+    const docifier = this.docifierFactory.create({
+      mode: config.docifyMode,
+      inputPath: architectureFilePath,
+      outputPath: outputFilePath,
+      urlMappingPath: urlMappingPath,
+      templateProcessingMode: config.templateMode,
+      templatePath: templatePath,
+      clearOutputDirectory: false,
+      scaffoldOnly: false
+    })
 
     await docifier.docify()
     this.log.info('[preview] Docify finished')

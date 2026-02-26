@@ -67,7 +67,28 @@ describe('WidgetRenderer', () => {
 
         const result = renderer.render('test-widget', { foo: 'bar' });
 
-        expect(widget.transformToViewModel).toHaveBeenCalledWith({ foo: 'bar' }, undefined);
+        expect(widget.transformToViewModel).toHaveBeenCalledWith({ foo: 'bar' }, {});
+        expect(templateFnMock).toHaveBeenCalledWith({ wrapped: { foo: 'bar' } });
+        expect(result).toBe('rendered output');
+    });
+
+    it('passes options to transformToViewModel', () => {
+        const widget: CalmWidget = {
+            id: 'test-widget',
+            templatePartial: 'main.hbs',
+            validateContext: (context: unknown): context is unknown => true,
+            transformToViewModel: vi.fn().mockImplementation((ctx) => ({
+                wrapped: ctx,
+            })),
+        };
+
+        (registry.get as Mock).mockReturnValue(widget);
+        compileMock.mockReturnValue(templateFnMock);
+        templateFnMock.mockReturnValue('rendered output');
+
+        const result = renderer.render('test-widget', { foo: 'bar' }, undefined, { 'a': 'b' });
+
+        expect(widget.transformToViewModel).toHaveBeenCalledWith({ foo: 'bar' }, { 'a': 'b' });
         expect(templateFnMock).toHaveBeenCalledWith({ wrapped: { foo: 'bar' } });
         expect(result).toBe('rendered output');
     });
