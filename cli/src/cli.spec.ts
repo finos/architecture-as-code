@@ -1,5 +1,4 @@
 import {
-    CALM_META_SCHEMA_DIRECTORY,
     Docifier,
     DocifyMode,
     TemplateProcessingMode,
@@ -15,6 +14,7 @@ let serverModule: typeof import('./server/cli-server');
 let templateModule: typeof import('./command-helpers/template');
 let optionsModule: typeof import('./command-helpers/generate-options');
 let fileSystemDocLoaderModule: typeof import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
+let documentLoaderModule: typeof import('../../shared/src/document-loader/document-loader');
 let setupCLI: typeof import('./cli').setupCLI;
 let cliConfigModule: typeof import('./cli-config');
 
@@ -31,6 +31,7 @@ describe('CLI Commands', () => {
         templateModule = await import('./command-helpers/template');
         optionsModule = await import('./command-helpers/generate-options');
         fileSystemDocLoaderModule = await import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
+        documentLoaderModule = await import('../../shared/src/document-loader/document-loader');
 
         vi.spyOn(calmShared, 'runGenerate').mockResolvedValue(undefined);
         vi.spyOn(calmShared.TemplateProcessor.prototype, 'processTemplate').mockResolvedValue(undefined);
@@ -46,6 +47,16 @@ describe('CLI Commands', () => {
 
         vi.spyOn(fileSystemDocLoaderModule, 'FileSystemDocumentLoader').mockImplementation(vi.fn());
         vi.spyOn(fileSystemDocLoaderModule.FileSystemDocumentLoader.prototype, 'loadMissingDocument').mockResolvedValue({});
+
+        // Mock buildDocumentLoader to return a mock DocumentLoader.
+        // The generate command now uses buildDocumentLoader() which creates a
+        // MultiStrategyDocumentLoader internally. We mock it to return a simple
+        // loader whose loadMissingDocument resolves with an empty object.
+        vi.spyOn(documentLoaderModule, 'buildDocumentLoader').mockReturnValue({
+            initialise: vi.fn().mockResolvedValue(undefined),
+            loadMissingDocument: vi.fn().mockResolvedValue({}),
+            resolvePath: vi.fn().mockReturnValue(undefined),
+        });
 
         const cliModule = await import('./cli');
         setupCLI = cliModule.setupCLI;
@@ -64,10 +75,16 @@ describe('CLI Commands', () => {
                 '--schema-directory', 'schemas',
             ]);
 
-            expect(fileSystemDocLoaderModule.FileSystemDocumentLoader.prototype.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
-            expect(optionsModule.promptUserForOptions).toHaveBeenCalled();
+            expect(documentLoaderModule.buildDocumentLoader).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    schemaDirectoryPath: 'schemas',
+                    debug: true,
+                })
+            );
 
-            expect(fileSystemDocLoaderModule.FileSystemDocumentLoader).toHaveBeenCalledWith([CALM_META_SCHEMA_DIRECTORY, 'schemas'], true, process.cwd());
+            const mockDocLoader = vi.mocked(documentLoaderModule.buildDocumentLoader).mock.results[0].value;
+            expect(mockDocLoader.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
+            expect(optionsModule.promptUserForOptions).toHaveBeenCalled();
 
             expect(calmShared.runGenerate).toHaveBeenCalledWith(
                 {}, 'output.json', true, expect.any(calmShared.SchemaDirectory), []

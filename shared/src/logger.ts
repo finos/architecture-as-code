@@ -15,14 +15,32 @@ export interface Logger {
  * Initializes a logger that works in both Node.js and browser environments.
  * @param debug - Enables debug logging if true.
  * @param label - Optional label to prefix Node.js logs.
+ * @param quiet - If true, suppresses all logging output.
  * @returns Logger instance
  */
-export function initLogger(debug: boolean, label?: string): Logger {
+export function initLogger(debug: boolean, label?: string, quiet: boolean = false): Logger {
+    if (quiet) {
+        return createQuietLogger();
+    }
     if (typeof window === 'undefined') {
         return initNodeLogger(debug, label);
     } else {
         return initBrowserLogger(debug);
     }
+}
+
+/**
+ * Creates a no-op logger that suppresses all output.
+ */
+function createQuietLogger(): Logger {
+    const noop = () => { };
+    return {
+        log: noop,
+        debug: noop,
+        info: noop,
+        warn: noop,
+        error: noop,
+    };
 }
 
 /**

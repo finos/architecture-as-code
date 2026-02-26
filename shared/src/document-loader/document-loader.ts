@@ -26,6 +26,8 @@ export type DocumentLoaderOptions = {
     urlToLocalMap?: Map<string, string>;
     basePath?: string;
     debug?: boolean;
+    // If set, DocumentLoader will attempt to load documents from a workspace bundle at this path
+    workspaceBundlePath?: string;
 };
 
 export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions): DocumentLoader {
