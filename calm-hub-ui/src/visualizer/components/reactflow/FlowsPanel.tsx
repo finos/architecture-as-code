@@ -1,32 +1,6 @@
-import { THEME } from './theme';
-import { FlowsPanelHeader, FlowCard } from './flows-panel';
-
-// Types for CALM flow data
-export interface FlowTransition {
-    'sequence-number': number;
-    'relationship-unique-id': string;
-    description?: string;
-    direction?: string;
-}
-
-export interface AIGFGovernance {
-    'mitigations-applied'?: string[];
-    'risks-addressed'?: string[];
-    'trust-boundaries-crossed'?: string[];
-}
-
-export interface Flow {
-    'unique-id': string;
-    name: string;
-    description?: string;
-    transitions?: FlowTransition[];
-    'aigf-governance'?: AIGFGovernance;
-}
-
-interface FlowsPanelProps {
-    flows: Flow[];
-    onTransitionClick?: (relationshipId: string) => void;
-}
+import { THEME } from './theme.js';
+import { FlowsPanelHeader, FlowCard } from './flows-panel/index.js';
+import type { FlowsPanelProps } from '../../contracts/contracts.js';
 
 export function FlowsPanel({ flows, onTransitionClick }: FlowsPanelProps) {
     if (!flows || flows.length === 0) return null;
