@@ -14,8 +14,7 @@
         "cli",
         "docs",
         "calm-hub-ui",
-        "calm-plugins/vscode",
-        "experimental/calm-explorer"
+        "calm-plugins/vscode"
     ],
     "scripts": {
         "build": "npm run build --workspaces --if-present",
@@ -43,12 +42,10 @@
         "link:cli": "npm link --workspace cli",
         "calm-hub-ui:run": "npm run start --workspace calm-hub-ui",
         "calm-hub-ui:prod": "npm run prod --workspace calm-hub-ui",
-        "build:calm-explorer": "npm run build --workspace experimental/calm-explorer",
-        "test:calm-explorer": "npm run test:run --workspace experimental/calm-explorer",
-        "lint:calm-explorer": "npm run lint --workspace experimental/calm-explorer",
         "prepare": "husky"
     },
     "devDependencies": {
+        "@types/node": "^22.19.2",
         "ajv": "^8.18.0",
         "@commitlint/cli": "^20.0.0",
         "@commitlint/config-conventional": "^20.0.0",
@@ -62,12 +59,39 @@
         "vitest": "^3.1.1"
     },
     "overrides": {
-        "@types/node": "^22.0.0",
+        "@types/node": "^22.19.2",
         "on-headers": "^1.1.0",
         "node-forge": "^1.3.2",
         "qs": "^6.15.0",
         "lodash": "^4.17.23",
-        "lodash-es": "^4.17.23"
+        "lodash-es": "^4.17.23",
+        "@stoplight/spectral-ruleset-bundler@1.6.x": {
+            "rollup": "2.80.0"
+        },
+        "eslint": {
+            "minimatch": "^3.1.3"
+        },
+        "copyfiles": {
+            "minimatch": "^3.1.3"
+        },
+        "@stoplight/spectral-core": {
+            "minimatch": "^3.1.3"
+        },
+        "eslint-plugin-react": {
+            "minimatch": "^3.1.3"
+        },
+        "eslint-plugin-import": {
+            "minimatch": "^3.1.3"
+        },
+        "commitizen": {
+            "minimatch": "^3.1.3"
+        },
+        "serve-handler": {
+            "minimatch": "^3.1.3"
+        },
+        "@vscode/vsce": {
+            "minimatch": "^3.1.3"
+        }
     },
     "dependencies": {
         "@finos/calm-shared": "^0.2.2",
