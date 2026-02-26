@@ -50,9 +50,9 @@ vi.mock('../components/navbar/Navbar', () => ({
     Navbar: () => <nav data-testid="navbar">Navbar</nav>,
 }));
 
-vi.mock('./components/pattern-section/PatternSection', () => ({
-    PatternSection: ({ data }: { data: { id?: string } }) => (
-        <div data-testid="pattern-section">Pattern: {data?.id}</div>
+vi.mock('./components/diagram-section/DiagramSection', () => ({
+    DiagramSection: ({ data }: { data: { id?: string } }) => (
+        <div data-testid="diagram-section">Diagram: {data?.id}</div>
     ),
 }));
 
@@ -69,18 +69,18 @@ describe('Hub', () => {
         expect(screen.getByText('Tree Navigation')).toBeInTheDocument();
     });
 
-    it('renders PatternSection when pattern data is loaded', () => {
+    it('renders DiagramSection when pattern data is loaded', () => {
         renderWithRouter(<Hub />);
 
         // Initially, no content should be rendered
-        expect(screen.queryByTestId('pattern-section')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
 
         // Click the Load Test Data button to simulate data loading (loads Pattern data)
         fireEvent.click(screen.getByText('Load Test Data'));
 
-        // Now PatternSection should be visible
-        expect(screen.getByTestId('pattern-section')).toBeInTheDocument();
-        expect(screen.getByTestId('pattern-section')).toHaveTextContent('Pattern: test');
+        // Now DiagramSection should be visible
+        expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
+        expect(screen.getByTestId('diagram-section')).toHaveTextContent('Diagram: test');
     });
 
     it('renders AdrRenderer when ADR data is loaded', () => {
@@ -112,22 +112,22 @@ describe('Hub', () => {
         expect(screen.queryByLabelText('Diagram')).not.toBeInTheDocument();
     });
 
-    it('switches between PatternSection and AdrRenderer correctly', () => {
+    it('switches between DiagramSection and AdrRenderer correctly', () => {
         renderWithRouter(<Hub />);
 
         // Load test data first (Pattern data)
         fireEvent.click(screen.getByText('Load Test Data'));
-        expect(screen.getByTestId('pattern-section')).toBeInTheDocument();
+        expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
         expect(screen.queryByTestId('adr-renderer')).not.toBeInTheDocument();
 
         // Load ADR data
         fireEvent.click(screen.getByText('Load Test ADR'));
-        expect(screen.queryByTestId('pattern-section')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
         expect(screen.getByTestId('adr-renderer')).toBeInTheDocument();
 
         // Load test data again
         fireEvent.click(screen.getByText('Load Test Data'));
-        expect(screen.getByTestId('pattern-section')).toBeInTheDocument();
+        expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
         expect(screen.queryByTestId('adr-renderer')).not.toBeInTheDocument();
     });
 });

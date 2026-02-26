@@ -4,8 +4,7 @@ import { Data, Adr } from '../model/calm.js';
 import { Navbar } from '../components/navbar/Navbar.js';
 import { AdrRenderer } from './components/adr-renderer/AdrRenderer.js';
 import { DocumentDetailSection } from './components/document-detail-section/DocumentDetailSection.js';
-import { ArchitectureSection } from './components/architecture-section/ArchitectureSection.js';
-import { PatternSection } from './components/pattern-section/PatternSection.js';
+import { DiagramSection } from './components/diagram-section/DiagramSection.js';
 import './Hub.css';
 
 export default function Hub() {
@@ -36,11 +35,8 @@ export default function Hub() {
                         <AdrRenderer adrDetails={adrData} />
                     ) : (
                         <>
-                            {data?.calmType === 'Architectures' && (
-                                <ArchitectureSection data={data} />
-                            )}
-                            {data?.calmType === 'Patterns' && (
-                                <PatternSection data={data} />
+                            {(data?.calmType === 'Architectures' || data?.calmType === 'Patterns') && (
+                                <DiagramSection data={data} />
                             )}
                             {data?.calmType !== 'Architectures' && data?.calmType !== 'Patterns' && !adrData && (
                                 <DocumentDetailSection data={data} />
