@@ -4,6 +4,7 @@ import com.mongodb.client.*;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.bson.Document;
+import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -45,7 +46,7 @@ public class TestMongoNamespaceStoreShould {
         when(findIterable.iterator()).thenReturn(emptyCursor);
         when(namespaceCollection.find()).thenReturn(findIterable);
 
-        List<String> namespaces = mongoNamespaceStore.getNamespaces();
+        List<NamespaceInfo> namespaces = mongoNamespaceStore.getNamespaces();
         assertThat(namespaces, is(empty()));
         verify(namespaceCollection).find();
     }
@@ -55,18 +56,21 @@ public class TestMongoNamespaceStoreShould {
         DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
         DocumentMongoCursor cursor = Mockito.mock(DocumentMongoCursor.class);
 
-        Document doc1 = new Document("namespace", "finos");
-        Document doc2 = new Document("namespace", "other");
+        Document doc1 = new Document("name", "finos").append("description","FINOS namespace");
+        Document doc2 = new Document("name", "other").append("description","other namespace");
 
-        when(cursor.hasNext()).thenReturn(true, true, false); // 3 documents, then end
+        when(cursor.hasNext()).thenReturn(true, true, false);
         when(cursor.next()).thenReturn(doc1, doc2);
         when(findIterable.iterator()).thenReturn(cursor);
         when(namespaceCollection.find()).thenReturn(findIterable);
 
-        List<String> namespaces = mongoNamespaceStore.getNamespaces();
-        List<String> expectedNamespaces = Arrays.asList("finos", "other");
+        List<NamespaceInfo> namespaces = mongoNamespaceStore.getNamespaces();
+        List<NamespaceInfo> expectedNamespaces = Arrays.asList(new NamespaceInfo("finos","FINOS namespace"), new NamespaceInfo("other","other namespace"));
 
-        assertThat(namespaces, is(expectedNamespaces));
+        assertThat(namespaces.get(0).getName(), is(expectedNamespaces.get(0).getName()));
+        assertThat(namespaces.get(1).getName(), is(expectedNamespaces.get(1).getName()));
+        assertThat(namespaces.get(0).getDescription(), is("FINOS namespace"));
+        assertThat(namespaces.get(1).getDescription(), is("other namespace"));
     }
 
     @Test
@@ -78,7 +82,7 @@ public class TestMongoNamespaceStoreShould {
         when(findIterable.first()).thenReturn(null);
 
         assertThat(mongoNamespaceStore.namespaceExists(namespace), is(false));
-        verify(namespaceCollection).find(new Document("namespace", namespace));
+        verify(namespaceCollection).find(new Document("name", namespace));
     }
 
     @Test
@@ -91,7 +95,7 @@ public class TestMongoNamespaceStoreShould {
         when(findIterable.first()).thenReturn(documentMock);
 
         assertThat(mongoNamespaceStore.namespaceExists(namespace), is(true));
-        verify(namespaceCollection).find(new Document("namespace", namespace));
+        verify(namespaceCollection).find(new Document("name", namespace));
     }
 
     @Test
@@ -100,12 +104,12 @@ public class TestMongoNamespaceStoreShould {
         String namespace = "new-namespace";
 
         when(namespaceCollection.find(any(Document.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null); // namespace doesn't exist
+        when(findIterable.first()).thenReturn(null);
 
-        mongoNamespaceStore.createNamespace(namespace);
+        mongoNamespaceStore.createNamespace(namespace, "desc");
 
-        verify(namespaceCollection).find(new Document("namespace", namespace));
-        verify(namespaceCollection).insertOne(new Document("namespace", namespace));
+        verify(namespaceCollection).find(new Document("name", namespace));
+        verify(namespaceCollection).insertOne(new Document("name", namespace).append("description","desc"));
     }
 
     @Test
@@ -115,11 +119,11 @@ public class TestMongoNamespaceStoreShould {
 
         when(namespaceCollection.find(any(Document.class))).thenReturn(findIterable);
         Document documentMock = Mockito.mock(Document.class);
-        when(findIterable.first()).thenReturn(documentMock); // namespace exists
+        when(findIterable.first()).thenReturn(documentMock);
 
-        mongoNamespaceStore.createNamespace(namespace);
+        mongoNamespaceStore.createNamespace(namespace, "desc");
 
-        verify(namespaceCollection).find(new Document("namespace", namespace));
+        verify(namespaceCollection).find(new Document("name", namespace));
         verify(namespaceCollection, Mockito.never()).insertOne(any(Document.class));
     }
 
