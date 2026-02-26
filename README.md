@@ -23,7 +23,7 @@ community and contribute your projects to the AasC monorepo which has the benefi
 community; thereby attracting contributions and ensuring that changes to the manifest will be proactively built against
 your project.
 
-Ready to get started? Read the [CALM quickstart guide](https://calm.finos.org/quick-start/).
+Ready to get started? Check out the [CALM tutorials](https://calm.finos.org/tutorials/).
 
 ## Projects
 
@@ -36,6 +36,12 @@ Ready to get started? Read the [CALM quickstart guide](https://calm.finos.org/qu
 | [CALM Hub UI](./calm-hub-ui)                                                                   | [@aidanm3341](https://github.com/aidanm3341), [@aamanrebello](https://github.com/aamanrebello), [@yoofitt96](https://github.com/YoofiTT96)                                   | [![Build CALM Hub UI](https://github.com/finos/architecture-as-code/actions/workflows/build-calm-hub-ui.yml/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/build-calm-hub-ui.yml)                                                                                                                                                                              |
 | [Docs](./docs)                                                                                 | [@rocketstack-matt](https://github.com/rocketstack-matt)                                                                                                                                                                             | [![Sync Docs to S3](https://github.com/finos/architecture-as-code/actions/workflows/s3-docs-sync.yml/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/s3-docs-sync.yml) [![Build Docs](https://github.com/finos/architecture-as-code/actions/workflows/build-docs.yml/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/build-docs.yml) |
 | [CALM VSCode Plugin](./calm-plugins/vscode)                                                    | [@LeighFinegold](https://github.com/LeighFinegold), [@rocketstack-matt](https://github.com/rocketstack-matt), [@markscott-ms](https://github.com/markscott-ms)                                                                                                                         | ![Build VS Code Extension](https://github.com/finos/architecture-as-code/workflows/Build%20VS%20Code%20Extension/badge.svg)                                                                                                                                                                                                                                                                 |
+
+## Roadmap
+
+[![Roadmap](https://roadmapper.rocketstack.co/finos/architecture-as-code/ffffff/24292f)](https://roadmapper.rocketstack.co/view/finos/architecture-as-code/ffffff/24292f)
+
+> Click the roadmap to view the interactive version with clickable cards.
 
 ## Getting Involved
 
