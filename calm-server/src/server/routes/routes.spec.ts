@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { CLIServerRoutes } from './routes';
+import { ServerRoutes } from './routes';
 import { ValidationRouter } from './validation-route';
 import { HealthRouter } from './health-route';
 import { SchemaDirectory } from '@finos/calm-shared';
@@ -25,9 +25,9 @@ vi.mock('@finos/calm-shared', () => {
         SchemaDirectory: vi.fn()
     };
 });
-describe('CLIServerRoutes', () => {
+describe('ServerRoutes', () => {
     let schemaDirectory: SchemaDirectory;
-    let cliServerRoutes: CLIServerRoutes;
+    let serverRoutes: ServerRoutes;
     let mainRouter: Router;
     let validateRouter: Router;
     let healthRouter: Router;
@@ -42,8 +42,8 @@ describe('CLIServerRoutes', () => {
             .mockImplementationOnce(() => mainRouter)
             .mockImplementationOnce(() => validateRouter)
             .mockImplementationOnce(() => healthRouter);
-        cliServerRoutes = new CLIServerRoutes(schemaDirectory);
-        void cliServerRoutes;
+        serverRoutes = new ServerRoutes(schemaDirectory);
+        void serverRoutes;
     });
 
     it('should initialize router', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { startServer } from './cli-server';
+import { startServer } from './server';
 import { SchemaDirectory } from '@finos/calm-shared';
 import fetch from 'node-fetch';
 import { Server } from 'http';

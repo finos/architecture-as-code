@@ -77,25 +77,27 @@ Validate a CALM architecture document:
 curl -X POST http://localhost:3000/calm/validate \
   -H "Content-Type: application/json" \
   -d '{
-    "architecture": "{\"$schema\":\"https://calm.finos.org/draft/2024-04/meta/core\",\"nodes\":[...]}"
+    "architecture": "{\"$schema\":\"https://calm.finos.org/release/1.2/meta/calm.json\",\"nodes\":[]}"
   }'
 ```
 
 Response (success):
 ```json
 {
-  "errors": [],
-  "warnings": [],
-  "result": "success"
+  "jsonSchemaValidationOutputs":[],
+  "spectralSchemaValidationOutputs":[],
+  "hasErrors":false,
+  "hasWarnings":false
 }
 ```
 
 Response (validation errors):
 ```json
 {
-  "errors": [...],
-  "warnings": [...],
-  "result": "failure"
+  "jsonSchemaValidationOutputs":[],
+  "spectralSchemaValidationOutputs":[...],
+  "hasErrors":true,
+  "hasWarnings":false
 }
 ```
 

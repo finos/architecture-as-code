@@ -1,5 +1,5 @@
 import express, { Application } from 'express';
-import { CLIServerRoutes } from './routes/routes';
+import { ServerRoutes } from './routes/routes';
 import { initLogger, SchemaDirectory } from '@finos/calm-shared';
 import { Server } from 'http';
 
@@ -12,13 +12,13 @@ export function startServer(
     rateLimitMaxRequests: number = 100
 ): Server {
     const app: Application = express();
-    const cliServerRoutesInstance = new CLIServerRoutes(
+    const serverRoutesInstance = new ServerRoutes(
         schemaDirectory,
         verbose,
         rateLimitWindowMs,
         rateLimitMaxRequests
     );
-    const allRoutes = cliServerRoutesInstance.router;
+    const allRoutes = serverRoutesInstance.router;
 
     app.use(express.json());
     app.use('/', allRoutes);

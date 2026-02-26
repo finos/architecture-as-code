@@ -4,7 +4,7 @@
 
 import { Command } from 'commander';
 import { version } from '../package.json';
-import { startServer } from './server/cli-server';
+import { startServer } from './server/server';
 import { SchemaDirectory, initLogger } from '@finos/calm-shared';
 import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
 import path from 'path';

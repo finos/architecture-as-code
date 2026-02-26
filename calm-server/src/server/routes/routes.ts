@@ -6,7 +6,7 @@ import { SchemaDirectory } from '@finos/calm-shared';
 const HEALTH_ROUTE_PATH = '/health';
 const VALIDATE_ROUTE_PATH = '/calm/validate';
 
-export class CLIServerRoutes {
+export class ServerRoutes {
     router: Router;
 
     constructor(

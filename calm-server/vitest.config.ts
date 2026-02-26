@@ -1,4 +1,22 @@
 import { defineConfig } from 'vitest/config';
+import { CoverageV8Options } from "vitest/node";
+
+const v8CoverageSettings: CoverageV8Options = {
+    enabled: true,
+    reporter: ['text', 'json', 'html'],
+    thresholds: {
+        branches: 85,
+        functions: 75,
+        lines: 75,
+        statements: 75
+    },
+    exclude: [
+        'test_fixtures/**',
+        '*.config.ts',
+        'src/index.ts' // CLI boilerplate, tested via integration tests
+    ],
+    include: ['**/*.ts']
+}
 
 export default defineConfig({
     test: {
@@ -6,12 +24,7 @@ export default defineConfig({
         environment: 'node',
         coverage: {
             provider: 'v8',
-            reporter: ['text', 'json', 'html'],
-            exclude: [
-                'node_modules/',
-                'dist/',
-                '**/*.spec.ts',
-            ],
+            ...v8CoverageSettings
         },
     },
 });
