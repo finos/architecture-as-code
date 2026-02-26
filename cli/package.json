@@ -1,6 +1,6 @@
 {
     "name": "@finos/calm-cli",
-    "version": "1.33.0",
+    "version": "1.34.1",
     "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
     "homepage": "https://calm.finos.org",
     "repository": {
@@ -55,7 +55,6 @@
         "@types/json-pointer": "^1.0.34",
         "@types/junit-report-builder": "^3.0.2",
         "@types/lodash": "^4.17.16",
-        "@types/node": "^22.15.0",
         "@types/supertest": "^6.0.3",
         "@types/xml2js": "^0.4.14",
         "@typescript-eslint/eslint-plugin": "^8.29.1",

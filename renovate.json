@@ -159,7 +159,8 @@
     {
       "description": "Pin @types/node to v22 to match CI Node version",
       "matchPackageNames": ["@types/node"],
-      "allowedVersions": "<23.0.0"
+      "allowedVersions": "<23.0.0",
+      "rangeStrategy": "bump"
     }
   ]
 }
