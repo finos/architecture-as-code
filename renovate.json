@@ -24,7 +24,6 @@
     "calm-hub-ui/package-lock.json",
     "cli/package-lock.json",
     "docs/package-lock.json",
-    "experimental/calm-explorer/package-lock.json",
     "shared/package-lock.json"
   ],
   "lockFileMaintenance": {
