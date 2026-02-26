@@ -67,6 +67,30 @@
         "lodash-es": "^4.17.23",
         "@stoplight/spectral-ruleset-bundler@1.6.x": {
             "rollup": "2.80.0"
+        },
+        "eslint": {
+            "minimatch": "^3.1.3"
+        },
+        "copyfiles": {
+            "minimatch": "^3.1.3"
+        },
+        "@stoplight/spectral-core": {
+            "minimatch": "^3.1.3"
+        },
+        "eslint-plugin-react": {
+            "minimatch": "^3.1.3"
+        },
+        "eslint-plugin-import": {
+            "minimatch": "^3.1.3"
+        },
+        "commitizen": {
+            "minimatch": "^3.1.3"
+        },
+        "serve-handler": {
+            "minimatch": "^3.1.3"
+        },
+        "@vscode/vsce": {
+            "minimatch": "^3.1.3"
         }
     },
     "dependencies": {
