@@ -21,6 +21,37 @@ describe('workspace', () => {
         await rm(testDir, { recursive: true, force: true });
     });
 
+    describe('getActiveWorkspace', () => {
+        beforeEach(async () => {
+            await mkdir(calmWorkspacePath, { recursive: true });
+        });
+
+        it('should throw error when workspace.json contains invalid JSON', async () => {
+            await writeFile(workspaceJsonPath, 'not valid json');
+            await expect(() => getActiveWorkspace(testDir))
+                .rejects
+                .toThrow();
+        });
+
+        it('should return null when workspace.json is missing name property', async () => {
+            await writeFile(workspaceJsonPath, '{"other": "value"}');
+            const result = await getActiveWorkspace(testDir);
+            expect(result).toBeNull();
+        });
+
+        it('should return null when name is not a string', async () => {
+            await writeFile(workspaceJsonPath, '{"name": 123}');
+            const result = await getActiveWorkspace(testDir);
+            expect(result).toBeNull();
+        });
+
+        it('should return the workspace name when valid', async () => {
+            await writeFile(workspaceJsonPath, '{"name": "my-workspace"}');
+            const result = await getActiveWorkspace(testDir);
+            expect(result).toBe('my-workspace');
+        });
+    });
+
     describe('cleanWorkspaceBundle', () => {
         beforeEach(async () => {
             // Setup dummy workspaces with files directories

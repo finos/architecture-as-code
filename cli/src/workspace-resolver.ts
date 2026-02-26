@@ -14,7 +14,8 @@ export function findGitRoot(startPath?: string): string | null {
     let currentPath = startPath || process.cwd();
     while (true) {
         const gitPath = join(currentPath, '.git');
-        if (existsSync(gitPath) && statSync(gitPath).isDirectory()) {
+        // for regular git, this will be a folder. for worktrees, this will be a file.
+        if (existsSync(gitPath)) {
             return currentPath;
         }
         const parentPath = dirname(currentPath);

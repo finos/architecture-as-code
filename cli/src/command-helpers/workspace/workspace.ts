@@ -25,9 +25,13 @@ export async function getActiveWorkspace(targetDir: string): Promise<string | nu
     if (!existsSync(workspaceJsonPath)) {
         return null;
     }
-    const content = await readFile(workspaceJsonPath, 'utf8');
-    const json = JSON.parse(content);
-    return json.name;
+    try {
+        const content = await readFile(workspaceJsonPath, 'utf8');
+        const json = JSON.parse(content);
+        return typeof json.name === 'string' ? json.name : null;
+    } catch {
+        throw new Error('Error loading workspace file. Please look at the file at ' + workspaceJsonPath + ' for errors and fix or delete it.');
+    }
 }
 
 export async function listWorkspaces(targetDir: string): Promise<string[]> {

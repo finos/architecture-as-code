@@ -48,3 +48,4 @@ coverage/
 .github/agents
 shared/test-output/
 .calm-workspace/
+cli/test_fixtures/getting-started/actual-output/

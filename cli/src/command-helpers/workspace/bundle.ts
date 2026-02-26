@@ -31,6 +31,28 @@ export function extractReferenceValue(value: unknown): string | null {
     return null;
 }
 
+/**
+ * Extract all reference strings from a JSON document.
+ * Scans for all REFERENCE_PROPERTIES ($ref, $schema, requirement-url, config-url)
+ * and extracts string values (either direct or from JSON Schema const objects).
+ *
+ * @param json The parsed JSON document to scan
+ * @returns Array of unique reference strings found in the document
+ */
+export function extractAllReferences(json: object): string[] {
+    const allRefs: string[] = [];
+    for (const prop of REFERENCE_PROPERTIES) {
+        const found = JSONPath({ path: `$..['${prop}']`, json });
+        for (const v of found) {
+            const ref = extractReferenceValue(v);
+            if (ref) {
+                allRefs.push(ref);
+            }
+        }
+    }
+    return Array.from(new Set(allRefs));
+}
+
 export type BundleManifest = Record<string, string>;
 export type DependencyGraph = {
     nodes: string[]; // ids
@@ -192,28 +214,16 @@ export async function buildDependencyGraph(bundlePath: string): Promise<Dependen
 
     for (const id of Object.keys(manifest)) {
         const filePath = idToPath[id];
-        let json = null;
+        let json: object;
         try {
             const raw = await readFile(filePath, 'utf8');
-            json = JSON.parse(raw);
+            json = JSON.parse(raw) as object;
         } catch (_) {
             // skip unreadable files
             continue;
         }
 
-        // Extract all reference types from the document
-        // Values can be direct strings or JSON Schema const objects
-        const allRefs: string[] = [];
-        for (const prop of REFERENCE_PROPERTIES) {
-            const found = JSONPath({ path: `$..['${prop}']`, json }) as unknown[];
-            for (const v of found) {
-                const ref = extractReferenceValue(v);
-                if (ref) {
-                    allRefs.push(ref);
-                }
-            }
-        }
-        const refs = Array.from(new Set(allRefs));
+        const refs = extractAllReferences(json);
 
         edges[id] = [];
         for (const ref of refs) {

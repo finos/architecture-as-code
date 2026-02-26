@@ -1,9 +1,8 @@
 import path from 'path';
 import fs from 'fs';
-import { JSONPath } from 'jsonpath-plus';
 import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '../../../../shared/src/document-loader/document-loader';
 import { findWorkspaceBundlePath } from '../../workspace-resolver';
-import { addObjectToBundle, loadManifest, REFERENCE_PROPERTIES, extractReferenceValue } from './bundle';
+import { addObjectToBundle, loadManifest, extractAllReferences } from './bundle';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
 
 const logger: Logger = initLogger(false, 'workspace');
@@ -41,23 +40,14 @@ export async function pullReferencesFromBundle(bundlePath: string, docLoader: Do
             continue;
         }
 
-        // Extract all reference types from the document ($ref, requirement-url, config-url, etc.)
-        // Values can be direct strings or JSON Schema const objects
-        const allRefs: string[] = [];
-        for (const prop of REFERENCE_PROPERTIES) {
-            const found = JSONPath({ path: `$..['${prop}']`, json }) as unknown[];
-            for (const v of found) {
-                const ref = extractReferenceValue(v);
-                if (ref) {
-                    allRefs.push(ref);
-                }
-            }
-        }
-        const refs = new Set<string>(allRefs);
+        const refs = extractAllReferences(json);
 
         for (const ref of refs) {
-            // skip if already in manifest (by id)
-            // try to resolve via docLoader.resolvePath first
+            // skip if already processed
+            if (processed.has(ref)) {
+                continue;
+            }
+            // skip local references
             if (!ref.startsWith('http')) {
                 // local reference; skip
                 continue;
@@ -70,7 +60,7 @@ export async function pullReferencesFromBundle(bundlePath: string, docLoader: Do
                         return await loadJsonFile(resolved);
                     }
                     throw e;
-                });
+                }) as object;
 
                 // loaded may be object; determine id
                 const added = await addObjectToBundle(bundlePath, loaded);
