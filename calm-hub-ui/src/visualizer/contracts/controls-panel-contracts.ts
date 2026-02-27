@@ -1,5 +1,4 @@
-import type { ControlRequirement } from './control-contracts.js';
-import type { Control } from './control-contracts.js';
+import type { Control, ControlRequirement } from './control-contracts.js';
 
 /**
  * Props for ControlsPanelHeader component
@@ -40,7 +39,7 @@ export interface NodeBadgeProps {
  * Props for RequirementsSection sub-component
  */
 export interface RequirementsSectionProps {
-    requirements: ControlRequirement[];
+    requirements: NonNullable<Control['requirements']>;
     onNodeClick?: (nodeId: string) => void;
 }
 

@@ -1,3 +1,4 @@
+import { CalmControlsSchema } from '@finos/calm-models/types';
 import type { FlowTransition } from './flow-contracts.js';
 
 /**
@@ -45,7 +46,7 @@ export interface EdgeData {
     protocol?: string;
     direction?: 'forward' | 'backward';
     flowTransitions?: FlowTransitionEdge[];
-    controls?: Record<string, EdgeControl>;
+    controls?: CalmControlsSchema;
     metadata?: {
         aigf?: {
             'controls-applied'?: string[];

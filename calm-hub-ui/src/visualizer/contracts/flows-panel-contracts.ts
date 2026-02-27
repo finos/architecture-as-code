@@ -1,4 +1,4 @@
-import type { Flow, FlowTransition } from './flow-contracts.js';
+import type { AIGFGovernance, Flow, FlowTransition } from './flow-contracts.js';
 
 /**
  * Props for FlowsPanelHeader component
@@ -51,9 +51,5 @@ export interface TransitionContentProps {
  * Props for AIGFGovernanceSection component
  */
 export interface AIGFGovernanceSectionProps {
-    governance?: {
-        'mitigations-applied'?: string[];
-        'risks-addressed'?: string[];
-        'trust-boundaries-crossed'?: string[];
-    };
+    governance: AIGFGovernance;
 }
