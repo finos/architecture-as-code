@@ -8,7 +8,6 @@ import ReactFlow, {
     Panel,
     useNodesState,
     useEdgesState,
-    NodeChange,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { FloatingEdge } from './FloatingEdge';
@@ -17,9 +16,10 @@ import { SystemGroupNode } from './SystemGroupNode';
 import { DecisionGroupNode } from './DecisionGroupNode';
 import { SearchBar } from './SearchBar.js';
 import { THEME } from './theme';
+import { EmptyGraphState } from './EmptyGraphState.js';
 import { parsePatternData } from './utils/patternTransformer';
-import { calculateGroupBounds } from './utils/layoutUtils.js';
 import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
+import { useGraphInteractions } from './hooks/useGraphInteractions.js';
 import { DecisionSelectorPanel } from './DecisionSelectorPanel.js';
 import {
     extractDecisionPoints,
@@ -35,6 +35,7 @@ const nodeTypes = {
     group: SystemGroupNode,
     decisionGroup: DecisionGroupNode,
 };
+const GROUP_NODE_TYPES = ['group', 'decisionGroup'];
 
 interface PatternGraphProps {
     patternData: Record<string, unknown>;
@@ -57,6 +58,20 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick }: PatternG
 
     const [availableNodeTypes, setAvailableNodeTypes] = useState<string[]>([]);
     const [decisionPoints, setDecisionPoints] = useState<ReturnType<typeof extractDecisionPoints>>([]);
+
+    const {
+        onNodesChange,
+        handleNodeClick,
+        handleEdgeClick,
+        handleNodeMouseEnter,
+        handleNodeMouseLeave,
+    } = useGraphInteractions({
+        setNodes,
+        onNodesChangeBase,
+        onNodeClick,
+        onEdgeClick,
+        groupNodeTypes: GROUP_NODE_TYPES,
+    });
 
     useEffect(() => {
         const { nodes: parsedNodes, edges: parsedEdges } = parsePatternData(patternData);
@@ -118,79 +133,6 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick }: PatternG
         );
     }, [searchTerm, typeFilter, isSearchActive, isDecisionActive, decisionSelections, decisionPoints, setNodes, setEdges]);
 
-    const onNodesChange = useCallback(
-        (changes: NodeChange[]) => {
-            onNodesChangeBase(changes);
-
-            const hasPositionChanges = changes.some(
-                (change) => change.type === 'position' && change.dragging === false
-            );
-
-            if (hasPositionChanges) {
-                setNodes((currentNodes) => {
-                    let updated = false;
-                    const newNodes = currentNodes.map((node) => {
-                        if (node.type !== 'group' && node.type !== 'decisionGroup') return node;
-                        const bounds = calculateGroupBounds(node.id, currentNodes);
-                        if (!bounds) return node;
-                        const currentWidth = (node.style?.width as number) || node.width || 0;
-                        const currentHeight = (node.style?.height as number) || node.height || 0;
-                        if (bounds.width !== currentWidth || bounds.height !== currentHeight) {
-                            updated = true;
-                            return {
-                                ...node,
-                                width: bounds.width,
-                                height: bounds.height,
-                                style: { ...node.style, width: bounds.width, height: bounds.height },
-                            };
-                        }
-                        return node;
-                    });
-                    return updated ? newNodes : currentNodes;
-                });
-            }
-        },
-        [onNodesChangeBase, setNodes]
-    );
-
-    const handleNodeClick = useCallback(
-        (_event: React.MouseEvent, node: Node) => {
-            if (onNodeClick) {
-                onNodeClick(node.data);
-            }
-        },
-        [onNodeClick]
-    );
-
-    const handleNodeMouseEnter = useCallback(
-        (_event: React.MouseEvent, node: Node) => {
-            setNodes((nds) =>
-                nds.map((n) => ({
-                    ...n,
-                    style: {
-                        ...n.style,
-                        zIndex: n.id === node.id && n.type !== 'group' && n.type !== 'decisionGroup' ? 1000
-                            : (n.type === 'group' || n.type === 'decisionGroup') ? -1
-                            : 1,
-                    },
-                }))
-            );
-        },
-        [setNodes]
-    );
-
-    const handleNodeMouseLeave = useCallback(() => {
-        setNodes((nds) =>
-            nds.map((n) => ({
-                ...n,
-                style: {
-                    ...n.style,
-                    zIndex: (n.type === 'group' || n.type === 'decisionGroup') ? -1 : 1,
-                },
-            }))
-        );
-    }, [setNodes]);
-
     const handleDecisionSelectionChange = useCallback(
         (groupId: string, selectedIndices: number[]) => {
             setDecisionSelections((prev) => {
@@ -210,44 +152,8 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick }: PatternG
         setDecisionSelections(new Map());
     }, []);
 
-    const handleEdgeClick = useCallback(
-        (_event: React.MouseEvent, edge: Edge) => {
-            if (onEdgeClick) {
-                onEdgeClick(edge.data);
-            }
-        },
-        [onEdgeClick]
-    );
-
-    const isEmpty = nodes.length === 0;
-
-    if (isEmpty) {
-        return (
-            <div
-                style={{
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: THEME.colors.background,
-                    color: THEME.colors.muted,
-                    fontSize: '14px',
-                }}
-            >
-                <div
-                    style={{
-                        padding: '24px',
-                        background: THEME.colors.backgroundSecondary,
-                        borderRadius: '8px',
-                        border: `1px solid ${THEME.colors.border}`,
-                        maxWidth: '400px',
-                        textAlign: 'center',
-                    }}
-                >
-                    No pattern data to display. Load a CALM pattern to visualize.
-                </div>
-            </div>
-        );
+    if (nodes.length === 0) {
+        return <EmptyGraphState message="No pattern data to display. Load a CALM pattern to visualize." />;
     }
 
     return (
