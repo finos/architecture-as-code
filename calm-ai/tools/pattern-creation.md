@@ -21,7 +21,7 @@ A CALM pattern is a JSON schema that:
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
     "$id": "https://your-domain.com/patterns/my-pattern.json",
     "title": "My Architecture Pattern",
     "type": "object",
@@ -31,7 +31,7 @@ A CALM pattern is a JSON schema that:
             "maxItems": 3,
             "prefixItems": [
                 {
-                    "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node",
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
                     "type": "object",
                     "properties": {
                         "unique-id": {
@@ -73,7 +73,7 @@ Patterns use JSON schema constructs to provide choices and options:
                 {
                     "anyOf": [
                         {
-                            "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": { "const": "postgres-db" },
@@ -82,7 +82,7 @@ Patterns use JSON schema constructs to provide choices and options:
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": { "const": "mysql-db" },
@@ -106,7 +106,7 @@ Patterns use JSON schema constructs to provide choices and options:
         "type": "array",
         "prefixItems": [
             {
-                "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship",
+                "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
                 "type": "object",
                 "properties": {
                     "unique-id": { "const": "database-choice" },
@@ -122,7 +122,7 @@ Patterns use JSON schema constructs to provide choices and options:
                                     {
                                         "oneOf": [
                                             {
-                                                "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/decision",
+                                                "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/decision",
                                                 "type": "object",
                                                 "properties": {
                                                     "description": {
@@ -139,7 +139,7 @@ Patterns use JSON schema constructs to provide choices and options:
                                                 }
                                             },
                                             {
-                                                "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/decision",
+                                                "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/decision",
                                                 "type": "object",
                                                 "properties": {
                                                     "description": {
@@ -174,7 +174,7 @@ Patterns use JSON schema constructs to provide choices and options:
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
     "$id": "https://patterns.company.com/conference-signup.pattern.json",
     "title": "Conference Signup Pattern",
     "description": "A reusable architecture pattern for conference signup systems with Kubernetes deployment",
@@ -186,120 +186,131 @@ Patterns use JSON schema constructs to provide choices and options:
             "maxItems": 4,
             "prefixItems": [
                 {
-                    "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node",
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
                     "type": "object",
                     "properties": {
-                        "unique-id": { "const": "frontend" },
-                        "name": { "const": "Web Frontend" },
-                        "node-type": { "const": "webclient" },
-                        "description": { "type": "string" },
+                        "unique-id": {"const": "frontend"},
+                        "name": {"const": "Web Frontend"},
+                        "node-type": {"const": "webclient"},
+                        "description": {"type": "string"},
                         "interfaces": {
                             "type": "array",
                             "minItems": 1,
                             "maxItems": 1,
                             "prefixItems": [
                                 {
-                                    "$ref": "https://calm.finos.org/release/1.1/meta/interface.json#/defs/url-interface",
+                                    "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type",
                                     "properties": {
-                                        "unique-id": { "const": "frontend-url" }
+                                        "unique-id": {"const": "frontend-url"},
+                                        "url": {"type": "string"}
                                     }
                                 }
                             ]
                         }
                     },
-                    "required": ["description"]
+                    "required": [
+                        "description"
+                    ]
                 },
                 {
-                    "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node",
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
                     "type": "object",
                     "properties": {
-                        "unique-id": { "const": "api-service" },
-                        "name": { "const": "Registration API" },
-                        "node-type": { "const": "service" },
-                        "description": { "type": "string" },
+                        "unique-id": {"const": "api-service"},
+                        "name": {"const": "Registration API"},
+                        "node-type": {"const": "service"},
+                        "description": {"type": "string"},
                         "interfaces": {
                             "type": "array",
                             "minItems": 2,
                             "maxItems": 2,
                             "prefixItems": [
                                 {
-                                    "$ref": "https://calm.finos.org/release/1.1/meta/interface.json#/defs/container-image-interface",
+                                    "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type",
                                     "properties": {
-                                        "unique-id": { "const": "api-image" }
-                                    }
+                                        "unique-id": {"const": "api-image"},
+                                        "image": {"type": "string"}
+                                    },
+                                    "required": ["image"]
                                 },
                                 {
-                                    "$ref": "https://calm.finos.org/release/1.1/meta/interface.json#/defs/port-interface",
+                                    "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type",
                                     "properties": {
-                                        "unique-id": { "const": "api-port" }
-                                    }
+                                        "unique-id": {"const": "api-port"},
+                                        "port": { "type": "integer" }
+                                    },
+                                    "required": ["port"]
                                 }
                             ]
                         }
                     },
-                    "required": ["description"]
+                    "required": [
+                        "description"
+                    ]
                 },
                 {
-                    "anyOf": [
+                    "oneOf": [
                         {
-                            "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
-                                "unique-id": { "const": "postgres-db" },
-                                "name": { "const": "PostgreSQL Database" },
-                                "node-type": { "const": "database" },
+                                "unique-id": {"const": "postgres-registration-database"},
+                                "name": {"const": "PostgreSQL Database"},
+                                "node-type": {"const": "database"},
+                                "description": {"const": "conference registration database using PostgreSQL"},
                                 "interfaces": {
                                     "type": "array",
                                     "minItems": 2,
                                     "maxItems": 2,
                                     "prefixItems": [
                                         {
-                                            "$ref": "https://calm.finos.org/release/1.1/meta/interface.json#/defs/container-image-interface",
+                                            "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type",
                                             "properties": {
-                                                "unique-id": {
-                                                    "const": "postgres-image"
-                                                }
-                                            }
+                                                "unique-id": {"const": "postgres-image"},
+                                                "image": {"type": "string"}
+                                            },
+                                            "required": ["image"]
                                         },
                                         {
-                                            "$ref": "https://calm.finos.org/release/1.1/meta/interface.json#/defs/port-interface",
+                                            "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type",
                                             "properties": {
-                                                "unique-id": {
-                                                    "const": "postgres-port"
-                                                }
-                                            }
+                                                "unique-id": {"const": "postgres-port"},
+                                                "port": { "type": "integer" }
+                                            },
+                                            "required": ["port"]
                                         }
                                     ]
                                 }
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
-                                "unique-id": { "const": "mysql-db" },
-                                "name": { "const": "MySQL Database" },
-                                "node-type": { "const": "database" },
+                                "unique-id": {"const": "mysql-registration-database"},
+                                "name": {"const": "MySQL Database"},
+                                "node-type": {"const": "database"},
+                                "description": {"const": "conference registration database using MySQL"},
                                 "interfaces": {
                                     "type": "array",
                                     "minItems": 2,
                                     "maxItems": 2,
                                     "prefixItems": [
                                         {
-                                            "$ref": "https://calm.finos.org/release/1.1/meta/interface.json#/defs/container-image-interface",
+                                            "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type",
                                             "properties": {
-                                                "unique-id": {
-                                                    "const": "mysql-image"
-                                                }
-                                            }
+                                                "unique-id": {"const": "mysql-image"},
+                                                "image": {"type": "string"}
+                                            },
+                                            "required": ["image"]
                                         },
                                         {
-                                            "$ref": "https://calm.finos.org/release/1.1/meta/interface.json#/defs/port-interface",
+                                            "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type",
                                             "properties": {
-                                                "unique-id": {
-                                                    "const": "mysql-port"
-                                                }
-                                            }
+                                                "unique-id": {"const": "mysql-port"},
+                                                "port": { "type": "integer" }
+                                            },
+                                            "required": ["port"]
                                         }
                                     ]
                                 }
@@ -308,74 +319,154 @@ Patterns use JSON schema constructs to provide choices and options:
                     ]
                 },
                 {
-                    "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/node",
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
                     "type": "object",
                     "properties": {
-                        "unique-id": { "const": "k8s-cluster" },
-                        "name": { "const": "Kubernetes Cluster" },
-                        "node-type": { "const": "system" },
-                        "description": { "type": "string" }
-                    },
-                    "required": ["description"]
+                        "unique-id": {"const": "k8s-cluster"},
+                        "name": {"const": "Kubernetes Cluster"},
+                        "description": {"const": "cluster housing the conference sign up api and database services"},
+                        "node-type": {"const": "system"}
+                    }
                 }
             ]
         },
         "relationships": {
             "type": "array",
-            "minItems": 3,
-            "maxItems": 3,
+            "minItems": 4,
+            "maxItems": 4,
             "prefixItems": [
                 {
-                    "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship",
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
                     "type": "object",
                     "properties": {
-                        "unique-id": { "const": "frontend-to-api" },
-                        "description": { "type": "string" },
-                        "protocol": { "const": "HTTPS" },
+                        "unique-id": {"const": "database-choice"},
+                        "description": {"const": "Which database technology should be used?"},"relationship-type": {
+                            "type": "object",
+                            "properties": {
+                                "options": {
+                                    "type": "array",
+                                    "prefixItems": [
+                                        {
+                                            "oneOf": [
+                                                {
+                                                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/decision",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "description": {"const": "Use PostgreSQL"},
+                                                        "nodes": {"const": ["postgres-registration-database"]},
+                                                        "relationships": {"const": ["api-service-to-postgres-database", "deployed-in-k8s-postgres"]}
+                                                    }
+                                                },
+                                                {
+                                                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/decision",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "description": {"const": "Use MySQL"},
+                                                        "nodes": {"const": ["mysql-registration-database"]},
+                                                        "relationships": {"const": ["api-service-to-mysql-database", "deployed-in-k8s-mysql"]}
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
+                    "type": "object",
+                    "properties": {
+                        "unique-id": {"const": "frontend-to-api"},
+                        "description": {"const": "Frontend connects to API service using HTTPS"},
+                        "protocol": {"const": "HTTPS"},
                         "relationship-type": {
                             "const": {
                                 "connects": {
-                                    "source": { "node": "frontend" },
-                                    "destination": { "node": "api-service" }
-                                }
+                                    "source": {"node": "frontend"},
+                                    "destination": {"node": "api-service"}}
                             }
                         }
-                    },
-                    "required": ["description"]
+                    }
                 },
                 {
-                    "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship",
-                    "type": "object",
-                    "properties": {
-                        "unique-id": { "const": "api-to-database" },
-                        "description": { "type": "string" },
-                        "protocol": { "const": "JDBC" },
-                        "relationship-type": {
-                            "const": {
-                                "connects": {
-                                    "source": { "node": "api-service" },
-                                    "destination": { "node": "postgres-db" }
+                    "oneOf": [
+                        {
+                            "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
+                            "type": "object",
+                            "properties": {
+                                "unique-id": {"const": "api-service-to-postgres-database"},
+                                "description": {"const": "API service connects to the database using JDBC"},
+                                "protocol": {"const": "JDBC"},
+                                "relationship-type": {
+                                    "const": {
+                                        "connects": {
+                                            "source": {"node": "api-service"},
+                                            "destination": {"node": "postgres-registration-database"}
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
+                            "type": "object",
+                            "properties": {
+                                "unique-id": {"const": "api-service-to-mysql-database"},
+                                "description": {"const": "API service connects to the database using JDBC"},
+                                "protocol": {"const": "JDBC"},
+                                "relationship-type": {
+                                    "const": {
+                                        "connects": {
+                                            "source": {"node": "api-service"},
+                                            "destination": {"node": "mysql-registration-database"}
+                                        }
+                                    }
                                 }
                             }
                         }
-                    },
-                    "required": ["description"]
+                    ]   
                 },
                 {
-                    "$ref": "https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship",
-                    "properties": {
-                        "unique-id": { "const": "deployed-in-k8s" },
-                        "description": { "type": "string" },
-                        "relationship-type": {
-                            "const": {
-                                "deployed-in": {
-                                    "container": "k8s-cluster",
-                                    "nodes": ["api-service", "postgres-db"]
+                    "oneOf": [
+                        {
+                            "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
+                            "properties": {
+                                "unique-id": {"const": "deployed-in-k8s-postgres"},
+                                "description": {"const": "k8s with postgres database"},
+                                "relationship-type": {
+                                    "const": {
+                                        "deployed-in": {
+                                            "container": "k8s-cluster",
+                                            "nodes": [
+                                                "api-service",
+                                                "postgres-registration-database"
+                                            ]
+                                        }
+                                    }
                                 }
                             }
-                        }
-                    },
-                    "required": ["description"]
+                        },
+                        {
+                            "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
+                            "properties": {
+                                "unique-id": {"const": "deployed-in-k8s-mysql"},
+                                "description": {"const": "k8s with mysql database"},
+                                "relationship-type": {
+                                    "const": {
+                                        "deployed-in": {
+                                            "container": "k8s-cluster",
+                                            "nodes": [
+                                                "api-service",
+                                                "mysql-registration-database"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }  
+                    ]
                 }
             ]
         },
@@ -392,15 +483,23 @@ Patterns use JSON schema constructs to provide choices and options:
                             "properties": {
                                 "namespace": { "const": "conference" }
                             },
-                            "required": ["namespace"]
+                            "required": [
+                                "namespace"
+                            ]
                         }
                     },
-                    "required": ["kubernetes"]
+                    "required": [
+                        "kubernetes"
+                    ]
                 }
             ]
         }
     },
-    "required": ["nodes", "relationships", "metadata"]
+    "required": [
+        "nodes",
+        "relationships",
+        "metadata"
+    ]
 }
 ```
 
@@ -446,8 +545,8 @@ Based on real CALM patterns, patterns should include:
 
 ### Complete Node Definitions
 
-- **Interfaces**: Define specific interface types (url-interface, container-image-interface, port-interface, etc.)
-- **Constraints**: Use `const` for structural identifiers, `anyOf` for choices
+- **Interfaces**: Define specific interface types (interface-definition, interface-type)
+- **Constraints**: Use `const` for structural identifiers, `anyOf` or `oneOf` for choices
 - **Array constraints**: Use `minItems`, `maxItems`, and `prefixItems`
 
 ### Detailed Relationships
@@ -467,7 +566,7 @@ Patterns can include security controls on relationships:
 
 ```json
 "controls": {
-    "$ref": "https://calm.finos.org/release/1.1/meta/control.json#/defs/controls",
+    "$ref": "https://calm.finos.org/release/1.2/meta/control.json#/defs/controls",
     "properties": {
         "security": {
             "type": "object",
@@ -481,7 +580,7 @@ Patterns can include security controls on relationships:
                     "maxItems": 1,
                     "prefixItems": [
                         {
-                            "$ref": "https://calm.finos.org/release/1.1/meta/control.json#/defs/control-detail",
+                            "$ref": "https://calm.finos.org/release/1.2/meta/control.json#/defs/control-detail",
                             "properties": {
                                 "requirement-url": {
                                     "const": "https://schemas.company.com/security/connection-security.json"
@@ -509,10 +608,8 @@ Patterns can also constrain business flows (though not shown in the basic exampl
 
 Always use specific interface schema references:
 
-- `url-interface` for web endpoints
-- `container-image-interface` for Docker images
-- `port-interface` for network ports
-- `host-port-interface` for host/port combinations
+- `interface-definition` is a formal interface definition that references an external schema for standardization and validation.
+- `interface-type` is a simple, inline interface allowing any properties for quick documentation and basic connectivity.
 
 ### Relationship Types
 
@@ -557,14 +654,14 @@ The CLI will prompt for choices when encountering `anyOf`/`oneOf` options, or yo
 ### Schema References
 
 - `$ref` - Reference base CALM schema definitions
-- Always reference `https://calm.finos.org/release/1.1/meta/core.json#/defs/node` for nodes
-- Always reference `https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship` for relationships
-- Reference specific interface schemas from `https://calm.finos.org/release/1.1/meta/interface.json#/defs/`
+- Always reference `https://calm.finos.org/release/1.2/meta/core.json#/defs/node` for nodes
+- Always reference `https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship` for relationships
+- Reference specific interface schemas from `https://calm.finos.org/release/1.2/meta/interface.json#/defs/`
 
 ## Validation Rules
 
 1. Pattern must be a valid JSON schema extending CALM architecture schema
-2. Must reference base CALM schema: `"$schema": "https://calm.finos.org/release/1.1/meta/calm.json"`
+2. Must reference base CALM schema: `"$schema": "https://calm.finos.org/release/1.2/meta/calm.json"`
 3. Node definitions must use `$ref` to core node schema
 4. Relationship definitions must use `$ref` to core relationship schema
 5. Use `const` for fixed values, `anyOf`/`oneOf` for options

@@ -908,9 +908,9 @@ db.schemas.insertMany([               // Insert initial documents into the schem
 // Insert namespaces if they don't exist
 if (db.namespaces.countDocuments() === 0) {
     db.namespaces.insertMany([
-        { namespace: "finos" },
-        { namespace: "workshop" },
-        { namespace: "traderx" }
+        { name: "finos", description: "FINOS namespace" },
+        { name: "workshop", description: "Workshop namespace" },
+        { name: "traderx", description: "TraderX namespace" }
     ]);
     print("Initialized namespaces: finos, workshop, traderx");
 } else {

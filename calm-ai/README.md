@@ -25,14 +25,17 @@ calm-ai/
 │   ├── architecture-creation.md
 │   ├── calm-cli-instructions.md
 │   ├── control-creation.md
+│   ├── decorator-creation.md
 │   ├── documentation-creation.md
 │   ├── flow-creation.md
 │   ├── interface-creation.md
 │   ├── metadata-creation.md
+│   ├── moment-creation.md
 │   ├── node-creation.md
 │   ├── pattern-creation.md
 │   ├── relationship-creation.md
-│   └── standards-creation.md
+│   ├── standards-creation.md
+│   └── timeline-creation.md
 └── package.json           # Package metadata
 ```
 
@@ -45,14 +48,17 @@ Individual markdown files providing detailed guidance for specific CALM modeling
 | `architecture-creation.md` | Guide for creating complete CALM architecture documents with required schema structure |
 | `calm-cli-instructions.md` | Summary of CALM CLI commands, validation modes, and usage flags |
 | `control-creation.md` | Guide for defining control requirements and compliance configurations |
+| `decorator-creation.md` | Guide for creating decorators |
 | `documentation-creation.md` | Guide for generating documentation from CALM models |
 | `flow-creation.md` | Guide for modeling business process flows through architecture |
 | `interface-creation.md` | Critical guidance for interface definitions and oneOf constraints |
 | `metadata-creation.md` | Guide for adding metadata arrays with proper validation |
+| `moment-creation.md` | Guide for adding moments to timelines with proper validation |
 | `node-creation.md` | Guide for creating nodes (components) with proper validation |
 | `pattern-creation.md` | Guide for defining reusable architectural patterns |
 | `relationship-creation.md` | Guide for creating relationships between nodes |
 | `standards-creation.md` | Guide for creating JSON Schema Standards extending CALM with organizational requirements |
+| `timeline-creation.md` | Guide for creating architecture timelines |
 
 Each tool prompt follows a consistent structure:
 - Overview and purpose
@@ -133,7 +139,10 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
         "calm-prompts/flow-creation.md",
         "calm-prompts/pattern-creation.md",
         "calm-prompts/documentation-creation.md",
-        "calm-prompts/standards-creation.md"
+        "calm-prompts/standards-creation.md",
+        "calm-prompts/moment-creation.md",
+        "calm-prompts/timeline-creation.md",
+        "calm-prompts/decorator-creation.md"
     ]
 }
 ```
@@ -165,7 +174,10 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
         "calm-prompts/flow-creation.md",
         "calm-prompts/pattern-creation.md",
         "calm-prompts/documentation-creation.md",
-        "calm-prompts/standards-creation.md"
+        "calm-prompts/standards-creation.md",
+        "calm-prompts/moment-creation.md",
+        "calm-prompts/timeline-creation.md",
+        "calm-prompts/decorator-creation.md"
     ]
 }
 ```
@@ -210,7 +222,7 @@ The template includes:
 ### 2. Prompt Management
 - Provides modular, focused guidance for specific CALM tasks
 - Enforces validation requirements and best practices
-- References CALM schema v1.1 for accuracy
+- References CALM schema v1.2 for accuracy
 - Includes working examples and common pitfall warnings
 
 ### 3. Multi-provider Support
@@ -282,7 +294,7 @@ When editing `templates/CALM.chatmode_template.md`:
 ## Validation Requirements
 
 All tool prompts must:
-- Reference CALM schema v1.1
+- Reference CALM schema v1.2
 - Include mandatory validation steps
 - Provide `calm validate` commands
 - Emphasize `hasErrors: false` requirement
@@ -292,6 +304,6 @@ All tool prompts must:
 ## Related Documentation
 
 - **CALM CLI**: See `cli/AGENTS.md` for CLI command details
-- **CALM Schema**: https://calm.finos.org/release/1.1/meta/calm.json
+- **CALM Schema**: https://calm.finos.org/release/1.2/meta/calm.json
 - **User Docs**: https://calm.finos.org
 - **VSCode Extension**: See `calm-plugins/vscode/AGENTS.md`

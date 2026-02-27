@@ -1,50 +1,60 @@
-import cytoscape from 'cytoscape';
-import { CalmInterfaceSchema, CalmControlsSchema } from '@finos/calm-models/types';
-
-export type CytoscapeNode = {
-    classes?: string;
-    data: CytoscapeNodeData & {
-        cytoscapeProps: {
-            labelWithDescription: string;
-            labelWithoutDescription: string;
-        };
-    };
-};
-
-export type CytoscapeNodeData = {
-    id: string;
-    description: string;
-    type: string;
-    name: string;
-    interfaces?: CalmInterfaceSchema[];
-    controls?: CalmControlsSchema;
-    parent?: string;
-};
-
-export type CytoscapeEdge = {
-    data: {
-        id: string;
-        label: string;
-        source: string;
-        target: string;
-        [idx: string]: string;
-    };
-};
-
-export type BoundingBox = cytoscape.BoundingBox12 & cytoscape.BoundingBoxWH;
-
-export type IdAndBoundingBox = {
-    nodeId: string;
-    boundingBox: BoundingBox;
-};
-
-export type NodeLayoutViolations = {
-    shouldBeInside: IdAndBoundingBox[];
-    shouldBeOutside: IdAndBoundingBox[];
-    nodeBoundingBox: BoundingBox;
-};
-
-export type IdAndPosition = {
-    nodeId: string;
-    position: cytoscape.Position;
-};
+/**
+ * Re-export all contracts for backward compatibility and convenience
+ */
+export type { NodeData } from './node-contracts.js';
+export type {
+    EdgeData,
+    EdgeControl,
+    Mitigation,
+    Risk,
+    EdgeBadgeStyle,
+    EdgeBadgeProps,
+    EdgeTooltipProps,
+    FlowTransitionEdge,
+} from './edge-contracts.js';
+export type {
+    RiskItem,
+    MitigationItem,
+    ControlItem,
+} from './node-contracts.js';
+export type {
+    Flow,
+    FlowTransition,
+    AIGFGovernance,
+    FlowsPanelProps,
+} from './flow-contracts.js';
+export type {
+    Control,
+    ControlRequirement,
+    ControlRequirementConfig,
+    ControlsPanelProps,
+} from './control-contracts.js';
+export type {
+    DrawerProps,
+    SelectedItem,
+    SidebarProps,
+    ReactFlowVisualizerProps,
+    ArchitectureGraphProps,
+    MetadataPanelProps,
+    MetadataPanelTabType,
+} from './visualizer-contracts.js';
+export type {
+    ControlsPanelHeaderProps,
+    ControlCardProps,
+    ControlCardHeaderProps,
+    NodeBadgeProps,
+    RequirementsSectionProps,
+    AIGFMappingSectionProps,
+    ControlRequirementItemProps,
+    ConfigSectionProps,
+    AppliesToSectionProps,
+} from './controls-panel-contracts.js';
+export type {
+    FlowsPanelHeaderProps,
+    FlowCardProps,
+    FlowCardHeaderProps,
+    TransitionsListProps,
+    FlowTransitionItemProps,
+    TransitionContentProps,
+    AIGFGovernanceSectionProps,
+} from './flows-panel-contracts.js';

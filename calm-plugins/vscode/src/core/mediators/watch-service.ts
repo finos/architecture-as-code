@@ -55,7 +55,8 @@ export class WatchService {
                 const ft = detectFileType(doc.uri.fsPath)
                 if (
                     (ft.type === FileType.ArchitectureFile && ft.isValid) ||
-                    (ft.type === FileType.TemplateFile && ft.isValid)
+                    (ft.type === FileType.TemplateFile && ft.isValid) ||
+                    (ft.type === FileType.TimelineFile && ft.isValid)
                 ) {
                     // Let the controller handle preview.reveal; we only refresh if the doc is valid
                     void this.refresh.refreshForDocument(doc)
