@@ -1,4 +1,4 @@
-const expectedNamespace = "finos"
+const expectedNamespace = { name: "finos", description: "FINOS namespace" };
 const expectedAdrId = 1;
 const expectedAdrRevision = 2;
 
@@ -14,7 +14,7 @@ describe('ADR Tests', () => {
 
     it("Displays ADR JSON successfully", () => {
         cy.visit("/");
-        cy.findByText(expectedNamespace).click();
+        cy.findByText(expectedNamespace.name).click();
         cy.findByText(/adrs/i).click();
         cy.findByText(/1/i).click();
         cy.findByText(expectedAdrRevision).click();
