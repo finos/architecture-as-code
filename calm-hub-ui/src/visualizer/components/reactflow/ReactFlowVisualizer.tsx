@@ -11,6 +11,8 @@ export interface ReactFlowVisualizerProps {
   onEdgeClick?: (edgeData: CalmRelationshipSchema) => void;
   onBackgroundClick?: () => void;
 }
+import { ArchitectureGraph } from './ArchitectureGraph.js';
+import type { ReactFlowVisualizerProps } from '../../contracts/visualizer-contracts.js';
 
 /**
  * ReactFlow-based visualizer component

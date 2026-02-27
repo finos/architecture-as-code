@@ -33,6 +33,13 @@ interface ArchitectureGraphProps {
     onNodeClick?: (node: CalmNodeSchema) => void;
     onEdgeClick?: (edge: CalmRelationshipSchema) => void;
 }
+import { FloatingEdge } from './FloatingEdge.js';
+import { CustomNode } from './CustomNode.js';
+import { SystemGroupNode } from './SystemGroupNode.js';
+import { THEME } from './theme.js';
+import { parseCALMData } from './utils/calmTransformer.js';
+import { GRAPH_LAYOUT } from './utils/constants.js';
+import type { ArchitectureGraphProps } from '../../contracts/contracts.js';
 
 export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick }: ArchitectureGraphProps) {
     const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);

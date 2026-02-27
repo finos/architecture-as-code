@@ -1,9 +1,6 @@
 import { FiGitBranch } from 'react-icons/fi';
-import { THEME } from '../theme';
-
-interface FlowsPanelHeaderProps {
-    flowCount: number;
-}
+import { THEME } from '../theme.js';
+import type { FlowsPanelHeaderProps } from '../../../contracts/contracts.js';
 
 export function FlowsPanelHeader({ flowCount }: FlowsPanelHeaderProps) {
     return (

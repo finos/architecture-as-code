@@ -1,27 +1,8 @@
 import { useState, useCallback } from 'react';
 import { EdgeProps, getBezierPath, EdgeLabelRenderer, useStore } from 'reactflow';
-import { getEdgeParams } from './utils/floatingEdges';
-import { EdgeBadge, EdgeTooltip, getBadgeStyle } from './edge-components';
-import type { FlowTransition, EdgeControl, Mitigation, Risk } from './edge-components';
-
-/**
- * Edge data from CALM relationships - all fields optional as different
- * relationship types have different data (connects, interacts, etc.)
- */
-interface EdgeData {
-    description?: string;
-    protocol?: string;
-    direction?: 'forward' | 'backward';
-    flowTransitions?: FlowTransition[];
-    controls?: Record<string, EdgeControl>;
-    metadata?: {
-        aigf?: {
-            'controls-applied'?: string[];
-            mitigations?: (string | Mitigation)[];
-            risks?: (string | Risk)[];
-        };
-    };
-}
+import { getEdgeParams } from './utils/floatingEdges.js';
+import { EdgeBadge, EdgeTooltip, getBadgeStyle } from './edge-components/index.js';
+import type { EdgeData } from '../../contracts/contracts.js';
 
 export function FloatingEdge({
     id,

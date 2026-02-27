@@ -1,10 +1,6 @@
 import { FiShield, FiAlertCircle } from 'react-icons/fi';
-import { THEME } from '../theme';
-import type { AIGFGovernance } from '../FlowsPanel';
-
-interface AIGFGovernanceSectionProps {
-    governance: AIGFGovernance;
-}
+import { THEME } from '../theme.js';
+import type { AIGFGovernanceSectionProps } from '../../../contracts/contracts.js';
 
 export function AIGFGovernanceSection({ governance }: AIGFGovernanceSectionProps) {
     const hasMitigations = governance['mitigations-applied']?.length;

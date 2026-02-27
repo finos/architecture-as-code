@@ -1,11 +1,7 @@
 import { IoCloseOutline } from 'react-icons/io5';
 import { NodeData, EdgeData } from '../../contracts/contracts.js';
 import { JsonRenderer } from '../../../hub/components/json-renderer/JsonRenderer.js';
-
-export interface SidebarProps {
-    selectedData: NodeData | EdgeData;
-    closeSidebar: () => void;
-}
+import type { SidebarProps } from '../../contracts/visualizer-contracts.js';
 
 function isNodeData(data: NodeData | EdgeData): data is NodeData {
     return data['unique-id'] != null && 'node-type' in data && data['node-type'] != null;

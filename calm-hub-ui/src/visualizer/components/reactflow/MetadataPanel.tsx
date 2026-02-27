@@ -1,22 +1,9 @@
 import { useState, useRef, useCallback } from 'react';
-import { THEME } from './theme';
-import { FlowsPanel, Flow } from './FlowsPanel';
-import { ControlsPanel, Control } from './ControlsPanel';
+import { THEME } from './theme.js';
+import { FlowsPanel } from './FlowsPanel.js';
+import { ControlsPanel } from './ControlsPanel.js';
 import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
-
-interface MetadataPanelProps {
-    flows: Flow[];
-    controls: Record<string, Control>;
-    onTransitionClick?: (relationshipId: string) => void;
-    onNodeClick?: (nodeId: string) => void;
-    onControlClick?: (controlId: string) => void;
-    isCollapsed: boolean;
-    onToggleCollapse: () => void;
-    height: number;
-    onHeightChange: (height: number) => void;
-}
-
-type TabType = 'flows' | 'controls';
+import type { MetadataPanelProps, MetadataPanelTabType } from '../../contracts/contracts.js';
 
 export function MetadataPanel({
     flows,
@@ -31,7 +18,7 @@ export function MetadataPanel({
 }: MetadataPanelProps) {
     const hasFlows = flows.length > 0;
     const hasControls = Object.keys(controls).length > 0;
-    const [activeTab, setActiveTab] = useState<TabType>(hasFlows ? 'flows' : 'controls');
+    const [activeTab, setActiveTab] = useState<MetadataPanelTabType>(hasFlows ? 'flows' : 'controls');
     const [isDragging, setIsDragging] = useState(false);
     const dragStartY = useRef<number>(0);
     const dragStartHeight = useRef<number>(0);

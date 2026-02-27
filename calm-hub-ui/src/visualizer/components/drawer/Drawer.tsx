@@ -36,6 +36,7 @@ interface DrawerProps {
 type SelectedItem = {
     data: NodeData | EdgeData;
 } | null;
+import type { DrawerProps, SelectedItem, Flow, Control } from '../../contracts/contracts.js';
 
 /**
  * Extract the unique-id from a CALM node or relationship
