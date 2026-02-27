@@ -1,4 +1,4 @@
-import { PatternGraph } from './PatternGraph';
+import { PatternGraph } from './PatternGraph.js';
 
 export interface PatternVisualizerProps {
     patternData: Record<string, unknown>;

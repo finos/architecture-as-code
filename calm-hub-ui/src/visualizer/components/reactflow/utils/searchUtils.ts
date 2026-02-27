@@ -1,8 +1,8 @@
 import { Node, Edge } from 'reactflow';
 
-/** Resolves the CALM node type from either architecture (data.type) or pattern (data['node-type']) nodes. */
+/** Resolves the CALM node type from node data. */
 function getNodeType(node: Node): string {
-    return node.data?.type || node.data?.['node-type'] || '';
+    return node.data?.['node-type'] || '';
 }
 
 /**

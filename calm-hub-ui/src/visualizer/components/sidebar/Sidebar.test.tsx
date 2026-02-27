@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { Sidebar } from './Sidebar.js';
-import { NodeData, EdgeData } from '../../contracts/contracts.js';
+import { CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
 
 vi.mock('@monaco-editor/react', () => ({
     Editor: ({ value }: { value: string }) => (
@@ -12,7 +12,7 @@ vi.mock('@monaco-editor/react', () => ({
 describe('Sidebar Component', () => {
     const mockCloseSidebar = vi.fn();
 
-    const mockNodeData: NodeData = {
+    const mockNodeData: CalmNodeSchema = {
         'unique-id': 'node-1',
         name: 'Node 1',
         'node-type': 'type-1',
@@ -29,9 +29,9 @@ describe('Sidebar Component', () => {
                 description: 'Control requirements for delivering patterns',
                 requirements: [
                     {
-                        'control-requirement-url':
+                        'requirement-url':
                             'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-specification.json',
-                        'control-config-url':
+                        'config-url':
                             'https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/control-example/pre-prod-review-configuration.json',
                     },
                 ],
@@ -39,7 +39,7 @@ describe('Sidebar Component', () => {
         },
     };
 
-    const mockEdgeData: EdgeData = {
+    const mockEdgeData: CalmRelationshipSchema = {
         'unique-id': 'edge-1',
         'relationship-type': {
             connects: {

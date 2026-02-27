@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Drawer } from './Drawer.js';
 import { Data } from '../../../model/calm.js';
-import { ReactFlowVisualizerProps } from '../reactflow/ReactFlowVisualizer.js';
-import { SidebarProps } from '../sidebar/Sidebar.js';
+import type { SidebarProps, ReactFlowVisualizerProps } from '../../contracts/contracts.js';
 import { DropzoneOptions } from 'react-dropzone';
 
 // Mock dependencies
@@ -11,7 +10,7 @@ vi.mock('../sidebar/Sidebar.js', () => ({
     Sidebar: ({ selectedData, closeSidebar }: SidebarProps) => (
         <div data-testid="sidebar">
             <button onClick={closeSidebar}>Close</button>
-            <div>{selectedData?.name}</div>
+            <div>{String(selectedData?.name ?? '')}</div>
         </div>
     ),
 }));

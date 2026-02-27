@@ -1,33 +1,26 @@
-import { NodeData, EdgeData } from '../../../contracts/contracts.js';
+import { CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
 
-const NODE_DISPLAY_KEYS = ['label'] as const;
-const EDGE_DISPLAY_KEYS = ['id', 'label', 'source', 'target'] as const;
+const NODE_DISPLAY_FIELDS = ['label', 'onShowDetails'];
+const EDGE_DISPLAY_FIELDS = ['flowTransitions', 'direction'];
 
-function omitKeys<T extends Record<string, unknown>>(obj: T, keys: readonly string[]): Record<string, unknown> {
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(obj)) {
-        if (!keys.includes(key)) {
-            result[key] = value;
-        }
-    }
-    return result;
+function omitFields(data: Record<string, unknown>, fields: string[]): Record<string, unknown> {
+    const copy = { ...data };
+    for (const key of fields) delete copy[key];
+    return copy;
 }
 
 /**
- * Converts raw pattern node data from ReactFlow into a NodeData object for the sidebar.
- * Passes through all CALM schema fields (unique-id, node-type, interfaces, controls, etc.)
- * Strips the 'label' field which is a ReactFlow display artifact (duplicates 'name').
+ * Strips ReactFlow display fields (label, onShowDetails) from node data,
+ * returning only CALM fields for the sidebar.
  */
-export function toPatternNodeData(nodeData: Record<string, unknown>): NodeData {
-    return omitKeys(nodeData, NODE_DISPLAY_KEYS) as NodeData;
+export function toSidebarNodeData(nodeData: Record<string, unknown>): CalmNodeSchema {
+    return omitFields(nodeData, NODE_DISPLAY_FIELDS) as CalmNodeSchema;
 }
 
 /**
- * Converts raw pattern edge data from ReactFlow into an EdgeData object for the sidebar.
- * Passes through all CALM schema fields (unique-id, relationship-type, protocol, controls, etc.)
- * Strips ReactFlow artifacts: id (edge ID), label (duplicate of description), source/target
- * (derived convenience fields — actual source/target lives inside relationship-type).
+ * Strips ReactFlow display fields (flowTransitions, direction) from edge data,
+ * returning only CALM fields for the sidebar.
  */
-export function toPatternEdgeData(edgeData: Record<string, unknown>): EdgeData {
-    return omitKeys(edgeData, EDGE_DISPLAY_KEYS) as EdgeData;
+export function toSidebarEdgeData(edgeData: Record<string, unknown>): CalmRelationshipSchema {
+    return omitFields(edgeData, EDGE_DISPLAY_FIELDS) as CalmRelationshipSchema;
 }

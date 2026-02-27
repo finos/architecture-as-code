@@ -1,19 +1,19 @@
 import { IoCloseOutline } from 'react-icons/io5';
-import { NodeData, EdgeData } from '../../contracts/contracts.js';
+import { CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
 import { JsonRenderer } from '../../../hub/components/json-renderer/JsonRenderer.js';
 import type { SidebarProps } from '../../contracts/visualizer-contracts.js';
 
-function isNodeData(data: NodeData | EdgeData): data is NodeData {
-    return data['unique-id'] != null && 'node-type' in data && data['node-type'] != null;
+function isCALMNode(data: CalmNodeSchema | CalmRelationshipSchema): data is CalmNodeSchema {
+    return 'node-type' in data;
 }
 
-function isEdgeData(data: NodeData | EdgeData): data is EdgeData {
-    return data['unique-id'] != null && 'relationship-type' in data && !('node-type' in data);
+function isCALMRelationship(data: CalmNodeSchema | CalmRelationshipSchema): data is CalmRelationshipSchema {
+    return 'relationship-type' in data;
 }
 
 export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
-    const isCALMNode = isNodeData(selectedData);
-    const isCALMEdge = isEdgeData(selectedData);
+    const isNode = isCALMNode(selectedData);
+    const isRelationship = isCALMRelationship(selectedData);
 
     return (
         <div className="fixed right-0 h-full w-96 bg-base-200 shadow-2xl flex flex-col">
@@ -27,9 +27,9 @@ export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
                         style={{ backgroundColor: 'var(--color-accent)' }}
                     ></div>
                     <h2 className="text-lg font-semibold text-base-content">
-                        {isCALMNode
+                        {isNode
                             ? 'Node Details'
-                            : isCALMEdge
+                            : isRelationship
                               ? 'Relationship Details'
                               : 'Details'}
                     </h2>
@@ -48,7 +48,7 @@ export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
 
             {/* Content */}
             <div className="flex-1 flex flex-col p-4 min-h-0">
-                {(isCALMNode || isCALMEdge) ? (
+                {(isNode || isRelationship) ? (
                     <div className="flex-1 bg-base-100 rounded-lg border border-base-300 overflow-auto shadow-sm min-h-0">
                         <JsonRenderer json={selectedData} showLineNumbers={false} />
                     </div>

@@ -4,17 +4,14 @@ import {
     CalmNodeSchema,
     CalmRelationshipSchema,
 } from '@finos/calm-models/types';
-import { Data } from '../../../model/calm.js';
 import { useDropzone } from 'react-dropzone';
 import { ReactFlowVisualizer } from '../reactflow/ReactFlowVisualizer.js';
 import { PatternVisualizer } from '../reactflow/PatternVisualizer.js';
 import { Sidebar } from '../sidebar/Sidebar.js';
 import { MetadataPanel } from '../reactflow/MetadataPanel.js';
-import { NodeData, EdgeData } from '../../contracts/contracts.js';
-import { toPatternNodeData, toPatternEdgeData } from '../reactflow/utils/patternClickHandlers.js';
+import { toSidebarNodeData, toSidebarEdgeData } from '../reactflow/utils/patternClickHandlers.js';
 import { THEME } from '../reactflow/theme.js';
-import type { Flow } from '../reactflow/FlowsPanel.js';
-import type { Control } from '../reactflow/ControlsPanel.js';
+import type { DrawerProps, SelectedItem, Flow, Control } from '../../contracts/contracts.js';
 
 /**
  * Detect whether JSON data is a CALM pattern (JSON Schema) or an architecture instance.
@@ -27,16 +24,6 @@ function isPatternData(data: unknown): boolean {
     return !!(props?.['nodes'] && typeof props['nodes'] === 'object' &&
         (props['nodes'] as Record<string, unknown>)['prefixItems']);
 }
-
-interface DrawerProps {
-    data?: Data; // Optional data prop passed in from CALM Hub if user navigates from there
-}
-
-// Selected item can be either node or edge data from the graph
-type SelectedItem = {
-    data: NodeData | EdgeData;
-} | null;
-import type { DrawerProps, SelectedItem, Flow, Control } from '../../contracts/contracts.js';
 
 /**
  * Extract the unique-id from a CALM node or relationship
@@ -144,38 +131,19 @@ export function Drawer({ data }: DrawerProps) {
 
     // Pattern-specific click handlers
     const handlePatternNodeClick = useCallback((nodeData: Record<string, unknown>) => {
-        setSelectedItem({ data: toPatternNodeData(nodeData) });
+        setSelectedItem({ data: toSidebarNodeData(nodeData) });
     }, []);
 
     const handlePatternEdgeClick = useCallback((edgeData: Record<string, unknown>) => {
-        setSelectedItem({ data: toPatternEdgeData(edgeData) });
+        setSelectedItem({ data: toSidebarEdgeData(edgeData) });
     }, []);
 
-    // Handle node click - convert CalmNodeSchema to NodeData format
     const handleNodeClick = useCallback((nodeData: CalmNodeSchema) => {
-        setSelectedItem({
-            data: {
-                'unique-id': nodeData['unique-id'],
-                'node-type': nodeData['node-type'] || 'unknown',
-                name: nodeData.name,
-                description: nodeData.description,
-                interfaces: nodeData.interfaces,
-                controls: nodeData.controls,
-            } as NodeData,
-        });
+        setSelectedItem({ data: toSidebarNodeData(nodeData as Record<string, unknown>) });
     }, []);
 
-    // Handle edge click - convert relationship data to EdgeData format
     const handleEdgeClick = useCallback((edgeData: CalmRelationshipSchema) => {
-        setSelectedItem({
-            data: {
-                'unique-id': edgeData['unique-id'],
-                'relationship-type': edgeData['relationship-type'],
-                description: edgeData.description,
-                protocol: edgeData.protocol,
-                controls: edgeData.controls,
-            } as EdgeData,
-        });
+        setSelectedItem({ data: toSidebarEdgeData(edgeData as Record<string, unknown>) });
     }, []);
 
     // Handle transition click from flows panel - highlight the relationship

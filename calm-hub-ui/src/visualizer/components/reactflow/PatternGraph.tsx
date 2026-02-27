@@ -10,14 +10,14 @@ import ReactFlow, {
     useEdgesState,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { FloatingEdge } from './FloatingEdge';
-import { CustomNode } from './CustomNode';
-import { SystemGroupNode } from './SystemGroupNode';
-import { DecisionGroupNode } from './DecisionGroupNode';
+import { FloatingEdge } from './FloatingEdge.js';
+import { CustomNode } from './CustomNode.js';
+import { SystemGroupNode } from './SystemGroupNode.js';
+import { DecisionGroupNode } from './DecisionGroupNode.js';
 import { SearchBar } from './SearchBar.js';
-import { THEME } from './theme';
+import { THEME } from './theme.js';
 import { EmptyGraphState } from './EmptyGraphState.js';
-import { parsePatternData } from './utils/patternTransformer';
+import { parsePatternData } from './utils/patternTransformer.js';
 import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
 import { useGraphInteractions } from './hooks/useGraphInteractions.js';
 import { DecisionSelectorPanel } from './DecisionSelectorPanel.js';

@@ -9,37 +9,20 @@ import ReactFlow, {
     useEdgesState,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { FloatingEdge } from './FloatingEdge';
-import { CustomNode } from './CustomNode';
-import { SystemGroupNode } from './SystemGroupNode';
+import { FloatingEdge } from './FloatingEdge.js';
+import { CustomNode } from './CustomNode.js';
+import { SystemGroupNode } from './SystemGroupNode.js';
 import { SearchBar } from './SearchBar.js';
-import { THEME } from './theme';
+import { THEME } from './theme.js';
 import { EmptyGraphState } from './EmptyGraphState.js';
-import { parseCALMData } from './utils/calmTransformer';
+import { parseCALMData } from './utils/calmTransformer.js';
 import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
 import { useGraphInteractions } from './hooks/useGraphInteractions.js';
-import {
-    CalmArchitectureSchema,
-    CalmNodeSchema,
-    CalmRelationshipSchema,
-} from '@finos/calm-models/types';
+import type { ArchitectureGraphProps } from '../../contracts/contracts.js';
 
 const edgeTypes = { custom: FloatingEdge };
 const nodeTypes = { custom: CustomNode, group: SystemGroupNode };
 const GROUP_NODE_TYPES = ['group'];
-
-interface ArchitectureGraphProps {
-    jsonData: CalmArchitectureSchema;
-    onNodeClick?: (node: CalmNodeSchema) => void;
-    onEdgeClick?: (edge: CalmRelationshipSchema) => void;
-}
-import { FloatingEdge } from './FloatingEdge.js';
-import { CustomNode } from './CustomNode.js';
-import { SystemGroupNode } from './SystemGroupNode.js';
-import { THEME } from './theme.js';
-import { parseCALMData } from './utils/calmTransformer.js';
-import { GRAPH_LAYOUT } from './utils/constants.js';
-import type { ArchitectureGraphProps } from '../../contracts/contracts.js';
 
 export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick }: ArchitectureGraphProps) {
     const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);

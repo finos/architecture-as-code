@@ -1,28 +1,6 @@
 /**
  * Re-export all contracts for backward compatibility and convenience
  */
-export type NodeData = {
-    'unique-id': string;
-    'node-type': string;
-    description?: string;
-    name?: string;
-    interfaces?: CalmInterfaceSchema[];
-    controls?: CalmControlsSchema;
-    [key: string]: unknown;
-};
-
-/**
- * Data structure for edge/relationship details displayed in the Sidebar
- * Compatible with relationship data passed from ReactFlow
- */
-export type EdgeData = {
-    'unique-id': string;
-    'relationship-type'?: unknown;
-    description?: string;
-    protocol?: string;
-    controls?: CalmControlsSchema;
-    [key: string]: unknown;
-};
 export type { NodeData } from './node-contracts.js';
 export type {
     EdgeData,

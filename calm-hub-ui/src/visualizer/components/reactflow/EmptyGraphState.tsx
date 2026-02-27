@@ -1,4 +1,4 @@
-import { THEME } from './theme';
+import { THEME } from './theme.js';
 
 interface EmptyGraphStateProps {
     message: string;
