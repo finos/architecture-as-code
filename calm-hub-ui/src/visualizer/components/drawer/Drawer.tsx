@@ -67,24 +67,14 @@ export function Drawer({ data }: DrawerProps) {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
     useEffect(() => {
-        if (fileInstance) {
-            // File upload takes priority
-            if (isPatternData(fileInstance)) {
-                setPatternInstance(fileInstance);
-                setCALMInstance(undefined);
-            } else {
-                setCALMInstance(fileInstance as CalmArchitectureSchema);
-                setPatternInstance(undefined);
-            }
-        } else if (data?.data && (data.calmType === 'Patterns' || isPatternData(data.data))) {
-            // Pattern data from CALM Hub
-            setPatternInstance(data.data as Record<string, unknown>);
-            setCALMInstance(undefined);
-        } else {
-            setCALMInstance(data?.data as CalmArchitectureSchema | undefined);
-            setPatternInstance(undefined);
-        }
-        // Set title from CALM Hub data if available
+        const source = fileInstance ?? data?.data;
+        const isPattern = !!source && (
+            isPatternData(source) || (!fileInstance && data?.calmType === 'Patterns')
+        );
+
+        setPatternInstance(isPattern ? (source as Record<string, unknown>) : undefined);
+        setCALMInstance(isPattern ? undefined : (source as CalmArchitectureSchema | undefined));
+
         if (data?.name && data?.id && data?.version) {
             setTitle(`${data.name}/${data.id}/${data.version}`);
         }
