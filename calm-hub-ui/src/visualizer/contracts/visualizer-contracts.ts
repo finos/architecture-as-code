@@ -3,7 +3,8 @@ import {
     CalmNodeSchema,
     CalmRelationshipSchema,
 } from '@finos/calm-models/types';
-import { NodeData, EdgeData } from './contracts.js';
+import { NodeData } from './node-contracts.js';
+import { EdgeData } from './edge-contracts.js';
 import type { Flow } from './flow-contracts.js';
 import type { Control } from './control-contracts.js';
 import { Data } from '../../model/calm.js';
