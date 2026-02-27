@@ -5,6 +5,164 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.34.2] - 2026-02-26
+
+### Changed
+- Manual release triggered
+
+## [1.34.1] - 2026-02-26
+
+### Changed
+- Manual release triggered
+
+## [1.34.0] - 2026-02-25
+
+## [1.34.0](https://github.com/finos/architecture-as-code/compare/cli-v1.33.0...cli-v1.34.0) (2026-02-25)
+
+* Apply suggestions from code review ([](https://github.com/finos/architecture-as-code/commit/07e3912b2c604f9903c6c7537f49f70fd13a461a))
+* Fix link to CALM tutorials in README ([](https://github.com/finos/architecture-as-code/commit/f971f02704e7f3612a2e0bd5888ef710558ba25f))
+* Fix markdown link formatting in README.md ([](https://github.com/finos/architecture-as-code/commit/787fec7adf980ae97b1454f37dc17df34007fe10))
+* Merge branch 'expand-calm-example-write-up' of https://github.com/jimthompson5802/architecture-as-code into expand-calm-example-write-up ([](https://github.com/finos/architecture-as-code/commit/f39be2e31a3980152307ec6dd3396799295c8847))
+* Merge branch 'expand-calm-example-write-up' of https://github.com/jimthompson5802/architecture-as-code into expand-calm-example-write-up ([](https://github.com/finos/architecture-as-code/commit/852d5b9398b0db07f4c421a40d741fa825848d47))
+* Merge branch 'finos:main' into fix/dependabot-alerts-remediation ([](https://github.com/finos/architecture-as-code/commit/3329fa5e47269407493922c9d23bddf3d4cccb51))
+* Merge branch 'main' into expand-calm-example-write-up ([](https://github.com/finos/architecture-as-code/commit/37f47479a53cbef3a26eefb294938408b0afb2d8))
+* Merge branch 'main' into expand-calm-example-write-up ([](https://github.com/finos/architecture-as-code/commit/8b3c91b6e432fae8db744f4484b92d954c2e4b61))
+* Merge branch 'main' into expand-calm-example-write-up ([](https://github.com/finos/architecture-as-code/commit/3eacae6617abc2a3a671db16c148f19c862b2f02))
+* Merge branch 'main' into expand-calm-example-write-up ([](https://github.com/finos/architecture-as-code/commit/43a94fa913b3b455de2bce493780321a212183d8))
+* Merge branch 'main' into expand-calm-example-write-up ([](https://github.com/finos/architecture-as-code/commit/6f3a877e25ef03a18bd8ac830bb4832689d2b476))
+* Merge branch 'main' into expand-calm-example-write-up ([](https://github.com/finos/architecture-as-code/commit/e3da2a7c5b56cba237ff4fb1ce924dcd5955dae6))
+* Merge branch 'main' into expand-calm-example-write-up ([](https://github.com/finos/architecture-as-code/commit/59325289933e6f3946c75bd5a4226833351fe6a3))
+* Merge branch 'main' into expand-calm-example-write-up ([](https://github.com/finos/architecture-as-code/commit/4a0b33141abd592e75a88f4f3dc9f75f6af6e74a))
+* Merge branch 'main' into expand-calm-example-write-up ([](https://github.com/finos/architecture-as-code/commit/d81da0c118df5427bfa48caf4d5916e37ef3648c))
+* Merge branch 'main' into fix/dependabot-alerts-remediation ([](https://github.com/finos/architecture-as-code/commit/b5128be7322d81374e66adf15f15ff148286dc81))
+* Merge branch 'main' into fix/dependabot-alerts-remediation ([](https://github.com/finos/architecture-as-code/commit/5bc9513cade2d9ed44c0348d7c5aba803e59fdb2))
+* Merge branch 'main' into issue-1440-namespace-refactor ([](https://github.com/finos/architecture-as-code/commit/ec145eb85fa1ff10461029fe82bf5bad60c78b44))
+* Merge branch 'main' of https://github.com/jimthompson5802/architecture-as-code ([](https://github.com/finos/architecture-as-code/commit/eae388b5e7ab877cee840875d1dd10e0c25e3d72))
+* Merge branch 'main' of https://github.com/jimthompson5802/architecture-as-code ([](https://github.com/finos/architecture-as-code/commit/fd0493bec6ff8551d9e771561123512e96ec1946))
+* Merge branch 'main' of https://github.com/jimthompson5802/architecture-as-code ([](https://github.com/finos/architecture-as-code/commit/3c208fe09a706bf610e19bf8922f1ce8e4de0f3d))
+* Merge pull request #1852 from pmerrison/pmerrison-hackday ([](https://github.com/finos/architecture-as-code/commit/b51fb24a2a9c93b2dff047ea7ee83fc65666d5cc))
+* Merge pull request #2163 from rocketstack-matt/roadmapper ([](https://github.com/finos/architecture-as-code/commit/e73248a6b777a336d82e66ab3eacd566c1fed991))
+* Merge pull request #2165 from finos/rocketstack-matt-patch-1 ([](https://github.com/finos/architecture-as-code/commit/9f8d614387067a1161a1ac8fe13aa78ea04dc08f))
+* Merge remote-tracking branch 'origin/main' into pmerrison-hackday ([](https://github.com/finos/architecture-as-code/commit/283915a915d5c7547fd04bc454f4fbd94887830d))
+* Update docs/docs/tutorials/build-a-calm-architecture/enhance-architecture-definition.md ([](https://github.com/finos/architecture-as-code/commit/ebc505f3a18571f11ec92408c2928a86aea03c24))
+* Update docs/docs/tutorials/build-a-calm-architecture/enhance-architecture-definition.md ([](https://github.com/finos/architecture-as-code/commit/74715a8fb753a21906f2953d5d04c0bd880341c2))
+* Update docs/docs/tutorials/build-a-calm-architecture/tool-setup.md ([](https://github.com/finos/architecture-as-code/commit/88f4dd8a8c93c9a3b1b40cc12b47c0def3a08eb4))
+
+### chore
+
+* **ci:** migrate npm auth to trusted publishing ([](https://github.com/finos/architecture-as-code/commit/304ba739690f1082eabc29bbe2070dd7608987c7))
+* **ci:** migrate npm auth to trusted publishing ([](https://github.com/finos/architecture-as-code/commit/dbbbe059f5e3f9199a8f602ec060718d3331520d))
+* **deps:** bump axios from 1.13.4 to 1.13.5 in the npm_and_yarn group across 1 directory ([](https://github.com/finos/architecture-as-code/commit/29520028d7b18fb9314dad6986cd4533f07be4b5))
+* **deps:** bump axios in the npm_and_yarn group across 1 directory ([](https://github.com/finos/architecture-as-code/commit/5e0ad364936cd0113a918292cf6590f8bd126f07))
+* **deps:** update actions/upload-artifact action to v6 ([](https://github.com/finos/architecture-as-code/commit/ffbee2d939271e61a09454518af0c6e4eecdec4b))
+* **deps:** update actions/upload-artifact action to v6 ([](https://github.com/finos/architecture-as-code/commit/a85b14d40b433caf69b8d05f42ec0deaabf0cacc))
+* **deps:** update security updates ([](https://github.com/finos/architecture-as-code/commit/17f6e6f9fd25c3cc66d3684b6163986499af08fe))
+* **deps:** update security updates ([](https://github.com/finos/architecture-as-code/commit/11705f076aa7741436155b04068bf34bab8b9f32))
+* **docs:** relocate deprecated docusaurus option ([](https://github.com/finos/architecture-as-code/commit/1c50ebd8ab77fb77ba3ce68f8656874360dee4c6))
+* **docs:** relocate deprecated docusaurus option ([](https://github.com/finos/architecture-as-code/commit/5c297bb9cd554d56965d771d87f64c455a4ed549))
+* update @finos/calm-cli version to 1.32.0 in package-lock.json ([](https://github.com/finos/architecture-as-code/commit/fe9b8b775a72bfb7cf41cc6fa98afc4e53d7cbcd))
+* update package-lock.json after rebase to main ([](https://github.com/finos/architecture-as-code/commit/fc8848cdc275023a8c8cc960077398aa787f4708))
+
+### docs
+
+* add business context and define use patterns to CALM example ([](https://github.com/finos/architecture-as-code/commit/b58de0f24bdbce1a0b318280bb0caafb755c2aa4))
+* add business context and define use patterns to CALM example ([](https://github.com/finos/architecture-as-code/commit/31653ff2d615ae849e47827680451a09a725f567))
+* add CALM architecture examples and AI support guide ([](https://github.com/finos/architecture-as-code/commit/17d0b34a4b18b9942fa1d404b00381d7fa786a32))
+* add CALM architecture examples and AI support guide ([](https://github.com/finos/architecture-as-code/commit/1768a70a643def35072bc02ba991ce64f821fa99))
+* add example for creating an architecture defintion ([](https://github.com/finos/architecture-as-code/commit/85a55bd33e71ec433cdc4e137e5fccd64dc20d71))
+* add initial and updated architecture files with business context and flows ([](https://github.com/finos/architecture-as-code/commit/fdb0f8deff3a5f0d0070357a0ca8581300caf8ff))
+* add initial and updated architecture files with business context and flows ([](https://github.com/finos/architecture-as-code/commit/245e1433f397de5830f35c9f2b5e468dc6caf989))
+* add initial architecture definition and update sidebar navigation ([](https://github.com/finos/architecture-as-code/commit/d498a8c77c2fcdc762d71b305cc036a98c375607))
+* add initial architecture definition and update sidebar navigation ([](https://github.com/finos/architecture-as-code/commit/13afc294c3d58e12164b8b7fd622d00ca9ce8454))
+* Add initial architecture diagrams and trading system JSON configuration ([](https://github.com/finos/architecture-as-code/commit/bd44e63b23e121ec164bc9c69892ef721c8500e6))
+* Add interface specifications for RESTful services and architecture controls images ([](https://github.com/finos/architecture-as-code/commit/15b1aab2e146e23243361794ba70d4912ca8b025))
+* add note on non-determinism of AI support in CALM documentation ([](https://github.com/finos/architecture-as-code/commit/296d022351adb446d1875aec1b24d1cd7408344b))
+* add note on non-determinism of AI support in CALM documentation ([](https://github.com/finos/architecture-as-code/commit/c475bc38064ec4da4489e7e0a59a4b67e4764b6f))
+* Add trading system architecture JSON file and enhanced template for documentation generation ([](https://github.com/finos/architecture-as-code/commit/6840d97d081a715e6a063acc730d7b36f7e4928d))
+* Clarify notes on LLM prompts ([](https://github.com/finos/architecture-as-code/commit/67817e77e049448dad28df63beeac4744d20f794))
+* Clarify VSCode extension features and enhance AI support notes in tool setup ([](https://github.com/finos/architecture-as-code/commit/009eeec71d1e978c1207e0f6573e84a93c15869a))
+* Correct typo in summary section of generate-documentation.md ([](https://github.com/finos/architecture-as-code/commit/c78832929a2d7d79dafe9c961e4692e90ec67144))
+* Enhance architecture documentation with metadata and document generation methods ([](https://github.com/finos/architecture-as-code/commit/fc9e1895970b325ce7d379389a5bc30aa1e4887a))
+* Enhance CALM architecture tutorial with interface specifications and update sidebar labels ([](https://github.com/finos/architecture-as-code/commit/7848b3a5c601234e43fb13806d4c3db1aec0a5b9))
+* Enhance CALM architecture tutorial with trading system boundary and revised images ([](https://github.com/finos/architecture-as-code/commit/10c9e2b42e1614d2d76c146ff6a38cb2c1289129))
+* enhance CALM example write-up with detailed architecture and business context ([](https://github.com/finos/architecture-as-code/commit/cdbb7ca32e3f0a4bafec2849cd00ebaad902ccbf))
+* enhance CALM example write-up with detailed architecture and business context ([](https://github.com/finos/architecture-as-code/commit/8d8c9b612bbef62314c442bb35e9e7f858c78d51))
+* Enhance initial architecture write-up with additional context and validation notes ([](https://github.com/finos/architecture-as-code/commit/b1cdd9720fd84960cd5eb4921763492e43167501))
+* Enhance trading system architecture documentation with metadata and improved descriptions ([](https://github.com/finos/architecture-as-code/commit/4dbbbfd629f64a9fdff27d53edf9c83fb4667bf4))
+* fix formatting in tutorial key takeaways section ([](https://github.com/finos/architecture-as-code/commit/6c4e1ba9b69eb047e63cbc28500e502f3e900340))
+* Fix typo in command instruction in generate-documentation.md ([](https://github.com/finos/architecture-as-code/commit/7da4da20459456d8db514633b630cb146dcca5cc))
+* Fix typo in section header and remove redundant text in solution architecture document ([](https://github.com/finos/architecture-as-code/commit/b1355bb7f26d5b562e8b29229edba53de473bed8))
+* Fix typo in section header and update  URLs in trading system architecture documentation ([](https://github.com/finos/architecture-as-code/commit/a0448219a816bdd478586851ec5e1beda070c4c3))
+* Fix typos and improve clarity in enhance-architecture-definition.md ([](https://github.com/finos/architecture-as-code/commit/813144ec2049fee2dec5ed4a90a5882aabb3cfd2))
+* Fix typos in tool setup and tutorial index documentation ([](https://github.com/finos/architecture-as-code/commit/37597247883a310b4a4f8f778740f0aa9c3fffcf))
+* Fix typos, incorporate reviewer comments ([](https://github.com/finos/architecture-as-code/commit/de915d25bbcaafe740d84fdf493a73aecc42ea46))
+* improve readability and fix typos in CALM architecture tutorials ([](https://github.com/finos/architecture-as-code/commit/25166348fd5114040dca8b7676ebe3db1d39b677))
+* Improve readability by formatting and breaking long lines in architecture definition tutorial ([](https://github.com/finos/architecture-as-code/commit/72bb8781ca234226d3db424d275e2e5759c6a406))
+* light edits for readability ([](https://github.com/finos/architecture-as-code/commit/c8b1dc5391f7742cbb570239152b4bdacd4bb30c))
+* Migrate CALM architecture tutorial materials to Learning Section ([](https://github.com/finos/architecture-as-code/commit/cfe3afb8a5cb41364afb85372068bdf592f00e2d))
+* Migrate CALM architecture tutorial materials to Learning Section ([](https://github.com/finos/architecture-as-code/commit/686f271e029a06eef72ae2ec664897ffc152df7d))
+* refactor business design write-up and initial architecture definition ([](https://github.com/finos/architecture-as-code/commit/337770c9b8f1c445e455c997a71be0b20419f5b9))
+* refactor tutorial name to building a CALM architecture ([](https://github.com/finos/architecture-as-code/commit/4712d0693a1bf7683e95fddcf74c77d429814bff))
+* refactor tutorial name to building a CALM architecture ([](https://github.com/finos/architecture-as-code/commit/ce315ff5c0ca4aebee6e625534eb3a3469f263c8))
+* refine quick diffs guidance for CALM VSCode extension ([](https://github.com/finos/architecture-as-code/commit/7cd829884ab7f5f52d6fdaa9f3f78289849990ae))
+* Remove outdated trading system architecture examples ([](https://github.com/finos/architecture-as-code/commit/ddf2daf2d3e1a74d2946e850ed010559bce19d14))
+* simplify file paths in CALM architecture tutorial ([](https://github.com/finos/architecture-as-code/commit/befcd38e215773dcb5a72989f1163b7d5ac7b82a))
+* update architecture tutorial images and remove obsolete files ([](https://github.com/finos/architecture-as-code/commit/57697615cab51796c7cfc855d4cbaffbe44f5bb4))
+* update business context and workflows for CALM architecture tutorial ([](https://github.com/finos/architecture-as-code/commit/caf23449d46491d1e7bd87865c177697ad1efbd9))
+* Update CALM architecture tutorial with key takeaways and refine documentation structure ([](https://github.com/finos/architecture-as-code/commit/46db6c2875192f467105ef576d4e123616ddf5b5))
+* update CALM example write-up with business context and architecture enhancements ([](https://github.com/finos/architecture-as-code/commit/8b6c850d09873e1b549129e34eed807aa06418de))
+* update CALM example write-up with business context and architecture enhancements ([](https://github.com/finos/architecture-as-code/commit/2342016a9f0d22a3e3f22dc609c6672615051e7e))
+* Update CALM schema references from v1.1 to v1.2 and change git commit instructions ([](https://github.com/finos/architecture-as-code/commit/308288c167a1a048d44cf0731c5a0473852c97b2))
+* update prompt to include technical and controls details in architecture definition ([](https://github.com/finos/architecture-as-code/commit/0b2d1a8bb0173129f9b3f7504926ea277391aca2))
+* update prompt to include technical and controls details in architecture definition ([](https://github.com/finos/architecture-as-code/commit/0c4941e682bb002ce80261c0a6cec1a06d22c35a))
+* Update schema references to v1.2 and replace example URLs in trading-system architecture JSON ([](https://github.com/finos/architecture-as-code/commit/65ee479911cae224bad703ae9feafd402fd6d8e3))
+* update sidebar positions and enhance tool setup instructions ([](https://github.com/finos/architecture-as-code/commit/8b38e297450d5f386294ce3c1b54d2e1ef0006af))
+* update sidebar positions and enhance tool setup instructions ([](https://github.com/finos/architecture-as-code/commit/64c7e55a9b4d2360a4d04d6dba3b3ccfc21c43af))
+* Update title and sidebar label for CALM architecture tutorial ([](https://github.com/finos/architecture-as-code/commit/6249339300f56c995f6da466db29c8fd62f8e2f5))
+* Update tool considerstions and correct formatting ([](https://github.com/finos/architecture-as-code/commit/f1cbd3bd53673aacd3e4313e2142c000bd21edcc))
+* update tutorial structure ([](https://github.com/finos/architecture-as-code/commit/434ba52ccda69df73b912697795a02a5549c9126))
+* update tutorial structure ([](https://github.com/finos/architecture-as-code/commit/7895861c0c3bf3ab5cfa5b30bd10067806925b64))
+
+### feat
+
+* **calm-hub-ui:** Add dynamic group resizing and floating hover panels ([](https://github.com/finos/architecture-as-code/commit/ecf57dc7b3ea0aa2406bd74651cfcb6c9c118543))
+* **calm-hub-ui:** Add MetadataPanel with flows and controls display ([](https://github.com/finos/architecture-as-code/commit/31dc70e2ad209592a08cebca5a4f7763b5ecbb9a))
+* **calm-hub-ui:** Add stylelint and remove control panel toggle ([](https://github.com/finos/architecture-as-code/commit/3a335262fbc84262bf03d1494b60417d1f061f8c))
+* **calm-hub-ui:** Replace Cytoscape with ReactFlow visualizer ([](https://github.com/finos/architecture-as-code/commit/f0597f8d02c9dd40692f0f41c22485228c25a46f))
+* **calm-hub:** refactored namespaces from simple string to full object and added description ([](https://github.com/finos/architecture-as-code/commit/7f2ce5f52d2670ccac06c127799f58272e501a9c))
+* **calm-hub:** refactored namespaces from simple string to full object and added description ([](https://github.com/finos/architecture-as-code/commit/d5884f6e237121e971cfced0cabdec179054e360))
+* **README:** add roadmap section ([](https://github.com/finos/architecture-as-code/commit/5f40f489dc585e7a04e6c27c90e7c67ccf3532b7))
+* **roadmapper:** setup roadmapper ([](https://github.com/finos/architecture-as-code/commit/3c8cb316bd80379e41cac0799ebc490aa828c25d))
+
+### fix
+
+* **calm-hub-ui:** Add explicit d3 dependencies for ReactFlow ([](https://github.com/finos/architecture-as-code/commit/c28824e7f7049fe32d5554f09f2f4fbebc69948f))
+* **calm-hub-ui:** Fix lint errors in test files and calmTransformer ([](https://github.com/finos/architecture-as-code/commit/c604af07776f45deb473dd38cd4dc3b749375903))
+* **calm-hub-ui:** Fix node z-index layering on hover ([](https://github.com/finos/architecture-as-code/commit/7e09f2a903f0ace315c280bb74a309196b03d757))
+* **calm-hub-ui:** Fix node z-index layering on hover ([](https://github.com/finos/architecture-as-code/commit/3417ee4f8cb1c89830765d3063f2f02f79062483))
+* **calm-hub-ui:** Fix Sidebar data compatibility for node/edge details ([](https://github.com/finos/architecture-as-code/commit/4163e790e2563edf3f2c46c736579907ff366a06))
+* **calm-hub-ui:** updated package-lock ([](https://github.com/finos/architecture-as-code/commit/c933087326a21833996021387ce813d52b306416))
+* **deps:** remediate dependabot transitive vulnerabilities ([](https://github.com/finos/architecture-as-code/commit/38e9448d8691d0cc9df870e96b48f6d16cbda928))
+* **deps:** remediate Dependabot transitive vulnerabilities ([](https://github.com/finos/architecture-as-code/commit/ee60224d1b7185bef19e3f8e500c08d6795f196b))
+* **deps:** resolve PR build failures and review feedback ([](https://github.com/finos/architecture-as-code/commit/4978dfb903b684d47ea3dbe1b8f463b7752d40b2))
+* **deps:** update minor updates ([](https://github.com/finos/architecture-as-code/commit/3a4d95215150a8ca6d2b1e48bf8df395b0cd1200))
+* **deps:** update minor updates ([](https://github.com/finos/architecture-as-code/commit/5f77efb58ca141a54992648a2a16093c2ca4d596))
+* **deps:** update patch updates ([](https://github.com/finos/architecture-as-code/commit/255a484e7d1e9b8db0a43c4778422c3490e44a00))
+* **deps:** update patch updates ([](https://github.com/finos/architecture-as-code/commit/0191a6a5b08842523cfd19723fea01a97c66d7d9))
+* **shared:** stabilize flaky e2e test resolution ([](https://github.com/finos/architecture-as-code/commit/954e345d275bddcca3e9fbc6686bd8df69345d23))
+
+### refactor
+
+* address PR #1852 review comments ([](https://github.com/finos/architecture-as-code/commit/2e08db8872f2667ee6963678ee9ed26f12451629)), closes [#1852](https://github.com/finos/architecture-as-code/issues/1852)
+* **calm-hub-ui:** Address PR review comments for ReactFlow integration ([](https://github.com/finos/architecture-as-code/commit/365df6b2a96967900f43d2c75591aedfeec5a233))
+* **calm-hub-ui:** Consolidate colors into single source of truth ([](https://github.com/finos/architecture-as-code/commit/09a25ea783876e31f6d11fc0f4eb49219f55d1c2))
+* **calm-hub-ui:** Modularize ReactFlow components and add tests ([](https://github.com/finos/architecture-as-code/commit/37ea8548204a8aa8ad6a46f5531eab73e40dd16c))
+
+### test
+
+* **calm-hub-ui:** Add unit tests for extracted ReactFlow utilities ([](https://github.com/finos/architecture-as-code/commit/6ea33e5c364cf02519b376b60237f49e9e792de5))
+* **calm-hub-ui:** Update tests for ReactFlow visualizer ([](https://github.com/finos/architecture-as-code/commit/9e967d5d459f67450f1444552605e51fd92ca02c))
+
 ## [1.33.0] - 2026-02-16
 
 ## [1.33.0](https://github.com/finos/architecture-as-code/compare/cli-v1.32.0...cli-v1.33.0) (2026-02-16)

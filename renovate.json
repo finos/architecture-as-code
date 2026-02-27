@@ -24,7 +24,6 @@
     "calm-hub-ui/package-lock.json",
     "cli/package-lock.json",
     "docs/package-lock.json",
-    "experimental/calm-explorer/package-lock.json",
     "shared/package-lock.json"
   ],
   "lockFileMaintenance": {
@@ -159,7 +158,8 @@
     {
       "description": "Pin @types/node to v22 to match CI Node version",
       "matchPackageNames": ["@types/node"],
-      "allowedVersions": "<23.0.0"
+      "allowedVersions": "<23.0.0",
+      "rangeStrategy": "bump"
     }
   ]
 }
