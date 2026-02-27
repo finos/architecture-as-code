@@ -1,6 +1,6 @@
 import { ArrowRight, Shield, AlertCircle } from 'lucide-react';
 import { THEME } from '../theme.js';
-import type { EdgeTooltipProps, FlowTransition, EdgeControl, Mitigation, Risk, FlowTransitionEdge } from '../../../contracts/contracts.js';
+import type { EdgeTooltipProps, EdgeControl, Mitigation, Risk, FlowTransitionEdge } from '../../../contracts/contracts.js';
 
 export function EdgeTooltip({
     description,
@@ -56,7 +56,7 @@ export function EdgeTooltip({
     );
 }
 
-function FlowTransitionsSection({ transitions, direction }: { transitions: (FlowTransitionEdge | FlowTransition)[]; direction?: string }) {
+function FlowTransitionsSection({ transitions, direction }: { transitions: FlowTransitionEdge[]; direction?: string }) {
     if (transitions.length === 0) return null;
 
     return (

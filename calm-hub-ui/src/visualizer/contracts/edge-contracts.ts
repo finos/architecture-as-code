@@ -1,5 +1,4 @@
 import { CalmControlsSchema } from '@finos/calm-models/types';
-import type { FlowTransition } from './flow-contracts.js';
 
 /**
  * Flow transition for an edge
@@ -84,7 +83,7 @@ export interface EdgeTooltipProps {
     description: string;
     protocol?: string;
     direction?: string;
-    flowTransitions: (FlowTransitionEdge | FlowTransition)[];
+    flowTransitions: FlowTransitionEdge[];
     edgeControls: Record<string, EdgeControl>;
     controlsApplied: string[];
     mitigations: (string | Mitigation)[];
