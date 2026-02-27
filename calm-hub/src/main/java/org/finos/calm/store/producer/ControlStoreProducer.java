@@ -5,10 +5,7 @@ import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.store.ControlStore;
-import org.finos.calm.store.ControlStore;
 import org.finos.calm.store.mongo.MongoControlStore;
-import org.finos.calm.store.mongo.MongoControlStore;
-import org.finos.calm.store.nitrite.NitriteControlStore;
 import org.finos.calm.store.nitrite.NitriteControlStore;
 
 /**

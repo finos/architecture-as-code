@@ -62,6 +62,16 @@ if (db.counters.countDocuments({ _id: "userAccessStoreCounter" }) === 0) {
     print("userAccessStoreCounter already exists, no initialization needed");
 }
 
+if (db.counters.countDocuments({ _id: "controlStoreCounter" }) === 0) {
+    db.counters.insertOne({
+        _id: "controlStoreCounter",
+        sequence_value: 2
+    });
+    print("Initialized controlStoreCounter with sequence_value 2");
+} else {
+    print("controlStoreCounter already exists, no initialization needed");
+}
+
 db.schemas.insertMany([               // Insert initial documents into the schemas collection
     {
         version: "2025-03",
@@ -915,6 +925,95 @@ if (db.namespaces.countDocuments() === 0) {
     print("Initialized namespaces: finos, workshop, traderx");
 } else {
     print("Namespaces already exist, no initialization needed");
+}
+
+// Insert domains if they don't exist
+if (db.domains.countDocuments() === 0) {
+    db.domains.insertMany([
+        { name: "security" }
+    ]);
+    print("Initialized domains: security");
+} else {
+    print("Domains already exist, no initialization needed");
+}
+
+// Insert example controls for the security domain
+if (db.controls.countDocuments() === 0) {
+    db.controls.insertOne({
+        domain: "security",
+        controls: [
+            {
+                controlId: NumberInt(1),
+                name: "Data Encryption",
+                description: "Ensures all sensitive data is encrypted at rest and in transit using approved algorithms",
+                requirement: {
+                    "1-0-0": {
+                        "$schema": "https://json-schema.org/draft/2020-12/schema",
+                        "$id": "https://calm.finos.org/calm/domains/security/controls/1/requirement/versions/1.0.0",
+                        "title": "Data Encryption Control Requirement",
+                        "description": "Requirements for data encryption controls within the security domain",
+                        "type": "object",
+                        "properties": {
+                            "control-id": {
+                                "const": "SEC-ENC-001"
+                            },
+                            "name": {
+                                "const": "Data Encryption"
+                            },
+                            "description": {
+                                "const": "Ensure that all sensitive data is encrypted at rest and in transit"
+                            },
+                            "encryption-algorithm": {
+                                "type": "string",
+                                "description": "The encryption algorithm to use",
+                                "enum": ["AES-128", "AES-256", "ChaCha20-Poly1305"]
+                            },
+                            "key-rotation-period": {
+                                "type": "string",
+                                "description": "How often encryption keys should be rotated",
+                                "enum": ["30-days", "60-days", "90-days", "180-days", "365-days"]
+                            },
+                            "data-at-rest": {
+                                "type": "boolean",
+                                "description": "Whether data at rest must be encrypted"
+                            },
+                            "data-in-transit": {
+                                "type": "boolean",
+                                "description": "Whether data in transit must be encrypted"
+                            }
+                        },
+                        "required": [
+                            "control-id",
+                            "name",
+                            "description",
+                            "encryption-algorithm",
+                            "data-at-rest",
+                            "data-in-transit"
+                        ]
+                    }
+                },
+                configurations: [
+                    {
+                        configurationId: NumberInt(1),
+                        versions: {
+                            "1-0-0": {
+                                "control-id": "SEC-ENC-001",
+                                "name": "Data Encryption",
+                                "description": "Ensure that all sensitive data is encrypted at rest and in transit",
+                                "encryption-algorithm": "AES-256",
+                                "key-rotation-period": "90-days",
+                                "data-at-rest": true,
+                                "data-in-transit": true
+                            }
+                        }
+                    }
+                ]
+            }
+        ]
+    });
+    print("Initialized controls for security domain with example Data Encryption control");
+} else {
+    print("Controls already exist, no initialization needed");
 }
 
 db.patterns.insertMany([
