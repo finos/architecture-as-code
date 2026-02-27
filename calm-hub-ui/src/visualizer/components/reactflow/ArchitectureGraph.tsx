@@ -10,23 +10,13 @@ import ReactFlow, {
     NodeChange,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { FloatingEdge } from './FloatingEdge';
-import { CustomNode } from './CustomNode';
-import { SystemGroupNode } from './SystemGroupNode';
-import { THEME } from './theme';
-import { parseCALMData } from './utils/calmTransformer';
-import { GRAPH_LAYOUT } from './utils/constants';
-import {
-    CalmArchitectureSchema,
-    CalmNodeSchema,
-    CalmRelationshipSchema,
-} from '../../../../../calm-models/src/types/core-types.js';
-
-interface ArchitectureGraphProps {
-    jsonData: CalmArchitectureSchema;
-    onNodeClick?: (node: CalmNodeSchema) => void;
-    onEdgeClick?: (edge: CalmRelationshipSchema) => void;
-}
+import { FloatingEdge } from './FloatingEdge.js';
+import { CustomNode } from './CustomNode.js';
+import { SystemGroupNode } from './SystemGroupNode.js';
+import { THEME } from './theme.js';
+import { parseCALMData } from './utils/calmTransformer.js';
+import { GRAPH_LAYOUT } from './utils/constants.js';
+import type { ArchitectureGraphProps } from '../../contracts/contracts.js';
 
 /**
  * Calculate the minimum bounds for a group node based on its children
