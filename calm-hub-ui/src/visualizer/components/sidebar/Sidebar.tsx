@@ -52,12 +52,11 @@ export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
 
             {/* Content */}
             <div className="flex-1 flex flex-col p-4 min-h-0">
-                {(isCALMNode || isCALMEdge) && (
+                {(isCALMNode || isCALMEdge) ? (
                     <div className="flex-1 bg-base-100 rounded-lg border border-base-300 overflow-auto shadow-sm min-h-0">
                         <JsonRenderer json={selectedData} showLineNumbers={false} />
                     </div>
-                )}
-                {!isCALMEdge && !isCALMNode && (
+                ) : (
                     <div className="flex items-center justify-center flex-1 text-base-content/60">
                         <p>Unknown Selected Entity</p>
                     </div>

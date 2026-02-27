@@ -60,15 +60,10 @@ export default function Hub() {
                 <div className="flex-1 overflow-auto">
                     {adrData ? (
                         <AdrRenderer adrDetails={adrData} />
+                    ) : (data?.calmType === 'Architectures' || data?.calmType === 'Patterns') ? (
+                        <DiagramSection data={data} />
                     ) : (
-                        <>
-                            {(data?.calmType === 'Architectures' || data?.calmType === 'Patterns') && (
-                                <DiagramSection data={data} />
-                            )}
-                            {data?.calmType !== 'Architectures' && data?.calmType !== 'Patterns' && !adrData && (
-                                <DocumentDetailSection data={data} />
-                            )}
-                        </>
+                        <DocumentDetailSection data={data} />
                     )}
                 </div>
             </div>
