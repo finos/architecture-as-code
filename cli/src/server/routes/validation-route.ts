@@ -60,7 +60,8 @@ export class ValidationRouter {
             const outcome = await validate(architecture, foundSchema, undefined, this.schemaDirectory, true);
             return res.status(201).type('json').send(outcome);
         } catch (error) {
-            return res.status(500).type('json').send(new ErrorResponse(error.message));
+            const message = error instanceof Error ? error.message : String(error);
+            return res.status(500).type('json').send(new ErrorResponse(message));
         }
     };
 }
@@ -72,6 +73,6 @@ class ErrorResponse {
     }
 };
 
-class ValidationRequest {
+interface ValidationRequest {
     architecture: string;
 }

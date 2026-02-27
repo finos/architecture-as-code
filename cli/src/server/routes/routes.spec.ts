@@ -31,7 +31,7 @@ vi.mock('@finos/calm-shared', () =>{
     };
 });
 describe('CLIServerRoutes', () => {
-    let schemaDirectory: SchemaDirectory;
+    const schemaDirectory = {} as SchemaDirectory;
     let cliServerRoutes: CLIServerRoutes;
     let mockRouter: Router;
 
