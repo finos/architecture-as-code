@@ -1,16 +1,5 @@
-import { ArchitectureGraph } from './ArchitectureGraph';
-import {
-  CalmArchitectureSchema,
-  CalmNodeSchema,
-  CalmRelationshipSchema,
-} from '../../../../../calm-models/src/types/core-types.js';
-
-export interface ReactFlowVisualizerProps {
-  calmData: CalmArchitectureSchema;
-  onNodeClick?: (nodeData: CalmNodeSchema) => void;
-  onEdgeClick?: (edgeData: CalmRelationshipSchema) => void;
-  onBackgroundClick?: () => void;
-}
+import { ArchitectureGraph } from './ArchitectureGraph.js';
+import type { ReactFlowVisualizerProps } from '../../contracts/visualizer-contracts.js';
 
 /**
  * ReactFlow-based visualizer component
