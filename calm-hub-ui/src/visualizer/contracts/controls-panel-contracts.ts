@@ -1,5 +1,7 @@
 import type { Control, ControlRequirement } from './control-contracts.js';
 
+//These types and interfaces are used in the controls panel.
+
 /**
  * Props for ControlsPanelHeader component
  */

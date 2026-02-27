@@ -1,5 +1,7 @@
 import { CalmControlsSchema } from '@finos/calm-models/types';
 
+//These types and interfaces represent edge data in the visualizer and are also used in in the edge tooltip and edge badge.
+
 /**
  * Flow transition for an edge
  */

@@ -1,5 +1,7 @@
 import { CalmInterfaceSchema, CalmControlsSchema } from '@finos/calm-models/types';
 
+//These types and interfaces represent node data, and are also used in the custom node.
+
 /**
  * Data structure for node details displayed in the Sidebar
  * Compatible with CalmNodeSchema data passed from ReactFlow

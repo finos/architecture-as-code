@@ -1,3 +1,5 @@
+//These types and interfaces represent CALM control data.
+
 /**
  * Configuration for a control requirement
  */

@@ -8,6 +8,7 @@ import type { Flow } from './flow-contracts.js';
 import type { Control } from './control-contracts.js';
 import { Data } from '../../model/calm.js';
 
+//These types and interfaces are used in the top-level visualizer components e.g. Drawer, Sidebar, ReactFlowVisualizer.
 
 /**
  * Props for Drawer component

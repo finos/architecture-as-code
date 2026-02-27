@@ -1,5 +1,7 @@
 import type { AIGFGovernance, Flow, FlowTransition } from './flow-contracts.js';
 
+//These types and interfaces are used in the flows panel.
+
 /**
  * Props for FlowsPanelHeader component
  */

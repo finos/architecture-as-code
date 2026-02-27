@@ -1,3 +1,5 @@
+//These types and interfaces represent flow data.
+
 /**
  * Flow transition for a flow
  */
