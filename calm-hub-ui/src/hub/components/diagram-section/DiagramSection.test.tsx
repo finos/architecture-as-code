@@ -21,10 +21,6 @@ vi.mock('../../../visualizer/components/drawer/Drawer.js', () => ({
     Drawer: ({ data }: { data: Data }) => <div data-testid="drawer">Drawer for {data.id}</div>
 }));
 
-vi.mock('../../../visualizer/components/drawer/PatternDrawer.js', () => ({
-    PatternDrawer: ({ data }: { data: Data }) => <div data-testid="pattern-drawer">PatternDrawer for {data.id}</div>
-}));
-
 const architectureData: Data & { calmType: 'Architectures' } = {
     id: 'test-arch',
     version: '1.0.0',
@@ -82,15 +78,15 @@ describe('DiagramSection', () => {
             expect(heading).toHaveTextContent('2.0.0');
         });
 
-        it('renders PatternDrawer component in diagram tab', () => {
+        it('renders Drawer component in diagram tab', () => {
             render(
                 <MemoryRouter>
                     <DiagramSection data={patternData} />
                 </MemoryRouter>
             );
 
-            expect(screen.getByTestId('pattern-drawer')).toBeInTheDocument();
-            expect(screen.getByTestId('pattern-drawer')).toHaveTextContent('PatternDrawer for test-pattern');
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
+            expect(screen.getByTestId('drawer')).toHaveTextContent('Drawer for test-pattern');
         });
     });
 

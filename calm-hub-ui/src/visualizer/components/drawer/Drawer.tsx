@@ -47,7 +47,7 @@ function extractId(item: CalmNodeSchema | CalmRelationshipSchema): string {
 export function Drawer({ data }: DrawerProps) {
     const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
     const [patternInstance, setPatternInstance] = useState<Record<string, unknown> | undefined>(undefined);
-    const [fileInstance, setFileInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
+    const [fileInstance, setFileInstance] = useState<Record<string, unknown> | undefined>(undefined);
     const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
     const [title, setTitle] = useState<string>('');
     // Default to collapsed as per user request
@@ -59,13 +59,7 @@ export function Drawer({ data }: DrawerProps) {
         if (acceptedFiles[0]) {
             const fileText = await acceptedFiles[0].text();
             const parsed = JSON.parse(fileText);
-            if (isPatternData(parsed)) {
-                setPatternInstance(parsed);
-                setFileInstance(undefined);
-            } else {
-                setFileInstance(parsed);
-                setPatternInstance(undefined);
-            }
+            setFileInstance(parsed);
             setTitle(acceptedFiles[0].name);
         }
     }, []);
@@ -73,17 +67,28 @@ export function Drawer({ data }: DrawerProps) {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
     useEffect(() => {
-        if (patternInstance) {
-            // Pattern was loaded via file upload - architecture state is cleared
+        if (fileInstance) {
+            // File upload takes priority
+            if (isPatternData(fileInstance)) {
+                setPatternInstance(fileInstance);
+                setCALMInstance(undefined);
+            } else {
+                setCALMInstance(fileInstance as CalmArchitectureSchema);
+                setPatternInstance(undefined);
+            }
+        } else if (data?.data && (data.calmType === 'Patterns' || isPatternData(data.data))) {
+            // Pattern data from CALM Hub
+            setPatternInstance(data.data as Record<string, unknown>);
             setCALMInstance(undefined);
         } else {
-            setCALMInstance(fileInstance ?? data?.data);
+            setCALMInstance(data?.data as CalmArchitectureSchema | undefined);
+            setPatternInstance(undefined);
         }
         // Set title from CALM Hub data if available
         if (data?.name && data?.id && data?.version) {
             setTitle(`${data.name}/${data.id}/${data.version}`);
         }
-    }, [fileInstance, patternInstance, data]);
+    }, [fileInstance, data]);
 
     // Extract flows from CALM data
     const flows = useMemo((): Flow[] => {
