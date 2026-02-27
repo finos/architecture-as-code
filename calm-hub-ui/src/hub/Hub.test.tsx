@@ -130,4 +130,31 @@ describe('Hub', () => {
         expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
         expect(screen.queryByTestId('adr-renderer')).not.toBeInTheDocument();
     });
+
+    describe('sidebar collapse', () => {
+        it('shows sidebar expanded by default with collapse button', () => {
+            renderWithRouter(<Hub />);
+            expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
+            expect(screen.getByLabelText('Collapse sidebar')).toBeInTheDocument();
+        });
+
+        it('hides tree navigation when sidebar is collapsed', () => {
+            renderWithRouter(<Hub />);
+
+            fireEvent.click(screen.getByLabelText('Collapse sidebar'));
+
+            expect(screen.queryByTestId('tree-navigation')).not.toBeInTheDocument();
+            expect(screen.getByLabelText('Expand sidebar')).toBeInTheDocument();
+        });
+
+        it('restores tree navigation when sidebar is expanded again', () => {
+            renderWithRouter(<Hub />);
+
+            fireEvent.click(screen.getByLabelText('Collapse sidebar'));
+            expect(screen.queryByTestId('tree-navigation')).not.toBeInTheDocument();
+
+            fireEvent.click(screen.getByLabelText('Expand sidebar'));
+            expect(screen.getByTestId('tree-navigation')).toBeInTheDocument();
+        });
+    });
 });

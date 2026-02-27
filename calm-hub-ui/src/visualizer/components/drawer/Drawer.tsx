@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     CalmArchitectureSchema,
     CalmNodeSchema,
@@ -147,21 +147,21 @@ export function Drawer({ data }: DrawerProps) {
 
     const hasContent = !!(calmInstance || patternInstance);
 
-    function closeSidebar() {
+    const closeSidebar = useCallback(() => {
         setSelectedItem(null);
-    }
+    }, []);
 
     // Pattern-specific click handlers
-    const handlePatternNodeClick = (nodeData: Record<string, unknown>) => {
+    const handlePatternNodeClick = useCallback((nodeData: Record<string, unknown>) => {
         setSelectedItem({ data: toPatternNodeData(nodeData) });
-    };
+    }, []);
 
-    const handlePatternEdgeClick = (edgeData: Record<string, unknown>) => {
+    const handlePatternEdgeClick = useCallback((edgeData: Record<string, unknown>) => {
         setSelectedItem({ data: toPatternEdgeData(edgeData) });
-    };
+    }, []);
 
     // Handle node click - convert CalmNodeSchema to NodeData format
-    const handleNodeClick = (nodeData: CalmNodeSchema) => {
+    const handleNodeClick = useCallback((nodeData: CalmNodeSchema) => {
         setSelectedItem({
             data: {
                 'unique-id': nodeData['unique-id'],
@@ -172,10 +172,10 @@ export function Drawer({ data }: DrawerProps) {
                 controls: nodeData.controls,
             } as NodeData,
         });
-    };
+    }, []);
 
     // Handle edge click - convert relationship data to EdgeData format
-    const handleEdgeClick = (edgeData: CalmRelationshipSchema) => {
+    const handleEdgeClick = useCallback((edgeData: CalmRelationshipSchema) => {
         setSelectedItem({
             data: {
                 'unique-id': edgeData['unique-id'],
@@ -185,25 +185,23 @@ export function Drawer({ data }: DrawerProps) {
                 controls: edgeData.controls,
             } as EdgeData,
         });
-    };
+    }, []);
 
     // Handle transition click from flows panel - highlight the relationship
-    const handleTransitionClick = (relationshipId: string) => {
-        // Find the relationship in the CALM data
+    const handleTransitionClick = useCallback((relationshipId: string) => {
         const relationship = calmInstance?.relationships?.find((r) => r['unique-id'] === relationshipId);
         if (relationship) {
             handleEdgeClick(relationship);
         }
-    };
+    }, [calmInstance, handleEdgeClick]);
 
     // Handle node click from controls panel
-    const handleControlNodeClick = (nodeId: string) => {
-        // Find the node in the CALM data
+    const handleControlNodeClick = useCallback((nodeId: string) => {
         const node = calmInstance?.nodes?.find((n) => n['unique-id'] === nodeId);
         if (node) {
             handleNodeClick(node);
         }
-    };
+    }, [calmInstance, handleNodeClick]);
 
     return (
         <div {...getRootProps()} className="flex-1 flex overflow-hidden h-full">
