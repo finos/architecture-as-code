@@ -30,7 +30,6 @@ Options:
 Commands:
   generate [options]          Generate an architecture from a CALM pattern file.
   validate [options]          Validate that an architecture conforms to a given CALM pattern.
-  server [options]            Start a HTTP server to proxy CLI commands. (experimental)
   template [options]          Generate files from a CALM model using a template bundle, a single file, or a directory of templates
   docify [options]            Generate a documentation website from your CALM model using a template or template directory
   init-ai [options]           Augment a git repository with AI assistance for CALM
