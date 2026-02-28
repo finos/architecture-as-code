@@ -98,9 +98,9 @@ async function runSpectralValidations(
 
 /**
  * Validation - with simple input parameters and output validation outcomes.
- * @param architecture The architecture as a JS object
- * @param patternOrSchema The pattern (or schema) as a JS object
- * @param timeline The timeline as a JS object
+ * @param architecture The architecture as a JS object, or undefined if not provided
+ * @param patternOrSchema The pattern (or schema) as a JS object, or undefined if not provided
+ * @param timeline The timeline as a JS object, or undefined if not provided
  * @param schemaDirectory SchemaDirectory instance for schema resolution
  * @param debug Whether to log at debug level
  * @returns Validation report
