@@ -185,6 +185,16 @@ jobs:
               # Get current version from latest git tag instead of package.json
               CURRENT_VERSION=$(git describe --tags --abbrev=0 --match 'cli-v*' 2>/dev/null | sed 's/cli-v//')
               
+              if [ -z "$CURRENT_VERSION" ]; then
+                echo "⚠️ No cli-v* git tag found; falling back to package.json version."
+                CURRENT_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "")
+              fi
+              
+              if [ -z "$CURRENT_VERSION" ]; then
+                echo "⚠️ package.json version unavailable; defaulting current version to 0.0.0."
+                CURRENT_VERSION="0.0.0"
+              fi
+              
               echo "📋 Extracted versions:"
               echo "  Current: $CURRENT_VERSION"
               echo "  Next: $NEXT_VERSION"
