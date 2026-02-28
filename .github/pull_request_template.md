@@ -16,11 +16,14 @@
 ## Affected Components
 <!-- Check all that apply -->
 - [ ] CLI (`cli/`)
-- [ ] Shared (`shared/`)
-- [ ] CALM Widgets (`calm-widgets/`)
+- [ ] Schema (`calm/`)
+- [ ] CALM AI (`calm-ai/`)
 - [ ] CALM Hub (`calm-hub/`)
 - [ ] CALM Hub UI (`calm-hub-ui/`)
+- [ ] CALM Server (`calm-server/`)
+- [ ] CALM Widgets (`calm-widgets/`)
 - [ ] Documentation (`docs/`)
+- [ ] Shared (`shared/`)
 - [ ] VS Code Extension (`calm-plugins/vscode/`)
 - [ ] Dependencies
 - [ ] CI/CD
