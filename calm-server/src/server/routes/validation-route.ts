@@ -1,18 +1,23 @@
-import { SchemaDirectory, validate } from '@finos/calm-shared';
+import { SchemaDirectory, validate, ValidationOutcome, initLogger } from '@finos/calm-shared';
+import type { Logger } from '@finos/calm-shared';
 import { Router, Request, Response } from 'express';
-import { ValidationOutcome } from '@finos/calm-shared';
 import rateLimit from 'express-rate-limit';
-import { initLogger, Logger } from '@finos/calm-shared/dist/logger';
 
 export class ValidationRouter {
-
     private schemaDirectory: SchemaDirectory;
     private logger: Logger;
+    private schemaLoadPromise: Promise<void> | null = null;
 
-    constructor(router: Router, schemaDirectory: SchemaDirectory, debug: boolean = false) {
+    constructor(
+        router: Router,
+        schemaDirectory: SchemaDirectory,
+        debug: boolean = false,
+        rateLimitWindowMs: number = 900000, // 15 minutes
+        rateLimitMaxRequests: number = 100
+    ) {
         const limiter = rateLimit({
-            windowMs: 15 * 60 * 1000, // 15 minutes
-            max: 100, // limit each IP to 100 requests per windowMs
+            windowMs: rateLimitWindowMs,
+            max: rateLimitMaxRequests,
         });
         this.schemaDirectory = schemaDirectory;
         this.logger = initLogger(debug, 'calm-server');
@@ -24,7 +29,21 @@ export class ValidationRouter {
         router.post('/', this.validateSchema);
     }
 
-    private validateSchema = async (req: Request<ValidationRequest>, res: Response<ValidationOutcome | ErrorResponse>) => {
+    private async ensureSchemasLoaded() {
+        if (!this.schemaLoadPromise) {
+            this.schemaLoadPromise = this.schemaDirectory.loadSchemas().catch((error) => {
+                this.schemaLoadPromise = null;
+                throw error;
+            });
+        }
+
+        await this.schemaLoadPromise;
+    }
+
+    private validateSchema = async (
+        req: Request<Record<string, never>, ValidationOutcome | ErrorResponse, ValidationRequest>,
+        res: Response<ValidationOutcome | ErrorResponse>
+    ) => {
         let architecture;
         try {
             architecture = JSON.parse(req.body.architecture);
@@ -39,7 +58,7 @@ export class ValidationRouter {
         }
 
         try {
-            await this.schemaDirectory.loadSchemas();
+            await this.ensureSchemasLoaded();
         } catch (error) {
             this.logger.error('Failed to load schemas: ' + error);
             return res.status(500).type('json').send(new ErrorResponse('Failed to load schemas'));
@@ -56,12 +75,10 @@ export class ValidationRouter {
             return res.status(500).type('json').send(new ErrorResponse('Failed to load schema: ' + err));
         }
         try {
-
             const outcome = await validate(architecture, foundSchema, undefined, this.schemaDirectory, true);
             return res.status(201).type('json').send(outcome);
         } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            return res.status(500).type('json').send(new ErrorResponse(message));
+            return res.status(500).type('json').send(new ErrorResponse(error.message));
         }
     };
 }
@@ -71,8 +88,8 @@ class ErrorResponse {
     constructor(error: string) {
         this.error = error;
     }
-};
+}
 
-interface ValidationRequest {
+class ValidationRequest {
     architecture: string;
 }

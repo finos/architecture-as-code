@@ -3,6 +3,7 @@
   "module": "Preserve",
   "moduleResolution": "bundler",
   "compilerOptions": {
+    "strict": true,
     "outDir": "dist",
   },
   "include": ["src", "../vitest-globals.d.ts"],

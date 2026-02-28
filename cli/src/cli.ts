@@ -6,7 +6,7 @@ import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components
 import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { loadCliConfig } from './cli-config';
 import path from 'path';
-import inquirer from 'inquirer';
+import { select } from '@inquirer/prompts';
 
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -242,13 +242,10 @@ Validation requires:
             const providers = AI_PROVIDER_CHOICES;
             let selectedProvider: string = options.provider;
             if (!selectedProvider) {
-                const answer = await inquirer.prompt({
-                    type: 'list',
-                    name: 'provider',
+                selectedProvider = await select({
                     message: 'Select an AI provider:',
-                    choices: providers.map((p) => ({ name: p, value: p })),
+                    choices: providers.map((p: string) => ({ name: p, value: p })),
                 });
-                selectedProvider = answer.provider;
             }
             console.log(`Selected AI provider: ${selectedProvider}`);
 
@@ -268,7 +265,7 @@ export async function parseDocumentLoaderConfig(
     urlToLocalMap?: Map<string, string>,
     basePath?: string
 ): Promise<DocumentLoaderOptions> {
-    const logger = initLogger(options.verbose, 'calm-cli');
+    const logger = initLogger(options.verbose ?? false, 'calm-cli');
     const docLoaderOpts: DocumentLoaderOptions = {
         calmHubUrl: options.calmHubUrl,
         schemaDirectoryPath: options.schemaDirectory,
