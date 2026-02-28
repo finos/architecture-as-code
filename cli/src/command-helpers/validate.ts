@@ -60,6 +60,9 @@ export async function runValidate(options: ValidateOptions) {
             pattern = result.pattern;
         }
         const documentContexts = buildDocumentContexts(options, logger);
+        if (!architecture && !pattern && !timeline) {
+            throw new Error('You must provide an architecture, a pattern, or a timeline');
+        }
         const outcome = await validate(architecture, pattern, timeline, schemaDirectory, options.verbose);
         enrichWithDocumentPositions(outcome, documentContexts);
         const content = getFormattedOutput(outcome, options.outputFormat, toFormattingOptions(documentContexts));

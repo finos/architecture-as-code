@@ -106,8 +106,8 @@ async function runSpectralValidations(
  * @returns Validation report
  */
 export async function validate(
-    architecture: object,
-    patternOrSchema: object,
+    architecture: object | undefined,
+    patternOrSchema: object | undefined,
     timeline: object | undefined,
     schemaDirectory?: SchemaDirectory,
     debug: boolean = false
