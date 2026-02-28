@@ -62,7 +62,7 @@ jobs:
           # Search for open PRs with the specific title pattern
           PR_LIST=$(gh pr list \
             --state open \
-            --search "ci(calm-server): update changelog & versions for v" \
+            --search "ci(calm-server): release version" \
             --json title,number,headRefName 2>/dev/null || echo "[]")
           
           echo "PR search result: $PR_LIST"
@@ -182,8 +182,14 @@ jobs:
             if grep -q "The next release version is" analysis.txt; then
               NEXT_VERSION=$(grep "The next release version is" analysis.txt | sed 's/.*The next release version is \([^[:space:]]\+\).*/\1/')
               
-              # Get current version from latest git tag instead of package.json
-              CURRENT_VERSION=$(git describe --tags --abbrev=0 --match 'calm-server-v*' 2>/dev/null | sed 's/calm-server-v//')
+              # Get current version from latest git tag; if none, fall back to package.json (or 0.0.0)
+              CURRENT_TAG=$(git describe --tags --abbrev=0 --match 'calm-server-v*' 2>/dev/null || true)
+              if [ -n "$CURRENT_TAG" ]; then
+                CURRENT_VERSION=$(echo "$CURRENT_TAG" | sed 's/calm-server-v//')
+              else
+                echo "⚠️  No matching 'calm-server-v*' tag found; falling back to package.json version (or 0.0.0)." >&2
+                CURRENT_VERSION=$(node -p "(() => { try { return require('./package.json').version || '0.0.0'; } catch (e) { console.error(e); return '0.0.0'; } })()")
+              fi
               
               echo "📋 Extracted versions:"
               echo "  Current: $CURRENT_VERSION"
@@ -404,8 +410,8 @@ jobs:
           EOF
           
           # Create draft release
-          gh release create "${{ needs.analyze.outputs.next-version }}" \
-            --title "v${{ needs.analyze.outputs.next-version }}" \
+          gh release create "calm-server-v${{ needs.analyze.outputs.next-version }}" \
+            --title "calm-server-v${{ needs.analyze.outputs.next-version }}" \
             --notes-file release-notes.md \
             --draft \
             --target "${{ github.sha }}"
@@ -482,7 +488,7 @@ jobs:
 
       - name: Publish to NPM
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE  }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
         run: |
           cd calm-server
           npm publish --provenance --access public

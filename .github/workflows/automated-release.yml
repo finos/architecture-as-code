@@ -492,7 +492,7 @@ jobs:
 
       - name: Publish to NPM
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE  }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
         run: |
           cd cli
           npm publish --provenance
