@@ -1,7 +1,7 @@
 ---
 id: validate
 title: Validate
-sidebar_position: 5
+sidebar_position: 4
 ---
 
 # Validate
@@ -85,3 +85,8 @@ For patterns that don't have an `$id` field, the CLI automatically resolves rela
 ```
 
 The CLI will look for the standard at `patterns/standards/my-standard.json`.
+
+
+### Validation server
+
+The separate `@finos/calm-server` package provides a network accessible [validation server](validation-server.md).

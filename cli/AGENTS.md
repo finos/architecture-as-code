@@ -48,8 +48,8 @@ npm run copy-ai-tools         # Copy AI agent files from ../calm-ai/
 1. **generate** - Generate architecture from CALM pattern
 2. **validate** - Validate architecture against pattern
 3. **init-ai** - Install AI Assistant support for CALM
-5. **template** - Generate files from Handlebars templates
-6. **docify** - Generate documentation websites (supports `--scaffold` for two-stage workflow)
+4. **template** - Generate files from Handlebars templates
+5. **docify** - Generate documentation websites (supports `--scaffold` for two-stage workflow)
 
 ### Important Directories
 ```

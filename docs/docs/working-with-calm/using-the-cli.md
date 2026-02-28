@@ -1,7 +1,7 @@
 ---
 id: using-the-cli
 title: Using the CLI
-sidebar_position: 3
+sidebar_position: 2
 ---
 
 # Using the CLI
