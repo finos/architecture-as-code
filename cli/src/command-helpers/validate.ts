@@ -34,9 +34,9 @@ export async function runValidate(options: ValidateOptions) {
         const schemaDirectory = await buildSchemaDirectory(docLoader, options.verbose);
         await schemaDirectory.loadSchemas();
 
-        let architecture: object;
-        let pattern: object;
-        let timeline: object;
+        let architecture: object | undefined;
+        let pattern: object | undefined;
+        let timeline: object | undefined;
 
         if (options.timelinePath) {
             const result = await loadTimeline(
@@ -50,8 +50,8 @@ export async function runValidate(options: ValidateOptions) {
         }
         else {
             const result = await loadArchitectureAndPattern(
-                options.architecturePath,
-                options.patternPath,
+                options.architecturePath ?? '',
+                options.patternPath ?? '',
                 docLoader,
                 schemaDirectory,
                 logger
@@ -70,8 +70,10 @@ export async function runValidate(options: ValidateOptions) {
         exitBasedOffOfValidationOutcome(outcome, options.strict);
     }
     catch (err) {
-        logger.error('An error occurred while validating: ' + err.message);
-        logger.debug(err.stack);
+        const message = err instanceof Error ? err.message : String(err);
+        const stack = err instanceof Error ? err.stack : undefined;
+        logger.error('An error occurred while validating: ' + message);
+        if (stack) logger.debug(stack);
         process.exit(1);
     }
 }

@@ -395,8 +395,8 @@ describe('CLI Integration Tests', () => {
             try {
                 await run(calm(), ['validate', '-p', patternPath, '-a', archPath]);
                 expect.fail('Expected validation to fail');
-            } catch (error) {
-                const result = JSON.parse(error.stdout);
+            } catch (error: unknown) {
+                const result = JSON.parse((error as { stdout: string }).stdout);
                 expect(result.hasErrors).toBe(true);
                 expect(JSON.stringify(result)).toContain('owner');
             }
@@ -410,8 +410,8 @@ describe('CLI Integration Tests', () => {
             try {
                 await run(calm(), ['validate', '-p', patternPath, '-a', archPath, '-u', mappingPath]);
                 expect.fail('Expected validation to fail');
-            } catch (error) {
-                const result = JSON.parse(error.stdout);
+            } catch (error: unknown) {
+                const result = JSON.parse((error as { stdout: string }).stdout);
                 expect(result.hasErrors).toBe(true);
                 expect(JSON.stringify(result)).toContain('owner');
             }
@@ -452,7 +452,7 @@ describe('CLI Integration Tests', () => {
             expect(res.status).toBe(200);
             expect(res.data.status).toBe('OK');
         } finally {
-            process.kill(-serverProcess.pid);
+            if (serverProcess.pid) process.kill(-serverProcess.pid);
         }
     });
 
@@ -486,7 +486,7 @@ describe('CLI Integration Tests', () => {
             expect(JSON.stringify(res.data)).toContain('hasErrors');
             expect(JSON.stringify(res.data)).toContain('hasWarnings');
         } finally {
-            process.kill(-serverProcess.pid);
+            if (serverProcess.pid) process.kill(-serverProcess.pid);
         }
     });
 
@@ -834,18 +834,18 @@ describe('CLI Integration Tests', () => {
         fs.writeFileSync(filePath, JSON.stringify(obj, null, 2));
     }
 
-    function readJson(filePath: string) {
+    function readJson(filePath: string): Record<string, unknown> {
         return JSON.parse(fs.readFileSync(filePath, 'utf8'));
     }
 
-    function patchJson(filePath: string, patchFn: (o: object) => void) {
+    function patchJson(filePath: string, patchFn: (o: Record<string, unknown>) => void) {
         const obj = readJson(filePath);
         patchFn(obj);
         writeJson(filePath, obj);
     }
 
     // Utility to recursively remove specific line/character fields from JSON
-    function removeLineNumbers(obj: object) {
+    function removeLineNumbers(obj: unknown): void {
         const fieldsToRemove = [
             'line_start',
             'line_end',
@@ -854,12 +854,13 @@ describe('CLI Integration Tests', () => {
         ];
         if (Array.isArray(obj)) {
             obj.forEach(removeLineNumbers);
-        } else if (obj && typeof obj === 'object') {
-            for (const key of Object.keys(obj)) {
+        } else if (obj !== null && typeof obj === 'object') {
+            const record = obj as Record<string, unknown>;
+            for (const key of Object.keys(record)) {
                 if (fieldsToRemove.includes(key)) {
-                    delete obj[key];
+                    delete record[key];
                 } else {
-                    removeLineNumbers(obj[key]);
+                    removeLineNumbers(record[key]);
                 }
             }
         }
