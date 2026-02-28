@@ -3,8 +3,6 @@ import {
     CalmNodeSchema,
     CalmRelationshipSchema,
 } from '@finos/calm-models/types';
-import { NodeData } from './node-contracts.js';
-import { EdgeData } from './edge-contracts.js';
 import type { Flow } from './flow-contracts.js';
 import type { Control } from './control-contracts.js';
 import { Data } from '../../model/calm.js';
@@ -19,17 +17,17 @@ export interface DrawerProps {
 }
 
 /**
- * Selected item from graph - either a node or edge
+ * Selected item from graph - raw CALM node or relationship data
  */
 export type SelectedItem = {
-    data: NodeData | EdgeData;
+    data: CalmNodeSchema | CalmRelationshipSchema;
 } | null;
 
 /**
  * Props for Sidebar component
  */
 export interface SidebarProps {
-    selectedData: NodeData | EdgeData;
+    selectedData: CalmNodeSchema | CalmRelationshipSchema;
     closeSidebar: () => void;
 }
 

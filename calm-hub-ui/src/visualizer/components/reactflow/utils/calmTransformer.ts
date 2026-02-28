@@ -1,5 +1,5 @@
 import { Node, Edge } from 'reactflow';
-import { CalmArchitectureSchema, CalmNodeSchema } from '../../../../../../calm-models/src/types/core-types.js';
+import { CalmArchitectureSchema, CalmNodeSchema } from '@finos/calm-models/types';
 import { getLayoutedElements, createTopLevelLayout } from './layoutUtils';
 import { identifyContainerNodes, parseNodes } from './nodeParser';
 import { extractFlowTransitions, parseRelationships } from './relationshipParser';

@@ -45,10 +45,6 @@ export function createEdge(config: EdgeConfig): Edge {
             ...(dashed && { strokeDasharray: '5,5' }),
         },
         data: {
-            id,
-            source,
-            target,
-            label,
             description: label,
             ...data,
         },

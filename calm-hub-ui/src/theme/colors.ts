@@ -95,6 +95,12 @@ export const colors = {
         label: '#64748b', // slate-500
     },
 
+    // Decision colors for pattern visualization
+    decision: {
+        oneOf: '#ca8a04', // yellow-600 - "choose exactly one"
+        anyOf: '#0284c7', // sky-600 - "choose one or more"
+    },
+
     // Feedback colors (for markers, indicators)
     feedback: {
         positive: '#16a34a', // green-600

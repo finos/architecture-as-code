@@ -1,8 +1,8 @@
-import {namespaces, resourceTypes} from "../fixtures/constants.js";
+import {namespaceInfos, namespaces, resourceTypes} from "../fixtures/constants.js";
 
 describe('Home page tests', () => {
   beforeEach(() => {
-    cy.intercept("/calm/namespaces", {"values": namespaces})
+    cy.intercept("/calm/namespaces", {"values": namespaceInfos})
   })
 
   it('Loads initial screen successfully', () => {
@@ -14,6 +14,19 @@ describe('Home page tests', () => {
     resourceTypes.forEach(resourceType => { cy.findByText(resourceType).should("exist"); });
   })
 
+  context("Sidebar collapse", () => {
+    it("Collapses and expands the sidebar", () => {
+      cy.visit('/');
+      cy.findByText("Explore").should("exist");
+
+      cy.findByLabelText("Collapse sidebar").click();
+      cy.findByText("Explore").should("not.exist");
+
+      cy.findByLabelText("Expand sidebar").click();
+      cy.findByText("Explore").should("exist");
+    })
+  })
+
   context("Wide screen tests", () => {
     it("Finds navigation items", () => {
       cy.viewport('macbook-16')
@@ -21,7 +34,6 @@ describe('Home page tests', () => {
       cy.findByRole("link", { name: "Hub" })
       cy.findByRole("link", { name: "Visualizer" })
     })
-
   })
 
   context("Collapsed screen tests", () => {

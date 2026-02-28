@@ -26,9 +26,8 @@ describe('createEdge', () => {
         expect(edge.targetHandle).toBe('target');
     });
 
-    it('includes label in data', () => {
+    it('includes description in data from label', () => {
         const edge = createEdge(baseConfig);
-        expect(edge.data.label).toBe('connects to');
         expect(edge.data.description).toBe('connects to');
     });
 
@@ -96,10 +95,11 @@ describe('createEdge', () => {
         expect(edge.markerEnd).toBeUndefined();
     });
 
-    it('includes id, source, target in data for reference', () => {
+    it('does not include ReactFlow fields (id, source, target, label) in data', () => {
         const edge = createEdge(baseConfig);
-        expect(edge.data.id).toBe('edge-1');
-        expect(edge.data.source).toBe('node-1');
-        expect(edge.data.target).toBe('node-2');
+        expect(edge.data.id).toBeUndefined();
+        expect(edge.data.source).toBeUndefined();
+        expect(edge.data.target).toBeUndefined();
+        expect(edge.data.label).toBeUndefined();
     });
 });

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { parseCALMData } from './calmTransformer';
-import { CalmArchitectureSchema } from '../../../../../../calm-models/src/types/core-types.js';
+import { CalmArchitectureSchema } from '@finos/calm-models/types';
 
 describe('parseCALMData', () => {
     it('returns empty arrays for null data', () => {
@@ -39,7 +39,7 @@ describe('parseCALMData', () => {
         const result = parseCALMData(data);
         expect(result.nodes).toHaveLength(1);
         expect(result.nodes[0].type).toBe('group');
-        expect(result.nodes[0].data.nodeType).toBe('system');
+        expect(result.nodes[0].data['node-type']).toBe('system');
     });
 
     it('creates edges from connects relationships', () => {
@@ -91,7 +91,7 @@ describe('parseCALMData', () => {
         expect(result.edges).toHaveLength(1);
         expect(result.edges[0].source).toBe('actor-1');
         expect(result.edges[0].target).toBe('node-1');
-        expect(result.edges[0].data.relationshipType).toBe('interacts');
+        expect(result.edges[0].data['relationship-type']).toEqual({ interacts: { actor: 'actor-1', nodes: ['node-1'] } });
     });
 
     it('handles deployed-in relationships by setting parentId', () => {

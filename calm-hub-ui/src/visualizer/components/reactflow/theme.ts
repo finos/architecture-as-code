@@ -45,6 +45,9 @@ export const THEME = {
 
         // Group/container colors
         group: colors.group,
+
+        // Decision colors for pattern visualization
+        decision: colors.decision,
     },
 
     // Shadow definitions
