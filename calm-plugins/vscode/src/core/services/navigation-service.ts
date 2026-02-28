@@ -5,7 +5,7 @@ import {
     buildDocumentLoader,
     DocumentLoader,
     DocumentLoaderOptions
-} from '@finos/calm-shared/dist/document-loader/document-loader'
+} from '@finos/calm-shared'
 import { Config } from '../ports/config'
 import type { Logger } from '../ports/logger'
 

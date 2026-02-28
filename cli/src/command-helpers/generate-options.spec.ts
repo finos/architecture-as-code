@@ -1,4 +1,4 @@
-import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components/options';
+import { CalmChoice } from '@finos/calm-shared';
 import { promptUserForOptions } from './generate-options';
 
 const mocks = vi.hoisted(() => {

@@ -7,9 +7,10 @@ import {
     loadArchitectureAndPattern,
     loadTimeline,
     enrichWithDocumentPositions,
-    parseDocumentWithPositions
+    parseDocumentWithPositions,
+    buildDocumentLoader,
+    DocumentLoader
 } from '@finos/calm-shared'
-import { buildDocumentLoader, DocumentLoader } from '@finos/calm-shared/dist/document-loader/document-loader'
 import type { Logger } from '../../core/ports/logger'
 import type { Config } from '../../core/ports/config'
 import { CalmSchemaRegistry } from '../../core/services/calm-schema-registry'

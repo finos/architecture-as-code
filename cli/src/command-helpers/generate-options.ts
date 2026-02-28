@@ -1,5 +1,4 @@
-import { CalmChoice, CalmOption, extractOptions } from '@finos/calm-shared/dist/commands/generate/components/options';
-import { initLogger } from '@finos/calm-shared';
+import { CalmChoice, CalmOption, extractOptions, initLogger } from '@finos/calm-shared';
 import { select, checkbox } from '@inquirer/prompts';
 
 type InquirerQuestion = {

@@ -3,7 +3,7 @@ import { NavigationService } from './navigation-service'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as vscode from 'vscode'
-import { buildDocumentLoader } from '@finos/calm-shared/dist/document-loader/document-loader'
+import { buildDocumentLoader } from '@finos/calm-shared'
 
 // Mock vscode
 vi.mock('vscode', () => ({
