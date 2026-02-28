@@ -1,0 +1,35 @@
+name: Validate Lockfile Platforms
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches:
+      - 'main'
+      - 'release*'
+    paths:
+      - 'package-lock.json'
+  push:
+    branches:
+      - 'main'
+      - 'release*'
+    paths:
+      - 'package-lock.json'
+
+jobs:
+  validate-lockfile:
+    name: Validate Lockfile Platforms
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
+        with:
+          node-version: '22'
+
+      - name: Validate platform bindings in lockfile
+        run: node scripts/validate-lockfile-platforms.js
