@@ -4,8 +4,7 @@ import * as fs from 'fs';
 import express, { Application } from 'express';
 import { ValidationRouter } from './validation-route';
 import path from 'path';
-import { SchemaDirectory } from '@finos/calm-shared';
-import { FileSystemDocumentLoader } from '@finos/calm-shared/dist/document-loader/file-system-document-loader';
+import { FileSystemDocumentLoader, SchemaDirectory } from '@finos/calm-shared';
 import { vi } from 'vitest';
 
 const schemaDirectoryPath: string = __dirname + '/../../../../calm/release';

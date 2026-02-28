@@ -1,5 +1,5 @@
 import { SchemaDirectory, validate, ValidationOutcome, initLogger } from '@finos/calm-shared';
-import type { Logger } from '@finos/calm-shared/dist/logger';
+import type { Logger } from '@finos/calm-shared';
 import { Router, Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 
