@@ -1,7 +1,7 @@
 # 🏛️ CALM Hub UI
 
 
-https://github.com/user-attachments/assets/4719b97c-41e3-4c8a-99ad-34360a2b5fdd
+https://github.com/user-attachments/assets/931cca52-6dff-4895-8de4-88a291acd41a
 
 
 Explore, visualize, and manage CALM architecture models through an interactive web interface. Features graph-based visualization, pattern decision exploration, flow animation, risk-aware rendering, and deep metadata inspection.
