@@ -1,10 +1,6 @@
 import { FiShield, FiAlertCircle } from 'react-icons/fi';
-import { THEME } from '../theme';
-
-interface AIGFMappingSectionProps {
-    mitigations?: string[];
-    risks?: string[];
-}
+import { THEME } from '../theme.js';
+import type { AIGFMappingSectionProps } from '../../../contracts/contracts.js';
 
 export function AIGFMappingSection({ mitigations, risks }: AIGFMappingSectionProps) {
     if (!mitigations?.length && !risks?.length) return null;

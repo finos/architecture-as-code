@@ -1,38 +1,6 @@
 import { ArrowRight, Shield, AlertCircle } from 'lucide-react';
-import { THEME } from '../theme';
-
-export interface FlowTransition {
-    sequence: number;
-    flowName?: string;
-    description?: string;
-}
-
-export interface EdgeControl {
-    description?: string;
-}
-
-export interface Mitigation {
-    id?: string;
-    name?: string;
-}
-
-export interface Risk {
-    id?: string;
-    name?: string;
-}
-
-export interface EdgeTooltipProps {
-    description: string;
-    protocol?: string;
-    direction?: string;
-    flowTransitions: FlowTransition[];
-    edgeControls: Record<string, EdgeControl>;
-    controlsApplied: string[];
-    mitigations: (string | Mitigation)[];
-    risks: (string | Risk)[];
-    labelX: number;
-    labelY: number;
-}
+import { THEME } from '../theme.js';
+import type { EdgeTooltipProps, EdgeControl, Mitigation, Risk, FlowTransitionEdge } from '../../../contracts/contracts.js';
 
 export function EdgeTooltip({
     description,
@@ -88,7 +56,7 @@ export function EdgeTooltip({
     );
 }
 
-function FlowTransitionsSection({ transitions, direction }: { transitions: FlowTransition[]; direction?: string }) {
+function FlowTransitionsSection({ transitions, direction }: { transitions: FlowTransitionEdge[]; direction?: string }) {
     if (transitions.length === 0) return null;
 
     return (
@@ -100,29 +68,36 @@ function FlowTransitionsSection({ transitions, direction }: { transitions: FlowT
                 </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {transitions.map((transition, idx) => (
-                    <div
-                        key={idx}
-                        style={{
-                            fontSize: '12px',
-                            background: THEME.colors.backgroundSecondary,
-                            borderRadius: '4px',
-                            padding: '8px',
-                        }}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                            <span style={{ fontFamily: 'monospace', color: THEME.colors.accent, fontWeight: 600 }}>
-                                Step {transition.sequence}
-                            </span>
-                            {transition.flowName && (
-                                <span style={{ color: THEME.colors.muted }}>in {transition.flowName}</span>
+                {transitions.map((transition, idx) => {
+                    const isFlowTransitionEdge = 'sequence' in transition;
+                    const sequence = isFlowTransitionEdge ? transition.sequence : transition['sequence-number'];
+                    const flowName = isFlowTransitionEdge ? transition.flowName : undefined;
+                    const description = transition.description;
+
+                    return (
+                        <div
+                            key={idx}
+                            style={{
+                                fontSize: '12px',
+                                background: THEME.colors.backgroundSecondary,
+                                borderRadius: '4px',
+                                padding: '8px',
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                <span style={{ fontFamily: 'monospace', color: THEME.colors.accent, fontWeight: 600 }}>
+                                    Step {sequence}
+                                </span>
+                                {flowName && (
+                                    <span style={{ color: THEME.colors.muted }}>in {flowName}</span>
+                                )}
+                            </div>
+                            {description && (
+                                <p style={{ color: THEME.colors.foreground }}>{description}</p>
                             )}
                         </div>
-                        {transition.description && (
-                            <p style={{ color: THEME.colors.foreground }}>{transition.description}</p>
-                        )}
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );
