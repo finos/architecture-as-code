@@ -34,9 +34,9 @@ export async function runValidate(options: ValidateOptions) {
         const schemaDirectory = await buildSchemaDirectory(docLoader, options.verbose);
         await schemaDirectory.loadSchemas();
 
-        let architecture: object | undefined;
-        let pattern: object | undefined;
-        let timeline: object | undefined;
+        let architecture: object | undefined = undefined;
+        let pattern: object | undefined = undefined;
+        let timeline: object | undefined = undefined;
 
         if (options.timelinePath) {
             const result = await loadTimeline(
