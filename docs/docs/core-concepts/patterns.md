@@ -153,8 +153,11 @@ calm validate -p patterns/web-app-pattern.json -a architectures/existing-webapp.
 
 This checks whether the target architecture has the required nodes/relationships and respects the pattern’s constraints.
 
-### Watch for placeholders (warnings vs errors)
+### Watch for placeholders
 
-When a pattern leaves required fields (like `description`) user-fillable, generated architectures may contain placeholders that typically produce **warnings** rather than outright validation failures—signaling “fill this in” without making the model invalid.
+User-fillable properties are emitted into the generated architecture using placeholder values based on their declared data type:
 
+* String properties use a bracketed token format, e.g., [[ DESCRIPTION ]]
+* Integer properties use a sentinel numeric value, e.g., -1
 
+These placeholders act as markers and must be replaced with appropriate architecture-specific values before use.
