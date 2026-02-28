@@ -1,87 +1,110 @@
-# Getting Started with Create React App
+# CALM Hub UI
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Explore, visualize, and manage CALM architecture models through an interactive web interface. Features graph-based visualization, pattern decision exploration, flow animation, risk-aware rendering, and deep metadata inspection.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+### Interactive Architecture Visualization
+- **Graph-Based Rendering**: ReactFlow-powered diagrams with automatic layout via Dagre
+- **Smart Node Rendering**: Type-specific icons for Actors, Systems, Services, Databases, Networks, and more
+- **Group Nodes**: Automatic container grouping for `deployed-in` and `composed-of` relationships
+- **Floating Edges**: Bezier-curved edges with labels and badges that avoid node overlap
+- **Pan, Zoom & Minimap**: Full interactive controls with fit-to-view
 
-### `npm start`
+### Pattern Visualization with Decision Support
+- **JSON Schema Patterns**: Render architecture patterns with automatic layout
+- **Decision Points**: Extract and display `oneOf`/`anyOf` constraints as interactive decision selectors
+- **Dynamic Filtering**: Select decision paths to see how the architecture changes
+- **Decision Group Nodes**: Visual grouping highlights pattern variants
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Hub Navigation
+- **Tree-Based Browsing**: Collapsible sidebar to explore Namespaces, Architectures, Patterns, Flows, and ADRs
+- **Diagram & JSON Views**: Toggle between interactive visualization and raw JSON with syntax highlighting
+- **Version Selection**: Browse and switch between architecture revisions
+- **Quick Visualize**: Jump from any document into the full Visualizer workspace
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Search & Filtering
+- **Node Search**: Find nodes by name, unique-id, or node-type
+- **Type-Based Filtering**: Filter by node type via dropdown
+- **Opacity Dimming**: Matching nodes at full opacity, non-matching dimmed to 15%
+- **Edge Filtering**: Edges follow connected node visibility
 
-### `npm test`
+### Metadata Panel
+- **Flows Panel**: View business and data flows with step-by-step transitions
+- **Controls Panel**: Hierarchical security and compliance controls
+- **Flow Highlighting**: Click a transition to highlight the corresponding relationship in the graph
+- **Control Deep-Linking**: Jump from a control to the affected node
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Risk & Control Integration
+- **Risk-Aware Borders**: Node border color indicates risk level (red, yellow, green)
+- **Hover Details**: Tooltips show associated risks and mitigations
+- **Control Badges**: Quick visibility into control coverage per node
 
-### `npm run start-cypress`
+### ADR Rendering
+- **Rich Display**: Context, decision drivers, considered options, outcome, and links
+- **Markdown Support**: Full markdown rendering within ADR sections
+- **Revision Browsing**: Switch between ADR versions
+- **Status Badges**: Visual indicators for approved, deprecated, and other statuses
 
-End to End tests are written with cypress. Cypress can be run in headless and headed modes. 
-The above command runs in headed mode and allows the developer to locally run through the spec 
-files and observe the test runs. [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) queries and paradigm for testing feature 
-heavily in these tests as these help maintainability by organising tests around how the UI is used
-and not how its implemented. [Cypress and its best practices](https://docs.cypress.io/app/core-concepts/best-practices) are also used in writing and updating
-these tests.
+### Inspector Sidebar
+- **Selection Details**: Click any node or edge to inspect its raw JSON
+- **Drag & Drop Upload**: Load CALM JSON files directly into the visualizer
 
-You need to set an environment variable VITE_BASE_URL which should be the address where the vite server is being run
-A default in .env.example has been added. This can also be set in CI to whatever the intended vite port should be
+## Getting Started
 
-#### Test Stubbing
-The tests are all stubbed to return desired responses. These will need to be maintained in tandem with 
-calm-hub API. This section can be updated when a different and more reliable integration strategy is devised
+### Prerequisites
+- Node.js (see `.nvmrc` for the recommended version)
+- A running instance of CALM Hub (the backend API)
 
+### Development
 
-### `npm run build`
+```bash
+npm install
+npm start
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Open [http://localhost:3000](http://localhost:3000) to view the app in your browser. The page will reload when you make changes.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Running Tests
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+# Unit tests
+npm test
 
-### `npm run eject`
+# End-to-end tests (headed mode)
+npm run start-cypress
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+E2E tests use [Cypress](https://docs.cypress.io/) with [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) queries. All tests are stubbed against the CALM Hub API.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+You need to set the environment variable `VITE_BASE_URL` to the address where the Vite dev server is running (see `.env.example` for defaults).
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Production Build
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```bash
+npm run build
+```
 
-## Learn More
+Outputs an optimized production bundle to the `build` folder.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Tech Stack
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+| Category | Libraries |
+|---|---|
+| UI Framework | React 19, React Router, TypeScript |
+| Visualization | ReactFlow, Dagre, D3 |
+| Styling | TailwindCSS, DaisyUI |
+| Code Display | Monaco Editor, react-json-view-lite |
+| Auth | OpenID Connect (oidc-client) |
+| Testing | Vitest, Cypress |
+| Build | Vite |
 
-### Code Splitting
+## Getting Involved
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Architecture as Code was developed as part of the [DevOps Automation Special Interest Group](https://devops.finos.org/) before graduating as a top level project in its own right. Our community Zoom meetups take place on the fourth Tuesday of every month, see [here](https://github.com/finos/architecture-as-code/issues?q=label%3Ameeting) for upcoming and previous meetings. For active contributors we have Office Hours every Thursday, see the [FINOS Event Calendar](http://calendar.finos.org) for meeting details.
 
-### Analyzing the Bundle Size
+Have an idea or feedback? [Raise an issue](https://github.com/finos/architecture-as-code/issues/new/choose) in this repository.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+---
 
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+**Contributing**: Issues and PRs welcome!
