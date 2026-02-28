@@ -1,0 +1,19 @@
+{
+    "$schema": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json",
+    "unique-id": "simple-deployment-example",
+    "type": "deployment",
+    "target": [
+        "example-architecture.json"
+    ],
+    "applies-to": [
+        "web-service"
+    ],
+    "data": {
+        "start-time": "2026-02-23T10:00:00Z",
+        "end-time": "2026-02-23T10:05:30Z",
+        "status": "completed",
+        "environment": "production",
+        "observability": "https://grafana.example.com/d/web-service-prod",
+        "notes": "Initial production deployment with baseline configuration"
+    }
+}

@@ -1,0 +1,94 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://calm.finos.org/standards/deployment/kubernetes.decorator.schema.json",
+    "title": "CALM Kubernetes Deployment Decorator Schema",
+    "description": "Kubernetes-specific deployment decorator schema. Extends the base deployment decorator with Kubernetes cluster, namespace, and Helm chart information.",
+    "allOf": [
+        {
+            "$ref": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json"
+        },
+        {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "kubernetes": {
+                            "type": "object",
+                            "description": "Kubernetes-specific deployment information",
+                            "properties": {
+                                "helm-chart": {
+                                    "type": "string",
+                                    "pattern": "^[a-z0-9-]+:[0-9]+\\.[0-9]+\\.[0-9]+$",
+                                    "description": "Helm chart name and semantic version in format 'chart-name:major.minor.patch'"
+                                },
+                                "cluster": {
+                                    "type": "string",
+                                    "description": "Kubernetes cluster identifier or name"
+                                },
+                                "namespace": {
+                                    "type": "string",
+                                    "description": "Kubernetes namespace where the resource is deployed",
+                                    "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                                },
+                                "release-name": {
+                                    "type": "string",
+                                    "description": "Helm release name for this deployment"
+                                },
+                                "context": {
+                                    "type": "string",
+                                    "description": "Kubernetes context name from kubeconfig"
+                                },
+                                "workload-type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "Deployment",
+                                        "StatefulSet",
+                                        "DaemonSet",
+                                        "Job",
+                                        "CronJob"
+                                    ],
+                                    "description": "Type of Kubernetes workload"
+                                },
+                                "replicas": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "description": "Number of pod replicas"
+                                },
+                                "image": {
+                                    "type": "string",
+                                    "description": "Container image with tag (e.g., 'myapp:1.2.3' or 'registry.example.com/myapp:v1')"
+                                },
+                                "config-maps": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "description": "List of ConfigMap names used by this deployment"
+                                },
+                                "secrets": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "description": "List of Secret names used by this deployment"
+                                },
+                                "service-account": {
+                                    "type": "string",
+                                    "description": "Kubernetes ServiceAccount used by the pods"
+                                }
+                            },
+                            "required": [
+                                "cluster"
+                            ],
+                            "additionalProperties": false
+                        }
+                    },
+                    "required": [
+                        "kubernetes"
+                    ]
+                }
+            }
+        }
+    ]
+}

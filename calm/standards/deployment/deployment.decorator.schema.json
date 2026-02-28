@@ -1,0 +1,68 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json",
+    "title": "CALM Deployment Decorator standard",
+    "description": "Deployment decorator standard for tracking deployment information across various platforms and environments. Extends the base CALM decorator standard to add deployment-specific attributes.",
+    "allOf": [
+        {
+            "$ref": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator"
+        },
+        {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "deployment",
+                    "description": "Must be 'deployment' for deployment decorators"
+                },
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "start-time": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "ISO 8601 timestamp indicating when the deployment started"
+                        },
+                        "end-time": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "ISO 8601 timestamp indicating when the deployment completed or failed"
+                        },
+                        "status": {
+                            "type": "string",
+                            "enum": [
+                                "pending",
+                                "in-progress",
+                                "completed",
+                                "failed",
+                                "rolled-back"
+                            ],
+                            "description": "Current status of the deployment"
+                        },
+                        "environment": {
+                            "type": "string",
+                            "description": "Target environment for the deployment (e.g., production, staging, development)"
+                        },
+                        "observability": {
+                            "type": "string",
+                            "format": "uri",
+                            "description": "URI linking to deployment logs, metrics, dashboards, or observability platform"
+                        },
+                        "notes": {
+                            "type": "string",
+                            "description": "Free-form notes or comments about the deployment"
+                        }
+                    },
+                    "required": [
+                        "start-time",
+                        "status"
+                    ],
+                    "additionalProperties": true
+                }
+            },
+            "required": [
+                "type",
+                "data"
+            ]
+        }
+    ]
+}
