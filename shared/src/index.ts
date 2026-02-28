@@ -15,6 +15,7 @@ export { ValidationOutput } from './commands/validate/validation.output.js';
 export { CALM_META_SCHEMA_DIRECTORY } from './consts.js';
 export { SchemaDirectory } from './schema-directory.js';
 export { initLogger } from './logger.js';
+export type { Logger } from './logger.js';
 export { TemplateProcessor, TemplateProcessingMode } from './template/template-processor.js';
 export * from './template/types.js';
 export {
@@ -33,6 +34,8 @@ export { CalmRelationshipGraph } from './docify/graphing/relationship-graph.js';
 export { ValidationOutcome } from './commands/validate/validation.output';
 export * from './test/file-comparison.js';
 export { setWidgetLogger, type WidgetLogger } from '@finos/calm-widgets';
+export { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from './document-loader/document-loader';
+export { FileSystemDocumentLoader } from './document-loader/file-system-document-loader';
 export * from './document-loader/loading-helpers.js';
 export {
     hasArchitectureExtension,
