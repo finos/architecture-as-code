@@ -35,15 +35,15 @@ const packages = lockfile.packages || {};
 // and group them by their base package name.
 //
 // Naming conventions:
-//   @esbuild/darwin-arm64        -> base: @esbuild
-//   @rollup/rollup-darwin-arm64  -> base: @rollup/rollup
-//   @tailwindcss/oxide-darwin-x64 -> base: @tailwindcss/oxide
-//   lightningcss-darwin-arm64    -> base: lightningcss
+//   @esbuild/darwin-arm64         -> base: @esbuild   (os after /)
+//   @rollup/rollup-darwin-arm64   -> base: @rollup/rollup  (os after -)
+//   @tailwindcss/oxide-darwin-x64 -> base: @tailwindcss/oxide  (os after -)
+//   lightningcss-darwin-arm64     -> base: lightningcss  (os after -)
 //
-// We strip the trailing -<os>-<cpu>[-<abi>] suffix to derive the base name.
+// We strip the trailing [-/]<os>-<cpu>[-<abi>] suffix to derive the base name.
 
 const osPattern = 'linux|darwin|win32|android|freebsd|openbsd|netbsd|sunos|aix';
-const suffixRegex = new RegExp(`-(?:${osPattern})[-/].*$`);
+const suffixRegex = new RegExp(`[-/](?:${osPattern})[-/].*$`);
 
 const groups = new Map();
 
@@ -53,8 +53,8 @@ for (const [key, meta] of Object.entries(packages)) {
     // Normalise: strip leading node_modules/ (and nested node_modules/ paths)
     const name = key.replace(/^(.+\/)?node_modules\//, '');
 
-    // Scoped packages like @esbuild/darwin-arm64 have the os in the last
-    // segment.  Unscoped ones like lightningcss-darwin-arm64 have it too.
+    // The os segment may follow a dash (@rollup/rollup-darwin-arm64) or a
+    // slash (@esbuild/darwin-arm64).  The regex handles both separators.
     const base = name.replace(suffixRegex, '');
     if (base === name) continue; // no recognisable platform suffix
 
@@ -79,7 +79,10 @@ for (const [base, variants] of groups) {
         const darwinNames = variants
             .filter(v => v.os.includes('darwin'))
             .map(v => v.name);
-        missing.push({ base, darwinNames });
+        // Determine the separator used between base and os
+        // e.g. @esbuild/darwin-arm64 uses "/" while @rollup/rollup-darwin-arm64 uses "-"
+        const sep = darwinNames[0].startsWith(base + '/') ? '/' : '-';
+        missing.push({ base, sep, darwinNames });
     }
 }
 
@@ -89,12 +92,12 @@ if (missing.length > 0) {
         'The following packages have darwin variants but are missing linux-x64 variants.\n' +
         'This will cause CI failures on Linux runners.\n'
     );
-    for (const { base, darwinNames } of missing) {
+    for (const { base, sep, darwinNames } of missing) {
         console.error(`  ${base}`);
         for (const name of darwinNames) {
             console.error(`    found:   ${name}`);
         }
-        console.error(`    missing: ${base}-linux-x64-*\n`);
+        console.error(`    missing: ${base}${sep}linux-x64-*\n`);
     }
     console.error(
         'Fix: regenerate the lockfile from a clean state:\n\n' +
