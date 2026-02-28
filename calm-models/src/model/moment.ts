@@ -51,7 +51,7 @@ export class CalmMoment extends CalmNode implements CalmAdaptable<CalmMomentSche
             name,
             description,
             validFrom,
-            CalmNodeDetails.fromSchema(details),
+            details ? CalmNodeDetails.fromSchema(details) : undefined,
             controls ? CalmControls.fromSchema(controls) : undefined,
             metadata ? CalmMetadata.fromSchema(metadata) : undefined,
             adrs,

@@ -59,7 +59,7 @@ export type CalmFlowCanonicalModel = {
     name: string;
     description: string;
     transitions: CalmFlowTransitionCanonicalModel[];
-    'requirement-url': string;
+    'requirement-url'?: string;
     controls?: CalmControlsCanonicalModel;
     metadata?: CalmMetadataCanonicalModel;
 };
