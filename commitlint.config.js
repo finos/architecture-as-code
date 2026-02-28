@@ -9,6 +9,7 @@ module.exports = {
       [
         'cli',
         'shared',
+        'calm-server',
         'calm-widgets',
         'calm-hub',
         'calm-hub-ui',
