@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { TreeNavigation } from './components/tree-navigation/TreeNavigation.js';
 import { Data, Adr } from '../model/calm.js';
 import { Navbar } from '../components/navbar/Navbar.js';
@@ -27,7 +27,7 @@ export default function Hub() {
             <div className="flex flex-row flex-1 overflow-hidden bg-base-300">
                 <div className="w-1/4 p-4 pr-2">
                     <div className="h-full bg-base-100 rounded-2xl overflow-hidden shadow-xl">
-                        <TreeNavigation onDataLoad={handleDataLoad} onAdrLoad={handleAdrLoad} />
+                        <TreeNavigation onDataLoad={useMemo(() => handleDataLoad, [])} onAdrLoad={useMemo(() => handleAdrLoad, [])} />
                     </div>
                 </div>
                 <div className="flex-1 overflow-auto">
