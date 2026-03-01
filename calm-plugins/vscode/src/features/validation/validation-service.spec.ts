@@ -76,17 +76,13 @@ vi.mock('@finos/calm-shared', async () => {
         loadTimeline: vi.fn(),
         SchemaDirectory: vi.fn().mockImplementation(() => ({
             loadSchemas: vi.fn()
+        })),
+        buildDocumentLoader: vi.fn(() => ({
+            loadMissingDocument: vi.fn(),
+            initialise: vi.fn()
         }))
     }
 })
-
-// Mock document loader
-vi.mock('@finos/calm-shared/dist/document-loader/document-loader', () => ({
-    buildDocumentLoader: vi.fn(() => ({
-        loadMissingDocument: vi.fn(),
-        initialise: vi.fn()
-    }))
-}))
 
 // Mock CalmSchemaRegistry
 vi.mock('../../core/services/calm-schema-registry', () => ({
