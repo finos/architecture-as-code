@@ -83,28 +83,28 @@
             "rollup": "2.80.0"
         },
         "eslint": {
-            "minimatch": "^3.1.4"
+            "minimatch": "^10.0.0"
         },
         "copyfiles": {
-            "minimatch": "^3.1.4"
+            "minimatch": "^10.0.0"
         },
         "@stoplight/spectral-core": {
-            "minimatch": "^3.1.4"
+            "minimatch": "^10.0.0"
         },
         "eslint-plugin-react": {
-            "minimatch": "^3.1.4"
+            "minimatch": "^10.0.0"
         },
         "eslint-plugin-import": {
-            "minimatch": "^3.1.4"
+            "minimatch": "^10.0.0"
         },
         "commitizen": {
-            "minimatch": "^3.1.4"
+            "minimatch": "^10.0.0"
         },
         "serve-handler": {
-            "minimatch": "^3.1.4"
+            "minimatch": "^10.0.0"
         },
         "@vscode/vsce": {
-            "minimatch": "^3.1.4"
+            "minimatch": "^10.0.0"
         }
     }
 }
