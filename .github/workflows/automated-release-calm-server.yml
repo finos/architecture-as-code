@@ -237,7 +237,7 @@ jobs:
           node-version: 22
 
       - run: npm ci
-      - run: npm run build
+      - run: npm run build:calm-server
 
       - name: Create version update PR
         run: |
