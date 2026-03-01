@@ -1,5 +1,4 @@
 import {
-    CALM_META_SCHEMA_DIRECTORY,
     Docifier,
     DocifyMode,
     TemplateProcessingMode,
