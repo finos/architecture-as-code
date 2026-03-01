@@ -23,9 +23,6 @@ const CALMHUB_URL_OPTION = '-c, --calm-hub-url <url>';
 const FORMAT_OPTION = '-f, --format <format>';
 const STRICT_OPTION = '--strict';
 
-// Server command options
-const PORT_OPTION = '--port <port>';
-
 // Template and Docify command options
 const BUNDLE_OPTION = '-b, --bundle <path>';
 const TEMPLATE_OPTION = '-t, --template <path>';
@@ -105,22 +102,6 @@ Validation requires:
                 outputFormat: options.format,
                 outputPath: options.output
             });
-        });
-
-    program
-        .command('server')
-        .description('Start a HTTP server to proxy CLI commands. (experimental)')
-        .option(PORT_OPTION, 'Port to run the server on', '3000')
-        .requiredOption(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
-        .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
-        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
-        .action(async (options) => {
-            const { startServer } = await import('./server/cli-server');
-            const debug = !!options.verbose;
-            const docLoaderOpts = await parseDocumentLoaderConfig(options);
-            const docLoader = buildDocumentLoader(docLoaderOpts);
-            const schemaDirectory = await buildSchemaDirectory(docLoader, debug);
-            startServer(options.port, schemaDirectory, debug);
         });
 
     program

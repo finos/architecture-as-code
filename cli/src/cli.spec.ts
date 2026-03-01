@@ -11,7 +11,6 @@ import { parseDocumentLoaderConfig } from './cli';
 
 let calmShared: typeof import('@finos/calm-shared');
 let validateModule: typeof import('./command-helpers/validate');
-let serverModule: typeof import('./server/cli-server');
 let templateModule: typeof import('./command-helpers/template');
 let optionsModule: typeof import('./command-helpers/generate-options');
 let fileSystemDocLoaderModule: typeof import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
@@ -27,7 +26,6 @@ describe('CLI Commands', () => {
 
         calmShared = await import('@finos/calm-shared');
         validateModule = await import('./command-helpers/validate');
-        serverModule = await import('./server/cli-server');
         templateModule = await import('./command-helpers/template');
         optionsModule = await import('./command-helpers/generate-options');
         fileSystemDocLoaderModule = await import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
@@ -39,7 +37,6 @@ describe('CLI Commands', () => {
         vi.spyOn(validateModule, 'runValidate').mockResolvedValue(undefined);
         vi.spyOn(validateModule, 'checkValidateOptions').mockResolvedValue(undefined);
 
-        vi.spyOn(serverModule, 'startServer').mockImplementation(vi.fn());
         vi.spyOn(templateModule, 'getUrlToLocalFileMap').mockReturnValue(new Map());
 
         vi.spyOn(optionsModule, 'promptUserForOptions').mockResolvedValue([]);
@@ -88,23 +85,6 @@ describe('CLI Commands', () => {
                 patternPath: 'pattern.json',
                 architecturePath: 'arch.json',
             }));
-        });
-    });
-
-    describe('Server Command', () => {
-        it('should call startServer with correct options', async () => {
-            await program.parseAsync([
-                'node', 'cli.js', 'server',
-                '--port', '4000',
-                '--schema-directory', 'mySchemas',
-                '--verbose',
-            ]);
-
-            expect(serverModule.startServer).toHaveBeenCalledWith(
-                '4000',
-                expect.any(calmShared.SchemaDirectory),
-                true,
-            );
         });
     });
 
