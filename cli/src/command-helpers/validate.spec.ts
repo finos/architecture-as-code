@@ -38,7 +38,8 @@ vi.mock('@finos/calm-shared', async () => ({
     getFormattedOutput: mocks.getFormattedOutput,
     exitBasedOffOfValidationOutcome: mocks.exitBasedOffOfValidationOutcome,
     initLogger: mocks.initLogger,
-    loadSchemas: mocks.loadSchemas
+    loadSchemas: mocks.loadSchemas,
+    buildDocumentLoader: mocks.buildDocumentLoader
 }));
 
 vi.mock('mkdirp', () => ({
@@ -57,11 +58,6 @@ vi.mock('../cli', async () => ({
         loadSchemas: mocks.loadSchemas,
         getSchema: mocks.getSchema
     })),
-}));
-
-vi.mock('@finos/calm-shared/dist/document-loader/document-loader', async () => ({
-    ...(await vi.importActual('@finos/calm-shared/dist/document-loader/document-loader')),
-    buildDocumentLoader: mocks.buildDocumentLoader
 }));
 
 describe('runValidate', () => {

@@ -39,7 +39,7 @@ vi.mock('fs', () => ({
 }))
 
 // Mock document loader
-vi.mock('@finos/calm-shared/dist/document-loader/document-loader', () => ({
+vi.mock('@finos/calm-shared', () => ({
     buildDocumentLoader: vi.fn(),
 }))
 
@@ -65,7 +65,7 @@ describe('NavigationService', () => {
         }
 
         vi.mocked(buildDocumentLoader).mockReturnValue(mockDocLoader)
-        
+
         // Reset vscode mocks
         // @ts-ignore
         vscode.workspace.workspaceFolders = undefined
@@ -96,8 +96,8 @@ describe('NavigationService', () => {
             // @ts-ignore
             vscode.workspace.workspaceFolders = undefined
 
-            const result = await navigationService.navigate('node1', { 
-                'detailed-architecture': 'detail.json' 
+            const result = await navigationService.navigate('node1', {
+                'detailed-architecture': 'detail.json'
             })
 
             expect(result).toBe(false)
@@ -114,7 +114,7 @@ describe('NavigationService', () => {
             const targetPath = '/workspace/detail.json'
             mockDocLoader.resolvePath.mockReturnValue(targetPath)
             vi.mocked(fs.existsSync).mockReturnValue(true)
-            
+
             // Setup open document
             const mockDoc = { uri: { fsPath: targetPath } }
             vi.mocked(vscode.workspace.openTextDocument).mockResolvedValue(mockDoc as any)
@@ -147,8 +147,8 @@ describe('NavigationService', () => {
             mockDocLoader.resolvePath.mockReturnValue(targetPath)
             vi.mocked(fs.existsSync).mockReturnValue(false)
 
-            const result = await navigationService.navigate('node1', { 
-                'detailed-architecture': 'detail.json' 
+            const result = await navigationService.navigate('node1', {
+                'detailed-architecture': 'detail.json'
             })
 
             expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(expect.stringContaining('File not found'))
@@ -163,9 +163,9 @@ describe('NavigationService', () => {
 
             const httpUrl = 'http://example.com/arch.json'
             mockDocLoader.resolvePath.mockReturnValue(undefined) // or whatever resolvePath returns for unresolvable
-            
-            const result = await navigationService.navigate('node1', { 
-                'detailed-architecture': httpUrl 
+
+            const result = await navigationService.navigate('node1', {
+                'detailed-architecture': httpUrl
             })
 
             expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
@@ -200,7 +200,7 @@ describe('NavigationService', () => {
             expect(buildDocumentLoader).toHaveBeenCalledWith(expect.objectContaining({
                 urlToLocalMap: expect.any(Map)
             }))
-            
+
             // Verify map content passed to loader
             const callArgs = vi.mocked(buildDocumentLoader).mock.calls[0][0]
             expect(callArgs.urlToLocalMap?.get('http://example.com')).toContain('local/path')

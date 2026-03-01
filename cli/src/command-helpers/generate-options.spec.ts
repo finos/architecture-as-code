@@ -9,9 +9,13 @@ const mocks = vi.hoisted(() => {
     };
 });
 
-vi.mock('@finos/calm-shared/dist/commands/generate/components/options', () => ({
-    extractOptions: mocks.extractOptions
-}));
+vi.mock('@finos/calm-shared', async () => {
+    const actual = await vi.importActual<typeof import('@finos/calm-shared')>('@finos/calm-shared');
+    return {
+        ...actual,
+        extractOptions: mocks.extractOptions
+    };
+});
 
 vi.mock('@inquirer/prompts', () => ({ 
     select: mocks.select,
