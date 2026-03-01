@@ -1,7 +1,7 @@
-name: CLI - Automated Release
+name: CALM Server - Automated Release
 
 concurrency:
-  group: cli-release
+  group: calm-server-release
   cancel-in-progress: false
 
 permissions:
@@ -12,7 +12,7 @@ permissions:
 
 on:
   schedule:
-    - cron: '30 7 * * 1,3'  # Run at 7:30 AM GMT on Monday and Wednesday
+    - cron: '30 7 * * 2'  # Run at 7:30 AM GMT on Tuesday
   workflow_dispatch:
     inputs:
       force-release:
@@ -62,7 +62,7 @@ jobs:
           # Search for open PRs with the specific title pattern
           PR_LIST=$(gh pr list \
             --state open \
-            --search "ci(cli): update changelog & versions for v" \
+            --search "ci(calm-server): release version" \
             --json title,number,headRefName 2>/dev/null || echo "[]")
           
           echo "PR search result: $PR_LIST"
@@ -85,24 +85,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check build-cli workflow status
+      - name: Check build-calm-server workflow status
         run: |
-          echo "Checking if build-cli.yml has passed on main branch..."
+          echo "Checking if build-calm-server.yml has passed on main branch..."
           
-          # Get the latest build-cli workflow run for main branch
-          BUILD_CLI_OUTPUT=$(gh run list \
-            --workflow=build-cli.yml \
+          # Get the latest build-calm-server workflow run for main branch
+          BUILD_CALM_SERVER_OUTPUT=$(gh run list \
+            --workflow=build-calm-server.yml \
             --branch=main \
             --limit=1)
           
-          echo "Latest build-cli run details:"
-          echo "$BUILD_CLI_OUTPUT"
+          echo "Latest build-calm-server run details:"
+          echo "$BUILD_CALM_SERVER_OUTPUT"
           
-          if echo "$BUILD_CLI_OUTPUT" | grep -q "success"; then
-            echo "✅ build-cli.yml has passed on main branch."
+          if echo "$BUILD_CALM_SERVER_OUTPUT" | grep -q "success"; then
+            echo "✅ build-calm-server.yml has passed on main branch."
           else
-            echo "❌ build-cli.yml has not passed on main branch. Skipping release."
-            echo "Please ensure the CLI build is successful before releasing."
+            echo "❌ build-calm-server.yml has not passed on main branch. Skipping release."
+            echo "Please ensure the CALM Server build is successful before releasing."
             exit 1
           fi
         env:
@@ -136,7 +136,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cd cli
+          cd calm-server
           
           # Check if force-release is enabled
           FORCE_RELEASE="${{ github.event.inputs.force-release }}"
@@ -182,17 +182,13 @@ jobs:
             if grep -q "The next release version is" analysis.txt; then
               NEXT_VERSION=$(grep "The next release version is" analysis.txt | sed 's/.*The next release version is \([^[:space:]]\+\).*/\1/')
               
-              # Get current version from latest git tag instead of package.json
-              CURRENT_VERSION=$(git describe --tags --abbrev=0 --match 'cli-v*' 2>/dev/null | sed 's/cli-v//')
-              
-              if [ -z "$CURRENT_VERSION" ]; then
-                echo "⚠️ No cli-v* git tag found; falling back to package.json version."
-                CURRENT_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "")
-              fi
-              
-              if [ -z "$CURRENT_VERSION" ]; then
-                echo "⚠️ package.json version unavailable; defaulting current version to 0.0.0."
-                CURRENT_VERSION="0.0.0"
+              # Get current version from latest git tag; if none, fall back to package.json (or 0.0.0)
+              CURRENT_TAG=$(git describe --tags --abbrev=0 --match 'calm-server-v*' 2>/dev/null || true)
+              if [ -n "$CURRENT_TAG" ]; then
+                CURRENT_VERSION=$(echo "$CURRENT_TAG" | sed 's/calm-server-v//')
+              else
+                echo "⚠️  No matching 'calm-server-v*' tag found; falling back to package.json version (or 0.0.0)." >&2
+                CURRENT_VERSION=$(node -p "(() => { try { return require('./package.json').version || '0.0.0'; } catch (e) { console.error(e); return '0.0.0'; } })()")
               fi
               
               echo "📋 Extracted versions:"
@@ -245,7 +241,7 @@ jobs:
 
       - name: Create version update PR
         run: |
-          cd cli
+          cd calm-server
           
           # Check if this is a forced release
           if [ "${{ github.event.inputs.force-release }}" = "true" ]; then
@@ -258,7 +254,7 @@ jobs:
             cat > temp_changelog.md << EOF
           # Changelog
           
-          All notable changes to the CALM CLI will be documented in this file.
+          All notable changes to the CALM Server will be documented in this file.
           
           The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
           and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -277,12 +273,12 @@ jobs:
             mv temp_changelog.md CHANGELOG.md
             
             # Create release branch
-            git checkout -b "release/cli-v${{ needs.analyze.outputs.next-version }}"
+            git checkout -b "release/calm-server-v${{ needs.analyze.outputs.next-version }}"
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add CHANGELOG.md package.json
-            git commit -m "ci(cli): release version ${{ needs.analyze.outputs.next-version }}"
-            git push origin "release/cli-v${{ needs.analyze.outputs.next-version }}"
+            git commit -m "ci(calm-server): release version ${{ needs.analyze.outputs.next-version }}"
+            git push origin "release/calm-server-v${{ needs.analyze.outputs.next-version }}"
           else
             echo "🤖 Preparing automated release artifacts without tagging"
             NEXT_VERSION="${{ needs.analyze.outputs.next-version }}"
@@ -298,7 +294,7 @@ jobs:
             cat > temp_changelog.md << EOF
           # Changelog
           
-          All notable changes to the CALM CLI will be documented in this file.
+          All notable changes to the CALM Server will be documented in this file.
           
           The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
           and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -325,24 +321,24 @@ jobs:
             rm -f release-notes.md
             
             # Create release branch
-            git checkout -b "release/cli-v$NEXT_VERSION"
+            git checkout -b "release/calm-server-v$NEXT_VERSION"
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add CHANGELOG.md package.json
-            git commit -m "ci(cli): release version $NEXT_VERSION"
-            git push origin "release/cli-v$NEXT_VERSION"
+            git commit -m "ci(calm-server): release version $NEXT_VERSION"
+            git push origin "release/calm-server-v$NEXT_VERSION"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.SRB_TOKEN }}
 
       - name: Create Pull Request
         run: |
-          RELEASE_BRANCH="release/cli-v${{ needs.analyze.outputs.next-version }}"
+          RELEASE_BRANCH="release/calm-server-v${{ needs.analyze.outputs.next-version }}"
           
           if git ls-remote --heads origin $RELEASE_BRANCH | grep -q $RELEASE_BRANCH; then
             PR_BODY="🚀 **Automated Release PR**
           
-          This PR updates the CLI version from ${{ needs.analyze.outputs.current-version }} to ${{ needs.analyze.outputs.next-version }}.
+          This PR updates the CALM Server version from ${{ needs.analyze.outputs.current-version }} to ${{ needs.analyze.outputs.next-version }}.
           
           **Changes:**
           - Updated package.json version to ${{ needs.analyze.outputs.next-version }}
@@ -354,7 +350,7 @@ jobs:
           ⚠️ Do not edit this PR manually - it is generated automatically by semantic-release"
           
             gh pr create \
-              --title "ci(cli): release version ${{ needs.analyze.outputs.next-version }}" \
+              --title "ci(calm-server): release version ${{ needs.analyze.outputs.next-version }}" \
               --body "$PR_BODY" \
               --head "$RELEASE_BRANCH" \
               --base main \
@@ -390,7 +386,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cd  cli
+          cd calm-server
           # Generate release notes without creating tags
           npx semantic-release --dry-run --ci false > release-output.txt 2>&1 || true
           
@@ -403,7 +399,7 @@ jobs:
           $(grep -i "BREAKING CHANGE" release-output.txt | head -5 || echo "Please review the changes below for breaking changes.")
           
           ### 📋 Changes
-          $(git log --oneline \$(git describe --tags --abbrev=0 2>/dev/null || echo "HEAD~10")..HEAD --grep="feat\|fix" -- cli/ | head -10)
+          $(git log --oneline \$(git describe --tags --abbrev=0 2>/dev/null || echo "HEAD~10")..HEAD --grep="feat\|fix" -- calm-server/ | head -10)
           
           ### ⚠️ Before Publishing
           - [ ] Review breaking changes
@@ -414,8 +410,8 @@ jobs:
           EOF
           
           # Create draft release
-          gh release create "${{ needs.analyze.outputs.next-version }}" \
-            --title "v${{ needs.analyze.outputs.next-version }}" \
+          gh release create "calm-server-v${{ needs.analyze.outputs.next-version }}" \
+            --title "calm-server-v${{ needs.analyze.outputs.next-version }}" \
             --notes-file release-notes.md \
             --draft \
             --target "${{ github.sha }}"
@@ -451,29 +447,29 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build CLI and dependencies
-        run: npm run build:cli
+      - name: Build CALM Server and dependencies
+        run: npm run build:calm-server
 
       - name: Get version from package.json
         id: version
         run: |
-          cd cli
+          cd calm-server
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Publishing CLI version: $VERSION"
+          echo "Publishing CALM Server version: $VERSION"
 
       - name: Create Git tag
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "cli-v${{ steps.version.outputs.version }}"
-          git push origin "cli-v${{ steps.version.outputs.version }}"
+          git tag "calm-server-v${{ steps.version.outputs.version }}"
+          git push origin "calm-server-v${{ steps.version.outputs.version }}"
 
       - name: Create GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cd cli
+          cd calm-server
           
           # Extract changelog for this version
           if [ -f "CHANGELOG.md" ]; then
@@ -482,11 +478,11 @@ jobs:
           fi
           
           if [ -z "$RELEASE_NOTES" ]; then
-            RELEASE_NOTES="Release of CLI version ${{ steps.version.outputs.version }}"
+            RELEASE_NOTES="Release of CALM Server version ${{ steps.version.outputs.version }}"
           fi
           
-          gh release create "cli-v${{ steps.version.outputs.version }}" \
-            --title "CLI v${{ steps.version.outputs.version }}" \
+          gh release create "calm-server-v${{ steps.version.outputs.version }}" \
+            --title "CALM Server v${{ steps.version.outputs.version }}" \
             --notes "$RELEASE_NOTES" \
             --target main
 
@@ -494,7 +490,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
         run: |
-          cd cli
-          npm publish --provenance
+          cd calm-server
+          npm publish --provenance --access public
           
-          echo "✅ Successfully published @finos/calm-cli@${{ steps.version.outputs.version }} to NPM" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Successfully published @finos/calm-server@${{ steps.version.outputs.version }} to NPM" >> $GITHUB_STEP_SUMMARY
