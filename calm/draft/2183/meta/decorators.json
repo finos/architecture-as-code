@@ -1,6 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://calm.finos.org/release/1.2/meta/decorators.json",
+    "$id": "https://calm.finos.org/draft/2183/meta/decorators.json",
     "title": "Common Architecture Language Model Decorators",
     "description": "Decorators attach supplementary information to multiple nodes and relationships simultaneously, enabling cross-cutting concerns like guides, threat models, business context, and deployment information",
     "defs": {
