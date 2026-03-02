@@ -3,7 +3,8 @@ import path from 'node:path';
 
 const applyPatch = ({ filePath, expected, replacement, label }) => {
     if (!fs.existsSync(filePath)) {
-        throw new Error(`Expected file for ${label} at ${filePath}`);
+        console.log(`skipping ${label}: ${filePath} not found`);
+        return;
     }
 
     const source = fs.readFileSync(filePath, 'utf8');
@@ -19,13 +20,6 @@ const applyPatch = ({ filePath, expected, replacement, label }) => {
     fs.writeFileSync(filePath, source.replace(expected, replacement));
     console.log(`patched ${label}`);
 };
-
-applyPatch({
-    filePath: path.resolve('node_modules/@eslint/eslintrc/lib/config-array/override-tester.js'),
-    expected: 'import minimatch from "minimatch";',
-    replacement: 'import { minimatch } from "minimatch";',
-    label: '@eslint/eslintrc minimatch import'
-});
 
 {
     const filePath = path.resolve('node_modules/@vscode/vsce/out/package.js');
