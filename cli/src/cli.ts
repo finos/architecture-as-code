@@ -1,9 +1,7 @@
-import { CALM_META_SCHEMA_DIRECTORY, DocifyMode, initLogger, runGenerate, SchemaDirectory, TemplateProcessingMode } from '@finos/calm-shared';
+import { CALM_META_SCHEMA_DIRECTORY, DocifyMode, initLogger, runGenerate, SchemaDirectory, TemplateProcessingMode, CalmChoice, buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared';
 import { Option, Command } from 'commander';
 import { version } from '../package.json';
 import { promptUserForOptions } from './command-helpers/generate-options';
-import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components/options';
-import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { loadCliConfig } from './cli-config';
 import path from 'path';
 import { select } from '@inquirer/prompts';
