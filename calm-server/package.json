@@ -41,7 +41,7 @@
         "@types/supertest": "^6.0.3",
         "@typescript-eslint/eslint-plugin": "^8.0.0",
         "@typescript-eslint/parser": "^8.0.0",
-        "eslint": "^9.0.0",
+        "eslint": "^10.0.2",
         "node-fetch": "^2.7.0",
         "supertest": "^7.0.0",
         "tsup": "^8.3.5",
