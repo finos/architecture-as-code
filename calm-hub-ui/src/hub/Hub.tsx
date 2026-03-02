@@ -1,24 +1,35 @@
 import { useState } from 'react';
 import { TreeNavigation } from './components/tree-navigation/TreeNavigation.js';
 import { Data, Adr } from '../model/calm.js';
+import { ControlData } from '../model/control.js';
 import { Navbar } from '../components/navbar/Navbar.js';
 import { AdrRenderer } from './components/adr-renderer/AdrRenderer.js';
 import { DocumentDetailSection } from './components/document-detail-section/DocumentDetailSection.js';
 import { ArchitectureSection } from './components/architecture-section/ArchitectureSection.js';
+import { ControlDetailSection } from './components/control-detail-section/ControlDetailSection.js';
 import './Hub.css';
 
 export default function Hub() {
     const [data, setData] = useState<Data | undefined>();
     const [adrData, setAdrData] = useState<Adr | undefined>();
+    const [controlData, setControlData] = useState<ControlData | undefined>();
 
     function handleDataLoad(data: Data) {
         setData(data);
         setAdrData(undefined);
+        setControlData(undefined);
     }
 
     function handleAdrLoad(adr: Adr) {
         setAdrData(adr);
         setData(undefined);
+        setControlData(undefined);
+    }
+
+    function handleControlLoad(control: ControlData) {
+        setControlData(control);
+        setData(undefined);
+        setAdrData(undefined);
     }
 
     return (
@@ -27,11 +38,17 @@ export default function Hub() {
             <div className="flex flex-row flex-1 overflow-hidden bg-base-300">
                 <div className="w-1/4 p-4 pr-2">
                     <div className="h-full bg-base-100 rounded-2xl overflow-hidden shadow-xl">
-                        <TreeNavigation onDataLoad={handleDataLoad} onAdrLoad={handleAdrLoad} />
+                        <TreeNavigation
+                            onDataLoad={handleDataLoad}
+                            onAdrLoad={handleAdrLoad}
+                            onControlLoad={handleControlLoad}
+                        />
                     </div>
                 </div>
                 <div className="flex-1 overflow-auto">
-                    {adrData ? (
+                    {controlData ? (
+                        <ControlDetailSection controlData={controlData} />
+                    ) : adrData ? (
                         <AdrRenderer adrDetails={adrData} />
                     ) : (
                         <>

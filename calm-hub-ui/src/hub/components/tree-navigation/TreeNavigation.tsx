@@ -12,12 +12,18 @@ import {
     fetchFlow,
     fetchArchitecture,
 } from '../../../service/calm-service.js';
+import {
+    fetchDomains,
+    fetchControlsForDomain,
+} from '../../../service/control-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
 import { Data, Adr } from '../../../model/calm.js';
+import { ControlDetail, ControlData } from '../../../model/control.js';
 
 interface TreeNavigationProps {
     onDataLoad: (data: Data) => void;
     onAdrLoad: (adr: Adr) => void;
+    onControlLoad: (control: ControlData) => void;
 }
 
 interface VersionItemProps {
@@ -200,7 +206,76 @@ function NamespaceItem({
     );
 }
 
-export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
+interface ControlItemProps {
+    control: ControlDetail;
+    isSelected: boolean;
+    onControlClick: (control: ControlDetail) => void;
+}
+
+function ControlItem({ control, isSelected, onControlClick }: ControlItemProps) {
+    return (
+        <li>
+            <a className={isSelected ? 'active' : ''} onClick={() => onControlClick(control)}>
+                {control.name}
+            </a>
+        </li>
+    );
+}
+
+interface DomainItemProps {
+    domain: string;
+    isSelected: boolean;
+    controls: ControlDetail[];
+    selectedControlId: number | null;
+    onDomainClick: (domain: string) => void;
+    onControlClick: (control: ControlDetail) => void;
+}
+
+function DomainItem({
+    domain,
+    isSelected,
+    controls,
+    selectedControlId,
+    onDomainClick,
+    onControlClick,
+}: DomainItemProps) {
+    return (
+        <li>
+            <details open={isSelected}>
+                <summary
+                    className={isSelected ? 'active' : ''}
+                    onClick={(e) => {
+                        e.preventDefault();
+                        onDomainClick(domain);
+                    }}
+                >
+                    {domain}
+                </summary>
+                {isSelected && (
+                    <ul>
+                        <li>
+                            <details open={true}>
+                                <summary className="active">Controls</summary>
+                                <ul>
+                                    {controls.map((control) => (
+                                        <ControlItem
+                                            key={control.id}
+                                            control={control}
+                                            isSelected={selectedControlId === control.id}
+                                            onControlClick={onControlClick}
+                                        />
+                                    ))}
+                                </ul>
+                            </details>
+                        </li>
+                    </ul>
+                )}
+            </details>
+        </li>
+    );
+}
+
+export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad }: TreeNavigationProps) {
     const [namespaces, setNamespaces] = useState<string[]>([]);
     const [selectedNamespace, setSelectedNamespace] = useState<string>('');
     const [selectedType, setSelectedType] = useState<string>('');
@@ -217,10 +292,17 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
     const [flowVersions, setFlowVersions] = useState<string[]>([]);
     const [adrRevisions, setAdrRevisions] = useState<string[]>([]);
 
+    // Domain / Controls state
+    const [domains, setDomains] = useState<string[]>([]);
+    const [selectedDomain, setSelectedDomain] = useState<string>('');
+    const [domainControls, setDomainControls] = useState<ControlDetail[]>([]);
+    const [selectedControlId, setSelectedControlId] = useState<number | null>(null);
+
     const adrService = new AdrService();
 
     useEffect(() => {
         fetchNamespaces(setNamespaces);
+        fetchDomains(setDomains);
     }, []);
 
     const handleNamespaceClick = (namespace: string) => {
@@ -232,6 +314,34 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
         setSelectedType('');
         setSelectedResourceID('');
         setSelectedVersion('');
+        // Clear domain selection when navigating namespaces
+        setSelectedDomain('');
+        setSelectedControlId(null);
+    };
+
+    const handleDomainClick = (domain: string) => {
+        if (selectedDomain === domain) {
+            setSelectedDomain('');
+        } else {
+            setSelectedDomain(domain);
+            fetchControlsForDomain(domain, setDomainControls);
+        }
+        setSelectedControlId(null);
+        // Clear namespace selection when navigating domains
+        setSelectedNamespace('');
+        setSelectedType('');
+        setSelectedResourceID('');
+        setSelectedVersion('');
+    };
+
+    const handleControlClick = (control: ControlDetail) => {
+        setSelectedControlId(control.id);
+        onControlLoad({
+            domain: selectedDomain,
+            controlId: control.id,
+            controlName: control.name,
+            controlDescription: control.description,
+        });
     };
 
     const handleTypeClick = (type: string) => {
@@ -344,6 +454,22 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
                                     onTypeClick={handleTypeClick}
                                     onResourceClick={handleResourceClick}
                                     onVersionClick={handleVersionClick}
+                                />
+                            ))}
+                        </ul>
+                    </li>
+                    <li>
+                        <a>Domains</a>
+                        <ul>
+                            {domains.map((domain) => (
+                                <DomainItem
+                                    key={domain}
+                                    domain={domain}
+                                    isSelected={selectedDomain === domain}
+                                    controls={domainControls}
+                                    selectedControlId={selectedControlId}
+                                    onDomainClick={handleDomainClick}
+                                    onControlClick={handleControlClick}
                                 />
                             ))}
                         </ul>
