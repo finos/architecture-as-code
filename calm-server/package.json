@@ -1,6 +1,6 @@
 {
     "name": "@finos/calm-server",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "CALM Server - A server implementation for the Common Architecture Language Model",
     "homepage": "https://calm.finos.org",
     "repository": {
