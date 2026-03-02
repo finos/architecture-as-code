@@ -241,7 +241,7 @@ jobs:
           node-version: 22
 
       - run: npm ci
-      - run: npm run build
+      - run: npm run build:cli
 
       - name: Create version update PR
         run: |
