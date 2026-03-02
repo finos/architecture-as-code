@@ -42,8 +42,7 @@
         "link:cli": "npm link --workspace cli",
         "calm-hub-ui:run": "npm run start --workspace calm-hub-ui",
         "calm-hub-ui:prod": "npm run prod --workspace calm-hub-ui",
-        "prepare": "husky",
-        "postinstall": "node scripts/patch-eslint-minimatch.mjs"
+        "prepare": "husky"
     },
     "devDependencies": {
         "@commitlint/cli": "^20.0.0",
@@ -107,9 +106,6 @@
         },
         "npm": {
             "minimatch": "^10.2.4"
-        },
-        "@vscode/vsce": {
-            "minimatch": "^10.0.0"
         }
     }
 }
