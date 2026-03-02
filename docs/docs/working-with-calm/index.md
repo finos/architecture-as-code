@@ -14,6 +14,7 @@ Explore the topics below to get hands-on experience with CALM:
 - [Using the CLI](using-the-cli): Understand the basic usage of the CALM CLI and how to access its commands.
 - [Generate](generate): Discover how to generate architectural architectures from predefined patterns.
 - [Validate](validate): Learn how to validate your architecture against CALM patterns to ensure compliance.
+- [Validation Server](validation-server): Run a standalone HTTP server for remote CALM architecture validation.
 - [CALM AI Tools](calm-ai-tools): Expands the support of additional AI Assistants in CALM architecture modeling.
 - [Voice Mode](voice-mode): Enable hands-free interaction with CALM Copilot Chat using voice commands.
 
