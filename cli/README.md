@@ -33,7 +33,6 @@ Options:
 Commands:
   generate [options]          Generate an architecture from a CALM pattern file.
   validate [options]          Validate that an architecture conforms to a given CALM pattern.
-  server [options]            Start a HTTP server to proxy CLI commands. (experimental)
   template [options]          Generate files from a CALM model using a Handlebars template bundle.
   docify [options]            Generate a documentation website off your CALM model.
   init-ai [options]           Augment a git repository with AI assistance for CALM
@@ -239,32 +238,6 @@ WARN  issues:
 
 which is just letting you know that you have left in some placeholder values which might have been generated with the generate command.
 This isn't a full break, but it implies that you've forgotten to fill out a detail in your architecture.
-
-## Calm CLI server (Experimental)
-
-It may be required to have the operations of the CALM CLI available over rest.
-The `validate` command has been made available over an API.
-
-```shell
-calm server --schema-directory calm
-```
-
-Note that CalmHub can be used by setting the `-c, --calm-hub-url` argument.
-
-```shell
-curl http://127.0.0.1:3000/health
-
-# Missing schema key
-curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/validate --data @cli/test_fixtures/validation_route/invalid_api_gateway_instantiation_missing_schema_key.json
-
-# Schema value is invalid
-curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/validate --data @cli/test_fixtures/validation_route/invalid_api_gateway_instantiation_schema_points_to_missing_schema.json
-
-# instantiation is valid
-curl -H "Content-Type: application/json" -X POST http://127.0.0.1:3000/calm/validate --data @cli/test_fixtures/validation_route/valid_instantiation.json
-
-
-```
 
 ## CALM init-ai
 
