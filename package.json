@@ -90,12 +90,10 @@
             "minimatch": "^10.0.0"
         },
         "eslint": {
+            ".": "^10.0.2",
             "minimatch": "^10.0.0"
         },
         "eslint-plugin-react": {
-            "minimatch": "^10.0.0"
-        },
-        "eslint-plugin-import": {
             "minimatch": "^10.0.0"
         },
         "commitizen": {
