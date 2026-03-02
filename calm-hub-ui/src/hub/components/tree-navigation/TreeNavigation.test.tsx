@@ -43,7 +43,7 @@ describe('TreeNavigation', () => {
         render(<TreeNavigation {...mockProps} />);
         
         expect(screen.getByText('Namespaces')).toBeInTheDocument();
-        expect(screen.getByText('Domains')).toBeInTheDocument();
+        expect(screen.getByText('Control Domains')).toBeInTheDocument();
         expect(screen.getByText('test-namespace')).toBeInTheDocument();
         expect(screen.getByText('another-namespace')).toBeInTheDocument();
         expect(screen.getByText('test-domain')).toBeInTheDocument();

@@ -12,6 +12,12 @@ vi.mock('@monaco-editor/react', () => ({
     ),
 }));
 
+vi.mock('./ReadableJsonView.js', () => ({
+    ReadableJsonView: ({ json }: { json?: object }) => (
+        <div data-testid="readable-json-view">{json ? JSON.stringify(json) : 'No data'}</div>
+    ),
+}));
+
 const mockFetchRequirementVersions = vi.fn();
 const mockFetchRequirementForVersion = vi.fn();
 const mockFetchConfigurationsForControl = vi.fn();
@@ -114,13 +120,13 @@ describe('ControlDetailSection', () => {
             });
         });
 
-        it('renders two JsonRenderer areas (requirement + configuration)', async () => {
+        it('renders two readable JSON views by default (requirement + configuration)', async () => {
             setupMocks();
             render(<ControlDetailSection controlData={controlData} />);
 
             await waitFor(() => {
-                const wrappers = document.querySelectorAll('[data-cy="json-renderer-wrapper"]');
-                expect(wrappers).toHaveLength(2);
+                const readableViews = screen.getAllByTestId('readable-json-view');
+                expect(readableViews).toHaveLength(2);
             });
         });
     });
@@ -357,6 +363,78 @@ describe('ControlDetailSection', () => {
             await waitFor(() => {
                 // Config version tabs should not be present until Config 10 is clicked
                 expect(screen.queryByRole('tab', { name: '1.0.0' })).not.toBeInTheDocument();
+            });
+        });
+    });
+
+    // ──────────────────────────────────────────────────
+    // View mode toggle (Readable / Raw JSON)
+    // ──────────────────────────────────────────────────
+    describe('view mode toggle', () => {
+        it('defaults to Readable view for requirement panel', async () => {
+            setupMocks();
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await waitFor(() => {
+                const readableViews = screen.getAllByTestId('readable-json-view');
+                expect(readableViews.length).toBeGreaterThanOrEqual(1);
+            });
+
+            // Raw JSON renderer should not be visible by default
+            expect(document.querySelectorAll('[data-cy="json-renderer-wrapper"]')).toHaveLength(0);
+        });
+
+        it('switches requirement panel to Raw JSON view when Raw JSON tab is clicked', async () => {
+            setupMocks();
+            const user = userEvent.setup();
+            render(<ControlDetailSection controlData={controlData} />);
+
+            // Find the Raw JSON tabs — there are two, one per panel
+            const rawTabs = await screen.findAllByRole('tab', { name: 'Raw JSON' });
+            await user.click(rawTabs[0]); // click requirement panel's Raw JSON tab
+
+            // Requirement panel should now show JsonRenderer
+            await waitFor(() => {
+                const wrappers = document.querySelectorAll('[data-cy="json-renderer-wrapper"]');
+                expect(wrappers).toHaveLength(1);
+            });
+        });
+
+        it('switches configuration panel to Raw JSON view independently', async () => {
+            setupMocks();
+            const user = userEvent.setup();
+            render(<ControlDetailSection controlData={controlData} />);
+
+            const rawTabs = await screen.findAllByRole('tab', { name: 'Raw JSON' });
+            await user.click(rawTabs[1]); // click config panel's Raw JSON tab
+
+            await waitFor(() => {
+                // One json-renderer-wrapper (config panel) + one readable-json-view (req panel)
+                const wrappers = document.querySelectorAll('[data-cy="json-renderer-wrapper"]');
+                expect(wrappers).toHaveLength(1);
+                const readableViews = screen.getAllByTestId('readable-json-view');
+                expect(readableViews).toHaveLength(1);
+            });
+        });
+
+        it('can toggle back from Raw JSON to Readable', async () => {
+            setupMocks();
+            const user = userEvent.setup();
+            render(<ControlDetailSection controlData={controlData} />);
+
+            const rawTabs = await screen.findAllByRole('tab', { name: 'Raw JSON' });
+            await user.click(rawTabs[0]);
+
+            await waitFor(() => {
+                expect(document.querySelectorAll('[data-cy="json-renderer-wrapper"]')).toHaveLength(1);
+            });
+
+            const readableTabs = screen.getAllByRole('tab', { name: 'Readable' });
+            await user.click(readableTabs[0]);
+
+            await waitFor(() => {
+                expect(document.querySelectorAll('[data-cy="json-renderer-wrapper"]')).toHaveLength(0);
+                expect(screen.getAllByTestId('readable-json-view')).toHaveLength(2);
             });
         });
     });

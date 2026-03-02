@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { IoShieldCheckmarkOutline } from 'react-icons/io5';
 import { ControlData } from '../../../model/control.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
+import { ReadableJsonView } from './ReadableJsonView.js';
 import {
     fetchRequirementVersions,
     fetchRequirementForVersion,
@@ -9,6 +10,8 @@ import {
     fetchConfigurationVersions,
     fetchConfigurationForVersion,
 } from '../../../service/control-service.js';
+
+type ViewMode = 'readable' | 'raw';
 
 interface ControlDetailSectionProps {
     controlData: ControlData;
@@ -26,6 +29,10 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
     const [configVersions, setConfigVersions] = useState<string[]>([]);
     const [selectedConfigVersion, setSelectedConfigVersion] = useState<string>('');
     const [configJson, setConfigJson] = useState<object | undefined>();
+
+    // View mode state (readable is the primary/default view)
+    const [reqViewMode, setReqViewMode] = useState<ViewMode>('readable');
+    const [cfgViewMode, setCfgViewMode] = useState<ViewMode>('readable');
 
     // When control changes, load requirement versions and configurations
     useEffect(() => {
@@ -98,8 +105,8 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
             {/* Top section: Requirement */}
             <div className="flex-1 min-h-0 bg-base-100 rounded-2xl overflow-hidden flex flex-col shadow-xl">
                 {/* Requirement breadcrumb header */}
-                <div className="bg-base-200 px-6 py-4 flex items-center justify-between border-b border-base-300">
-                    <h2 className="text-xl font-semibold flex items-center gap-2">
+                <div className="bg-base-200 px-6 py-2 flex items-center justify-between border-b border-base-300">
+                    <h2 className="text-sm font-bold flex items-center gap-2">
                         <IoShieldCheckmarkOutline className="text-accent" />
                         <span>{controlData.controlName}</span>
                         <span className="text-gray-400">/</span>
@@ -111,6 +118,23 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                             </>
                         )}
                     </h2>
+                    {/* Readable / Raw toggle */}
+                    <div role="tablist" className="tabs tabs-boxed tabs-xs bg-base-100">
+                        <button
+                            role="tab"
+                            className={`tab ${reqViewMode === 'readable' ? 'tab-active !bg-accent !text-white' : ''}`}
+                            onClick={() => setReqViewMode('readable')}
+                        >
+                            Readable
+                        </button>
+                        <button
+                            role="tab"
+                            className={`tab ${reqViewMode === 'raw' ? 'tab-active !bg-accent !text-white' : ''}`}
+                            onClick={() => setReqViewMode('raw')}
+                        >
+                            Raw JSON
+                        </button>
+                    </div>
                 </div>
 
                 {/* Requirement version tabs */}
@@ -131,17 +155,21 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                     </div>
                 )}
 
-                {/* Requirement JSON content */}
+                {/* Requirement content */}
                 <div className="flex-1 min-h-0 overflow-auto bg-base-200">
-                    <JsonRenderer json={requirementJson} />
+                    {reqViewMode === 'readable' ? (
+                        <ReadableJsonView json={requirementJson} />
+                    ) : (
+                        <JsonRenderer json={requirementJson} />
+                    )}
                 </div>
             </div>
 
             {/* Bottom section: Configurations */}
             <div className="flex-1 min-h-0 bg-base-100 rounded-2xl overflow-hidden flex flex-col shadow-xl">
                 {/* Configuration breadcrumb header */}
-                <div className="bg-base-200 px-6 py-4 flex items-center justify-between border-b border-base-300">
-                    <h2 className="text-xl font-semibold flex items-center gap-2">
+                <div className="bg-base-200 px-6 py-2 flex items-center justify-between border-b border-base-300">
+                    <h2 className="text-sm font-bold flex items-center gap-2">
                         <IoShieldCheckmarkOutline className="text-accent" />
                         <span>{controlData.controlName}</span>
                         <span className="text-gray-400">/</span>
@@ -159,6 +187,23 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                             </>
                         )}
                     </h2>
+                    {/* Readable / Raw toggle */}
+                    <div role="tablist" className="tabs tabs-boxed tabs-xs bg-base-100">
+                        <button
+                            role="tab"
+                            className={`tab ${cfgViewMode === 'readable' ? 'tab-active !bg-accent !text-white' : ''}`}
+                            onClick={() => setCfgViewMode('readable')}
+                        >
+                            Readable
+                        </button>
+                        <button
+                            role="tab"
+                            className={`tab ${cfgViewMode === 'raw' ? 'tab-active !bg-accent !text-white' : ''}`}
+                            onClick={() => setCfgViewMode('raw')}
+                        >
+                            Raw JSON
+                        </button>
+                    </div>
                 </div>
 
                 {/* Configuration breadcrumb navigation */}
@@ -200,9 +245,13 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
                     )}
                 </div>
 
-                {/* Configuration JSON content */}
+                {/* Configuration content */}
                 <div className="flex-1 min-h-0 overflow-auto bg-base-200">
-                    <JsonRenderer json={configJson} />
+                    {cfgViewMode === 'readable' ? (
+                        <ReadableJsonView json={configJson} />
+                    ) : (
+                        <JsonRenderer json={configJson} />
+                    )}
                 </div>
             </div>
         </div>

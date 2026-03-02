@@ -459,7 +459,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad }: TreeNav
                         </ul>
                     </li>
                     <li>
-                        <a>Domains</a>
+                        <a>Control Domains</a>
                         <ul>
                             {domains.map((domain) => (
                                 <DomainItem
