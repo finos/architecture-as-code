@@ -53,7 +53,11 @@ jobs:
         with:
           node-version: 22
 
-      - run: npm ci
+      - name: Update to npm 11
+        run: npm install -g npm@11
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Check for existing changelog/version PRs
         run: |
@@ -240,7 +244,12 @@ jobs:
         with:
           node-version: 22
 
-      - run: npm ci
+      - name: Update to npm 11
+        run: npm install -g npm@11
+
+      - name: Install dependencies
+        run: npm ci
+
       - run: npm run build:cli
 
       - name: Create version update PR
@@ -384,7 +393,11 @@ jobs:
         with:
           node-version: 22
 
-      - run: npm ci
+      - name: Update to npm 11
+        run: npm install -g npm@11
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Create draft release
         env:
@@ -448,6 +461,9 @@ jobs:
         with:
           node-version: 22
           registry-url: 'https://registry.npmjs.org'
+
+      - name: Update to npm 11
+        run: npm install -g npm@11
 
       - name: Install dependencies
         run: npm ci
