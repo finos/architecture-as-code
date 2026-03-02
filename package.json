@@ -82,9 +82,6 @@
         "@stoplight/spectral-ruleset-bundler@1.6.x": {
             "rollup": "2.80.0"
         },
-        "eslint": {
-            "minimatch": "^10.0.0"
-        },
         "copyfiles": {
             "minimatch": "^10.0.0"
         },
