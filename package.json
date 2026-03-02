@@ -7,11 +7,11 @@
     },
     "workspaces": [
         "calm-models",
-        "calm-server",
         "calm-widgets",
         "calm-ai",
         "shared",
         "cli",
+        "calm-server",
         "docs",
         "calm-hub-ui",
         "calm-plugins/vscode"
