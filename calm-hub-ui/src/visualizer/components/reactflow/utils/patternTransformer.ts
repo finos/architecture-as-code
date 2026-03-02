@@ -391,7 +391,6 @@ function createReactFlowNodes(
             position: { x: 0, y: 0 },
             style: { zIndex: -1 },
             data: {
-                id: group.groupId,
                 label: group.groupType,
                 decisionType: group.groupType,
                 ...(optionsMeta && {
