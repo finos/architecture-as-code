@@ -157,18 +157,17 @@ Other deployment targets (e.g. AWS ECS, Azure Container Apps) follow the same pa
 
 ```json
 {
-    "$schema": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json",
+    "$schema": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator",
     "unique-id": "aks-cluster-deployment-001",
     "type": "deployment",
     "target": ["aks-architecture.json"],
     "applies-to": ["aks-cluster"],
     "data": {
-        "start-time": "2026-02-12T09:30:00Z",
-        "end-time": "2026-02-12T09:38:00Z",
-        "status": "completed",
-        "environment": "production",
-        "observability": "https://grafana.example.com/d/aks-prod/aks-cluster-overview",
-        "notes": "Routine upgrade to latest platform version"
+        "deployment-start-time": "2026-02-12T09:30:00Z",
+        "deployment-status": "completed",
+        "deployment-observability": "https://grafana.example.com/d/aks-prod/aks-cluster-overview",
+        "cluster": "prod-uksouth-aks-01",
+        "namespace": "trading-system"
     }
 }
 ```
