@@ -1,19 +1,6 @@
 import { Info, Shield, ArrowRight } from 'lucide-react';
-import { THEME } from '../theme';
-
-export interface EdgeBadgeStyle {
-    background: string;
-    border: string;
-    iconColor: string;
-}
-
-export interface EdgeBadgeProps {
-    hasFlowInfo: boolean;
-    hasAIGF: boolean;
-    badgeStyle: EdgeBadgeStyle;
-    onMouseEnter: () => void;
-    onMouseLeave: () => void;
-}
+import { THEME } from '../theme.js';
+import type { EdgeBadgeStyle, EdgeBadgeProps } from '../../../contracts/contracts.js';
 
 export function EdgeBadge({
     hasFlowInfo,

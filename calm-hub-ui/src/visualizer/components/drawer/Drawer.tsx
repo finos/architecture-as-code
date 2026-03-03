@@ -4,23 +4,12 @@ import {
     CalmNodeSchema,
     CalmRelationshipSchema,
 } from '../../../../../calm-models/src/types/core-types.js';
-import { Data } from '../../../model/calm.js';
 import { useDropzone } from 'react-dropzone';
 import { ReactFlowVisualizer } from '../reactflow/ReactFlowVisualizer.js';
 import { Sidebar } from '../sidebar/Sidebar.js';
 import { MetadataPanel } from '../reactflow/MetadataPanel.js';
 import { NodeData, EdgeData } from '../../contracts/contracts.js';
-import type { Flow } from '../reactflow/FlowsPanel.js';
-import type { Control } from '../reactflow/ControlsPanel.js';
-
-interface DrawerProps {
-    data?: Data; // Optional data prop passed in from CALM Hub if user navigates from there
-}
-
-// Selected item can be either node or edge data from the graph
-type SelectedItem = {
-    data: NodeData | EdgeData;
-} | null;
+import type { DrawerProps, SelectedItem, Flow, Control } from '../../contracts/contracts.js';
 
 /**
  * Extract the unique-id from a CALM node or relationship

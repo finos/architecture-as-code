@@ -1,4 +1,4 @@
-export { ControlsPanelHeader } from './ControlsPanelHeader';
-export { ControlCard } from './ControlCard';
-export { ControlRequirementItem } from './ControlRequirementItem';
-export { AIGFMappingSection } from './AIGFMappingSection';
+export { ControlsPanelHeader } from './ControlsPanelHeader.js';
+export { ControlCard } from './ControlCard.js';
+export { ControlRequirementItem } from './ControlRequirementItem.js';
+export { AIGFMappingSection } from './AIGFMappingSection.js';

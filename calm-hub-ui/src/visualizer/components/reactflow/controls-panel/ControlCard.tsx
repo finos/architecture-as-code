@@ -1,15 +1,8 @@
 import { FiShield } from 'react-icons/fi';
-import { THEME } from '../theme';
-import { ControlRequirementItem } from './ControlRequirementItem';
-import { AIGFMappingSection } from './AIGFMappingSection';
-import type { Control } from '../ControlsPanel';
-
-interface ControlCardProps {
-    controlId: string;
-    control: Control;
-    onNodeClick?: (nodeId: string) => void;
-    onControlClick?: (controlId: string) => void;
-}
+import { THEME } from '../theme.js';
+import { ControlRequirementItem } from './ControlRequirementItem.js';
+import { AIGFMappingSection } from './AIGFMappingSection.js';
+import type { ControlCardProps, ControlCardHeaderProps, NodeBadgeProps, RequirementsSectionProps } from '../../../contracts/contracts.js';
 
 export function ControlCard({ controlId, control, onNodeClick, onControlClick }: ControlCardProps) {
     return (
@@ -50,12 +43,6 @@ export function ControlCard({ controlId, control, onNodeClick, onControlClick }:
             />
         </div>
     );
-}
-
-interface ControlCardHeaderProps {
-    controlId: string;
-    control: Control;
-    onNodeClick?: (nodeId: string) => void;
 }
 
 function ControlCardHeader({ controlId, control, onNodeClick }: ControlCardHeaderProps) {
@@ -99,12 +86,6 @@ function ControlCardHeader({ controlId, control, onNodeClick }: ControlCardHeade
             )}
         </div>
     );
-}
-
-interface NodeBadgeProps {
-    nodeName: string;
-    nodeId?: string;
-    onClick?: (nodeId: string) => void;
 }
 
 function NodeBadge({ nodeName, nodeId, onClick }: NodeBadgeProps) {
@@ -156,11 +137,6 @@ function RelationshipBadge({ description }: { description: string }) {
             </span>
         </div>
     );
-}
-
-interface RequirementsSectionProps {
-    requirements: NonNullable<Control['requirements']>;
-    onNodeClick?: (nodeId: string) => void;
 }
 
 function RequirementsSection({ requirements, onNodeClick }: RequirementsSectionProps) {

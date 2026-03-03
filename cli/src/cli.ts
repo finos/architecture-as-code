@@ -1,12 +1,10 @@
-import { CALM_META_SCHEMA_DIRECTORY, DocifyMode, initLogger, runGenerate, SchemaDirectory, TemplateProcessingMode } from '@finos/calm-shared';
+import { CALM_META_SCHEMA_DIRECTORY, DocifyMode, initLogger, runGenerate, SchemaDirectory, TemplateProcessingMode, CalmChoice, buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared';
 import { Option, Command } from 'commander';
 import { version } from '../package.json';
 import { promptUserForOptions } from './command-helpers/generate-options';
-import { CalmChoice } from '@finos/calm-shared/dist/commands/generate/components/options';
-import { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared/dist/document-loader/document-loader';
 import { loadCliConfig } from './cli-config';
 import path from 'path';
-import inquirer from 'inquirer';
+import { select } from '@inquirer/prompts';
 
 // Shared options used across multiple commands
 const ARCHITECTURE_OPTION = '-a, --architecture <file>';
@@ -22,9 +20,6 @@ const CALMHUB_URL_OPTION = '-c, --calm-hub-url <url>';
 // Validate command options
 const FORMAT_OPTION = '-f, --format <format>';
 const STRICT_OPTION = '--strict';
-
-// Server command options
-const PORT_OPTION = '--port <port>';
 
 // Template and Docify command options
 const BUNDLE_OPTION = '-b, --bundle <path>';
@@ -105,22 +100,6 @@ Validation requires:
                 outputFormat: options.format,
                 outputPath: options.output
             });
-        });
-
-    program
-        .command('server')
-        .description('Start a HTTP server to proxy CLI commands. (experimental)')
-        .option(PORT_OPTION, 'Port to run the server on', '3000')
-        .requiredOption(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
-        .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
-        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
-        .action(async (options) => {
-            const { startServer } = await import('./server/cli-server');
-            const debug = !!options.verbose;
-            const docLoaderOpts = await parseDocumentLoaderConfig(options);
-            const docLoader = buildDocumentLoader(docLoaderOpts);
-            const schemaDirectory = await buildSchemaDirectory(docLoader, debug);
-            startServer(options.port, schemaDirectory, debug);
         });
 
     program
@@ -242,13 +221,10 @@ Validation requires:
             const providers = AI_PROVIDER_CHOICES;
             let selectedProvider: string = options.provider;
             if (!selectedProvider) {
-                const answer = await inquirer.prompt({
-                    type: 'list',
-                    name: 'provider',
+                selectedProvider = await select({
                     message: 'Select an AI provider:',
-                    choices: providers.map((p) => ({ name: p, value: p })),
+                    choices: providers.map((p: string) => ({ name: p, value: p })),
                 });
-                selectedProvider = answer.provider;
             }
             console.log(`Selected AI provider: ${selectedProvider}`);
 
@@ -268,7 +244,7 @@ export async function parseDocumentLoaderConfig(
     urlToLocalMap?: Map<string, string>,
     basePath?: string
 ): Promise<DocumentLoaderOptions> {
-    const logger = initLogger(options.verbose, 'calm-cli');
+    const logger = initLogger(options.verbose ?? false, 'calm-cli');
     const docLoaderOpts: DocumentLoaderOptions = {
         calmHubUrl: options.calmHubUrl,
         schemaDirectoryPath: options.schemaDirectory,

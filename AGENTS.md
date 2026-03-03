@@ -71,6 +71,18 @@ The `engines` field in `package.json` (`^22.14.0 || >=24.10.0`) also permits Nod
 - **`@types/node`** is overridden to `^22.0.0` in root `package.json` to prevent transitive dependencies from pulling in a different major version
 - **Renovate** is configured with `allowedVersions: "<23.0.0"` for `@types/node`
 
+### Lockfile Regeneration
+
+**CRITICAL**: npm has a known bug ([npm/cli#4828](https://github.com/npm/cli/issues/4828)) where running `npm install` with an existing `node_modules` directory prunes optional platform-specific dependencies (e.g. `@tailwindcss/oxide`, `@swc/core`, `@esbuild`) for platforms other than the current machine. This causes CI failures on Linux runners when the lockfile was regenerated on macOS.
+
+**Correct method** — always delete both `node_modules` and the lockfile:
+
+```bash
+rm -rf node_modules package-lock.json && npm install
+```
+
+**Never** regenerate the lockfile without deleting `node_modules` first. The `validate-lockfile` CI workflow checks that all expected platform variants are present in `package-lock.json`.
+
 ### Why this matters
 
 Running `npm install` on a different Node major version (e.g. Node 25) causes:
