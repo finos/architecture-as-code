@@ -1,11 +1,11 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json",
+    "$id": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
     "title": "CALM Deployment Decorator standard",
     "description": "Deployment decorator standard for tracking deployment information across various platforms and environments. Extends the base CALM decorator standard to add deployment-specific attributes.",
     "allOf": [
         {
-            "$ref": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator"
+            "$ref": "https://calm.finos.org/draft/2026-03/meta/decorators.json#/defs/decorator"
         },
         {
             "type": "object",
@@ -13,6 +13,16 @@
                 "type": {
                     "const": "deployment",
                     "description": "Must be 'deployment' for deployment decorators"
+                },
+                "target-type": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "architecture"
+                        ]
+                    },
+                    "description": "Type of resources this decorator can target. Deployment decorators can only target architecture files."
                 },
                 "data": {
                     "type": "object",
@@ -38,10 +48,6 @@
                             ],
                             "description": "Current status of the deployment"
                         },
-                        "environment": {
-                            "type": "string",
-                            "description": "Target environment for the deployment (e.g., production, staging, development)"
-                        },
                         "observability": {
                             "type": "string",
                             "format": "uri",
@@ -61,6 +67,7 @@
             },
             "required": [
                 "type",
+                "target-type",
                 "data"
             ]
         }

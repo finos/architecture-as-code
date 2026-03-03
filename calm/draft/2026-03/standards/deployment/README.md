@@ -12,8 +12,8 @@ The base deployment decorator standard (`deployment.decorator.schema.json`) defi
 
 - **start-time**: ISO 8601 timestamp of when the deployment started (required)
 - **status**: Current deployment status (pending, in-progress, completed, failed, rolled-back) (required)
+- **target-type**: Type of resources this decorator targets - must be ["architecture"] (required)
 - **end-time**: ISO 8601 timestamp of when the deployment completed or failed
-- **environment**: Target environment (e.g., production, staging, development)
 - **observability**: URI linking to logs, metrics, or observability dashboards
 - **notes**: Free-form notes or comments about the deployment
 
@@ -32,16 +32,16 @@ Platform-specific deployment decorators extend the base deployment standard and 
 
 ```json
 {
-  "$schema": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json",
+  "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
   "unique-id": "api-service-deployment-001",
   "type": "deployment",
   "target": ["my-architecture.json"],
+  "target-type": ["architecture"],
   "applies-to": ["api-service"],
   "data": {
     "start-time": "2026-02-23T10:00:00Z",
     "end-time": "2026-02-23T10:05:00Z",
     "status": "completed",
-    "environment": "production",
     "observability": "https://grafana.example.com/d/api-service",
     "notes": "Successful deployment with zero downtime"
   }
@@ -52,20 +52,20 @@ Platform-specific deployment decorators extend the base deployment standard and 
 
 ```json
 {
-  "$schema": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json",
+  "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/kubernetes.decorator.schema.json",
   "unique-id": "k8s-deployment-001",
   "type": "deployment",
   "target": ["my-architecture.json"],
+  "target-type": ["architecture"],
   "applies-to": ["api-service"],
   "data": {
     "start-time": "2026-02-23T10:00:00Z",
     "end-time": "2026-02-23T10:08:00Z",
     "status": "completed",
-    "environment": "production",
     "observability": "https://grafana.example.com/d/k8s-prod",
     "notes": "Rolling update with new features",
     "kubernetes": {
-      "helm-chart": "my-api:1.2.3",
+      "helm-chart-version": "1.2.3",
       "cluster": "prod-us-west-01",
       "namespace": "production"
     }

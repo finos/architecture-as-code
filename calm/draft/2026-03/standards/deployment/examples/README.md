@@ -76,20 +76,18 @@ See: `failed-deployment.decorator.json`
 
 When deploying to Kubernetes clusters, add Kubernetes-specific information as a sub-object:
 
-- Include Helm chart information
+- Include Helm chart version
 - Specify cluster and namespace
-- Track workload type and replicas
-- Reference ConfigMaps and Secrets
 
 See: `kubernetes-deployment.decorator.json`
 
 ## Best Practices
 
 1. **Unique IDs**: Use descriptive unique-id values that include the service name and deployment identifier
-2. **Timestamps**: Always use ISO 8601 format with timezone (preferably UTC)
-3. **Observability Links**: Link to deployment-specific dashboards or filtered log views
-4. **Notes**: Include context about what changed, why, and any issues encountered
-5. **Environment Clarity**: Always specify the target environment when relevant
+2. **Target Type**: Always include `"target-type": ["architecture"]` as deployment decorators only target architecture files
+3. **Timestamps**: Always use ISO 8601 format with timezone (preferably UTC)
+4. **Observability Links**: Link to deployment-specific dashboards or filtered log views
+5. **Notes**: Include context about what changed, why, and any issues encountered
 
 ## Validation
 
@@ -97,10 +95,10 @@ Validate decorator instances using the CALM CLI:
 
 ```bash
 # Validate a deployment decorator
-calm validate --schema https://calm.finos.org/standards/deployment/deployment.decorator.schema.json \
+calm validate --schema https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json \
   simple-deployment.decorator.json
 
-# All examples use the base deployment.decorator.schema.json
-calm validate --schema https://calm.finos.org/standards/deployment/deployment.decorator.schema.json \
+# Validate kubernetes deployment decorator
+calm validate --schema https://calm.finos.org/draft/2026-03/standards/deployment/kubernetes.decorator.schema.json \
   kubernetes-deployment.decorator.json
 ```
