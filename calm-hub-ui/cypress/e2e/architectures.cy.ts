@@ -1,4 +1,4 @@
-const expectedNamespace = "finos"
+const expectedNamespace = { name: "finos", description: "FINOS namespace" };
 const expectedArchitectureId = 1;
 const expectedArchitectureVersion = "1.0.0";
 
@@ -12,15 +12,24 @@ describe('Architecture Tests', () => {
         });
     })
 
-    it("Displays architecture JSON successfully", () => {
+    it("Displays architecture diagram by default", () => {
         cy.visit("/");
-        cy.findByText(expectedNamespace).click();
+        cy.findByText(expectedNamespace.name).click();
         cy.findByText(/architectures/i).click();
         cy.findByText(/1/i).click();
         cy.findByText(/1.0.0/i).click();
 
-        cy.findByText(/relationship descriptions/i).should("exist");
-        cy.findByText(/node descriptions/i).should("exist");
+        cy.get('canvas').should("exist");
+        cy.findByRole("tab", { name: /diagram/i }).should("exist");
+        cy.findByRole("tab", { name: /json/i }).should("exist");
+    })
+
+    it("Displays architecture JSON successfully", () => {
+        cy.visit("/");
+        cy.findByText(expectedNamespace.name).click();
+        cy.findByText(/architectures/i).click();
+        cy.findByText(/1/i).click();
+        cy.findByText(/1.0.0/i).click();
 
         cy.findByRole("tab", { name: /json/i}).click();
 
