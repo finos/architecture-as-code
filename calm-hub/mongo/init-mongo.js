@@ -62,6 +62,16 @@ if (db.counters.countDocuments({ _id: "userAccessStoreCounter" }) === 0) {
     print("userAccessStoreCounter already exists, no initialization needed");
 }
 
+if (db.counters.countDocuments({ _id: "decoratorStoreCounter" }) === 0) {
+    db.counters.insertOne({
+        _id: "decoratorStoreCounter",
+        sequence_value: 1
+    });
+    print("Initialized decoratorStoreCounter with sequence_value 1");
+} else {
+    print("decoratorStoreCounter already exists, no initialization needed");
+}
+
 db.schemas.insertMany([               // Insert initial documents into the schemas collection
     {
         version: "2025-03",
@@ -2814,4 +2824,90 @@ Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliqu
             },
         ],
     },
+]);
+
+db.decorators.insertMany([
+    {
+        namespace: "finos",
+        decorators: [
+            {
+                decoratorId: NumberInt(1),
+                decorator: {
+                    "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+                    "unique-id": "finos-architecture-1-deployment",
+                    "type": "deployment",
+                    "target": [
+                        "/calm/namespaces/finos/architectures/1/versions/1-0-0"
+                    ],
+                    "target-type": [
+                        "architecture"
+                    ],
+                    "applies-to": [
+                        "architecture-1"
+                    ],
+                    "data": {
+                        "start-time": "2026-02-23T10:00:00Z",
+                        "end-time": "2026-02-23T10:05:30Z",
+                        "status": "completed",
+                        "observability": "https://grafana.example.com/d/finos-architecture-1",
+                        "notes": "Production deployment of FINOS Architecture 1 with baseline configuration"
+                    }
+                }
+            },
+            {
+                decoratorId: NumberInt(2),
+                decorator: {
+                    "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+                    "unique-id": "finos-architecture-1-deployment-v2",
+                    "type": "deployment",
+                    "target": [
+                        "/calm/namespaces/finos/architectures/1/versions/1-0-0"
+                    ],
+                    "target-type": [
+                        "architecture"
+                    ],
+                    "applies-to": [
+                        "architecture-1"
+                    ],
+                    "data": {
+                        "start-time": "2026-03-04T15:00:00Z",
+                        "end-time": "2026-03-04T15:08:15Z",
+                        "status": "completed",
+                        "observability": "https://grafana.example.com/d/finos-architecture-1-v2",
+                        "notes": "Second production deployment of FINOS Architecture 1 with performance improvements and bug fixes"
+                    }
+                }
+            }
+        ]
+    },
+    {
+        namespace: "workshop",
+        decorators: [
+            {
+                decoratorId: NumberInt(1),
+                decorator: {
+                    "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+                    "unique-id": "workshop-conference-deployment",
+                    "type": "deployment",
+                    "target": [
+                        "/calm/namespaces/workshop/architectures/1/versions/1-0-0"
+                    ],
+                    "target-type": [
+                        "architecture"
+                    ],
+                    "applies-to": [
+                        "conference-website",
+                        "load-balancer"
+                    ],
+                    "data": {
+                        "start-time": "2026-03-01T14:30:00Z",
+                        "end-time": "2026-03-01T14:35:45Z",
+                        "status": "completed",
+                        "observability": "https://grafana.example.com/d/workshop-conference",
+                        "notes": "Workshop conference system deployment"
+                    }
+                }
+            }
+        ]
+    }
 ]);
