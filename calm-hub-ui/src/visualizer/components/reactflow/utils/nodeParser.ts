@@ -1,5 +1,5 @@
 import { Node } from 'reactflow';
-import { CalmNodeSchema, CalmRelationshipSchema } from '../../../../../../calm-models/src/types/core-types.js';
+import { CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
 
 /**
  * Container information extracted from relationships
@@ -53,7 +53,6 @@ function createSystemNode(
     parentId: string | undefined
 ): Node {
     const id = node['unique-id'];
-    const nodeType = node['node-type'];
 
     return {
         id,
@@ -61,10 +60,7 @@ function createSystemNode(
         position: { x: 0, y: 0 },
         style: { zIndex: -1 },
         data: {
-            id,
-            type: nodeType || 'system',
             label: node.name || id,
-            nodeType: nodeType || 'system',
             ...node,
         },
         ...(parentId && { parentId, expandParent: true }),
@@ -80,15 +76,12 @@ function createRegularNode(
     onShowDetailsCallback?: (nodeData: CalmNodeSchema) => void
 ): Node {
     const id = node['unique-id'];
-    const nodeType = node['node-type'];
 
     return {
         id,
         type: 'custom',
         position: { x: 0, y: 0 },
         data: {
-            id,
-            type: nodeType,
             label: node.name || id,
             ...node,
             onShowDetails: onShowDetailsCallback,

@@ -1,16 +1,23 @@
 import { useState } from 'react';
-import { IoConstructOutline, IoEyeOutline, IoCodeOutline } from 'react-icons/io5';
+import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline } from 'react-icons/io5';
 import { Data } from '../../../model/calm.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
 import { SectionHeader } from '../section-header/SectionHeader.js';
 
-interface ArchitectureSectionProps {
-    data: Data & { calmType: 'Architectures' };
+interface DiagramSectionProps {
+    data: Data & { calmType: 'Architectures' | 'Patterns' };
 }
 
-export function ArchitectureSection({ data }: ArchitectureSectionProps) {
+const iconMap = {
+    Architectures: IoConstructOutline,
+    Patterns: IoGridOutline,
+} as const;
+
+export function DiagramSection({ data }: DiagramSectionProps) {
     const [activeTab, setActiveTab] = useState<'diagram' | 'json'>('diagram');
+
+    const Icon = iconMap[data.calmType];
 
     const tabs = (
         <div role="tablist" className="tabs tabs-boxed tabs-sm bg-base-100">
@@ -37,7 +44,7 @@ export function ArchitectureSection({ data }: ArchitectureSectionProps) {
         <div className="w-full h-full py-4 pl-2 pr-4">
             <div className="h-full bg-base-100 rounded-2xl overflow-hidden flex flex-col shadow-xl">
                 <SectionHeader
-                    icon={<IoConstructOutline className="text-accent" />}
+                    icon={<Icon className="text-accent" />}
                     namespace={data.name}
                     id={data.id}
                     version={data.version}

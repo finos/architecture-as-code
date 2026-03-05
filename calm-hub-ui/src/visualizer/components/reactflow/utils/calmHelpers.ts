@@ -2,7 +2,7 @@ import {
   CalmNodeSchema,
   CalmRelationshipSchema,
   CalmRelationshipTypeSchema,
-} from '../../../../../../calm-models/src/types/core-types.js';
+} from '@finos/calm-models/types';
 
 /**
  * Utility functions for working with CALM (Common Architecture Language Model) data
