@@ -53,7 +53,11 @@ jobs:
         with:
           node-version: 22
 
-      - run: npm ci
+      - name: Update to npm 11
+        run: npm install -g npm@11
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Check for existing changelog/version PRs
         run: |
@@ -183,7 +187,17 @@ jobs:
               NEXT_VERSION=$(grep "The next release version is" analysis.txt | sed 's/.*The next release version is \([^[:space:]]\+\).*/\1/')
               
               # Get current version from latest git tag instead of package.json
-              CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/cli-v//')
+              CURRENT_VERSION=$(git describe --tags --abbrev=0 --match 'cli-v*' 2>/dev/null | sed 's/cli-v//')
+              
+              if [ -z "$CURRENT_VERSION" ]; then
+                echo "⚠️ No cli-v* git tag found; falling back to package.json version."
+                CURRENT_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "")
+              fi
+              
+              if [ -z "$CURRENT_VERSION" ]; then
+                echo "⚠️ package.json version unavailable; defaulting current version to 0.0.0."
+                CURRENT_VERSION="0.0.0"
+              fi
               
               echo "📋 Extracted versions:"
               echo "  Current: $CURRENT_VERSION"
@@ -230,8 +244,13 @@ jobs:
         with:
           node-version: 22
 
-      - run: npm ci
-      - run: npm run build
+      - name: Update to npm 11
+        run: npm install -g npm@11
+
+      - name: Install dependencies
+        run: npm ci
+
+      - run: npm run build:cli
 
       - name: Create version update PR
         run: |
@@ -374,7 +393,11 @@ jobs:
         with:
           node-version: 22
 
-      - run: npm ci
+      - name: Update to npm 11
+        run: npm install -g npm@11
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Create draft release
         env:
@@ -422,7 +445,7 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'automated-release')
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2
+        uses: step-security/harden-runner@a90bcbc6539c36a85cdfeb73f7e2f433735f215b # v2
         with:
           egress-policy: audit
 
@@ -437,6 +460,10 @@ jobs:
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
         with:
           node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Update to npm 11
+        run: npm install -g npm@11
 
       - name: Install dependencies
         run: npm ci
@@ -481,6 +508,8 @@ jobs:
             --target main
 
       - name: Publish to NPM
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
         run: |
           cd cli
           npm publish --provenance
