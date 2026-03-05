@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ReactFlowVisualizer } from './ReactFlowVisualizer';
-import { CalmArchitectureSchema } from '../../../../../calm-models/src/types/core-types.js';
+import { CalmArchitectureSchema } from '@finos/calm-models/types';
 
 // Mock ArchitectureGraph since it has complex ReactFlow dependencies
 vi.mock('./ArchitectureGraph', () => ({

@@ -1,5 +1,5 @@
 import { Edge } from 'reactflow';
-import { CalmRelationshipSchema } from '../../../../../../calm-models/src/types/core-types.js';
+import { CalmRelationshipSchema } from '@finos/calm-models/types';
 import { createEdge } from './edgeFactory';
 import { extractId } from './calmHelpers';
 import { THEME } from '../theme';
@@ -79,10 +79,7 @@ function parseInteractsRelationship(
                 animated: false,
                 dashed: true,
                 data: {
-                    protocol: rel.protocol || '',
-                    metadata: rel.metadata || {},
-                    'unique-id': extractId(rel),
-                    relationshipType: 'interacts',
+                    ...rel,
                 },
             })
         );
@@ -114,13 +111,6 @@ function parseConnectsRelationship(
     const forwardTransitions = transitions.filter((t) => t.direction === 'source-to-destination');
     const backwardTransitions = transitions.filter((t) => t.direction === 'destination-to-source');
 
-    const commonData = {
-        protocol: rel.protocol || '',
-        metadata: rel.metadata || {},
-        'unique-id': relId,
-        controls: rel.controls,
-    };
-
     const hasBidirectionalFlow = forwardTransitions.length > 0 && backwardTransitions.length > 0;
 
     if (hasBidirectionalFlow) {
@@ -132,7 +122,7 @@ function parseConnectsRelationship(
                 label,
                 color: THEME.colors.accent,
                 data: {
-                    ...commonData,
+                    ...rel,
                     flowTransitions: forwardTransitions,
                     direction: 'forward',
                 },
@@ -149,7 +139,7 @@ function parseConnectsRelationship(
                 dashed: true,
                 markerPosition: 'start',
                 data: {
-                    ...commonData,
+                    ...rel,
                     flowTransitions: backwardTransitions,
                     direction: 'backward',
                 },
@@ -164,7 +154,7 @@ function parseConnectsRelationship(
                 label,
                 color: THEME.colors.accent,
                 data: {
-                    ...commonData,
+                    ...rel,
                     flowTransitions: transitions,
                 },
             })

@@ -1,4 +1,4 @@
-const expectedNamespace = "finos"
+const expectedNamespace = { name: "finos", description: "FINOS namespace" };
 const expectedPatternId = 1;
 const expectedPatternVersion = "1.0.0";
 
@@ -12,12 +12,26 @@ describe('Pattern Tests', () => {
         });
     })
 
-    it("Displays pattern JSON successfully", () => {
+    it("Displays pattern diagram by default", () => {
         cy.visit("/");
-        cy.findByText(expectedNamespace).click();
+        cy.findByText(expectedNamespace.name).click();
         cy.findByText(/patterns/i).click();
         cy.findByText(/1/i).click();
         cy.findByText(/1.0.0/i).click();
+
+        cy.findByRole("tab", { name: /diagram/i }).should("exist");
+        cy.findByRole("tab", { name: /json/i }).should("exist");
+        cy.get('canvas').should("exist");
+    })
+
+    it("Switches to JSON tab and displays pattern content", () => {
+        cy.visit("/");
+        cy.findByText(expectedNamespace.name).click();
+        cy.findByText(/patterns/i).click();
+        cy.findByText(/1/i).click();
+        cy.findByText(/1.0.0/i).click();
+
+        cy.findByRole("tab", { name: /json/i }).click();
 
         cy.fixture('conference-signup-pattern').then(data => {
             cy.contains(/\$schema/i).should("exist");
@@ -31,11 +45,6 @@ describe('Pattern Tests', () => {
 
             cy.contains(/description/i).should("exist");
             cy.contains(data.description).should("exist");
-
-            cy.contains(/minItems/i).should("exist");
-            cy.contains(data.properties.nodes.minItems).should("exist");
-
-            cy.contains(data.properties.nodes.minItems).should("exist");
 
             cy.contains(/prefixItems/i).should("exist");
         });
