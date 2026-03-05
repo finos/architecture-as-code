@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { IoCompassOutline } from 'react-icons/io5';
 import { CalmService } from '../../../service/calm-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
@@ -206,12 +206,12 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
     const [flowVersions, setFlowVersions] = useState<string[]>([]);
     const [adrRevisions, setAdrRevisions] = useState<string[]>([]);
 
-    const calmService = new CalmService();
-    const adrService = new AdrService();
+    const calmService = useMemo(() => new CalmService(), []);
+    const adrService = useMemo(() => new AdrService(), []);
 
     useEffect(() => {
         calmService.fetchNamespaces().then(setNamespaces);
-    }, []);
+    }, [calmService]);
 
     const handleNamespaceClick = (namespace: string) => {
         if (selectedNamespace === namespace) {

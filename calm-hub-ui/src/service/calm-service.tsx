@@ -2,6 +2,14 @@ import axios, { AxiosInstance } from 'axios';
 import { Data } from '../model/calm.js';
 import { getAuthHeaders } from '../authService.js';
 
+/**
+ * Service for interacting with CALM API endpoints.
+ * 
+ * TODO: Add type safety for API responses by:
+ * - Defining response interfaces (e.g., NamespacesResponse, PatternIDsResponse)
+ * - Validating responses at runtime (e.g., with Zod or similar validation library)
+ * - Using typed axios responses to ensure type safety throughout the call chain
+ */
 export class CalmService {
     private readonly ax: AxiosInstance;
 
@@ -13,7 +21,7 @@ export class CalmService {
         }
     }
 
-    async fetchNamespaces(): Promise<string[]> {
+    public async fetchNamespaces(): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
             .get('/calm/namespaces', { headers })
@@ -25,7 +33,7 @@ export class CalmService {
             });
     }
 
-    async fetchPatternIDs(namespace: string): Promise<string[]> {
+    public async fetchPatternIDs(namespace: string): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/calm/namespaces/${namespace}/patterns`, { headers })
@@ -37,7 +45,7 @@ export class CalmService {
             });
     }
 
-    async fetchFlowIDs(namespace: string): Promise<string[]> {
+    public async fetchFlowIDs(namespace: string): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/calm/namespaces/${namespace}/flows`, { headers })
@@ -49,7 +57,7 @@ export class CalmService {
             });
     }
 
-    async fetchArchitectureIDs(namespace: string): Promise<string[]> {
+    public async fetchArchitectureIDs(namespace: string): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/calm/namespaces/${namespace}/architectures`, { headers })
@@ -61,7 +69,7 @@ export class CalmService {
             });
     }
 
-    async fetchPatternVersions(namespace: string, patternID: string): Promise<string[]> {
+    public async fetchPatternVersions(namespace: string, patternID: string): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/calm/namespaces/${namespace}/patterns/${patternID}/versions`, { headers })
@@ -73,7 +81,7 @@ export class CalmService {
             });
     }
 
-    async fetchFlowVersions(namespace: string, flowID: string): Promise<string[]> {
+    public async fetchFlowVersions(namespace: string, flowID: string): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/calm/namespaces/${namespace}/flows/${flowID}/versions`, { headers })
@@ -85,7 +93,7 @@ export class CalmService {
             });
     }
 
-    async fetchArchitectureVersions(namespace: string, architectureID: string): Promise<string[]> {
+    public async fetchArchitectureVersions(namespace: string, architectureID: string): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/calm/namespaces/${namespace}/architectures/${architectureID}/versions`, {
@@ -99,7 +107,7 @@ export class CalmService {
             });
     }
 
-    async fetchPattern(namespace: string, patternID: string, version: string): Promise<Data> {
+    public async fetchPattern(namespace: string, patternID: string, version: string): Promise<Data> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/calm/namespaces/${namespace}/patterns/${patternID}/versions/${version}`, {
@@ -119,7 +127,7 @@ export class CalmService {
             });
     }
 
-    async fetchFlow(namespace: string, flowID: string, version: string): Promise<Data> {
+    public async fetchFlow(namespace: string, flowID: string, version: string): Promise<Data> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/calm/namespaces/${namespace}/flows/${flowID}/versions/${version}`, {
@@ -139,7 +147,7 @@ export class CalmService {
             });
     }
 
-    async fetchArchitecture(
+    public async fetchArchitecture(
         namespace: string,
         architectureID: string,
         version: string
