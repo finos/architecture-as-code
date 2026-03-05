@@ -2843,7 +2843,7 @@ db.decorators.insertMany([
                         "architecture"
                     ],
                     "applies-to": [
-                        "architecture-1"
+                        "example-node"
                     ],
                     "data": {
                         "start-time": "2026-02-23T10:00:00Z",
@@ -2868,7 +2868,7 @@ db.decorators.insertMany([
                         "architecture"
                     ],
                     "applies-to": [
-                        "architecture-1"
+                        "example-node"
                     ],
                     "data": {
                         "start-time": "2026-03-04T15:00:00Z",
@@ -2891,7 +2891,7 @@ db.decorators.insertMany([
                         "pattern"
                     ],
                     "applies-to": [
-                        "api-gateway-pattern"
+                        "node-a", "relationship-x"
                     ],
                     "data": {
                         "start-time": "2026-02-15T09:30:00Z",
