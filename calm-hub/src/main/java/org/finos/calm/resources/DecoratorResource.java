@@ -2,6 +2,7 @@ package org.finos.calm.resources;
 
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -20,6 +21,8 @@ import org.slf4j.LoggerFactory;
 
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.QUERY_PARAM_NO_WHITESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.QUERY_PARAM_NO_WHITESPACE_REGEX;
 
 /**
  * Resource for managing decorators in a given namespace
@@ -53,44 +56,14 @@ public class DecoratorResource {
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
     public Response getDecoratorsForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @QueryParam("target") String target,
-            @QueryParam("type") String type
+            @QueryParam("target") @Size(max = 500) @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE) String target,
+            @QueryParam("type") @Size(max = 100) @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE) String type
     ) {
         try {
-            // Sanitize query parameters
-            String sanitizedTarget = sanitizeQueryParam(target, 500);
-            String sanitizedType = sanitizeQueryParam(type, 100);
-            
-            return Response.ok(new ValueWrapper<>(decoratorStore.getDecoratorsForNamespace(namespace, sanitizedTarget, sanitizedType))).build();
+            return Response.ok(new ValueWrapper<>(decoratorStore.getDecoratorsForNamespace(namespace, target, type))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving decorators", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
-        } catch (IllegalArgumentException e) {
-            logger.error("Invalid query parameter when retrieving decorators for namespace [{}]", namespace, e);
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(e.getMessage())
-                    .build();
         }
-    }
-    
-    /**
-     * Sanitizes a query parameter by trimming and validating length
-     *
-     * @param param the parameter to sanitize
-     * @param maxLength maximum allowed length
-     * @return null if param is null/empty, otherwise the trimmed value
-     * @throws IllegalArgumentException if parameter exceeds max length
-     */
-    private String sanitizeQueryParam(String param, int maxLength) {
-        if (param == null || param.trim().isEmpty()) {
-            return null;
-        }
-        
-        String trimmed = param.trim();
-        if (trimmed.length() > maxLength) {
-            throw new IllegalArgumentException("Query parameter exceeds maximum length of " + maxLength);
-        }
-        
-        return trimmed;
     }
 }

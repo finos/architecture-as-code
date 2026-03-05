@@ -89,6 +89,25 @@ public class TestDecoratorResourceShould {
     }
 
     @Test
+    void accept_query_params_with_valid_characters() throws NamespaceNotFoundException {
+        String target = "/calm/namespaces/finos-org/architectures/arch_1/versions/1-0-0";
+        String type = "deployment_prod";
+        when(decoratorStore.getDecoratorsForNamespace("finos", target, type))
+                .thenReturn(List.of(1));
+
+        given()
+                .queryParam("target", target)
+                .queryParam("type", type)
+                .when()
+                .get("/calm/namespaces/finos/decorators")
+                .then()
+                .statusCode(200)
+                .body(equalTo("{\"values\":[1]}"));
+
+        verify(decoratorStore, times(1)).getDecoratorsForNamespace("finos", target, type);
+    }
+
+    @Test
     void return_empty_list_when_namespace_has_no_decorators() throws NamespaceNotFoundException {
         when(decoratorStore.getDecoratorsForNamespace("empty-namespace", null, null))
                 .thenReturn(List.of());
@@ -131,54 +150,61 @@ public class TestDecoratorResourceShould {
     }
 
     @Test
-    void treat_empty_string_query_params_as_null() throws NamespaceNotFoundException {
-        when(decoratorStore.getDecoratorsForNamespace("finos", null, null))
-                .thenReturn(List.of(1, 2, 3));
-
+    void return_400_when_query_params_are_empty_strings() throws NamespaceNotFoundException {
         given()
                 .queryParam("target", "")
                 .queryParam("type", "")
                 .when()
                 .get("/calm/namespaces/finos/decorators")
                 .then()
-                .statusCode(200)
-                .body(equalTo("{\"values\":[1,2,3]}"));
+                .statusCode(400);
 
-        verify(decoratorStore, times(1)).getDecoratorsForNamespace("finos", null, null);
+        verify(decoratorStore, never()).getDecoratorsForNamespace(any(), any(), any());
     }
 
     @Test
-    void treat_whitespace_query_params_as_null() throws NamespaceNotFoundException {
-        when(decoratorStore.getDecoratorsForNamespace("finos", null, null))
-                .thenReturn(List.of(1));
-
+    void return_400_when_query_params_are_only_whitespace() throws NamespaceNotFoundException {
         given()
                 .queryParam("target", "   ")
                 .queryParam("type", "  ")
                 .when()
                 .get("/calm/namespaces/finos/decorators")
                 .then()
-                .statusCode(200)
-                .body(equalTo("{\"values\":[1]}"));
+                .statusCode(400);
 
-        verify(decoratorStore, times(1)).getDecoratorsForNamespace("finos", null, null);
+        verify(decoratorStore, never()).getDecoratorsForNamespace(any(), any(), any());
     }
 
     @Test
-    void trim_query_params() throws NamespaceNotFoundException {
-        when(decoratorStore.getDecoratorsForNamespace("finos", "/calm/namespaces/finos/architectures/1", "deployment"))
-                .thenReturn(List.of(1));
-
+    void return_400_when_query_params_have_whitespace() throws NamespaceNotFoundException {
         given()
                 .queryParam("target", "  /calm/namespaces/finos/architectures/1  ")
                 .queryParam("type", "  deployment  ")
                 .when()
                 .get("/calm/namespaces/finos/decorators")
                 .then()
-                .statusCode(200)
-                .body(equalTo("{\"values\":[1]}"));
+                .statusCode(400);
 
-        verify(decoratorStore, times(1)).getDecoratorsForNamespace("finos", "/calm/namespaces/finos/architectures/1", "deployment");
+        verify(decoratorStore, never()).getDecoratorsForNamespace(any(), any(), any());
+    }
+
+    @Test
+    void return_400_when_query_params_contain_invalid_characters() throws NamespaceNotFoundException {
+        given()
+                .queryParam("target", "/calm/namespaces/finos@invalid")
+                .when()
+                .get("/calm/namespaces/finos/decorators")
+                .then()
+                .statusCode(400);
+
+        given()
+                .queryParam("type", "deploy ment")
+                .when()
+                .get("/calm/namespaces/finos/decorators")
+                .then()
+                .statusCode(400);
+
+        verify(decoratorStore, never()).getDecoratorsForNamespace(any(), any(), any());
     }
 
     @Test
@@ -190,8 +216,7 @@ public class TestDecoratorResourceShould {
                 .when()
                 .get("/calm/namespaces/finos/decorators")
                 .then()
-                .statusCode(400)
-                .body(containsString("exceeds maximum length"));
+                .statusCode(400);
 
         verify(decoratorStore, never()).getDecoratorsForNamespace(any(), any(), any());
     }
@@ -205,8 +230,7 @@ public class TestDecoratorResourceShould {
                 .when()
                 .get("/calm/namespaces/finos/decorators")
                 .then()
-                .statusCode(400)
-                .body(containsString("exceeds maximum length"));
+                .statusCode(400);
 
         verify(decoratorStore, never()).getDecoratorsForNamespace(any(), any(), any());
     }

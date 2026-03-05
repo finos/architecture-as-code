@@ -45,19 +45,48 @@ public class NitriteDecoratorStore implements DecoratorStore {
 
     @Override
     public List<Integer> getDecoratorsForNamespace(String namespace, String target, String type) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            LOG.warn("Namespace '{}' not found when retrieving decorators", namespace);
-            throw new NamespaceNotFoundException();
-        }
-
-        Filter filter = where(NAMESPACE_FIELD).eq(namespace);
-        Document namespaceDoc = decoratorCollection.find(filter).firstOrNull();
-
+        validateNamespace(namespace);
+        
+        Document namespaceDoc = fetchNamespaceDocument(namespace);
         if (namespaceDoc == null) {
             LOG.debug("No decorators found for namespace '{}'", namespace);
             return List.of();
         }
 
+        List<Document> decorators = extractDecorators(namespaceDoc, namespace);
+        if (decorators.isEmpty()) {
+            return List.of();
+        }
+
+        List<Integer> decoratorIds = filterDecorators(decorators, target, type);
+
+        LOG.debug("Retrieved {} decorators for namespace '{}' with filters (target: {}, type: {})", 
+                decoratorIds.size(), namespace, target, type);
+        return decoratorIds;
+    }
+
+    /**
+     * Validates that the namespace exists, throwing an exception if it doesn't
+     */
+    private void validateNamespace(String namespace) throws NamespaceNotFoundException {
+        if (!namespaceStore.namespaceExists(namespace)) {
+            LOG.warn("Namespace '{}' not found when retrieving decorators", namespace);
+            throw new NamespaceNotFoundException();
+        }
+    }
+
+    /**
+     * Fetches the namespace document from NitriteDB
+     */
+    private Document fetchNamespaceDocument(String namespace) {
+        Filter filter = where(NAMESPACE_FIELD).eq(namespace);
+        return decoratorCollection.find(filter).firstOrNull();
+    }
+
+    /**
+     * Extracts the list of decorators from the namespace document
+     */
+    private List<Document> extractDecorators(Document namespaceDoc, String namespace) {
         TypeSafeNitriteDocument<Document> typeSafeDoc = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class);
         List<Document> decorators = typeSafeDoc.getList(DECORATORS_FIELD);
 
@@ -65,45 +94,66 @@ public class NitriteDecoratorStore implements DecoratorStore {
             LOG.debug("Decorators list is empty for namespace '{}'", namespace);
             return List.of();
         }
+        return decorators;
+    }
 
+    /**
+     * Filters decorators based on target and type criteria
+     */
+    private List<Integer> filterDecorators(List<Document> decorators, String target, String type) {
         List<Integer> decoratorIds = new ArrayList<>();
+        
         for (Document decoratorDoc : decorators) {
             Integer decoratorId = decoratorDoc.get(DECORATOR_ID_FIELD, Integer.class);
             if (decoratorId == null) {
                 continue;
             }
 
-            // Apply filters if provided
             Document decorator = decoratorDoc.get("decorator", Document.class);
-            if (decorator != null) {
-                // Filter by type if provided
-                if (type != null && !type.isEmpty()) {
-                    String decoratorType = decorator.get("type", String.class);
-                    if (decoratorType == null || !decoratorType.equals(type)) {
-                        continue;
-                    }
-                }
-
-                // Filter by target if provided
-                if (target != null && !target.isEmpty()) {
-                    Object targetObj = decorator.get("target");
-                    List<String> targets = null;
-                    if (targetObj instanceof List) {
-                        @SuppressWarnings("unchecked")
-                        List<String> targetList = (List<String>) targetObj;
-                        targets = targetList;
-                    }
-                    if (targets == null || !targets.contains(target)) {
-                        continue;
-                    }
-                }
+            if (decorator != null && matchesFilters(decorator, target, type)) {
+                decoratorIds.add(decoratorId);
+            } else if (decorator == null) {
+                decoratorIds.add(decoratorId);
             }
-
-            decoratorIds.add(decoratorId);
         }
-
-        LOG.debug("Retrieved {} decorators for namespace '{}' with filters (target: {}, type: {})", 
-                decoratorIds.size(), namespace, target, type);
+        
         return decoratorIds;
+    }
+
+    /**
+     * Checks if a decorator matches the provided filters
+     */
+    private boolean matchesFilters(Document decorator, String target, String type) {
+        return matchesTypeFilter(decorator, type) && matchesTargetFilter(decorator, target);
+    }
+
+    /**
+     * Checks if the decorator matches the type filter (if provided)
+     */
+    private boolean matchesTypeFilter(Document decorator, String type) {
+        if (type == null || type.isEmpty()) {
+            return true;
+        }
+        
+        String decoratorType = decorator.get("type", String.class);
+        return decoratorType != null && decoratorType.equals(type);
+    }
+
+    /**
+     * Checks if the decorator matches the target filter (if provided)
+     */
+    private boolean matchesTargetFilter(Document decorator, String target) {
+        if (target == null || target.isEmpty()) {
+            return true;
+        }
+        
+        Object targetObj = decorator.get("target");
+        if (!(targetObj instanceof List)) {
+            return false;
+        }
+        
+        @SuppressWarnings("unchecked")
+        List<String> targets = (List<String>) targetObj;
+        return targets.contains(target);
     }
 }
