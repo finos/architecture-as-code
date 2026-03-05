@@ -33,7 +33,7 @@ public class MongoDecoratorStore implements DecoratorStore {
     }
 
     @Override
-    public List<Integer> getDecoratorsForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<Integer> getDecoratorsForNamespace(String namespace, String target, String type) throws NamespaceNotFoundException {
         if (!namespaceStore.namespaceExists(namespace)) {
             LOG.warn("Namespace '{}' not found when retrieving decorators", namespace);
             throw new NamespaceNotFoundException();
@@ -54,14 +54,38 @@ public class MongoDecoratorStore implements DecoratorStore {
         }
 
         List<Integer> decoratorIds = new ArrayList<>();
-        for (Document decorator : decorators) {
-            Integer decoratorId = decorator.getInteger("decoratorId");
-            if (decoratorId != null) {
-                decoratorIds.add(decoratorId);
+        for (Document decoratorDoc : decorators) {
+            Integer decoratorId = decoratorDoc.getInteger("decoratorId");
+            if (decoratorId == null) {
+                continue;
             }
+
+            // Apply filters if provided
+            Document decorator = decoratorDoc.get("decorator", Document.class);
+            if (decorator != null) {
+                // Filter by type if provided
+                if (type != null && !type.isEmpty()) {
+                    String decoratorType = decorator.getString("type");
+                    if (decoratorType == null || !decoratorType.equals(type)) {
+                        continue;
+                    }
+                }
+
+                // Filter by target if provided
+                if (target != null && !target.isEmpty()) {
+                    @SuppressWarnings("unchecked")
+                    List<String> targets = (List<String>) decorator.get("target");
+                    if (targets == null || !targets.contains(target)) {
+                        continue;
+                    }
+                }
+            }
+
+            decoratorIds.add(decoratorId);
         }
 
-        LOG.debug("Retrieved {} decorators for namespace '{}'", decoratorIds.size(), namespace);
+        LOG.debug("Retrieved {} decorators for namespace '{}' with filters (target: {}, type: {})", 
+                decoratorIds.size(), namespace, target, type);
         return decoratorIds;
     }
 }

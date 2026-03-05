@@ -10,11 +10,13 @@ import java.util.List;
 public interface DecoratorStore {
     
     /**
-     * Retrieve all decorator IDs for a given namespace.
+     * Retrieve decorator IDs for a given namespace with optional filtering.
      *
      * @param namespace the namespace to retrieve decorators for
-     * @return a list of decorator IDs in the given namespace
+     * @param target optional target path to filter by (e.g., "/calm/namespaces/finos/architectures/1/versions/1-0-0")
+     * @param type optional decorator type to filter by (e.g., "deployment", "observability")
+     * @return a list of decorator IDs matching the criteria
      * @throws NamespaceNotFoundException if the namespace does not exist
      */
-    List<Integer> getDecoratorsForNamespace(String namespace) throws NamespaceNotFoundException;
+    List<Integer> getDecoratorsForNamespace(String namespace, String target, String type) throws NamespaceNotFoundException;
 }

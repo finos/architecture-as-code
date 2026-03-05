@@ -44,7 +44,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
     }
 
     @Override
-    public List<Integer> getDecoratorsForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<Integer> getDecoratorsForNamespace(String namespace, String target, String type) throws NamespaceNotFoundException {
         if (!namespaceStore.namespaceExists(namespace)) {
             LOG.warn("Namespace '{}' not found when retrieving decorators", namespace);
             throw new NamespaceNotFoundException();
@@ -67,14 +67,43 @@ public class NitriteDecoratorStore implements DecoratorStore {
         }
 
         List<Integer> decoratorIds = new ArrayList<>();
-        for (Document decorator : decorators) {
-            Integer decoratorId = decorator.get(DECORATOR_ID_FIELD, Integer.class);
-            if (decoratorId != null) {
-                decoratorIds.add(decoratorId);
+        for (Document decoratorDoc : decorators) {
+            Integer decoratorId = decoratorDoc.get(DECORATOR_ID_FIELD, Integer.class);
+            if (decoratorId == null) {
+                continue;
             }
+
+            // Apply filters if provided
+            Document decorator = decoratorDoc.get("decorator", Document.class);
+            if (decorator != null) {
+                // Filter by type if provided
+                if (type != null && !type.isEmpty()) {
+                    String decoratorType = decorator.get("type", String.class);
+                    if (decoratorType == null || !decoratorType.equals(type)) {
+                        continue;
+                    }
+                }
+
+                // Filter by target if provided
+                if (target != null && !target.isEmpty()) {
+                    Object targetObj = decorator.get("target");
+                    List<String> targets = null;
+                    if (targetObj instanceof List) {
+                        @SuppressWarnings("unchecked")
+                        List<String> targetList = (List<String>) targetObj;
+                        targets = targetList;
+                    }
+                    if (targets == null || !targets.contains(target)) {
+                        continue;
+                    }
+                }
+            }
+
+            decoratorIds.add(decoratorId);
         }
 
-        LOG.debug("Retrieved {} decorators for namespace '{}'", decoratorIds.size(), namespace);
+        LOG.debug("Retrieved {} decorators for namespace '{}' with filters (target: {}, type: {})", 
+                decoratorIds.size(), namespace, target, type);
         return decoratorIds;
     }
 }
