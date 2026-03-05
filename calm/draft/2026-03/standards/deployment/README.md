@@ -8,7 +8,7 @@ Deployment decorators attach deployment tracking information to architecture ele
 
 ## Base Deployment Decorator
 
-The base deployment decorator standard (`deployment.decorator.schema.json`) defines common deployment attributes applicable across all platforms:
+The base deployment decorator standard (`deployment.decorator.standard.json`) defines common deployment attributes applicable across all platforms:
 
 - **start-time**: ISO 8601 timestamp of when the deployment started (required)
 - **status**: Current deployment status (pending, in-progress, completed, failed, rolled-back) (required)
@@ -32,7 +32,7 @@ Platform-specific deployment decorators extend the base deployment standard and 
 
 ```json
 {
-  "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+  "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json",
   "unique-id": "api-service-deployment-001",
   "type": "deployment",
   "target": ["my-architecture.json"],
@@ -52,7 +52,7 @@ Platform-specific deployment decorators extend the base deployment standard and 
 
 ```json
 {
-  "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/kubernetes.decorator.schema.json",
+  "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/kubernetes.decorator.standard.json",
   "unique-id": "k8s-deployment-001",
   "type": "deployment",
   "target": ["my-architecture.json"],
@@ -77,7 +77,7 @@ Platform-specific deployment decorators extend the base deployment standard and 
 
 ```
 decorators.json (base decorator)
-  └── deployment.decorator.schema.json (deployment standard)
+  └── deployment.decorator.standard.json (deployment standard)
         └── Platform-specific extensions (add platform sub-objects in data)
 ```
 
@@ -85,7 +85,7 @@ decorators.json (base decorator)
 
 To contribute new platform-specific deployment decorators:
 
-1. Use the base `deployment.decorator.schema.json` standard
+1. Use the base `deployment.decorator.standard.json` standard
 2. Add platform-specific properties in a namespaced sub-object within `data`
 3. Provide comprehensive examples demonstrating the platform-specific fields
 4. Document all required and optional fields

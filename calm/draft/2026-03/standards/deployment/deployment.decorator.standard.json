@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
-    "title": "CALM Deployment Decorator standard",
+    "$id": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json",
+    "title": "CALM Deployment Decorator Standard",
     "description": "Deployment decorator standard for tracking deployment information across various platforms and environments. Extends the base CALM decorator standard to add deployment-specific attributes.",
     "allOf": [
         {

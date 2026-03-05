@@ -4,7 +4,7 @@ This directory contains example deployment decorator instances demonstrating var
 
 ## Examples Overview
 
-| Example | Schema | Demonstrates |
+| Example | Standard | Demonstrates |
 |---------|--------|-------------|
 | `simple-deployment.decorator.json` | Base deployment | Successful deployment with all optional fields |
 | `kubernetes-deployment.decorator.json` | Kubernetes-specific | Multi-service deployment with Kubernetes details |
@@ -95,10 +95,10 @@ Validate decorator instances using the CALM CLI:
 
 ```bash
 # Validate a deployment decorator
-calm validate --schema https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json \
+calm validate --schema https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json \
   simple-deployment.decorator.json
 
-# Validate kubernetes deployment decorator
-calm validate --schema https://calm.finos.org/draft/2026-03/standards/deployment/kubernetes.decorator.schema.json \
+# Validate a Kubernetes-specific deployment decorator
+calm validate --schema https://calm.finos.org/draft/2026-03/standards/deployment/kubernetes.decorator.standard.json \
   kubernetes-deployment.decorator.json
 ```

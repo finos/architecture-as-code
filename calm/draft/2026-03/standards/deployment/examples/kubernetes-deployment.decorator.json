@@ -1,5 +1,5 @@
 {
-    "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/kubernetes.decorator.schema.json",
+    "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/kubernetes.decorator.standard.json",
     "unique-id": "k8s-deployment-example",
     "type": "deployment",
     "target": [

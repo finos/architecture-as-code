@@ -1,11 +1,11 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://calm.finos.org/draft/2026-03/standards/deployment/kubernetes.decorator.schema.json",
-    "title": "CALM Kubernetes Deployment Decorator Schema",
-    "description": "Kubernetes-specific deployment decorator schema. Extends the base deployment decorator with Kubernetes cluster, namespace, and Helm chart information.",
+    "$id": "https://calm.finos.org/draft/2026-03/standards/deployment/kubernetes.decorator.standard.json",
+    "title": "CALM Kubernetes Deployment Decorator Standard",
+    "description": "Kubernetes-specific deployment decorator standard. Extends the base deployment decorator with Kubernetes cluster, namespace, and Helm chart information.",
     "allOf": [
         {
-            "$ref": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json"
+            "$ref": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json"
         },
         {
             "type": "object",

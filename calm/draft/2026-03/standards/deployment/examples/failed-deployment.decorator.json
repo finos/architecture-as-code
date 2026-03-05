@@ -1,5 +1,5 @@
 {
-    "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+    "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json",
     "unique-id": "failed-deployment-example",
     "type": "deployment",
     "target": [

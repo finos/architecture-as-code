@@ -60,7 +60,7 @@ Organizations can reference these standards directly in their decorator document
 
 ```json
 {
-  "$schema": "https://calm.finos.org/standards/deployment/deployment.decorator.schema.json",
+  "$schema": "https://calm.finos.org/standards/deployment/deployment.decorator.standard.json",
   "unique-id": "my-deployment-001",
   "type": "deployment",
   "target": ["my-architecture.json"],
