@@ -5,6 +5,51 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.35.0] - 2026-03-04
+
+## [1.35.0](https://github.com/finos/architecture-as-code/compare/cli-v1.34.4...cli-v1.35.0) (2026-03-04)
+
+* Merge branch 'main' into feat/decorator-target-type-2183 ([](https://github.com/finos/architecture-as-code/commit/aa0c5f686c4c42850ec06874e01bcd4773c76893))
+* Merge branch 'main' into feat/decorator-target-type-2183 ([](https://github.com/finos/architecture-as-code/commit/14ecbce9fb8353722b86e68fe7d7627fdaaee008))
+* Merge branch 'main' into viz-patterns ([](https://github.com/finos/architecture-as-code/commit/fc0d496f0c5cbcc4159bfdf0bafce66e8d64fd13))
+* Merge branch 'main' into viz-patterns ([](https://github.com/finos/architecture-as-code/commit/2f13ee01783c9cf568b92057e9f54ccb8efc46c9))
+* Merge branch 'main' into viz-patterns ([](https://github.com/finos/architecture-as-code/commit/89ebe9bd114733c6df2d55d0ff6d048ade50f96f))
+* Merge branch 'main' into viz-patterns ([](https://github.com/finos/architecture-as-code/commit/3de5e931385c8b7788613e50ba3598cc77ac13aa))
+* Merge branch 'main' into viz-patterns ([](https://github.com/finos/architecture-as-code/commit/b3661fcfe068ba11e241a978b63bd6a9eb4d83d3))
+* Merge branch 'main' into viz-patterns ([](https://github.com/finos/architecture-as-code/commit/6919130ce77dbeaf9429f9a9c94e95b3b8afac2a))
+* Merge branch 'viz-patterns' of https://github.com/YoofiTT96/architecture-as-code into viz-patterns ([](https://github.com/finos/architecture-as-code/commit/0d5b8c840cf288a46133652c72d0e09794e0eff5))
+
+### chore
+
+* **calm:** create draft folder for issue #2183 ([](https://github.com/finos/architecture-as-code/commit/2de8f09370d17c03f1bacf947a9b5d1c918efd86)), closes [#2183](https://github.com/finos/architecture-as-code/issues/2183) [#2183](https://github.com/finos/architecture-as-code/issues/2183)
+* **calm:** update schema references to draft/2183 ([](https://github.com/finos/architecture-as-code/commit/8f937cc2889b0c0313f64c3b5165a76e660ec13f)), closes [#2183](https://github.com/finos/architecture-as-code/issues/2183)
+
+### feat
+
+* **calm-hub-ui:** Add ability to search nodes ([](https://github.com/finos/architecture-as-code/commit/d70a1a88bb23f11e3efde58a27db473dec9dca11))
+* **calm-hub-ui:** Add decision modals ([](https://github.com/finos/architecture-as-code/commit/ee3635ff4521e212b23b89c12f61e8a1eef33f90))
+* **calm-hub-ui:** Add initial visualisation for patterns and their option ([](https://github.com/finos/architecture-as-code/commit/6b6af54e6c2d69feee0bad2f464aede428cca1b3))
+* **calm-hub-ui:** Add some color ([](https://github.com/finos/architecture-as-code/commit/1a76a545ab47ca08b881f929df9dc832506e76c9))
+* **calm-hub-ui:** Add type dropdown ([](https://github.com/finos/architecture-as-code/commit/20bef8076ada1d57374757782907e88a00956986))
+* **calm-hub-ui:** Consolidate diagram section ([](https://github.com/finos/architecture-as-code/commit/9a73ef860be48690516a75c619f44f0203141ba5))
+* **calm-hub-ui:** Extract similarities in Architecture and Pattern Graph ([](https://github.com/finos/architecture-as-code/commit/1d5f631e308f439ae3831c1718c8e46be784ba7c))
+* **calm-hub-ui:** Implement sidebar collapse functionality with toggle buttons ([](https://github.com/finos/architecture-as-code/commit/e4e441e01971fa5be22f0725d2392ae8da2f49a4))
+* **calm-hub-ui:** Import fixes and refactorings ([](https://github.com/finos/architecture-as-code/commit/705f4a14d97ab5dc7aa1f476377eb851a1afc9fe))
+* **calm-hub-ui:** Refactor conditionals ([](https://github.com/finos/architecture-as-code/commit/70e52b487f1f622d76a710a9cfeb32e88a5d7253))
+* **calm-hub-ui:** Refactor DiagramSection to use Drawer and remove PatternDrawer ([](https://github.com/finos/architecture-as-code/commit/0422f8adc7b84665c3a9a8cfe7a04de354710aa2))
+* **calm-hub-ui:** Refactor Drawer pattern selection logic ([](https://github.com/finos/architecture-as-code/commit/c7a70c28463187fb72e099c38240a80e7cc15bf2))
+* **calm-hub-ui:** Refactor namespace handling and enhance e2e tests ([](https://github.com/finos/architecture-as-code/commit/9a4bca9a3631464a16ba19a3f2420af598266094))
+* **calm-hub-ui:** Remove description from search terms. Fix lint issues ([](https://github.com/finos/architecture-as-code/commit/0c50ebd758ce6c51a2a171b2ea57633ebb6f5148))
+* **calm-hub-ui:** Remove redundant id ([](https://github.com/finos/architecture-as-code/commit/4b487365b608e5d0c07901c36b956aaeedf47e78))
+* **calm-hub-ui:** Update README ([](https://github.com/finos/architecture-as-code/commit/6c0f4f1d4a822dc4d4fa4a5cff0bb3979d734502))
+* **calm-hub-ui:** Update README ([](https://github.com/finos/architecture-as-code/commit/2a0d45dd2b917b88af1de2a969b9ed7bb961ff46))
+* **calm-hub-ui:** Update README  ([](https://github.com/finos/architecture-as-code/commit/87aa6371b121d8f95ad19e09fa064aba5de309fd))
+* **calm-hub-ui:** Update README  ([](https://github.com/finos/architecture-as-code/commit/a5945882f2c871907c0193d7ce9687bdb20907f7))
+* **calm-hub-ui:** Update README  ([](https://github.com/finos/architecture-as-code/commit/8bbc2c5ceb52231ea620d9bd5071bce3f311bcb8))
+* **calm-hub-ui:** Visualise patterns ([](https://github.com/finos/architecture-as-code/commit/5a163d0fa326bb3fcecb981ee3291346b41c7a0c))
+* **calm:** Add target type to decorator schema (prototype test)#2183 ([](https://github.com/finos/architecture-as-code/commit/36f228b9bf99e514b7fa252eaa7a6a9a561c23c3)), closes [#2183](https://github.com/finos/architecture-as-code/issues/2183)
+* **calm:** add target-type field to decorator base schema ([](https://github.com/finos/architecture-as-code/commit/e53239f1899c5a0728767e8db8855e122fda84eb)), closes [#2183](https://github.com/finos/architecture-as-code/issues/2183)
+
 ## [1.34.4] - 2026-03-02
 
 ### Changed
