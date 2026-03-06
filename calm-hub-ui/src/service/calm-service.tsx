@@ -12,10 +12,9 @@ export async function fetchNamespaces(setNamespaces: (namespaces: string[]) => v
             headers,
         });
         const data = await res.json();
-        const values = Array.isArray(data?.values) ? data.values : [];
-        const namespaces = values
+        const namespaces = (data?.values ?? [])
             .map((v: { name?: string }) => v?.name)
-            .filter((name): name is string => typeof name === 'string');
+            .filter((name: string | undefined): name is string => !!name);
         setNamespaces(namespaces);
     } catch (error) {
         console.error('Error fetching namespaces:', error);
