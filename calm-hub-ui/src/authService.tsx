@@ -1,4 +1,5 @@
 import { UserManager, Log, User } from 'oidc-client';
+import axios from 'axios';
 
 const config = {
     authority: 'https://calm-hub.finos.org:9443/realms/calm-hub-realm',
@@ -87,9 +88,9 @@ export async function getToken(): Promise<string> {
     return '';
 }
 
-export async function getAuthHeaders(): Promise<HeadersInit> {
+export async function getAuthHeaders(): Promise<Record<string, string>> {
     const accessToken = await getToken();
-    const headers: HeadersInit = {};
+    const headers: Record<string, string> = {};
     if (accessToken) {
         headers['Authorization'] = `Bearer ${accessToken}`;
     }
@@ -98,8 +99,8 @@ export async function getAuthHeaders(): Promise<HeadersInit> {
 
 export async function checkAuthorityService(): Promise<boolean> {
     try {
-        const response = await fetch(config.authority, { method: 'HEAD' });
-        return response.ok;
+        await axios.head(config.authority);
+        return true;
     } catch (error) {
         console.error('Authority Service Check Error:', error);
         return false;
