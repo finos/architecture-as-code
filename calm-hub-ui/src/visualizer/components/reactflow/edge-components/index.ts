@@ -1,4 +1,5 @@
-export { EdgeBadge, getBadgeStyle } from './EdgeBadge.js';
+export { EdgeBadge } from './EdgeBadge.js';
+export { getBadgeStyle } from '../utils/edgeBadge.utils.js';
 export { EdgeTooltip } from './EdgeTooltip.js';
 export type {
     EdgeBadgeProps,
