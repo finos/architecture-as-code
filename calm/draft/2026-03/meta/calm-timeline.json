@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://calm.finos.org/draft/2183/meta/calm-timeline.json",
+  "$id": "https://calm.finos.org/draft/2026-03/meta/calm-timeline.json",
   "$vocabulary": {
     "https://json-schema.org/draft/2020-12/vocab/core": true,
     "https://json-schema.org/draft/2020-12/vocab/applicator": true,
@@ -8,7 +8,7 @@
     "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
     "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
     "https://json-schema.org/draft/2020-12/vocab/content": true,
-    "https://calm.finos.org/draft/2183/meta/core.json": true
+    "https://calm.finos.org/draft/2026-03/meta/core.json": true
   },
   "$dynamicAnchor": "meta",
   "title": "Common Architecture Language Model (CALM) Timelines Schema",
@@ -17,7 +17,7 @@
       "$ref": "https://json-schema.org/draft/2020-12/schema"
     },
     {
-      "$ref": "https://calm.finos.org/draft/2183/meta/timeline.json"
+      "$ref": "https://calm.finos.org/draft/2026-03/meta/timeline.json"
     }
   ]
 }
