@@ -1,16 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-    CalmArchitectureSchema,
-    CalmNodeSchema,
-    CalmRelationshipSchema,
-} from '@finos/calm-models/types';
+import { CalmArchitectureSchema, CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
 import { useDropzone } from 'react-dropzone';
 import { ReactFlowVisualizer } from '../reactflow/ReactFlowVisualizer.js';
 import { PatternVisualizer } from '../reactflow/PatternVisualizer.js';
 import { Sidebar } from '../sidebar/Sidebar.js';
 import { MetadataPanel } from '../reactflow/MetadataPanel.js';
 import { toSidebarNodeData, toSidebarEdgeData } from '../reactflow/utils/patternClickHandlers.js';
-import { THEME } from '../reactflow/theme.js';
 import type { DrawerProps, SelectedItem, Flow, Control } from '../../contracts/contracts.js';
 
 /**
@@ -21,8 +16,7 @@ function isPatternData(data: unknown): boolean {
     if (!data || typeof data !== 'object') return false;
     const obj = data as Record<string, unknown>;
     const props = obj['properties'] as Record<string, unknown> | undefined;
-    return !!(props?.['nodes'] && typeof props['nodes'] === 'object' &&
-        (props['nodes'] as Record<string, unknown>)['prefixItems']);
+    return !!(props?.['nodes'] && typeof props['nodes'] === 'object' && (props['nodes'] as Record<string, unknown>)['prefixItems']);
 }
 
 /**
@@ -37,7 +31,6 @@ export function Drawer({ data }: DrawerProps) {
     const [patternInstance, setPatternInstance] = useState<Record<string, unknown> | undefined>(undefined);
     const [fileInstance, setFileInstance] = useState<Record<string, unknown> | undefined>(undefined);
     const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
-    const [title, setTitle] = useState<string>('');
     // Default to collapsed as per user request
     const [isMetadataCollapsed, setIsMetadataCollapsed] = useState(true);
     // Height of the metadata panel when expanded (in pixels)
@@ -48,7 +41,6 @@ export function Drawer({ data }: DrawerProps) {
             const fileText = await acceptedFiles[0].text();
             const parsed = JSON.parse(fileText);
             setFileInstance(parsed);
-            setTitle(acceptedFiles[0].name);
         }
     }, []);
 
@@ -56,16 +48,10 @@ export function Drawer({ data }: DrawerProps) {
 
     useEffect(() => {
         const source = fileInstance ?? data?.data;
-        const isPattern = !!source && (
-            isPatternData(source) || (!fileInstance && data?.calmType === 'Patterns')
-        );
+        const isPattern = !!source && (isPatternData(source) || (!fileInstance && data?.calmType === 'Patterns'));
 
         setPatternInstance(isPattern ? (source as Record<string, unknown>) : undefined);
         setCALMInstance(isPattern ? undefined : (source as CalmArchitectureSchema | undefined));
-
-        if (data?.name && data?.id && data?.version) {
-            setTitle(`${data.name}/${data.id}/${data.version}`);
-        }
     }, [fileInstance, data]);
 
     // Extract flows from CALM data
@@ -76,7 +62,9 @@ export function Drawer({ data }: DrawerProps) {
 
     // Extract controls from CALM data (from root, nodes, and relationships)
     const controls = useMemo((): Record<string, Control> => {
-        const calmData = calmInstance as CalmArchitectureSchema & { controls?: Record<string, Control> };
+        const calmData = calmInstance as CalmArchitectureSchema & {
+            controls?: Record<string, Control>;
+        };
         if (!calmData) return {};
 
         const rootControls: Record<string, Control> = calmData.controls || {};
@@ -147,20 +135,26 @@ export function Drawer({ data }: DrawerProps) {
     }, []);
 
     // Handle transition click from flows panel - highlight the relationship
-    const handleTransitionClick = useCallback((relationshipId: string) => {
-        const relationship = calmInstance?.relationships?.find((r) => r['unique-id'] === relationshipId);
-        if (relationship) {
-            handleEdgeClick(relationship);
-        }
-    }, [calmInstance, handleEdgeClick]);
+    const handleTransitionClick = useCallback(
+        (relationshipId: string) => {
+            const relationship = calmInstance?.relationships?.find((r) => r['unique-id'] === relationshipId);
+            if (relationship) {
+                handleEdgeClick(relationship);
+            }
+        },
+        [calmInstance, handleEdgeClick]
+    );
 
     // Handle node click from controls panel
-    const handleControlNodeClick = useCallback((nodeId: string) => {
-        const node = calmInstance?.nodes?.find((n) => n['unique-id'] === nodeId);
-        if (node) {
-            handleNodeClick(node);
-        }
-    }, [calmInstance, handleNodeClick]);
+    const handleControlNodeClick = useCallback(
+        (nodeId: string) => {
+            const node = calmInstance?.nodes?.find((n) => n['unique-id'] === nodeId);
+            if (node) {
+                handleNodeClick(node);
+            }
+        },
+        [calmInstance, handleNodeClick]
+    );
 
     return (
         <div {...getRootProps()} className="flex-1 flex overflow-hidden h-full">
@@ -176,28 +170,11 @@ export function Drawer({ data }: DrawerProps) {
                 <div className="drawer-content h-full flex flex-col">
                     {hasContent ? (
                         <>
-                            {title && (
-                                <div
-                                    style={{
-                                        padding: '8px 16px',
-                                        borderBottom: `1px solid ${THEME.colors.border}`,
-                                        backgroundColor: THEME.colors.backgroundSecondary,
-                                        fontSize: '14px',
-                                        fontWeight: 500,
-                                        color: THEME.colors.foreground,
-                                        flexShrink: 0,
-                                    }}
-                                >
-                                    {title}
-                                </div>
-                            )}
                             <div
                                 style={{
                                     flex: 1,
                                     minHeight: 0,
-                                    ...(hasMetadata && !isMetadataCollapsed
-                                        ? { height: `calc(100% - ${metadataPanelHeight}px)` }
-                                        : {}),
+                                    ...(hasMetadata && !isMetadataCollapsed ? { height: `calc(100% - ${metadataPanelHeight}px)` } : {}),
                                 }}
                             >
                                 {patternInstance ? (
