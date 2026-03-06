@@ -4,6 +4,9 @@ import ReactDOM from 'react-dom/client';
 import ProtectedRoute from './ProtectedRoute.js';
 import { isAuthServiceEnabled, authService } from './authService.js';
 import App from './App.js';
+import { initThemeCssVars } from './theme/colors.js';
+
+initThemeCssVars();
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 
