@@ -1,6 +1,5 @@
 import { Info, Shield, ArrowRight } from 'lucide-react';
-import { THEME } from '../theme.js';
-import type { EdgeBadgeStyle, EdgeBadgeProps } from '../../../contracts/contracts.js';
+import type { EdgeBadgeProps } from '../../../contracts/contracts.js';
 
 export function EdgeBadge({
     hasFlowInfo,
@@ -35,26 +34,4 @@ export function EdgeBadge({
             )}
         </div>
     );
-}
-
-export function getBadgeStyle(hasFlowInfo: boolean, hasAIGF: boolean): EdgeBadgeStyle {
-    if (hasFlowInfo) {
-        return {
-            background: `${THEME.colors.accent}20`,
-            border: THEME.colors.accent,
-            iconColor: THEME.colors.accent,
-        };
-    }
-    if (hasAIGF) {
-        return {
-            background: `${THEME.colors.success}20`,
-            border: THEME.colors.success,
-            iconColor: THEME.colors.success,
-        };
-    }
-    return {
-        background: `${THEME.colors.muted}20`,
-        border: THEME.colors.muted,
-        iconColor: THEME.colors.muted,
-    };
 }
