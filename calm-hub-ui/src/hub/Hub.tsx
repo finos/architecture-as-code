@@ -23,6 +23,9 @@ export default function Hub() {
         setData(undefined);
     }
 
+    const memoizedDataLoad = useMemo(() => handleDataLoad, []);
+    const memoizedAdrLoad = useMemo(() => handleAdrLoad, []);
+
     return (
         <div className="flex flex-col h-screen overflow-hidden">
             <Navbar />
@@ -41,7 +44,7 @@ export default function Hub() {
                                     </button>
                                 </div>
                                 <div className="flex-1 min-h-0 overflow-hidden">
-                                    <TreeNavigation onDataLoad={useMemo(() => handleDataLoad, [])} onAdrLoad={useMemo(() => handleAdrLoad, [])} />
+                                    <TreeNavigation onDataLoad={memoizedDataLoad} onAdrLoad={memoizedAdrLoad} />
                                 </div>
                             </>
                         ) : (

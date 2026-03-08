@@ -17,13 +17,13 @@ import { Data, Adr } from '../../../model/calm.js';
 import { useNavigate, useParams } from 'react-router-dom';
 
 type HubParams = {
-    namespace?: string;
-    type?: 'Architectures' | 'Patterns' | 'Flows' | 'ADRs';
-    id?: string;
-    version?: string;
+    namespace: string;
+    type: 'Architectures' | 'Patterns' | 'Flows' | 'ADRs';
+    id: string;
+    version: string;
 };
 
-const basePath = '/artifacts';
+const basePath = '';
 
 interface TreeNavigationProps {
     onDataLoad: (data: Data) => void;
@@ -256,7 +256,7 @@ function loadResource(version: string, type: string, namespace: string, resource
 
 export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
     const navigate = useNavigate();
-    const params = useParams<HubParams>();
+    const params = useParams<HubParams>() as Required<HubParams>;
     
     const [namespaces, setNamespaces] = useState<string[]>([]);
     const [selectedNamespace, setSelectedNamespace] = useState<string>('');
@@ -278,46 +278,49 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
 
     useEffect(() => {
         fetchNamespaces(setNamespaces);
-        // Check if namespace exists
-        if (isNotNullOrEmptyString(params.namespace)) {
-            //Set selected namespace based on params
-            setSelectedNamespace(params.namespace);
-            // Check if resource type exists
-            if (isNotNullOrEmptyString(params.type)) {
-                //Set selected type based on params
-                setSelectedType(params.type);
-                //Load resource IDs for the selected type and namespace
-                loadResourceIds(params.type, params.namespace, setArchitectureIDs, setPatternIDs, setFlowIDs, adrService, setAdrIDs);
-                // Check if resource ID exists
-                if (isNotNullOrEmptyString(params.id)) {
-                    //Set selected resource ID based on params
-                    setSelectedResourceID(params.id);
-                    //Load versions for the selected resource ID, type, and namespace
-                    loadVersions(params.id, params.type, params.namespace, setArchitectureVersions, setPatternVersions, setFlowVersions, adrService, setAdrRevisions);
-                    // Check if version exists
-                    if (isNotNullOrEmptyString(params.version)) {
-                        //Set selected version based on params
-                        setSelectedVersion(params.version);
-                        //Load the resource data or ADR based on all params
-                        loadResource(params.version, params.type, params.namespace, params.id, onDataLoad, onAdrLoad, adrService);
-                    }
-                }
-            }
-        }
-        
+        //Set selected namespace based on params
+        setSelectedNamespace(params.namespace);
+        //Set selected type based on params
+        setSelectedType(params.type);
+        //Load resource IDs for the selected type and namespace
+        loadResourceIds(params.type, params.namespace, setArchitectureIDs, setPatternIDs, setFlowIDs, adrService, setAdrIDs);
+        //Set selected resource ID based on params
+        setSelectedResourceID(params.id);
+        //Load versions for the selected resource ID, type, and namespace
+        loadVersions(params.id, params.type, params.namespace, setArchitectureVersions, setPatternVersions, setFlowVersions, adrService, setAdrRevisions);
+        //Set selected version based on params
+        setSelectedVersion(params.version);
+        //Load the resource data or ADR based on all params
+        loadResource(params.version, params.type, params.namespace, params.id, onDataLoad, onAdrLoad, adrService);
     }, [params, adrService, onDataLoad, onAdrLoad]);
 
     const handleNamespaceClick = useCallback((namespace: string) => {
-        navigate(`${basePath}/${namespace}`);
-    }, [navigate]);
+        if (selectedNamespace === namespace) {
+            setSelectedNamespace('');
+        } else {
+            setSelectedNamespace(namespace);
+        }
+        setSelectedType('');
+        setSelectedResourceID('');
+        setSelectedVersion('');
+    }, [selectedNamespace]);
 
     const handleTypeClick = useCallback((type: string) => {
-        navigate(`${basePath}/${selectedNamespace}/${type}`);
-    }, [navigate, selectedNamespace]);
+        if (selectedType === type) {
+            setSelectedType('');
+        } else {
+            setSelectedType(type);
+            loadResourceIds(type, selectedNamespace, setArchitectureIDs, setPatternIDs, setFlowIDs, adrService, setAdrIDs);
+        }
+        setSelectedResourceID('');
+        setSelectedVersion('');
+    }, [selectedNamespace, selectedType, adrService]);
 
     const handleResourceClick = useCallback((resourceID: string, type: string) => {
-        navigate(`${basePath}/${selectedNamespace}/${type}/${resourceID}`);
-    }, [navigate, selectedNamespace]);
+        setSelectedResourceID(resourceID);
+        setSelectedVersion('');
+        loadVersions(resourceID, type, selectedNamespace, setArchitectureVersions, setPatternVersions, setFlowVersions, adrService, setAdrRevisions);
+    }, [selectedNamespace, adrService]);
 
     const handleVersionClick = useCallback((version: string, type: string) => {
         navigate(`${basePath}/${selectedNamespace}/${type}/${selectedResourceID}/${version}`);
