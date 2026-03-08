@@ -1,11 +1,6 @@
 import { FiExternalLink } from 'react-icons/fi';
-import { THEME } from '../theme';
-import type { ControlRequirement } from '../ControlsPanel';
-
-interface ControlRequirementItemProps {
-    requirement: ControlRequirement;
-    onNodeClick?: (nodeId: string) => void;
-}
+import { THEME } from '../theme.js';
+import type { ControlRequirementItemProps, ConfigSectionProps, AppliesToSectionProps } from '../../../contracts/contracts.js';
 
 export function ControlRequirementItem({ requirement, onNodeClick }: ControlRequirementItemProps) {
     return (
@@ -89,11 +84,6 @@ function ConfigLink({ url }: { url: string }) {
     );
 }
 
-interface ConfigSectionProps {
-    config: NonNullable<ControlRequirement['config']>;
-    onNodeClick?: (nodeId: string) => void;
-}
-
 function ConfigSection({ config, onNodeClick }: ConfigSectionProps) {
     const otherConfig = Object.fromEntries(
         Object.entries(config).filter(([key]) => key !== 'appliesTo')
@@ -133,11 +123,6 @@ function ConfigSection({ config, onNodeClick }: ConfigSectionProps) {
             </pre>
         </div>
     );
-}
-
-interface AppliesToSectionProps {
-    appliesTo: NonNullable<NonNullable<ControlRequirement['config']>['appliesTo']>;
-    onNodeClick?: (nodeId: string) => void;
 }
 
 function AppliesToSection({ appliesTo, onNodeClick }: AppliesToSectionProps) {

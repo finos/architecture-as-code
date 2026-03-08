@@ -2,22 +2,11 @@ import './index.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import ProtectedRoute from './ProtectedRoute.js';
-import { isAuthServiceEnabled, authService } from './authService.js';
+import { isAuthServiceEnabled } from './authService.js';
 import App from './App.js';
+import { LogoutButton } from './components/logout-button/LogoutButton.js';
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
-
-const LogoutButton: React.FC = () => {
-    const handleLogout = async () => {
-        await authService.logout();
-    };
-
-    return (
-        <button onClick={handleLogout} style={{ position: 'absolute', top: 10, right: 10 }}>
-            Logout
-        </button>
-    );
-};
 
 const isAuthenticationEnabled = isAuthServiceEnabled();
 

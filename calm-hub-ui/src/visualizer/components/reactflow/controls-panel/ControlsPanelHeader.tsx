@@ -1,9 +1,6 @@
 import { FiShield } from 'react-icons/fi';
-import { THEME } from '../theme';
-
-interface ControlsPanelHeaderProps {
-    controlCount: number;
-}
+import { THEME } from '../theme.js';
+import type { ControlsPanelHeaderProps } from '../../../contracts/contracts.js';
 
 export function ControlsPanelHeader({ controlCount }: ControlsPanelHeaderProps) {
     return (
