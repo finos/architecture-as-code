@@ -4,8 +4,8 @@
 }
 
 /*
- * Theme colors are defined in src/theme/colors.ts (TypeScript)
- * CSS styles below use hardcoded hex values matching that file.
+ * Brand colors (--color-primary, --color-accent, --color-accent-light)
+ * are set at runtime from src/theme/colors.ts via initThemeCssVars().
  */
 
 #root {

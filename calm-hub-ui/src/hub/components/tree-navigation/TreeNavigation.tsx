@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { IoCompassOutline } from 'react-icons/io5';
+import { IoCompassOutline, IoChevronBackOutline } from 'react-icons/io5';
 import {
     fetchNamespaces,
     fetchPatternIDs,
@@ -18,6 +18,7 @@ import { Data, Adr } from '../../../model/calm.js';
 interface TreeNavigationProps {
     onDataLoad: (data: Data) => void;
     onAdrLoad: (adr: Adr) => void;
+    onCollapse?: () => void;
 }
 
 interface VersionItemProps {
@@ -200,7 +201,7 @@ function NamespaceItem({
     );
 }
 
-export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
+export function TreeNavigation({ onDataLoad, onAdrLoad, onCollapse }: TreeNavigationProps) {
     const [namespaces, setNamespaces] = useState<string[]>([]);
     const [selectedNamespace, setSelectedNamespace] = useState<string>('');
     const [selectedType, setSelectedType] = useState<string>('');
@@ -318,11 +319,20 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
 
     return (
         <div className="h-full w-full flex flex-col">
-            <div className="bg-base-200 px-6 py-4 border-b border-base-300">
+            <div className="bg-base-200 px-6 py-4 border-b border-base-300 flex items-center justify-between">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
                     <IoCompassOutline className="text-accent" />
                     Explore
                 </h2>
+                {onCollapse && (
+                    <button
+                        aria-label="Collapse sidebar"
+                        className="btn btn-ghost btn-xs btn-circle"
+                        onClick={onCollapse}
+                    >
+                        <IoChevronBackOutline />
+                    </button>
+                )}
             </div>
 
             <div className="flex-1 overflow-auto p-4">
