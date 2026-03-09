@@ -8,12 +8,19 @@ vi.mock('./components/tree-navigation/TreeNavigation', () => ({
     TreeNavigation: ({
         onDataLoad,
         onAdrLoad,
+        onCollapse,
     }: {
         onDataLoad: (data: unknown) => void;
         onAdrLoad: (adr: unknown) => void;
+        onCollapse?: () => void;
     }) => (
         <div data-testid="tree-navigation">
             <div>Tree Navigation</div>
+            {onCollapse && (
+                <button aria-label="Collapse sidebar" onClick={onCollapse}>
+                    Collapse
+                </button>
+            )}
             <button
                 onClick={() =>
                     onDataLoad({
