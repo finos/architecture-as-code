@@ -16,14 +16,48 @@ import { AdrService } from '../../../service/adr-service/adr-service.js';
 import { Data, Adr } from '../../../model/calm.js';
 import { useNavigate, useParams } from 'react-router-dom';
 
+type TypeInUrl = 'architectures' | 'patterns' | 'flows' | 'adrs';
+type TypeInUI = 'Architectures' | 'Patterns' | 'Flows' | 'ADRs';
 type HubParams = {
     namespace: string;
-    type: 'Architectures' | 'Patterns' | 'Flows' | 'ADRs';
+    type: TypeInUrl;
     id: string;
     version: string;
 };
 
+interface LoadResourceIdsOptions {
+    type: string;
+    namespace: string;
+    setArchitectureIDs: (ids: string[]) => void;
+    setPatternIDs: (ids: string[]) => void;
+    setFlowIDs: (ids: string[]) => void;
+    adrService: AdrService;
+    setAdrIDs: (ids: string[]) => void;
+}
+
+interface LoadVersionsOptions {
+    resourceID: string;
+    type: string;
+    namespace: string;
+    setArchitectureVersions: (versions: string[]) => void;
+    setPatternVersions: (versions: string[]) => void;
+    setFlowVersions: (versions: string[]) => void;
+    adrService: AdrService;
+    setAdrRevisions: (revisions: string[]) => void;
+}
+
+interface LoadResourceOptions {
+    version: string;
+    type: string;
+    namespace: string;
+    resourceID: string;
+    onDataLoad: (data: Data) => void;
+    onAdrLoad: (adr: Adr) => void;
+    adrService: AdrService;
+}
+
 const basePath = '';
+const EMPTY_STR_VALUE = '';
 
 interface TreeNavigationProps {
     onDataLoad: (data: Data) => void;
@@ -70,6 +104,36 @@ interface NamespaceItemProps {
     onTypeClick: (type: string) => void;
     onResourceClick: (resourceID: string, type: string) => void;
     onVersionClick: (version: string, type: string) => void;
+}
+
+function mapTypeInUrlToTypeInUI(urlType: TypeInUrl): TypeInUI {
+    switch (urlType) {
+        case 'architectures':
+            return 'Architectures';
+        case 'patterns':
+            return 'Patterns';
+        case 'flows':
+            return 'Flows';
+        case 'adrs':
+            return 'ADRs';
+        default:
+            throw new Error(`Unhandled type: ${urlType}`);
+    }
+}
+
+function mapTypeInUIToTypeInUrl(uiType: TypeInUI): TypeInUrl {
+    switch (uiType) {
+        case 'Architectures':
+            return 'architectures';
+        case 'Patterns':
+            return 'patterns';
+        case 'Flows':
+            return 'flows';
+        case 'ADRs':
+            return 'adrs';
+        default:
+            throw new Error(`Unhandled type: ${uiType}`);
+    }
 }
 
 function VersionItem({ version, isSelected, onVersionClick }: VersionItemProps) {
@@ -210,11 +274,15 @@ function NamespaceItem({
     );
 }
 
-function isNotNullOrEmptyString(value: string | null | undefined): value is string {
-    return value !== null && value !== undefined && value !== '';
-}
-
-function loadResourceIds(type: string, namespace: string, setArchitectureIDs: (ids: string[]) => void, setPatternIDs: (ids: string[]) => void, setFlowIDs: (ids: string[]) => void, adrService: AdrService, setAdrIDs: (ids: string[]) => void) {
+function loadResourceIds({ 
+    type, 
+    namespace, 
+    setArchitectureIDs, 
+    setPatternIDs, 
+    setFlowIDs, 
+    adrService, 
+    setAdrIDs 
+}: LoadResourceIdsOptions) {
     if (type === 'Architectures') {
             fetchArchitectureIDs(namespace, setArchitectureIDs);
         } else if (type === 'Patterns') {
@@ -228,7 +296,16 @@ function loadResourceIds(type: string, namespace: string, setArchitectureIDs: (i
         }
 }
 
-function loadVersions(resourceID: string, type: string, namespace: string, setArchitectureVersions: (versions: string[]) => void, setPatternVersions: (versions: string[]) => void, setFlowVersions: (versions: string[]) => void, adrService: AdrService, setAdrRevisions: (revisions: string[]) => void) {
+function loadVersions({ 
+    resourceID, 
+    type, 
+    namespace, 
+    setArchitectureVersions, 
+    setPatternVersions, 
+    setFlowVersions, 
+    adrService, 
+    setAdrRevisions 
+}: LoadVersionsOptions) {
     if (type === 'Architectures') {
         fetchArchitectureVersions(namespace, resourceID, setArchitectureVersions);
     } else if (type === 'Patterns') {
@@ -242,7 +319,15 @@ function loadVersions(resourceID: string, type: string, namespace: string, setAr
     }
 }
 
-function loadResource(version: string, type: string, namespace: string, resourceID: string, onDataLoad: (data: Data) => void, onAdrLoad: (adr: Adr) => void, adrService: AdrService) {
+function loadResource({ 
+    version, 
+    type, 
+    namespace, 
+    resourceID, 
+    onDataLoad, 
+    onAdrLoad, 
+    adrService 
+}: LoadResourceOptions) {
     if (type === 'Architectures') {
         fetchArchitecture(namespace, resourceID, version, onDataLoad);
     } else if (type === 'Patterns') {
@@ -256,13 +341,13 @@ function loadResource(version: string, type: string, namespace: string, resource
 
 export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
     const navigate = useNavigate();
-    const params = useParams<HubParams>() as Required<HubParams>;
+    const params = useParams<HubParams>();
     
     const [namespaces, setNamespaces] = useState<string[]>([]);
-    const [selectedNamespace, setSelectedNamespace] = useState<string>('');
-    const [selectedType, setSelectedType] = useState<string>('');
-    const [selectedResourceID, setSelectedResourceID] = useState<string>('');
-    const [selectedVersion, setSelectedVersion] = useState<string>('');
+    const [selectedNamespace, setSelectedNamespace] = useState<string>(EMPTY_STR_VALUE);
+    const [selectedType, setSelectedType] = useState<string>(EMPTY_STR_VALUE);
+    const [selectedResourceID, setSelectedResourceID] = useState<string>(EMPTY_STR_VALUE);
+    const [selectedVersion, setSelectedVersion] = useState<string>(EMPTY_STR_VALUE);
 
     const [architectureIDs, setArchitectureIDs] = useState<string[]>([]);
     const [patternIDs, setPatternIDs] = useState<string[]>([]);
@@ -276,54 +361,92 @@ export function TreeNavigation({ onDataLoad, onAdrLoad }: TreeNavigationProps) {
 
     const adrService = useMemo(() => new AdrService(), []);
 
+    useEffect(() => { fetchNamespaces(setNamespaces); }, []);
+
     useEffect(() => {
-        fetchNamespaces(setNamespaces);
-        //Set selected namespace based on params
-        setSelectedNamespace(params.namespace);
-        //Set selected type based on params
-        setSelectedType(params.type);
-        //Load resource IDs for the selected type and namespace
-        loadResourceIds(params.type, params.namespace, setArchitectureIDs, setPatternIDs, setFlowIDs, adrService, setAdrIDs);
-        //Set selected resource ID based on params
-        setSelectedResourceID(params.id);
-        //Load versions for the selected resource ID, type, and namespace
-        loadVersions(params.id, params.type, params.namespace, setArchitectureVersions, setPatternVersions, setFlowVersions, adrService, setAdrRevisions);
-        //Set selected version based on params
-        setSelectedVersion(params.version);
-        //Load the resource data or ADR based on all params
-        loadResource(params.version, params.type, params.namespace, params.id, onDataLoad, onAdrLoad, adrService);
+        if (params.namespace && params.type && params.id && params.version) {
+            setSelectedNamespace(params.namespace);
+            setSelectedType(mapTypeInUrlToTypeInUI(params.type));
+            loadResourceIds({
+                type: mapTypeInUrlToTypeInUI(params.type),
+                namespace: params.namespace,
+                setArchitectureIDs,
+                setPatternIDs,
+                setFlowIDs,
+                adrService,
+                setAdrIDs,
+            });
+            setSelectedResourceID(params.id);
+            loadVersions({
+                resourceID: params.id,
+                type: mapTypeInUrlToTypeInUI(params.type),
+                namespace: params.namespace,
+                setArchitectureVersions,
+                setPatternVersions,
+                setFlowVersions,
+                adrService,
+                setAdrRevisions,
+            });
+            setSelectedVersion(params.version);
+            loadResource({
+                version: params.version,
+                type: mapTypeInUrlToTypeInUI(params.type),
+                namespace: params.namespace,
+                resourceID: params.id,
+                onDataLoad,
+                onAdrLoad,
+                adrService,
+            });
+        }
     }, [params, adrService, onDataLoad, onAdrLoad]);
 
     const handleNamespaceClick = useCallback((namespace: string) => {
         if (selectedNamespace === namespace) {
-            setSelectedNamespace('');
+            setSelectedNamespace(EMPTY_STR_VALUE);
         } else {
             setSelectedNamespace(namespace);
         }
-        setSelectedType('');
-        setSelectedResourceID('');
-        setSelectedVersion('');
+        setSelectedType(EMPTY_STR_VALUE);
+        setSelectedResourceID(EMPTY_STR_VALUE);
+        setSelectedVersion(EMPTY_STR_VALUE);
     }, [selectedNamespace]);
 
     const handleTypeClick = useCallback((type: string) => {
         if (selectedType === type) {
-            setSelectedType('');
+            setSelectedType(EMPTY_STR_VALUE);
         } else {
             setSelectedType(type);
-            loadResourceIds(type, selectedNamespace, setArchitectureIDs, setPatternIDs, setFlowIDs, adrService, setAdrIDs);
+            loadResourceIds({
+                type,
+                namespace: selectedNamespace,
+                setArchitectureIDs,
+                setPatternIDs,
+                setFlowIDs,
+                adrService,
+                setAdrIDs,
+            });
         }
-        setSelectedResourceID('');
-        setSelectedVersion('');
+        setSelectedResourceID(EMPTY_STR_VALUE);
+        setSelectedVersion(EMPTY_STR_VALUE);
     }, [selectedNamespace, selectedType, adrService]);
 
     const handleResourceClick = useCallback((resourceID: string, type: string) => {
         setSelectedResourceID(resourceID);
-        setSelectedVersion('');
-        loadVersions(resourceID, type, selectedNamespace, setArchitectureVersions, setPatternVersions, setFlowVersions, adrService, setAdrRevisions);
+        setSelectedVersion(EMPTY_STR_VALUE);
+        loadVersions({
+            resourceID,
+            type,
+            namespace: selectedNamespace,
+            setArchitectureVersions,
+            setPatternVersions,
+            setFlowVersions,
+            adrService,
+            setAdrRevisions,
+        });
     }, [selectedNamespace, adrService]);
 
     const handleVersionClick = useCallback((version: string, type: string) => {
-        navigate(`${basePath}/${selectedNamespace}/${type}/${selectedResourceID}/${version}`);
+        navigate(`${basePath}/${selectedNamespace}/${mapTypeInUIToTypeInUrl(type as TypeInUI)}/${selectedResourceID}/${version}`);
     }, [navigate, selectedNamespace, selectedResourceID]);
 
     const getResourceIDs = (type: string): string[] => {

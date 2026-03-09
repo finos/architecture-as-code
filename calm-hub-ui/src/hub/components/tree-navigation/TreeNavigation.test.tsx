@@ -89,7 +89,7 @@ describe('TreeNavigation', () => {
     it('loads data based on deeplink route - pattern', () => {
         vi.mocked(useParams).mockReturnValue({
             namespace: 'test-namespace',
-            type: 'Patterns',
+            type: 'patterns',
             id: 'pattern2',
             version: 'v2.0'
         });
@@ -119,7 +119,7 @@ describe('TreeNavigation', () => {
     it('loads data based on deeplink route - architecture', () => {
         vi.mocked(useParams).mockReturnValue({
             namespace: 'test-namespace',
-            type: 'Architectures',
+            type: 'architectures',
             id: '201',
             version: 'v2.0'
         });
@@ -149,7 +149,7 @@ describe('TreeNavigation', () => {
     it('loads data based on deeplink route - flow', () => {
         vi.mocked(useParams).mockReturnValue({
             namespace: 'test-namespace',
-            type: 'Flows',
+            type: 'flows',
             id: '201',
             version: 'v2.0'
         });
@@ -179,7 +179,7 @@ describe('TreeNavigation', () => {
     it('loads data based on deeplink route - ADR', async () => {
         vi.mocked(useParams).mockReturnValue({
             namespace: 'test-namespace',
-            type: 'ADRs',
+            type: 'adrs',
             id: '201',
             version: 'v2.0'
         });
