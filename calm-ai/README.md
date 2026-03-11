@@ -232,7 +232,7 @@ The template includes:
 - Enables easy addition of new providers via JSON config
 
 ### 4. CLI Integration
-- Integrated with `calm` CLI via `calm init-ai <provider>` command
+- Integrated with `calm` CLI via `calm init-ai -p <provider>` command
 - Automated setup reduces manual configuration
 - Ensures consistent prompt structure across projects
 
@@ -242,10 +242,10 @@ The template includes:
 
 ```bash
 # Initialize GitHub Copilot integration
-calm init-ai copilot
+calm init-ai -p copilot
 
 # Initialize AWS Kiro/Q integration
-calm init-ai kiro
+calm init-ai -p kiro
 ```
 
 This command:
@@ -281,7 +281,7 @@ Once initialized, AI assistants automatically:
    - `skillPrefix`, `skillSuffix`, `frontmatter`, `skillPrompts`
 3. Determine provider-specific delimiters and directory structure
 4. Update CLI to recognize the new provider
-5. Test generation with `calm init-ai <provider>`
+5. Test generation with `calm init-ai -p <provider>`
 
 ### Modifying the Template
 
