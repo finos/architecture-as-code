@@ -23,7 +23,7 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
 
     return (
         <div className="w-full h-full py-4 pl-2 pr-4">
-            <div className="h-full bg-base-100 rounded-2xl overflow-hidden flex flex-col shadow-xl">
+            <div className="h-full bg-base-100 rounded-box overflow-hidden flex flex-col shadow-xl">
                 <SectionHeader
                     icon={getIcon()}
                     namespace={data.name}

@@ -3,10 +3,9 @@ import { CalmArchitectureSchema, CalmNodeSchema, CalmRelationshipSchema } from '
 import { useDropzone } from 'react-dropzone';
 import { ReactFlowVisualizer } from '../reactflow/ReactFlowVisualizer.js';
 import { PatternVisualizer } from '../reactflow/PatternVisualizer.js';
-import { Sidebar } from '../sidebar/Sidebar.js';
 import { MetadataPanel } from '../reactflow/MetadataPanel.js';
 import { toSidebarNodeData, toSidebarEdgeData } from '../reactflow/utils/patternClickHandlers.js';
-import type { DrawerProps, SelectedItem, Flow, Control } from '../../contracts/contracts.js';
+import type { DrawerProps, Flow, Control } from '../../contracts/contracts.js';
 
 /**
  * Detect whether JSON data is a CALM pattern (JSON Schema) or an architecture instance.
@@ -26,11 +25,10 @@ function extractId(item: CalmNodeSchema | CalmRelationshipSchema): string {
     return item?.['unique-id'] || '';
 }
 
-export function Drawer({ data }: DrawerProps) {
+export function Drawer({ data, onItemSelect }: DrawerProps) {
     const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
     const [patternInstance, setPatternInstance] = useState<Record<string, unknown> | undefined>(undefined);
     const [fileInstance, setFileInstance] = useState<Record<string, unknown> | undefined>(undefined);
-    const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
     // Default to collapsed as per user request
     const [isMetadataCollapsed, setIsMetadataCollapsed] = useState(true);
     // Height of the metadata panel when expanded (in pixels)
@@ -114,25 +112,25 @@ export function Drawer({ data }: DrawerProps) {
     const hasContent = !!(calmInstance || patternInstance);
 
     const closeSidebar = useCallback(() => {
-        setSelectedItem(null);
-    }, []);
+        onItemSelect?.(null);
+    }, [onItemSelect]);
 
     // Pattern-specific click handlers
     const handlePatternNodeClick = useCallback((nodeData: Record<string, unknown>) => {
-        setSelectedItem({ data: toSidebarNodeData(nodeData) });
-    }, []);
+        onItemSelect?.({ data: toSidebarNodeData(nodeData) });
+    }, [onItemSelect]);
 
     const handlePatternEdgeClick = useCallback((edgeData: Record<string, unknown>) => {
-        setSelectedItem({ data: toSidebarEdgeData(edgeData) });
-    }, []);
+        onItemSelect?.({ data: toSidebarEdgeData(edgeData) });
+    }, [onItemSelect]);
 
     const handleNodeClick = useCallback((nodeData: CalmNodeSchema) => {
-        setSelectedItem({ data: toSidebarNodeData(nodeData as Record<string, unknown>) });
-    }, []);
+        onItemSelect?.({ data: toSidebarNodeData(nodeData as Record<string, unknown>) });
+    }, [onItemSelect]);
 
     const handleEdgeClick = useCallback((edgeData: CalmRelationshipSchema) => {
-        setSelectedItem({ data: toSidebarEdgeData(edgeData as Record<string, unknown>) });
-    }, []);
+        onItemSelect?.({ data: toSidebarEdgeData(edgeData as Record<string, unknown>) });
+    }, [onItemSelect]);
 
     // Handle transition click from flows panel - highlight the relationship
     const handleTransitionClick = useCallback(
@@ -157,77 +155,65 @@ export function Drawer({ data }: DrawerProps) {
     );
 
     return (
-        <div {...getRootProps()} className="flex-1 flex overflow-hidden h-full">
+        <div {...getRootProps()} className="flex-1 flex flex-col overflow-hidden h-full">
             {!hasContent && <input {...getInputProps()} />}
-            <div className={`drawer drawer-end ${selectedItem ? 'drawer-open' : ''} w-full h-full`}>
-                <input
-                    type="checkbox"
-                    aria-label="drawer-toggle"
-                    className="drawer-toggle"
-                    checked={!!selectedItem}
-                    onChange={closeSidebar}
-                />
-                <div className="drawer-content h-full flex flex-col">
-                    {hasContent ? (
-                        <>
-                            <div
-                                style={{
-                                    flex: 1,
-                                    minHeight: 0,
-                                    ...(hasMetadata && !isMetadataCollapsed ? { height: `calc(100% - ${metadataPanelHeight}px)` } : {}),
-                                }}
-                            >
-                                {patternInstance ? (
-                                    <PatternVisualizer
-                                        patternData={patternInstance}
-                                        onNodeClick={handlePatternNodeClick}
-                                        onEdgeClick={handlePatternEdgeClick}
-                                        onBackgroundClick={closeSidebar}
-                                    />
-                                ) : calmInstance ? (
-                                    <ReactFlowVisualizer
-                                        calmData={calmInstance}
-                                        onNodeClick={handleNodeClick}
-                                        onEdgeClick={handleEdgeClick}
-                                        onBackgroundClick={closeSidebar}
-                                    />
-                                ) : null}
-                            </div>
-                            {hasMetadata && !patternInstance && (
-                                <div
-                                    style={{
-                                        height: isMetadataCollapsed ? '48px' : `${metadataPanelHeight}px`,
-                                        flexShrink: 0,
-                                    }}
-                                >
-                                    <MetadataPanel
-                                        flows={flows}
-                                        controls={controls}
-                                        onTransitionClick={handleTransitionClick}
-                                        onNodeClick={handleControlNodeClick}
-                                        isCollapsed={isMetadataCollapsed}
-                                        onToggleCollapse={() => setIsMetadataCollapsed(!isMetadataCollapsed)}
-                                        height={metadataPanelHeight}
-                                        onHeightChange={setMetadataPanelHeight}
-                                    />
-                                </div>
-                            )}
-                        </>
-                    ) : (
-                        <div className="flex justify-center items-center h-full w-full">
-                            {isDragActive ? (
-                                <p>Drop your file here ...</p>
-                            ) : (
-                                <p>
-                                    {'Drag and drop your file here or '}
-                                    <span className="border-b border-dotted border-black pb-1">Browse</span>
-                                </p>
-                            )}
+            {hasContent ? (
+                <>
+                    <div
+                        style={{
+                            flex: 1,
+                            minHeight: 0,
+                            ...(hasMetadata && !isMetadataCollapsed ? { height: `calc(100% - ${metadataPanelHeight}px)` } : {}),
+                        }}
+                    >
+                        {patternInstance ? (
+                            <PatternVisualizer
+                                patternData={patternInstance}
+                                onNodeClick={handlePatternNodeClick}
+                                onEdgeClick={handlePatternEdgeClick}
+                                onBackgroundClick={closeSidebar}
+                            />
+                        ) : calmInstance ? (
+                            <ReactFlowVisualizer
+                                calmData={calmInstance}
+                                onNodeClick={handleNodeClick}
+                                onEdgeClick={handleEdgeClick}
+                                onBackgroundClick={closeSidebar}
+                            />
+                        ) : null}
+                    </div>
+                    {hasMetadata && !patternInstance && (
+                        <div
+                            style={{
+                                height: isMetadataCollapsed ? '48px' : `${metadataPanelHeight}px`,
+                                flexShrink: 0,
+                            }}
+                        >
+                            <MetadataPanel
+                                flows={flows}
+                                controls={controls}
+                                onTransitionClick={handleTransitionClick}
+                                onNodeClick={handleControlNodeClick}
+                                isCollapsed={isMetadataCollapsed}
+                                onToggleCollapse={() => setIsMetadataCollapsed(!isMetadataCollapsed)}
+                                height={metadataPanelHeight}
+                                onHeightChange={setMetadataPanelHeight}
+                            />
                         </div>
                     )}
+                </>
+            ) : (
+                <div className="flex justify-center items-center h-full w-full">
+                    {isDragActive ? (
+                        <p>Drop your file here ...</p>
+                    ) : (
+                        <p>
+                            {'Drag and drop your file here or '}
+                            <span className="border-b border-dotted border-black pb-1">Browse</span>
+                        </p>
+                    )}
                 </div>
-                {selectedItem && <Sidebar selectedData={selectedItem.data} closeSidebar={closeSidebar} />}
-            </div>
+            )}
         </div>
     );
 }

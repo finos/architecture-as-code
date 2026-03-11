@@ -343,7 +343,7 @@ function loadResource({
 export function TreeNavigation({ onDataLoad, onAdrLoad, onCollapse }: TreeNavigationProps) {
     const navigate = useNavigate();
     const params = useParams<HubParams>();
-    
+
     const [namespaces, setNamespaces] = useState<string[]>([]);
     const [selectedNamespace, setSelectedNamespace] = useState<string>(EMPTY_STR_VALUE);
     const [selectedType, setSelectedType] = useState<string>(EMPTY_STR_VALUE);
