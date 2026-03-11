@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
-import { EdgeBadge, getBadgeStyle } from './EdgeBadge';
-import { THEME } from '../theme';
+import { EdgeBadge } from './EdgeBadge.js';
+import { getBadgeStyle } from '../utils/edgeBadge.utils.js';
+import { THEME } from '../theme.js';
 
 describe('EdgeBadge', () => {
     const mockOnMouseEnter = vi.fn();
