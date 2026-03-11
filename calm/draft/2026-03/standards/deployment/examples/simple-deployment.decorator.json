@@ -15,7 +15,7 @@
         "start-time": "2026-02-23T10:00:00Z",
         "end-time": "2026-02-23T10:05:30Z",
         "status": "completed",
-        "observability": "https://grafana.example.com/d/web-service-prod",
+        "deployment-details": "https://grafana.example.com/d/web-service-prod",
         "notes": "Initial production deployment with baseline configuration"
     }
 }

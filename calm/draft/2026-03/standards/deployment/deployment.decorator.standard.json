@@ -48,7 +48,7 @@
                             ],
                             "description": "Current status of the deployment"
                         },
-                        "observability": {
+                        "deployment-details": {
                             "type": "string",
                             "format": "uri",
                             "description": "URI linking to deployment logs, metrics, dashboards, or observability platform"

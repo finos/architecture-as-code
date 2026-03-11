@@ -16,7 +16,7 @@
         "start-time": "2026-02-23T14:30:00Z",
         "end-time": "2026-02-23T14:42:15Z",
         "status": "completed",
-        "observability": "https://grafana.example.com/d/platform-services",
+        "deployment-details": "https://grafana.example.com/d/platform-services",
         "notes": "Rolling update with new authentication features",
         "kubernetes": {
             "helm-chart-version": "2.1.0",

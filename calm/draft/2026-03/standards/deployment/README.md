@@ -4,7 +4,7 @@ This directory contains standardized deployment decorator schemas for tracking d
 
 ## Overview
 
-Deployment decorators attach deployment tracking information to architecture elements without modifying the core architecture definition. They enable tracking of deployment status, timing, observability links, and platform-specific details across the architecture lifecycle.
+Deployment decorators attach deployment tracking information to architecture elements without modifying the core architecture definition. They enable tracking of deployment status, timing, deployment details links, and platform-specific details across the architecture lifecycle.
 
 ## Base Deployment Decorator
 
@@ -14,7 +14,7 @@ The base deployment decorator standard (`deployment.decorator.standard.json`) de
 - **status**: Current deployment status (pending, in-progress, completed, failed, rolled-back) (required)
 - **target-type**: Type of resources this decorator targets - must be ["architecture"] (required)
 - **end-time**: ISO 8601 timestamp of when the deployment completed or failed
-- **observability**: URI linking to logs, metrics, or observability dashboards
+- **deployment-details**: URI linking to logs, metrics, or observability dashboards
 - **notes**: Free-form notes or comments about the deployment
 
 ## Platform-Specific Extensions
@@ -42,7 +42,7 @@ Platform-specific deployment decorators extend the base deployment standard and 
     "start-time": "2026-02-23T10:00:00Z",
     "end-time": "2026-02-23T10:05:00Z",
     "status": "completed",
-    "observability": "https://grafana.example.com/d/api-service",
+    "deployment-details": "https://grafana.example.com/d/api-service",
     "notes": "Successful deployment with zero downtime"
   }
 }
@@ -62,7 +62,7 @@ Platform-specific deployment decorators extend the base deployment standard and 
     "start-time": "2026-02-23T10:00:00Z",
     "end-time": "2026-02-23T10:08:00Z",
     "status": "completed",
-    "observability": "https://grafana.example.com/d/k8s-prod",
+    "deployment-details": "https://grafana.example.com/d/k8s-prod",
     "notes": "Rolling update with new features",
     "kubernetes": {
       "helm-chart-version": "1.2.3",
