@@ -58,3 +58,10 @@ export type {
     TransitionContentProps,
     AIGFGovernanceSectionProps,
 } from './flows-panel-contracts.js';
+
+export type HubParams = {
+    namespace?: string;
+    type?: 'Architectures' | 'Patterns' | 'Flows' | 'ADRs';
+    id?: string;
+    version?: string;
+};

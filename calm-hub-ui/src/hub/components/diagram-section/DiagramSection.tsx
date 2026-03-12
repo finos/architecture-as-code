@@ -4,9 +4,12 @@ import { Data } from '../../../model/calm.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
 import { SectionHeader } from '../section-header/SectionHeader.js';
+import type { SelectedItem } from '../../../visualizer/contracts/contracts.js';
 
 interface DiagramSectionProps {
     data: Data & { calmType: 'Architectures' | 'Patterns' };
+    onItemSelect?: (item: SelectedItem) => void;
+    hasDetailsPanel?: boolean;
 }
 
 const iconMap = {
@@ -14,7 +17,7 @@ const iconMap = {
     Patterns: IoGridOutline,
 } as const;
 
-export function DiagramSection({ data }: DiagramSectionProps) {
+export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramSectionProps) {
     const [activeTab, setActiveTab] = useState<'diagram' | 'json'>('diagram');
 
     const Icon = iconMap[data.calmType];
@@ -41,8 +44,8 @@ export function DiagramSection({ data }: DiagramSectionProps) {
     );
 
     return (
-        <div className="w-full h-full py-4 pl-2 pr-4">
-            <div className="h-full bg-base-100 rounded-2xl overflow-hidden flex flex-col shadow-xl">
+        <div className={`w-full h-full py-4 pl-2 ${hasDetailsPanel ? 'pr-2' : 'pr-4'}`}>
+            <div className="h-full bg-base-100 rounded-box overflow-hidden flex flex-col shadow-xl">
                 <SectionHeader
                     icon={<Icon className="text-accent" />}
                     namespace={data.name}
@@ -54,7 +57,7 @@ export function DiagramSection({ data }: DiagramSectionProps) {
                 <div className="flex-1 min-h-0 overflow-hidden">
                     {activeTab === 'diagram' ? (
                         <div className="w-full h-full">
-                            <Drawer data={data} />
+                            <Drawer data={data} onItemSelect={onItemSelect} />
                         </div>
                     ) : (
                         <div className="h-full bg-base-200 overflow-auto">

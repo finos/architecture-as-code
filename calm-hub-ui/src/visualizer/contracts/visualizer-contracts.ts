@@ -14,6 +14,7 @@ import { Data } from '../../model/calm.js';
  */
 export interface DrawerProps {
     data?: Data;
+    onItemSelect?: (item: SelectedItem) => void;
 }
 
 /**
