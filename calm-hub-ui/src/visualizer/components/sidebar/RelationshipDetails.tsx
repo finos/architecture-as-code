@@ -23,6 +23,79 @@ function getRelTypeInfo(relType: ReturnType<typeof extractRelationshipType>) {
     return { kind: 'unknown', icon: ArrowRight, color: '#94a3b8' };
 }
 
+function LabeledValue({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="bg-base-200 rounded-lg px-3 py-2">
+            <span className="text-xs text-base-content/50 font-medium">{label}</span>
+            <p className="text-xs font-mono font-semibold text-base-content mt-0.5">{value}</p>
+        </div>
+    );
+}
+
+function ContainerWithNodes({ title, containerLabel, container, nodesLabel, nodes }: {
+    title: string;
+    containerLabel: string;
+    container: string;
+    nodesLabel: string;
+    nodes: string[];
+}) {
+    return (
+        <Section title={title}>
+            <div className="flex flex-col gap-2">
+                <LabeledValue label={containerLabel} value={container} />
+                <NodeList label={nodesLabel} nodes={nodes} />
+            </div>
+        </Section>
+    );
+}
+
+function RelationshipTypeSection({ relType }: { relType: NonNullable<ReturnType<typeof extractRelationshipType>> }) {
+    if ('connects' in relType && relType.connects) {
+        return (
+            <Section title="Connection">
+                <ConnectionDiagram nodes={[
+                    relType.connects.source?.node || '?',
+                    relType.connects.destination?.node || '?',
+                ]} />
+            </Section>
+        );
+    }
+    if ('interacts' in relType && relType.interacts) {
+        return (
+            <ContainerWithNodes
+                title="Interaction"
+                containerLabel="Actor"
+                container={relType.interacts.actor}
+                nodesLabel="Interacts with"
+                nodes={relType.interacts.nodes || []}
+            />
+        );
+    }
+    if ('deployed-in' in relType && relType['deployed-in']) {
+        return (
+            <ContainerWithNodes
+                title="Deployment"
+                containerLabel="Container"
+                container={relType['deployed-in'].container}
+                nodesLabel="Deployed nodes"
+                nodes={relType['deployed-in'].nodes || []}
+            />
+        );
+    }
+    if ('composed-of' in relType && relType['composed-of']) {
+        return (
+            <ContainerWithNodes
+                title="Composition"
+                containerLabel="Container"
+                container={relType['composed-of'].container}
+                nodesLabel="Composed of"
+                nodes={relType['composed-of'].nodes || []}
+            />
+        );
+    }
+    return null;
+}
+
 export function RelationshipDetails({ data }: { data: CalmRelationshipSchema }) {
     const relType = extractRelationshipType(data);
     const { kind, icon: RelIcon, color } = getRelTypeInfo(relType);
@@ -53,58 +126,7 @@ export function RelationshipDetails({ data }: { data: CalmRelationshipSchema }) 
                 <p className="text-xs text-base-content/40 font-mono">{data['unique-id']}</p>
             </div>
 
-            {relType && 'connects' in relType && relType.connects && (
-                <Section title="Connection">
-                    <ConnectionDiagram
-                        nodes={[
-                            relType.connects.source?.node || '?',
-                            relType.connects.destination?.node || '?',
-                        ]}
-                    />
-                </Section>
-            )}
-
-            {relType && 'interacts' in relType && relType.interacts && (
-                <Section title="Interaction">
-                    <div className="flex flex-col gap-2">
-                        <div className="bg-base-200 rounded-lg px-3 py-2">
-                            <span className="text-xs text-base-content/50 font-medium">Actor</span>
-                            <p className="text-xs font-mono font-semibold text-base-content mt-0.5">
-                                {relType.interacts.actor}
-                            </p>
-                        </div>
-                        <NodeList label="Interacts with" nodes={relType.interacts.nodes || []} />
-                    </div>
-                </Section>
-            )}
-
-            {relType && 'deployed-in' in relType && relType['deployed-in'] && (
-                <Section title="Deployment">
-                    <div className="flex flex-col gap-2">
-                        <div className="bg-base-200 rounded-lg px-3 py-2">
-                            <span className="text-xs text-base-content/50 font-medium">Container</span>
-                            <p className="text-xs font-mono font-semibold text-base-content mt-0.5">
-                                {relType['deployed-in'].container}
-                            </p>
-                        </div>
-                        <NodeList label="Deployed nodes" nodes={relType['deployed-in'].nodes || []} />
-                    </div>
-                </Section>
-            )}
-
-            {relType && 'composed-of' in relType && relType['composed-of'] && (
-                <Section title="Composition">
-                    <div className="flex flex-col gap-2">
-                        <div className="bg-base-200 rounded-lg px-3 py-2">
-                            <span className="text-xs text-base-content/50 font-medium">Container</span>
-                            <p className="text-xs font-mono font-semibold text-base-content mt-0.5">
-                                {relType['composed-of'].container}
-                            </p>
-                        </div>
-                        <NodeList label="Composed of" nodes={relType['composed-of'].nodes || []} />
-                    </div>
-                </Section>
-            )}
+            {relType && <RelationshipTypeSection relType={relType} />}
 
             <PropertiesSection properties={extraProps} />
             <ControlsSection controls={controls} />
