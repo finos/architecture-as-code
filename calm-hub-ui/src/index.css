@@ -10,6 +10,7 @@
 
 #root {
     height: 100vh;
+
     --radius-box: 0.5rem; /* or whatever value you prefer */
 }
 
