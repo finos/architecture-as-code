@@ -41,4 +41,15 @@ describe('calmhub-document-loader', () => {
 
         await expect(calmHubDocumentLoader.loadMissingDocument(calmHubUrl, 'schema')).rejects.toThrow();
     });
+
+    it('normalizes path traversal sequences', async () => {
+        const traversalUrl = 'calm:/schemas/2025-03/../../schemas/2025-03/meta/core.json';
+        const document = await calmHubDocumentLoader.loadMissingDocument(traversalUrl, 'schema');
+        expect(document).toEqual({
+            '$id': 'https://calm.finos.org/calm/schemas/2025-03/meta/core.json',
+            'value': 'test'
+        });
+        const lastRequest = mock.history.get[mock.history.get.length - 1];
+        expect(lastRequest.url).toBe('/schemas/2025-03/meta/core.json');
+    });
 });
