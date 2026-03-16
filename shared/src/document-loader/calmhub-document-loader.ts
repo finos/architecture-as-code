@@ -53,10 +53,13 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         }
         const path = url.pathname;
 
-        this.logger.debug(`Loading CALM schema from ${this.calmHubUrl}${path}`);
+        // Normalize the path to prevent directory traversal attacks
+        const normalizedPath = new URL(path, this.calmHubUrl).pathname;
+
+        this.logger.debug(`Loading CALM schema from ${this.calmHubUrl}${normalizedPath}`);
 
         // TODO gracefully handle 404s and other errors
-        const response = await this.ax.get(path);
+        const response = await this.ax.get(normalizedPath);
         const document = response.data;
         this.logger.debug('Successfully loaded document from CALMHub with id ' + documentId);
         return document;
