@@ -2,6 +2,7 @@ package org.finos.calm.resources;
 
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import org.finos.calm.domain.Decorator;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.DecoratorStore;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
@@ -237,5 +239,121 @@ public class TestDecoratorResourceShould {
                 .statusCode(400);
 
         verify(decoratorStore, never()).getDecoratorsForNamespace(any(), any(), any());
+    }
+
+    @Test
+    void return_decorator_by_id_when_exists() throws NamespaceNotFoundException {
+        String namespace = "test-namespace";
+        int decoratorId = 123;
+        Decorator decorator = new Decorator();
+        decorator.setTarget(List.of("test-target"));
+        decorator.setType("test-type");
+
+        when(decoratorStore.getDecoratorById(namespace, decoratorId)).thenReturn(Optional.of(decorator));
+
+        given()
+                .when().get("/calm/namespaces/{namespace}/decorators/{id}", namespace, decoratorId)
+                .then()
+                .statusCode(200)
+                .body("target[0]", equalTo("test-target"))
+                .body("type", equalTo("test-type"));
+    }
+
+    @Test
+    void return_404_when_decorator_id_does_not_exist() throws NamespaceNotFoundException {
+        String namespace = "test-namespace";
+        int decoratorId = 999;
+
+        when(decoratorStore.getDecoratorById(namespace, decoratorId)).thenReturn(Optional.empty());
+
+        given()
+                .when().get("/calm/namespaces/{namespace}/decorators/{id}", namespace, decoratorId)
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void return_404_when_namespace_does_not_exist_for_decorator_by_id() throws NamespaceNotFoundException {
+        String namespace = "non-existent-namespace";
+        int decoratorId = 123;
+
+        when(decoratorStore.getDecoratorById(namespace, decoratorId)).thenThrow(new NamespaceNotFoundException());
+
+        given()
+                .when().get("/calm/namespaces/{namespace}/decorators/{id}", namespace, decoratorId)
+                .then()
+                .statusCode(404)
+                .body(containsString("Invalid namespace provided: non-existent-namespace"));
+    }
+
+    @Test
+    void return_400_when_getting_by_id_with_invalid_namespace() {
+        String invalidNamespace = "invalid namespace";
+        int decoratorId = 123;
+
+        given()
+                .when().get("/calm/namespaces/{namespace}/decorators/{id}", invalidNamespace, decoratorId)
+                .then()
+                .statusCode(400)
+                .body(containsString("namespace must match pattern"));
+    }
+
+    @Test
+    void return_404_when_getting_by_id_with_invalid_id_format() {
+        String namespace = "test-namespace";
+        String invalidId = "invalid-id";
+
+        given()
+                .when().get("/calm/namespaces/{namespace}/decorators/{id}", namespace, invalidId)
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void return_400_when_id_is_zero() {
+        given()
+                .when().get("/calm/namespaces/test-namespace/decorators/0")
+                .then()
+                .statusCode(400)
+                .body(containsString("ID must be a positive integer"));
+    }
+
+    @Test
+    void return_400_when_id_is_negative() {
+        given()
+                .when().get("/calm/namespaces/test-namespace/decorators/-1")
+                .then()
+                .statusCode(400)
+                .body(containsString("ID must be a positive integer"));
+    }
+
+    @Test
+    void return_400_when_id_exceeds_max_value() {
+        given()
+                .when().get("/calm/namespaces/test-namespace/decorators/1000000000")
+                .then()
+                .statusCode(400)
+                .body(containsString("ID must not exceed 999999999"));
+    }
+
+    @Test
+    void accept_id_at_max_boundary() throws NamespaceNotFoundException {
+        int maxId = 999_999_999;
+        when(decoratorStore.getDecoratorById("test-namespace", maxId)).thenReturn(Optional.empty());
+
+        given()
+                .when().get("/calm/namespaces/test-namespace/decorators/999999999")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void accept_id_at_min_boundary() throws NamespaceNotFoundException {
+        when(decoratorStore.getDecoratorById("test-namespace", 1)).thenReturn(Optional.empty());
+
+        given()
+                .when().get("/calm/namespaces/test-namespace/decorators/1")
+                .then()
+                .statusCode(404);
     }
 }

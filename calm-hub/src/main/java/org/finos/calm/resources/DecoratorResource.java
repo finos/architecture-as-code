@@ -1,6 +1,8 @@
 package org.finos.calm.resources;
 
 import jakarta.inject.Inject;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import jakarta.ws.rs.GET;
@@ -11,6 +13,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.finos.calm.domain.Decorator;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
@@ -19,6 +22,8 @@ import org.finos.calm.store.DecoratorStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.finos.calm.resources.ResourceValidationConstants.MAX_ID_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.MAX_ID_VALUE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.QUERY_PARAM_NO_WHITESPACE_MESSAGE;
@@ -63,6 +68,35 @@ public class DecoratorResource {
             return Response.ok(new ValueWrapper<>(decoratorStore.getDecoratorsForNamespace(namespace, target, type))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving decorators", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        }
+    }
+
+    /**
+     * Retrieve a decorator by its ID in a given namespace
+     *
+     * @param namespace the namespace to retrieve decorators for
+     * @param id the id of the decorator
+     * @return a decorator
+     */
+    @GET
+    @Path("{namespace}/decorators/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Retrieve a decorator by its ID in a given namespace",
+            description = "A decorator stored in a given namespace"
+    )
+    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    public Response getDecoratorById(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("id") @Min(value = 1, message = "ID must be a positive integer") @Max(value = MAX_ID_VALUE, message = MAX_ID_MESSAGE) int id
+    ) {
+        try {
+            return decoratorStore.getDecoratorById(namespace, id)
+                    .map(decorator -> Response.ok(decorator).build())
+                    .orElse(Response.status(Response.Status.NOT_FOUND).build());
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when retrieving decorator with id [{}]", namespace, id, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         }
     }
