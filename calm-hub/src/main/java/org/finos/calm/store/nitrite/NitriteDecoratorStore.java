@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
@@ -84,23 +85,17 @@ public class NitriteDecoratorStore implements DecoratorStore {
         return decorators.stream()
                 .filter(decoratorDoc -> Integer.valueOf(id).equals(decoratorDoc.get(DECORATOR_ID_FIELD, Integer.class)))
                 .map(decoratorDoc -> decoratorDoc.get("decorator", Document.class))
-                .map(this::toDecorator)
+                .filter(Objects::nonNull)
+                .map(doc -> new Decorator.DecoratorBuilder()
+                        .setSchema(doc.get("$schema", String.class))
+                        .setUniqueId(doc.get("unique-id", String.class))
+                        .setType(doc.get("type", String.class))
+                        .setTarget((List<String>) doc.get("target"))
+                        .setTargetType((List<String>) doc.get("target-type"))
+                        .setAppliesTo((List<String>) doc.get("applies-to"))
+                        .setData(doc.get("data"))
+                        .build())
                 .findFirst();
-    }
-
-    private Decorator toDecorator(Document document) {
-        if (document == null) {
-            return null;
-        }
-        Decorator decorator = new Decorator();
-        decorator.setSchema(document.get("$schema", String.class));
-        decorator.setUniqueId(document.get("unique-id", String.class));
-        decorator.setType(document.get("type", String.class));
-        decorator.setTarget((List<String>) document.get("target"));
-        decorator.setTargetType((List<String>) document.get("target-type"));
-        decorator.setAppliesTo((List<String>) document.get("applies-to"));
-        decorator.setData(document.get("data"));
-        return decorator;
     }
 
     /**

@@ -14,8 +14,8 @@ import static org.hamcrest.Matchers.nullValue;
 public class TestDecoratorShould {
 
     @Test
-    void return_null_for_all_fields_when_constructed_with_no_args() {
-        Decorator decorator = new Decorator();
+    void return_null_for_all_fields_when_built_with_no_values() {
+        Decorator decorator = new Decorator.DecoratorBuilder().build();
 
         assertThat(decorator.getSchema(), is(nullValue()));
         assertThat(decorator.getUniqueId(), is(nullValue()));
@@ -28,14 +28,15 @@ public class TestDecoratorShould {
 
     @Test
     void return_set_values_for_all_fields() {
-        Decorator decorator = new Decorator();
-        decorator.setSchema("https://calm.finos.org/schemas/2024-01/decorator.json");
-        decorator.setUniqueId("finos-arch-deployment-1");
-        decorator.setType("deployment");
-        decorator.setTarget(List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"));
-        decorator.setTargetType(List.of("architecture"));
-        decorator.setAppliesTo(List.of("node-1", "node-2"));
-        decorator.setData("some-data");
+        Decorator decorator = new Decorator.DecoratorBuilder()
+                .setSchema("https://calm.finos.org/schemas/2024-01/decorator.json")
+                .setUniqueId("finos-arch-deployment-1")
+                .setType("deployment")
+                .setTarget(List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"))
+                .setTargetType(List.of("architecture"))
+                .setAppliesTo(List.of("node-1", "node-2"))
+                .setData("some-data")
+                .build();
 
         assertThat(decorator.getSchema(), equalTo("https://calm.finos.org/schemas/2024-01/decorator.json"));
         assertThat(decorator.getUniqueId(), equalTo("finos-arch-deployment-1"));
@@ -57,8 +58,15 @@ public class TestDecoratorShould {
     @Test
     void not_be_equal_when_type_differs() {
         Decorator a = buildFullDecorator();
-        Decorator b = buildFullDecorator();
-        b.setType("observability");
+        Decorator b = new Decorator.DecoratorBuilder()
+                .setSchema("https://calm.finos.org/schemas/2024-01/decorator.json")
+                .setUniqueId("finos-arch-deployment-1")
+                .setType("observability")
+                .setTarget(List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"))
+                .setTargetType(List.of("architecture"))
+                .setAppliesTo(List.of("node-1"))
+                .setData("some-data")
+                .build();
 
         assertThat(a, not(equalTo(b)));
     }
@@ -66,8 +74,15 @@ public class TestDecoratorShould {
     @Test
     void not_be_equal_when_unique_id_differs() {
         Decorator a = buildFullDecorator();
-        Decorator b = buildFullDecorator();
-        b.setUniqueId("different-id");
+        Decorator b = new Decorator.DecoratorBuilder()
+                .setSchema("https://calm.finos.org/schemas/2024-01/decorator.json")
+                .setUniqueId("different-id")
+                .setType("deployment")
+                .setTarget(List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"))
+                .setTargetType(List.of("architecture"))
+                .setAppliesTo(List.of("node-1"))
+                .setData("some-data")
+                .build();
 
         assertThat(a, not(equalTo(b)));
     }
@@ -93,8 +108,15 @@ public class TestDecoratorShould {
     @Test
     void have_different_hash_code_when_not_equal() {
         Decorator a = buildFullDecorator();
-        Decorator b = buildFullDecorator();
-        b.setUniqueId("different-id");
+        Decorator b = new Decorator.DecoratorBuilder()
+                .setSchema("https://calm.finos.org/schemas/2024-01/decorator.json")
+                .setUniqueId("different-id")
+                .setType("deployment")
+                .setTarget(List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"))
+                .setTargetType(List.of("architecture"))
+                .setAppliesTo(List.of("node-1"))
+                .setData("some-data")
+                .build();
 
         assertThat(a.hashCode(), not(equalTo(b.hashCode())));
     }
@@ -115,26 +137,28 @@ public class TestDecoratorShould {
 
     @Test
     void be_equal_when_optional_fields_are_null() {
-        Decorator a = new Decorator();
-        a.setType("deployment");
-        a.setTarget(List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"));
+        Decorator a = new Decorator.DecoratorBuilder()
+                .setType("deployment")
+                .setTarget(List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"))
+                .build();
 
-        Decorator b = new Decorator();
-        b.setType("deployment");
-        b.setTarget(List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"));
+        Decorator b = new Decorator.DecoratorBuilder()
+                .setType("deployment")
+                .setTarget(List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"))
+                .build();
 
         assertThat(a, equalTo(b));
     }
 
     private Decorator buildFullDecorator() {
-        Decorator decorator = new Decorator();
-        decorator.setSchema("https://calm.finos.org/schemas/2024-01/decorator.json");
-        decorator.setUniqueId("finos-arch-deployment-1");
-        decorator.setType("deployment");
-        decorator.setTarget(List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"));
-        decorator.setTargetType(List.of("architecture"));
-        decorator.setAppliesTo(List.of("node-1"));
-        decorator.setData("some-data");
-        return decorator;
+        return new Decorator.DecoratorBuilder()
+                .setSchema("https://calm.finos.org/schemas/2024-01/decorator.json")
+                .setUniqueId("finos-arch-deployment-1")
+                .setType("deployment")
+                .setTarget(List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"))
+                .setTargetType(List.of("architecture"))
+                .setAppliesTo(List.of("node-1"))
+                .setData("some-data")
+                .build();
     }
 }

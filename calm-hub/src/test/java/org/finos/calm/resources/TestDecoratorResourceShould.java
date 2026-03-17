@@ -245,9 +245,10 @@ public class TestDecoratorResourceShould {
     void return_decorator_by_id_when_exists() throws NamespaceNotFoundException {
         String namespace = "test-namespace";
         int decoratorId = 123;
-        Decorator decorator = new Decorator();
-        decorator.setTarget(List.of("test-target"));
-        decorator.setType("test-type");
+        Decorator decorator = new Decorator.DecoratorBuilder()
+                .setTarget(List.of("test-target"))
+                .setType("test-type")
+                .build();
 
         when(decoratorStore.getDecoratorById(namespace, decoratorId)).thenReturn(Optional.of(decorator));
 

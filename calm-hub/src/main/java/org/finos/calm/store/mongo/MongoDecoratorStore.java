@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -73,23 +74,9 @@ public class MongoDecoratorStore implements DecoratorStore {
         return decorators.stream()
                 .filter(decoratorDoc -> Integer.valueOf(id).equals(decoratorDoc.getInteger("decoratorId")))
                 .map(decoratorDoc -> decoratorDoc.get("decorator", Document.class))
-                .map(this::toDecorator)
+                .filter(Objects::nonNull)
+                .map(Decorator::fromDocument)
                 .findFirst();
-    }
-
-    private Decorator toDecorator(Document document) {
-        if (document == null) {
-            return null;
-        }
-        Decorator decorator = new Decorator();
-        decorator.setSchema(document.getString("$schema"));
-        decorator.setUniqueId(document.getString("unique-id"));
-        decorator.setType(document.getString("type"));
-        decorator.setTarget(document.getList("target", String.class));
-        decorator.setTargetType(document.getList("target-type", String.class));
-        decorator.setAppliesTo(document.getList("applies-to", String.class));
-        decorator.setData(document.get("data"));
-        return decorator;
     }
 
     /**

@@ -1,152 +1,60 @@
 package org.finos.calm.domain;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
  * Represents a decorator in the CALM system.
  * A decorator contains metadata and properties that can be applied to architectures or other elements.
+ *
+ * <p>Immutable</p>
  */
 public class Decorator {
-    private String schema;
-    private String uniqueId;
-    private String type;
-    private List<String> target;
-    private List<String> targetType;
-    private List<String> appliesTo;
-    private Object data;
+    private final String schema;
+    private final String uniqueId;
+    private final String type;
+    private final List<String> target;
+    private final List<String> targetType;
+    private final List<String> appliesTo;
+    private final Object data;
 
-    public Decorator() {
+    private Decorator(DecoratorBuilder builder) {
+        this.schema = builder.schema;
+        this.uniqueId = builder.uniqueId;
+        this.type = builder.type;
+        this.target = builder.target;
+        this.targetType = builder.targetType;
+        this.appliesTo = builder.appliesTo;
+        this.data = builder.data;
     }
 
-    /**
-     * Returns the JSON schema identifier for this decorator.
-     *
-     * @return the schema URI string, or null if not set
-     */
     public String getSchema() {
         return schema;
     }
 
-    /**
-     * Sets the JSON schema identifier for this decorator.
-     *
-     * @param schema the schema URI string
-     */
-    public void setSchema(String schema) {
-        this.schema = schema;
-    }
-
-    /**
-     * Returns the unique identifier of this decorator.
-     *
-     * @return the unique identifier, or null if not set
-     */
     public String getUniqueId() {
         return uniqueId;
     }
 
-    /**
-     * Sets the unique identifier of this decorator.
-     *
-     * @param uniqueId the unique identifier
-     */
-    public void setUniqueId(String uniqueId) {
-        this.uniqueId = uniqueId;
-    }
-
-    /**
-     * Returns the type of this decorator (e.g. "deployment").
-     *
-     * @return the decorator type, or null if not set
-     */
     public String getType() {
         return type;
     }
 
-    /**
-     * Sets the type of this decorator (e.g. "deployment").
-     *
-     * @param type the decorator type
-     */
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    /**
-     * Returns the list of targets this decorator applies to.
-     * Each entry is a path to a CALM Hub resource, e.g. {@code /calm/namespaces/finos/architectures/1/versions/1-0-0}.
-     *
-     * @return the list of target paths, or null if not set
-     */
     public List<String> getTarget() {
         return target;
     }
 
-    /**
-     * Sets the list of targets this decorator applies to.
-     *
-     * @param target the list of target paths
-     */
-    public void setTarget(List<String> target) {
-        this.target = target;
-    }
-
-    /**
-     * Returns the list of target types this decorator can be applied to (e.g. "architecture", "pattern").
-     * This field is optional.
-     *
-     * @return the list of target types, or null if not set
-     */
     public List<String> getTargetType() {
         return targetType;
     }
 
-    /**
-     * Sets the list of target types this decorator can be applied to.
-     *
-     * @param targetType the list of target type strings
-     */
-    public void setTargetType(List<String> targetType) {
-        this.targetType = targetType;
-    }
-
-    /**
-     * Returns the list of node IDs within a target that this decorator applies to.
-     * This field is optional.
-     *
-     * @return the list of node identifiers, or null if not set
-     */
     public List<String> getAppliesTo() {
         return appliesTo;
     }
 
-    /**
-     * Sets the list of node IDs within a target that this decorator applies to.
-     *
-     * @param appliesTo the list of node identifiers
-     */
-    public void setAppliesTo(List<String> appliesTo) {
-        this.appliesTo = appliesTo;
-    }
-
-    /**
-     * Returns the decorator-specific data payload.
-     * The structure of this object depends on the decorator type.
-     *
-     * @return the data payload, or null if not set
-     */
     public Object getData() {
         return data;
-    }
-
-    /**
-     * Sets the decorator-specific data payload.
-     *
-     * @param data the data payload
-     */
-    public void setData(Object data) {
-        this.data = data;
     }
 
     @Override
@@ -178,5 +86,70 @@ public class Decorator {
                 ", appliesTo=" + appliesTo +
                 ", data=" + data +
                 '}';
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Decorator fromDocument(Map<String, Object> document) {
+        if (document == null) {
+            return null;
+        }
+        return new DecoratorBuilder()
+                .setSchema((String) document.get("$schema"))
+                .setUniqueId((String) document.get("unique-id"))
+                .setType((String) document.get("type"))
+                .setTarget((List<String>) document.get("target"))
+                .setTargetType((List<String>) document.get("target-type"))
+                .setAppliesTo((List<String>) document.get("applies-to"))
+                .setData(document.get("data"))
+                .build();
+    }
+
+    public static class DecoratorBuilder {
+        private String schema;
+        private String uniqueId;
+        private String type;
+        private List<String> target;
+        private List<String> targetType;
+        private List<String> appliesTo;
+        private Object data;
+
+        public DecoratorBuilder setSchema(String schema) {
+            this.schema = schema;
+            return this;
+        }
+
+        public DecoratorBuilder setUniqueId(String uniqueId) {
+            this.uniqueId = uniqueId;
+            return this;
+        }
+
+        public DecoratorBuilder setType(String type) {
+            this.type = type;
+            return this;
+        }
+
+        public DecoratorBuilder setTarget(List<String> target) {
+            this.target = target;
+            return this;
+        }
+
+        public DecoratorBuilder setTargetType(List<String> targetType) {
+            this.targetType = targetType;
+            return this;
+        }
+
+        public DecoratorBuilder setAppliesTo(List<String> appliesTo) {
+            this.appliesTo = appliesTo;
+            return this;
+        }
+
+        public DecoratorBuilder setData(Object data) {
+            this.data = data;
+            return this;
+        }
+
+        public Decorator build() {
+            return new Decorator(this);
+        }
     }
 }
