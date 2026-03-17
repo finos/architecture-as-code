@@ -1,7 +1,6 @@
 package org.finos.calm.resources;
 
 import jakarta.inject.Inject;
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -22,8 +21,6 @@ import org.finos.calm.store.DecoratorStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.finos.calm.resources.ResourceValidationConstants.MAX_ID_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.MAX_ID_VALUE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.QUERY_PARAM_NO_WHITESPACE_MESSAGE;
@@ -89,12 +86,12 @@ public class DecoratorResource {
     @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
     public Response getDecoratorById(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("id") @Min(value = 1, message = "ID must be a positive integer") @Max(value = MAX_ID_VALUE, message = MAX_ID_MESSAGE) int id
+            @PathParam("id") @Min(value = 1, message = "ID must be a positive integer") int id
     ) {
         try {
             return decoratorStore.getDecoratorById(namespace, id)
                     .map(decorator -> Response.ok(decorator).build())
-                    .orElse(Response.status(Response.Status.NOT_FOUND).build());
+                    .orElse(CalmResourceErrorResponses.decoratorNotFoundResponse(namespace, id));
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving decorator with id [{}]", namespace, id, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);

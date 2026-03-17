@@ -269,7 +269,8 @@ public class TestDecoratorResourceShould {
         given()
                 .when().get("/calm/namespaces/{namespace}/decorators/{id}", namespace, decoratorId)
                 .then()
-                .statusCode(404);
+                .statusCode(404)
+                .body(containsString("Decorator with ID 999 does not exist in namespace: test-namespace"));
     }
 
     @Test
@@ -328,23 +329,15 @@ public class TestDecoratorResourceShould {
     }
 
     @Test
-    void return_400_when_id_exceeds_max_value() {
-        given()
-                .when().get("/calm/namespaces/test-namespace/decorators/1000000000")
-                .then()
-                .statusCode(400)
-                .body(containsString("ID must not exceed 999999999"));
-    }
-
-    @Test
-    void accept_id_at_max_boundary() throws NamespaceNotFoundException {
-        int maxId = 999_999_999;
+    void accept_id_at_max_int_boundary() throws NamespaceNotFoundException {
+        int maxId = Integer.MAX_VALUE;
         when(decoratorStore.getDecoratorById("test-namespace", maxId)).thenReturn(Optional.empty());
 
         given()
-                .when().get("/calm/namespaces/test-namespace/decorators/999999999")
+                .when().get("/calm/namespaces/test-namespace/decorators/2147483647")
                 .then()
-                .statusCode(404);
+                .statusCode(404)
+                .body(containsString("Decorator with ID 2147483647 does not exist in namespace: test-namespace"));
     }
 
     @Test
@@ -354,6 +347,7 @@ public class TestDecoratorResourceShould {
         given()
                 .when().get("/calm/namespaces/test-namespace/decorators/1")
                 .then()
-                .statusCode(404);
+                .statusCode(404)
+                .body(containsString("Decorator with ID 1 does not exist in namespace: test-namespace"));
     }
 }
