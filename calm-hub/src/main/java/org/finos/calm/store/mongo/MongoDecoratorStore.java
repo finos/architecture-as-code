@@ -13,10 +13,11 @@ import org.finos.calm.store.DecoratorStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * MongoDB implementation of DecoratorStore.
@@ -26,6 +27,7 @@ import java.util.Optional;
 public class MongoDecoratorStore implements DecoratorStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDecoratorStore.class);
+    private static final String DECORATOR_ID_FIELD = "decoratorId";
     private final MongoCollection<Document> decoratorCollection;
     private final MongoNamespaceStore namespaceStore;
 
@@ -55,6 +57,28 @@ public class MongoDecoratorStore implements DecoratorStore {
         LOG.debug("Retrieved {} decorators for namespace '{}' with filters (target: {}, type: {})", 
                 decoratorIds.size(), namespace, target, type);
         return decoratorIds;
+    }
+
+    @Override
+    public List<Decorator> getDecoratorValuesForNamespace(String namespace, String target, String type) throws NamespaceNotFoundException {
+        validateNamespace(namespace);
+
+        Document namespaceDocument = fetchNamespaceDocument(namespace);
+        if (namespaceDocument == null || namespaceDocument.isEmpty()) {
+            LOG.debug("No decorators found for namespace '{}'", namespace);
+            return List.of();
+        }
+
+        List<Document> decorators = extractDecorators(namespaceDocument, namespace);
+        if (decorators.isEmpty()) {
+            return List.of();
+        }
+
+        List<Decorator> decoratorValues = filterDecoratorsToValues(decorators, target, type);
+
+        LOG.debug("Retrieved {} decorator values for namespace '{}' with filters (target: {}, type: {})",
+                decoratorValues.size(), namespace, target, type);
+        return decoratorValues;
     }
 
     @Override
@@ -108,27 +132,28 @@ public class MongoDecoratorStore implements DecoratorStore {
         return decorators;
     }
 
-    /**
-     * Filters decorators based on target and type criteria
-     */
-    private List<Integer> filterDecorators(List<Document> decorators, String target, String type) {
-        List<Integer> decoratorIds = new ArrayList<>();
-        
-        for (Document decoratorDoc : decorators) {
-            Integer decoratorId = decoratorDoc.getInteger("decoratorId");
-            if (decoratorId == null) {
-                continue;
-            }
+    private Stream<Document> streamWithValidId(List<Document> decorators) {
+        return decorators.stream()
+                .filter(doc -> doc.getInteger(DECORATOR_ID_FIELD) != null);
+    }
 
-            Document decorator = decoratorDoc.get("decorator", Document.class);
-            if (decorator != null && matchesFilters(decorator, target, type)) {
-                decoratorIds.add(decoratorId);
-            } else if (decorator == null) {
-                decoratorIds.add(decoratorId);
-            }
-        }
-        
-        return decoratorIds;
+    private List<Integer> filterDecorators(List<Document> decorators, String target, String type) {
+        return streamWithValidId(decorators)
+                .filter(doc -> {
+                    Document decorator = doc.get("decorator", Document.class);
+                    return decorator == null || matchesFilters(decorator, target, type);
+                })
+                .map(doc -> doc.getInteger(DECORATOR_ID_FIELD))
+                .collect(Collectors.toList());
+    }
+
+    private List<Decorator> filterDecoratorsToValues(List<Document> decorators, String target, String type) {
+        return streamWithValidId(decorators)
+                .map(doc -> doc.get("decorator", Document.class))
+                .filter(Objects::nonNull)
+                .filter(decorator -> matchesFilters(decorator, target, type))
+                .map(Decorator::fromDocument)
+                .collect(Collectors.toList());
     }
 
     /**

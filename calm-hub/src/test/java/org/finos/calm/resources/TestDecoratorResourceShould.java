@@ -351,4 +351,142 @@ public class TestDecoratorResourceShould {
                 .statusCode(404)
                 .body(containsString("Decorator with ID 1 does not exist in namespace: test-namespace"));
     }
+
+    @Test
+    void return_decorator_values_when_namespace_exists() throws NamespaceNotFoundException {
+        Decorator decorator = new Decorator.DecoratorBuilder()
+                .setTarget(List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"))
+                .setType("deployment")
+                .build();
+        when(decoratorStore.getDecoratorValuesForNamespace("finos", null, null))
+                .thenReturn(List.of(decorator));
+
+        given()
+                .when()
+                .get("/calm/namespaces/finos/decorators/values")
+                .then()
+                .statusCode(200)
+                .body("values[0].type", equalTo("deployment"))
+                .body("values[0].target[0]", equalTo("/calm/namespaces/finos/architectures/1/versions/1-0-0"));
+
+        verify(decoratorStore, times(1)).getDecoratorValuesForNamespace("finos", null, null);
+    }
+
+    @Test
+    void return_empty_list_of_values_when_namespace_has_no_decorators() throws NamespaceNotFoundException {
+        when(decoratorStore.getDecoratorValuesForNamespace("empty-namespace", null, null))
+                .thenReturn(List.of());
+
+        given()
+                .when()
+                .get("/calm/namespaces/empty-namespace/decorators/values")
+                .then()
+                .statusCode(200)
+                .body(equalTo("{\"values\":[]}"));
+
+        verify(decoratorStore, times(1)).getDecoratorValuesForNamespace("empty-namespace", null, null);
+    }
+
+    @Test
+    void return_decorator_values_filtered_by_target() throws NamespaceNotFoundException {
+        String target = "/calm/namespaces/finos/architectures/1/versions/1-0-0";
+        Decorator decorator = new Decorator.DecoratorBuilder()
+                .setTarget(List.of(target))
+                .setType("deployment")
+                .build();
+        when(decoratorStore.getDecoratorValuesForNamespace("finos", target, null))
+                .thenReturn(List.of(decorator));
+
+        given()
+                .queryParam("target", target)
+                .when()
+                .get("/calm/namespaces/finos/decorators/values")
+                .then()
+                .statusCode(200)
+                .body("values[0].type", equalTo("deployment"));
+
+        verify(decoratorStore, times(1)).getDecoratorValuesForNamespace("finos", target, null);
+    }
+
+    @Test
+    void return_decorator_values_filtered_by_type() throws NamespaceNotFoundException {
+        Decorator decorator = new Decorator.DecoratorBuilder()
+                .setType("deployment")
+                .build();
+        when(decoratorStore.getDecoratorValuesForNamespace("finos", null, "deployment"))
+                .thenReturn(List.of(decorator));
+
+        given()
+                .queryParam("type", "deployment")
+                .when()
+                .get("/calm/namespaces/finos/decorators/values")
+                .then()
+                .statusCode(200)
+                .body("values[0].type", equalTo("deployment"));
+
+        verify(decoratorStore, times(1)).getDecoratorValuesForNamespace("finos", null, "deployment");
+    }
+
+    @Test
+    void return_decorator_values_filtered_by_target_and_type() throws NamespaceNotFoundException {
+        String target = "/calm/namespaces/finos/architectures/1/versions/1-0-0";
+        Decorator decorator = new Decorator.DecoratorBuilder()
+                .setTarget(List.of(target))
+                .setType("deployment")
+                .build();
+        when(decoratorStore.getDecoratorValuesForNamespace("finos", target, "deployment"))
+                .thenReturn(List.of(decorator));
+
+        given()
+                .queryParam("target", target)
+                .queryParam("type", "deployment")
+                .when()
+                .get("/calm/namespaces/finos/decorators/values")
+                .then()
+                .statusCode(200)
+                .body("values[0].type", equalTo("deployment"));
+
+        verify(decoratorStore, times(1)).getDecoratorValuesForNamespace("finos", target, "deployment");
+    }
+
+    @Test
+    void return_404_when_namespace_does_not_exist_for_decorator_values() throws NamespaceNotFoundException {
+        when(decoratorStore.getDecoratorValuesForNamespace("invalid-namespace", null, null))
+                .thenThrow(new NamespaceNotFoundException());
+
+        given()
+                .when()
+                .get("/calm/namespaces/invalid-namespace/decorators/values")
+                .then()
+                .statusCode(404)
+                .body(containsString("Invalid namespace provided: invalid-namespace"));
+
+        verify(decoratorStore, times(1)).getDecoratorValuesForNamespace("invalid-namespace", null, null);
+    }
+
+    @Test
+    void return_400_when_namespace_has_invalid_characters_for_decorator_values() throws NamespaceNotFoundException {
+        given()
+                .when()
+                .get("/calm/namespaces/invalid@namespace/decorators/values")
+                .then()
+                .statusCode(400)
+                .body(containsString("namespace must match pattern"));
+
+        verify(decoratorStore, never()).getDecoratorValuesForNamespace(any(), any(), any());
+    }
+
+    @Test
+    void return_400_when_values_query_params_exceed_max_length() throws NamespaceNotFoundException {
+        String longTarget = "a".repeat(501);
+
+        given()
+                .queryParam("target", longTarget)
+                .when()
+                .get("/calm/namespaces/finos/decorators/values")
+                .then()
+                .statusCode(400);
+
+        verify(decoratorStore, never()).getDecoratorValuesForNamespace(any(), any(), any());
+    }
 }
