@@ -161,5 +161,7 @@ function canonicalizeIPv6(addr: string): string | null {
     }
 
     if (groups.length !== 8) return null;
+    // Validate each group is a valid hextet
+    if (!groups.every(g => /^[0-9a-f]{1,4}$/i.test(g))) return null;
     return groups.map(g => g.padStart(4, '0')).join(':');
 }
