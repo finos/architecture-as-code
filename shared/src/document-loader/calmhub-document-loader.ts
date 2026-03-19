@@ -56,9 +56,10 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         if (documentId.includes('/..')) {
             throw new Error(`CalmHubDocumentLoader rejected path containing directory traversal in: ${documentId}`);
         }
-        // Reconstruct a safe path from validated segments to prevent SSRF
+        // Reconstruct a safe path from validated segments to prevent SSRF.
+        // Decode first since URL.pathname is already percent-encoded, then re-encode to normalize.
         const segments = url.pathname.split('/').filter(s => s.length > 0);
-        const safePath = '/' + segments.map(s => encodeURIComponent(s)).join('/');
+        const safePath = '/' + segments.map(s => encodeURIComponent(decodeURIComponent(s))).join('/');
 
         this.logger.debug(`Loading CALM schema from ${this.calmHubUrl}${safePath}`);
 

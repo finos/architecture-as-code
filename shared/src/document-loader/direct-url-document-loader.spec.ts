@@ -48,6 +48,7 @@ describe('direct-url-document-loader', () => {
 
     it.each([
         'http://localhost/secret',
+        'http://localhost./secret',
         'http://127.0.0.1/secret',
         'http://10.0.0.1/secret',
         'http://172.16.0.1/secret',
@@ -56,6 +57,8 @@ describe('direct-url-document-loader', () => {
         'http://0.0.0.0/secret',
         'http://[::1]/secret',
         'http://[fe80::1]/secret',
+        'http://[fe91::1]/secret',
+        'http://[febf::1]/secret',
         'http://[fc00::1]/secret',
         'http://[fd12::1]/secret',
     ])('rejects private/internal network URL: %s', async (url) => {

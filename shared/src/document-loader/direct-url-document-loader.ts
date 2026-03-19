@@ -57,7 +57,7 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                 });
             }
             const safeUrl = parsedUrl.protocol + '//' + parsedUrl.host + parsedUrl.pathname + parsedUrl.search;
-            const response = await this.ax.get(safeUrl);
+            const response = await this.ax.get(safeUrl, { maxRedirects: 0 });
             return response.data;
         } catch (error) {
             if (error instanceof DocumentLoadError) {
@@ -82,10 +82,11 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
 // Note: This is a string-based check and does not protect against DNS rebinding
 // (hostnames that resolve to private IPs). For stronger protection, consider
 // resolving the hostname and validating the resolved IP addresses.
-const PRIVATE_HOST_PATTERN = /^(localhost|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|0\.0\.0\.0|::1|fe80:.*|fc[0-9a-f]{2}:.*|fd[0-9a-f]{2}:.*)$/i;
+// IPv6 link-local is fe80::/10 (fe80:: through febf::), ULA is fc00::/7 (fc00:: through fdff::).
+const PRIVATE_HOST_PATTERN = /^(localhost|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|0\.0\.0\.0|::1|fe[89ab][0-9a-f]:.*|fc[0-9a-f]{2}:.*|fd[0-9a-f]{2}:.*)$/i;
 
 function isPrivateHost(hostname: string): boolean {
-    // URL.hostname wraps IPv6 addresses in brackets (e.g. "[::1]"); strip them for matching
-    const normalized = hostname.replace(/^\[|\]$/g, '');
+    // URL.hostname wraps IPv6 in brackets (e.g. "[::1]"); strip them and trailing dots for matching
+    const normalized = hostname.replace(/^\[|\]$/g, '').replace(/\.$/, '');
     return PRIVATE_HOST_PATTERN.test(normalized);
 }
