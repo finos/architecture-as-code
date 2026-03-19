@@ -79,8 +79,13 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
     }
 }
 
-const PRIVATE_HOST_PATTERN = /^(localhost|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|0\.0\.0\.0|\[::1\]|\[fe80:.*\]|\[fc.*\]|\[fd.*\])$/i;
+// Note: This is a string-based check and does not protect against DNS rebinding
+// (hostnames that resolve to private IPs). For stronger protection, consider
+// resolving the hostname and validating the resolved IP addresses.
+const PRIVATE_HOST_PATTERN = /^(localhost|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|0\.0\.0\.0|::1|fe80:.*|fc[0-9a-f]{2}:.*|fd[0-9a-f]{2}:.*)$/i;
 
 function isPrivateHost(hostname: string): boolean {
-    return PRIVATE_HOST_PATTERN.test(hostname);
+    // URL.hostname wraps IPv6 addresses in brackets (e.g. "[::1]"); strip them for matching
+    const normalized = hostname.replace(/^\[|\]$/g, '');
+    return PRIVATE_HOST_PATTERN.test(normalized);
 }
