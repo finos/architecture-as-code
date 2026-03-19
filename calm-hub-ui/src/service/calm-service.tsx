@@ -30,7 +30,7 @@ export async function fetchPatternIDs(
 ) {
     try {
         const headers = await getAuthHeaders();
-        const res = await fetch(`/calm/namespaces/${namespace}/patterns`, {
+        const res = await fetch(`/calm/namespaces/${encodeURIComponent(namespace)}/patterns`, {
             method: 'GET',
             headers,
         });
@@ -47,7 +47,7 @@ export async function fetchPatternIDs(
 export async function fetchFlowIDs(namespace: string, setFlowIDs: (flowIDs: string[]) => void) {
     try {
         const headers = await getAuthHeaders();
-        const res = await fetch(`/calm/namespaces/${namespace}/flows`, {
+        const res = await fetch(`/calm/namespaces/${encodeURIComponent(namespace)}/flows`, {
             method: 'GET',
             headers,
         });
@@ -68,7 +68,7 @@ export async function fetchPatternVersions(
 ) {
     try {
         const headers = await getAuthHeaders();
-        const res = await fetch(`/calm/namespaces/${namespace}/patterns/${patternID}/versions`, {
+        const res = await fetch(`/calm/namespaces/${encodeURIComponent(namespace)}/patterns/${encodeURIComponent(patternID)}/versions`, {
             method: 'GET',
             headers,
         });
@@ -89,7 +89,7 @@ export async function fetchFlowVersions(
 ) {
     try {
         const headers = await getAuthHeaders();
-        const res = await fetch(`/calm/namespaces/${namespace}/flows/${flowID}/versions`, {
+        const res = await fetch(`/calm/namespaces/${encodeURIComponent(namespace)}/flows/${encodeURIComponent(flowID)}/versions`, {
             method: 'GET',
             headers,
         });
@@ -112,7 +112,7 @@ export async function fetchPattern(
     try {
         const headers = await getAuthHeaders();
         const res = await fetch(
-            `/calm/namespaces/${namespace}/patterns/${patternID}/versions/${version}`,
+            `/calm/namespaces/${encodeURIComponent(namespace)}/patterns/${encodeURIComponent(patternID)}/versions/${encodeURIComponent(version)}`,
             {
                 method: 'GET',
                 headers,
@@ -147,7 +147,7 @@ export async function fetchFlow(
     try {
         const headers = await getAuthHeaders();
         const res = await fetch(
-            `/calm/namespaces/${namespace}/flows/${flowID}/versions/${version}`,
+            `/calm/namespaces/${encodeURIComponent(namespace)}/flows/${encodeURIComponent(flowID)}/versions/${encodeURIComponent(version)}`,
             {
                 method: 'GET',
                 headers,
@@ -179,7 +179,7 @@ export async function fetchArchitectureIDs(
 ) {
     try {
         const headers = await getAuthHeaders();
-        const res = await fetch(`/calm/namespaces/${namespace}/architectures`, {
+        const res = await fetch(`/calm/namespaces/${encodeURIComponent(namespace)}/architectures`, {
             method: 'GET',
             headers,
         });
@@ -201,7 +201,7 @@ export async function fetchArchitectureVersions(
     try {
         const headers = await getAuthHeaders();
         const res = await fetch(
-            `/calm/namespaces/${namespace}/architectures/${architectureID}/versions`,
+            `/calm/namespaces/${encodeURIComponent(namespace)}/architectures/${encodeURIComponent(architectureID)}/versions`,
             {
                 method: 'GET',
                 headers,
@@ -226,7 +226,7 @@ export async function fetchArchitecture(
     try {
         const headers = await getAuthHeaders();
         const res = await fetch(
-            `/calm/namespaces/${namespace}/architectures/${architectureID}/versions/${version}`,
+            `/calm/namespaces/${encodeURIComponent(namespace)}/architectures/${encodeURIComponent(architectureID)}/versions/${encodeURIComponent(version)}`,
             {
                 method: 'GET',
                 headers,
