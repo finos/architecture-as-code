@@ -54,7 +54,7 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         // The URL constructor normalizes '..' segments, so url.pathname is already resolved.
         // Reject if the original input contained traversal sequences before normalization,
         // including percent-encoded variants (%2e%2e, %2e., .%2e).
-        if (documentId.includes('/..') || /(%2e(\.|%2e)|\.%2e)/i.test(documentId)) {
+        if (documentId.includes('/..') || /(%2e(\.|%2e)|\.%2e|%2f|%5c|%25)/i.test(documentId)) {
             throw new Error(`CalmHubDocumentLoader rejected path containing directory traversal in: ${documentId}`);
         }
         // Reconstruct a safe path from validated segments to prevent SSRF.
@@ -68,7 +68,8 @@ export class CalmHubDocumentLoader implements DocumentLoader {
             }
         });
         // Reject traversal in decoded segments (catches percent-encoded variants like %2e%2e)
-        if (decodedSegments.some(s => s === '..' || s === '.')) {
+        // Also reject segments containing path separators to prevent encoded-slash traversal (%2f, %5c)
+        if (decodedSegments.some(s => s === '..' || s === '.' || s.includes('/') || s.includes('\\'))) {
             throw new Error(`CalmHubDocumentLoader rejected path containing directory traversal in: ${documentId}`);
         }
         const safePath = '/' + decodedSegments.map(s => encodeURIComponent(s)).join('/');

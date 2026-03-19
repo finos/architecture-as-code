@@ -66,6 +66,9 @@ describe('direct-url-document-loader', () => {
         'http://[febf::1]/secret',
         'http://[fc00::1]/secret',
         'http://[fd12::1]/secret',
+        'http://2130706433/secret',
+        'http://0x7f000001/secret',
+        'http://0177.0.0.1/secret',
     ])('rejects private/internal network URL: %s', async (url) => {
         await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
             .rejects.toThrow('private or internal network');
