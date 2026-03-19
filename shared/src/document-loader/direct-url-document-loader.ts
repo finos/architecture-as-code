@@ -1,4 +1,5 @@
 import axios, { Axios } from 'axios';
+import { isIPv4 } from 'net';
 import { SchemaDirectory } from '../schema-directory';
 import { CalmDocumentType, DocumentLoader } from './document-loader';
 import { DocumentLoadError } from './document-loader';
@@ -78,8 +79,6 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
         return undefined;
     }
 }
-
-import { isIPv4 } from 'net';
 
 // Note: This is a string-based check and does not protect against DNS rebinding
 // (hostnames that resolve to private IPs). For stronger protection, consider
