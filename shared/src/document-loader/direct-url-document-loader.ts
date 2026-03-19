@@ -99,7 +99,7 @@ function isPrivateHost(hostname: string): boolean {
             (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||    // 172.16.0.0/12
             (parts[0] === 192 && parts[1] === 168) ||                    // 192.168.0.0/16
             (parts[0] === 169 && parts[1] === 254) ||                    // 169.254.0.0/16 link-local
-            (parts[0] === 0 && parts[1] === 0 && parts[2] === 0 && parts[3] === 0)  // 0.0.0.0
+            parts[0] === 0                                            // 0.0.0.0/8 "this network"
         );
     }
 
