@@ -44,14 +44,20 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
     async loadMissingDocument(documentId: string, _type: CalmDocumentType): Promise<object> {
         try {
             const parsedUrl = new URL(documentId);
-            const allowedProtocols = ['http:', 'https:'];
-            if (!allowedProtocols.includes(parsedUrl.protocol)) {
+            if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
                 throw new DocumentLoadError({
                     name: 'UNKNOWN',
                     message: `Unsupported URL protocol '${parsedUrl.protocol}' in document URL. Only HTTP and HTTPS are allowed.`,
                 });
             }
-            const response = await this.ax.get(parsedUrl.toString());
+            if (isPrivateHost(parsedUrl.hostname)) {
+                throw new DocumentLoadError({
+                    name: 'UNKNOWN',
+                    message: 'Requests to private or internal network addresses are not allowed.',
+                });
+            }
+            const safeUrl = parsedUrl.protocol + '//' + parsedUrl.host + parsedUrl.pathname + parsedUrl.search;
+            const response = await this.ax.get(safeUrl);
             return response.data;
         } catch (error) {
             if (error instanceof DocumentLoadError) {
@@ -71,4 +77,10 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
     resolvePath(_reference: string): string | undefined {
         return undefined;
     }
+}
+
+const PRIVATE_HOST_PATTERN = /^(localhost|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|0\.0\.0\.0|\[::1\]|\[fe80:.*\]|\[fc.*\]|\[fd.*\])$/i;
+
+function isPrivateHost(hostname: string): boolean {
+    return PRIVATE_HOST_PATTERN.test(hostname);
 }

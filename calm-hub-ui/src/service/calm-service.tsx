@@ -37,7 +37,7 @@ export async function fetchPatternIDs(
         const data = await res.json();
         setPatternIDs(data.values.map((num: number) => num.toString()));
     } catch (error) {
-        console.error(`Error fetching pattern IDs for namespace ${namespace}:`, error);
+        console.error('Error fetching pattern IDs for namespace:', namespace, error);
     }
 }
 
@@ -54,7 +54,7 @@ export async function fetchFlowIDs(namespace: string, setFlowIDs: (flowIDs: stri
         const data = await res.json();
         setFlowIDs(data.values.map((id: number) => id.toString()));
     } catch (error) {
-        console.error(`Error fetching flow IDs for namespace ${namespace}:`, error);
+        console.error('Error fetching flow IDs for namespace:', namespace, error);
     }
 }
 
@@ -75,7 +75,7 @@ export async function fetchPatternVersions(
         const data = await res.json();
         setVersions(data.values);
     } catch (error) {
-        console.error(`Error fetching versions for pattern ID ${patternID}:`, error);
+        console.error('Error fetching versions for pattern ID:', patternID, error);
     }
 }
 
@@ -96,7 +96,7 @@ export async function fetchFlowVersions(
         const data = await res.json();
         setFlowVersions(data.values);
     } catch (error) {
-        console.error(`Error fetching versions for flow ID ${flowID}:`, error);
+        console.error('Error fetching versions for flow ID:', flowID, error);
     }
 }
 
@@ -128,10 +128,7 @@ export async function fetchPattern(
         };
         setPattern(data);
     } catch (error) {
-        console.error(
-            `Error fetching pattern for namespace ${namespace}, pattern ID ${patternID}, version ${version}:`,
-            error
-        );
+        console.error('Error fetching pattern for namespace:', namespace, 'pattern ID:', patternID, 'version:', version, error);
     }
 }
 
@@ -163,10 +160,7 @@ export async function fetchFlow(
         };
         setFlow(data);
     } catch (error) {
-        console.error(
-            `Error fetching flow for namespace ${namespace}, flow ID ${flowID}, version ${version}:`,
-            error
-        );
+        console.error('Error fetching flow for namespace:', namespace, 'flow ID:', flowID, 'version:', version, error);
     }
 }
 
@@ -186,7 +180,7 @@ export async function fetchArchitectureIDs(
         const data = await res.json();
         setArchitectureIDs(data.values.map((id: number) => id.toString()));
     } catch (error) {
-        console.error(`Error fetching architecture IDs for namespace ${namespace}:`, error);
+        console.error('Error fetching architecture IDs for namespace:', namespace, error);
     }
 }
 
@@ -210,7 +204,7 @@ export async function fetchArchitectureVersions(
         const data = await res.json();
         setVersions(data.values);
     } catch (error) {
-        console.error(`Error fetching versions for architecture ID ${architectureID}:`, error);
+        console.error('Error fetching versions for architecture ID:', architectureID, error);
     }
 }
 
@@ -242,9 +236,6 @@ export async function fetchArchitecture(
         };
         setArchitecture(data);
     } catch (error) {
-        console.error(
-            `Error fetching architecture for namespace ${namespace}, architecture ID ${architectureID}, version ${version}:`,
-            error
-        );
+        console.error('Error fetching architecture for namespace:', namespace, 'architecture ID:', architectureID, 'version:', version, error);
     }
 }

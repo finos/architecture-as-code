@@ -45,4 +45,17 @@ describe('direct-url-document-loader', () => {
         await expect(directUrlDocumentLoader.loadMissingDocument(ftpUrl, 'schema'))
             .rejects.toThrow('Only HTTP and HTTPS are allowed');
     });
+
+    it.each([
+        'http://localhost/secret',
+        'http://127.0.0.1/secret',
+        'http://10.0.0.1/secret',
+        'http://172.16.0.1/secret',
+        'http://192.168.1.1/secret',
+        'http://169.254.169.254/latest/meta-data/',
+        'http://0.0.0.0/secret',
+    ])('rejects private/internal network URL: %s', async (url) => {
+        await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
+            .rejects.toThrow('private or internal network');
+    });
 });
