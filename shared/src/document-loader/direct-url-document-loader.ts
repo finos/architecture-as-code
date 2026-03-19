@@ -79,14 +79,87 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
     }
 }
 
+import { isIPv4 } from 'net';
+
 // Note: This is a string-based check and does not protect against DNS rebinding
 // (hostnames that resolve to private IPs). For stronger protection, consider
 // resolving the hostname and validating the resolved IP addresses.
-// IPv6 link-local is fe80::/10 (fe80:: through febf::), ULA is fc00::/7 (fc00:: through fdff::).
-const PRIVATE_HOST_PATTERN = /^(localhost|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|0\.0\.0\.0|::1|fe[89ab][0-9a-f]:.*|fc[0-9a-f]{2}:.*|fd[0-9a-f]{2}:.*)$/i;
-
 function isPrivateHost(hostname: string): boolean {
     // URL.hostname wraps IPv6 in brackets (e.g. "[::1]"); strip them and trailing dots for matching
-    const normalized = hostname.replace(/^\[|\]$/g, '').replace(/\.$/, '');
-    return PRIVATE_HOST_PATTERN.test(normalized);
+    const normalized = hostname.replace(/^\[|\]$/g, '').replace(/\.$/, '').toLowerCase();
+
+    // Check for localhost
+    if (normalized === 'localhost') return true;
+
+    // Check IPv4 private ranges
+    if (isIPv4(normalized)) {
+        const parts = normalized.split('.').map(Number);
+        return (
+            parts[0] === 127 ||                                          // 127.0.0.0/8 loopback
+            parts[0] === 10 ||                                           // 10.0.0.0/8
+            (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||    // 172.16.0.0/12
+            (parts[0] === 192 && parts[1] === 168) ||                    // 192.168.0.0/16
+            (parts[0] === 169 && parts[1] === 254) ||                    // 169.254.0.0/16 link-local
+            (parts[0] === 0 && parts[1] === 0 && parts[2] === 0 && parts[3] === 0)  // 0.0.0.0
+        );
+    }
+
+    // Handle IPv6 (including IPv4-mapped like ::ffff:7f00:1 and expanded loopback 0:0:0:0:0:0:0:1)
+    if (normalized.includes(':')) {
+        // Expand :: to full form for canonical comparison
+        const canonical = canonicalizeIPv6(normalized);
+        if (!canonical) return false;
+
+        const words = canonical.split(':');
+
+        // ::1 loopback
+        if (canonical === '0000:0000:0000:0000:0000:0000:0000:0001') return true;
+
+        // Check if last 32 bits embed a private IPv4 address.
+        // Covers: IPv4-mapped (::ffff:x:x), IPv4-compatible (::x:x), and ISATAP (::ffff:0:x:x).
+        // Node normalizes all dotted-decimal forms to hex (e.g. ::ffff:127.0.0.1 → ::ffff:7f00:1).
+        const isV4Mapped = words[5] === 'ffff' && words.slice(0, 5).every(w => w === '0000');
+        const isV4Compatible = words.slice(0, 6).every(w => w === '0000');
+        const isISATAP = words[4] === 'ffff' && words[5] === '0000' && words.slice(0, 4).every(w => w === '0000');
+        if (isV4Mapped || isV4Compatible || isISATAP) {
+            const hi = parseInt(words[6], 16);
+            const lo = parseInt(words[7], 16);
+            const ipv4 = `${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`;
+            return isPrivateHost(ipv4);
+        }
+
+        // fe80::/10 link-local (fe80:: through febf::)
+        const firstWord = parseInt(words[0], 16);
+        if (firstWord >= 0xfe80 && firstWord <= 0xfebf) return true;
+
+        // fc00::/7 unique local (fc00:: through fdff::)
+        if (firstWord >= 0xfc00 && firstWord <= 0xfdff) return true;
+
+        return false;
+    }
+
+    return false;
+}
+
+function canonicalizeIPv6(addr: string): string | null {
+    // Remove zone ID if present
+    const zoneIdx = addr.indexOf('%');
+    const clean = zoneIdx >= 0 ? addr.substring(0, zoneIdx) : addr;
+
+    const parts = clean.split('::');
+    if (parts.length > 2) return null;
+
+    let groups: string[];
+    if (parts.length === 2) {
+        const left = parts[0] ? parts[0].split(':') : [];
+        const right = parts[1] ? parts[1].split(':') : [];
+        const missing = 8 - left.length - right.length;
+        if (missing < 0) return null;
+        groups = [...left, ...Array(missing).fill('0'), ...right];
+    } else {
+        groups = clean.split(':');
+    }
+
+    if (groups.length !== 8) return null;
+    return groups.map(g => g.padStart(4, '0')).join(':');
 }

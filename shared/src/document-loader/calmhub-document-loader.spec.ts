@@ -47,4 +47,16 @@ describe('calmhub-document-loader', () => {
         await expect(calmHubDocumentLoader.loadMissingDocument(traversalUrl, 'schema'))
             .rejects.toThrow('directory traversal');
     });
+
+    it('rejects percent-encoded directory traversal segments', async () => {
+        const traversalUrl = 'calm:/schemas/%2e%2e/admin/secrets.json';
+        await expect(calmHubDocumentLoader.loadMissingDocument(traversalUrl, 'schema'))
+            .rejects.toThrow('directory traversal');
+    });
+
+    it('rejects malformed percent-encoding in path', async () => {
+        const malformedUrl = 'calm:/schemas/%ZZ/invalid.json';
+        await expect(calmHubDocumentLoader.loadMissingDocument(malformedUrl, 'schema'))
+            .rejects.toThrow('invalid percent-encoding');
+    });
 });
