@@ -8,6 +8,7 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
+import org.finos.calm.domain.Decorator;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.DecoratorStore;
 import org.finos.calm.store.util.TypeSafeNitriteDocument;
@@ -16,6 +17,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 
@@ -63,6 +66,36 @@ public class NitriteDecoratorStore implements DecoratorStore {
         LOG.debug("Retrieved {} decorators for namespace '{}' with filters (target: {}, type: {})", 
                 decoratorIds.size(), namespace, target, type);
         return decoratorIds;
+    }
+
+    @Override
+    public Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException {
+        validateNamespace(namespace);
+
+        Document namespaceDoc = fetchNamespaceDocument(namespace);
+        if (namespaceDoc == null) {
+            return Optional.empty();
+        }
+
+        List<Document> decorators = extractDecorators(namespaceDoc, namespace);
+        if (decorators.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return decorators.stream()
+                .filter(decoratorDoc -> Integer.valueOf(id).equals(decoratorDoc.get(DECORATOR_ID_FIELD, Integer.class)))
+                .map(decoratorDoc -> decoratorDoc.get("decorator", Document.class))
+                .filter(Objects::nonNull)
+                .map(doc -> new Decorator.DecoratorBuilder()
+                        .setSchema(doc.get("$schema", String.class))
+                        .setUniqueId(doc.get("unique-id", String.class))
+                        .setType(doc.get("type", String.class))
+                        .setTarget((List<String>) doc.get("target"))
+                        .setTargetType((List<String>) doc.get("target-type"))
+                        .setAppliesTo((List<String>) doc.get("applies-to"))
+                        .setData(doc.get("data"))
+                        .build())
+                .findFirst();
     }
 
     /**
