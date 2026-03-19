@@ -7,6 +7,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.bson.Document;
+import org.finos.calm.domain.Decorator;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.DecoratorStore;
 import org.slf4j.Logger;
@@ -14,6 +15,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * MongoDB implementation of DecoratorStore.
@@ -52,6 +55,28 @@ public class MongoDecoratorStore implements DecoratorStore {
         LOG.debug("Retrieved {} decorators for namespace '{}' with filters (target: {}, type: {})", 
                 decoratorIds.size(), namespace, target, type);
         return decoratorIds;
+    }
+
+    @Override
+    public Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException {
+        validateNamespace(namespace);
+
+        Document namespaceDocument = fetchNamespaceDocument(namespace);
+        if (namespaceDocument == null || namespaceDocument.isEmpty()) {
+            return Optional.empty();
+        }
+
+        List<Document> decorators = extractDecorators(namespaceDocument, namespace);
+        if (decorators.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return decorators.stream()
+                .filter(decoratorDoc -> Integer.valueOf(id).equals(decoratorDoc.getInteger("decoratorId")))
+                .map(decoratorDoc -> decoratorDoc.get("decorator", Document.class))
+                .filter(Objects::nonNull)
+                .map(Decorator::fromDocument)
+                .findFirst();
     }
 
     /**
@@ -129,12 +154,11 @@ public class MongoDecoratorStore implements DecoratorStore {
      * Checks if the decorator matches the target filter (if provided)
      */
     private boolean matchesTargetFilter(Document decorator, String target) {
-        if (target == null || target.isEmpty()) {
+        if (target == null || target.isBlank()) {
             return true;
         }
         
-        @SuppressWarnings("unchecked")
-        List<String> targets = (List<String>) decorator.get("target");
+        List<String> targets = decorator.getList("target", String.class);
         return targets != null && targets.contains(target);
     }
 }
