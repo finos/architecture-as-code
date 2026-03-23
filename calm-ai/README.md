@@ -127,7 +127,7 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
     "topLevelPromptFileName": "CALM.agent.md",
     "skillPrefix": "`",
     "skillSuffix": "`",
-    "frontmatter": "---\ndescription: An AI Assistant for FINOS CALM development.\ntools: ['codebase', 'editFiles', 'fetch', 'runInTerminal']\nmodel: Claude Sonnet 4.5\n---",
+    "frontmatter": "---\ndescription: An AI Assistant for FINOS CALM development.\ntools: ['codebase', 'editFiles', 'fetch', 'runInTerminal']\n---",
     "skillPrompts": [
         "calm-prompts/architecture-creation.md",
         "calm-prompts/calm-cli-instructions.md",
@@ -149,7 +149,7 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
 
 **GitHub Copilot specifics:**
 - Uses backticks (`` ` ``) to reference skill files
-- Frontmatter specifies Claude Sonnet 4.5 model and available tools
+- Frontmatter specifies available tools
 - Prompts placed in `.github/agents/` directory
 - Skill prompts referenced as `` `calm-prompts/architecture-creation.md` ``
 
