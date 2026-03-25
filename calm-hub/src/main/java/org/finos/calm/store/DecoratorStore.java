@@ -23,6 +23,17 @@ public interface DecoratorStore {
     List<Integer> getDecoratorsForNamespace(String namespace, String target, String type) throws NamespaceNotFoundException;
 
     /**
+     * Retrieve decorator values for a given namespace with optional filtering.
+     *
+     * @param namespace the namespace to retrieve decorators for
+     * @param target optional target path to filter by (e.g., "/calm/namespaces/finos/architectures/1/versions/1-0-0")
+     * @param type optional decorator type to filter by (e.g., "deployment", "observability")
+     * @return a list of decorators matching the criteria
+     * @throws NamespaceNotFoundException if the namespace does not exist
+     */
+    List<Decorator> getDecoratorValuesForNamespace(String namespace, String target, String type) throws NamespaceNotFoundException;
+
+    /**
      * Retrieve a decorator by its ID in a given namespace.
      *
      * @param namespace the namespace to retrieve the decorator from

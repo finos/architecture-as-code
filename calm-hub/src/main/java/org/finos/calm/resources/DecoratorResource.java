@@ -70,6 +70,35 @@ public class DecoratorResource {
     }
 
     /**
+     * Retrieve a list of decorator values in a given namespace with optional filtering
+     *
+     * @param namespace the namespace to retrieve decorators for
+     * @param target optional target path to filter by (e.g., "/calm/namespaces/finos/architectures/1/versions/1-0-0")
+     * @param type optional decorator type to filter by (e.g., "deployment", "observability")
+     * @return a list of decorators matching the criteria
+     */
+    @GET
+    @Path("{namespace}/decorators/values")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Retrieve decorator values in a given namespace",
+            description = "Decorator values stored in a given namespace, optionally filtered by target and/or type"
+    )
+    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL, CalmHubScopes.ARCHITECTURES_READ})
+    public Response getDecoratorValuesForNamespace(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @QueryParam("target") @Size(max = 500) @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE) String target,
+            @QueryParam("type") @Size(max = 100) @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE) String type
+    ) {
+        try {
+            return Response.ok(new ValueWrapper<>(decoratorStore.getDecoratorValuesForNamespace(namespace, target, type))).build();
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when retrieving decorator values", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        }
+    }
+
+    /**
      * Retrieve a decorator by its ID in a given namespace
      *
      * @param namespace the namespace to retrieve decorators for
