@@ -178,17 +178,17 @@ describe('Hub', () => {
         // Load control data
         fireEvent.click(screen.getByText('Load Test Control'));
         expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
-        expect(screen.queryByTestId('json-renderer')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
 
-        // Switch to regular data
+        // Switch to regular data (Pattern type renders DiagramSection)
         fireEvent.click(screen.getByText('Load Test Data'));
         expect(screen.queryByTestId('control-detail-section')).not.toBeInTheDocument();
-        expect(screen.getByTestId('json-renderer')).toBeInTheDocument();
+        expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
 
         // Switch back to control
         fireEvent.click(screen.getByText('Load Test Control'));
         expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
-        expect(screen.queryByTestId('json-renderer')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
     });
 
     describe('sidebar collapse', () => {
