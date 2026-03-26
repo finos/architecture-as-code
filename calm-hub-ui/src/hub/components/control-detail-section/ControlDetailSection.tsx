@@ -62,6 +62,7 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
         if (requirementVersions.length > 0 && !selectedReqVersion) {
             handleReqVersionClick(requirementVersions[0]);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [requirementVersions]);
 
     const handleReqVersionClick = (version: string) => {
