@@ -51,6 +51,11 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         if (protocol !== CALM_HUB_PROTO) {
             throw new Error(`CalmHubDocumentLoader only loads documents with protocol '${CALM_HUB_PROTO}'. (Requested: ${protocol})`);
         }
+        // The URL constructor normalizes '..' segments, so url.pathname is already resolved.
+        // Reject if the original input contained traversal sequences before normalization.
+        if (documentId.includes('/..')) {
+            throw new Error(`CalmHubDocumentLoader rejected path containing directory traversal in: ${documentId}`);
+        }
         const path = url.pathname;
 
         this.logger.debug(`Loading CALM schema from ${this.calmHubUrl}${path}`);

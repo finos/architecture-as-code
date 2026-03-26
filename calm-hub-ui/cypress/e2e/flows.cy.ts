@@ -1,4 +1,4 @@
-const expectedNamespace = "finos"
+const expectedNamespace = { name: "finos", description: "FINOS namespace" };
 const expectedFlowId = 1;
 const expectedFlowVersion = "1.0.0";
 
@@ -14,7 +14,7 @@ describe('Flow Tests', () => {
 
     it("Displays flow JSON successfully", () => {
         cy.visit("/");
-        cy.findByText(expectedNamespace).click();
+        cy.findByText(expectedNamespace.name).click();
         cy.findByText(/flows/i).click();
         cy.findByText(/1/i).click();
         cy.findByText(/1.0.0/i).click();

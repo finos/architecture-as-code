@@ -10,10 +10,13 @@ import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.bson.Document;
 import org.finos.calm.domain.controls.ControlDetail;
+import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
 import org.finos.calm.domain.exception.ControlConfigurationNotFoundException;
+import org.finos.calm.domain.exception.ControlConfigurationVersionExistsException;
 import org.finos.calm.domain.exception.ControlConfigurationVersionNotFoundException;
 import org.finos.calm.domain.exception.ControlNotFoundException;
+import org.finos.calm.domain.exception.ControlRequirementVersionExistsException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.store.ControlStore;
@@ -165,6 +168,68 @@ public class MongoControlStore implements ControlStore {
         }
 
         return versionDoc.toJson();
+    }
+
+    @Override
+    public void createRequirementForVersion(String domain, int controlId, String version, String requirementJson) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionExistsException {
+        Document controlDoc = findControl(domain, controlId);
+        Document requirement = (Document) controlDoc.get("requirement");
+
+        String mongoVersion = version.replace('.', '-');
+
+        if (requirement != null && requirement.containsKey(mongoVersion)) {
+            throw new ControlRequirementVersionExistsException();
+        }
+
+        Document filter = new Document("domain", domain)
+                .append("controls.controlId", controlId);
+
+        Document update = new Document("$set",
+                new Document("controls.$.requirement." + mongoVersion, Document.parse(requirementJson)));
+
+        controlCollection.updateOne(filter, update);
+    }
+
+    @Override
+    public int createControlConfiguration(CreateControlConfiguration request, String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
+        findControl(domain, controlId);
+
+        int configurationId = counterStore.getNextControlConfigurationSequenceValue();
+
+        Document configDoc = new Document("configurationId", configurationId)
+                .append("versions", new Document("1-0-0", Document.parse(request.getConfigurationJson())));
+
+        Document filter = new Document("domain", domain)
+                .append("controls.controlId", controlId);
+
+        controlCollection.updateOne(
+                filter,
+                Updates.push("controls.$.configurations", configDoc)
+        );
+
+        return configurationId;
+    }
+
+    @Override
+    public void createConfigurationForVersion(String domain, int controlId, int configurationId, String version, String configurationJson) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionExistsException {
+        Document configDoc = findConfiguration(domain, controlId, configurationId);
+        Document versions = (Document) configDoc.get("versions");
+
+        String mongoVersion = version.replace('.', '-');
+
+        if (versions != null && versions.containsKey(mongoVersion)) {
+            throw new ControlConfigurationVersionExistsException();
+        }
+
+        controlCollection.updateOne(
+                Filters.eq("domain", domain),
+                Updates.set("controls.$[ctrl].configurations.$[cfg].versions." + mongoVersion,
+                        Document.parse(configurationJson)),
+                new UpdateOptions().arrayFilters(List.of(
+                        Filters.eq("ctrl.controlId", controlId),
+                        Filters.eq("cfg.configurationId", configurationId)
+                ))
+        );
     }
 
     private Document findControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {

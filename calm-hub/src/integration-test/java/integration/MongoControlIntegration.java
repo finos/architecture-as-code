@@ -13,6 +13,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.bson.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
@@ -296,6 +297,184 @@ public class MongoControlIntegration {
     void end_to_end_get_configuration_at_invalid_version_returns_404() {
         given()
                 .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/9.9.9")
+                .then()
+                .statusCode(404);
+    }
+
+    // --- New: Create Requirement Version ---
+
+    @Test
+    @Order(22)
+    void end_to_end_create_requirement_version_for_existing_control() {
+        given()
+                .body("{\"type\": \"requirement-v2\"}")
+                .header("Content-Type", "application/json")
+                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0"));
+    }
+
+    @Test
+    @Order(23)
+    void end_to_end_get_requirement_versions_returns_both_versions() {
+        given()
+                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(2))
+                .body("values", hasItems("1.0.0", "2.0.0"));
+    }
+
+    @Test
+    @Order(24)
+    void end_to_end_get_requirement_at_new_version() {
+        given()
+                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
+                .then()
+                .statusCode(200)
+                .body("type", equalTo("requirement-v2"));
+    }
+
+    @Test
+    @Order(25)
+    void end_to_end_create_requirement_version_returns_409_for_existing_version() {
+        given()
+                .body("{\"type\": \"duplicate\"}")
+                .header("Content-Type", "application/json")
+                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0.0")
+                .then()
+                .statusCode(409);
+    }
+
+    @Test
+    @Order(26)
+    void end_to_end_create_requirement_version_returns_404_for_invalid_domain() {
+        given()
+                .body("{}")
+                .header("Content-Type", "application/json")
+                .when().post("/calm/domains/" + INVALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    @Order(27)
+    void end_to_end_create_requirement_version_returns_404_for_invalid_control() {
+        given()
+                .body("{}")
+                .header("Content-Type", "application/json")
+                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/999/requirement/versions/2.0.0")
+                .then()
+                .statusCode(404);
+    }
+
+    // --- New: Create Control Configuration ---
+
+    @Test
+    @Order(28)
+    void end_to_end_create_configuration_for_existing_control() throws JsonProcessingException {
+        CreateControlConfiguration request = new CreateControlConfiguration("{\"setting\": \"active\"}");
+
+        given()
+                .body(objectMapper.writeValueAsString(request))
+                .header("Content-Type", "application/json")
+                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/"));
+    }
+
+    @Test
+    @Order(29)
+    void end_to_end_get_configurations_returns_created_configuration() {
+        // Should now have the seeded config (100) plus the API-created one
+        given()
+                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(2));
+    }
+
+    @Test
+    @Order(30)
+    void end_to_end_create_configuration_returns_404_for_invalid_domain() throws JsonProcessingException {
+        CreateControlConfiguration request = new CreateControlConfiguration("{}");
+
+        given()
+                .body(objectMapper.writeValueAsString(request))
+                .header("Content-Type", "application/json")
+                .when().post("/calm/domains/" + INVALID_DOMAIN + "/controls/1/configurations")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    @Order(31)
+    void end_to_end_create_configuration_returns_404_for_invalid_control() throws JsonProcessingException {
+        CreateControlConfiguration request = new CreateControlConfiguration("{}");
+
+        given()
+                .body(objectMapper.writeValueAsString(request))
+                .header("Content-Type", "application/json")
+                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/999/configurations")
+                .then()
+                .statusCode(404);
+    }
+
+    // --- New: Create Configuration Version ---
+
+    @Test
+    @Order(32)
+    void end_to_end_create_configuration_version_for_seeded_config() {
+        given()
+                .body("{\"setting\": \"enabled-v2\"}")
+                .header("Content-Type", "application/json")
+                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/2.0.0")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/2.0.0"));
+    }
+
+    @Test
+    @Order(33)
+    void end_to_end_get_configuration_versions_returns_both() {
+        given()
+                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(2))
+                .body("values", hasItems("1.0.0", "2.0.0"));
+    }
+
+    @Test
+    @Order(34)
+    void end_to_end_get_configuration_at_new_version() {
+        given()
+                .when().get("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/2.0.0")
+                .then()
+                .statusCode(200)
+                .body("setting", equalTo("enabled-v2"));
+    }
+
+    @Test
+    @Order(35)
+    void end_to_end_create_configuration_version_returns_409_for_existing_version() {
+        given()
+                .body("{\"setting\": \"dup\"}")
+                .header("Content-Type", "application/json")
+                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/100/versions/1.0.0")
+                .then()
+                .statusCode(409);
+    }
+
+    @Test
+    @Order(36)
+    void end_to_end_create_configuration_version_returns_404_for_invalid_config() {
+        given()
+                .body("{}")
+                .header("Content-Type", "application/json")
+                .when().post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999/versions/2.0.0")
                 .then()
                 .statusCode(404);
     }

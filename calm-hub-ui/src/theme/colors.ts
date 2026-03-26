@@ -4,6 +4,9 @@
  * This file defines all color values used throughout the application.
  * Components should import from this file rather than defining colors inline.
  *
+ * Brand colors are also exposed as CSS custom properties via initThemeCssVars()
+ * called at app startup, so they can be used in Tailwind/DaisyUI contexts.
+ *
  * Note: ReactFlow and inline styles need direct hex values because:
  * 1. They can't use CSS variables in some contexts (e.g., SVG markers)
  * 2. We need to create transparent variants (e.g., `${color}20`)
@@ -95,6 +98,12 @@ export const colors = {
         label: '#64748b', // slate-500
     },
 
+    // Decision colors for pattern visualization
+    decision: {
+        oneOf: '#ca8a04', // yellow-600 - "choose exactly one"
+        anyOf: '#0284c7', // sky-600 - "choose one or more"
+    },
+
     // Feedback colors (for markers, indicators)
     feedback: {
         positive: '#16a34a', // green-600
@@ -103,3 +112,15 @@ export const colors = {
 } as const;
 
 export type Colors = typeof colors;
+
+/**
+ * Sets CSS custom properties on the document root from colors.brand,
+ * so Tailwind/DaisyUI classes can reference them without duplicating values.
+ * Call once at app startup (e.g., in index.tsx).
+ */
+export function initThemeCssVars(): void {
+    const root = document.documentElement;
+    root.style.setProperty('--color-primary', colors.brand.primary);
+    root.style.setProperty('--color-accent', colors.brand.accent);
+    root.style.setProperty('--color-accent-light', colors.brand.accentLight);
+}

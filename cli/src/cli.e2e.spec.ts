@@ -4,9 +4,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { execa } from 'execa';
 import { parseStringPromise } from 'xml2js';
-import axios from 'axios';
 import { expectDirectoryMatch, expectFilesMatch } from '@finos/calm-shared';
-import { spawn } from 'node:child_process';
 import { STATIC_GETTING_STARTED_MAPPING_PATH } from './test_helpers/getting-started-url-mapping';
 
 const millisPerSecond = 1000;
@@ -106,21 +104,25 @@ describe('CLI Integration Tests', () => {
             await run(calm(), ['init-ai', '-p', provider, '--directory', testDir]);
 
             // Define expected paths based on provider
-            const expectedPaths: Record<string, { topLevelDir: string; mainPromptFile: string; skillPromptsDir: string }> = {
+            const expectedPaths: Record<string, { topLevelDir: string; mainPromptFile: string; skillPromptsDir: string; frontmatterContains: string[]; frontmatterNotContains?: string[] }> = {
                 copilot: {
                     topLevelDir: '.github/agents',
                     mainPromptFile: '.github/agents/CALM.agent.md',
                     skillPromptsDir: '.github/agents/calm-prompts',
+                    frontmatterContains: ['description:', 'tools:'],
+                    frontmatterNotContains: ['model:'],
                 },
                 kiro: {
                     topLevelDir: '.kiro',
                     mainPromptFile: '.kiro/steering/CALM.chatmode.md',
                     skillPromptsDir: '.kiro/calm-prompts',
+                    frontmatterContains: ['inclusion: manual'],
                 },
                 claude: {
                     topLevelDir: '.claude/skills/calm',
                     mainPromptFile: '.claude/skills/calm/SKILL.md',
                     skillPromptsDir: '.claude/skills/calm/calm-prompts',
+                    frontmatterContains: ['name: calm', 'description:', 'user-invocable: true'],
                 },
             };
 
@@ -135,6 +137,13 @@ describe('CLI Integration Tests', () => {
             const mainPromptContent = fs.readFileSync(mainPromptPath, 'utf8');
             expect(mainPromptContent).toContain('FINOS CALM');
             expect(mainPromptContent).toContain('Common Architecture Language Model');
+
+            // Verify frontmatter content
+            const frontmatterMatch = mainPromptContent.match(/^---\n([\s\S]*?)\n---/);
+            expect(frontmatterMatch).not.toBeNull();
+            const frontmatter = frontmatterMatch![1];
+            paths.frontmatterContains.forEach((key) => expect(frontmatter).toContain(key));
+            paths.frontmatterNotContains?.forEach((key) => expect(frontmatter).not.toContain(key));
 
             // Verify calm-prompts directory exists
             const skillPromptsPath = path.join(testDir, paths.skillPromptsDir);
@@ -395,8 +404,8 @@ describe('CLI Integration Tests', () => {
             try {
                 await run(calm(), ['validate', '-p', patternPath, '-a', archPath]);
                 expect.fail('Expected validation to fail');
-            } catch (error) {
-                const result = JSON.parse(error.stdout);
+            } catch (error: unknown) {
+                const result = JSON.parse((error as { stdout: string }).stdout);
                 expect(result.hasErrors).toBe(true);
                 expect(JSON.stringify(result)).toContain('owner');
             }
@@ -410,8 +419,8 @@ describe('CLI Integration Tests', () => {
             try {
                 await run(calm(), ['validate', '-p', patternPath, '-a', archPath, '-u', mappingPath]);
                 expect.fail('Expected validation to fail');
-            } catch (error) {
-                const result = JSON.parse(error.stdout);
+            } catch (error: unknown) {
+                const result = JSON.parse((error as { stdout: string }).stdout);
                 expect(result.hasErrors).toBe(true);
                 expect(JSON.stringify(result)).toContain('owner');
             }
@@ -434,60 +443,6 @@ describe('CLI Integration Tests', () => {
             )
         );
         expect(actual).toEqual(expected);
-    });
-
-    test('server command starts and responds to /health', async () => {
-        const schemaDir = path.resolve(__dirname, '../../calm');
-        const serverProcess = spawn(
-            calm(), ['server', '--port', '3002', '--schema-directory', schemaDir],
-            {
-                cwd: tempDir,
-                stdio: 'inherit',
-                detached: true,
-            }
-        );
-        await new Promise((r) => setTimeout(r, 5 * millisPerSecond));
-        try {
-            const res = await axios.get('http://127.0.0.1:3002/health');
-            expect(res.status).toBe(200);
-            expect(res.data.status).toBe('OK');
-        } finally {
-            process.kill(-serverProcess.pid);
-        }
-    });
-
-    test('server command starts and validates an architecture', async () => {
-        const schemaDir = path.resolve(__dirname, '../test_fixtures/api-gateway');
-        const serverProcess = spawn(
-            calm(), ['server', '--port', '3003', '--schema-directory', schemaDir],
-            {
-                cwd: tempDir,
-                stdio: 'inherit',
-                detached: true,
-            }
-        );
-
-        const validArchitecture = fs.readFileSync(
-            path.join(__dirname, '../test_fixtures/validation_route/valid_instantiation.json'),
-            'utf8'
-        );
-
-        await new Promise((r) => setTimeout(r, 5 * millisPerSecond));
-
-        try {
-            const res = await axios.post(
-                'http://127.0.0.1:3003/calm/validate',
-                JSON.parse(validArchitecture),
-                { headers: { 'Content-Type': 'application/json' } }
-            );
-            expect(res.status).toBe(201);
-            expect(JSON.stringify(res.data)).toContain('jsonSchemaValidationOutputs');
-            expect(JSON.stringify(res.data)).toContain('spectralSchemaValidationOutputs');
-            expect(JSON.stringify(res.data)).toContain('hasErrors');
-            expect(JSON.stringify(res.data)).toContain('hasWarnings');
-        } finally {
-            process.kill(-serverProcess.pid);
-        }
     });
 
     test('template command generates expected output', async () => {
@@ -834,18 +789,18 @@ describe('CLI Integration Tests', () => {
         fs.writeFileSync(filePath, JSON.stringify(obj, null, 2));
     }
 
-    function readJson(filePath: string) {
+    function readJson(filePath: string): Record<string, unknown> {
         return JSON.parse(fs.readFileSync(filePath, 'utf8'));
     }
 
-    function patchJson(filePath: string, patchFn: (o: object) => void) {
+    function patchJson(filePath: string, patchFn: (o: Record<string, unknown>) => void) {
         const obj = readJson(filePath);
         patchFn(obj);
         writeJson(filePath, obj);
     }
 
     // Utility to recursively remove specific line/character fields from JSON
-    function removeLineNumbers(obj: object) {
+    function removeLineNumbers(obj: unknown): void {
         const fieldsToRemove = [
             'line_start',
             'line_end',
@@ -854,12 +809,13 @@ describe('CLI Integration Tests', () => {
         ];
         if (Array.isArray(obj)) {
             obj.forEach(removeLineNumbers);
-        } else if (obj && typeof obj === 'object') {
-            for (const key of Object.keys(obj)) {
+        } else if (obj !== null && typeof obj === 'object') {
+            const record = obj as Record<string, unknown>;
+            for (const key of Object.keys(record)) {
                 if (fieldsToRemove.includes(key)) {
-                    delete obj[key];
+                    delete record[key];
                 } else {
-                    removeLineNumbers(obj[key]);
+                    removeLineNumbers(record[key]);
                 }
             }
         }

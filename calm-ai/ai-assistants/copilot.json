@@ -4,7 +4,7 @@
     "topLevelPromptFileName": "CALM.agent.md",
     "skillPrefix": "`",
     "skillSuffix": "`",
-    "frontmatter": "---\ndescription: An AI Assistant for FINOS CALM development.\ntools: ['codebase', 'editFiles', 'fetch', 'runInTerminal']\nmodel: Claude Sonnet 4.5\n---",
+    "frontmatter": "---\ndescription: An AI Assistant for FINOS CALM development.\ntools: ['codebase', 'editFiles', 'fetch', 'runInTerminal']\n---",
     "skillPrompts": [
         "calm-prompts/architecture-creation.md",
         "calm-prompts/calm-cli-instructions.md",

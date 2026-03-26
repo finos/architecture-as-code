@@ -72,6 +72,16 @@ if (db.counters.countDocuments({ _id: "controlStoreCounter" }) === 0) {
     print("controlStoreCounter already exists, no initialization needed");
 }
 
+if (db.counters.countDocuments({ _id: "decoratorStoreCounter" }) === 0) {
+    db.counters.insertOne({
+        _id: "decoratorStoreCounter",
+        sequence_value: 1
+    });
+    print("Initialized decoratorStoreCounter with sequence_value 1");
+} else {
+    print("decoratorStoreCounter already exists, no initialization needed");
+}
+
 db.schemas.insertMany([               // Insert initial documents into the schemas collection
     {
         version: "2025-03",
@@ -2913,4 +2923,135 @@ Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliqu
             },
         ],
     },
+]);
+
+db.decorators.insertMany([
+    {
+        namespace: "finos",
+        decorators: [
+            {
+                decoratorId: NumberInt(1),
+                decorator: {
+                    "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+                    "unique-id": "finos-architecture-1-deployment",
+                    "type": "deployment",
+                    "target": [
+                        "/calm/namespaces/finos/architectures/1/versions/1-0-0"
+                    ],
+                    "target-type": [
+                        "architecture"
+                    ],
+                    "applies-to": [
+                        "example-node"
+                    ],
+                    "data": {
+                        "start-time": "2026-02-23T10:00:00Z",
+                        "end-time": "2026-02-23T10:05:30Z",
+                        "status": "completed",
+                        "observability": "https://grafana.example.com/d/finos-architecture-1",
+                        "deployment-url": "https://jenkins.example.com/job/finos-architecture/123/",
+                        "notes": "Production deployment of FINOS Architecture 1 with baseline configuration"
+                    }
+                }
+            },
+            {
+                decoratorId: NumberInt(2),
+                decorator: {
+                    "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+                    "unique-id": "finos-architecture-1-deployment-v2",
+                    "type": "deployment",
+                    "target": [
+                        "/calm/namespaces/finos/architectures/1/versions/1-0-0"
+                    ],
+                    "target-type": [
+                        "architecture"
+                    ],
+                    "applies-to": [
+                        "example-node"
+                    ],
+                    "data": {
+                        "start-time": "2026-03-04T15:00:00Z",
+                        "end-time": "2026-03-04T15:08:15Z",
+                        "status": "completed",
+                        "notes": "Second production deployment of FINOS Architecture 1 with performance improvements and bug fixes"
+                    }
+                }
+            },
+            {
+                decoratorId: NumberInt(3),
+                decorator: {
+                    "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+                    "unique-id": "finos-pattern-1-deployment",
+                    "type": "deployment",
+                    "target": [
+                        "/calm/namespaces/finos/patterns/1/versions/1-0-0"
+                    ],
+                    "target-type": [
+                        "pattern"
+                    ],
+                    "applies-to": [
+                        "node-a", "relationship-x"
+                    ],
+                    "data": {
+                        "start-time": "2026-02-15T09:30:00Z",
+                        "end-time": "2026-02-15T09:35:20Z",
+                        "status": "completed",
+                        "deployment-url": "https://github.com/finos/actions/runs/987654321",
+                        "notes": "Pattern deployment via GitHub Actions"
+                    }
+                }
+            }
+        ]
+    },
+    {
+        namespace: "workshop",
+        decorators: [
+            {
+                decoratorId: NumberInt(1),
+                decorator: {
+                    "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+                    "unique-id": "workshop-conference-deployment",
+                    "type": "deployment",
+                    "target": [
+                        "/calm/namespaces/workshop/architectures/1/versions/1-0-0"
+                    ],
+                    "target-type": [
+                        "architecture"
+                    ],
+                    "applies-to": [
+                        "conference-website",
+                        "load-balancer"
+                    ],
+                    "data": {
+                        "start-time": "2026-03-01T14:30:00Z",
+                        "end-time": "2026-03-01T14:35:45Z",
+                        "status": "completed",
+                        "deployment-url": "https://vercel.com/workshop/deployments/abc123xyz",
+                        "notes": "Workshop conference system deployment via Vercel"
+                    }
+                }
+            },
+            {
+                decoratorId: NumberInt(2),
+                decorator: {
+                    "$schema": "https://calm.finos.org/draft/2026-03/standards/observability/observability.decorator.schema.json",
+                    "unique-id": "workshop-conference-monitoring",
+                    "type": "observability",
+                    "target": [
+                        "/calm/namespaces/workshop/architectures/1/versions/1-0-0"
+                    ],
+                    "target-type": [
+                        "architecture"
+                    ],
+                    "applies-to": [
+                        "conference-website"
+                    ],
+                    "data": {
+                        "dashboard-url": "https://datadog.example.com/dashboard/workshop-conference",
+                        "notes": "Monitoring dashboard for workshop conference system"
+                    }
+                }
+            }
+        ]
+    }
 ]);

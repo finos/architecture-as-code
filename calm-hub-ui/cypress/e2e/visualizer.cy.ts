@@ -15,4 +15,16 @@ describe("Visualizer page tests", () => {
         cy.findByText(/relationship descriptions/i).should("exist");
         cy.findByText(/node descriptions/i).should("exist");
     })
+
+    it("Displays pattern visualization on file upload", () => {
+        cy.viewport('macbook-16')
+        cy.visit("/");
+
+        cy.findByRole("link", { name: "Visualizer" }).click();
+
+        cy.fixture("conference-signup-pattern", null).as('pattern');
+        cy.get('input[type=file]').selectFile("@pattern", {force: true})
+
+        cy.get('canvas').should("exist");
+    })
 })
