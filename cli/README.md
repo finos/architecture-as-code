@@ -241,7 +241,7 @@ This isn't a full break, but it implies that you've forgotten to fill out a deta
 
 ## CALM init-ai
 
-The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring a specialized VSCode agent with comprehensive tool prompts.  At present two AI Assistant providers are supported:  Github Copilot and AWS Kiro.
+The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring a specialized VSCode agent with comprehensive tool prompts.  At present three AI Assistant providers are supported:  Github Copilot, Claude Code, and AWS Kiro.
 
 ```shell
 calm init-ai --help
@@ -250,7 +250,7 @@ Usage: calm init-ai [options]
 Augment a git repository with AI assistance for CALM
 
 Options:
-  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro")
+  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude")
   -d, --directory <path>     Target directory (defaults to current directory) (default: ".")
   -v, --verbose              Enable verbose logging. (default: false)
   -h, --help                 display help for command

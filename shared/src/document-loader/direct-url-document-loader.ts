@@ -43,9 +43,20 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
 
     async loadMissingDocument(documentId: string, _type: CalmDocumentType): Promise<object> {
         try {
-            const response = await this.ax.get(documentId);
+            const parsedUrl = new URL(documentId);
+            const allowedProtocols = ['http:', 'https:'];
+            if (!allowedProtocols.includes(parsedUrl.protocol)) {
+                throw new DocumentLoadError({
+                    name: 'UNKNOWN',
+                    message: `Unsupported URL protocol '${parsedUrl.protocol}' in document URL. Only HTTP and HTTPS are allowed.`,
+                });
+            }
+            const response = await this.ax.get(parsedUrl.toString());
             return response.data;
         } catch (error) {
+            if (error instanceof DocumentLoadError) {
+                throw error;
+            }
             throw new DocumentLoadError({
                 name: 'UNKNOWN',
                 message: `Failed to load document from URL: ${documentId}`,

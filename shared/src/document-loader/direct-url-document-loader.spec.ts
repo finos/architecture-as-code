@@ -33,4 +33,16 @@ describe('direct-url-document-loader', () => {
 
         await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema')).rejects.toThrow();
     });
+
+    it('rejects URLs with non-http/https protocols', async () => {
+        const fileUrl = 'file:///etc/passwd';
+        await expect(directUrlDocumentLoader.loadMissingDocument(fileUrl, 'schema'))
+            .rejects.toThrow('Only HTTP and HTTPS are allowed');
+    });
+
+    it('rejects URLs with ftp protocol', async () => {
+        const ftpUrl = 'ftp://example.com/document.json';
+        await expect(directUrlDocumentLoader.loadMissingDocument(ftpUrl, 'schema'))
+            .rejects.toThrow('Only HTTP and HTTPS are allowed');
+    });
 });

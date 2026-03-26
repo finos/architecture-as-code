@@ -72,7 +72,7 @@ Usage: calm init-ai [options]
 Augment a git repository with AI assistance for CALM
 
 Options:
-  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro")
+  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude")
   -d, --directory <path>     Target directory (defaults to current directory) (default: ".")
   -v, --verbose              Enable verbose logging. (default: false)
   -h, --help                 display help for command
