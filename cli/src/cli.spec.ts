@@ -1,9 +1,9 @@
 import {
-    CALM_META_SCHEMA_DIRECTORY,
     Docifier,
     DocifyMode,
     TemplateProcessingMode,
-    TemplateProcessor
+    TemplateProcessor,
+    DocumentLoader
 } from '@finos/calm-shared';
 import { Command } from 'commander';
 import { MockInstance } from 'vitest';
@@ -11,15 +11,14 @@ import { parseDocumentLoaderConfig } from './cli';
 
 let calmShared: typeof import('@finos/calm-shared');
 let validateModule: typeof import('./command-helpers/validate');
-let serverModule: typeof import('./server/cli-server');
 let templateModule: typeof import('./command-helpers/template');
 let optionsModule: typeof import('./command-helpers/generate-options');
-let fileSystemDocLoaderModule: typeof import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
 let setupCLI: typeof import('./cli').setupCLI;
 let cliConfigModule: typeof import('./cli-config');
 
 describe('CLI Commands', () => {
     let program: Command;
+    let mockDocLoader: DocumentLoader;
 
     beforeEach(async () => {
         vi.resetModules();
@@ -27,10 +26,8 @@ describe('CLI Commands', () => {
 
         calmShared = await import('@finos/calm-shared');
         validateModule = await import('./command-helpers/validate');
-        serverModule = await import('./server/cli-server');
         templateModule = await import('./command-helpers/template');
         optionsModule = await import('./command-helpers/generate-options');
-        fileSystemDocLoaderModule = await import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
 
         vi.spyOn(calmShared, 'runGenerate').mockResolvedValue(undefined);
         vi.spyOn(calmShared.TemplateProcessor.prototype, 'processTemplate').mockResolvedValue(undefined);
@@ -39,13 +36,16 @@ describe('CLI Commands', () => {
         vi.spyOn(validateModule, 'runValidate').mockResolvedValue(undefined);
         vi.spyOn(validateModule, 'checkValidateOptions').mockResolvedValue(undefined);
 
-        vi.spyOn(serverModule, 'startServer').mockImplementation(vi.fn());
         vi.spyOn(templateModule, 'getUrlToLocalFileMap').mockReturnValue(new Map());
 
         vi.spyOn(optionsModule, 'promptUserForOptions').mockResolvedValue([]);
 
-        vi.spyOn(fileSystemDocLoaderModule, 'FileSystemDocumentLoader').mockImplementation(vi.fn());
-        vi.spyOn(fileSystemDocLoaderModule.FileSystemDocumentLoader.prototype, 'loadMissingDocument').mockResolvedValue({});
+        mockDocLoader = {
+            initialise: vi.fn().mockResolvedValue(undefined),
+            loadMissingDocument: vi.fn().mockResolvedValue({}),
+            resolvePath: vi.fn().mockReturnValue(undefined)
+        };
+        vi.spyOn(calmShared, 'buildDocumentLoader').mockReturnValue(mockDocLoader);
 
         const cliModule = await import('./cli');
         setupCLI = cliModule.setupCLI;
@@ -64,10 +64,14 @@ describe('CLI Commands', () => {
                 '--schema-directory', 'schemas',
             ]);
 
-            expect(fileSystemDocLoaderModule.FileSystemDocumentLoader.prototype.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
+            expect(mockDocLoader.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
             expect(optionsModule.promptUserForOptions).toHaveBeenCalled();
 
-            expect(fileSystemDocLoaderModule.FileSystemDocumentLoader).toHaveBeenCalledWith([CALM_META_SCHEMA_DIRECTORY, 'schemas'], true, process.cwd());
+            expect(calmShared.buildDocumentLoader).toHaveBeenCalledWith(expect.objectContaining({
+                schemaDirectoryPath: 'schemas',
+                debug: true,
+                basePath: process.cwd()
+            }));
 
             expect(calmShared.runGenerate).toHaveBeenCalledWith(
                 {}, 'output.json', true, expect.any(calmShared.SchemaDirectory), []
@@ -88,23 +92,6 @@ describe('CLI Commands', () => {
                 patternPath: 'pattern.json',
                 architecturePath: 'arch.json',
             }));
-        });
-    });
-
-    describe('Server Command', () => {
-        it('should call startServer with correct options', async () => {
-            await program.parseAsync([
-                'node', 'cli.js', 'server',
-                '--port', '4000',
-                '--schema-directory', 'mySchemas',
-                '--verbose',
-            ]);
-
-            expect(serverModule.startServer).toHaveBeenCalledWith(
-                '4000',
-                expect.any(calmShared.SchemaDirectory),
-                true,
-            );
         });
     });
 

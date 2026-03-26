@@ -1,11 +1,13 @@
-export { EdgeBadge, getBadgeStyle } from './EdgeBadge';
-export type { EdgeBadgeProps, EdgeBadgeStyle } from './EdgeBadge';
-
-export { EdgeTooltip } from './EdgeTooltip';
+export { EdgeBadge } from './EdgeBadge.js';
+export { getBadgeStyle } from '../utils/edgeBadge.utils.js';
+export { EdgeTooltip } from './EdgeTooltip.js';
 export type {
+    EdgeBadgeProps,
+    EdgeBadgeStyle,
     EdgeTooltipProps,
-    FlowTransition,
+    FlowTransitionEdge,
     EdgeControl,
     Mitigation,
     Risk,
-} from './EdgeTooltip';
+    FlowTransition,
+} from '../../../contracts/contracts.js';

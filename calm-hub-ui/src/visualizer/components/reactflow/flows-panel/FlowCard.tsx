@@ -1,12 +1,7 @@
-import { THEME } from '../theme';
-import { FlowTransitionItem } from './FlowTransitionItem';
-import { AIGFGovernanceSection } from './AIGFGovernanceSection';
-import type { Flow } from '../FlowsPanel';
-
-interface FlowCardProps {
-    flow: Flow;
-    onTransitionClick?: (relationshipId: string) => void;
-}
+import { THEME } from '../theme.js';
+import { FlowTransitionItem } from './FlowTransitionItem.js';
+import { AIGFGovernanceSection } from './AIGFGovernanceSection.js';
+import type { FlowCardProps, FlowCardHeaderProps, TransitionsListProps } from '../../../contracts/contracts.js';
 
 export function FlowCard({ flow, onTransitionClick }: FlowCardProps) {
     return (
@@ -30,11 +25,6 @@ export function FlowCard({ flow, onTransitionClick }: FlowCardProps) {
             )}
         </div>
     );
-}
-
-interface FlowCardHeaderProps {
-    name: string;
-    description?: string;
 }
 
 function FlowCardHeader({ name, description }: FlowCardHeaderProps) {
@@ -63,11 +53,6 @@ function FlowCardHeader({ name, description }: FlowCardHeaderProps) {
             )}
         </div>
     );
-}
-
-interface TransitionsListProps {
-    transitions?: Flow['transitions'];
-    onTransitionClick?: (relationshipId: string) => void;
 }
 
 function TransitionsList({ transitions, onTransitionClick }: TransitionsListProps) {

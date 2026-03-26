@@ -1,11 +1,6 @@
 import { FiChevronRight } from 'react-icons/fi';
-import { THEME } from '../theme';
-import type { FlowTransition } from '../FlowsPanel';
-
-interface FlowTransitionItemProps {
-    transition: FlowTransition;
-    onClick?: (relationshipId: string) => void;
-}
+import { THEME } from '../theme.js';
+import type { FlowTransitionItemProps, TransitionContentProps } from '../../../contracts/contracts.js';
 
 export function FlowTransitionItem({ transition, onClick }: FlowTransitionItemProps) {
     return (
@@ -65,11 +60,6 @@ function SequenceBadge({ sequenceNumber }: { sequenceNumber: number }) {
             {sequenceNumber}
         </div>
     );
-}
-
-interface TransitionContentProps {
-    description?: string;
-    relationshipId: string;
 }
 
 function TransitionContent({ description, relationshipId }: TransitionContentProps) {

@@ -92,6 +92,7 @@ public class NitriteDBConfig {
         db.getCollection("flows");
         db.getCollection("schemas");
         db.getCollection("counters");
+        db.getCollection("decorators");
     }
 
     /**

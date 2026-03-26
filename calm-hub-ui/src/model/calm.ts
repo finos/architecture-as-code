@@ -2,8 +2,8 @@ import { CalmAdrMeta } from '@finos/calm-shared/src/view-model/adr.js';
 import {
     CalmArchitectureSchema,
     CalmPatternSchema,
-} from '../../../calm-models/src/types/core-types.js';
-import { CalmFlowSchema } from '../../../calm-models/src/types/flow-types.js';
+    CalmFlowSchema,
+} from '@finos/calm-models/types';
 
 export type Namespace = string;
 export type PatternID = string;

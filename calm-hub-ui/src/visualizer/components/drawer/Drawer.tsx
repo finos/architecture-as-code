@@ -1,26 +1,22 @@
-import { useCallback, useEffect, useState, useMemo } from 'react';
-import {
-    CalmArchitectureSchema,
-    CalmNodeSchema,
-    CalmRelationshipSchema,
-} from '../../../../../calm-models/src/types/core-types.js';
-import { Data } from '../../../model/calm.js';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { CalmArchitectureSchema, CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
 import { useDropzone } from 'react-dropzone';
 import { ReactFlowVisualizer } from '../reactflow/ReactFlowVisualizer.js';
-import { Sidebar } from '../sidebar/Sidebar.js';
+import { PatternVisualizer } from '../reactflow/PatternVisualizer.js';
 import { MetadataPanel } from '../reactflow/MetadataPanel.js';
-import { NodeData, EdgeData } from '../../contracts/contracts.js';
-import type { Flow } from '../reactflow/FlowsPanel.js';
-import type { Control } from '../reactflow/ControlsPanel.js';
+import { toSidebarNodeData, toSidebarEdgeData } from '../reactflow/utils/patternClickHandlers.js';
+import type { DrawerProps, Flow, Control } from '../../contracts/contracts.js';
 
-interface DrawerProps {
-    data?: Data; // Optional data prop passed in from CALM Hub if user navigates from there
+/**
+ * Detect whether JSON data is a CALM pattern (JSON Schema) or an architecture instance.
+ * Patterns have properties.nodes.prefixItems; architectures have nodes directly.
+ */
+function isPatternData(data: unknown): boolean {
+    if (!data || typeof data !== 'object') return false;
+    const obj = data as Record<string, unknown>;
+    const props = obj['properties'] as Record<string, unknown> | undefined;
+    return !!(props?.['nodes'] && typeof props['nodes'] === 'object' && (props['nodes'] as Record<string, unknown>)['prefixItems']);
 }
-
-// Selected item can be either node or edge data from the graph
-type SelectedItem = {
-    data: NodeData | EdgeData;
-} | null;
 
 /**
  * Extract the unique-id from a CALM node or relationship
@@ -29,11 +25,10 @@ function extractId(item: CalmNodeSchema | CalmRelationshipSchema): string {
     return item?.['unique-id'] || '';
 }
 
-export function Drawer({ data }: DrawerProps) {
+export function Drawer({ data, onItemSelect }: DrawerProps) {
     const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
-    const [fileInstance, setFileInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
-    const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
-    const [title, setTitle] = useState<string>('');
+    const [patternInstance, setPatternInstance] = useState<Record<string, unknown> | undefined>(undefined);
+    const [fileInstance, setFileInstance] = useState<Record<string, unknown> | undefined>(undefined);
     // Default to collapsed as per user request
     const [isMetadataCollapsed, setIsMetadataCollapsed] = useState(true);
     // Height of the metadata panel when expanded (in pixels)
@@ -42,19 +37,19 @@ export function Drawer({ data }: DrawerProps) {
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
         if (acceptedFiles[0]) {
             const fileText = await acceptedFiles[0].text();
-            setFileInstance(JSON.parse(fileText));
-            setTitle(acceptedFiles[0].name);
+            const parsed = JSON.parse(fileText);
+            setFileInstance(parsed);
         }
     }, []);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
     useEffect(() => {
-        setCALMInstance(fileInstance ?? data?.data);
-        // Set title from CALM Hub data if available
-        if (data?.name && data?.id && data?.version) {
-            setTitle(`${data.name}/${data.id}/${data.version}`);
-        }
+        const source = fileInstance ?? data?.data;
+        const isPattern = !!source && (isPatternData(source) || (!fileInstance && data?.calmType === 'Patterns'));
+
+        setPatternInstance(isPattern ? (source as Record<string, unknown>) : undefined);
+        setCALMInstance(isPattern ? undefined : (source as CalmArchitectureSchema | undefined));
     }, [fileInstance, data]);
 
     // Extract flows from CALM data
@@ -65,7 +60,9 @@ export function Drawer({ data }: DrawerProps) {
 
     // Extract controls from CALM data (from root, nodes, and relationships)
     const controls = useMemo((): Record<string, Control> => {
-        const calmData = calmInstance as CalmArchitectureSchema & { controls?: Record<string, Control> };
+        const calmData = calmInstance as CalmArchitectureSchema & {
+            controls?: Record<string, Control>;
+        };
         if (!calmData) return {};
 
         const rootControls: Record<string, Control> = calmData.controls || {};
@@ -112,137 +109,111 @@ export function Drawer({ data }: DrawerProps) {
 
     const hasMetadata = flows.length > 0 || Object.keys(controls).length > 0;
 
-    function closeSidebar() {
-        setSelectedItem(null);
-    }
+    const hasContent = !!(calmInstance || patternInstance);
 
-    // Handle node click - convert CalmNodeSchema to NodeData format
-    const handleNodeClick = (nodeData: CalmNodeSchema) => {
-        setSelectedItem({
-            data: {
-                id: nodeData['unique-id'],
-                type: nodeData['node-type'] || 'unknown',
-                name: nodeData.name,
-                description: nodeData.description,
-                interfaces: nodeData.interfaces,
-                controls: nodeData.controls,
-            } as NodeData,
-        });
-    };
+    const closeSidebar = useCallback(() => {
+        onItemSelect?.(null);
+    }, [onItemSelect]);
 
-    // Handle edge click - convert relationship data to EdgeData format
-    const handleEdgeClick = (edgeData: CalmRelationshipSchema) => {
-        const connects = edgeData['relationship-type']?.connects;
-        setSelectedItem({
-            data: {
-                id: edgeData['unique-id'],
-                source: connects?.source?.node || '',
-                target: connects?.destination?.node || '',
-                description: edgeData.description,
-                protocol: edgeData.protocol,
-                controls: edgeData.controls,
-            } as EdgeData,
-        });
-    };
+    // Pattern-specific click handlers
+    const handlePatternNodeClick = useCallback((nodeData: Record<string, unknown>) => {
+        onItemSelect?.({ data: toSidebarNodeData(nodeData) });
+    }, [onItemSelect]);
+
+    const handlePatternEdgeClick = useCallback((edgeData: Record<string, unknown>) => {
+        onItemSelect?.({ data: toSidebarEdgeData(edgeData) });
+    }, [onItemSelect]);
+
+    const handleNodeClick = useCallback((nodeData: CalmNodeSchema) => {
+        onItemSelect?.({ data: toSidebarNodeData(nodeData as Record<string, unknown>) });
+    }, [onItemSelect]);
+
+    const handleEdgeClick = useCallback((edgeData: CalmRelationshipSchema) => {
+        onItemSelect?.({ data: toSidebarEdgeData(edgeData as Record<string, unknown>) });
+    }, [onItemSelect]);
 
     // Handle transition click from flows panel - highlight the relationship
-    const handleTransitionClick = (relationshipId: string) => {
-        // Find the relationship in the CALM data
-        const relationship = calmInstance?.relationships?.find((r) => r['unique-id'] === relationshipId);
-        if (relationship) {
-            handleEdgeClick(relationship);
-        }
-    };
+    const handleTransitionClick = useCallback(
+        (relationshipId: string) => {
+            const relationship = calmInstance?.relationships?.find((r) => r['unique-id'] === relationshipId);
+            if (relationship) {
+                handleEdgeClick(relationship);
+            }
+        },
+        [calmInstance, handleEdgeClick]
+    );
 
     // Handle node click from controls panel
-    const handleControlNodeClick = (nodeId: string) => {
-        // Find the node in the CALM data
-        const node = calmInstance?.nodes?.find((n) => n['unique-id'] === nodeId);
-        if (node) {
-            handleNodeClick(node);
-        }
-    };
+    const handleControlNodeClick = useCallback(
+        (nodeId: string) => {
+            const node = calmInstance?.nodes?.find((n) => n['unique-id'] === nodeId);
+            if (node) {
+                handleNodeClick(node);
+            }
+        },
+        [calmInstance, handleNodeClick]
+    );
 
     return (
-        <div {...getRootProps()} className="flex-1 flex overflow-hidden h-full">
-            {!calmInstance && <input {...getInputProps()} />}
-            <div className={`drawer drawer-end ${selectedItem ? 'drawer-open' : ''} w-full h-full`}>
-                <input
-                    type="checkbox"
-                    aria-label="drawer-toggle"
-                    className="drawer-toggle"
-                    checked={!!selectedItem}
-                    onChange={closeSidebar}
-                />
-                <div className="drawer-content h-full flex flex-col">
-                    {calmInstance ? (
-                        <>
-                            {title && (
-                                <div
-                                    style={{
-                                        padding: '8px 16px',
-                                        borderBottom: '1px solid #e2e8f0',
-                                        backgroundColor: '#f8fafc',
-                                        fontSize: '14px',
-                                        fontWeight: 500,
-                                        color: '#1e293b',
-                                        flexShrink: 0,
-                                    }}
-                                >
-                                    {title}
-                                </div>
-                            )}
-                            <div
-                                style={{
-                                    flex: 1,
-                                    minHeight: 0,
-                                    ...(hasMetadata && !isMetadataCollapsed
-                                        ? { height: `calc(100% - ${metadataPanelHeight}px)` }
-                                        : {}),
-                                }}
-                            >
-                                <ReactFlowVisualizer
-                                    calmData={calmInstance}
-                                    onNodeClick={handleNodeClick}
-                                    onEdgeClick={handleEdgeClick}
-                                    onBackgroundClick={closeSidebar}
-                                />
-                            </div>
-                            {hasMetadata && (
-                                <div
-                                    style={{
-                                        height: isMetadataCollapsed ? '48px' : `${metadataPanelHeight}px`,
-                                        flexShrink: 0,
-                                    }}
-                                >
-                                    <MetadataPanel
-                                        flows={flows}
-                                        controls={controls}
-                                        onTransitionClick={handleTransitionClick}
-                                        onNodeClick={handleControlNodeClick}
-                                        isCollapsed={isMetadataCollapsed}
-                                        onToggleCollapse={() => setIsMetadataCollapsed(!isMetadataCollapsed)}
-                                        height={metadataPanelHeight}
-                                        onHeightChange={setMetadataPanelHeight}
-                                    />
-                                </div>
-                            )}
-                        </>
-                    ) : (
-                        <div className="flex justify-center items-center h-full w-full">
-                            {isDragActive ? (
-                                <p>Drop your file here ...</p>
-                            ) : (
-                                <p>
-                                    {'Drag and drop your file here or '}
-                                    <span className="border-b border-dotted border-black pb-1">Browse</span>
-                                </p>
-                            )}
+        <div {...getRootProps()} className="flex-1 flex flex-col overflow-hidden h-full">
+            {!hasContent && <input {...getInputProps()} />}
+            {hasContent ? (
+                <>
+                    <div
+                        style={{
+                            flex: 1,
+                            minHeight: 0,
+                            ...(hasMetadata && !isMetadataCollapsed ? { height: `calc(100% - ${metadataPanelHeight}px)` } : {}),
+                        }}
+                    >
+                        {patternInstance ? (
+                            <PatternVisualizer
+                                patternData={patternInstance}
+                                onNodeClick={handlePatternNodeClick}
+                                onEdgeClick={handlePatternEdgeClick}
+                                onBackgroundClick={closeSidebar}
+                            />
+                        ) : calmInstance ? (
+                            <ReactFlowVisualizer
+                                calmData={calmInstance}
+                                onNodeClick={handleNodeClick}
+                                onEdgeClick={handleEdgeClick}
+                                onBackgroundClick={closeSidebar}
+                            />
+                        ) : null}
+                    </div>
+                    {hasMetadata && !patternInstance && (
+                        <div
+                            style={{
+                                height: isMetadataCollapsed ? '48px' : `${metadataPanelHeight}px`,
+                                flexShrink: 0,
+                            }}
+                        >
+                            <MetadataPanel
+                                flows={flows}
+                                controls={controls}
+                                onTransitionClick={handleTransitionClick}
+                                onNodeClick={handleControlNodeClick}
+                                isCollapsed={isMetadataCollapsed}
+                                onToggleCollapse={() => setIsMetadataCollapsed(!isMetadataCollapsed)}
+                                height={metadataPanelHeight}
+                                onHeightChange={setMetadataPanelHeight}
+                            />
                         </div>
                     )}
+                </>
+            ) : (
+                <div className="flex justify-center items-center h-full w-full">
+                    {isDragActive ? (
+                        <p>Drop your file here ...</p>
+                    ) : (
+                        <p>
+                            {'Drag and drop your file here or '}
+                            <span className="border-b border-dotted border-black pb-1">Browse</span>
+                        </p>
+                    )}
                 </div>
-                {selectedItem && <Sidebar selectedData={selectedItem.data} closeSidebar={closeSidebar} />}
-            </div>
+            )}
         </div>
     );
 }
