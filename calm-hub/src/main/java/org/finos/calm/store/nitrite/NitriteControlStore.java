@@ -8,10 +8,13 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.domain.controls.ControlDetail;
+import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
 import org.finos.calm.domain.exception.ControlConfigurationNotFoundException;
+import org.finos.calm.domain.exception.ControlConfigurationVersionExistsException;
 import org.finos.calm.domain.exception.ControlConfigurationVersionNotFoundException;
 import org.finos.calm.domain.exception.ControlNotFoundException;
+import org.finos.calm.domain.exception.ControlRequirementVersionExistsException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.store.ControlStore;
@@ -199,6 +202,75 @@ public class NitriteControlStore implements ControlStore {
         }
 
         return versionJson;
+    }
+
+    @Override
+    public void createRequirementForVersion(String domain, int controlId, String version, String requirementJson) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionExistsException {
+        Document controlDoc = findControl(domain, controlId);
+        Document requirement = controlDoc.get(REQUIREMENT_FIELD, Document.class);
+
+        String nitriteVersion = version.replace('.', '-');
+
+        if (requirement != null && requirement.getFields().contains(nitriteVersion)) {
+            throw new ControlRequirementVersionExistsException();
+        }
+
+        if (requirement == null) {
+            requirement = Document.createDocument();
+            controlDoc.put(REQUIREMENT_FIELD, requirement);
+        }
+        requirement.put(nitriteVersion, requirementJson);
+
+        Document domainDoc = controlCollection.find(where(DOMAIN_FIELD).eq(domain)).firstOrNull();
+        controlCollection.update(where(DOMAIN_FIELD).eq(domain), domainDoc);
+    }
+
+    @Override
+    public int createControlConfiguration(CreateControlConfiguration request, String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
+        Document controlDoc = findControl(domain, controlId);
+
+        int configurationId = counterStore.getNextControlConfigurationSequenceValue();
+
+        Document configDoc = Document.createDocument()
+                .put(CONFIGURATION_ID_FIELD, configurationId)
+                .put(VERSIONS_FIELD, Document.createDocument()
+                        .put("1-0-0", request.getConfigurationJson()));
+
+        @SuppressWarnings("unchecked")
+        List<Document> configurations = (List<Document>) controlDoc.get(CONFIGURATIONS_FIELD);
+        if (configurations == null) {
+            configurations = new ArrayList<>();
+        } else {
+            configurations = new ArrayList<>(configurations);
+        }
+        configurations.add(configDoc);
+        controlDoc.put(CONFIGURATIONS_FIELD, configurations);
+
+        Document domainDoc = controlCollection.find(where(DOMAIN_FIELD).eq(domain)).firstOrNull();
+        controlCollection.update(where(DOMAIN_FIELD).eq(domain), domainDoc);
+
+        return configurationId;
+    }
+
+    @Override
+    public void createConfigurationForVersion(String domain, int controlId, int configurationId, String version, String configurationJson) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionExistsException {
+        Document configDoc = findConfiguration(domain, controlId, configurationId);
+        Document versions = configDoc.get(VERSIONS_FIELD, Document.class);
+
+        String nitriteVersion = version.replace('.', '-');
+
+        if (versions != null && versions.getFields().contains(nitriteVersion)) {
+            throw new ControlConfigurationVersionExistsException();
+        }
+
+        if (versions == null) {
+            versions = Document.createDocument();
+            configDoc.put(VERSIONS_FIELD, versions);
+        }
+        versions.put(nitriteVersion, configurationJson);
+
+        Document domainDoc = controlCollection.find(where(DOMAIN_FIELD).eq(domain)).firstOrNull();
+        controlCollection.update(where(DOMAIN_FIELD).eq(domain), domainDoc);
     }
 
     private Document findControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {

@@ -40,33 +40,37 @@ public class TestMongoControlStoreShould {
     MongoDatabase mongoDatabase;
     
     @InjectMock
-    MongoCounterStore mongoCounterStore;
+    MongoCounterStore counterStore;
     
     @InjectMock
-    MongoDomainStore mongoDomainStore;
+    MongoDomainStore domainStore;
 
     private MongoCollection<Document> controlCollection;
     private MongoControlStore mongoControlStore;
 
-    @BeforeEach
-    @SuppressWarnings("unchecked")
-    public void setup() {
-        controlCollection = Mockito.mock(MongoCollection.class);
-
-        when(mongoDatabase.getCollection("controls")).thenReturn(controlCollection);
-        mongoControlStore = new MongoControlStore(mongoDatabase, mongoCounterStore, mongoDomainStore);
+    private interface DocumentFindIterable extends FindIterable<Document> {
     }
 
-    @SuppressWarnings("unchecked")
+    private interface DocumentMongoCollection extends MongoCollection<Document> {
+    }
+
+    @BeforeEach
+    void setup() {
+        controlCollection = Mockito.mock(DocumentMongoCollection.class);
+
+        when(mongoDatabase.getCollection("controls")).thenReturn(controlCollection);
+        mongoControlStore = new MongoControlStore(mongoDatabase, counterStore, domainStore);
+    }
+
     private FindIterable<Document> mockFindIterable() {
-        return Mockito.mock(FindIterable.class);
+        return Mockito.mock(DocumentFindIterable.class);
     }
 
     // --- getControlsForDomain ---
 
     @Test
     void get_controls_for_domain_returns_empty_list_when_domain_has_no_controls() throws DomainNotFoundException {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
         FindIterable<Document> findIterable = mockFindIterable();
         when(controlCollection.find(any(Bson.class))).thenReturn(findIterable);
         when(findIterable.first()).thenReturn(null);
@@ -78,7 +82,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void get_controls_for_domain_throws_exception_when_domain_does_not_exist() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         assertThrows(DomainNotFoundException.class, () -> {
             mongoControlStore.getControlsForDomain("invalid-domain");
@@ -87,7 +91,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void get_controls_for_domain_returns_list_of_controls_when_domain_exists() throws DomainNotFoundException {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
         
         Document control1 = new Document("controlId", 1)
                 .append("name", "Access Control")
@@ -119,7 +123,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void create_control_requirement_throws_exception_when_domain_does_not_exist() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
         CreateControlRequirement createRequest = new CreateControlRequirement("Test Control", "Test Description", "{}");
 
         assertThrows(DomainNotFoundException.class, () -> {
@@ -129,8 +133,8 @@ public class TestMongoControlStoreShould {
 
     @Test
     void create_control_requirement_creates_control_when_domain_exists() throws DomainNotFoundException {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
-        when(mongoCounterStore.getNextControlSequenceValue()).thenReturn(5);
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
+        when(counterStore.getNextControlSequenceValue()).thenReturn(5);
         
         CreateControlRequirement createRequest = new CreateControlRequirement("New Control", "New Description", "{\"type\": \"control\"}");
 
@@ -141,27 +145,27 @@ public class TestMongoControlStoreShould {
         assertThat(result.getDescription(), is("New Description"));
         
         verify(controlCollection).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
-        verify(mongoCounterStore).getNextControlSequenceValue();
+        verify(counterStore).getNextControlSequenceValue();
     }
 
     @Test
     void create_control_requirement_stores_requirement_json() throws DomainNotFoundException {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
-        when(mongoCounterStore.getNextControlSequenceValue()).thenReturn(10);
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
+        when(counterStore.getNextControlSequenceValue()).thenReturn(10);
         
         CreateControlRequirement createRequest = new CreateControlRequirement("JSON Control", "Control with JSON", "{\"requirement\": \"strict\"}");
 
         mongoControlStore.createControlRequirement(createRequest, "security");
 
         verify(controlCollection).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
-        verify(mongoCounterStore).getNextControlSequenceValue();
+        verify(counterStore).getNextControlSequenceValue();
     }
 
     // --- getRequirementVersions ---
 
     @Test
     void get_requirement_versions_returns_version_list() throws Exception {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document requirement = new Document("1-0-0", new Document("type", "req"));
         Document controlDoc = new Document("controlId", 1)
@@ -184,7 +188,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void get_requirement_versions_throws_when_control_not_found() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document domainDoc = new Document("domain", "security")
                 .append("controls", new ArrayList<>());
@@ -199,7 +203,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void get_requirement_versions_throws_when_domain_not_found() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         assertThrows(DomainNotFoundException.class, () ->
                 mongoControlStore.getRequirementVersions("invalid", 1));
@@ -209,7 +213,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void get_requirement_for_version_returns_json() throws Exception {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document requirementContent = new Document("type", "requirement");
         Document requirement = new Document("1-0-0", requirementContent);
@@ -232,7 +236,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void get_requirement_for_version_throws_when_version_not_found() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document requirement = new Document("1-0-0", new Document("type", "req"));
         Document controlDoc = new Document("controlId", 1)
@@ -253,7 +257,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void get_requirement_for_version_throws_when_control_not_found() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document domainDoc = new Document("domain", "security")
                 .append("controls", new ArrayList<>());
@@ -270,7 +274,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void get_configurations_returns_config_ids() throws Exception {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document config1 = new Document("configurationId", 10)
                 .append("versions", new Document("1-0-0", new Document("setting", "a")));
@@ -297,7 +301,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void get_configurations_returns_empty_when_no_configurations_exist() throws Exception {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document controlDoc = new Document("controlId", 1)
                 .append("name", "Test")
@@ -318,7 +322,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void get_configurations_throws_when_control_not_found() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document domainDoc = new Document("domain", "security")
                 .append("controls", new ArrayList<>());
@@ -335,7 +339,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void get_configuration_versions_returns_version_list() throws Exception {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document versions = new Document("1-0-0", new Document("a", "b"))
                 .append("2-0-0", new Document("c", "d"));
@@ -362,7 +366,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void get_configuration_versions_throws_when_config_not_found() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document controlDoc = new Document("controlId", 1)
                 .append("name", "Test")
@@ -384,7 +388,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void get_configuration_for_version_returns_json() throws Exception {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document config = new Document("configurationId", 10)
                 .append("versions", new Document("1-0-0", new Document("setting", "versioned")));
@@ -408,7 +412,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void get_configuration_for_version_throws_when_version_not_found() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document config = new Document("configurationId", 10)
                 .append("versions", new Document("1-0-0", new Document("a", "b")));
@@ -431,7 +435,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void get_configuration_for_version_throws_when_config_not_found() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document controlDoc = new Document("controlId", 1)
                 .append("name", "Test")
@@ -453,7 +457,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void create_requirement_for_version_succeeds_when_version_does_not_exist() throws Exception {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document requirement = new Document("1-0-0", new Document("type", "req"));
         Document controlDoc = new Document("controlId", 1)
@@ -475,7 +479,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void create_requirement_for_version_throws_when_version_already_exists() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document requirement = new Document("1-0-0", new Document("type", "req"));
         Document controlDoc = new Document("controlId", 1)
@@ -496,7 +500,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void create_requirement_for_version_throws_when_domain_not_found() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         assertThrows(DomainNotFoundException.class, () ->
                 mongoControlStore.createRequirementForVersion("invalid", 1, "2.0.0", "{}"));
@@ -504,7 +508,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void create_requirement_for_version_throws_when_control_not_found() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document domainDoc = new Document("domain", "security")
                 .append("controls", new ArrayList<>());
@@ -521,8 +525,8 @@ public class TestMongoControlStoreShould {
 
     @Test
     void create_control_configuration_succeeds_when_control_exists() throws Exception {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
-        when(mongoCounterStore.getNextControlConfigurationSequenceValue()).thenReturn(42);
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
+        when(counterStore.getNextControlConfigurationSequenceValue()).thenReturn(42);
 
         Document controlDoc = new Document("controlId", 1)
                 .append("name", "Test")
@@ -541,12 +545,12 @@ public class TestMongoControlStoreShould {
 
         assertThat(configId, is(42));
         verify(controlCollection).updateOne(any(Document.class), any(Bson.class));
-        verify(mongoCounterStore).getNextControlConfigurationSequenceValue();
+        verify(counterStore).getNextControlConfigurationSequenceValue();
     }
 
     @Test
     void create_control_configuration_throws_when_domain_not_found() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
         CreateControlConfiguration request = new CreateControlConfiguration("{}");
 
         assertThrows(DomainNotFoundException.class, () ->
@@ -555,7 +559,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void create_control_configuration_throws_when_control_not_found() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document domainDoc = new Document("domain", "security")
                 .append("controls", new ArrayList<>());
@@ -574,7 +578,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void create_configuration_for_version_succeeds_when_version_does_not_exist() throws Exception {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document config = new Document("configurationId", 10)
                 .append("versions", new Document("1-0-0", new Document("setting", "a")));
@@ -598,7 +602,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void create_configuration_for_version_throws_when_version_already_exists() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document config = new Document("configurationId", 10)
                 .append("versions", new Document("1-0-0", new Document("setting", "a")));
@@ -621,7 +625,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void create_configuration_for_version_throws_when_config_not_found() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document controlDoc = new Document("controlId", 1)
                 .append("name", "Test")
@@ -641,7 +645,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void create_configuration_for_version_throws_when_domain_not_found() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         assertThrows(DomainNotFoundException.class, () ->
                 mongoControlStore.createConfigurationForVersion("invalid", 1, 10, "2.0.0", "{}"));
@@ -649,7 +653,7 @@ public class TestMongoControlStoreShould {
 
     @Test
     void create_configuration_for_version_throws_when_control_not_found() {
-        when(mongoDomainStore.getDomains()).thenReturn(List.of("security"));
+        when(domainStore.getDomains()).thenReturn(List.of("security"));
 
         Document domainDoc = new Document("domain", "security")
                 .append("controls", new ArrayList<>());
