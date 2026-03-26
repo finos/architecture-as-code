@@ -2,11 +2,15 @@ package org.finos.calm.resources;
 
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import org.bson.json.JsonParseException;
 import org.finos.calm.domain.controls.ControlDetail;
+import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
 import org.finos.calm.domain.exception.ControlConfigurationNotFoundException;
+import org.finos.calm.domain.exception.ControlConfigurationVersionExistsException;
 import org.finos.calm.domain.exception.ControlConfigurationVersionNotFoundException;
 import org.finos.calm.domain.exception.ControlNotFoundException;
+import org.finos.calm.domain.exception.ControlRequirementVersionExistsException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.store.ControlStore;
@@ -19,7 +23,11 @@ import java.util.List;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -392,5 +400,208 @@ public class TestControlResourceShould {
                 .statusCode(404);
 
         verify(controlStore).getConfigurationForVersion(VALID_DOMAIN, 1, 999, "1.0.0");
+    }
+
+    // --- createRequirementForVersion ---
+
+    @Test
+    void return_201_when_creating_requirement_version_for_valid_control() throws Exception {
+        doNothing().when(controlStore).createRequirementForVersion(VALID_DOMAIN, 1, "2.0.0", "{\"type\": \"req-v2\"}");
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"type\": \"req-v2\"}")
+                .when()
+                .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0"));
+    }
+
+    @Test
+    void return_404_when_creating_requirement_version_for_invalid_domain() throws Exception {
+        doThrow(new DomainNotFoundException(INVALID_DOMAIN)).when(controlStore)
+                .createRequirementForVersion(eq(INVALID_DOMAIN), anyInt(), anyString(), anyString());
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{}")
+                .when()
+                .post("/calm/domains/" + INVALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void return_404_when_creating_requirement_version_for_invalid_control() throws Exception {
+        doThrow(new ControlNotFoundException()).when(controlStore)
+                .createRequirementForVersion(eq(VALID_DOMAIN), eq(999), anyString(), anyString());
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{}")
+                .when()
+                .post("/calm/domains/" + VALID_DOMAIN + "/controls/999/requirement/versions/2.0.0")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void return_409_when_creating_requirement_version_that_already_exists() throws Exception {
+        doThrow(new ControlRequirementVersionExistsException()).when(controlStore)
+                .createRequirementForVersion(eq(VALID_DOMAIN), eq(1), eq("1.0.0"), anyString());
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{}")
+                .when()
+                .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0.0")
+                .then()
+                .statusCode(409);
+    }
+
+    @Test
+    void return_400_when_creating_requirement_version_with_malformed_json() throws Exception {
+        doThrow(new JsonParseException()).when(controlStore)
+                .createRequirementForVersion(eq(VALID_DOMAIN), eq(1), eq("2.0.0"), anyString());
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{ this is not valid json")
+                .when()
+                .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/2.0.0")
+                .then()
+                .statusCode(400);
+    }
+
+    // --- createControlConfiguration ---
+
+    @Test
+    void return_201_when_creating_configuration_for_valid_control() throws Exception {
+        when(controlStore.createControlConfiguration(any(CreateControlConfiguration.class), eq(VALID_DOMAIN), eq(1)))
+                .thenReturn(42);
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(new CreateControlConfiguration("{\"setting\": \"enabled\"}"))
+                .when()
+                .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/42"));
+    }
+
+    @Test
+    void return_404_when_creating_configuration_for_invalid_domain() throws Exception {
+        when(controlStore.createControlConfiguration(any(CreateControlConfiguration.class), eq(INVALID_DOMAIN), eq(1)))
+                .thenThrow(new DomainNotFoundException(INVALID_DOMAIN));
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(new CreateControlConfiguration("{}"))
+                .when()
+                .post("/calm/domains/" + INVALID_DOMAIN + "/controls/1/configurations")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void return_404_when_creating_configuration_for_invalid_control() throws Exception {
+        when(controlStore.createControlConfiguration(any(CreateControlConfiguration.class), eq(VALID_DOMAIN), eq(999)))
+                .thenThrow(new ControlNotFoundException());
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(new CreateControlConfiguration("{}"))
+                .when()
+                .post("/calm/domains/" + VALID_DOMAIN + "/controls/999/configurations")
+                .then()
+                .statusCode(404);
+    }
+
+    // --- createConfigurationForVersion ---
+
+    @Test
+    void return_201_when_creating_configuration_version() throws Exception {
+        doNothing().when(controlStore).createConfigurationForVersion(VALID_DOMAIN, 1, 10, "2.0.0", "{\"setting\": \"v2\"}");
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"setting\": \"v2\"}")
+                .when()
+                .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/2.0.0")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/2.0.0"));
+    }
+
+    @Test
+    void return_404_when_creating_configuration_version_for_invalid_domain() throws Exception {
+        doThrow(new DomainNotFoundException(INVALID_DOMAIN)).when(controlStore)
+                .createConfigurationForVersion(eq(INVALID_DOMAIN), anyInt(), anyInt(), anyString(), anyString());
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{}")
+                .when()
+                .post("/calm/domains/" + INVALID_DOMAIN + "/controls/1/configurations/10/versions/2.0.0")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void return_404_when_creating_configuration_version_for_invalid_control() throws Exception {
+        doThrow(new ControlNotFoundException()).when(controlStore)
+                .createConfigurationForVersion(eq(VALID_DOMAIN), eq(999), anyInt(), anyString(), anyString());
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{}")
+                .when()
+                .post("/calm/domains/" + VALID_DOMAIN + "/controls/999/configurations/10/versions/2.0.0")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void return_404_when_creating_configuration_version_for_invalid_config() throws Exception {
+        doThrow(new ControlConfigurationNotFoundException()).when(controlStore)
+                .createConfigurationForVersion(eq(VALID_DOMAIN), eq(1), eq(999), anyString(), anyString());
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{}")
+                .when()
+                .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999/versions/2.0.0")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void return_409_when_creating_configuration_version_that_already_exists() throws Exception {
+        doThrow(new ControlConfigurationVersionExistsException()).when(controlStore)
+                .createConfigurationForVersion(eq(VALID_DOMAIN), eq(1), eq(10), eq("1.0.0"), anyString());
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{}")
+                .when()
+                .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/1.0.0")
+                .then()
+                .statusCode(409);
+    }
+
+    @Test
+    void return_400_when_creating_configuration_version_with_malformed_json() throws Exception {
+        doThrow(new JsonParseException()).when(controlStore)
+                .createConfigurationForVersion(eq(VALID_DOMAIN), eq(1), eq(10), eq("2.0.0"), anyString());
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{ this is not valid json")
+                .when()
+                .post("/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/2.0.0")
+                .then()
+                .statusCode(400);
     }
 }
