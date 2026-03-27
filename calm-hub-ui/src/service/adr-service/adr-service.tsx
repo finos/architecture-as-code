@@ -24,7 +24,7 @@ export class AdrService {
             .then((res) => res.data.values)
             .catch((error) => {
                 const errorMessage = `Error fetching adr IDs for namespace ${namespace}:`;
-                console.error(errorMessage, error);
+                console.error('Error fetching adr IDs for namespace %s:', namespace, error);
                 return Promise.reject(new Error(errorMessage));
             });
     }
@@ -41,7 +41,7 @@ export class AdrService {
             .then((res) => res.data.values)
             .catch((error) => {
                 const errorMessage = `Error fetching revisions for ADR ID ${adrID}:`;
-                console.error(errorMessage, error);
+                console.error('Error fetching revisions for ADR ID %s:', adrID, error);
                 return Promise.reject(new Error(errorMessage));
             });
     }
@@ -58,7 +58,7 @@ export class AdrService {
             .then((res) => res.data)
             .catch((error) => {
                 const errorMessage = `Error fetching adr for namespace ${namespace}, adr ID ${adrID}, revision ${revision}:`;
-                console.error(errorMessage, error);
+                console.error('Error fetching adr for namespace %s, adr ID %s, revision %s:', namespace, adrID, revision, error);
                 return Promise.reject(new Error(errorMessage));
             });
     }
