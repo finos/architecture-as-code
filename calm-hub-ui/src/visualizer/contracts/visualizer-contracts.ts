@@ -60,7 +60,6 @@ export interface MetadataPanelProps {
     flows: Flow[];
     controls: Record<string, Control>;
     decorators: Decorator[];
-    architectureItems?: Record<string, 'node' | 'relationship'>;
     onTransitionClick?: (relationshipId: string) => void;
     onNodeClick?: (nodeId: string) => void;
     onControlClick?: (controlId: string) => void;

@@ -10,7 +10,6 @@ export function MetadataPanel({
     flows,
     controls,
     decorators,
-    architectureItems,
     onTransitionClick,
     onNodeClick,
     onControlClick,
@@ -293,7 +292,7 @@ export function MetadataPanel({
                     <ControlsPanel controls={controls} onNodeClick={onNodeClick} onControlClick={onControlClick} />
                 )}
                 {activeTab === 'deployment' && (
-                    <DeploymentPanel decorators={decorators} architectureItems={architectureItems} />
+                    <DeploymentPanel decorators={decorators} />
                 )}
             </div>
         </div>

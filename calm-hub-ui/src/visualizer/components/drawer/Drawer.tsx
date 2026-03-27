@@ -67,21 +67,6 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
 
     const decorators = decoratorsProp ?? decoratorsState;
 
-    // Build a lookup map of unique-id → 'node' | 'relationship' for applies-to resolution
-    const architectureItems = useMemo((): Record<string, 'node' | 'relationship'> => {
-        if (!calmInstance) return {};
-        const result: Record<string, 'node' | 'relationship'> = {};
-        (calmInstance.nodes || []).forEach((n) => {
-            const id = n['unique-id'];
-            if (id) result[id] = 'node';
-        });
-        (calmInstance.relationships || []).forEach((r) => {
-            const id = r['unique-id'];
-            if (id) result[id] = 'relationship';
-        });
-        return result;
-    }, [calmInstance]);
-
     // Extract flows from CALM data
     const flows = useMemo((): Flow[] => {
         const calmData = calmInstance as CalmArchitectureSchema & { flows?: Flow[] };
@@ -223,7 +208,6 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
                                 flows={flows}
                                 controls={controls}
                                 decorators={decorators}
-                                architectureItems={architectureItems}
                                 onTransitionClick={handleTransitionClick}
                                 onNodeClick={handleControlNodeClick}
                                 isCollapsed={isMetadataCollapsed}

@@ -10,5 +10,4 @@ export interface Decorator {
 
 export interface DeploymentPanelProps {
     decorators: Decorator[];
-    architectureItems?: Record<string, 'node' | 'relationship'>;
 }
