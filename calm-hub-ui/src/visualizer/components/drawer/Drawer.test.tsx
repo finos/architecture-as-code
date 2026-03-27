@@ -1,9 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { Drawer } from './Drawer.js';
 import { Data } from '../../../model/calm.js';
 import type { ReactFlowVisualizerProps } from '../../contracts/contracts.js';
 import { DropzoneOptions } from 'react-dropzone';
+
+const mockFetchDecoratorValues = vi.fn().mockResolvedValue([]);
+
+vi.mock('../../../service/calm-service.js', () => ({
+    fetchDecoratorValues: (...args: unknown[]) => mockFetchDecoratorValues(...args),
+}));
+
+vi.mock('../reactflow/MetadataPanel.js', () => ({
+    MetadataPanel: ({ decorators }: { decorators: unknown[] }) => (
+        <div data-testid="metadata-panel">decorators:{decorators.length}</div>
+    ),
+}));
 
 // Mock dependencies
 vi.mock('../reactflow/ReactFlowVisualizer.js', () => ({
@@ -26,6 +38,26 @@ vi.mock('react-dropzone', async () => {
         }),
     };
 });
+
+const architectureData: Data = {
+    name: 'my-namespace',
+    calmType: 'Architectures',
+    id: 'my-arch',
+    version: '1.0.0',
+    data: { nodes: [], relationships: [] },
+};
+
+const patternData: Data = {
+    name: 'my-namespace',
+    calmType: 'Patterns',
+    id: 'my-pattern',
+    version: '1.0.0',
+    data: {
+        properties: {
+            nodes: { prefixItems: [] },
+        },
+    },
+};
 
 const calmData = {
     name: 'Test CALM',
@@ -93,5 +125,62 @@ describe('Drawer', () => {
     it('does not show sidebar initially', () => {
         render(<Drawer data={calmData as unknown as Data} />);
         expect(screen.queryByLabelText('close-sidebar')).not.toBeInTheDocument();
+    });
+});
+
+describe('Drawer — decorator fetching', () => {
+    beforeEach(() => {
+        mockFetchDecoratorValues.mockReset();
+        mockFetchDecoratorValues.mockResolvedValue([]);
+    });
+
+    it('fetches decorator values when architecture data is provided without decorators prop', async () => {
+        render(<Drawer data={architectureData} />);
+
+        await waitFor(() => {
+            expect(mockFetchDecoratorValues).toHaveBeenCalledWith(
+                'my-namespace',
+                '/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0',
+                'deployment'
+            );
+        });
+    });
+
+    it('does not fetch decorator values when decorators prop is provided', async () => {
+        render(<Drawer data={architectureData} decorators={[]} />);
+
+        await waitFor(() => {
+            expect(mockFetchDecoratorValues).not.toHaveBeenCalled();
+        });
+    });
+
+    it('does not fetch decorator values for pattern data', async () => {
+        render(<Drawer data={patternData} />);
+
+        await waitFor(() => {
+            expect(mockFetchDecoratorValues).not.toHaveBeenCalled();
+        });
+    });
+
+    it('passes fetched decorators to MetadataPanel', async () => {
+        const decorators = [{ uniqueId: 'dec-1', type: 'deployment', data: { status: 'completed' } }];
+        mockFetchDecoratorValues.mockResolvedValue(decorators);
+
+        render(<Drawer data={architectureData} />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('metadata-panel')).toHaveTextContent('decorators:1');
+        });
+    });
+
+    it('passes externally provided decorators to MetadataPanel without fetching', async () => {
+        const decorators = [{ uniqueId: 'dec-ext', type: 'deployment', data: { status: 'failed' } }];
+
+        render(<Drawer data={architectureData} decorators={decorators} />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('metadata-panel')).toHaveTextContent('decorators:1');
+        });
+        expect(mockFetchDecoratorValues).not.toHaveBeenCalled();
     });
 });

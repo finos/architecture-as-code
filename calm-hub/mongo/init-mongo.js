@@ -2850,8 +2850,14 @@ db.decorators.insertMany([
                         "end-time": "2026-02-23T10:05:30Z",
                         "status": "completed",
                         "observability": "https://grafana.example.com/d/finos-architecture-1",
-                        "deployment-url": "https://jenkins.example.com/job/finos-architecture/123/",
-                        "notes": "Production deployment of FINOS Architecture 1 with baseline configuration"
+                        "deployment-details": "https://jenkins.example.com/job/finos-architecture/123/",
+                        "notes": "Production deployment of FINOS Architecture 1 with baseline configuration",
+                        "k8s-cluster": "prod-eu-west-1",
+                        "k8s-namespace": "finos-prod",
+                        "k8s-deployment-name": "finos-architecture-1",
+                        "k8s-replicas": "3",
+                        "k8s-image-tag": "v1.0.0-20260223",
+                        "k8s-node-pool": "general-purpose-m5-xlarge"
                     }
                 }
             },
@@ -2873,13 +2879,36 @@ db.decorators.insertMany([
                     "data": {
                         "start-time": "2026-03-04T15:00:00Z",
                         "end-time": "2026-03-04T15:08:15Z",
-                        "status": "completed",
-                        "notes": "Second production deployment of FINOS Architecture 1 with performance improvements and bug fixes"
+                        "status": "failed",
+                        "notes": "Second production deployment of FINOS Architecture 1 failed due to configuration errors"
                     }
                 }
             },
             {
                 decoratorId: NumberInt(3),
+                decorator: {
+                    "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+                    "unique-id": "finos-architecture-1-deployment-v3",
+                    "type": "deployment",
+                    "target": [
+                        "/calm/namespaces/finos/architectures/1/versions/1-0-0"
+                    ],
+                    "target-type": [
+                        "architecture"
+                    ],
+                    "applies-to": [
+                        "example-node"
+                    ],
+                    "data": {
+                        "start-time": "2026-03-26T09:00:00Z",
+                        "status": "in-progress",
+                        "deployment-details": "https://jenkins.example.com/job/finos-architecture/125/",
+                        "notes": "Retry deployment of FINOS Architecture 1 after previous failure"
+                    }
+                }
+            },
+            {
+                decoratorId: NumberInt(4),
                 decorator: {
                     "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
                     "unique-id": "finos-pattern-1-deployment",
@@ -2897,7 +2926,7 @@ db.decorators.insertMany([
                         "start-time": "2026-02-15T09:30:00Z",
                         "end-time": "2026-02-15T09:35:20Z",
                         "status": "completed",
-                        "deployment-url": "https://github.com/finos/actions/runs/987654321",
+                        "deployment-details": "https://github.com/finos/actions/runs/987654321",
                         "notes": "Pattern deployment via GitHub Actions"
                     }
                 }
@@ -2927,7 +2956,7 @@ db.decorators.insertMany([
                         "start-time": "2026-03-01T14:30:00Z",
                         "end-time": "2026-03-01T14:35:45Z",
                         "status": "completed",
-                        "deployment-url": "https://vercel.com/workshop/deployments/abc123xyz",
+                        "deployment-details": "https://vercel.com/workshop/deployments/abc123xyz",
                         "notes": "Workshop conference system deployment via Vercel"
                     }
                 }
