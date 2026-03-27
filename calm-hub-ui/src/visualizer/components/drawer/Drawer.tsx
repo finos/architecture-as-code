@@ -5,7 +5,8 @@ import { ReactFlowVisualizer } from '../reactflow/ReactFlowVisualizer.js';
 import { PatternVisualizer } from '../reactflow/PatternVisualizer.js';
 import { MetadataPanel } from '../reactflow/MetadataPanel.js';
 import { toSidebarNodeData, toSidebarEdgeData } from '../reactflow/utils/patternClickHandlers.js';
-import type { DrawerProps, Flow, Control } from '../../contracts/contracts.js';
+import { fetchDecoratorValues } from '../../../service/calm-service.js';
+import type { DrawerProps, Flow, Control, Decorator } from '../../contracts/contracts.js';
 
 /**
  * Detect whether JSON data is a CALM pattern (JSON Schema) or an architecture instance.
@@ -25,10 +26,11 @@ function extractId(item: CalmNodeSchema | CalmRelationshipSchema): string {
     return item?.['unique-id'] || '';
 }
 
-export function Drawer({ data, onItemSelect }: DrawerProps) {
+export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: DrawerProps) {
     const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
     const [patternInstance, setPatternInstance] = useState<Record<string, unknown> | undefined>(undefined);
     const [fileInstance, setFileInstance] = useState<Record<string, unknown> | undefined>(undefined);
+    const [decoratorsState, setDecoratorsState] = useState<Decorator[]>([]);
     // Default to collapsed as per user request
     const [isMetadataCollapsed, setIsMetadataCollapsed] = useState(true);
     // Height of the metadata panel when expanded (in pixels)
@@ -51,6 +53,34 @@ export function Drawer({ data, onItemSelect }: DrawerProps) {
         setPatternInstance(isPattern ? (source as Record<string, unknown>) : undefined);
         setCALMInstance(isPattern ? undefined : (source as CalmArchitectureSchema | undefined));
     }, [fileInstance, data]);
+
+    useEffect(() => {
+        if (decoratorsProp !== undefined) return; // controlled externally — skip fetch
+        if (!data || data.calmType !== 'Architectures' || fileInstance) {
+            setDecoratorsState([]);
+            return;
+        }
+        const versionPath = data.version.replace(/\./g, '-');
+        const target = `/calm/namespaces/${data.name}/architectures/${data.id}/versions/${versionPath}`;
+        fetchDecoratorValues(data.name, target, 'deployment').then(setDecoratorsState);
+    }, [data, fileInstance, decoratorsProp]);
+
+    const decorators = decoratorsProp ?? decoratorsState;
+
+    // Build a lookup map of unique-id → 'node' | 'relationship' for applies-to resolution
+    const architectureItems = useMemo((): Record<string, 'node' | 'relationship'> => {
+        if (!calmInstance) return {};
+        const result: Record<string, 'node' | 'relationship'> = {};
+        (calmInstance.nodes || []).forEach((n) => {
+            const id = n['unique-id'];
+            if (id) result[id] = 'node';
+        });
+        (calmInstance.relationships || []).forEach((r) => {
+            const id = r['unique-id'];
+            if (id) result[id] = 'relationship';
+        });
+        return result;
+    }, [calmInstance]);
 
     // Extract flows from CALM data
     const flows = useMemo((): Flow[] => {
@@ -107,7 +137,7 @@ export function Drawer({ data, onItemSelect }: DrawerProps) {
         return { ...nodeControls, ...relationshipControls, ...rootControls };
     }, [calmInstance]);
 
-    const hasMetadata = flows.length > 0 || Object.keys(controls).length > 0;
+    const hasMetadata = flows.length > 0 || Object.keys(controls).length > 0 || decorators.length > 0;
 
     const hasContent = !!(calmInstance || patternInstance);
 
@@ -192,6 +222,8 @@ export function Drawer({ data, onItemSelect }: DrawerProps) {
                             <MetadataPanel
                                 flows={flows}
                                 controls={controls}
+                                decorators={decorators}
+                                architectureItems={architectureItems}
                                 onTransitionClick={handleTransitionClick}
                                 onNodeClick={handleControlNodeClick}
                                 isCollapsed={isMetadataCollapsed}

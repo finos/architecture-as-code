@@ -5,6 +5,7 @@ import {
 } from '@finos/calm-models/types';
 import type { Flow } from './flow-contracts.js';
 import type { Control } from './control-contracts.js';
+import type { Decorator } from './decorator-contracts.js';
 import { Data } from '../../model/calm.js';
 
 //These types and interfaces are used in the top-level visualizer components e.g. Drawer, Sidebar, ReactFlowVisualizer.
@@ -15,6 +16,7 @@ import { Data } from '../../model/calm.js';
 export interface DrawerProps {
     data?: Data;
     onItemSelect?: (item: SelectedItem) => void;
+    decorators?: Decorator[];
 }
 
 /**
@@ -57,6 +59,8 @@ export interface ArchitectureGraphProps {
 export interface MetadataPanelProps {
     flows: Flow[];
     controls: Record<string, Control>;
+    decorators: Decorator[];
+    architectureItems?: Record<string, 'node' | 'relationship'>;
     onTransitionClick?: (relationshipId: string) => void;
     onNodeClick?: (nodeId: string) => void;
     onControlClick?: (controlId: string) => void;
@@ -69,4 +73,4 @@ export interface MetadataPanelProps {
 /**
  * Tab type for MetadataPanel
  */
-export type MetadataPanelTabType = 'flows' | 'controls';
+export type MetadataPanelTabType = 'flows' | 'controls' | 'deployment';

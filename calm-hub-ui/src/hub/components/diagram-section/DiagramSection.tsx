@@ -1,10 +1,13 @@
-import { useState } from 'react';
-import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline } from 'react-icons/io5';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline } from 'react-icons/io5';
 import { Data } from '../../../model/calm.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
 import { SectionHeader } from '../section-header/SectionHeader.js';
-import type { SelectedItem } from '../../../visualizer/contracts/contracts.js';
+import { DeploymentPanel } from '../../../visualizer/components/reactflow/DeploymentPanel.js';
+import { fetchDecoratorValues } from '../../../service/calm-service.js';
+import type { SelectedItem, Decorator } from '../../../visualizer/contracts/contracts.js';
 
 interface DiagramSectionProps {
     data: Data & { calmType: 'Architectures' | 'Patterns' };
@@ -17,8 +20,29 @@ const iconMap = {
     Patterns: IoGridOutline,
 } as const;
 
+type DiagramTabType = 'diagram' | 'json' | 'deployments';
+
 export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramSectionProps) {
-    const [activeTab, setActiveTab] = useState<'diagram' | 'json'>('diagram');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const tabParam = searchParams.get('tab') as DiagramTabType | null;
+    const activeTab: DiagramTabType = tabParam ?? 'diagram';
+    const [decorators, setDecorators] = useState<Decorator[]>([]);
+
+    const setActiveTab = (tab: DiagramTabType) => {
+        setSearchParams({ tab }, { replace: true });
+    };
+
+    const isArchitecture = data.calmType === 'Architectures';
+
+    useEffect(() => {
+        if (!isArchitecture) {
+            setDecorators([]);
+            return;
+        }
+        const versionPath = data.version.replace(/\./g, '-');
+        const target = `/calm/namespaces/${data.name}/architectures/${data.id}/versions/${versionPath}`;
+        fetchDecoratorValues(data.name, target, 'deployment').then(setDecorators);
+    }, [data, isArchitecture]);
 
     const Icon = iconMap[data.calmType];
 
@@ -40,6 +64,16 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                 <IoCodeOutline />
                 JSON
             </button>
+            {isArchitecture && (
+                <button
+                    role="tab"
+                    className={`tab gap-1 rounded-lg ${activeTab === 'deployments' ? 'tab-active !bg-accent !text-white' : ''}`}
+                    onClick={() => setActiveTab('deployments')}
+                >
+                    <IoRocketOutline />
+                    Deployments
+                </button>
+            )}
         </div>
     );
 
@@ -57,7 +91,11 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                 <div className="flex-1 min-h-0 overflow-hidden">
                     {activeTab === 'diagram' ? (
                         <div className="w-full h-full">
-                            <Drawer data={data} onItemSelect={onItemSelect} />
+                            <Drawer data={data} onItemSelect={onItemSelect} decorators={decorators} />
+                        </div>
+                    ) : activeTab === 'deployments' && isArchitecture ? (
+                        <div className="h-full bg-base-200 overflow-auto p-4">
+                            <DeploymentPanel decorators={decorators} />
                         </div>
                     ) : (
                         <div className="h-full bg-base-200 overflow-auto">
