@@ -104,21 +104,25 @@ describe('CLI Integration Tests', () => {
             await run(calm(), ['init-ai', '-p', provider, '--directory', testDir]);
 
             // Define expected paths based on provider
-            const expectedPaths: Record<string, { topLevelDir: string; mainPromptFile: string; skillPromptsDir: string }> = {
+            const expectedPaths: Record<string, { topLevelDir: string; mainPromptFile: string; skillPromptsDir: string; frontmatterContains: string[]; frontmatterNotContains?: string[] }> = {
                 copilot: {
                     topLevelDir: '.github/agents',
                     mainPromptFile: '.github/agents/CALM.agent.md',
                     skillPromptsDir: '.github/agents/calm-prompts',
+                    frontmatterContains: ['description:', 'tools:'],
+                    frontmatterNotContains: ['model:'],
                 },
                 kiro: {
                     topLevelDir: '.kiro',
                     mainPromptFile: '.kiro/steering/CALM.chatmode.md',
                     skillPromptsDir: '.kiro/calm-prompts',
+                    frontmatterContains: ['inclusion: manual'],
                 },
                 claude: {
                     topLevelDir: '.claude/skills/calm',
                     mainPromptFile: '.claude/skills/calm/SKILL.md',
                     skillPromptsDir: '.claude/skills/calm/calm-prompts',
+                    frontmatterContains: ['name: calm', 'description:', 'user-invocable: true'],
                 },
             };
 
@@ -133,6 +137,13 @@ describe('CLI Integration Tests', () => {
             const mainPromptContent = fs.readFileSync(mainPromptPath, 'utf8');
             expect(mainPromptContent).toContain('FINOS CALM');
             expect(mainPromptContent).toContain('Common Architecture Language Model');
+
+            // Verify frontmatter content
+            const frontmatterMatch = mainPromptContent.match(/^---\n([\s\S]*?)\n---/);
+            expect(frontmatterMatch).not.toBeNull();
+            const frontmatter = frontmatterMatch![1];
+            paths.frontmatterContains.forEach((key) => expect(frontmatter).toContain(key));
+            paths.frontmatterNotContains?.forEach((key) => expect(frontmatter).not.toContain(key));
 
             // Verify calm-prompts directory exists
             const skillPromptsPath = path.join(testDir, paths.skillPromptsDir);

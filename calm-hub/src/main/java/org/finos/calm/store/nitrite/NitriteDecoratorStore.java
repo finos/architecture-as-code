@@ -8,14 +8,18 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
+import org.finos.calm.domain.Decorator;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.DecoratorStore;
 import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
 
@@ -65,6 +69,58 @@ public class NitriteDecoratorStore implements DecoratorStore {
         return decoratorIds;
     }
 
+    @Override
+    public List<Decorator> getDecoratorValuesForNamespace(String namespace, String target, String type) throws NamespaceNotFoundException {
+        validateNamespace(namespace);
+
+        Document namespaceDoc = fetchNamespaceDocument(namespace);
+        if (namespaceDoc == null) {
+            LOG.debug("No decorators found for namespace '{}'", namespace);
+            return List.of();
+        }
+
+        List<Document> decorators = extractDecorators(namespaceDoc, namespace);
+        if (decorators.isEmpty()) {
+            return List.of();
+        }
+
+        List<Decorator> decoratorValues = filterDecoratorsToValues(decorators, target, type);
+
+        LOG.debug("Retrieved {} decorator values for namespace '{}' with filters (target: {}, type: {})",
+                decoratorValues.size(), namespace, target, type);
+        return decoratorValues;
+    }
+
+    @Override
+    public Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException {
+        validateNamespace(namespace);
+
+        Document namespaceDoc = fetchNamespaceDocument(namespace);
+        if (namespaceDoc == null) {
+            return Optional.empty();
+        }
+
+        List<Document> decorators = extractDecorators(namespaceDoc, namespace);
+        if (decorators.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return decorators.stream()
+                .filter(decoratorDoc -> Integer.valueOf(id).equals(decoratorDoc.get(DECORATOR_ID_FIELD, Integer.class)))
+                .map(decoratorDoc -> decoratorDoc.get("decorator", Document.class))
+                .filter(Objects::nonNull)
+                .map(doc -> new Decorator.DecoratorBuilder()
+                        .setSchema(doc.get("$schema", String.class))
+                        .setUniqueId(doc.get("unique-id", String.class))
+                        .setType(doc.get("type", String.class))
+                        .setTarget((List<String>) doc.get("target"))
+                        .setTargetType((List<String>) doc.get("target-type"))
+                        .setAppliesTo((List<String>) doc.get("applies-to"))
+                        .setData(doc.get("data"))
+                        .build())
+                .findFirst();
+    }
+
     /**
      * Validates that the namespace exists, throwing an exception if it doesn't
      */
@@ -97,27 +153,36 @@ public class NitriteDecoratorStore implements DecoratorStore {
         return decorators;
     }
 
-    /**
-     * Filters decorators based on target and type criteria
-     */
-    private List<Integer> filterDecorators(List<Document> decorators, String target, String type) {
-        List<Integer> decoratorIds = new ArrayList<>();
-        
-        for (Document decoratorDoc : decorators) {
-            Integer decoratorId = decoratorDoc.get(DECORATOR_ID_FIELD, Integer.class);
-            if (decoratorId == null) {
-                continue;
-            }
+    private Stream<Document> streamWithValidId(List<Document> decorators) {
+        return decorators.stream()
+                .filter(doc -> doc.get(DECORATOR_ID_FIELD, Integer.class) != null);
+    }
 
-            Document decorator = decoratorDoc.get("decorator", Document.class);
-            if (decorator != null && matchesFilters(decorator, target, type)) {
-                decoratorIds.add(decoratorId);
-            } else if (decorator == null) {
-                decoratorIds.add(decoratorId);
-            }
-        }
-        
-        return decoratorIds;
+    private List<Integer> filterDecorators(List<Document> decorators, String target, String type) {
+        return streamWithValidId(decorators)
+                .filter(doc -> {
+                    Document decorator = doc.get("decorator", Document.class);
+                    return decorator == null || matchesFilters(decorator, target, type);
+                })
+                .map(doc -> doc.get(DECORATOR_ID_FIELD, Integer.class))
+                .collect(Collectors.toList());
+    }
+
+    private List<Decorator> filterDecoratorsToValues(List<Document> decorators, String target, String type) {
+        return streamWithValidId(decorators)
+                .map(doc -> doc.get("decorator", Document.class))
+                .filter(Objects::nonNull)
+                .filter(decorator -> matchesFilters(decorator, target, type))
+                .map(decorator -> new Decorator.DecoratorBuilder()
+                        .setSchema(decorator.get("$schema", String.class))
+                        .setUniqueId(decorator.get("unique-id", String.class))
+                        .setType(decorator.get("type", String.class))
+                        .setTarget((List<String>) decorator.get("target"))
+                        .setTargetType((List<String>) decorator.get("target-type"))
+                        .setAppliesTo((List<String>) decorator.get("applies-to"))
+                        .setData(decorator.get("data"))
+                        .build())
+                .collect(Collectors.toList());
     }
 
     /**
