@@ -24,7 +24,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@finos/calm-models": "file:../calm-models",
-    "handlebars": "^4.7.8",
+    "handlebars": "^4.7.9",
     "lodash": "^4.17.23"
   },
   "devDependencies": {
