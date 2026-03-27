@@ -51,7 +51,7 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                     message: `Unsupported URL protocol '${parsedUrl.protocol}' in document URL. Only HTTP and HTTPS are allowed.`,
                 });
             }
-            const response = await this.ax.get(parsedUrl.toString());
+            const response = await this.ax.get(parsedUrl.toString()); // lgtm[js/request-forgery] - fetching schemas from arbitrary URLs is intentional; protocol is already restricted to http/https above
             return response.data;
         } catch (error) {
             if (error instanceof DocumentLoadError) {

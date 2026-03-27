@@ -3,6 +3,45 @@ import { SchemaDirectory } from '../schema-directory';
 import { CalmDocumentType, DocumentLoader, CALM_HUB_PROTO } from './document-loader';
 import { initLogger, Logger } from '../logger';
 
+// This must be kept in sync with the actual endpoints supported by the CALMHub API,
+// as the document loader will reject any paths that do not match one of these patterns.
+const CALM_HUB_ALLOWED_PATHS: RegExp[] = [
+    // Schema endpoints
+    /^\/schemas$/,
+    /^\/schemas\/[^\/]+\/meta$/,
+    /^\/schemas\/[^\/]+\/meta\/[^\/]+$/,
+    // Controls
+    /^\/controls\/domains$/,
+    // Namespaces
+    /^\/namespaces$/,
+    // Architectures
+    /^\/namespaces\/[^\/]+\/architectures$/,
+    /^\/namespaces\/[^\/]+\/architectures\/[^\/]+\/versions$/,
+    /^\/namespaces\/[^\/]+\/architectures\/[^\/]+\/versions\/[^\/]+$/,
+    // Patterns
+    /^\/namespaces\/[^\/]+\/patterns$/,
+    /^\/namespaces\/[^\/]+\/patterns\/[^\/]+\/versions$/,
+    /^\/namespaces\/[^\/]+\/patterns\/[^\/]+\/versions\/[^\/]+$/,
+    // Standards
+    /^\/namespaces\/[^\/]+\/standards$/,
+    /^\/namespaces\/[^\/]+\/standards\/[^\/]+\/versions$/,
+    /^\/namespaces\/[^\/]+\/standards\/[^\/]+\/versions\/[^\/]+$/,
+    // ADRs
+    /^\/namespaces\/[^\/]+\/adrs$/,
+    /^\/namespaces\/[^\/]+\/adrs\/[^\/]+$/,
+    /^\/namespaces\/[^\/]+\/adrs\/[^\/]+\/revisions$/,
+    /^\/namespaces\/[^\/]+\/adrs\/[^\/]+\/revisions\/[^\/]+$/,
+    // Flows
+    /^\/namespaces\/[^\/]+\/flows$/,
+    /^\/namespaces\/[^\/]+\/flows\/[^\/]+$/,
+    /^\/namespaces\/[^\/]+\/flows\/[^\/]+\/versions$/,
+    /^\/namespaces\/[^\/]+\/flows\/[^\/]+\/versions\/[^\/]+$/,
+    // Decorators
+    /^\/namespaces\/[^\/]+\/decorators$/,
+    /^\/namespaces\/[^\/]+\/decorators\/values$/,
+    /^\/namespaces\/[^\/]+\/decorators\/[^\/]+$/
+];
+
 export class CalmHubDocumentLoader implements DocumentLoader {
     private readonly ax: Axios;
     private readonly logger: Logger;
@@ -57,6 +96,10 @@ export class CalmHubDocumentLoader implements DocumentLoader {
             throw new Error(`CalmHubDocumentLoader rejected path containing directory traversal in: ${documentId}`);
         }
         const path = url.pathname;
+
+        if (!CALM_HUB_ALLOWED_PATHS.some(pattern => pattern.test(path))) {
+            throw new Error(`CalmHubDocumentLoader rejected path '${path}' as it does not match any known CalmHub API endpoint.`);
+        }
 
         this.logger.debug(`Loading CALM schema from ${this.calmHubUrl}${path}`);
 

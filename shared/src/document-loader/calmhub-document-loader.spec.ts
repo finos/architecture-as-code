@@ -47,4 +47,10 @@ describe('calmhub-document-loader', () => {
         await expect(calmHubDocumentLoader.loadMissingDocument(traversalUrl, 'schema'))
             .rejects.toThrow('directory traversal');
     });
+
+    it('rejects paths that do not match a known CalmHub API endpoint', async () => {
+        const unknownUrl = 'calm:/admin/secrets.json';
+        await expect(calmHubDocumentLoader.loadMissingDocument(unknownUrl, 'schema'))
+            .rejects.toThrow('does not match any known CalmHub API endpoint');
+    });
 });
