@@ -8,38 +8,38 @@ import { initLogger, Logger } from '../logger';
 const CALM_HUB_ALLOWED_PATHS: RegExp[] = [
     // Schema endpoints
     /^\/schemas$/,
-    /^\/schemas\/[^\/]+\/meta$/,
-    /^\/schemas\/[^\/]+\/meta\/[^\/]+$/,
+    /^\/schemas\/[^/]+\/meta$/,
+    /^\/schemas\/[^/]+\/meta\/[^/]+$/,
     // Controls
     /^\/controls\/domains$/,
     // Namespaces
     /^\/namespaces$/,
     // Architectures
-    /^\/namespaces\/[^\/]+\/architectures$/,
-    /^\/namespaces\/[^\/]+\/architectures\/[^\/]+\/versions$/,
-    /^\/namespaces\/[^\/]+\/architectures\/[^\/]+\/versions\/[^\/]+$/,
+    /^\/namespaces\/[^/]+\/architectures$/,
+    /^\/namespaces\/[^/]+\/architectures\/[^/]+\/versions$/,
+    /^\/namespaces\/[^/]+\/architectures\/[^/]+\/versions\/[^/]+$/,
     // Patterns
-    /^\/namespaces\/[^\/]+\/patterns$/,
-    /^\/namespaces\/[^\/]+\/patterns\/[^\/]+\/versions$/,
-    /^\/namespaces\/[^\/]+\/patterns\/[^\/]+\/versions\/[^\/]+$/,
+    /^\/namespaces\/[^/]+\/patterns$/,
+    /^\/namespaces\/[^/]+\/patterns\/[^/]+\/versions$/,
+    /^\/namespaces\/[^/]+\/patterns\/[^/]+\/versions\/[^/]+$/,
     // Standards
-    /^\/namespaces\/[^\/]+\/standards$/,
-    /^\/namespaces\/[^\/]+\/standards\/[^\/]+\/versions$/,
-    /^\/namespaces\/[^\/]+\/standards\/[^\/]+\/versions\/[^\/]+$/,
+    /^\/namespaces\/[^/]+\/standards$/,
+    /^\/namespaces\/[^/]+\/standards\/[^/]+\/versions$/,
+    /^\/namespaces\/[^/]+\/standards\/[^/]+\/versions\/[^/]+$/,
     // ADRs
-    /^\/namespaces\/[^\/]+\/adrs$/,
-    /^\/namespaces\/[^\/]+\/adrs\/[^\/]+$/,
-    /^\/namespaces\/[^\/]+\/adrs\/[^\/]+\/revisions$/,
-    /^\/namespaces\/[^\/]+\/adrs\/[^\/]+\/revisions\/[^\/]+$/,
+    /^\/namespaces\/[^/]+\/adrs$/,
+    /^\/namespaces\/[^/]+\/adrs\/[^/]+$/,
+    /^\/namespaces\/[^/]+\/adrs\/[^/]+\/revisions$/,
+    /^\/namespaces\/[^/]+\/adrs\/[^/]+\/revisions\/[^/]+$/,
     // Flows
-    /^\/namespaces\/[^\/]+\/flows$/,
-    /^\/namespaces\/[^\/]+\/flows\/[^\/]+$/,
-    /^\/namespaces\/[^\/]+\/flows\/[^\/]+\/versions$/,
-    /^\/namespaces\/[^\/]+\/flows\/[^\/]+\/versions\/[^\/]+$/,
+    /^\/namespaces\/[^/]+\/flows$/,
+    /^\/namespaces\/[^/]+\/flows\/[^/]+$/,
+    /^\/namespaces\/[^/]+\/flows\/[^/]+\/versions$/,
+    /^\/namespaces\/[^/]+\/flows\/[^/]+\/versions\/[^/]+$/,
     // Decorators
-    /^\/namespaces\/[^\/]+\/decorators$/,
-    /^\/namespaces\/[^\/]+\/decorators\/values$/,
-    /^\/namespaces\/[^\/]+\/decorators\/[^\/]+$/
+    /^\/namespaces\/[^/]+\/decorators$/,
+    /^\/namespaces\/[^/]+\/decorators\/values$/,
+    /^\/namespaces\/[^/]+\/decorators\/[^/]+$/
 ];
 
 export class CalmHubDocumentLoader implements DocumentLoader {
