@@ -15,6 +15,7 @@ Explore the topics below to get hands-on experience with CALM:
 - [Generate](generate): Discover how to generate architectural architectures from predefined patterns.
 - [Validate](validate): Learn how to validate your architecture against CALM patterns to ensure compliance.
 - [Validation Server](validation-server): Run a standalone HTTP server for remote CALM architecture validation.
+- [Docify](docify): Generate a documentation website from your CALM architecture model.
 - [CALM AI Tools](calm-ai-tools): Expands the support of additional AI Assistants in CALM architecture modeling.
 - [Voice Mode](voice-mode): Enable hands-free interaction with CALM Copilot Chat using voice commands.
 

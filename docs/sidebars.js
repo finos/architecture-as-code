@@ -52,6 +52,7 @@ const sidebars = {
         'working-with-calm/using-the-cli',
         'working-with-calm/generate',
         'working-with-calm/validate',
+        'working-with-calm/docify',
         'working-with-calm/validation-server',
         'working-with-calm/calm-ai-tools',
         'working-with-calm/voice-mode'
