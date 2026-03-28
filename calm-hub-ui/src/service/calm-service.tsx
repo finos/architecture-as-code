@@ -25,7 +25,12 @@ export class CalmService {
         const headers = await getAuthHeaders();
         return this.ax
             .get('/calm/namespaces', { headers })
-            .then((res) => res.data.values)
+            .then((res) => {
+                const namespaces = (res.data?.values ?? [])
+                    .map((v: { name?: string }) => v?.name)
+                    .filter((name: string | undefined): name is string => !!name);
+                return namespaces;
+            })
             .catch((error) => {
                 const errorMessage = 'Error fetching namespaces:';
                 console.error(errorMessage, error);
