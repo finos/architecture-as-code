@@ -58,7 +58,7 @@
     "devDependencies": {
     },
     "overrides": {
-        "path-to-regexp": "3.3.0",
+        "path-to-regexp": "8.4.0",
         "rollup": "4.59.0",
         "jsonpath-plus": "^10.3.0"
     }
