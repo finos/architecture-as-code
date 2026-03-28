@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { TreeNavigation } from './TreeNavigation.js';
-import { MemoryRouter, useParams } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
 
 // Mock react-router-dom
