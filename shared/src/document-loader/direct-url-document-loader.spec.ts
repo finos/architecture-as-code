@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import axios from 'axios';
 import AxiosMockAdapter from 'axios-mock-adapter';
 import { DirectUrlDocumentLoader } from './direct-url-document-loader';
@@ -10,10 +11,13 @@ mock.onGet('https://calm.finos.org/calm/schemas/2025-03/meta/core.json').reply(2
     'value': 'test'
 });
 
+// Mock DNS resolver that returns a public IP by default
+const publicDnsLookup = vi.fn().mockResolvedValue({ address: '151.101.1.100', family: 4 });
+
 describe('direct-url-document-loader', () => {
     let directUrlDocumentLoader;
     beforeEach(() => {
-        directUrlDocumentLoader = new DirectUrlDocumentLoader(false, ax);
+        directUrlDocumentLoader = new DirectUrlDocumentLoader(false, ax, publicDnsLookup);
     });
 
     it('loads a document directly from a URL', async () => {
@@ -102,8 +106,64 @@ describe('direct-url-document-loader', () => {
 
     it('does not block legitimate hostnames starting with IP-like prefixes', async () => {
         const url = 'https://10.example.com/document.json';
-        // Should NOT throw "private or internal" - it's a DNS name, not an IP
+        // Should NOT throw "private or internal" - DNS resolves to a public IP
         await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
             .rejects.not.toThrow('private or internal network addresses are not allowed');
+    });
+
+    describe('DNS rebinding protection', () => {
+        it('rejects hostnames that resolve to private IPv4 addresses', async () => {
+            const rebindingLookup = vi.fn().mockResolvedValue({ address: '127.0.0.1', family: 4 });
+            const loader = new DirectUrlDocumentLoader(false, ax, rebindingLookup);
+            const url = 'https://evil.example.com/secret';
+            await expect(loader.loadMissingDocument(url, 'schema'))
+                .rejects.toThrow('private or internal network addresses are not allowed');
+        });
+
+        it('rejects hostnames that resolve to 10.x private range', async () => {
+            const rebindingLookup = vi.fn().mockResolvedValue({ address: '10.0.0.1', family: 4 });
+            const loader = new DirectUrlDocumentLoader(false, ax, rebindingLookup);
+            const url = 'https://evil.example.com/internal';
+            await expect(loader.loadMissingDocument(url, 'schema'))
+                .rejects.toThrow('private or internal network addresses are not allowed');
+        });
+
+        it('rejects hostnames that resolve to 169.254.x (cloud metadata)', async () => {
+            const rebindingLookup = vi.fn().mockResolvedValue({ address: '169.254.169.254', family: 4 });
+            const loader = new DirectUrlDocumentLoader(false, ax, rebindingLookup);
+            const url = 'https://metadata.example.com/latest/meta-data';
+            await expect(loader.loadMissingDocument(url, 'schema'))
+                .rejects.toThrow('private or internal network addresses are not allowed');
+        });
+
+        it('rejects hostnames that resolve to private IPv6 addresses', async () => {
+            const rebindingLookup = vi.fn().mockResolvedValue({ address: '::1', family: 6 });
+            const loader = new DirectUrlDocumentLoader(false, ax, rebindingLookup);
+            const url = 'https://evil.example.com/admin';
+            await expect(loader.loadMissingDocument(url, 'schema'))
+                .rejects.toThrow('private or internal network addresses are not allowed');
+        });
+
+        it('allows hostnames that resolve to public IPs', async () => {
+            const safeLookup = vi.fn().mockResolvedValue({ address: '93.184.216.34', family: 4 });
+            const loader = new DirectUrlDocumentLoader(false, ax, safeLookup);
+            const url = 'https://calm.finos.org/calm/schemas/2025-03/meta/core.json';
+            // Should not throw SSRF error - the DNS resolved to a public IP
+            const document = await loader.loadMissingDocument(url, 'pattern');
+            expect(document).toEqual({
+                '$id': 'https://calm.finos.org/calm/schemas/2025-03/meta/core.json',
+                'value': 'test'
+            });
+        });
+
+        it('skips DNS resolution for IP address URLs', async () => {
+            const dnsLookup = vi.fn();
+            const loader = new DirectUrlDocumentLoader(false, ax, dnsLookup);
+            // Direct IP - should be caught by hostname check, not DNS
+            const url = 'http://127.0.0.1/secret';
+            await expect(loader.loadMissingDocument(url, 'schema'))
+                .rejects.toThrow('private or internal network addresses are not allowed');
+            expect(dnsLookup).not.toHaveBeenCalled();
+        });
     });
 });

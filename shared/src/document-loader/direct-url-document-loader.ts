@@ -1,9 +1,12 @@
 import axios, { Axios } from 'axios';
 import { isIP } from 'net';
+import { lookup as dnsLookup } from 'dns/promises';
 import { SchemaDirectory } from '../schema-directory';
 import { CalmDocumentType, DocumentLoader } from './document-loader';
 import { DocumentLoadError } from './document-loader';
 import { Logger, initLogger } from '../logger';
+
+export type DnsLookupFn = (hostname: string) => Promise<{ address: string; family: number }>;
 
 const PRIVATE_IPV4_PATTERNS = [
     /^127\./,
@@ -21,23 +24,28 @@ const PRIVATE_IPV6_PATTERNS = [
     /^fe80:/i,
 ];
 
+function isPrivateIP(ip: string): boolean {
+    const ipVersion = isIP(ip);
+    if (ipVersion === 4) return PRIVATE_IPV4_PATTERNS.some(p => p.test(ip));
+    if (ipVersion === 6) return PRIVATE_IPV6_PATTERNS.some(p => p.test(ip));
+    return false;
+}
+
 function isPrivateHost(hostname: string): boolean {
     if (/^localhost$/i.test(hostname)) return true;
     // URL.hostname wraps IPv6 in brackets; strip them for isIP/pattern checks
     const bare = hostname.startsWith('[') && hostname.endsWith(']')
         ? hostname.slice(1, -1)
         : hostname;
-    const ipVersion = isIP(bare);
-    if (ipVersion === 4) return PRIVATE_IPV4_PATTERNS.some(p => p.test(bare));
-    if (ipVersion === 6) return PRIVATE_IPV6_PATTERNS.some(p => p.test(bare));
-    return false;
+    return isPrivateIP(bare);
 }
 
 export class DirectUrlDocumentLoader implements DocumentLoader {
     private readonly ax: Axios;
     private logger: Logger;
+    private readonly dnsResolve: DnsLookupFn;
 
-    constructor(debug: boolean, axiosInstance?: Axios) {
+    constructor(debug: boolean, axiosInstance?: Axios, dnsLookupFn?: DnsLookupFn) {
         if (axiosInstance) {
             this.ax = axiosInstance;
         } else {
@@ -46,6 +54,7 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                 headers: { 'Content-Type': 'application/json' }
             });
         }
+        this.dnsResolve = dnsLookupFn ?? dnsLookup;
 
         this.logger = initLogger(debug, 'direct-url-document-loader');
         if (debug) {
@@ -85,6 +94,21 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                     name: 'UNKNOWN',
                     message: `Requests to private or internal network addresses are not allowed: ${parsedUrl.hostname}`,
                 });
+            }
+            // Resolve DNS and validate the resolved IP to prevent DNS rebinding
+            // attacks where a hostname passes the string check but resolves to
+            // a private/internal IP address
+            const bare = parsedUrl.hostname.startsWith('[') && parsedUrl.hostname.endsWith(']')
+                ? parsedUrl.hostname.slice(1, -1)
+                : parsedUrl.hostname;
+            if (isIP(bare) === 0) {
+                const resolved = await this.dnsResolve(bare);
+                if (isPrivateIP(resolved.address)) {
+                    throw new DocumentLoadError({
+                        name: 'UNKNOWN',
+                        message: `Requests to private or internal network addresses are not allowed: ${bare} resolved to ${resolved.address}`,
+                    });
+                }
             }
             const targetUrl = parsedUrl.toString();
             const response = await this.ax.get(targetUrl, { maxRedirects: 0 });
