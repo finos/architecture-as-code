@@ -19,10 +19,23 @@ describe('CalmService', () => {
 
     describe('fetchNamespaces', () => {
         it('should retrieve all namespaces', async () => {
-            const expectedNamespaces = ['ns1', 'ns2'];
+            const expectedNamespaces = [
+                {
+                    "name": "ns1",
+                    "description": "namespace 1"
+                },
+                {
+                    "name": "ns2",
+                    "description": "namespace 2"
+                },
+                {
+                    "name": "ns3",
+                    "description": "namespace 3"
+                }
+            ];
             mock.onGet('/calm/namespaces').reply(200, { values: expectedNamespaces });
             const actual = await calmService.fetchNamespaces();
-            expect(actual).toEqual(expectedNamespaces);
+            expect(actual).toEqual(expectedNamespaces.map(ns => ns.name));
         });
 
         it('should throw an error when backend returns error status', async () => {
