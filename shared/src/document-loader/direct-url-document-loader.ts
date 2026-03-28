@@ -4,6 +4,24 @@ import { CalmDocumentType, DocumentLoader } from './document-loader';
 import { DocumentLoadError } from './document-loader';
 import { Logger, initLogger } from '../logger';
 
+const PRIVATE_HOST_PATTERNS = [
+    /^localhost$/i,
+    /^127\./,
+    /^10\./,
+    /^172\.(1[6-9]|2\d|3[01])\./,
+    /^192\.168\./,
+    /^0\./,
+    /^169\.254\./,
+    /^\[::1\]$/,
+    /^\[fc/i,
+    /^\[fd/i,
+    /^\[fe80:/i,
+];
+
+function isPrivateHost(hostname: string): boolean {
+    return PRIVATE_HOST_PATTERNS.some(p => p.test(hostname));
+}
+
 export class DirectUrlDocumentLoader implements DocumentLoader {
     private readonly ax: Axios;
     private logger: Logger;
@@ -51,7 +69,14 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                     message: `Unsupported URL protocol '${parsedUrl.protocol}' in document URL. Only HTTP and HTTPS are allowed.`,
                 });
             }
-            const response = await this.ax.get(parsedUrl.toString());
+            if (isPrivateHost(parsedUrl.hostname)) {
+                throw new DocumentLoadError({
+                    name: 'UNKNOWN',
+                    message: `Requests to private or internal network addresses are not allowed: ${parsedUrl.hostname}`,
+                });
+            }
+            const sanitizedUrl = parsedUrl.toString();
+            const response = await this.ax.get(sanitizedUrl);
             return response.data;
         } catch (error) {
             if (error instanceof DocumentLoadError) {

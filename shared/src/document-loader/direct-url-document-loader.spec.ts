@@ -45,4 +45,40 @@ describe('direct-url-document-loader', () => {
         await expect(directUrlDocumentLoader.loadMissingDocument(ftpUrl, 'schema'))
             .rejects.toThrow('Only HTTP and HTTPS are allowed');
     });
+
+    it('rejects URLs targeting localhost', async () => {
+        const url = 'http://localhost/admin';
+        await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
+            .rejects.toThrow('private or internal network addresses are not allowed');
+    });
+
+    it('rejects URLs targeting 127.x.x.x', async () => {
+        const url = 'http://127.0.0.1/secret';
+        await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
+            .rejects.toThrow('private or internal network addresses are not allowed');
+    });
+
+    it('rejects URLs targeting 10.x private range', async () => {
+        const url = 'https://10.0.0.1/internal';
+        await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
+            .rejects.toThrow('private or internal network addresses are not allowed');
+    });
+
+    it('rejects URLs targeting 192.168.x private range', async () => {
+        const url = 'https://192.168.1.1/admin';
+        await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
+            .rejects.toThrow('private or internal network addresses are not allowed');
+    });
+
+    it('rejects URLs targeting 172.16-31.x private range', async () => {
+        const url = 'https://172.16.0.1/internal';
+        await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
+            .rejects.toThrow('private or internal network addresses are not allowed');
+    });
+
+    it('rejects URLs targeting link-local addresses', async () => {
+        const url = 'http://169.254.169.254/latest/meta-data';
+        await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
+            .rejects.toThrow('private or internal network addresses are not allowed');
+    });
 });

@@ -58,6 +58,11 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         }
         const path = url.pathname;
 
+        const SAFE_PATH_PATTERN = /^[a-zA-Z0-9/_\-.]+(\.json)?$/;
+        if (!SAFE_PATH_PATTERN.test(path)) {
+            throw new Error(`CalmHubDocumentLoader rejected path with disallowed characters: ${path}`);
+        }
+
         this.logger.debug(`Loading CALM schema from ${this.calmHubUrl}${path}`);
 
         // TODO gracefully handle 404s and other errors
