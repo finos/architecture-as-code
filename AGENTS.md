@@ -373,8 +373,19 @@ Before considering any code change ready:
 6. **Commit with Conventional Commits format**
    - Example: `feat(cli): add schema validation caching`
    - Husky will validate your commit message automatically
-7. **Push to your fork** and create a pull request
+7. **Push to your fork** and create a pull request using the PR template (see below)
 8. **Ensure CI passes** on your pull request
+
+### Pull Request Template
+
+**CRITICAL:** When creating pull requests, always use the template defined in `.github/pull_request_template.md`. The PR body must include:
+- **Description** of your changes
+- **Type of Change** with the appropriate checkbox checked
+- **Affected Components** with relevant checkboxes checked
+- **Testing** section confirming local testing, test additions, and passing tests
+- **Checklist** confirming conventional commits, documentation, tests, and coding standards
+
+Use `gh pr create` with a `--body` that follows this template structure.
 
 ### Quick Contribution Workflow
 
