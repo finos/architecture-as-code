@@ -73,6 +73,7 @@ public class NitriteDBConfigTest {
         assertTrue(db.hasCollection("flows"), "flows collection should exist");
         assertTrue(db.hasCollection("schemas"), "schemas collection should exist");
         assertTrue(db.hasCollection("counters"), "counters collection should exist");
+        assertTrue(db.hasCollection("decorators"), "decorators collection should exist");
     }
 
     @Test

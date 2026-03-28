@@ -1,0 +1,28 @@
+{
+    "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/kubernetes.decorator.standard.json",
+    "unique-id": "multi-target-deployment-example",
+    "type": "deployment",
+    "target": [
+        "frontend-architecture.json",
+        "backend-architecture.json"
+    ],
+    "target-type": [
+        "architecture"
+    ],
+    "applies-to": [
+        "react-web-app",
+        "mobile-bff",
+        "graphql-gateway"
+    ],
+    "data": {
+        "start-time": "2026-02-23T12:00:00Z",
+        "status": "in-progress",
+        "deployment-details": "https://datadog.example.com/dashboard/release-2024-02-23",
+        "notes": "Coordinated release across frontend and backend services for new feature rollout",
+        "kubernetes": {
+            "helm-chart-version": "3.0.0",
+            "cluster": "staging-us-central-01",
+            "namespace": "apps"
+        }
+    }
+}

@@ -127,7 +127,7 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
     "topLevelPromptFileName": "CALM.agent.md",
     "skillPrefix": "`",
     "skillSuffix": "`",
-    "frontmatter": "---\ndescription: An AI Assistant for FINOS CALM development.\ntools: ['codebase', 'editFiles', 'fetch', 'runInTerminal']\nmodel: Claude Sonnet 4.5\n---",
+    "frontmatter": "---\ndescription: An AI Assistant for FINOS CALM development.\ntools: ['codebase', 'editFiles', 'fetch', 'runInTerminal']\n---",
     "skillPrompts": [
         "calm-prompts/architecture-creation.md",
         "calm-prompts/calm-cli-instructions.md",
@@ -149,7 +149,7 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
 
 **GitHub Copilot specifics:**
 - Uses backticks (`` ` ``) to reference skill files
-- Frontmatter specifies Claude Sonnet 4.5 model and available tools
+- Frontmatter specifies available tools
 - Prompts placed in `.github/agents/` directory
 - Skill prompts referenced as `` `calm-prompts/architecture-creation.md` ``
 
@@ -232,7 +232,7 @@ The template includes:
 - Enables easy addition of new providers via JSON config
 
 ### 4. CLI Integration
-- Integrated with `calm` CLI via `calm init-ai <provider>` command
+- Integrated with `calm` CLI via `calm init-ai -p <provider>` command
 - Automated setup reduces manual configuration
 - Ensures consistent prompt structure across projects
 
@@ -242,10 +242,10 @@ The template includes:
 
 ```bash
 # Initialize GitHub Copilot integration
-calm init-ai copilot
+calm init-ai -p copilot
 
 # Initialize AWS Kiro/Q integration
-calm init-ai kiro
+calm init-ai -p kiro
 ```
 
 This command:
@@ -281,7 +281,7 @@ Once initialized, AI assistants automatically:
    - `skillPrefix`, `skillSuffix`, `frontmatter`, `skillPrompts`
 3. Determine provider-specific delimiters and directory structure
 4. Update CLI to recognize the new provider
-5. Test generation with `calm init-ai <provider>`
+5. Test generation with `calm init-ai -p <provider>`
 
 ### Modifying the Template
 

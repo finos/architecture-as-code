@@ -4,19 +4,21 @@
 }
 
 /*
- * Theme colors are defined in src/theme/colors.ts (TypeScript)
- * CSS styles below use hardcoded hex values matching that file.
+ * Brand colors (--color-primary, --color-accent, --color-accent-light)
+ * are set at runtime from src/theme/colors.ts via initThemeCssVars().
  */
 
 #root {
     height: 100vh;
+
+    --radius-box: 0.5rem; /* or whatever value you prefer */
 }
 
 body {
     margin: 0;
     font-family:
-        -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
-        'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
+        'Helvetica Neue', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
