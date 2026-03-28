@@ -88,9 +88,11 @@ export async function getToken(): Promise<string> {
     return '';
 }
 
-export async function getAuthHeaders(): Promise<Record<string, string>> {
+export type AuthHeaders = Record<string, string>;
+
+export async function getAuthHeaders(): Promise<AuthHeaders> {
     const accessToken = await getToken();
-    const headers: Record<string, string> = {};
+    const headers: AuthHeaders = {};
     if (accessToken) {
         headers['Authorization'] = `Bearer ${accessToken}`;
     }

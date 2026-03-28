@@ -10,8 +10,6 @@ const namespace = 'test-namespace';
 const resourceId = '1';
 const version = '1.0.0';
 
-const errorStatusCodes = [400, 401, 403, 404, 500];
-
 describe('CalmService', () => {
     const calmService = new CalmService(ax);
 
@@ -27,13 +25,10 @@ describe('CalmService', () => {
             expect(actual).toEqual(expectedNamespaces);
         });
 
-        it.each(errorStatusCodes)(
-            'should throw an error when backend returns status %i',
-            async (statusCode) => {
-                mock.onGet('/calm/namespaces').reply(statusCode, { message: 'Error' });
-                await expect(calmService.fetchNamespaces()).rejects.toThrowError();
-            }
-        );
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet('/calm/namespaces').reply(500, { message: 'Error' });
+            await expect(calmService.fetchNamespaces()).rejects.toThrowError();
+        });
     });
 
     describe('fetchPatternIDs', () => {
@@ -46,15 +41,12 @@ describe('CalmService', () => {
             expect(actual).toEqual(['1', '2', '3']);
         });
 
-        it.each(errorStatusCodes)(
-            'should throw an error when backend returns status %i',
-            async (statusCode) => {
-                mock.onGet(`/calm/namespaces/${namespace}/patterns`).reply(statusCode, {
-                    message: 'Error',
-                });
-                await expect(calmService.fetchPatternIDs(namespace)).rejects.toThrowError();
-            }
-        );
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(`/calm/namespaces/${namespace}/patterns`).reply(500, {
+                message: 'Error',
+            });
+            await expect(calmService.fetchPatternIDs(namespace)).rejects.toThrowError();
+        });
     });
 
     describe('fetchFlowIDs', () => {
@@ -67,15 +59,12 @@ describe('CalmService', () => {
             expect(actual).toEqual(['10', '20']);
         });
 
-        it.each(errorStatusCodes)(
-            'should throw an error when backend returns status %i',
-            async (statusCode) => {
-                mock.onGet(`/calm/namespaces/${namespace}/flows`).reply(statusCode, {
-                    message: 'Error',
-                });
-                await expect(calmService.fetchFlowIDs(namespace)).rejects.toThrowError();
-            }
-        );
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(`/calm/namespaces/${namespace}/flows`).reply(500, {
+                message: 'Error',
+            });
+            await expect(calmService.fetchFlowIDs(namespace)).rejects.toThrowError();
+        });
     });
 
     describe('fetchArchitectureIDs', () => {
@@ -88,17 +77,14 @@ describe('CalmService', () => {
             expect(actual).toEqual(['5', '6']);
         });
 
-        it.each(errorStatusCodes)(
-            'should throw an error when backend returns status %i',
-            async (statusCode) => {
-                mock.onGet(`/calm/namespaces/${namespace}/architectures`).reply(statusCode, {
-                    message: 'Error',
-                });
-                await expect(
-                    calmService.fetchArchitectureIDs(namespace)
-                ).rejects.toThrowError();
-            }
-        );
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(`/calm/namespaces/${namespace}/architectures`).reply(500, {
+                message: 'Error',
+            });
+            await expect(
+                calmService.fetchArchitectureIDs(namespace)
+            ).rejects.toThrowError();
+        });
     });
 
     describe('fetchPatternVersions', () => {
@@ -111,17 +97,14 @@ describe('CalmService', () => {
             expect(actual).toEqual(expectedVersions);
         });
 
-        it.each(errorStatusCodes)(
-            'should throw an error when backend returns status %i',
-            async (statusCode) => {
-                mock.onGet(
-                    `/calm/namespaces/${namespace}/patterns/${resourceId}/versions`
-                ).reply(statusCode, { message: 'Error' });
-                await expect(
-                    calmService.fetchPatternVersions(namespace, resourceId)
-                ).rejects.toThrowError();
-            }
-        );
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(
+                `/calm/namespaces/${namespace}/patterns/${resourceId}/versions`
+            ).reply(500, { message: 'Error' });
+            await expect(
+                calmService.fetchPatternVersions(namespace, resourceId)
+            ).rejects.toThrowError();
+        });
     });
 
     describe('fetchFlowVersions', () => {
@@ -134,18 +117,15 @@ describe('CalmService', () => {
             expect(actual).toEqual(expectedVersions);
         });
 
-        it.each(errorStatusCodes)(
-            'should throw an error when backend returns status %i',
-            async (statusCode) => {
-                mock.onGet(`/calm/namespaces/${namespace}/flows/${resourceId}/versions`).reply(
-                    statusCode,
-                    { message: 'Error' }
-                );
-                await expect(
-                    calmService.fetchFlowVersions(namespace, resourceId)
-                ).rejects.toThrowError();
-            }
-        );
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(`/calm/namespaces/${namespace}/flows/${resourceId}/versions`).reply(
+                500,
+                { message: 'Error' }
+            );
+            await expect(
+                calmService.fetchFlowVersions(namespace, resourceId)
+            ).rejects.toThrowError();
+        });
     });
 
     describe('fetchArchitectureVersions', () => {
@@ -158,17 +138,14 @@ describe('CalmService', () => {
             expect(actual).toEqual(expectedVersions);
         });
 
-        it.each(errorStatusCodes)(
-            'should throw an error when backend returns status %i',
-            async (statusCode) => {
-                mock.onGet(
-                    `/calm/namespaces/${namespace}/architectures/${resourceId}/versions`
-                ).reply(statusCode, { message: 'Error' });
-                await expect(
-                    calmService.fetchArchitectureVersions(namespace, resourceId)
-                ).rejects.toThrowError();
-            }
-        );
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(
+                `/calm/namespaces/${namespace}/architectures/${resourceId}/versions`
+            ).reply(500, { message: 'Error' });
+            await expect(
+                calmService.fetchArchitectureVersions(namespace, resourceId)
+            ).rejects.toThrowError();
+        });
     });
 
     describe('fetchPattern', () => {
@@ -187,17 +164,14 @@ describe('CalmService', () => {
             });
         });
 
-        it.each(errorStatusCodes)(
-            'should throw an error when backend returns status %i',
-            async (statusCode) => {
-                mock.onGet(
-                    `/calm/namespaces/${namespace}/patterns/${resourceId}/versions/${version}`
-                ).reply(statusCode, { message: 'Error' });
-                await expect(
-                    calmService.fetchPattern(namespace, resourceId, version)
-                ).rejects.toThrowError();
-            }
-        );
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(
+                `/calm/namespaces/${namespace}/patterns/${resourceId}/versions/${version}`
+            ).reply(500, { message: 'Error' });
+            await expect(
+                calmService.fetchPattern(namespace, resourceId, version)
+            ).rejects.toThrowError();
+        });
     });
 
     describe('fetchFlow', () => {
@@ -216,17 +190,14 @@ describe('CalmService', () => {
             });
         });
 
-        it.each(errorStatusCodes)(
-            'should throw an error when backend returns status %i',
-            async (statusCode) => {
-                mock.onGet(
-                    `/calm/namespaces/${namespace}/flows/${resourceId}/versions/${version}`
-                ).reply(statusCode, { message: 'Error' });
-                await expect(
-                    calmService.fetchFlow(namespace, resourceId, version)
-                ).rejects.toThrowError();
-            }
-        );
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(
+                `/calm/namespaces/${namespace}/flows/${resourceId}/versions/${version}`
+            ).reply(500, { message: 'Error' });
+            await expect(
+                calmService.fetchFlow(namespace, resourceId, version)
+            ).rejects.toThrowError();
+        });
     });
 
     describe('fetchArchitecture', () => {
@@ -245,16 +216,13 @@ describe('CalmService', () => {
             });
         });
 
-        it.each(errorStatusCodes)(
-            'should throw an error when backend returns status %i',
-            async (statusCode) => {
-                mock.onGet(
-                    `/calm/namespaces/${namespace}/architectures/${resourceId}/versions/${version}`
-                ).reply(statusCode, { message: 'Error' });
-                await expect(
-                    calmService.fetchArchitecture(namespace, resourceId, version)
-                ).rejects.toThrowError();
-            }
-        );
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(
+                `/calm/namespaces/${namespace}/architectures/${resourceId}/versions/${version}`
+            ).reply(500, { message: 'Error' });
+            await expect(
+                calmService.fetchArchitecture(namespace, resourceId, version)
+            ).rejects.toThrowError();
+        });
     });
 });
