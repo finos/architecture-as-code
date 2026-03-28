@@ -59,8 +59,7 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         }
         const path = url.pathname;
 
-        const SAFE_PATH_PATTERN = CalmHubDocumentLoader.SAFE_PATH_PATTERN;
-        if (!SAFE_PATH_PATTERN.test(path)) {
+        if (!CalmHubDocumentLoader.SAFE_PATH_PATTERN.test(path)) {
             throw new Error(`CalmHubDocumentLoader rejected path with disallowed characters: ${path}`);
         }
 
