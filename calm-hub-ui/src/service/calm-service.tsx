@@ -40,7 +40,8 @@ export class CalmService {
             .then((res) => res.data.values.map((num: number) => num.toString()))
             .catch((error) => {
                 const errorMessage = `Error fetching pattern IDs for namespace ${namespace}:`;
-                console.error(errorMessage, error);
+                // arg1 is %s to prevent format string injection from `namespace`.
+                console.error('%s', errorMessage, error);
                 return Promise.reject(new Error(errorMessage));
             });
     }
@@ -52,7 +53,8 @@ export class CalmService {
             .then((res) => res.data.values.map((id: number) => id.toString()))
             .catch((error) => {
                 const errorMessage = `Error fetching flow IDs for namespace ${namespace}:`;
-                console.error(errorMessage, error);
+                // arg1 is %s to prevent format string injection from `namespace`.
+                console.error('%s', errorMessage, error);
                 return Promise.reject(new Error(errorMessage));
             });
     }
@@ -64,7 +66,8 @@ export class CalmService {
             .then((res) => res.data.values.map((id: number) => id.toString()))
             .catch((error) => {
                 const errorMessage = `Error fetching architecture IDs for namespace ${namespace}:`;
-                console.error(errorMessage, error);
+                // arg1 is %s to prevent format string injection from `namespace`.
+                console.error('%s', errorMessage, error);
                 return Promise.reject(new Error(errorMessage));
             });
     }
@@ -76,7 +79,8 @@ export class CalmService {
             .then((res) => res.data.values)
             .catch((error) => {
                 const errorMessage = `Error fetching versions for pattern ID ${patternID}:`;
-                console.error(errorMessage, error);
+                // arg1 is %s to prevent format string injection from `patternID`.
+                console.error('%s', errorMessage, error);
                 return Promise.reject(new Error(errorMessage));
             });
     }
@@ -88,7 +92,8 @@ export class CalmService {
             .then((res) => res.data.values)
             .catch((error) => {
                 const errorMessage = `Error fetching versions for flow ID ${flowID}:`;
-                console.error(errorMessage, error);
+                // arg1 is %s to prevent format string injection from `flowID`.
+                console.error('%s', errorMessage, error);
                 return Promise.reject(new Error(errorMessage));
             });
     }
@@ -102,7 +107,8 @@ export class CalmService {
             .then((res) => res.data.values)
             .catch((error) => {
                 const errorMessage = `Error fetching versions for architecture ID ${architectureID}:`;
-                console.error(errorMessage, error);
+                // arg1 is %s to prevent format string injection from `architectureID`.
+                console.error('%s', errorMessage, error);
                 return Promise.reject(new Error(errorMessage));
             });
     }
@@ -122,7 +128,8 @@ export class CalmService {
             }))
             .catch((error) => {
                 const errorMessage = `Error fetching pattern for namespace ${namespace}, pattern ID ${patternID}, version ${version}:`;
-                console.error(errorMessage, error);
+                // arg1 is %s to prevent format string injection from `namespace`, `patternID`, and `version`.
+                console.error('%s', errorMessage, error);
                 return Promise.reject(new Error(errorMessage));
             });
     }
@@ -142,7 +149,8 @@ export class CalmService {
             }))
             .catch((error) => {
                 const errorMessage = `Error fetching flow for namespace ${namespace}, flow ID ${flowID}, version ${version}:`;
-                console.error(errorMessage, error);
+                // arg1 is %s to prevent format string injection from `namespace`, `flowID`, and `version`.
+                console.error('%s', errorMessage, error);
                 return Promise.reject(new Error(errorMessage));
             });
     }
@@ -167,7 +175,8 @@ export class CalmService {
             }))
             .catch((error) => {
                 const errorMessage = `Error fetching architecture for namespace ${namespace}, architecture ID ${architectureID}, version ${version}:`;
-                console.error(errorMessage, error);
+                // arg1 is %s to prevent format string injection from `namespace`, `architectureID`, and `version`.
+                console.error('%s', errorMessage, error);
                 return Promise.reject(new Error(errorMessage));
             });
     }
