@@ -1,8 +1,37 @@
 import axios, { Axios } from 'axios';
+import { isIP } from 'net';
 import { SchemaDirectory } from '../schema-directory';
 import { CalmDocumentType, DocumentLoader } from './document-loader';
 import { DocumentLoadError } from './document-loader';
 import { Logger, initLogger } from '../logger';
+
+const PRIVATE_IPV4_PATTERNS = [
+    /^127\./,
+    /^10\./,
+    /^172\.(1[6-9]|2\d|3[01])\./,
+    /^192\.168\./,
+    /^0\./,
+    /^169\.254\./,
+];
+
+const PRIVATE_IPV6_PATTERNS = [
+    /^::1$/,
+    /^fc/i,
+    /^fd/i,
+    /^fe80:/i,
+];
+
+function isPrivateHost(hostname: string): boolean {
+    if (/^localhost$/i.test(hostname)) return true;
+    // URL.hostname wraps IPv6 in brackets; strip them for isIP/pattern checks
+    const bare = hostname.startsWith('[') && hostname.endsWith(']')
+        ? hostname.slice(1, -1)
+        : hostname;
+    const ipVersion = isIP(bare);
+    if (ipVersion === 4) return PRIVATE_IPV4_PATTERNS.some(p => p.test(bare));
+    if (ipVersion === 6) return PRIVATE_IPV6_PATTERNS.some(p => p.test(bare));
+    return false;
+}
 
 export class DirectUrlDocumentLoader implements DocumentLoader {
     private readonly ax: Axios;
@@ -51,7 +80,14 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                     message: `Unsupported URL protocol '${parsedUrl.protocol}' in document URL. Only HTTP and HTTPS are allowed.`,
                 });
             }
-            const response = await this.ax.get(parsedUrl.toString());
+            if (isPrivateHost(parsedUrl.hostname)) {
+                throw new DocumentLoadError({
+                    name: 'UNKNOWN',
+                    message: `Requests to private or internal network addresses are not allowed: ${parsedUrl.hostname}`,
+                });
+            }
+            const targetUrl = parsedUrl.toString();
+            const response = await this.ax.get(targetUrl, { maxRedirects: 0 });
             return response.data;
         } catch (error) {
             if (error instanceof DocumentLoadError) {
