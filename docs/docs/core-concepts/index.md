@@ -18,5 +18,6 @@ Explore each concept below:
 - [Timelines](timelines): Track how your architecture evolves over time through significant moments.
 - [Decorators](decorators): Attach supplementary information like deployments, security context, and business metadata to architecture elements.
 - [Metadata](metadata): Learn how to enrich your architecture with additional information.
+- [Widgets](widgets): Learn how to generate Markdown documentation from your architecture models using reusable template components.
 
 Continue through each section to get detailed explanations, examples, and best practices.
