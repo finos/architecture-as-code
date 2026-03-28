@@ -81,4 +81,29 @@ describe('direct-url-document-loader', () => {
         await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
             .rejects.toThrow('private or internal network addresses are not allowed');
     });
+
+    it('rejects URLs targeting IPv6 loopback', async () => {
+        const url = 'http://[::1]/admin';
+        await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
+            .rejects.toThrow('private or internal network addresses are not allowed');
+    });
+
+    it('rejects URLs targeting IPv6 private (fc00::)', async () => {
+        const url = 'http://[fc00::1]/internal';
+        await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
+            .rejects.toThrow('private or internal network addresses are not allowed');
+    });
+
+    it('rejects URLs targeting IPv6 link-local (fe80::)', async () => {
+        const url = 'http://[fe80::1]/internal';
+        await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
+            .rejects.toThrow('private or internal network addresses are not allowed');
+    });
+
+    it('does not block legitimate hostnames starting with IP-like prefixes', async () => {
+        const url = 'https://10.example.com/document.json';
+        // Should NOT throw "private or internal" - it's a DNS name, not an IP
+        await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
+            .rejects.not.toThrow('private or internal network addresses are not allowed');
+    });
 });

@@ -4,6 +4,7 @@ import { CalmDocumentType, DocumentLoader, CALM_HUB_PROTO } from './document-loa
 import { initLogger, Logger } from '../logger';
 
 export class CalmHubDocumentLoader implements DocumentLoader {
+    private static readonly SAFE_PATH_PATTERN = /^[a-zA-Z0-9/_\-.]+(\.json)?$/;
     private readonly ax: Axios;
     private readonly logger: Logger;
 
@@ -58,7 +59,7 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         }
         const path = url.pathname;
 
-        const SAFE_PATH_PATTERN = /^[a-zA-Z0-9/_\-.]+(\.json)?$/;
+        const SAFE_PATH_PATTERN = CalmHubDocumentLoader.SAFE_PATH_PATTERN;
         if (!SAFE_PATH_PATTERN.test(path)) {
             throw new Error(`CalmHubDocumentLoader rejected path with disallowed characters: ${path}`);
         }
