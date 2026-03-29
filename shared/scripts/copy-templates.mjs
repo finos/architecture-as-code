@@ -11,6 +11,7 @@ const projectRoot = path.resolve(__dirname, '..');
 // Template bundles to copy
 const bundles = [
     { src: 'src/docify/template-bundles/docusaurus', dest: 'dist/template-bundles/docusaurus', exclude: null },
+    { src: 'src/docify/template-bundles/ants', dest: 'dist/template-bundles/ants', exclude: null },
 ];
 
 function copyRecursive(currentDir, baseDir, outDir, excludedFile) {

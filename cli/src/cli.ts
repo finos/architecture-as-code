@@ -164,6 +164,7 @@ Validation requires:
         .option(TEMPLATE_DIR_OPTION, 'Path to a directory of .hbs/.md templates')
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
         .option('--scaffold', 'Copy template files without processing (for customization/live docify)', false)
+        .option('--ants', undefined, false)
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
             const { Docifier } = await import('@finos/calm-shared');
@@ -179,11 +180,18 @@ Validation requires:
                 process.exit(1);
             }
 
+            if (options.ants && flagsUsed.length > 0) {
+                console.error('❌ --ants cannot be combined with --template or --template-dir');
+                process.exit(1);
+            }
+
             let docifyMode: DocifyMode = 'WEBSITE';
             let templateProcessingMode: TemplateProcessingMode = 'bundle';
             let templatePath: string | undefined = undefined;
 
-            if (options.template) {
+            if (options.ants) {
+                docifyMode = 'ANTS';
+            } else if (options.template) {
                 docifyMode = 'USER_PROVIDED';
                 templateProcessingMode = 'template';
                 templatePath = options.template;
