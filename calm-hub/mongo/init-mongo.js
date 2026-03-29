@@ -11,16 +11,16 @@ const dbName = (typeof process !== 'undefined' && process.env.CALM_DB_NAME)
 print(`Using database: ${dbName}`);
 db = db.getSiblingDB(dbName);
 
-print("=== Stage: Counters ===");
+print("Counters");
 // Insert the initial counter document if it doesn't exist
 if (db.counters.countDocuments({ _id: "patternStoreCounter" }) === 0) {
     db.counters.insertOne({
         _id: "patternStoreCounter",
         sequence_value: 1
     });
-    print("Initialized patternStoreCounter with sequence_value 1");
+    print("  - Initialized patternStoreCounter with sequence_value 1");
 } else {
-    print("patternStoreCounter already exists, no initialization needed");
+    print("  - patternStoreCounter already exists, no initialization needed");
 }
 
 if (db.counters.countDocuments({ _id: "architectureStoreCounter" }) === 0) {
@@ -28,9 +28,9 @@ if (db.counters.countDocuments({ _id: "architectureStoreCounter" }) === 0) {
         _id: "architectureStoreCounter",
         sequence_value: 1
     });
-    print("Initialized architectureStoreCounter with sequence_value 1");
+    print("  - Initialized architectureStoreCounter with sequence_value 1");
 } else {
-    print("architectureStoreCounter already exists, no initialization needed");
+    print("  - architectureStoreCounter already exists, no initialization needed");
 }
 
 if (db.counters.countDocuments({ _id: "adrStoreCounter" }) === 0) {
@@ -38,9 +38,9 @@ if (db.counters.countDocuments({ _id: "adrStoreCounter" }) === 0) {
         _id: "adrStoreCounter",
         sequence_value: 1
     });
-    print("Initialized adrStoreCounter with sequence_value 1");
+    print("  - Initialized adrStoreCounter with sequence_value 1");
 } else {
-    print("adrStoreCounter already exists, no initialization needed");
+    print("  - adrStoreCounter already exists, no initialization needed");
 }
 
 if (db.counters.countDocuments({ _id: "standardStoreCounter" }) === 0) {
@@ -48,9 +48,9 @@ if (db.counters.countDocuments({ _id: "standardStoreCounter" }) === 0) {
         _id: "standardStoreCounter",
         sequence_value: 1
     });
-    print("Initialized standardStoreCounter with sequence_value 1");
+    print("  - Initialized standardStoreCounter with sequence_value 1");
 } else {
-    print("standardStoreCounter already exists, no initialization needed");
+    print("  - standardStoreCounter already exists, no initialization needed");
 }
 
 
@@ -59,9 +59,9 @@ if (db.counters.countDocuments({ _id: "flowStoreCounter" }) === 0) {
         _id: "flowStoreCounter",
         sequence_value: 1
     });
-    print("Initialized flowStoreCounter with sequence_value 1");
+    print("  - Initialized flowStoreCounter with sequence_value 1");
 } else {
-    print("flowStoreCounter already exists, no initialization needed");
+    print("  - flowStoreCounter already exists, no initialization needed");
 }
 
 if (db.counters.countDocuments({ _id: "userAccessStoreCounter" }) === 0) {
@@ -69,9 +69,9 @@ if (db.counters.countDocuments({ _id: "userAccessStoreCounter" }) === 0) {
         _id: "userAccessStoreCounter",
         sequence_value: 6
     });
-    print("Initialized userAccessStoreCounter with sequence_value 6");
+    print("  - Initialized userAccessStoreCounter with sequence_value 6");
 } else {
-    print("userAccessStoreCounter already exists, no initialization needed");
+    print("  - userAccessStoreCounter already exists, no initialization needed");
 }
 
 if (db.counters.countDocuments({ _id: "decoratorStoreCounter" }) === 0) {
@@ -79,12 +79,12 @@ if (db.counters.countDocuments({ _id: "decoratorStoreCounter" }) === 0) {
         _id: "decoratorStoreCounter",
         sequence_value: 1
     });
-    print("Initialized decoratorStoreCounter with sequence_value 1");
+    print("  - Initialized decoratorStoreCounter with sequence_value 1");
 } else {
-    print("decoratorStoreCounter already exists, no initialization needed");
+    print("  - decoratorStoreCounter already exists, no initialization needed");
 }
 
-print("=== Stage: Schemas ===");
+print("Schemas");
 // Load schemas dynamically from the CALM release and draft directories.
 // Set CALM_SCHEMA_BASE_PATH env var to override the default base path (/calm).
 const fs = require('fs');
@@ -94,8 +94,8 @@ const basePath = (typeof process !== 'undefined' && process.env.CALM_SCHEMA_BASE
 
 function loadSchemasFromDir(baseDir, prefix) {
     if (!fs.existsSync(baseDir)) {
-        print(`Schema directory not found at ${baseDir}, skipping`);
-        print(`Set CALM_SCHEMA_BASE_PATH environment variable to load schemas from a different location`);
+        print(`  - Schema directory not found at ${baseDir}, skipping`);
+        print(`  - Set CALM_SCHEMA_BASE_PATH environment variable to load schemas from a different location`);
         return;
     }
     const versions = fs.readdirSync(baseDir).filter(f =>
@@ -112,10 +112,10 @@ function loadSchemasFromDir(baseDir, prefix) {
                     schemas[file] = JSON.parse(fs.readFileSync(`${metaPath}/${file}`, 'utf8'));
                 }
                 db.schemas.insertOne({ version, schemas });
-                print(`Inserted schemas for version ${version}`);
+                print(`  - Inserted schemas for version ${version}`);
             }
         } else {
-            print(`Schemas for version ${version} already exist, skipping`);
+            print(`  - Schemas for version ${version} already exist, skipping`);
         }
     }
 }
@@ -123,7 +123,7 @@ function loadSchemasFromDir(baseDir, prefix) {
 loadSchemasFromDir(`${basePath}/release`, 'release');
 loadSchemasFromDir(`${basePath}/draft`, 'draft');
 
-print("=== Stage: Namespaces ===");
+print("Namespaces");
 // Insert namespaces if they don't exist
 if (db.namespaces.countDocuments() === 0) {
     db.namespaces.insertMany([
@@ -131,12 +131,12 @@ if (db.namespaces.countDocuments() === 0) {
         { name: "workshop", description: "Workshop namespace" },
         { name: "traderx", description: "TraderX namespace" }
     ]);
-    print("Initialized namespaces: finos, workshop, traderx");
+    print("  - Initialized namespaces: finos, workshop, traderx");
 } else {
-    print("Namespaces already exist, no initialization needed");
+    print("  - Namespaces already exist, no initialization needed");
 }
 
-print("=== Stage: Patterns ===");
+print("Patterns");
 if (db.patterns.countDocuments() === 0) {
     db.patterns.insertMany([
         {
@@ -1154,9 +1154,12 @@ if (db.patterns.countDocuments() === 0) {
             ]
         }
     ]);
+    print("  - Initialized patterns for finos and workshop namespaces");
+} else {
+    print("  - Patterns already initialized, skipping...");
 }
 
-print("=== Stage: Flows ===");
+print("Flows");
 if (db.flows.countDocuments() === 0) {
     db.flows.insertMany([
         {
@@ -1278,9 +1281,12 @@ if (db.flows.countDocuments() === 0) {
         }
     ]
     );
+    print("  - Initialized flows for finos and traderx namespaces");
+} else {
+    print("  - Flows already initialized, skipping...");
 }
 
-print("=== Stage: Architectures ===");
+print("Architectures");
 if (db.architectures.countDocuments() === 0) {
     db.architectures.insertMany([
         {
@@ -1912,9 +1918,12 @@ if (db.architectures.countDocuments() === 0) {
             }]
         }
     ]);
+    print("  - Initialized architectures for finos and traderx namespaces");
+} else {
+    print("  - Architectures already initialized, skipping...");
 }
 
-print("=== Stage: User Access ===");
+print("User Access");
 if (db.userAccess.countDocuments() === 0) {
     db.userAccess.insertMany([
         {
@@ -1960,9 +1969,12 @@ if (db.userAccess.countDocuments() === 0) {
             "resourceType": "all"
         }
     ]);
+    print("  - Initialized user access for demo_admin and demo users");
+} else {
+    print("  - User access already initialized, skipping...");
 }
 
-print("=== Stage: ADRs ===");
+print("ADRs");
 if (db.adrs.countDocuments() === 0) {
     db.adrs.insertMany([
         {
@@ -2048,9 +2060,12 @@ if (db.adrs.countDocuments() === 0) {
             ],
         },
     ]);
+    print("  - Initialized ADRs for finos namespace");
+} else {
+    print("  - ADRs already initialized, skipping...");
 }
 
-print("=== Stage: Decorators ===");
+print("Decorators");
 if (db.decorators.countDocuments() === 0) {
     db.decorators.insertMany([
         {
@@ -2182,5 +2197,8 @@ if (db.decorators.countDocuments() === 0) {
             ]
         }
     ]);
+    print("  - Initialized decorators for finos and workshop namespaces");
+} else {
+    print("  - Decorators already initialized, skipping...");
 }
-print("=== Initialization complete ===");
+print("Initialization complete");
