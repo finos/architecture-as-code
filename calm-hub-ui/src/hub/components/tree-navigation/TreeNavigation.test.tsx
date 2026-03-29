@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { TreeNavigation } from './TreeNavigation.js';
+import { TreeNavigation, buildNamespaceTree } from './TreeNavigation.js';
 import { MemoryRouter, useParams } from 'react-router-dom';
 import { fetchArchitecture, fetchArchitectureIDs, fetchArchitectureVersions, fetchFlow, fetchFlowIDs, fetchFlowVersions, fetchNamespaces, fetchPattern, fetchPatternIDs, fetchPatternVersions } from '../../../service/calm-service.js';
 import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
@@ -204,5 +204,76 @@ describe('TreeNavigation', () => {
         // Versions should be visible
         expect(screen.getByText('v1.0')).toBeInTheDocument();
         expect(screen.getByText('v2.0')).toBeInTheDocument();
+    });
+});
+
+describe('buildNamespaceTree', () => {
+    it('returns flat list for namespaces without dots', () => {
+        const tree = buildNamespaceTree(['alpha', 'beta']);
+        expect(tree).toHaveLength(2);
+        expect(tree[0]).toEqual({ label: 'alpha', namespace: 'alpha', children: [] });
+        expect(tree[1]).toEqual({ label: 'beta', namespace: 'beta', children: [] });
+    });
+
+    it('collapses single-child non-namespace intermediate nodes', () => {
+        // 'org' is not itself a namespace and has only one child → collapsed
+        const tree = buildNamespaceTree(['org.finos', 'org.finos.calm', 'com.traderx']);
+        expect(tree).toHaveLength(2);
+
+        const orgFinos = tree.find((n) => n.label === 'org.finos');
+        expect(orgFinos).toBeDefined();
+        expect(orgFinos!.namespace).toBe('org.finos');
+        expect(orgFinos!.children).toHaveLength(1);
+        expect(orgFinos!.children[0]).toEqual({ label: 'org.finos.calm', namespace: 'org.finos.calm', children: [] });
+
+        const comTraderx = tree.find((n) => n.label === 'com.traderx');
+        expect(comTraderx).toBeDefined();
+        expect(comTraderx!.namespace).toBe('com.traderx');
+        expect(comTraderx!.children).toHaveLength(0);
+    });
+
+    it('does not collapse a namespace node even when it has a single child', () => {
+        // 'org.finos' is itself a namespace — should appear even though it has one child
+        const tree = buildNamespaceTree(['org.finos', 'org.finos.calm']);
+        expect(tree).toHaveLength(1);
+        expect(tree[0].label).toBe('org.finos');
+        expect(tree[0].namespace).toBe('org.finos');
+        expect(tree[0].children).toHaveLength(1);
+        expect(tree[0].children[0].label).toBe('org.finos.calm');
+    });
+
+    it('keeps a non-namespace intermediate with multiple children as a grouping node', () => {
+        // 'org.finos' is not a namespace but has two children
+        const tree = buildNamespaceTree(['org.finos.calm', 'org.finos.wave']);
+        expect(tree).toHaveLength(1);
+        expect(tree[0].label).toBe('org.finos');
+        expect(tree[0].namespace).toBeNull();
+        expect(tree[0].children).toHaveLength(2);
+    });
+
+    it('handles an empty namespace list', () => {
+        expect(buildNamespaceTree([])).toEqual([]);
+    });
+
+    it('renders hierarchical namespaces in the tree', () => {
+        vi.mocked(fetchNamespaces).mockImplementation((cb) => cb(['org.finos', 'org.finos.calm', 'com.traderx']));
+        vi.mocked(useParams).mockReturnValue({});
+
+        render(
+            <MemoryRouter initialEntries={['/']}>
+                <TreeNavigation onDataLoad={vi.fn()} onAdrLoad={vi.fn()} />
+            </MemoryRouter>
+        );
+
+        // Collapsed intermediates: 'org' and 'com' should not appear as standalone entries
+        expect(screen.queryByText('org')).not.toBeInTheDocument();
+        expect(screen.queryByText('com')).not.toBeInTheDocument();
+
+        // The actual namespace labels should be present
+        expect(screen.getByText('org.finos')).toBeInTheDocument();
+        expect(screen.getByText('com.traderx')).toBeInTheDocument();
+
+        // Child namespace 'org.finos.calm' is nested — not visible until parent is expanded
+        expect(screen.queryByText('org.finos.calm')).not.toBeInTheDocument();
     });
 });
