@@ -367,6 +367,68 @@ describe('CLI Commands', () => {
                 false
             );
         });
+
+        it('should use ANTS mode when --ants is specified', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+                '--ants',
+            ]);
+
+            expect(docifierConstructorSpy).toHaveBeenCalledWith(
+                'ANTS',
+                'model.json',
+                'outDir',
+                undefined,
+                'bundle',
+                undefined,
+                false,
+                false
+            );
+        });
+
+        it('should exit if --ants is combined with --template', async () => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(() => {
+                throw new Error('process.exit called');
+            });
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+                '--ants',
+                '--template', 'template.hbs',
+            ])).rejects.toThrow('process.exit called');
+
+            expect(errorSpy).toHaveBeenCalledWith('❌ --ants cannot be combined with --template or --template-dir');
+            expect(exitSpy).toHaveBeenCalledWith(1);
+
+            exitSpy.mockRestore();
+            errorSpy.mockRestore();
+        });
+
+        it('should exit if --ants is combined with --template-dir', async () => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(() => {
+                throw new Error('process.exit called');
+            });
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+                '--ants',
+                '--template-dir', 'templateDir',
+            ])).rejects.toThrow('process.exit called');
+
+            expect(errorSpy).toHaveBeenCalledWith('❌ --ants cannot be combined with --template or --template-dir');
+            expect(exitSpy).toHaveBeenCalledWith(1);
+
+            exitSpy.mockRestore();
+            errorSpy.mockRestore();
+        });
     });
 
 });
