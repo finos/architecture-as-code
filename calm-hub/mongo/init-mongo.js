@@ -1,5 +1,16 @@
-db = db.getSiblingDB('calmSchemas');  // Use the calmSchemas database
+// Environment variables:
+// - CALM_DB_NAME: Name of the MongoDB database to use (default: calmSchemas)
+//
+// Set environment variables if required, and run `mongosh init-mongo.js` to
+// initialize the database with counters, schema, namespaces, and patterns.
 
+const dbName = (typeof process !== 'undefined' && process.env.CALM_DB_NAME)
+    ? process.env.CALM_DB_NAME
+    : 'calmSchemas';
+print(`Using database: ${dbName}`);
+db = db.getSiblingDB(dbName);
+
+print("=== Stage: Counters ===");
 // Insert the initial counter document if it doesn't exist
 if (db.counters.countDocuments({ _id: "patternStoreCounter" }) === 0) {
     db.counters.insertOne({
@@ -72,6 +83,7 @@ if (db.counters.countDocuments({ _id: "decoratorStoreCounter" }) === 0) {
     print("decoratorStoreCounter already exists, no initialization needed");
 }
 
+print("=== Stage: Schemas ===");
 db.schemas.insertMany([               // Insert initial documents into the schemas collection
     {
         version: "2025-03",
@@ -915,6 +927,7 @@ db.schemas.insertMany([               // Insert initial documents into the schem
     }
 ]);
 
+print("=== Stage: Namespaces ===");
 // Insert namespaces if they don't exist
 if (db.namespaces.countDocuments() === 0) {
     db.namespaces.insertMany([
@@ -927,6 +940,7 @@ if (db.namespaces.countDocuments() === 0) {
     print("Namespaces already exist, no initialization needed");
 }
 
+print("=== Stage: Patterns ===");
 db.patterns.insertMany([
     {
         namespace: "finos",
@@ -1944,6 +1958,7 @@ db.patterns.insertMany([
     }
 ]);
 
+print("=== Stage: Flows ===");
 db.flows.insertMany([
     {
         namespace: "finos",
@@ -2065,6 +2080,7 @@ db.flows.insertMany([
 ]
 );
 
+print("=== Stage: Architectures ===");
 db.architectures.insertMany([
     {
         namespace: "finos",
@@ -2696,6 +2712,7 @@ db.architectures.insertMany([
     }
 ]);
 
+print("=== Stage: User Access ===");
 db.userAccess.insertMany([
     {
         "userAccessId": NumberInt(1),
@@ -2741,6 +2758,7 @@ db.userAccess.insertMany([
     }
 ]);
 
+print("=== Stage: ADRs ===");
 db.adrs.insertMany([
 	{
         namespace: 'finos',
@@ -2826,6 +2844,7 @@ Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliqu
     },
 ]);
 
+print("=== Stage: Decorators ===");
 db.decorators.insertMany([
     {
         namespace: "finos",
@@ -2956,3 +2975,4 @@ db.decorators.insertMany([
         ]
     }
 ]);
+print("=== Initialization complete ===");
