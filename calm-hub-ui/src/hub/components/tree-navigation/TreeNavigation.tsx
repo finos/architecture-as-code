@@ -1,17 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { IoCompassOutline, IoChevronBackOutline } from 'react-icons/io5';
-import {
-    fetchNamespaces,
-    fetchPatternIDs,
-    fetchFlowIDs,
-    fetchArchitectureIDs,
-    fetchPatternVersions,
-    fetchFlowVersions,
-    fetchArchitectureVersions,
-    fetchPattern,
-    fetchFlow,
-    fetchArchitecture,
-} from '../../../service/calm-service.js';
+import { CalmService } from '../../../service/calm-service.js';
 import {
     fetchDomains,
     fetchControlsForDomain,
@@ -33,6 +22,7 @@ type HubParams = {
 interface LoadResourceIdsOptions {
     type: string;
     namespace: string;
+    calmService: CalmService;
     setArchitectureIDs: (ids: string[]) => void;
     setPatternIDs: (ids: string[]) => void;
     setFlowIDs: (ids: string[]) => void;
@@ -44,6 +34,7 @@ interface LoadVersionsOptions {
     resourceID: string;
     type: string;
     namespace: string;
+    calmService: CalmService;
     setArchitectureVersions: (versions: string[]) => void;
     setPatternVersions: (versions: string[]) => void;
     setFlowVersions: (versions: string[]) => void;
@@ -56,6 +47,7 @@ interface LoadResourceOptions {
     type: string;
     namespace: string;
     resourceID: string;
+    calmService: CalmService;
     onDataLoad: (data: Data) => void;
     onAdrLoad: (adr: Adr) => void;
     adrService: AdrService;
@@ -352,7 +344,8 @@ function DomainItem({
 
 function loadResourceIds({ 
     type, 
-    namespace, 
+    namespace,
+    calmService,
     setArchitectureIDs, 
     setPatternIDs, 
     setFlowIDs, 
@@ -360,22 +353,23 @@ function loadResourceIds({
     setAdrIDs 
 }: LoadResourceIdsOptions) {
     if (type === 'Architectures') {
-            fetchArchitectureIDs(namespace, setArchitectureIDs);
-        } else if (type === 'Patterns') {
-            fetchPatternIDs(namespace, setPatternIDs);
-        } else if (type === 'Flows') {
-            fetchFlowIDs(namespace, setFlowIDs);
-        } else if (type === 'ADRs') {
-            adrService
-                .fetchAdrIDs(namespace)
-                .then((ids) => setAdrIDs(ids.map((id) => id.toString())));
-        }
+        calmService.fetchArchitectureIDs(namespace).then(setArchitectureIDs);
+    } else if (type === 'Patterns') {
+        calmService.fetchPatternIDs(namespace).then(setPatternIDs);
+    } else if (type === 'Flows') {
+        calmService.fetchFlowIDs(namespace).then(setFlowIDs);
+    } else if (type === 'ADRs') {
+        adrService
+            .fetchAdrIDs(namespace)
+            .then((ids) => setAdrIDs(ids.map((id) => id.toString())));
+    }
 }
 
 function loadVersions({ 
     resourceID, 
     type, 
-    namespace, 
+    namespace,
+    calmService,
     setArchitectureVersions, 
     setPatternVersions, 
     setFlowVersions, 
@@ -383,11 +377,11 @@ function loadVersions({
     setAdrRevisions 
 }: LoadVersionsOptions) {
     if (type === 'Architectures') {
-        fetchArchitectureVersions(namespace, resourceID, setArchitectureVersions);
+        calmService.fetchArchitectureVersions(namespace, resourceID).then(setArchitectureVersions);
     } else if (type === 'Patterns') {
-        fetchPatternVersions(namespace, resourceID, setPatternVersions);
+        calmService.fetchPatternVersions(namespace, resourceID).then(setPatternVersions);
     } else if (type === 'Flows') {
-        fetchFlowVersions(namespace, resourceID, setFlowVersions);
+        calmService.fetchFlowVersions(namespace, resourceID).then(setFlowVersions);
     } else if (type === 'ADRs') {
         adrService
             .fetchAdrRevisions(namespace, resourceID)
@@ -399,17 +393,18 @@ function loadResource({
     version, 
     type, 
     namespace, 
-    resourceID, 
+    resourceID,
+    calmService,
     onDataLoad, 
     onAdrLoad, 
     adrService 
 }: LoadResourceOptions) {
     if (type === 'Architectures') {
-        fetchArchitecture(namespace, resourceID, version, onDataLoad);
+        calmService.fetchArchitecture(namespace, resourceID, version).then(onDataLoad);
     } else if (type === 'Patterns') {
-        fetchPattern(namespace, resourceID, version, onDataLoad);
+        calmService.fetchPattern(namespace, resourceID, version).then(onDataLoad);
     } else if (type === 'Flows') {
-        fetchFlow(namespace, resourceID, version, onDataLoad);
+        calmService.fetchFlow(namespace, resourceID, version).then(onDataLoad);
     } else if (type === 'ADRs') {
         adrService.fetchAdr(namespace, resourceID, version).then(onAdrLoad);
     }
@@ -441,12 +436,13 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollaps
     const [domainControls, setDomainControls] = useState<ControlDetail[]>([]);
     const [selectedControlId, setSelectedControlId] = useState<number | null>(null);
 
+    const calmService = useMemo(() => new CalmService(), []);
     const adrService = useMemo(() => new AdrService(), []);
 
     useEffect(() => {
-        fetchNamespaces(setNamespaces);
+        calmService.fetchNamespaces().then(setNamespaces);
         fetchDomains(setDomains);
-    }, []);
+    }, [calmService]);
 
     useEffect(() => {
         if (params.namespace && params.type && params.id && params.version) {
@@ -455,6 +451,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollaps
             loadResourceIds({
                 type: mapTypeInUrlToTypeInUI(params.type),
                 namespace: params.namespace,
+                calmService,
                 setArchitectureIDs,
                 setPatternIDs,
                 setFlowIDs,
@@ -466,6 +463,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollaps
                 resourceID: params.id,
                 type: mapTypeInUrlToTypeInUI(params.type),
                 namespace: params.namespace,
+                calmService,
                 setArchitectureVersions,
                 setPatternVersions,
                 setFlowVersions,
@@ -478,12 +476,13 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollaps
                 type: mapTypeInUrlToTypeInUI(params.type),
                 namespace: params.namespace,
                 resourceID: params.id,
+                calmService,
                 onDataLoad,
                 onAdrLoad,
                 adrService,
             });
         }
-    }, [params, adrService, onDataLoad, onAdrLoad]);
+    }, [params, calmService, adrService, onDataLoad, onAdrLoad]);
 
     const handleNamespaceClick = useCallback((namespace: string) => {
         if (selectedNamespace === namespace) {
@@ -532,6 +531,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollaps
             loadResourceIds({
                 type,
                 namespace: selectedNamespace,
+                calmService,
                 setArchitectureIDs,
                 setPatternIDs,
                 setFlowIDs,
@@ -541,7 +541,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollaps
         }
         setSelectedResourceID(EMPTY_STR_VALUE);
         setSelectedVersion(EMPTY_STR_VALUE);
-    }, [selectedNamespace, selectedType, adrService]);
+    }, [selectedNamespace, selectedType, calmService, adrService]);
 
     const handleResourceClick = useCallback((resourceID: string, type: string) => {
         setSelectedResourceID(resourceID);
@@ -550,13 +550,14 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollaps
             resourceID,
             type,
             namespace: selectedNamespace,
+            calmService,
             setArchitectureVersions,
             setPatternVersions,
             setFlowVersions,
             adrService,
             setAdrRevisions,
         });
-    }, [selectedNamespace, adrService]);
+    }, [selectedNamespace, calmService, adrService]);
 
     const handleVersionClick = useCallback((version: string, type: string) => {
         navigate(`${basePath}/${selectedNamespace}/${mapTypeInUIToTypeInUrl(type as TypeInUI)}/${selectedResourceID}/${version}`);

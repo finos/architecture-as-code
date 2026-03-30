@@ -47,4 +47,10 @@ describe('calmhub-document-loader', () => {
         await expect(calmHubDocumentLoader.loadMissingDocument(traversalUrl, 'schema'))
             .rejects.toThrow('directory traversal');
     });
+
+    it('rejects paths with disallowed characters', async () => {
+        const maliciousUrl = 'calm:/schemas/%00malicious';
+        await expect(calmHubDocumentLoader.loadMissingDocument(maliciousUrl, 'schema'))
+            .rejects.toThrow('disallowed characters');
+    });
 });

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CALM Ant Farm 🐜</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #1a0e06; font-family: 'Segoe UI', system-ui, sans-serif; }
+        canvas { display: block; }
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            pointer-events: none;
+            z-index: 10;
+            padding: 20px;
+        }
+        #title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #e8d5b7;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+            margin-bottom: 8px;
+        }
+        #subtitle {
+            font-size: 0.85rem;
+            color: #c4a97d;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+        }
+        #flow-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(30, 18, 8, 0.88);
+            border: 1px solid rgba(196, 169, 125, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            max-height: 50vh;
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(8px);
+        }
+        #flow-panel-header {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #e8d5b7;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #flow-panel-header button {
+            background: rgba(196, 169, 125, 0.2);
+            border: 1px solid rgba(196, 169, 125, 0.3);
+            color: #c4a97d;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #flow-panel-header button:hover {
+            background: rgba(196, 169, 125, 0.35);
+        }
+        #flow-search {
+            width: 100%;
+            padding: 6px 10px;
+            margin-bottom: 8px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(196, 169, 125, 0.2);
+            border-radius: 6px;
+            color: #e8d5b7;
+            font-size: 0.8rem;
+            outline: none;
+        }
+        #flow-search::placeholder { color: rgba(196, 169, 125, 0.5); }
+        #flow-search:focus { border-color: rgba(196, 169, 125, 0.5); }
+        #flow-list {
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0;
+        }
+        #flow-list::-webkit-scrollbar { width: 6px; }
+        #flow-list::-webkit-scrollbar-track { background: transparent; }
+        #flow-list::-webkit-scrollbar-thumb { background: rgba(196, 169, 125, 0.3); border-radius: 3px; }
+        .flow-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 4px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .flow-item:hover { background: rgba(196, 169, 125, 0.12); }
+        .flow-item input[type="checkbox"] {
+            accent-color: #c4a97d;
+            cursor: pointer;
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+        }
+        .flow-swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.3);
+            flex-shrink: 0;
+        }
+        .flow-label {
+            font-size: 0.78rem;
+            color: #c4a97d;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #flow-count {
+            font-size: 0.7rem;
+            color: rgba(196, 169, 125, 0.5);
+            margin-top: 6px;
+            text-align: center;
+        }
+        #footer {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            pointer-events: none;
+            z-index: 10;
+            font-size: 0.75rem;
+            color: #8a7560;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+        }
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #c4a97d;
+            font-size: 1.2rem;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body>
+    <div id="overlay">
+        <div id="title"></div>
+        <div id="subtitle">Architecture Ant Farm Visualization</div>
+    </div>
+    <div id="flow-panel">
+        <div id="flow-panel-header">
+            <span>🐜 Flows</span>
+            <button id="flow-toggle-all">Enable All</button>
+        </div>
+        <input type="text" id="flow-search" placeholder="Search flows..." />
+        <div id="flow-list"></div>
+        <div id="flow-count"></div>
+    </div>
+    <div id="footer">Built with CALM 🐜</div>
+    <div id="loading">Digging tunnels...</div>
+    <script type="module" src="/main.js"></script>
+</body>
+</html>
