@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { IoCompassOutline, IoChevronBackOutline } from 'react-icons/io5';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { IoCompassOutline, IoChevronBackOutline, IoListOutline, IoGitBranchOutline } from 'react-icons/io5';
 import { CalmService } from '../../../service/calm-service.js';
 import {
     fetchDomains,
@@ -92,8 +92,8 @@ interface ResourceTypeProps {
 }
 
 interface NamespaceItemProps {
-    namespace: string;
-    isSelected: boolean;
+    node: NamespaceNode;
+    selectedNamespace: string;
     selectedType: string;
     selectedResourceID: string;
     selectedVersion: string;
@@ -103,6 +103,56 @@ interface NamespaceItemProps {
     onTypeClick: (type: string) => void;
     onResourceClick: (resourceID: string, type: string) => void;
     onVersionClick: (version: string, type: string) => void;
+}
+
+export interface NamespaceNode {
+    /** Full dot-separated path used as the display label (e.g. "org.finos") */
+    label: string;
+    /** The actual namespace string when this node IS a real namespace; null for grouping-only nodes */
+    namespace: string | null;
+    children: NamespaceNode[];
+}
+
+interface TrieNode {
+    isNamespace: boolean;
+    children: Map<string, TrieNode>;
+}
+
+function collapseToTree(node: TrieNode, prefix: string): NamespaceNode[] {
+    const results: NamespaceNode[] = [];
+    for (const [segment, child] of node.children) {
+        const fullPath = prefix ? `${prefix}.${segment}` : segment;
+        const childNodes = collapseToTree(child, fullPath);
+        if (child.isNamespace) {
+            results.push({ label: fullPath, namespace: fullPath, children: childNodes });
+        } else if (childNodes.length === 1) {
+            // Collapse single-child non-namespace intermediates (path compression)
+            results.push(childNodes[0]);
+        } else if (childNodes.length > 1) {
+            // Keep as a grouping node
+            results.push({ label: fullPath, namespace: null, children: childNodes });
+        }
+    }
+    return results;
+}
+
+export function buildNamespaceTree(namespaces: string[]): NamespaceNode[] {
+    const root: TrieNode = { isNamespace: false, children: new Map() };
+    for (const ns of namespaces) {
+        const segments = ns.split('.');
+        let current = root;
+        for (let i = 0; i < segments.length; i++) {
+            const segment = segments[i];
+            if (!current.children.has(segment)) {
+                current.children.set(segment, { isNamespace: false, children: new Map() });
+            }
+            current = current.children.get(segment)!;
+            if (i === segments.length - 1) {
+                current.isNamespace = true;
+            }
+        }
+    }
+    return collapseToTree(root, '');
 }
 
 function mapTypeInUrlToTypeInUI(urlType: TypeInUrl): TypeInUI {
@@ -224,8 +274,8 @@ function ResourceType({
 }
 
 function NamespaceItem({
-    namespace,
-    isSelected,
+    node,
+    selectedNamespace,
     selectedType,
     selectedResourceID,
     selectedVersion,
@@ -237,22 +287,40 @@ function NamespaceItem({
     onVersionClick,
 }: NamespaceItemProps) {
     const resourceTypes = ['Architectures', 'Patterns', 'Flows', 'ADRs'];
+    const isThisSelected = node.namespace !== null && node.namespace === selectedNamespace;
+    const hasSelectedDescendant = selectedNamespace.startsWith(node.label + '.');
+
+    // Grouping nodes (no real namespace) track their own open state so users can toggle them
+    const [groupingOpen, setGroupingOpen] = useState(hasSelectedDescendant);
+    useEffect(() => {
+        if (hasSelectedDescendant) setGroupingOpen(true);
+    }, [hasSelectedDescendant]);
+
+    const isOpen = node.namespace !== null
+        ? (isThisSelected || hasSelectedDescendant)
+        : groupingOpen;
+
+    const handleSummaryClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (node.namespace) {
+            onNamespaceClick(node.namespace);
+        } else {
+            setGroupingOpen((prev) => !prev);
+        }
+    };
 
     return (
         <li>
-            <details open={isSelected}>
+            <details open={isOpen}>
                 <summary
-                    className={isSelected ? 'active' : ''}
-                    onClick={(e) => {
-                        e.preventDefault();
-                        onNamespaceClick(namespace);
-                    }}
+                    className={isThisSelected ? 'active' : ''}
+                    onClick={handleSummaryClick}
                 >
-                    {namespace}
+                    {node.label}
                 </summary>
-                {isSelected && (
+                {isOpen && (
                     <ul>
-                        {resourceTypes.map((type) => (
+                        {isThisSelected && resourceTypes.map((type) => (
                             <ResourceType
                                 key={type}
                                 type={type}
@@ -261,6 +329,22 @@ function NamespaceItem({
                                 selectedResourceID={selectedResourceID}
                                 versions={getVersions(type)}
                                 selectedVersion={selectedVersion}
+                                onTypeClick={onTypeClick}
+                                onResourceClick={onResourceClick}
+                                onVersionClick={onVersionClick}
+                            />
+                        ))}
+                        {node.children.map((child) => (
+                            <NamespaceItem
+                                key={child.label}
+                                node={child}
+                                selectedNamespace={selectedNamespace}
+                                selectedType={selectedType}
+                                selectedResourceID={selectedResourceID}
+                                selectedVersion={selectedVersion}
+                                getResourceIDs={getResourceIDs}
+                                getVersions={getVersions}
+                                onNamespaceClick={onNamespaceClick}
                                 onTypeClick={onTypeClick}
                                 onResourceClick={onResourceClick}
                                 onVersionClick={onVersionClick}
@@ -438,6 +522,11 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollaps
 
     const calmService = useMemo(() => new CalmService(), []);
     const adrService = useMemo(() => new AdrService(), []);
+    const [viewMode, setViewMode] = useState<'flat' | 'hierarchical'>('hierarchical');
+    const namespaceTree = useMemo(() => {
+        if (viewMode === 'hierarchical') return buildNamespaceTree(namespaces);
+        return namespaces.map((ns) => ({ label: ns, namespace: ns, children: [] }));
+    }, [namespaces, viewMode]);
 
     useEffect(() => {
         calmService.fetchNamespaces().then(setNamespaces);
@@ -600,15 +689,35 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollaps
                     <IoCompassOutline className="text-accent" />
                     Explore
                 </h2>
-                {onCollapse && (
-                    <button
-                        aria-label="Collapse sidebar"
-                        className="btn btn-ghost btn-xs btn-circle"
-                        onClick={onCollapse}
-                    >
-                        <IoChevronBackOutline />
-                    </button>
-                )}
+                <div className="flex items-center gap-1">
+                    <div className="join">
+                        <button
+                            aria-label="Flat view"
+                            title="Flat view"
+                            className={`join-item btn btn-xs ${viewMode === 'flat' ? 'btn-active' : 'btn-ghost'}`}
+                            onClick={() => setViewMode('flat')}
+                        >
+                            <IoListOutline />
+                        </button>
+                        <button
+                            aria-label="Hierarchical view"
+                            title="Hierarchical view"
+                            className={`join-item btn btn-xs ${viewMode === 'hierarchical' ? 'btn-active' : 'btn-ghost'}`}
+                            onClick={() => setViewMode('hierarchical')}
+                        >
+                            <IoGitBranchOutline />
+                        </button>
+                    </div>
+                    {onCollapse && (
+                        <button
+                            aria-label="Collapse sidebar"
+                            className="btn btn-ghost btn-xs btn-circle"
+                            onClick={onCollapse}
+                        >
+                            <IoChevronBackOutline />
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="flex-1 overflow-auto p-4">
@@ -616,11 +725,11 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollaps
                     <li>
                         <a>Namespaces</a>
                         <ul>
-                            {namespaces.map((namespace) => (
+                            {namespaceTree.map((node) => (
                                 <NamespaceItem
-                                    key={namespace}
-                                    namespace={namespace}
-                                    isSelected={selectedNamespace === namespace}
+                                    key={node.label}
+                                    node={node}
+                                    selectedNamespace={selectedNamespace}
                                     selectedType={selectedType}
                                     selectedResourceID={selectedResourceID}
                                     selectedVersion={selectedVersion}
