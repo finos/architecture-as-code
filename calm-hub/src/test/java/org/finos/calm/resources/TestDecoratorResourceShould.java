@@ -2,6 +2,8 @@ package org.finos.calm.resources;
 
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.http.ContentType;
+import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Decorator;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.DecoratorStore;
@@ -15,6 +17,7 @@ import java.util.Optional;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -488,5 +491,74 @@ public class TestDecoratorResourceShould {
                 .statusCode(400);
 
         verify(decoratorStore, never()).getDecoratorValuesForNamespace(any(), any(), any());
+    }
+
+    // ---- POST /calm/namespaces/{namespace}/decorators ----
+
+    private static final String VALID_DECORATOR_JSON = """
+            {
+                "$schema": "https://calm.finos.org/draft/2026-03/meta/decorators.json",
+                "unique-id": "test-decorator-1",
+                "type": "deployment",
+                "target": ["/calm/namespaces/finos/architectures/1/versions/1-0-0"],
+                "applies-to": ["web-service"],
+                "data": {"key": "value"}
+            }
+            """;
+
+    @Test
+    void return_201_with_location_header_when_decorator_created_successfully() throws Exception {
+        when(decoratorStore.createDecorator(anyString(), anyString())).thenReturn(1);
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(VALID_DECORATOR_JSON)
+                .when()
+                .post("/calm/namespaces/finos/decorators")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/namespaces/finos/decorators/1"));
+    }
+
+    @Test
+    void return_400_when_decorator_json_is_invalid() throws Exception {
+        when(decoratorStore.createDecorator(anyString(), anyString()))
+                .thenThrow(new JsonParseException("Invalid JSON"));
+
+        given()
+                .contentType(ContentType.JSON)
+                .body("not-valid-json")
+                .when()
+                .post("/calm/namespaces/finos/decorators")
+                .then()
+                .statusCode(400)
+                .body(containsString("Invalid decorator JSON"));
+    }
+
+    @Test
+    void return_404_when_namespace_does_not_exist_for_create_decorator() throws Exception {
+        when(decoratorStore.createDecorator(anyString(), anyString()))
+                .thenThrow(new NamespaceNotFoundException());
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(VALID_DECORATOR_JSON)
+                .when()
+                .post("/calm/namespaces/invalid-namespace/decorators")
+                .then()
+                .statusCode(404)
+                .body(containsString("Invalid namespace provided: invalid-namespace"));
+    }
+
+    @Test
+    void return_400_when_namespace_has_invalid_characters_for_create_decorator() {
+        given()
+                .contentType(ContentType.JSON)
+                .body(VALID_DECORATOR_JSON)
+                .when()
+                .post("/calm/namespaces/invalid@namespace/decorators")
+                .then()
+                .statusCode(400)
+                .body(containsString("namespace must match pattern"));
     }
 }

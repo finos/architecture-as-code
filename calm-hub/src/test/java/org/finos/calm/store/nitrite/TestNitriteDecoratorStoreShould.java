@@ -41,6 +41,9 @@ class TestNitriteDecoratorStoreShould {
     private NitriteNamespaceStore namespaceStore;
 
     @Mock
+    private NitriteCounterStore counterStore;
+
+    @Mock
     private DocumentCursor cursor;
 
     private NitriteDecoratorStore decoratorStore;
@@ -48,7 +51,7 @@ class TestNitriteDecoratorStoreShould {
     @BeforeEach
     void setUp() {
         when(db.getCollection("decorators")).thenReturn(decoratorCollection);
-        decoratorStore = new NitriteDecoratorStore(db, namespaceStore);
+        decoratorStore = new NitriteDecoratorStore(db, namespaceStore, counterStore);
     }
 
     @Test
@@ -583,6 +586,71 @@ class TestNitriteDecoratorStoreShould {
         verify(db).getCollection("decorators");
         // Logger message is logged but we can't easily verify it in unit tests
         // This test mainly verifies the constructor completes successfully
+    }
+
+    @Test
+    void should_create_decorator_and_return_assigned_id_when_namespace_doc_does_not_exist() throws NamespaceNotFoundException {
+        // Given
+        String namespace = "finos";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+        when(counterStore.getNextDecoratorSequenceValue()).thenReturn(7);
+        when(decoratorCollection.find(any(Filter.class))).thenReturn(cursor);
+        when(cursor.firstOrNull()).thenReturn(null); // no existing document
+
+        String decoratorJson = "{\"unique-id\": \"test-decorator\", \"type\": \"deployment\"}";
+
+        // When
+        int id = decoratorStore.createDecorator(namespace, decoratorJson);
+
+        // Then
+        assertEquals(7, id);
+        verify(namespaceStore).namespaceExists(namespace);
+        verify(counterStore).getNextDecoratorSequenceValue();
+        verify(decoratorCollection).insert(any(Document.class));
+    }
+
+    @Test
+    void should_create_decorator_and_append_to_existing_namespace_doc() throws NamespaceNotFoundException {
+        // Given
+        String namespace = "finos";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+        when(counterStore.getNextDecoratorSequenceValue()).thenReturn(8);
+
+        Document existingDecorator = Document.createDocument("decoratorId", 1)
+                .put("decorator", Document.createDocument("unique-id", "existing"));
+        Document existingNamespaceDoc = Document.createDocument("namespace", namespace)
+                .put("decorators", List.of(existingDecorator));
+
+        when(decoratorCollection.find(any(Filter.class))).thenReturn(cursor);
+        when(cursor.firstOrNull()).thenReturn(existingNamespaceDoc);
+
+        String decoratorJson = "{\"unique-id\": \"new-decorator\", \"type\": \"deployment\"}";
+
+        // When
+        int id = decoratorStore.createDecorator(namespace, decoratorJson);
+
+        // Then
+        assertEquals(8, id);
+        verify(namespaceStore).namespaceExists(namespace);
+        verify(counterStore).getNextDecoratorSequenceValue();
+        verify(decoratorCollection).update(any(Document.class));
+    }
+
+    @Test
+    void should_throw_namespace_not_found_when_creating_decorator_in_unknown_namespace() {
+        // Given
+        String namespace = "unknown-namespace";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(false);
+
+        String decoratorJson = "{\"unique-id\": \"test\", \"type\": \"test\"}";
+
+        // When & Then
+        assertThrows(NamespaceNotFoundException.class,
+                () -> decoratorStore.createDecorator(namespace, decoratorJson));
+
+        verify(namespaceStore).namespaceExists(namespace);
+        verify(counterStore, never()).getNextDecoratorSequenceValue();
+        verify(decoratorCollection, never()).insert(any(Document.class));
     }
 
     @Test

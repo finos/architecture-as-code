@@ -15,6 +15,7 @@ import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,11 +40,13 @@ public class NitriteDecoratorStore implements DecoratorStore {
 
     private final NitriteCollection decoratorCollection;
     private final NitriteNamespaceStore namespaceStore;
+    private final NitriteCounterStore counterStore;
 
     @Inject
-    public NitriteDecoratorStore(@StandaloneQualifier Nitrite db, NitriteNamespaceStore namespaceStore) {
+    public NitriteDecoratorStore(@StandaloneQualifier Nitrite db, NitriteNamespaceStore namespaceStore, NitriteCounterStore counterStore) {
         this.decoratorCollection = db.getCollection(COLLECTION_NAME);
         this.namespaceStore = namespaceStore;
+        this.counterStore = counterStore;
         LOG.info("NitriteDecoratorStore initialized with collection: {}", COLLECTION_NAME);
     }
 
@@ -119,6 +122,39 @@ public class NitriteDecoratorStore implements DecoratorStore {
                         .setData(doc.get("data"))
                         .build())
                 .findFirst();
+    }
+
+    @Override
+    public int createDecorator(String namespace, String decoratorJson) throws NamespaceNotFoundException {
+        validateNamespace(namespace);
+
+        org.bson.Document bsonDoc = org.bson.Document.parse(decoratorJson);
+        int id = counterStore.getNextDecoratorSequenceValue();
+
+        Document decoratorDoc = Document.createDocument();
+        for (var entry : bsonDoc.entrySet()) {
+            decoratorDoc.put(entry.getKey(), entry.getValue());
+        }
+
+        Document decoratorEntry = Document.createDocument(DECORATOR_ID_FIELD, id)
+                .put("decorator", decoratorDoc);
+
+        Document namespaceDoc = fetchNamespaceDocument(namespace);
+        if (namespaceDoc == null) {
+            Document newNamespaceDoc = Document.createDocument(NAMESPACE_FIELD, namespace)
+                    .put(DECORATORS_FIELD, new ArrayList<>(List.of(decoratorEntry)));
+            decoratorCollection.insert(newNamespaceDoc);
+        } else {
+            TypeSafeNitriteDocument<Document> typeSafeDoc = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class);
+            List<Document> decorators = typeSafeDoc.getList(DECORATORS_FIELD);
+            List<Document> mutableDecorators = decorators == null ? new ArrayList<>() : new ArrayList<>(decorators);
+            mutableDecorators.add(decoratorEntry);
+            namespaceDoc.put(DECORATORS_FIELD, mutableDecorators);
+            decoratorCollection.update(namespaceDoc);
+        }
+
+        LOG.debug("Created decorator with ID {} in namespace '{}'", id, namespace);
+        return id;
     }
 
     /**

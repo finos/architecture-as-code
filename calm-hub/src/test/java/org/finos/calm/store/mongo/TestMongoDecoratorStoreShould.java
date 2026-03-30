@@ -41,6 +41,9 @@ class TestMongoDecoratorStoreShould {
     private MongoNamespaceStore namespaceStore;
 
     @Mock
+    private MongoCounterStore counterStore;
+
+    @Mock
     private FindIterable<Document> findIterable;
 
     private MongoDecoratorStore decoratorStore;
@@ -48,7 +51,7 @@ class TestMongoDecoratorStoreShould {
     @BeforeEach
     void setUp() {
         when(database.getCollection("decorators")).thenReturn(decoratorCollection);
-        decoratorStore = new MongoDecoratorStore(database, namespaceStore);
+        decoratorStore = new MongoDecoratorStore(database, namespaceStore, counterStore);
     }
 
     @Test
@@ -537,6 +540,42 @@ class TestMongoDecoratorStoreShould {
         assertTrue(decoratorIds.contains(3));
         assertFalse(decoratorIds.contains(null));
         verify(namespaceStore).namespaceExists(namespace);
+    }
+
+    @Test
+    void should_create_decorator_and_return_assigned_id() throws NamespaceNotFoundException {
+        // Given
+        String namespace = "finos";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+        when(counterStore.getNextDecoratorSequenceValue()).thenReturn(42);
+
+        String decoratorJson = "{\"unique-id\": \"test-decorator\", \"type\": \"deployment\"}";
+
+        // When
+        int id = decoratorStore.createDecorator(namespace, decoratorJson);
+
+        // Then
+        assertEquals(42, id);
+        verify(namespaceStore).namespaceExists(namespace);
+        verify(counterStore).getNextDecoratorSequenceValue();
+        verify(decoratorCollection).updateOne(any(Bson.class), any(Bson.class), any());
+    }
+
+    @Test
+    void should_throw_namespace_not_found_when_creating_decorator_in_unknown_namespace() {
+        // Given
+        String namespace = "unknown-namespace";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(false);
+
+        String decoratorJson = "{\"unique-id\": \"test\", \"type\": \"test\"}";
+
+        // When & Then
+        assertThrows(NamespaceNotFoundException.class,
+                () -> decoratorStore.createDecorator(namespace, decoratorJson));
+
+        verify(namespaceStore).namespaceExists(namespace);
+        verify(counterStore, never()).getNextDecoratorSequenceValue();
+        verify(decoratorCollection, never()).updateOne(any(Bson.class), any(Bson.class), any());
     }
 
     @Test
