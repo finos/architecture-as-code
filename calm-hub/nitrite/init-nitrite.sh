@@ -8,6 +8,7 @@ set -e
 
 # Configuration
 CALM_HUB_URL="${CALM_HUB_URL:-http://localhost:8080}"
+CALM_SCHEMA_BASE_PATH="${CALM_SCHEMA_BASE_PATH:-}"
 CONTENT_TYPE="Content-Type: application/json"
 
 # Colors for output
@@ -55,252 +56,83 @@ create_namespaces() {
     done
 }
 
+# Function to load schemas from a directory (release or draft)
+# Usage: load_schemas_from_dir <base_dir> <prefix>
+# e.g. load_schemas_from_dir /calm/release release
+load_schemas_from_dir() {
+    local base_dir="$1"
+    local prefix="$2"
+
+    if [[ ! -d "$base_dir" ]]; then
+        print_warning "Schema directory not found at $base_dir, skipping $prefix schemas"
+        return
+    fi
+
+    for ver_dir in "$base_dir"/*/; do
+        [[ -d "$ver_dir" ]] || continue
+        local ver
+        ver=$(basename "$ver_dir")
+        local version="${prefix}/${ver}"
+        local meta_dir="${ver_dir}meta"
+
+        if [[ ! -d "$meta_dir" ]]; then
+            print_warning "No meta directory found for $version, skipping"
+            continue
+        fi
+
+        print_status "Creating schema version ${version}..."
+
+        # Build the schemas object by merging all *.json files in meta/
+        local schemas_json="{}"
+        for schema_file in "$meta_dir"/*.json; do
+            [[ -f "$schema_file" ]] || continue
+            local filename
+            filename=$(basename "$schema_file")
+            local content
+            content=$(cat "$schema_file")
+            schemas_json=$(echo "$schemas_json" | jq --arg k "$filename" --argjson v "$content" '. + {($k): $v}')
+        done
+
+        local payload
+        payload=$(jq -n --arg version "$version" --argjson schemas "$schemas_json" \
+            '{"version": $version, "schemas": $schemas}')
+
+        local http_code
+        http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/calm/schemas" \
+            -H "$CONTENT_TYPE" \
+            -d "$payload")
+
+        if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
+            print_status "Created schema version ${version}"
+        elif [[ "$http_code" == "409" ]]; then
+            print_warning "Schema version ${version} already exists, skipping"
+        else
+            print_warning "Failed to create schema version ${version} (HTTP $http_code)"
+        fi
+    done
+}
+
 # Function to create core schemas
 create_core_schemas() {
     print_status "Creating core schemas..."
-    
-    print_status "Creating schema version 2025-03..."
-    curl -s -X POST "$CALM_HUB_URL/calm/schemas" \
-        -H "$CONTENT_TYPE" \
-        -d '{
-            "version": "2025-03",
-            "schemas": {
-                "calm.json": {
-                    "$schema": "https://json-schema.org/draft/2020-12/schema",
-                    "$id": "https://calm.finos.org/calm/schemas/2025-03/meta/calm.json",
-                    "$vocabulary": {
-                        "https://json-schema.org/draft/2020-12/vocab/core": true,
-                        "https://json-schema.org/draft/2020-12/vocab/applicator": true,
-                        "https://json-schema.org/draft/2020-12/vocab/validation": true,
-                        "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
-                        "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
-                        "https://json-schema.org/draft/2020-12/vocab/content": true,
-                        "https://calm.finos.org/calm/schemas/2025-03/meta/core.json": true
-                    },
-                    "$dynamicAnchor": "meta",
-                    "title": "Common Architecture Language Model (CALM) Schema",
-                    "allOf": [
-                        { "$ref": "https://json-schema.org/draft/2020-12/schema" },
-                        { "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json" }
-                    ]
-                },
-                "control.json": {
-                    "$schema": "https://json-schema.org/draft/2020-12/schema",
-                    "$id": "https://calm.finos.org/calm/schemas/2025-03/meta/control.json",
-                    "title": "Common Architecture Language Model Controls",
-                    "description": "Controls model requirements for domains. For example, a security domain contains a series of control requirements",
-                    "defs": {
-                        "control-detail": {
-                            "type": "object",
-                            "properties": {
-                                "control-requirement-url": {
-                                    "type": "string",
-                                    "description": "The requirement schema that specifies how a control should be defined"
-                                }
-                            }
-                        }
-                    }
-                },
-                "control-requirement.json": {
-                    "$schema": "https://json-schema.org/draft/2020-12/schema",
-                    "$id": "https://calm.finos.org/calm/schemas/2025-03/meta/control-requirement.json",
-                    "title": "Common Architecture Language Model Control Requirement",
-                    "description": "Schema for defining control requirements within the Common Architecture Language Model.",
-                    "type": "object",
-                    "properties": {
-                        "control-requirement-id": {
-                            "type": "string",
-                            "description": "Unique identifier for the control requirement"
-                        },
-                        "title": {
-                            "type": "string",
-                            "description": "Title of the control requirement"
-                        },
-                        "description": {
-                            "type": "string",
-                            "description": "Detailed description of the control requirement"
-                        }
-                    },
-                    "required": ["control-requirement-id", "title", "description"]
-                },
-                "core.json": {
-                    "$schema": "https://json-schema.org/draft/2020-12/schema",
-                    "$id": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json",
-                    "title": "Common Architecture Language Model (CALM) Vocab",
-                    "properties": {},
-                    "defs": {
-                        "node": {
-                            "type": "object",
-                            "properties": {
-                                "unique-id": {
-                                    "type": "string"
-                                },
-                                "node-type": {
-                                    "$ref": "#/defs/node-type-definition"
-                                },
-                                "name": {
-                                    "type": "string"
-                                },
-                                "description": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "relationship": {
-                            "type": "object",
-                            "properties": {
-                                "unique-id": {
-                                    "type": "string"
-                                },
-                                "description": {
-                                    "type": "string"
-                                },
-                                "relationship-type": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "node-type-definition": {
-                            "enum": [
-                                "actor",
-                                "ecosystem",
-                                "system",
-                                "service",
-                                "database",
-                                "datastore"
-                            ]
-                        },
-                        "metadata": {
-                            "type": "array",
-                            "items": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "evidence.json": {
-                    "$schema": "https://json-schema.org/draft/2020-12/schema",
-                    "$id": "https://calm.finos.org/drat/2025-03/meta/evidence.json",
-                    "title": "Common Architecture Language Model Evidence",
-                    "description": "Schema for defining evidence within the Common Architecture Language Model.",
-                    "type": "object",
-                    "properties": {
-                        "evidence-id": {
-                            "type": "string",
-                            "description": "Unique identifier for the evidence"
-                        },
-                        "evidence-type": {
-                            "type": "string",
-                            "description": "Type of evidence"
-                        },
-                        "description": {
-                            "type": "string",
-                            "description": "Description of the evidence"
-                        },
-                        "source": {
-                            "type": "string",
-                            "description": "Source of the evidence"
-                        }
-                    },
-                    "required": ["evidence-id", "evidence-type", "description"]
-                },
-                "flow.json": {
-                    "$schema": "https://json-schema.org/draft/2020-12/schema",
-                    "$id": "https://calm.finos.org/calm/schemas/2025-03/meta/flow.json",
-                    "title": "Business Flow Model",
-                    "description": "Defines business flows that relate to technical architectures, allowing mapping of flows to technical components and attaching control requirements.",
-                    "type": "object",
-                    "properties": {
-                        "flow-id": {
-                            "type": "string",
-                            "description": "Unique identifier for the flow"
-                        },
-                        "name": {
-                            "type": "string",
-                            "description": "Name of the flow"
-                        },
-                        "description": {
-                            "type": "string",
-                            "description": "Description of the flow"
-                        },
-                        "steps": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "step-id": {
-                                        "type": "string"
-                                    },
-                                    "name": {
-                                        "type": "string"
-                                    },
-                                    "description": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "required": ["flow-id", "name", "steps"]
-                },
-                "interface.json": {
-                    "$schema": "https://json-schema.org/draft/2020-12/schema",
-                    "$id": "https://calm.finos.org/calm/schemas/2025-03/meta/interface.json",
-                    "title": "Common Architecture Language Model Interfaces",
-                    "defs": {
-                        "interface-type": {
-                            "type": "object",
-                            "properties": {
-                                "unique-id": {
-                                    "type": "string"
-                                },
-                                "interface-type": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "rate-limit-key": {
-                            "type": "object",
-                            "properties": {
-                                "key-type": {
-                                    "$ref": "#/defs/rate-limit-key-type"
-                                }
-                            }
-                        },
-                        "rate-limit-key-type": {
-                            "enum": ["user", "ip", "global"]
-                        }
-                    }
-                },
-                "units.json": {
-                    "$schema": "https://json-schema.org/draft/2020-12/schema",
-                    "$id": "https://calm.finos.org/calm/schemas/2025-03/meta/units.json",
-                    "title": "Common Architecture Language Model Units",
-                    "description": "Schema for defining units of measurement within the Common Architecture Language Model.",
-                    "type": "object",
-                    "properties": {
-                        "unit-id": {
-                            "type": "string",
-                            "description": "Unique identifier for the unit"
-                        },
-                        "name": {
-                            "type": "string",
-                            "description": "Name of the unit"
-                        },
-                        "symbol": {
-                            "type": "string",
-                            "description": "Symbol representing the unit"
-                        },
-                        "type": {
-                            "type": "string",
-                            "enum": ["time", "data", "frequency", "count"],
-                            "description": "Type of unit"
-                        }
-                    },
-                    "required": ["unit-id", "name", "type"]
-                }
-            }
-        }' || print_warning "Failed to create core schemas"
+
+    local base_path="$CALM_SCHEMA_BASE_PATH"
+
+    if [[ -z "$base_path" ]]; then
+        # Try to find the calm directory relative to this script's location
+        local script_dir
+        script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+        base_path=$(realpath "$script_dir/../../calm" 2>/dev/null || echo "")
+    fi
+
+    if [[ -z "$base_path" || ! -d "$base_path" ]]; then
+        print_error "CALM schema base path not found. Set CALM_SCHEMA_BASE_PATH to the calm/ directory."
+        return 1
+    fi
+
+    print_status "Loading schemas from: $base_path"
+    load_schemas_from_dir "${base_path}/release" "release"
+    load_schemas_from_dir "${base_path}/draft" "draft"
 }
 
 # Function to create patterns
@@ -1970,11 +1802,14 @@ show_help() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  -h, --help     Show this help message"
-    echo "  -u, --url URL  Set CalmHub URL (default: http://localhost:8080)"
+    echo "  -h, --help              Show this help message"
+    echo "  -u, --url URL           Set CalmHub URL (default: http://localhost:8080)"
+    echo "  -s, --schema-path PATH  Set the calm/ base path for schema loading"
     echo ""
     echo "Environment Variables:"
-    echo "  CALM_HUB_URL   CalmHub base URL (default: http://localhost:8080)"
+    echo "  CALM_HUB_URL            CalmHub base URL (default: http://localhost:8080)"
+    echo "  CALM_SCHEMA_BASE_PATH   Path to the calm/ directory containing release/ and draft/ subdirectories"
+    echo "                          (default: auto-detected relative to this script)"
     echo ""
     echo "Examples:"
     echo "  $0                                    # Use default URL"
@@ -1991,6 +1826,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -u|--url)
             CALM_HUB_URL="$2"
+            shift 2
+            ;;
+        -s|--schema-path)
+            CALM_SCHEMA_BASE_PATH="$2"
             shift 2
             ;;
         *)
