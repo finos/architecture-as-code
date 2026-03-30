@@ -79,9 +79,9 @@ if (db.counters.countDocuments({ _id: "controlStoreCounter" }) === 0) {
         _id: "controlStoreCounter",
         sequence_value: 2
     });
-    print("Initialized controlStoreCounter with sequence_value 2");
+    print("  - Initialized controlStoreCounter with sequence_value 2");
 } else {
-    print("controlStoreCounter already exists, no initialization needed");
+    print("  - controlStoreCounter already exists, no initialization needed");
 }
 
 if (db.counters.countDocuments({ _id: "decoratorStoreCounter" }) === 0) {
@@ -146,16 +146,18 @@ if (db.namespaces.countDocuments() === 0) {
     print("  - Namespaces already exist, no initialization needed");
 }
 
+print("Domains");
 // Insert domains if they don't exist
 if (db.domains.countDocuments() === 0) {
     db.domains.insertMany([
         { name: "security" }
     ]);
-    print("Initialized domains: security");
+    print("  - Initialized domains: security");
 } else {
-    print("Domains already exist, no initialization needed");
+    print("  - Domains already exist, no initialization needed");
 }
 
+print("Controls");
 // Insert example controls for the security domain
 if (db.controls.countDocuments() === 0) {
     db.controls.insertOne({
@@ -230,9 +232,9 @@ if (db.controls.countDocuments() === 0) {
             }
         ]
     });
-    print("Initialized controls for security domain with example Data Encryption control");
+    print("  - Initialized controls for security domain with example Data Encryption control");
 } else {
-    print("Controls already exist, no initialization needed");
+    print("  - Controls already exist, no initialization needed");
 }
 
 print("Patterns");
