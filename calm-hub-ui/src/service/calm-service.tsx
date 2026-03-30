@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { Data } from '../model/calm.js';
 import { getAuthHeaders } from '../authService.js';
+import { Decorator } from '../visualizer/contracts/decorator-contracts.js';
 
 /**
  * Service for interacting with CALM API endpoints.
@@ -183,6 +184,30 @@ export class CalmService {
                 // arg1 is %s to prevent format string injection from `namespace`, `architectureID`, and `version`.
                 console.error('%s', errorMessage, error);
                 return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    /**
+     * Fetch decorator values for a given namespace with optional target and type filters.
+    */
+    public async fetchDecoratorValues(
+        namespace: string,
+        target?: string,
+        type?: string
+    ): Promise<Decorator[]> {
+        const headers = await getAuthHeaders();
+        const params = new URLSearchParams();
+        if (target) params.set('target', target);
+        if (type) params.set('type', type);
+        const query = params.toString() ? `?${params.toString()}` : '';
+        return this.ax
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/decorators/values${query}`, { headers })
+            .then((res) => res.data.values ?? [])
+            .catch((error) => {
+                const errorMessage = `Error fetching decorator values for namespace ${namespace}:`;
+                // arg1 is %s to prevent format string injection from `namespace`.
+                console.error('%s', errorMessage, error);
+                return [];
             });
     }
 }

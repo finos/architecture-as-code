@@ -21,6 +21,12 @@ vi.mock('../../../visualizer/components/drawer/Drawer.js', () => ({
     Drawer: ({ data }: { data: Data }) => <div data-testid="drawer">Drawer for {data.id}</div>
 }));
 
+vi.mock('../../../service/calm-service.js', () => ({
+    CalmService: vi.fn().mockImplementation(() => ({
+        fetchDecoratorValues: vi.fn().mockResolvedValue([]),
+    })),
+}));
+
 const architectureData: Data & { calmType: 'Architectures' } = {
     id: 'test-arch',
     version: '1.0.0',
@@ -100,6 +106,37 @@ describe('DiagramSection', () => {
 
             expect(screen.getByRole('tab', { name: /diagram/i })).toBeInTheDocument();
             expect(screen.getByRole('tab', { name: /json/i })).toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: /deployments/i })).toBeInTheDocument();
+        });
+
+        it('renders Deployments tab only for architectures, not patterns', () => {
+            const { rerender } = render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+            expect(screen.getByRole('tab', { name: /deployments/i })).toBeInTheDocument();
+
+            rerender(
+                <MemoryRouter>
+                    <DiagramSection data={patternData} />
+                </MemoryRouter>
+            );
+            expect(screen.queryByRole('tab', { name: /deployments/i })).not.toBeInTheDocument();
+        });
+
+        it('switches to Deployments tab when clicked', async () => {
+            const user = userEvent.setup();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            await user.click(screen.getByRole('tab', { name: /deployments/i }));
+
+            expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
+            expect(screen.queryByTestId('monaco-editor')).not.toBeInTheDocument();
         });
 
         it('shows diagram tab by default', () => {
