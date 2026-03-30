@@ -80,6 +80,7 @@
         "qs": "^6.15.0",
         "lodash": "^4.17.23",
         "lodash-es": "^4.17.23",
+        "serialize-javascript": "^7.0.5",
         "@stoplight/spectral-ruleset-bundler@1.6.x": {
             "rollup": "2.80.0"
         },
