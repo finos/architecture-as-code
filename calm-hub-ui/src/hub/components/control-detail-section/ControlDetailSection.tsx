@@ -1,15 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { IoShieldCheckmarkOutline } from 'react-icons/io5';
 import { ControlData } from '../../../model/control.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { ReadableJsonView } from './ReadableJsonView.js';
-import {
-    fetchRequirementVersions,
-    fetchRequirementForVersion,
-    fetchConfigurationsForControl,
-    fetchConfigurationVersions,
-    fetchConfigurationForVersion,
-} from '../../../service/control-service.js';
+import { ControlService } from '../../../service/control-service.js';
 
 type ViewMode = 'readable' | 'raw';
 
@@ -18,6 +12,8 @@ interface ControlDetailSectionProps {
 }
 
 export function ControlDetailSection({ controlData }: ControlDetailSectionProps) {
+    const controlService = useMemo(() => new ControlService(), []);
+
     // Requirement state
     const [requirementVersions, setRequirementVersions] = useState<string[]>([]);
     const [selectedReqVersion, setSelectedReqVersion] = useState<string>('');
@@ -34,6 +30,17 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
     const [reqViewMode, setReqViewMode] = useState<ViewMode>('readable');
     const [cfgViewMode, setCfgViewMode] = useState<ViewMode>('readable');
 
+    const handleReqVersionClick = useCallback((version: string) => {
+        setSelectedReqVersion(version);
+        controlService.fetchRequirementForVersion(
+            controlData.domain,
+            controlData.controlId,
+            version
+        ).then((data) => {
+            setRequirementJson(data as object | undefined);
+        });
+    }, [controlService, controlData.domain, controlData.controlId]);
+
     // When control changes, load requirement versions and configurations
     useEffect(() => {
         setRequirementVersions([]);
@@ -45,53 +52,38 @@ export function ControlDetailSection({ controlData }: ControlDetailSectionProps)
         setSelectedConfigVersion('');
         setConfigJson(undefined);
 
-        fetchRequirementVersions(
+        controlService.fetchRequirementVersions(
             controlData.domain,
             controlData.controlId,
-            setRequirementVersions
-        );
-        fetchConfigurationsForControl(
+        ).then(setRequirementVersions);
+        controlService.fetchConfigurationsForControl(
             controlData.domain,
             controlData.controlId,
-            setConfigIds
-        );
-    }, [controlData.domain, controlData.controlId]);
+        ).then(setConfigIds);
+    }, [controlService, controlData.domain, controlData.controlId]);
 
     // Auto-select first requirement version when versions load
     useEffect(() => {
         if (requirementVersions.length > 0 && !selectedReqVersion) {
             handleReqVersionClick(requirementVersions[0]);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [requirementVersions]);
-
-    const handleReqVersionClick = (version: string) => {
-        setSelectedReqVersion(version);
-        fetchRequirementForVersion(
-            controlData.domain,
-            controlData.controlId,
-            version
-        ).then((data) => {
-            setRequirementJson(data as object | undefined);
-        });
-    };
+    }, [requirementVersions, selectedReqVersion, handleReqVersionClick]);
 
     const handleConfigClick = (configId: number) => {
         setSelectedConfigId(configId);
         setSelectedConfigVersion('');
         setConfigJson(undefined);
-        fetchConfigurationVersions(
+        controlService.fetchConfigurationVersions(
             controlData.domain,
             controlData.controlId,
             configId,
-            setConfigVersions
-        );
+        ).then(setConfigVersions);
     };
 
     const handleConfigVersionClick = (version: string) => {
         if (selectedConfigId === null) return;
         setSelectedConfigVersion(version);
-        fetchConfigurationForVersion(
+        controlService.fetchConfigurationForVersion(
             controlData.domain,
             controlData.controlId,
             selectedConfigId,

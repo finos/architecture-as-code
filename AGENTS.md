@@ -119,6 +119,7 @@ Running `npm install` or tests on a different Node major version (e.g. Node 25) 
 For detailed guidance on specific packages, see:
 - **[cli/AGENTS.md](cli/AGENTS.md)** - CLI commands, build pipeline, Commander.js patterns
 - **[calm-hub/AGENTS.md](calm-hub/AGENTS.md)** - Java/Quarkus backend, storage modes, security
+- **[calm-hub-ui/AGENTS.md](calm-hub-ui/AGENTS.md)** - React frontend, service patterns, component conventions
 - **[calm-plugins/vscode/AGENTS.md](calm-plugins/vscode/AGENTS.md)** - VSCode extension, MVVM architecture
 - **[calm-widgets/AGENTS.md](calm-widgets/AGENTS.md)** - Widget system, Handlebars templates, common pitfalls
 - **[advent-of-calm/AGENTS.md](advent-of-calm/AGENTS.md)** - Educational content, day format, testing

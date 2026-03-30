@@ -25,11 +25,13 @@ const mockFetchConfigurationVersions = vi.fn();
 const mockFetchConfigurationForVersion = vi.fn();
 
 vi.mock('../../../service/control-service.js', () => ({
-    fetchRequirementVersions: (...args: unknown[]) => mockFetchRequirementVersions(...args),
-    fetchRequirementForVersion: (...args: unknown[]) => mockFetchRequirementForVersion(...args),
-    fetchConfigurationsForControl: (...args: unknown[]) => mockFetchConfigurationsForControl(...args),
-    fetchConfigurationVersions: (...args: unknown[]) => mockFetchConfigurationVersions(...args),
-    fetchConfigurationForVersion: (...args: unknown[]) => mockFetchConfigurationForVersion(...args),
+    ControlService: vi.fn().mockImplementation(() => ({
+        fetchRequirementVersions: (...args: unknown[]) => mockFetchRequirementVersions(...args),
+        fetchRequirementForVersion: (...args: unknown[]) => mockFetchRequirementForVersion(...args),
+        fetchConfigurationsForControl: (...args: unknown[]) => mockFetchConfigurationsForControl(...args),
+        fetchConfigurationVersions: (...args: unknown[]) => mockFetchConfigurationVersions(...args),
+        fetchConfigurationForVersion: (...args: unknown[]) => mockFetchConfigurationForVersion(...args),
+    })),
 }));
 
 // ── Test data ─────────────────────────────────────────────
@@ -48,10 +50,10 @@ const configJson = { minKeyLength: 256, algorithm: 'AES' };
 
 /**
  * Sets up the mocks so that:
- * - fetchRequirementVersions calls its setter with the given versions
+ * - fetchRequirementVersions resolves with the given versions
  * - fetchRequirementForVersion resolves to the given schema
- * - fetchConfigurationsForControl calls its setter with the given config IDs
- * - fetchConfigurationVersions calls its setter with the given versions
+ * - fetchConfigurationsForControl resolves with the given config IDs
+ * - fetchConfigurationVersions resolves with the given versions
  * - fetchConfigurationForVersion resolves to the given JSON
  */
 function setupMocks({
@@ -67,10 +69,10 @@ function setupMocks({
     cfgVersions?: string[];
     cfgJson?: object;
 } = {}) {
-    mockFetchRequirementVersions.mockImplementation((_d, _c, setter) => setter(reqVersions));
+    mockFetchRequirementVersions.mockResolvedValue(reqVersions);
     mockFetchRequirementForVersion.mockResolvedValue(reqSchema);
-    mockFetchConfigurationsForControl.mockImplementation((_d, _c, setter) => setter(configIds));
-    mockFetchConfigurationVersions.mockImplementation((_d, _c, _cfg, setter) => setter(cfgVersions));
+    mockFetchConfigurationsForControl.mockResolvedValue(configIds);
+    mockFetchConfigurationVersions.mockResolvedValue(cfgVersions);
     mockFetchConfigurationForVersion.mockResolvedValue(cfgJson);
 }
 
@@ -143,12 +145,10 @@ describe('ControlDetailSection', () => {
                 expect(mockFetchRequirementVersions).toHaveBeenCalledWith(
                     'security',
                     1,
-                    expect.any(Function)
                 );
                 expect(mockFetchConfigurationsForControl).toHaveBeenCalledWith(
                     'security',
                     1,
-                    expect.any(Function)
                 );
             });
         });
@@ -259,13 +259,12 @@ describe('ControlDetailSection', () => {
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
-            await user.click(screen.getByRole('tab', { name: 'Config 10' }));
+            await user.click(await screen.findByRole('tab', { name: 'Config 10' }));
 
             expect(mockFetchConfigurationVersions).toHaveBeenCalledWith(
                 'security',
                 1,
                 10,
-                expect.any(Function)
             );
         });
 
@@ -274,7 +273,7 @@ describe('ControlDetailSection', () => {
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
-            await user.click(screen.getByRole('tab', { name: 'Config 10' }));
+            await user.click(await screen.findByRole('tab', { name: 'Config 10' }));
 
             expect(screen.getByRole('tab', { name: 'Config 10' })).toHaveClass('tab-active');
             expect(screen.getByRole('tab', { name: 'Config 20' })).not.toHaveClass('tab-active');
@@ -285,7 +284,7 @@ describe('ControlDetailSection', () => {
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
-            await user.click(screen.getByRole('tab', { name: 'Config 10' }));
+            await user.click(await screen.findByRole('tab', { name: 'Config 10' }));
 
             const headings = screen.getAllByRole('heading');
             expect(headings[1]).toHaveTextContent('10');
@@ -296,7 +295,7 @@ describe('ControlDetailSection', () => {
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
-            await user.click(screen.getByRole('tab', { name: 'Config 10' }));
+            await user.click(await screen.findByRole('tab', { name: 'Config 10' }));
 
             await waitFor(() => {
                 expect(screen.getByRole('tab', { name: '1.0.0' })).toBeInTheDocument();
@@ -309,7 +308,7 @@ describe('ControlDetailSection', () => {
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
-            await user.click(screen.getByRole('tab', { name: 'Config 10' }));
+            await user.click(await screen.findByRole('tab', { name: 'Config 10' }));
 
             await waitFor(() => {
                 expect(screen.getByRole('tab', { name: '1.0.0' })).toBeInTheDocument();
@@ -330,7 +329,7 @@ describe('ControlDetailSection', () => {
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
-            await user.click(screen.getByRole('tab', { name: 'Config 10' }));
+            await user.click(await screen.findByRole('tab', { name: 'Config 10' }));
             await waitFor(() => {
                 expect(screen.getByRole('tab', { name: '1.0.0' })).toBeInTheDocument();
             });
@@ -346,7 +345,7 @@ describe('ControlDetailSection', () => {
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
-            await user.click(screen.getByRole('tab', { name: 'Config 10' }));
+            await user.click(await screen.findByRole('tab', { name: 'Config 10' }));
             await waitFor(() => {
                 expect(screen.getByRole('tab', { name: '1.0.0' })).toBeInTheDocument();
             });
@@ -466,13 +465,11 @@ describe('ControlDetailSection', () => {
                 expect(mockFetchRequirementVersions).toHaveBeenLastCalledWith(
                     'compliance',
                     2,
-                    expect.any(Function)
                 );
                 expect(mockFetchConfigurationsForControl).toHaveBeenCalledTimes(2);
                 expect(mockFetchConfigurationsForControl).toHaveBeenLastCalledWith(
                     'compliance',
                     2,
-                    expect.any(Function)
                 );
             });
         });

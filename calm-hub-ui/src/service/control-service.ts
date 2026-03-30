@@ -1,179 +1,110 @@
+import axios, { AxiosInstance } from 'axios';
 import { getAuthHeaders } from '../authService.js';
 import { ControlDetail } from '../model/control.js';
 
-/**
- * Fetch domains and return them.
- */
-export async function fetchDomains(setDomains: (domains: string[]) => void) {
-    try {
-        const headers = await getAuthHeaders();
-        const res = await fetch('/calm/domains', {
-            method: 'GET',
-            headers,
-        });
-        const data = await res.json();
-        const values = Array.isArray(data?.values) ? data.values : [];
-        const domains = values.filter((v: unknown): v is string => typeof v === 'string');
-        setDomains(domains);
-    } catch (error) {
-        console.error('Error fetching domains:', error);
-    }
-}
+export class ControlService {
+    private readonly ax: AxiosInstance;
 
-/**
- * Fetch controls for a given domain.
- */
-export async function fetchControlsForDomain(
-    domain: string,
-    setControls: (controls: ControlDetail[]) => void
-) {
-    try {
-        const headers = await getAuthHeaders();
-        const res = await fetch(`/calm/domains/${domain}/controls`, {
-            method: 'GET',
-            headers,
-        });
-        const data = await res.json();
-        const values = Array.isArray(data?.values) ? data.values : [];
-        setControls(values);
-    } catch (error) {
-        console.error(`Error fetching controls for domain ${domain}:`, error);
+    constructor(axiosInstance?: AxiosInstance) {
+        if (axiosInstance) {
+            this.ax = axiosInstance;
+        } else {
+            this.ax = axios.create();
+        }
     }
-}
 
-/**
- * Fetch requirement versions for a control.
- */
-export async function fetchRequirementVersions(
-    domain: string,
-    controlId: number,
-    setVersions: (versions: string[]) => void
-) {
-    try {
+    public async fetchDomains(): Promise<string[]> {
         const headers = await getAuthHeaders();
-        const res = await fetch(
-            `/calm/domains/${domain}/controls/${controlId}/requirement/versions`,
-            {
-                method: 'GET',
-                headers,
-            }
-        );
-        const data = await res.json();
-        setVersions(Array.isArray(data?.values) ? data.values : []);
-    } catch (error) {
-        console.error(
-            `Error fetching requirement versions for control ${controlId}:`,
-            error
-        );
+        return this.ax
+            .get('/calm/domains', { headers })
+            .then((res) => {
+                const values = Array.isArray(res.data?.values) ? res.data.values : [];
+                return values.filter((v: unknown): v is string => typeof v === 'string');
+            })
+            .catch((error) => {
+                const errorMessage = 'Error fetching domains:';
+                console.error(errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
     }
-}
 
-/**
- * Fetch requirement JSON at a specific version.
- */
-export async function fetchRequirementForVersion(
-    domain: string,
-    controlId: number,
-    version: string
-): Promise<unknown> {
-    try {
+    public async fetchControlsForDomain(domain: string): Promise<ControlDetail[]> {
         const headers = await getAuthHeaders();
-        const res = await fetch(
-            `/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`,
-            {
-                method: 'GET',
-                headers,
-            }
-        );
-        return await res.json();
-    } catch (error) {
-        console.error(
-            `Error fetching requirement version ${version} for control ${controlId}:`,
-            error
-        );
-        return undefined;
+        return this.ax
+            .get(`/calm/domains/${encodeURIComponent(domain)}/controls`, { headers })
+            .then((res) => {
+                return Array.isArray(res.data?.values) ? res.data.values : [];
+            })
+            .catch((error) => {
+                const errorMessage = `Error fetching controls for domain ${domain}:`;
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
     }
-}
 
-/**
- * Fetch configuration IDs for a control.
- */
-export async function fetchConfigurationsForControl(
-    domain: string,
-    controlId: number,
-    setConfigIds: (configIds: number[]) => void
-) {
-    try {
+    public async fetchRequirementVersions(domain: string, controlId: number): Promise<string[]> {
         const headers = await getAuthHeaders();
-        const res = await fetch(
-            `/calm/domains/${domain}/controls/${controlId}/configurations`,
-            {
-                method: 'GET',
-                headers,
-            }
-        );
-        const data = await res.json();
-        setConfigIds(Array.isArray(data?.values) ? data.values : []);
-    } catch (error) {
-        console.error(
-            `Error fetching configurations for control ${controlId}:`,
-            error
-        );
+        return this.ax
+            .get(`/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/requirement/versions`, { headers })
+            .then((res) => {
+                return Array.isArray(res.data?.values) ? res.data.values : [];
+            })
+            .catch((error) => {
+                const errorMessage = `Error fetching requirement versions for control ${controlId}:`;
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
     }
-}
 
-/**
- * Fetch versions for a specific configuration.
- */
-export async function fetchConfigurationVersions(
-    domain: string,
-    controlId: number,
-    configId: number,
-    setVersions: (versions: string[]) => void
-) {
-    try {
+    public async fetchRequirementForVersion(domain: string, controlId: number, version: string): Promise<unknown> {
         const headers = await getAuthHeaders();
-        const res = await fetch(
-            `/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions`,
-            {
-                method: 'GET',
-                headers,
-            }
-        );
-        const data = await res.json();
-        setVersions(Array.isArray(data?.values) ? data.values : []);
-    } catch (error) {
-        console.error(
-            `Error fetching configuration versions for config ${configId}:`,
-            error
-        );
+        return this.ax
+            .get(`/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/requirement/versions/${encodeURIComponent(version)}`, { headers })
+            .then((res) => res.data)
+            .catch((error) => {
+                const errorMessage = `Error fetching requirement version ${version} for control ${controlId}:`;
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
     }
-}
 
-/**
- * Fetch configuration JSON at a specific version.
- */
-export async function fetchConfigurationForVersion(
-    domain: string,
-    controlId: number,
-    configId: number,
-    version: string
-): Promise<unknown> {
-    try {
+    public async fetchConfigurationsForControl(domain: string, controlId: number): Promise<number[]> {
         const headers = await getAuthHeaders();
-        const res = await fetch(
-            `/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`,
-            {
-                method: 'GET',
-                headers,
-            }
-        );
-        return await res.json();
-    } catch (error) {
-        console.error(
-            `Error fetching configuration version ${version} for config ${configId}:`,
-            error
-        );
-        return undefined;
+        return this.ax
+            .get(`/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations`, { headers })
+            .then((res) => {
+                return Array.isArray(res.data?.values) ? res.data.values : [];
+            })
+            .catch((error) => {
+                const errorMessage = `Error fetching configurations for control ${controlId}:`;
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async fetchConfigurationVersions(domain: string, controlId: number, configId: number): Promise<string[]> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get(`/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations/${configId}/versions`, { headers })
+            .then((res) => {
+                return Array.isArray(res.data?.values) ? res.data.values : [];
+            })
+            .catch((error) => {
+                const errorMessage = `Error fetching configuration versions for config ${configId}:`;
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async fetchConfigurationForVersion(domain: string, controlId: number, configId: number, version: string): Promise<unknown> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get(`/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations/${configId}/versions/${encodeURIComponent(version)}`, { headers })
+            .then((res) => res.data)
+            .catch((error) => {
+                const errorMessage = `Error fetching configuration version ${version} for config ${configId}:`;
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
     }
 }

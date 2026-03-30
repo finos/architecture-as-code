@@ -1,10 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { IoCompassOutline, IoChevronBackOutline, IoListOutline, IoGitBranchOutline } from 'react-icons/io5';
 import { CalmService } from '../../../service/calm-service.js';
-import {
-    fetchDomains,
-    fetchControlsForDomain,
-} from '../../../service/control-service.js';
+import { ControlService } from '../../../service/control-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
 import { Data, Adr } from '../../../model/calm.js';
 import { ControlDetail, ControlData } from '../../../model/control.js';
@@ -521,6 +518,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollaps
     const [selectedControlId, setSelectedControlId] = useState<number | null>(null);
 
     const calmService = useMemo(() => new CalmService(), []);
+    const controlService = useMemo(() => new ControlService(), []);
     const adrService = useMemo(() => new AdrService(), []);
     const [viewMode, setViewMode] = useState<'flat' | 'hierarchical'>('hierarchical');
     const namespaceTree = useMemo(() => {
@@ -530,8 +528,8 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollaps
 
     useEffect(() => {
         calmService.fetchNamespaces().then(setNamespaces);
-        fetchDomains(setDomains);
-    }, [calmService]);
+        controlService.fetchDomains().then(setDomains);
+    }, [calmService, controlService]);
 
     useEffect(() => {
         if (params.namespace && params.type && params.id && params.version) {
@@ -592,7 +590,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollaps
             setSelectedDomain('');
         } else {
             setSelectedDomain(domain);
-            fetchControlsForDomain(domain, setDomainControls);
+            controlService.fetchControlsForDomain(domain).then(setDomainControls);
         }
         setSelectedControlId(null);
         // Clear namespace selection when navigating domains

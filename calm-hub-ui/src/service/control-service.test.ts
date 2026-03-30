@@ -1,93 +1,60 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import {
-    fetchDomains,
-    fetchControlsForDomain,
-    fetchRequirementVersions,
-    fetchRequirementForVersion,
-    fetchConfigurationsForControl,
-    fetchConfigurationVersions,
-    fetchConfigurationForVersion,
-} from './control-service.js';
+import { describe, it, expect, afterEach } from 'vitest';
+import AxiosMockAdapter from 'axios-mock-adapter';
+import { ControlService } from './control-service.js';
+import axios from 'axios';
 
-// Mock getAuthHeaders to return empty headers (auth disabled)
-vi.mock('../authService.js', () => ({
-    getAuthHeaders: vi.fn().mockResolvedValue({}),
-}));
+const ax = axios.create();
+const mock = new AxiosMockAdapter(ax as never);
 
 const domain = 'security';
 const controlId = 1;
 const configId = 10;
 const version = '0.1.0';
 
-function mockFetchSuccess(body: unknown) {
-    return vi.fn().mockResolvedValue({
-        json: () => Promise.resolve(body),
-    });
-}
-
-function mockFetchFailure(message: string) {
-    return vi.fn().mockRejectedValue(new Error(message));
-}
-
-describe('control-service', () => {
-    const originalFetch = globalThis.fetch;
+describe('ControlService', () => {
+    const controlService = new ControlService(ax);
 
     afterEach(() => {
-        globalThis.fetch = originalFetch;
-        vi.restoreAllMocks();
+        mock.reset();
     });
 
     // ──────────────────────────────────────────────────
     // fetchDomains
     // ──────────────────────────────────────────────────
     describe('fetchDomains', () => {
-        it('should call the correct endpoint and set domains from string values', async () => {
+        it('should call the correct endpoint and return domains from string values', async () => {
             const expected = ['security', 'compliance'];
-            globalThis.fetch = mockFetchSuccess({ values: expected });
+            mock.onGet('/calm/domains').reply(200, { values: expected });
 
-            const setter = vi.fn();
-            await fetchDomains(setter);
-
-            expect(globalThis.fetch).toHaveBeenCalledWith('/calm/domains', expect.objectContaining({ method: 'GET' }));
-            expect(setter).toHaveBeenCalledWith(expected);
+            const result = await controlService.fetchDomains();
+            expect(result).toEqual(expected);
         });
 
         it('should handle an empty values array', async () => {
-            globalThis.fetch = mockFetchSuccess({ values: [] });
+            mock.onGet('/calm/domains').reply(200, { values: [] });
 
-            const setter = vi.fn();
-            await fetchDomains(setter);
-
-            expect(setter).toHaveBeenCalledWith([]);
+            const result = await controlService.fetchDomains();
+            expect(result).toEqual([]);
         });
 
         it('should filter out non-string values', async () => {
-            globalThis.fetch = mockFetchSuccess({ values: ['security', 42, null, 'compliance', undefined] });
+            mock.onGet('/calm/domains').reply(200, { values: ['security', 42, null, 'compliance', undefined] });
 
-            const setter = vi.fn();
-            await fetchDomains(setter);
-
-            expect(setter).toHaveBeenCalledWith(['security', 'compliance']);
+            const result = await controlService.fetchDomains();
+            expect(result).toEqual(['security', 'compliance']);
         });
 
         it('should default to empty array when values is missing from response', async () => {
-            globalThis.fetch = mockFetchSuccess({});
+            mock.onGet('/calm/domains').reply(200, {});
 
-            const setter = vi.fn();
-            await fetchDomains(setter);
-
-            expect(setter).toHaveBeenCalledWith([]);
+            const result = await controlService.fetchDomains();
+            expect(result).toEqual([]);
         });
 
-        it('should not call setter on fetch error and log to console', async () => {
-            globalThis.fetch = mockFetchFailure('Network error');
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet('/calm/domains').reply(500, { message: 'Error' });
 
-            const setter = vi.fn();
-            await fetchDomains(setter);
-
-            expect(setter).not.toHaveBeenCalled();
-            expect(consoleSpy).toHaveBeenCalledWith('Error fetching domains:', expect.any(Error));
+            await expect(controlService.fetchDomains()).rejects.toThrowError();
         });
     });
 
@@ -100,49 +67,31 @@ describe('control-service', () => {
             { id: 2, name: 'Encryption', description: 'Data encryption standards' },
         ];
 
-        it('should call the correct endpoint and set controls', async () => {
-            globalThis.fetch = mockFetchSuccess({ values: expectedControls });
+        it('should call the correct endpoint and return controls', async () => {
+            mock.onGet(`/calm/domains/${domain}/controls`).reply(200, { values: expectedControls });
 
-            const setter = vi.fn();
-            await fetchControlsForDomain(domain, setter);
-
-            expect(globalThis.fetch).toHaveBeenCalledWith(
-                `/calm/domains/${domain}/controls`,
-                expect.objectContaining({ method: 'GET' })
-            );
-            expect(setter).toHaveBeenCalledWith(expectedControls);
+            const result = await controlService.fetchControlsForDomain(domain);
+            expect(result).toEqual(expectedControls);
         });
 
         it('should handle an empty controls array', async () => {
-            globalThis.fetch = mockFetchSuccess({ values: [] });
+            mock.onGet(`/calm/domains/${domain}/controls`).reply(200, { values: [] });
 
-            const setter = vi.fn();
-            await fetchControlsForDomain(domain, setter);
-
-            expect(setter).toHaveBeenCalledWith([]);
+            const result = await controlService.fetchControlsForDomain(domain);
+            expect(result).toEqual([]);
         });
 
         it('should default to empty array when values is missing', async () => {
-            globalThis.fetch = mockFetchSuccess({});
+            mock.onGet(`/calm/domains/${domain}/controls`).reply(200, {});
 
-            const setter = vi.fn();
-            await fetchControlsForDomain(domain, setter);
-
-            expect(setter).toHaveBeenCalledWith([]);
+            const result = await controlService.fetchControlsForDomain(domain);
+            expect(result).toEqual([]);
         });
 
-        it('should not call setter on fetch error and log to console', async () => {
-            globalThis.fetch = mockFetchFailure('Network error');
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(`/calm/domains/${domain}/controls`).reply(500, { message: 'Error' });
 
-            const setter = vi.fn();
-            await fetchControlsForDomain(domain, setter);
-
-            expect(setter).not.toHaveBeenCalled();
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('Error fetching controls'),
-                expect.any(Error)
-            );
+            await expect(controlService.fetchControlsForDomain(domain)).rejects.toThrowError();
         });
     });
 
@@ -150,50 +99,32 @@ describe('control-service', () => {
     // fetchRequirementVersions
     // ──────────────────────────────────────────────────
     describe('fetchRequirementVersions', () => {
-        it('should call the correct endpoint and set versions', async () => {
+        it('should call the correct endpoint and return versions', async () => {
             const expected = ['0.1.0', '0.2.0'];
-            globalThis.fetch = mockFetchSuccess({ values: expected });
+            mock.onGet(`/calm/domains/${domain}/controls/${controlId}/requirement/versions`).reply(200, { values: expected });
 
-            const setter = vi.fn();
-            await fetchRequirementVersions(domain, controlId, setter);
-
-            expect(globalThis.fetch).toHaveBeenCalledWith(
-                `/calm/domains/${domain}/controls/${controlId}/requirement/versions`,
-                expect.objectContaining({ method: 'GET' })
-            );
-            expect(setter).toHaveBeenCalledWith(expected);
+            const result = await controlService.fetchRequirementVersions(domain, controlId);
+            expect(result).toEqual(expected);
         });
 
         it('should handle an empty versions array', async () => {
-            globalThis.fetch = mockFetchSuccess({ values: [] });
+            mock.onGet(`/calm/domains/${domain}/controls/${controlId}/requirement/versions`).reply(200, { values: [] });
 
-            const setter = vi.fn();
-            await fetchRequirementVersions(domain, controlId, setter);
-
-            expect(setter).toHaveBeenCalledWith([]);
+            const result = await controlService.fetchRequirementVersions(domain, controlId);
+            expect(result).toEqual([]);
         });
 
         it('should default to empty array when values is missing', async () => {
-            globalThis.fetch = mockFetchSuccess({});
+            mock.onGet(`/calm/domains/${domain}/controls/${controlId}/requirement/versions`).reply(200, {});
 
-            const setter = vi.fn();
-            await fetchRequirementVersions(domain, controlId, setter);
-
-            expect(setter).toHaveBeenCalledWith([]);
+            const result = await controlService.fetchRequirementVersions(domain, controlId);
+            expect(result).toEqual([]);
         });
 
-        it('should not call setter on fetch error and log to console', async () => {
-            globalThis.fetch = mockFetchFailure('Network error');
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(`/calm/domains/${domain}/controls/${controlId}/requirement/versions`).reply(500, { message: 'Error' });
 
-            const setter = vi.fn();
-            await fetchRequirementVersions(domain, controlId, setter);
-
-            expect(setter).not.toHaveBeenCalled();
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('Error fetching requirement versions'),
-                expect.any(Error)
-            );
+            await expect(controlService.fetchRequirementVersions(domain, controlId)).rejects.toThrowError();
         });
     });
 
@@ -204,28 +135,16 @@ describe('control-service', () => {
         const requirementSchema = { type: 'object', properties: { encrypted: { type: 'boolean' } } };
 
         it('should call the correct endpoint and return the requirement JSON', async () => {
-            globalThis.fetch = mockFetchSuccess(requirementSchema);
+            mock.onGet(`/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`).reply(200, requirementSchema);
 
-            const result = await fetchRequirementForVersion(domain, controlId, version);
-
-            expect(globalThis.fetch).toHaveBeenCalledWith(
-                `/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`,
-                expect.objectContaining({ method: 'GET' })
-            );
+            const result = await controlService.fetchRequirementForVersion(domain, controlId, version);
             expect(result).toEqual(requirementSchema);
         });
 
-        it('should return undefined on fetch error and log to console', async () => {
-            globalThis.fetch = mockFetchFailure('Network error');
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(`/calm/domains/${domain}/controls/${controlId}/requirement/versions/${version}`).reply(500, { message: 'Error' });
 
-            const result = await fetchRequirementForVersion(domain, controlId, version);
-
-            expect(result).toBeUndefined();
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('Error fetching requirement version'),
-                expect.any(Error)
-            );
+            await expect(controlService.fetchRequirementForVersion(domain, controlId, version)).rejects.toThrowError();
         });
     });
 
@@ -233,50 +152,32 @@ describe('control-service', () => {
     // fetchConfigurationsForControl
     // ──────────────────────────────────────────────────
     describe('fetchConfigurationsForControl', () => {
-        it('should call the correct endpoint and set config IDs', async () => {
+        it('should call the correct endpoint and return config IDs', async () => {
             const expected = [10, 20, 30];
-            globalThis.fetch = mockFetchSuccess({ values: expected });
+            mock.onGet(`/calm/domains/${domain}/controls/${controlId}/configurations`).reply(200, { values: expected });
 
-            const setter = vi.fn();
-            await fetchConfigurationsForControl(domain, controlId, setter);
-
-            expect(globalThis.fetch).toHaveBeenCalledWith(
-                `/calm/domains/${domain}/controls/${controlId}/configurations`,
-                expect.objectContaining({ method: 'GET' })
-            );
-            expect(setter).toHaveBeenCalledWith(expected);
+            const result = await controlService.fetchConfigurationsForControl(domain, controlId);
+            expect(result).toEqual(expected);
         });
 
         it('should handle an empty configurations array', async () => {
-            globalThis.fetch = mockFetchSuccess({ values: [] });
+            mock.onGet(`/calm/domains/${domain}/controls/${controlId}/configurations`).reply(200, { values: [] });
 
-            const setter = vi.fn();
-            await fetchConfigurationsForControl(domain, controlId, setter);
-
-            expect(setter).toHaveBeenCalledWith([]);
+            const result = await controlService.fetchConfigurationsForControl(domain, controlId);
+            expect(result).toEqual([]);
         });
 
         it('should default to empty array when values is missing', async () => {
-            globalThis.fetch = mockFetchSuccess({});
+            mock.onGet(`/calm/domains/${domain}/controls/${controlId}/configurations`).reply(200, {});
 
-            const setter = vi.fn();
-            await fetchConfigurationsForControl(domain, controlId, setter);
-
-            expect(setter).toHaveBeenCalledWith([]);
+            const result = await controlService.fetchConfigurationsForControl(domain, controlId);
+            expect(result).toEqual([]);
         });
 
-        it('should not call setter on fetch error and log to console', async () => {
-            globalThis.fetch = mockFetchFailure('Network error');
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(`/calm/domains/${domain}/controls/${controlId}/configurations`).reply(500, { message: 'Error' });
 
-            const setter = vi.fn();
-            await fetchConfigurationsForControl(domain, controlId, setter);
-
-            expect(setter).not.toHaveBeenCalled();
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('Error fetching configurations'),
-                expect.any(Error)
-            );
+            await expect(controlService.fetchConfigurationsForControl(domain, controlId)).rejects.toThrowError();
         });
     });
 
@@ -284,50 +185,32 @@ describe('control-service', () => {
     // fetchConfigurationVersions
     // ──────────────────────────────────────────────────
     describe('fetchConfigurationVersions', () => {
-        it('should call the correct endpoint and set versions', async () => {
+        it('should call the correct endpoint and return versions', async () => {
             const expected = ['1.0.0', '1.1.0'];
-            globalThis.fetch = mockFetchSuccess({ values: expected });
+            mock.onGet(`/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions`).reply(200, { values: expected });
 
-            const setter = vi.fn();
-            await fetchConfigurationVersions(domain, controlId, configId, setter);
-
-            expect(globalThis.fetch).toHaveBeenCalledWith(
-                `/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions`,
-                expect.objectContaining({ method: 'GET' })
-            );
-            expect(setter).toHaveBeenCalledWith(expected);
+            const result = await controlService.fetchConfigurationVersions(domain, controlId, configId);
+            expect(result).toEqual(expected);
         });
 
         it('should handle an empty versions array', async () => {
-            globalThis.fetch = mockFetchSuccess({ values: [] });
+            mock.onGet(`/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions`).reply(200, { values: [] });
 
-            const setter = vi.fn();
-            await fetchConfigurationVersions(domain, controlId, configId, setter);
-
-            expect(setter).toHaveBeenCalledWith([]);
+            const result = await controlService.fetchConfigurationVersions(domain, controlId, configId);
+            expect(result).toEqual([]);
         });
 
         it('should default to empty array when values is missing', async () => {
-            globalThis.fetch = mockFetchSuccess({});
+            mock.onGet(`/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions`).reply(200, {});
 
-            const setter = vi.fn();
-            await fetchConfigurationVersions(domain, controlId, configId, setter);
-
-            expect(setter).toHaveBeenCalledWith([]);
+            const result = await controlService.fetchConfigurationVersions(domain, controlId, configId);
+            expect(result).toEqual([]);
         });
 
-        it('should not call setter on fetch error and log to console', async () => {
-            globalThis.fetch = mockFetchFailure('Network error');
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(`/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions`).reply(500, { message: 'Error' });
 
-            const setter = vi.fn();
-            await fetchConfigurationVersions(domain, controlId, configId, setter);
-
-            expect(setter).not.toHaveBeenCalled();
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('Error fetching configuration versions'),
-                expect.any(Error)
-            );
+            await expect(controlService.fetchConfigurationVersions(domain, controlId, configId)).rejects.toThrowError();
         });
     });
 
@@ -338,28 +221,16 @@ describe('control-service', () => {
         const configJson = { minKeyLength: 256, algorithm: 'AES' };
 
         it('should call the correct endpoint and return the configuration JSON', async () => {
-            globalThis.fetch = mockFetchSuccess(configJson);
+            mock.onGet(`/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`).reply(200, configJson);
 
-            const result = await fetchConfigurationForVersion(domain, controlId, configId, version);
-
-            expect(globalThis.fetch).toHaveBeenCalledWith(
-                `/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`,
-                expect.objectContaining({ method: 'GET' })
-            );
+            const result = await controlService.fetchConfigurationForVersion(domain, controlId, configId, version);
             expect(result).toEqual(configJson);
         });
 
-        it('should return undefined on fetch error and log to console', async () => {
-            globalThis.fetch = mockFetchFailure('Network error');
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(`/calm/domains/${domain}/controls/${controlId}/configurations/${configId}/versions/${version}`).reply(500, { message: 'Error' });
 
-            const result = await fetchConfigurationForVersion(domain, controlId, configId, version);
-
-            expect(result).toBeUndefined();
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('Error fetching configuration version'),
-                expect.any(Error)
-            );
+            await expect(controlService.fetchConfigurationForVersion(domain, controlId, configId, version)).rejects.toThrowError();
         });
     });
 });

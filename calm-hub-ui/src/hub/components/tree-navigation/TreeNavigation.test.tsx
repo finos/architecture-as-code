@@ -46,8 +46,10 @@ vi.mock('../../../service/calm-service.js', () => ({
 }));
 
 vi.mock('../../../service/control-service.js', () => ({
-    fetchDomains: vi.fn((callback) => callback(['test-domain'])),
-    fetchControlsForDomain: vi.fn(),
+    ControlService: vi.fn().mockImplementation(() => ({
+        fetchDomains: vi.fn().mockResolvedValue(['test-domain']),
+        fetchControlsForDomain: vi.fn().mockResolvedValue([]),
+    })),
 }));
 
 let adrServiceInstance: {
