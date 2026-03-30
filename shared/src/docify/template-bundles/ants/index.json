@@ -1,0 +1,26 @@
+{
+  "name": "calm-ant-farm",
+  "templates": [
+    {
+      "template": "main.js.hbs",
+      "from": "document",
+      "output": "main.js",
+      "output-type": "single",
+      "front-matter": {
+        "inject": false
+      }
+    },
+    {
+      "template": "index.html",
+      "from": "document",
+      "output": "index.html",
+      "output-type": "copy"
+    },
+    {
+      "template": "package.json",
+      "from": "document",
+      "output": "package.json",
+      "output-type": "copy"
+    }
+  ]
+}

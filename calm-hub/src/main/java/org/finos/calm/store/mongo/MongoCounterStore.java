@@ -46,6 +46,14 @@ public class MongoCounterStore {
     public int getNextDecoratorSequenceValue() {
         return nextValueForCounter("decoratorStoreCounter");
     }
+  
+    public int getNextControlSequenceValue() {
+        return nextValueForCounter("controlStoreCounter");
+    }
+
+    public int getNextControlConfigurationSequenceValue() {
+        return nextValueForCounter("controlConfigurationStoreCounter");
+    }
 
     private int nextValueForCounter(String counterId) {
         Document filter = new Document("_id", counterId);
