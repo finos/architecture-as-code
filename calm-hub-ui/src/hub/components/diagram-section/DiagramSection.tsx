@@ -6,6 +6,7 @@ import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
 import { SectionHeader } from '../section-header/SectionHeader.js';
 import { DeploymentPanel } from '../../../visualizer/components/reactflow/DeploymentPanel.js';
+import { isDeploymentDecorator } from '../../../visualizer/components/reactflow/deployment-panel/index.js';
 import { CalmService } from '../../../service/calm-service.js';
 import type { SelectedItem, Decorator } from '../../../visualizer/contracts/contracts.js';
 
@@ -28,6 +29,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
     const activeTab: DiagramTabType = tabParam ?? 'diagram';
     const calmService = useMemo(() => new CalmService(), []);
     const [decorators, setDecorators] = useState<Decorator[]>([]);
+    const deploymentDecorators = decorators.filter(isDeploymentDecorator);
 
     const setActiveTab = (tab: DiagramTabType) => {
         setSearchParams({ tab }, { replace: true });
@@ -96,7 +98,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                         </div>
                     ) : activeTab === 'deployments' && isArchitecture ? (
                         <div className="h-full bg-base-200 overflow-auto p-4">
-                            <DeploymentPanel decorators={decorators} />
+                            <DeploymentPanel decorators={deploymentDecorators} />
                         </div>
                     ) : (
                         <div className="h-full bg-base-200 overflow-auto">

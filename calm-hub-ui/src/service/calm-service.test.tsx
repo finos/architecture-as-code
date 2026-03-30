@@ -242,8 +242,28 @@ describe('CalmService', () => {
     describe('fetchDecoratorValues', () => {
         it('should retrieve decorator values for a namespace', async () => {
             const decorators = [
-                { uniqueId: 'dec-1', type: 'deployment', target: ['node-a'] },
-                { uniqueId: 'dec-2', type: 'deployment', target: ['node-b'] },
+                {
+                    uniqueId: 'dec-1',
+                    type: 'deployment',
+                    target: ['/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
+                    appliesTo: ['node-a'],
+                    data: {
+                        status: 'completed',
+                        'start-time': '2024-01-01T10:00:00Z',
+                        'end-time': '2024-01-01T10:05:00Z',
+                    },
+                },
+                {
+                    uniqueId: 'dec-2',
+                    type: 'deployment',
+                    target: ['/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
+                    appliesTo: ['node-b'],
+                    data: {
+                        status: 'failed',
+                        'start-time': '2024-01-01T11:00:00Z',
+                        'end-time': '2024-01-01T11:02:00Z',
+                    },
+                },
             ];
             mock.onGet(`/calm/namespaces/${namespace}/decorators/values`).reply(200, {
                 values: decorators,
@@ -253,7 +273,17 @@ describe('CalmService', () => {
         });
 
         it('should pass target and type query params when provided', async () => {
-            const decorators = [{ uniqueId: 'dec-1', type: 'deployment', target: ['node-a'] }];
+            const decorators = [{
+                uniqueId: 'dec-1',
+                type: 'deployment',
+                target: ['/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
+                appliesTo: ['node-a'],
+                data: {
+                    status: 'completed',
+                    'start-time': '2024-01-01T10:00:00Z',
+                    'end-time': '2024-01-01T10:05:00Z',
+                },
+            }];
             mock.onGet(`/calm/namespaces/${namespace}/decorators/values?target=node-a&type=deployment`).reply(200, {
                 values: decorators,
             });

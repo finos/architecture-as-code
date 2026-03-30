@@ -1,12 +1,13 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { DeploymentPanel } from './DeploymentPanel';
-import type { Decorator } from '../../contracts/contracts.js';
+import type { DeploymentDecorator } from '../../contracts/contracts.js';
 
-const mockDecorators: Decorator[] = [
+const mockDecorators: DeploymentDecorator[] = [
     {
         uniqueId: 'dep-1',
         type: 'deployment',
+        target: ['/calm/namespaces/ns/architectures/arch/versions/1-0-0'],
         appliesTo: ['node-api', 'rel-api-db'],
         data: {
             status: 'completed',
@@ -19,6 +20,7 @@ const mockDecorators: Decorator[] = [
     {
         uniqueId: 'dep-2',
         type: 'deployment',
+        target: ['/calm/namespaces/ns/architectures/arch/versions/1-0-0'],
         appliesTo: ['node-db'],
         data: {
             status: 'failed',
@@ -29,10 +31,12 @@ const mockDecorators: Decorator[] = [
     {
         uniqueId: 'dep-3',
         type: 'deployment',
+        target: ['/calm/namespaces/ns/architectures/arch/versions/1-0-0'],
         appliesTo: ['node-api'],
         data: {
             status: 'in-progress',
             'start-time': '2024-04-01T08:00:00Z',
+            'end-time': '2024-04-01T08:00:00Z',
         },
     },
 ];

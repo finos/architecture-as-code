@@ -1,7 +1,7 @@
 import { IoOpenOutline } from 'react-icons/io5';
 import { THEME } from '../theme.js';
-import type { Decorator } from '../../../contracts/contracts.js';
-import { type DeploymentData, formatDateTime } from './deployment-types.js';
+import type { DeploymentDecorator } from '../../../contracts/contracts.js';
+import { formatDateTime } from './deployment-types.js';
 import { StatusBadge } from './StatusBadge.js';
 import { ScopeSection } from './ScopeSection.js';
 
@@ -21,8 +21,8 @@ function TableRow({ label, value }: { label: string; value: string }) {
     );
 }
 
-export function DeploymentDetail({ decorator }: { decorator: Decorator }) {
-    const d = (decorator.data ?? {}) as DeploymentData;
+export function DeploymentDetail({ decorator }: { decorator: DeploymentDecorator }) {
+    const d = decorator.data;
     const extraEntries = Object.entries(d).filter(
         ([k]) => !['start-time', 'end-time', 'status', 'deployment-details', 'notes'].includes(k)
     );

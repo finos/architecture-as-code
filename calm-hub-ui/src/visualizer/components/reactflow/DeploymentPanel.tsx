@@ -6,7 +6,6 @@ import {
     FilterBar,
     DeploymentDetail,
     sortedByStartTime,
-    type DeploymentData,
     type Filters,
     STATUS_STYLES,
 } from './deployment-panel/index.js';
@@ -19,7 +18,7 @@ export function DeploymentPanel({ decorators }: DeploymentPanelProps) {
     const statusOptions = useMemo(() => {
         const seen = new Set<string>();
         sorted.forEach((dec) => {
-            const s = ((dec.data ?? {}) as DeploymentData).status;
+            const s = dec.data.status;
             if (s) seen.add(s);
         });
         return Array.from(seen);
@@ -33,8 +32,7 @@ export function DeploymentPanel({ decorators }: DeploymentPanelProps) {
 
     const filtered = useMemo(() => {
         return sorted.filter((dec) => {
-            const d = (dec.data ?? {}) as DeploymentData;
-            if (filters.status && d.status !== filters.status) return false;
+            if (filters.status && dec.data.status !== filters.status) return false;
             if (filters.component && !dec.appliesTo?.includes(filters.component)) return false;
             return true;
         });
@@ -108,9 +106,8 @@ export function DeploymentPanel({ decorators }: DeploymentPanelProps) {
                             </div>
                         ) : (
                             filtered.map((decorator, index) => {
-                                const d = (decorator.data ?? {}) as DeploymentData;
                                 const isSelected = index === selectedIndex;
-                                const statusStyle = d.status ? STATUS_STYLES[d.status] : STATUS_STYLES.pending;
+                                const statusStyle = STATUS_STYLES[decorator.data.status];
 
                                 return (
                                     <button
@@ -141,11 +138,11 @@ export function DeploymentPanel({ decorators }: DeploymentPanelProps) {
                                                     textTransform: 'capitalize',
                                                 }}
                                             >
-                                                {d.status ?? 'unknown'}
+                                                {decorator.data.status}
                                             </span>
                                         </div>
                                         <span style={{ fontSize: '11px', color: THEME.colors.muted, paddingLeft: '14px' }}>
-                                            {new Date(d['start-time'] ?? '').toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                            {new Date(decorator.data['start-time']).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </button>
                                 );

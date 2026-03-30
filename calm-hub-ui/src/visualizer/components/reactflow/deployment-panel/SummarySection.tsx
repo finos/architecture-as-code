@@ -1,8 +1,7 @@
 import { THEME } from '../theme.js';
-import type { Decorator } from '../../../contracts/contracts.js';
+import type { DeploymentDecorator } from '../../../contracts/contracts.js';
 import {
     STATUS_STYLES,
-    type DeploymentData,
     avgDuration,
     latestDeployment,
     formatDateTime,
@@ -38,11 +37,11 @@ function StatCard({ label, value, accent, sub }: { label: string; value: string 
     );
 }
 
-export function SummarySection({ decorators }: { decorators: Decorator[] }) {
+export function SummarySection({ decorators }: { decorators: DeploymentDecorator[] }) {
     const total      = decorators.length;
-    const completed  = decorators.filter((d) => ((d.data ?? {}) as DeploymentData).status === 'completed').length;
-    const failed     = decorators.filter((d) => ((d.data ?? {}) as DeploymentData).status === 'failed').length;
-    const inProgress = decorators.filter((d) => ((d.data ?? {}) as DeploymentData).status === 'in-progress').length;
+    const completed  = decorators.filter((d) => d.data.status === 'completed').length;
+    const failed     = decorators.filter((d) => d.data.status === 'failed').length;
+    const inProgress = decorators.filter((d) => d.data.status === 'in-progress').length;
 
     const settled = total - inProgress;
     const successRate = settled > 0 ? Math.round((completed / settled) * 100) : null;
@@ -53,10 +52,10 @@ export function SummarySection({ decorators }: { decorators: Decorator[] }) {
 
     const avg = avgDuration(decorators);
     const latest = latestDeployment(decorators);
-    const latestData = (latest?.data ?? {}) as DeploymentData;
-    const latestStatus = latestData.status;
+    const latestData = latest ? latest.data : null;
+    const latestStatus = latestData?.status;
     const latestStyle = latestStatus ? STATUS_STYLES[latestStatus] : null;
-    const lastStart = latestData['start-time'];
+    const lastStart = latestData?.['start-time'];
 
     return (
         <div
@@ -109,7 +108,7 @@ export function SummarySection({ decorators }: { decorators: Decorator[] }) {
                         <span style={{ fontSize: '16px', fontWeight: 700, color: THEME.colors.foreground }}>{relativeTime(lastStart)}</span>
                         <span style={{ fontSize: '11px', color: THEME.colors.muted }}>{formatDateTime(lastStart)}</span>
                     </div>
-                    {latestData['end-time'] && latestData['start-time'] && (
+                    {latestData?.['end-time'] && latestData['start-time'] && (
                         <span style={{ fontSize: '11px', color: THEME.colors.muted }}>
                             Duration: {formatDuration(new Date(latestData['end-time']).getTime() - new Date(latestData['start-time']).getTime())}
                         </span>

@@ -165,7 +165,17 @@ describe('Drawer — decorator fetching', () => {
     });
 
     it('passes fetched decorators to MetadataPanel', async () => {
-        const decorators = [{ uniqueId: 'dec-1', type: 'deployment', data: { status: 'completed' } }];
+        const decorators = [{
+            uniqueId: 'dec-1',
+            type: 'deployment',
+            target: ['/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
+            appliesTo: ['node-a'],
+            data: {
+                status: 'completed',
+                'start-time': '2024-01-01T10:00:00Z',
+                'end-time': '2024-01-01T10:05:00Z',
+            },
+        }];
         mockFetchDecoratorValues.mockResolvedValue(decorators);
 
         render(<Drawer data={architectureData} />);
@@ -176,7 +186,17 @@ describe('Drawer — decorator fetching', () => {
     });
 
     it('passes externally provided decorators to MetadataPanel without fetching', async () => {
-        const decorators = [{ uniqueId: 'dec-ext', type: 'deployment', data: { status: 'failed' } }];
+        const decorators = [{
+            uniqueId: 'dec-ext',
+            type: 'deployment',
+            target: ['/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
+            appliesTo: ['node-a'],
+            data: {
+                status: 'failed',
+                'start-time': '2024-01-01T10:00:00Z',
+                'end-time': '2024-01-01T10:05:00Z',
+            },
+        }];
 
         render(<Drawer data={architectureData} decorators={decorators} />);
 

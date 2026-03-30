@@ -5,9 +5,20 @@ export { ScopeSection } from './ScopeSection.js';
 export { DeploymentDetail } from './DeploymentDetail.js';
 export {
     STATUS_STYLES,
+    isDeploymentDecorator,
     sortedByStartTime,
     formatDateTime,
-    type DeploymentStatus,
     type DeploymentData,
     type Filters,
 } from './deployment-types.js';
+
+export {
+    avgDuration,
+    formatDuration,
+    latestByStartTime,
+    relativeTime,
+    type Duration,
+    type StartTime,
+} from './time-utils.js';
+
+export type { DeploymentStatus } from '../../../contracts/contracts.js';

@@ -48,7 +48,13 @@ describe('MetadataPanel', () => {
         {
             uniqueId: 'dec-1',
             type: 'deployment',
-            data: { status: 'completed', 'start-time': '2024-01-15T10:00:00Z' },
+            target: ['/calm/namespaces/ns/architectures/arch/versions/1-0-0'],
+            appliesTo: ['node-a'],
+            data: {
+                status: 'completed',
+                'start-time': '2024-01-15T10:00:00Z',
+                'end-time': '2024-01-15T10:05:00Z',
+            },
         },
     ];
 
