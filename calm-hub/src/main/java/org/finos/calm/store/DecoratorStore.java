@@ -42,4 +42,14 @@ public interface DecoratorStore {
      * @throws NamespaceNotFoundException if the namespace does not exist
      */
     Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException;
+
+    /**
+     * Create a new decorator in the given namespace.
+     *
+     * @param namespace     the namespace to store the decorator in
+     * @param decoratorJson the decorator as a raw JSON string
+     * @return the assigned decorator ID
+     * @throws NamespaceNotFoundException if the namespace does not exist
+     */
+    int createDecorator(String namespace, String decoratorJson) throws NamespaceNotFoundException;
 }

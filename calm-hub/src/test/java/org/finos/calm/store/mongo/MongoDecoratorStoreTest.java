@@ -38,6 +38,9 @@ class MongoDecoratorStoreTest {
     @Mock
     private MongoNamespaceStore namespaceStore;
 
+    @Mock
+    private MongoCounterStore counterStore;
+
     @InjectMocks
     private MongoDecoratorStore decoratorStore;
 
@@ -45,7 +48,7 @@ class MongoDecoratorStoreTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         when(database.getCollection(anyString())).thenReturn(decoratorCollection);
-        decoratorStore = new MongoDecoratorStore(database, namespaceStore);
+        decoratorStore = new MongoDecoratorStore(database, namespaceStore, counterStore);
     }
 
     @Test

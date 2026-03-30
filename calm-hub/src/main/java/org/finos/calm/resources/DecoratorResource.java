@@ -4,13 +4,16 @@ import jakarta.inject.Inject;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.Decorator;
 import org.finos.calm.domain.ValueWrapper;
@@ -20,6 +23,10 @@ import org.finos.calm.security.PermittedScopes;
 import org.finos.calm.store.DecoratorStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Map;
 
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
@@ -123,6 +130,39 @@ public class DecoratorResource {
                     .orElse(CalmResourceErrorResponses.decoratorNotFoundResponse(namespace, id));
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving decorator with id [{}]", namespace, id, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        }
+    }
+
+    /**
+     * Create a new decorator in a given namespace.
+     *
+     * @param namespace     the namespace to create the decorator in
+     * @param decoratorJson the decorator JSON body
+     * @return 201 Created with Location header, or an appropriate error response
+     */
+    @POST
+    @Path("{namespace}/decorators")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Create a decorator in a given namespace",
+            description = "Creates a decorator, validating the namespace exists and the JSON is well-formed"
+    )
+    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    public Response createDecoratorForNamespace(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            String decoratorJson
+    ) throws URISyntaxException {
+        try {
+            int id = decoratorStore.createDecorator(namespace, decoratorJson);
+            URI location = new URI("/calm/namespaces/" + namespace + "/decorators/" + id);
+            return Response.created(location).entity(Map.of("id", id)).build();
+        } catch (JsonParseException e) {
+            logger.error("Invalid JSON when creating decorator in namespace [{}]", namespace, e);
+            return CalmResourceErrorResponses.invalidDecoratorJsonResponse(e.getMessage());
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when creating decorator", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         }
     }

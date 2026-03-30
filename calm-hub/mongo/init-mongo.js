@@ -87,9 +87,9 @@ if (db.counters.countDocuments({ _id: "controlStoreCounter" }) === 0) {
 if (db.counters.countDocuments({ _id: "decoratorStoreCounter" }) === 0) {
     db.counters.insertOne({
         _id: "decoratorStoreCounter",
-        sequence_value: 1
+        sequence_value: 4
     });
-    print("  - Initialized decoratorStoreCounter with sequence_value 1");
+    print("  - Initialized decoratorStoreCounter with sequence_value 4");
 } else {
     print("  - decoratorStoreCounter already exists, no initialization needed");
 }
