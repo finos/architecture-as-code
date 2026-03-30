@@ -6,7 +6,7 @@ import {
     latestByStartTime,
     relativeTime,
     sortedByStartTime,
-} from './time-utils.js';
+} from './timeUtils.js';
 
 type TimedItem = {
     id: string;
@@ -16,7 +16,7 @@ type TimedItem = {
     };
 };
 
-describe('time-utils', () => {
+describe('timeUtils', () => {
     describe('formatDateTime', () => {
         it('returns em dash when iso is missing', () => {
             expect(formatDateTime()).toBe('—');

@@ -18,6 +18,6 @@ export {
     relativeTime,
     type Duration,
     type StartTime,
-} from './time-utils.js';
+} from '../utils/timeUtils.js';
 
 export type { DeploymentStatus } from '../../../contracts/contracts.js';

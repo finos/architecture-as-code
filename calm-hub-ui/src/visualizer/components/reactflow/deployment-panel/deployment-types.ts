@@ -10,7 +10,7 @@ import {
     latestByStartTime,
     relativeTime,
     sortedByStartTime,
-} from './time-utils.js';
+} from '../utils/timeUtils.js';
 
 const DEPLOYMENT_STATUSES: DeploymentStatus[] = ['pending', 'in-progress', 'completed', 'failed', 'rolled-back'];
 
