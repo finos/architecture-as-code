@@ -178,5 +178,64 @@
                 }
             }
         }
+    ],
+    "flows": [
+        {
+            "unique-id": "flow-publish-architecture",
+            "name": "Publish Architecture",
+            "description": "User authors and publishes a CALM architecture to the Hub via the CLI",
+            "transitions": [
+                {
+                    "relationship-unique-id": "user-interacts-with-cli",
+                    "sequence-number": 1,
+                    "description": "User invokes the CLI to publish an architecture"
+                },
+                {
+                    "relationship-unique-id": "cli-to-hub",
+                    "sequence-number": 2,
+                    "description": "CLI sends the architecture to the CALM Hub API over HTTPS"
+                },
+                {
+                    "relationship-unique-id": "hub-to-db",
+                    "sequence-number": 3,
+                    "description": "CALM Hub API persists the architecture in MongoDB"
+                }
+            ]
+        },
+        {
+            "unique-id": "flow-browse-architectures",
+            "name": "Browse Architectures",
+            "description": "User browses published architectures through the CALM Hub web UI",
+            "transitions": [
+                {
+                    "relationship-unique-id": "user-interacts-with-ui",
+                    "sequence-number": 1,
+                    "description": "User opens the CALM Hub UI in a browser"
+                },
+                {
+                    "relationship-unique-id": "hub-ui-to-hub",
+                    "sequence-number": 2,
+                    "description": "Hub UI fetches architecture data from the Hub API"
+                },
+                {
+                    "relationship-unique-id": "hub-to-db",
+                    "sequence-number": 3,
+                    "description": "Hub API queries MongoDB for stored architectures",
+                    "direction": "source-to-destination"
+                }
+            ]
+        },
+        {
+            "unique-id": "flow-validate-in-ide",
+            "name": "Validate Architecture in IDE",
+            "description": "User validates a CALM architecture directly inside VS Code using the extension",
+            "transitions": [
+                {
+                    "relationship-unique-id": "user-interacts-with-vscode",
+                    "sequence-number": 1,
+                    "description": "User opens a CALM file in VS Code and triggers validation"
+                }
+            ]
+        }
     ]
 }

@@ -368,6 +368,12 @@ describe('CLI Commands', () => {
             );
         });
 
+        it('should not show --ants in help output', () => {
+            const docifyCmd = program.commands.find(c => c.name() === 'docify');
+            const helpText = docifyCmd!.helpInformation();
+            expect(helpText).not.toContain('--ants');
+        });
+
         it('should use ANTS mode when --ants is specified', async () => {
             await program.parseAsync([
                 'node', 'cli.js', 'docify',
