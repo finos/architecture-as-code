@@ -8,7 +8,9 @@ import { DropzoneOptions } from 'react-dropzone';
 const mockFetchDecoratorValues = vi.fn().mockResolvedValue([]);
 
 vi.mock('../../../service/calm-service.js', () => ({
-    fetchDecoratorValues: (...args: unknown[]) => mockFetchDecoratorValues(...args),
+    CalmService: vi.fn().mockImplementation(() => ({
+        fetchDecoratorValues: (...args: unknown[]) => mockFetchDecoratorValues(...args),
+    })),
 }));
 
 vi.mock('../reactflow/MetadataPanel.js', () => ({

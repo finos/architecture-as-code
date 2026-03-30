@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline } from 'react-icons/io5';
 import { Data } from '../../../model/calm.js';
@@ -6,7 +6,7 @@ import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
 import { SectionHeader } from '../section-header/SectionHeader.js';
 import { DeploymentPanel } from '../../../visualizer/components/reactflow/DeploymentPanel.js';
-import { fetchDecoratorValues } from '../../../service/calm-service.js';
+import { CalmService } from '../../../service/calm-service.js';
 import type { SelectedItem, Decorator } from '../../../visualizer/contracts/contracts.js';
 
 interface DiagramSectionProps {
@@ -26,6 +26,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
     const [searchParams, setSearchParams] = useSearchParams();
     const tabParam = searchParams.get('tab') as DiagramTabType | null;
     const activeTab: DiagramTabType = tabParam ?? 'diagram';
+    const calmService = useMemo(() => new CalmService(), []);
     const [decorators, setDecorators] = useState<Decorator[]>([]);
 
     const setActiveTab = (tab: DiagramTabType) => {
@@ -41,8 +42,8 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
         }
         const versionPath = data.version.replace(/\./g, '-');
         const target = `/calm/namespaces/${data.name}/architectures/${data.id}/versions/${versionPath}`;
-        fetchDecoratorValues(data.name, target, 'deployment').then(setDecorators);
-    }, [data, isArchitecture]);
+        calmService.fetchDecoratorValues(data.name, target, 'deployment').then(setDecorators);
+    }, [data, isArchitecture, calmService]);
 
     const Icon = iconMap[data.calmType];
 

@@ -238,4 +238,35 @@ describe('CalmService', () => {
             ).rejects.toThrowError();
         });
     });
+
+    describe('fetchDecoratorValues', () => {
+        it('should retrieve decorator values for a namespace', async () => {
+            const decorators = [
+                { uniqueId: 'dec-1', type: 'deployment', target: ['node-a'] },
+                { uniqueId: 'dec-2', type: 'deployment', target: ['node-b'] },
+            ];
+            mock.onGet(`/calm/namespaces/${namespace}/decorators/values`).reply(200, {
+                values: decorators,
+            });
+            const actual = await calmService.fetchDecoratorValues(namespace);
+            expect(actual).toEqual(decorators);
+        });
+
+        it('should pass target and type query params when provided', async () => {
+            const decorators = [{ uniqueId: 'dec-1', type: 'deployment', target: ['node-a'] }];
+            mock.onGet(`/calm/namespaces/${namespace}/decorators/values?target=node-a&type=deployment`).reply(200, {
+                values: decorators,
+            });
+            const actual = await calmService.fetchDecoratorValues(namespace, 'node-a', 'deployment');
+            expect(actual).toEqual(decorators);
+        });
+
+        it('should return an empty array when backend returns error status', async () => {
+            mock.onGet(`/calm/namespaces/${namespace}/decorators/values`).reply(500, {
+                message: 'Error',
+            });
+            const actual = await calmService.fetchDecoratorValues(namespace);
+            expect(actual).toEqual([]);
+        });
+    });
 });

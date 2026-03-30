@@ -22,7 +22,9 @@ vi.mock('../../../visualizer/components/drawer/Drawer.js', () => ({
 }));
 
 vi.mock('../../../service/calm-service.js', () => ({
-    fetchDecoratorValues: vi.fn().mockResolvedValue([]),
+    CalmService: vi.fn().mockImplementation(() => ({
+        fetchDecoratorValues: vi.fn().mockResolvedValue([]),
+    })),
 }));
 
 const architectureData: Data & { calmType: 'Architectures' } = {

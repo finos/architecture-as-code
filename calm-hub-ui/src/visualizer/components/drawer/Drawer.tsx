@@ -5,7 +5,7 @@ import { ReactFlowVisualizer } from '../reactflow/ReactFlowVisualizer.js';
 import { PatternVisualizer } from '../reactflow/PatternVisualizer.js';
 import { MetadataPanel } from '../reactflow/MetadataPanel.js';
 import { toSidebarNodeData, toSidebarEdgeData } from '../reactflow/utils/patternClickHandlers.js';
-import { fetchDecoratorValues } from '../../../service/calm-service.js';
+import { CalmService } from '../../../service/calm-service.js';
 import type { DrawerProps, Flow, Control, Decorator } from '../../contracts/contracts.js';
 
 /**
@@ -27,6 +27,7 @@ function extractId(item: CalmNodeSchema | CalmRelationshipSchema): string {
 }
 
 export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: DrawerProps) {
+    const calmService = useMemo(() => new CalmService(), []);
     const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
     const [patternInstance, setPatternInstance] = useState<Record<string, unknown> | undefined>(undefined);
     const [fileInstance, setFileInstance] = useState<Record<string, unknown> | undefined>(undefined);
@@ -62,8 +63,8 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
         }
         const versionPath = data.version.replace(/\./g, '-');
         const target = `/calm/namespaces/${data.name}/architectures/${data.id}/versions/${versionPath}`;
-        fetchDecoratorValues(data.name, target, 'deployment').then(setDecoratorsState);
-    }, [data, fileInstance, decoratorsProp]);
+        calmService.fetchDecoratorValues(data.name, target, 'deployment').then(setDecoratorsState);
+    }, [data, fileInstance, decoratorsProp, calmService]);
 
     const decorators = decoratorsProp ?? decoratorsState;
 
