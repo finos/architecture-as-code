@@ -117,8 +117,10 @@ public class MongoDecoratorIntegration {
                 .then()
                 .statusCode(200)
                 .body("type", equalTo("deployment"))
+                .body("uniqueId", equalTo("finos-architecture-1-deployment"))
                 .body("target[0]", equalTo("/calm/namespaces/finos/architectures/1/versions/1-0-0"))
-                .body("applies-to[0]", equalTo("example-node"));
+                .body("targetType[0]", equalTo("architecture"))
+                .body("appliesTo[0]", equalTo("example-node"));
     }
 
     @Test

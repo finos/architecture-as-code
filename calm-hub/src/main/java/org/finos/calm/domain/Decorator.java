@@ -1,7 +1,5 @@
 package org.finos.calm.domain;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -12,7 +10,6 @@ import java.util.Objects;
  *
  * <p>Immutable</p>
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Decorator {
     private final String schema;
     private final String uniqueId;
@@ -36,7 +33,6 @@ public class Decorator {
         return schema;
     }
 
-    @JsonProperty("unique-id")
     public String getUniqueId() {
         return uniqueId;
     }
@@ -49,12 +45,10 @@ public class Decorator {
         return target;
     }
 
-    @JsonProperty("target-type")
     public List<String> getTargetType() {
         return targetType;
     }
 
-    @JsonProperty("applies-to")
     public List<String> getAppliesTo() {
         return appliesTo;
     }
