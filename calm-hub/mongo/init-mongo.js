@@ -2213,13 +2213,38 @@ if (db.decorators.countDocuments() === 0) {
                         "data": {
                             "start-time": "2026-03-04T15:00:00Z",
                             "end-time": "2026-03-04T15:08:15Z",
-                            "status": "completed",
-                            "notes": "Second production deployment of FINOS Architecture 1 with performance improvements and bug fixes"
+                            "status": "failed",
+                            "notes": "Second production deployment failed during canary rollout because of a configuration regression"
                         }
                     }
                 },
                 {
                     decoratorId: NumberInt(3),
+                    decorator: {
+                        "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+                        "unique-id": "finos-architecture-1-deployment-v3",
+                        "type": "deployment",
+                        "target": [
+                            "/calm/namespaces/finos/architectures/1/versions/1-0-0"
+                        ],
+                        "target-type": [
+                            "architecture"
+                        ],
+                        "applies-to": [
+                            "example-node"
+                        ],
+                        "data": {
+                            "start-time": "2026-03-10T11:20:00Z",
+                            "status": "in-progress",
+                            "helm-chart-version": "finos-architecture-service-2.4.1",
+                            "namespace": "finos-prod-core",
+                            "deployment-url": "https://argocd.example.com/applications/finos-architecture",
+                            "notes": "Third production deployment is currently rolling out with updated Helm chart values"
+                        }
+                    }
+                },
+                {
+                    decoratorId: NumberInt(4),
                     decorator: {
                         "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
                         "unique-id": "finos-pattern-1-deployment",
