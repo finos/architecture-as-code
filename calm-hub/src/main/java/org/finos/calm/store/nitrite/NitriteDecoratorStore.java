@@ -129,13 +129,12 @@ public class NitriteDecoratorStore implements DecoratorStore {
     public int createDecorator(String namespace, String decoratorJson) throws NamespaceNotFoundException {
         validateNamespace(namespace);
 
-        int id = counterStore.getNextDecoratorSequenceValue();
-
         Document decoratorDoc = Document.createDocument();
         for (Map.Entry<String, Object> entry : org.bson.Document.parse(decoratorJson).entrySet()) {
             decoratorDoc.put(entry.getKey(), entry.getValue());
         }
 
+        int id = counterStore.getNextDecoratorSequenceValue();
         Document decoratorEntry = Document.createDocument(DECORATOR_ID_FIELD, id)
                 .put("decorator", decoratorDoc);
 
