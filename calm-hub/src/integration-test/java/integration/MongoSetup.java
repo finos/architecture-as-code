@@ -41,6 +41,7 @@ public class MongoSetup {
             Document userAccessStoreCounter = new Document("_id", "userAccessStoreCounter").append("sequence_value", 0);
             Document controlStoreCounter = new Document("_id", "controlStoreCounter").append("sequence_value", 0);
             Document controlConfigurationStoreCounter = new Document("_id", "controlConfigurationStoreCounter").append("sequence_value", 0);
+            Document decoratorStoreCounter = new Document("_id", "decoratorStoreCounter").append("sequence_value", 0);
             database.getCollection("counters").insertOne(patternStoreCounter);
             database.getCollection("counters").insertOne(architectureStoreCounter);
             database.getCollection("counters").insertOne(adrStoreCounter);
@@ -48,6 +49,7 @@ public class MongoSetup {
             database.getCollection("counters").insertOne(userAccessStoreCounter);
             database.getCollection("counters").insertOne(controlStoreCounter);
             database.getCollection("counters").insertOne(controlConfigurationStoreCounter);
+            database.getCollection("counters").insertOne(decoratorStoreCounter);
         }
     }
 }
