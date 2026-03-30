@@ -1,101 +1,241 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fetchDecoratorValues } from './calm-service.js';
+import { afterEach, describe, expect, it } from 'vitest';
+import AxiosMockAdapter from 'axios-mock-adapter';
+import { CalmService } from './calm-service.js';
+import axios from 'axios';
 
-vi.mock('../authService.js', () => ({
-    getAuthHeaders: vi.fn().mockResolvedValue({ Authorization: 'Bearer test-token' }),
-}));
+const ax = axios.create();
+const mock = new AxiosMockAdapter(ax as never);
 
-const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
+const namespace = 'test-namespace';
+const resourceId = '1';
+const version = '1.0.0';
 
-function makeFetchResponse(body: unknown, ok = true) {
-    return Promise.resolve({
-        ok,
-        json: () => Promise.resolve(body),
-    } as Response);
-}
-
-describe('fetchDecoratorValues', () => {
-    beforeEach(() => {
-        mockFetch.mockReset();
-    });
+describe('CalmService', () => {
+    const calmService = new CalmService(ax);
 
     afterEach(() => {
-        vi.restoreAllMocks();
+        mock.reset();
     });
 
-    it('returns decorator values from the response', async () => {
-        const decorators = [
-            { uniqueId: 'dec-1', type: 'deployment', data: { status: 'completed' } },
-        ];
-        mockFetch.mockReturnValue(makeFetchResponse({ values: decorators }));
+    describe('fetchNamespaces', () => {
+        it('should retrieve all namespaces', async () => {
+            const expectedNamespaces = [
+                {
+                    "name": "ns1",
+                    "description": "namespace 1"
+                },
+                {
+                    "name": "ns2",
+                    "description": "namespace 2"
+                },
+                {
+                    "name": "ns3",
+                    "description": "namespace 3"
+                }
+            ];
+            mock.onGet('/calm/namespaces').reply(200, { values: expectedNamespaces });
+            const actual = await calmService.fetchNamespaces();
+            expect(actual).toEqual(expectedNamespaces.map(ns => ns.name));
+        });
 
-        const result = await fetchDecoratorValues('my-namespace');
-
-        expect(result).toEqual(decorators);
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet('/calm/namespaces').reply(500, { message: 'Error' });
+            await expect(calmService.fetchNamespaces()).rejects.toThrowError();
+        });
     });
 
-    it('calls the correct endpoint for a namespace', async () => {
-        mockFetch.mockReturnValue(makeFetchResponse({ values: [] }));
+    describe('fetchPatternIDs', () => {
+        it('should retrieve pattern IDs for a namespace', async () => {
+            const expectedIds = [1, 2, 3];
+            mock.onGet(`/calm/namespaces/${namespace}/patterns`).reply(200, {
+                values: expectedIds,
+            });
+            const actual = await calmService.fetchPatternIDs(namespace);
+            expect(actual).toEqual(['1', '2', '3']);
+        });
 
-        await fetchDecoratorValues('my-namespace');
-
-        expect(mockFetch).toHaveBeenCalledWith(
-            '/calm/namespaces/my-namespace/decorators/values',
-            expect.objectContaining({ method: 'GET' })
-        );
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(`/calm/namespaces/${namespace}/patterns`).reply(500, {
+                message: 'Error',
+            });
+            await expect(calmService.fetchPatternIDs(namespace)).rejects.toThrowError();
+        });
     });
 
-    it('encodes the namespace in the URL', async () => {
-        mockFetch.mockReturnValue(makeFetchResponse({ values: [] }));
+    describe('fetchFlowIDs', () => {
+        it('should retrieve flow IDs for a namespace', async () => {
+            const expectedIds = [10, 20];
+            mock.onGet(`/calm/namespaces/${namespace}/flows`).reply(200, {
+                values: expectedIds,
+            });
+            const actual = await calmService.fetchFlowIDs(namespace);
+            expect(actual).toEqual(['10', '20']);
+        });
 
-        await fetchDecoratorValues('my namespace/with special chars');
-
-        const calledUrl = mockFetch.mock.calls[0][0] as string;
-        expect(calledUrl).toContain('my%20namespace%2Fwith%20special%20chars');
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(`/calm/namespaces/${namespace}/flows`).reply(500, {
+                message: 'Error',
+            });
+            await expect(calmService.fetchFlowIDs(namespace)).rejects.toThrowError();
+        });
     });
 
-    it('appends target query param when provided', async () => {
-        mockFetch.mockReturnValue(makeFetchResponse({ values: [] }));
+    describe('fetchArchitectureIDs', () => {
+        it('should retrieve architecture IDs for a namespace', async () => {
+            const expectedIds = [5, 6];
+            mock.onGet(`/calm/namespaces/${namespace}/architectures`).reply(200, {
+                values: expectedIds,
+            });
+            const actual = await calmService.fetchArchitectureIDs(namespace);
+            expect(actual).toEqual(['5', '6']);
+        });
 
-        await fetchDecoratorValues('ns', '/calm/namespaces/ns/architectures/arch/versions/1-0-0');
-
-        const calledUrl = mockFetch.mock.calls[0][0] as string;
-        expect(calledUrl).toContain('target=%2Fcalm%2Fnamespaces%2Fns%2Farchitectures%2Farch%2Fversions%2F1-0-0');
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(`/calm/namespaces/${namespace}/architectures`).reply(500, {
+                message: 'Error',
+            });
+            await expect(
+                calmService.fetchArchitectureIDs(namespace)
+            ).rejects.toThrowError();
+        });
     });
 
-    it('appends type query param when provided', async () => {
-        mockFetch.mockReturnValue(makeFetchResponse({ values: [] }));
+    describe('fetchPatternVersions', () => {
+        it('should retrieve versions for a pattern', async () => {
+            const expectedVersions = ['1.0.0', '2.0.0'];
+            mock.onGet(`/calm/namespaces/${namespace}/patterns/${resourceId}/versions`).reply(200, {
+                values: expectedVersions,
+            });
+            const actual = await calmService.fetchPatternVersions(namespace, resourceId);
+            expect(actual).toEqual(expectedVersions);
+        });
 
-        await fetchDecoratorValues('ns', undefined, 'deployment');
-
-        const calledUrl = mockFetch.mock.calls[0][0] as string;
-        expect(calledUrl).toContain('type=deployment');
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(
+                `/calm/namespaces/${namespace}/patterns/${resourceId}/versions`
+            ).reply(500, { message: 'Error' });
+            await expect(
+                calmService.fetchPatternVersions(namespace, resourceId)
+            ).rejects.toThrowError();
+        });
     });
 
-    it('appends both target and type when both are provided', async () => {
-        mockFetch.mockReturnValue(makeFetchResponse({ values: [] }));
+    describe('fetchFlowVersions', () => {
+        it('should retrieve versions for a flow', async () => {
+            const expectedVersions = ['1.0.0', '2.0.0'];
+            mock.onGet(`/calm/namespaces/${namespace}/flows/${resourceId}/versions`).reply(200, {
+                values: expectedVersions,
+            });
+            const actual = await calmService.fetchFlowVersions(namespace, resourceId);
+            expect(actual).toEqual(expectedVersions);
+        });
 
-        await fetchDecoratorValues('ns', '/some/target', 'deployment');
-
-        const calledUrl = mockFetch.mock.calls[0][0] as string;
-        expect(calledUrl).toContain('target=');
-        expect(calledUrl).toContain('type=deployment');
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(`/calm/namespaces/${namespace}/flows/${resourceId}/versions`).reply(
+                500,
+                { message: 'Error' }
+            );
+            await expect(
+                calmService.fetchFlowVersions(namespace, resourceId)
+            ).rejects.toThrowError();
+        });
     });
 
-    it('returns empty array when response has no values field', async () => {
-        mockFetch.mockReturnValue(makeFetchResponse({}));
+    describe('fetchArchitectureVersions', () => {
+        it('should retrieve versions for an architecture', async () => {
+            const expectedVersions = ['1.0.0', '2.0.0'];
+            mock.onGet(
+                `/calm/namespaces/${namespace}/architectures/${resourceId}/versions`
+            ).reply(200, { values: expectedVersions });
+            const actual = await calmService.fetchArchitectureVersions(namespace, resourceId);
+            expect(actual).toEqual(expectedVersions);
+        });
 
-        const result = await fetchDecoratorValues('ns');
-
-        expect(result).toEqual([]);
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(
+                `/calm/namespaces/${namespace}/architectures/${resourceId}/versions`
+            ).reply(500, { message: 'Error' });
+            await expect(
+                calmService.fetchArchitectureVersions(namespace, resourceId)
+            ).rejects.toThrowError();
+        });
     });
 
-    it('returns empty array and does not throw when fetch fails', async () => {
-        mockFetch.mockRejectedValue(new Error('Network error'));
+    describe('fetchPattern', () => {
+        it('should retrieve a specific pattern', async () => {
+            const responseData = { nodes: [], relationships: [] };
+            mock.onGet(
+                `/calm/namespaces/${namespace}/patterns/${resourceId}/versions/${version}`
+            ).reply(200, responseData);
+            const actual = await calmService.fetchPattern(namespace, resourceId, version);
+            expect(actual).toEqual({
+                id: resourceId,
+                version: version,
+                calmType: 'Patterns',
+                name: namespace,
+                data: responseData,
+            });
+        });
 
-        const result = await fetchDecoratorValues('ns');
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(
+                `/calm/namespaces/${namespace}/patterns/${resourceId}/versions/${version}`
+            ).reply(500, { message: 'Error' });
+            await expect(
+                calmService.fetchPattern(namespace, resourceId, version)
+            ).rejects.toThrowError();
+        });
+    });
 
-        expect(result).toEqual([]);
+    describe('fetchFlow', () => {
+        it('should retrieve a specific flow', async () => {
+            const responseData = { nodes: [], relationships: [] };
+            mock.onGet(
+                `/calm/namespaces/${namespace}/flows/${resourceId}/versions/${version}`
+            ).reply(200, responseData);
+            const actual = await calmService.fetchFlow(namespace, resourceId, version);
+            expect(actual).toEqual({
+                id: resourceId,
+                version: version,
+                calmType: 'Flows',
+                name: namespace,
+                data: responseData,
+            });
+        });
+
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(
+                `/calm/namespaces/${namespace}/flows/${resourceId}/versions/${version}`
+            ).reply(500, { message: 'Error' });
+            await expect(
+                calmService.fetchFlow(namespace, resourceId, version)
+            ).rejects.toThrowError();
+        });
+    });
+
+    describe('fetchArchitecture', () => {
+        it('should retrieve a specific architecture', async () => {
+            const responseData = { nodes: [], relationships: [] };
+            mock.onGet(
+                `/calm/namespaces/${namespace}/architectures/${resourceId}/versions/${version}`
+            ).reply(200, responseData);
+            const actual = await calmService.fetchArchitecture(namespace, resourceId, version);
+            expect(actual).toEqual({
+                id: resourceId,
+                version: version,
+                calmType: 'Architectures',
+                name: namespace,
+                data: responseData,
+            });
+        });
+
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(
+                `/calm/namespaces/${namespace}/architectures/${resourceId}/versions/${version}`
+            ).reply(500, { message: 'Error' });
+            await expect(
+                calmService.fetchArchitecture(namespace, resourceId, version)
+            ).rejects.toThrowError();
+        });
     });
 });
