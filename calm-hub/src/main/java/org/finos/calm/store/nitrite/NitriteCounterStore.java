@@ -62,7 +62,7 @@ public class NitriteCounterStore {
                     .put(FLOW_COUNTER, 0)
                     .put(STANDARD_COUNTER, 0)
                     .put(USER_ACCESS_COUNTER, 0)
-                    .put(DECORATOR_COUNTER, 0);
+                    .put(DECORATOR_COUNTER, 0)
                     .put(CONTROL_COUNTER, 0)
                     .put(CONTROL_CONFIGURATION_COUNTER, 0);
             counterCollection.insert(countersDoc);

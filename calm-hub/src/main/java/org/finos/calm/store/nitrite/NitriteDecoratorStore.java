@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -128,11 +129,10 @@ public class NitriteDecoratorStore implements DecoratorStore {
     public int createDecorator(String namespace, String decoratorJson) throws NamespaceNotFoundException {
         validateNamespace(namespace);
 
-        org.bson.Document bsonDoc = org.bson.Document.parse(decoratorJson);
         int id = counterStore.getNextDecoratorSequenceValue();
 
         Document decoratorDoc = Document.createDocument();
-        for (var entry : bsonDoc.entrySet()) {
+        for (Map.Entry<String, Object> entry : org.bson.Document.parse(decoratorJson).entrySet()) {
             decoratorDoc.put(entry.getKey(), entry.getValue());
         }
 
