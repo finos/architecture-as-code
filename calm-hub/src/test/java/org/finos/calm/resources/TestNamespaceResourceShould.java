@@ -118,6 +118,67 @@ public class TestNamespaceResourceShould {
     }
 
     @Test
+    void return_201_when_dotted_namespace_is_valid() {
+        when(namespaceStore.namespaceExists("org.finos")).thenReturn(false);
+
+        given()
+                .contentType("application/json")
+                .body("{\"name\":\"org.finos\",\"description\":\"FINOS org namespace\"}")
+                .when()
+                .post("/calm/namespaces")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/namespaces/org.finos"));
+
+        verify(namespaceStore).createNamespace("org.finos", "FINOS org namespace");
+    }
+
+    @Test
+    void return_400_when_namespace_has_trailing_dot() {
+        given()
+                .contentType("application/json")
+                .body("{\"name\":\"org.finos.\"}")
+                .when()
+                .post("/calm/namespaces")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+
+        verify(namespaceStore, never()).namespaceExists(any());
+        verify(namespaceStore, never()).createNamespace(any(), any());
+    }
+
+    @Test
+    void return_400_when_namespace_has_leading_dot() {
+        given()
+                .contentType("application/json")
+                .body("{\"name\":\".org.finos\"}")
+                .when()
+                .post("/calm/namespaces")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+
+        verify(namespaceStore, never()).namespaceExists(any());
+        verify(namespaceStore, never()).createNamespace(any(), any());
+    }
+
+    @Test
+    void return_400_when_namespace_has_consecutive_dots() {
+        given()
+                .contentType("application/json")
+                .body("{\"name\":\"org..finos\"}")
+                .when()
+                .post("/calm/namespaces")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+
+        verify(namespaceStore, never()).namespaceExists(any());
+        verify(namespaceStore, never()).createNamespace(any(), any());
+    }
+
+    @Test
     void return_409_when_namespace_already_exists() {
         when(namespaceStore.namespaceExists("existing-namespace")).thenReturn(true);
 
