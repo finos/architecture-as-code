@@ -20,19 +20,20 @@ import static org.mockito.Mockito.*;
 
 @QuarkusTest
 @ExtendWith(MockitoExtension.class)
-public class TestDomainSchemaResourceShould {
+public class TestDomainResourceShould {
+
+    public static final String CALM_DOMAINS = "calm/domains";
+    private static final String TEST_DOMAIN = "test-domain";
 
     @InjectMock
     DomainStore mockControlStore;
-
-    private static final String TEST_DOMAIN = "test-domain";
 
     @Test
     void return_an_empty_list_when_no_domains_exist() {
         when(mockControlStore.getDomains()).thenReturn(new ArrayList<>());
 
         given()
-            .when().get("calm/controls/domains")
+            .when().get(CALM_DOMAINS)
             .then()
             .statusCode(200)
             .body(is("{\"values\":[]}"));
@@ -45,7 +46,7 @@ public class TestDomainSchemaResourceShould {
         when(mockControlStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
 
         given()
-            .when().get("calm/controls/domains")
+            .when().get(CALM_DOMAINS)
             .then()
             .statusCode(200)
             .body(is("{\"values\":[\"test-domain\"]}"));
@@ -61,7 +62,7 @@ public class TestDomainSchemaResourceShould {
         given()
             .header("Content-Type", "application/json")
             .body(expectedDomain)
-            .when().post("calm/controls/domains")
+            .when().post(CALM_DOMAINS)
             .then()
             .statusCode(201)
             .header("Location", "http://localhost:8081/calm/domains/" + expectedDomain.getName());
@@ -76,7 +77,7 @@ public class TestDomainSchemaResourceShould {
         given()
             .header("Content-Type", "application/json")
             .body(invalidDomain)
-            .when().post("calm/controls/domains")
+            .when().post(CALM_DOMAINS)
             .then()
             .statusCode(400)
             .body(containsString(DOMAIN_NAME_MESSAGE));
@@ -92,7 +93,7 @@ public class TestDomainSchemaResourceShould {
         given()
                 .header("Content-Type", "application/json")
                 .body(expectedDomain)
-                .when().post("calm/controls/domains")
+                .when().post(CALM_DOMAINS)
                 .then()
                 .statusCode(409);
 
