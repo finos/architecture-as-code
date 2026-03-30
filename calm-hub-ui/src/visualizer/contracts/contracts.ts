@@ -62,7 +62,6 @@ export type {
 export type {
     Decorator,
     DecoratorData,
-    DecoratorWithData,
     DeploymentStatus,
     DeploymentDecoratorData,
     DeploymentDecorator,

@@ -4,25 +4,26 @@ export type DeploymentStatus = 'pending' | 'in-progress' | 'completed' | 'failed
 
 export interface DeploymentDecoratorData extends DecoratorData {
     'start-time': string;
-    'end-time': string;
+    'end-time'?: string;
     status: DeploymentStatus;
     'deployment-details'?: string;
     notes?: string;
 }
 
-export interface Decorator<StandardType extends DecoratorData = DecoratorData> {
-    schema?: string;
+export interface Decorator {
+    schema: string;
     uniqueId: string;
     type: string;
     target: string[];
     targetType?: string[];
     appliesTo: string[];
-    data: StandardType;
+    data: DecoratorData;
 }
 
-export type DecoratorWithData<StandardType extends DecoratorData = DecoratorData> = Decorator<StandardType>;
-
-export type DeploymentDecorator = DecoratorWithData<DeploymentDecoratorData>;
+export interface DeploymentDecorator extends Decorator {
+    type: 'deployment';
+    data: DeploymentDecoratorData;
+}
 
 export interface DeploymentPanelProps {
     decorators: DeploymentDecorator[];

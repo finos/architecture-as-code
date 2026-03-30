@@ -3,9 +3,8 @@ import { THEME } from './theme.js';
 import { FlowsPanel } from './FlowsPanel.js';
 import { ControlsPanel } from './ControlsPanel.js';
 import { DeploymentPanel } from './DeploymentPanel.js';
-import { isDeploymentDecorator } from './deployment-panel/index.js';
 import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
-import type { MetadataPanelProps, MetadataPanelTabType } from '../../contracts/contracts.js';
+import type { DeploymentDecorator, MetadataPanelProps, MetadataPanelTabType } from '../../contracts/contracts.js';
 
 export function MetadataPanel({
     flows,
@@ -19,10 +18,9 @@ export function MetadataPanel({
     height,
     onHeightChange,
 }: MetadataPanelProps) {
-    const deploymentDecorators = decorators.filter(isDeploymentDecorator);
     const hasFlows = flows.length > 0;
     const hasControls = Object.keys(controls).length > 0;
-    const hasDeployment = deploymentDecorators.length > 0;
+    const hasDeployment = decorators.length > 0;
     const defaultTab: MetadataPanelTabType = hasFlows ? 'flows' : hasControls ? 'controls' : 'deployment';
     const [activeTab, setActiveTab] = useState<MetadataPanelTabType>(defaultTab);
     const [isDragging, setIsDragging] = useState(false);
@@ -77,7 +75,7 @@ export function MetadataPanel({
                     {hasFlows && hasControls && <span>•</span>}
                     {hasControls && <span>Controls ({Object.keys(controls).length})</span>}
                     {(hasFlows || hasControls) && hasDeployment && <span>•</span>}
-                    {hasDeployment && <span>Deployment ({deploymentDecorators.length})</span>}
+                    {hasDeployment && <span>Deployment ({decorators.length})</span>}
                 </div>
                 <button
                     onClick={onToggleCollapse}
@@ -294,7 +292,7 @@ export function MetadataPanel({
                     <ControlsPanel controls={controls} onNodeClick={onNodeClick} onControlClick={onControlClick} />
                 )}
                 {activeTab === 'deployment' && (
-                    <DeploymentPanel decorators={deploymentDecorators} />
+                    <DeploymentPanel decorators={decorators as DeploymentDecorator[]} />
                 )}
             </div>
         </div>

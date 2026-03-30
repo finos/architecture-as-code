@@ -1,5 +1,4 @@
 import type {
-    Decorator,
     DeploymentDecorator,
     DeploymentDecoratorData,
     DeploymentStatus,
@@ -19,17 +18,6 @@ export type DeploymentData = DeploymentDecoratorData;
 
 function isDeploymentStatus(value: unknown): value is DeploymentStatus {
     return typeof value === 'string' && DEPLOYMENT_STATUSES.includes(value as DeploymentStatus);
-}
-
-export function isDeploymentDecorator(decorator: Decorator): decorator is DeploymentDecorator {
-    if (!decorator.data || typeof decorator.data !== 'object') return false;
-
-    const data = decorator.data as Record<string, unknown>;
-    return (
-        typeof data['start-time'] === 'string' &&
-        typeof data['end-time'] === 'string' &&
-        isDeploymentStatus(data.status)
-    );
 }
 
 export interface Filters {

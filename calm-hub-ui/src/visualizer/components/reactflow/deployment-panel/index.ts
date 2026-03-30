@@ -5,7 +5,6 @@ export { ScopeSection } from './ScopeSection.js';
 export { DeploymentDetail } from './DeploymentDetail.js';
 export {
     STATUS_STYLES,
-    isDeploymentDecorator,
     sortedByStartTime,
     formatDateTime,
     type DeploymentData,
