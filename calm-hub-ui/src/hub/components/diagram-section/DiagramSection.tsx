@@ -6,9 +6,8 @@ import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
 import { SectionHeader } from '../section-header/SectionHeader.js';
 import { DeploymentPanel } from '../../../visualizer/components/reactflow/DeploymentPanel.js';
-import { isDeploymentDecorator } from '../../../visualizer/components/reactflow/deployment-panel/index.js';
 import { CalmService } from '../../../service/calm-service.js';
-import type { SelectedItem, Decorator } from '../../../visualizer/contracts/contracts.js';
+import type { DeploymentDecorator, SelectedItem } from '../../../visualizer/contracts/contracts.js';
 
 interface DiagramSectionProps {
     data: Data & { calmType: 'Architectures' | 'Patterns' };
@@ -28,8 +27,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
     const tabParam = searchParams.get('tab') as DiagramTabType | null;
     const activeTab: DiagramTabType = tabParam ?? 'diagram';
     const calmService = useMemo(() => new CalmService(), []);
-    const [decorators, setDecorators] = useState<Decorator[]>([]);
-    const deploymentDecorators = decorators.filter(isDeploymentDecorator);
+    const [decorators, setDecorators] = useState<DeploymentDecorator[]>([]);
 
     const setActiveTab = (tab: DiagramTabType) => {
         setSearchParams({ tab }, { replace: true });
@@ -44,7 +42,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
         }
         const versionPath = data.version.replace(/\./g, '-');
         const target = `/calm/namespaces/${data.name}/architectures/${data.id}/versions/${versionPath}`;
-        calmService.fetchDecoratorValues(data.name, target, 'deployment').then(setDecorators);
+        calmService.fetchDecoratorValues(data.name, target, 'deployment').then((values) => setDecorators(values as DeploymentDecorator[]));
     }, [data, isArchitecture, calmService]);
 
     const Icon = iconMap[data.calmType];
@@ -98,7 +96,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel }: DiagramS
                         </div>
                     ) : activeTab === 'deployments' && isArchitecture ? (
                         <div className="h-full bg-base-200 overflow-auto p-4">
-                            <DeploymentPanel decorators={deploymentDecorators} />
+                            <DeploymentPanel decorators={decorators} />
                         </div>
                     ) : (
                         <div className="h-full bg-base-200 overflow-auto">

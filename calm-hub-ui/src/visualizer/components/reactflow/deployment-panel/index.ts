@@ -5,7 +5,6 @@ export { ScopeSection } from './ScopeSection.js';
 export { DeploymentDetail } from './DeploymentDetail.js';
 export {
     STATUS_STYLES,
-    isDeploymentDecorator,
     sortedByStartTime,
     formatDateTime,
     type DeploymentData,
@@ -19,6 +18,6 @@ export {
     relativeTime,
     type Duration,
     type StartTime,
-} from './time-utils.js';
+} from '../utils/timeUtils.js';
 
 export type { DeploymentStatus } from '../../../contracts/contracts.js';

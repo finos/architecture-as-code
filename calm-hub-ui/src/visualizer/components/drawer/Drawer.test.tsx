@@ -166,6 +166,7 @@ describe('Drawer — decorator fetching', () => {
 
     it('passes fetched decorators to MetadataPanel', async () => {
         const decorators = [{
+            schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
             uniqueId: 'dec-1',
             type: 'deployment',
             target: ['/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
@@ -187,6 +188,7 @@ describe('Drawer — decorator fetching', () => {
 
     it('passes externally provided decorators to MetadataPanel without fetching', async () => {
         const decorators = [{
+            schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
             uniqueId: 'dec-ext',
             type: 'deployment',
             target: ['/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
