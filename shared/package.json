@@ -59,7 +59,7 @@
     },
     "overrides": {
         "path-to-regexp": "8.4.0",
-        "rollup": "4.59.0",
+        "rollup": "4.60.0",
         "jsonpath-plus": "^10.3.0"
     }
 }
