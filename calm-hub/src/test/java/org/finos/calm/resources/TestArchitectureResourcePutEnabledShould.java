@@ -1,6 +1,7 @@
 package org.finos.calm.resources;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -48,7 +49,7 @@ public class TestArchitectureResourcePutEnabledShould {
                 .put("/calm/namespaces/fin_os/architectures/20/versions/1.0.1")
                 .then()
                 .statusCode(400)
-                .body(containsString("namespace must match pattern '^[A-Za-z0-9-]+$'"));
+                .body(containsString(NAMESPACE_MESSAGE));
     }
 
     @Test
