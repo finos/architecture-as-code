@@ -15,6 +15,12 @@ vi.mock('./ControlsPanel', () => ({
     ),
 }));
 
+vi.mock('./DeploymentPanel', () => ({
+    DeploymentPanel: ({ decorators }: { decorators: unknown[] }) => (
+        <div data-testid="deployment-panel">Deployments: {decorators.length}</div>
+    ),
+}));
+
 describe('MetadataPanel', () => {
     const mockFlows = [
         {
@@ -38,21 +44,38 @@ describe('MetadataPanel', () => {
         },
     };
 
+    const mockDecorators = [
+        {
+            schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
+            uniqueId: 'dec-1',
+            type: 'deployment',
+            target: ['/calm/namespaces/ns/architectures/arch/versions/1-0-0'],
+            appliesTo: ['node-a'],
+            data: {
+                status: 'completed',
+                'start-time': '2024-01-15T10:00:00Z',
+                'end-time': '2024-01-15T10:05:00Z',
+            },
+        },
+    ];
+
     const defaultProps = {
         flows: mockFlows,
         controls: mockControls,
+        decorators: [] as typeof mockDecorators,
         isCollapsed: false,
         onToggleCollapse: vi.fn(),
         height: 250,
         onHeightChange: vi.fn(),
     };
 
-    it('renders nothing when no flows and no controls', () => {
+    it('renders nothing when no flows, no controls, and no decorators', () => {
         const { container } = render(
             <MetadataPanel
                 {...defaultProps}
                 flows={[]}
                 controls={{}}
+                decorators={[]}
             />
         );
         expect(container.firstChild).toBeNull();
@@ -64,6 +87,12 @@ describe('MetadataPanel', () => {
         expect(screen.getByText('Flows (1)')).toBeInTheDocument();
         expect(screen.getByText('Controls (1)')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Expand metadata panel' })).toBeInTheDocument();
+    });
+
+    it('renders deployment count in collapsed view when decorators exist', () => {
+        render(<MetadataPanel {...defaultProps} decorators={mockDecorators} isCollapsed={true} />);
+
+        expect(screen.getByText('Deployment (1)')).toBeInTheDocument();
     });
 
     it('renders expanded view with Metadata header when not collapsed', () => {
@@ -136,5 +165,31 @@ describe('MetadataPanel', () => {
         render(<MetadataPanel {...defaultProps} />);
 
         expect(screen.getByTitle('Drag to resize')).toBeInTheDocument();
+    });
+
+    it('shows Deployment tab button when decorators exist', () => {
+        render(<MetadataPanel {...defaultProps} decorators={mockDecorators} />);
+
+        expect(screen.getByRole('button', { name: 'Deployment' })).toBeInTheDocument();
+    });
+
+    it('does not show Deployment tab when decorators is empty', () => {
+        render(<MetadataPanel {...defaultProps} decorators={[]} />);
+
+        expect(screen.queryByRole('button', { name: /Deployment/ })).not.toBeInTheDocument();
+    });
+
+    it('switches to DeploymentPanel when clicking Deployment tab', () => {
+        render(<MetadataPanel {...defaultProps} decorators={mockDecorators} />);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Deployment' }));
+
+        expect(screen.getByTestId('deployment-panel')).toBeInTheDocument();
+    });
+
+    it('defaults to deployment tab when only decorators exist', () => {
+        render(<MetadataPanel {...defaultProps} flows={[]} controls={{}} decorators={mockDecorators} />);
+
+        expect(screen.getByTestId('deployment-panel')).toBeInTheDocument();
     });
 });

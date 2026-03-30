@@ -59,6 +59,15 @@ export type {
     AIGFGovernanceSectionProps,
 } from './flows-panel-contracts.js';
 
+export type {
+    Decorator,
+    DecoratorData,
+    DeploymentStatus,
+    DeploymentDecoratorData,
+    DeploymentDecorator,
+    DeploymentPanelProps,
+} from './decorator-contracts.js';
+
 export type HubParams = {
     namespace?: string;
     type?: 'Architectures' | 'Patterns' | 'Flows' | 'ADRs';
