@@ -30,6 +30,8 @@ public class NitriteCounterStore {
     private static final String FLOW_COUNTER = "flow_counter";
     private static final String STANDARD_COUNTER = "standard_counter";
     private static final String USER_ACCESS_COUNTER = "user_access_counter";
+    private static final String CONTROL_COUNTER = "control_counter";
+    private static final String CONTROL_CONFIGURATION_COUNTER = "control_configuration_counter";
     
     // Use a field to identify the counters document
     private static final String COUNTER_TYPE_FIELD = "counter_type";
@@ -58,7 +60,9 @@ public class NitriteCounterStore {
                     .put(ADR_COUNTER, 0)
                     .put(FLOW_COUNTER, 0)
                     .put(STANDARD_COUNTER, 0)
-                    .put(USER_ACCESS_COUNTER, 0);
+                    .put(USER_ACCESS_COUNTER, 0)
+                    .put(CONTROL_COUNTER, 0)
+                    .put(CONTROL_CONFIGURATION_COUNTER, 0);
             counterCollection.insert(countersDoc);
             LOG.info("Initialized counters document");
         }
@@ -116,6 +120,24 @@ public class NitriteCounterStore {
      */
     public int getNextUserAccessSequenceValue() {
         return nextValueForCounter(USER_ACCESS_COUNTER);
+    }
+
+    /**
+     * Get the next sequence value for control store.
+     *
+     * @return The next sequence value
+     */
+    public int getNextControlSequenceValue() {
+        return nextValueForCounter(CONTROL_COUNTER);
+    }
+
+    /**
+     * Get the next sequence value for control configuration store.
+     *
+     * @return The next sequence value
+     */
+    public int getNextControlConfigurationSequenceValue() {
+        return nextValueForCounter(CONTROL_CONFIGURATION_COUNTER);
     }
 
     /**
