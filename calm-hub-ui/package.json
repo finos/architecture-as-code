@@ -26,7 +26,7 @@
         "d3-selection": "^3.0.0",
         "d3-transition": "^3.0.1",
         "d3-zoom": "^3.0.0",
-        "lucide-react": "^0.468.0",
+        "lucide-react": "^0.577.0",
         "oidc-client": "^1.11.5",
         "react": "^19.1.0",
         "react-dom": "^19.1.0",
@@ -75,7 +75,7 @@
         "express": "5.2.1",
         "nth-check": "2.1.1",
         "postcss": "8.5.8",
-        "rollup": "4.59.0"
+        "rollup": "4.60.0"
     },
     "overrides": {
         "d3-selection": "3.0.0",
