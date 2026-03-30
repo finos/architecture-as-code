@@ -221,7 +221,6 @@
                     "relationship-unique-id": "hub-to-db",
                     "sequence-number": 3,
                     "description": "Hub API queries MongoDB for stored architectures",
-                    "direction": "source-to-destination"
                 }
             ]
         },
