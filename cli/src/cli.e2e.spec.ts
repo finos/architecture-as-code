@@ -602,6 +602,36 @@ describe('CLI Integration Tests', () => {
 
         fs.rmSync(actualOutputDir, { recursive: true });
     });
+
+    test('docify --ants generates a Vite + Three.js project', async () => {
+        const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
+        const testModelPath = path.join(fixtureDir, 'model/document-system.json');
+        const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
+        const outputDir = path.join(tempDir, 'output/ant-farm');
+
+        await run(
+            calm(), ['docify', '--ants', '--architecture', testModelPath, '--output', outputDir, '--url-to-local-file-mapping', localDirectory]
+        );
+
+        // Should generate the three expected files
+        expect(fs.existsSync(path.join(outputDir, 'package.json'))).toBeTruthy();
+        expect(fs.existsSync(path.join(outputDir, 'index.html'))).toBeTruthy();
+        expect(fs.existsSync(path.join(outputDir, 'main.js'))).toBeTruthy();
+
+        // package.json should have three as a dependency
+        const pkg = JSON.parse(fs.readFileSync(path.join(outputDir, 'package.json'), 'utf8'));
+        expect(pkg.dependencies.three).toBeDefined();
+
+        // main.js should contain embedded CALM data (node names from the fixture)
+        const mainJs = fs.readFileSync(path.join(outputDir, 'main.js'), 'utf8');
+        expect(mainJs).toContain('THREE');
+        expect(mainJs).toContain('nodes');
+
+        // index.html should have the ant farm title
+        const indexHtml = fs.readFileSync(path.join(outputDir, 'index.html'), 'utf8');
+        expect(indexHtml).toContain('CALM Ant Farm');
+    });
+
     // Docify widget rendering verifies every template keeps working with the
     // getting-started assets bundled in the repo, so we use the static mapping
     // to avoid hitting the public site during CI.

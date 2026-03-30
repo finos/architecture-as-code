@@ -1,13 +1,14 @@
 import { TemplateProcessingMode, TemplateProcessor } from '../template/template-processor.js';
 import { readUrlMappingFile } from '../template/url-mapping.js';
 
-export type DocifyMode = 'SAD' | 'WEBSITE' | 'USER_PROVIDED';
+export type DocifyMode = 'SAD' | 'WEBSITE' | 'USER_PROVIDED' | 'ANTS';
 
 export class Docifier {
     private static readonly TEMPLATE_BUNDLE_PATHS: Record<DocifyMode, string> = {
         SAD: __dirname + '/template-bundles/sad',
         WEBSITE: __dirname + '/template-bundles/docusaurus',
-        USER_PROVIDED: __dirname + '/template-bundles/null-pattern'
+        USER_PROVIDED: __dirname + '/template-bundles/null-pattern',
+        ANTS: __dirname + '/template-bundles/ants'
     };
 
     private templateProcessor: TemplateProcessor;

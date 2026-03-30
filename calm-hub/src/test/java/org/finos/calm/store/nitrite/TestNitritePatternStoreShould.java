@@ -47,10 +47,10 @@ public class TestNitritePatternStoreShould {
 
     private NitritePatternStore patternStore;
 
-    private final String NAMESPACE = "finos";
-    private final String PATTERN_JSON = "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}}}";
+    private static final String NAMESPACE = "finos";
+    private static final String PATTERN_JSON = "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}}}";
     // Default version used in tests
-    private final int PATTERN_ID = 42;
+    private static final int PATTERN_ID = 42;
 
     @BeforeEach
     public void setup() {
