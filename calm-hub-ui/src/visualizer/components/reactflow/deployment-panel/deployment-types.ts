@@ -12,13 +12,7 @@ import {
     sortedByStartTime,
 } from '../utils/timeUtils.js';
 
-const DEPLOYMENT_STATUSES: DeploymentStatus[] = ['pending', 'in-progress', 'completed', 'failed', 'rolled-back'];
-
 export type DeploymentData = DeploymentDecoratorData;
-
-function isDeploymentStatus(value: unknown): value is DeploymentStatus {
-    return typeof value === 'string' && DEPLOYMENT_STATUSES.includes(value as DeploymentStatus);
-}
 
 export interface Filters {
     status: string;
