@@ -517,7 +517,8 @@ public class TestDecoratorResourceShould {
                 .post("/calm/namespaces/finos/decorators")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/decorators/1"));
+                .header("Location", containsString("/calm/namespaces/finos/decorators/1"))
+                .body("id", equalTo(1));
     }
 
     @Test

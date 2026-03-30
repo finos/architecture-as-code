@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Map;
 
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
@@ -156,7 +157,7 @@ public class DecoratorResource {
         try {
             int id = decoratorStore.createDecorator(namespace, decoratorJson);
             URI location = new URI("/calm/namespaces/" + namespace + "/decorators/" + id);
-            return Response.created(location).build();
+            return Response.created(location).entity(Map.of("id", id)).build();
         } catch (JsonParseException e) {
             logger.error("Invalid JSON when creating decorator in namespace [{}]", namespace, e);
             return CalmResourceErrorResponses.invalidDecoratorJsonResponse(e.getMessage());
