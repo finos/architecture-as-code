@@ -18,6 +18,15 @@ export type Revision = string;
 export type Adr = CalmAdrMeta;
 export type CalmType = 'Architectures' | 'Patterns' | 'Flows' | 'ADRs';
 
+/**
+ * Summary returned from the API for namespace-scoped resources.
+ */
+export interface ResourceSummary {
+    id: number;
+    name: string;
+    description: string;
+}
+
 export type Data =
     | {
           id: string;

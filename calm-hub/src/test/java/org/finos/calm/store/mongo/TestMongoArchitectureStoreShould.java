@@ -17,6 +17,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.architecture.NamespaceArchitectureSummary;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
@@ -111,15 +112,30 @@ public class TestMongoArchitectureStoreShould {
         Document documentMock = Mockito.mock(Document.class);
         when(findIterable.first()).thenReturn(documentMock);
 
-        Document doc1 = new Document("architectureId", 1001);
-        Document doc2 = new Document("architectureId", 1002);
+        Map<String, Object> archDetailMap1 = new HashMap<>();
+        archDetailMap1.put("architectureId", 1001);
+        archDetailMap1.put("name", "Arch One");
+        archDetailMap1.put("description", "First architecture");
+        Document doc1 = new Document(archDetailMap1);
+
+        Map<String, Object> archDetailMap2 = new HashMap<>();
+        archDetailMap2.put("architectureId", 1002);
+        archDetailMap2.put("name", "Arch Two");
+        archDetailMap2.put("description", "Second architecture");
+        Document doc2 = new Document(archDetailMap2);
 
         when(documentMock.getList("architectures", Document.class))
                 .thenReturn(Arrays.asList(doc1, doc2));
 
-        List<Integer> architectureIds = mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE);
+        List<NamespaceArchitectureSummary> architectures = mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE);
 
-        assertThat(architectureIds, is(Arrays.asList(1001, 1002)));
+        assertThat(architectures.size(), is(2));
+        assertThat(architectures.get(0).getName(), is("Arch One"));
+        assertThat(architectures.get(0).getDescription(), is("First architecture"));
+        assertThat(architectures.get(0).getId(), is(1001));
+        assertThat(architectures.get(1).getName(), is("Arch Two"));
+        assertThat(architectures.get(1).getDescription(), is("Second architecture"));
+        assertThat(architectures.get(1).getId(), is(1002));
         verify(namespaceStore).namespaceExists(NAMESPACE);
     }
 

@@ -80,14 +80,17 @@ describe('CalmService', () => {
         });
     });
 
-    describe('fetchArchitectureIDs', () => {
-        it('should retrieve architecture IDs for a namespace', async () => {
-            const expectedIds = [5, 6];
+    describe('fetchArchitectureSummaries', () => {
+        it('should retrieve architecture summaries for a namespace', async () => {
+            const expectedSummaries = [
+                { id: 5, name: 'Arch One', description: 'First' },
+                { id: 6, name: 'Arch Two', description: 'Second' },
+            ];
             mock.onGet(`/calm/namespaces/${namespace}/architectures`).reply(200, {
-                values: expectedIds,
+                values: expectedSummaries,
             });
-            const actual = await calmService.fetchArchitectureIDs(namespace);
-            expect(actual).toEqual(['5', '6']);
+            const actual = await calmService.fetchArchitectureSummaries(namespace);
+            expect(actual).toEqual(expectedSummaries);
         });
 
         it('should throw an error when backend returns error status', async () => {
@@ -95,7 +98,7 @@ describe('CalmService', () => {
                 message: 'Error',
             });
             await expect(
-                calmService.fetchArchitectureIDs(namespace)
+                calmService.fetchArchitectureSummaries(namespace)
             ).rejects.toThrowError();
         });
     });

@@ -12,6 +12,7 @@ import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.architecture.NamespaceArchitectureSummary;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
@@ -40,7 +41,7 @@ public class MongoArchitectureStore implements ArchitectureStore {
     }
 
     @Override
-    public List<Integer> getArchitecturesForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespaceArchitectureSummary> getArchitecturesForNamespace(String namespace) throws NamespaceNotFoundException {
         if (!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
@@ -52,14 +53,19 @@ public class MongoArchitectureStore implements ArchitectureStore {
             return List.of();
         }
 
-        List<Document> patterns = namespaceDocument.getList("architectures", Document.class);
-        List<Integer> architectureIds = new ArrayList<>();
+        List<Document> architectures = namespaceDocument.getList("architectures", Document.class);
+        List<NamespaceArchitectureSummary> architectureSummaries = new ArrayList<>();
 
-        for (Document pattern : patterns) {
-            architectureIds.add(pattern.getInteger("architectureId"));
+        for (Document architectureDoc : architectures) {
+            NamespaceArchitectureSummary summary = new NamespaceArchitectureSummary(
+                    architectureDoc.getString("name"),
+                    architectureDoc.getString("description"),
+                    architectureDoc.getInteger("architectureId")
+            );
+            architectureSummaries.add(summary);
         }
 
-        return architectureIds;
+        return architectureSummaries;
     }
 
     @Override

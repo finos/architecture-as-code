@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { Data } from '../model/calm.js';
+import { Data, ResourceSummary } from '../model/calm.js';
 import { getAuthHeaders } from '../authService.js';
 import { Decorator } from '../visualizer/contracts/decorator-contracts.js';
 
@@ -65,13 +65,15 @@ export class CalmService {
             });
     }
 
-    public async fetchArchitectureIDs(namespace: string): Promise<string[]> {
+    public async fetchArchitectureSummaries(namespace: string): Promise<ResourceSummary[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${namespace}/architectures`, { headers })
-            .then((res) => res.data.values.map((id: number) => id.toString()))
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/architectures`, { headers })
+            .then((res) => {
+                return Array.isArray(res.data?.values) ? res.data.values : [];
+            })
             .catch((error) => {
-                const errorMessage = `Error fetching architecture IDs for namespace ${namespace}:`;
+                const errorMessage = `Error fetching architectures for namespace ${namespace}:`;
                 // arg1 is %s to prevent format string injection from `namespace`.
                 console.error('%s', errorMessage, error);
                 return Promise.reject(new Error(errorMessage));

@@ -18,7 +18,7 @@ let calmServiceInstance: {
     fetchNamespaces: Mock;
     fetchPatternIDs: Mock;
     fetchFlowIDs: Mock;
-    fetchArchitectureIDs: Mock;
+    fetchArchitectureSummaries: Mock;
     fetchPatternVersions: Mock;
     fetchFlowVersions: Mock;
     fetchArchitectureVersions: Mock;
@@ -33,7 +33,7 @@ vi.mock('../../../service/calm-service.js', () => ({
             fetchNamespaces: vi.fn().mockResolvedValue(['test-namespace', 'another-namespace']),
             fetchPatternIDs: vi.fn().mockResolvedValue([]),
             fetchFlowIDs: vi.fn().mockResolvedValue([]),
-            fetchArchitectureIDs: vi.fn().mockResolvedValue([]),
+            fetchArchitectureSummaries: vi.fn().mockResolvedValue([]),
             fetchPatternVersions: vi.fn().mockResolvedValue([]),
             fetchFlowVersions: vi.fn().mockResolvedValue([]),
             fetchArchitectureVersions: vi.fn().mockResolvedValue([]),
@@ -159,7 +159,7 @@ describe('TreeNavigation', () => {
 
         await waitFor(() => {
             expect(calmServiceInstance?.fetchNamespaces).toHaveBeenCalled();
-            expect(calmServiceInstance?.fetchArchitectureIDs).toHaveBeenCalledWith('test-namespace');
+            expect(calmServiceInstance?.fetchArchitectureSummaries).toHaveBeenCalledWith('test-namespace');
             expect(calmServiceInstance?.fetchArchitectureVersions).toHaveBeenCalledWith('test-namespace', '201');
             expect(calmServiceInstance?.fetchArchitecture).toHaveBeenCalledWith('test-namespace', '201', 'v2.0');
         });
@@ -259,7 +259,7 @@ describe('buildNamespaceTree', () => {
             fetchNamespaces: vi.fn().mockResolvedValue(['org.finos', 'org.finos.calm', 'com.traderx']),
             fetchPatternIDs: vi.fn().mockResolvedValue([]),
             fetchFlowIDs: vi.fn().mockResolvedValue([]),
-            fetchArchitectureIDs: vi.fn().mockResolvedValue([]),
+            fetchArchitectureSummaries: vi.fn().mockResolvedValue([]),
             fetchPatternVersions: vi.fn().mockResolvedValue([]),
             fetchFlowVersions: vi.fn().mockResolvedValue([]),
             fetchArchitectureVersions: vi.fn().mockResolvedValue([]),

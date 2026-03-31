@@ -4,7 +4,7 @@ import { CalmService } from '../../../service/calm-service.js';
 import { ControlService } from '../../../service/control-service.js';
 import { InterfaceService } from '../../../service/interface-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
-import { Data, Adr } from '../../../model/calm.js';
+import { Data, Adr, ResourceSummary } from '../../../model/calm.js';
 import { ControlDetail, ControlData } from '../../../model/control.js';
 import { InterfaceDetail, InterfaceData } from '../../../model/interface.js';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -24,7 +24,7 @@ interface LoadResourceIdsOptions {
     type: string;
     namespace: string;
     calmService: CalmService;
-    setArchitectureIDs: (ids: string[]) => void;
+    setArchitectureSummaries: (summaries: ResourceSummary[]) => void;
     setPatternIDs: (ids: string[]) => void;
     setFlowIDs: (ids: string[]) => void;
     adrService: AdrService;
@@ -73,6 +73,7 @@ interface VersionItemProps {
 
 interface ResourceItemProps {
     resourceID: string;
+    displayName?: string;
     type: string;
     isSelected: boolean;
     versions: string[];
@@ -85,6 +86,7 @@ interface ResourceTypeProps {
     type: string;
     isSelected: boolean;
     resourceIDs: string[];
+    resourceNames?: Record<string, string>;
     selectedResourceID: string;
     versions: string[];
     selectedVersion: string;
@@ -100,6 +102,7 @@ interface NamespaceItemProps {
     selectedResourceID: string;
     selectedVersion: string;
     getResourceIDs: (type: string) => string[];
+    getResourceNames: (type: string) => Record<string, string>;
     getVersions: (type: string) => string[];
     namespaceInterfaces: InterfaceDetail[];
     selectedInterfaceId: number | null;
@@ -202,6 +205,7 @@ function VersionItem({ version, isSelected, onVersionClick }: VersionItemProps) 
 
 function ResourceItem({
     resourceID,
+    displayName,
     type,
     isSelected,
     versions,
@@ -209,11 +213,12 @@ function ResourceItem({
     onResourceClick,
     onVersionClick,
 }: ResourceItemProps) {
+    const label = displayName ?? resourceID;
     if (isSelected) {
         return (
             <li>
                 <details open={true}>
-                    <summary className="active">{resourceID}</summary>
+                    <summary className="active">{label}</summary>
                     <ul>
                         {versions.map((version) => (
                             <VersionItem
@@ -231,7 +236,7 @@ function ResourceItem({
 
     return (
         <li>
-            <a onClick={() => onResourceClick(resourceID, type)}>{resourceID}</a>
+            <a onClick={() => onResourceClick(resourceID, type)}>{label}</a>
         </li>
     );
 }
@@ -240,6 +245,7 @@ function ResourceType({
     type,
     isSelected,
     resourceIDs,
+    resourceNames,
     selectedResourceID,
     versions,
     selectedVersion,
@@ -257,6 +263,7 @@ function ResourceType({
                             <ResourceItem
                                 key={resourceID}
                                 resourceID={resourceID}
+                                displayName={resourceNames?.[resourceID]}
                                 type={type}
                                 isSelected={selectedResourceID === resourceID}
                                 versions={versions}
@@ -285,6 +292,7 @@ function NamespaceItem({
     selectedResourceID,
     selectedVersion,
     getResourceIDs,
+    getResourceNames,
     getVersions,
     namespaceInterfaces,
     selectedInterfaceId,
@@ -362,6 +370,7 @@ function NamespaceItem({
                                     type={type}
                                     isSelected={selectedType === type}
                                     resourceIDs={getResourceIDs(type)}
+                                    resourceNames={getResourceNames(type)}
                                     selectedResourceID={selectedResourceID}
                                     versions={getVersions(type)}
                                     selectedVersion={selectedVersion}
@@ -380,6 +389,7 @@ function NamespaceItem({
                                 selectedResourceID={selectedResourceID}
                                 selectedVersion={selectedVersion}
                                 getResourceIDs={getResourceIDs}
+                                getResourceNames={getResourceNames}
                                 getVersions={getVersions}
                                 namespaceInterfaces={namespaceInterfaces}
                                 selectedInterfaceId={selectedInterfaceId}
@@ -401,14 +411,14 @@ function loadResourceIds({
     type, 
     namespace,
     calmService,
-    setArchitectureIDs, 
+    setArchitectureSummaries, 
     setPatternIDs, 
     setFlowIDs, 
     adrService, 
     setAdrIDs 
 }: LoadResourceIdsOptions) {
     if (type === 'Architectures') {
-        calmService.fetchArchitectureIDs(namespace).then(setArchitectureIDs);
+        calmService.fetchArchitectureSummaries(namespace).then(setArchitectureSummaries);
     } else if (type === 'Patterns') {
         calmService.fetchPatternIDs(namespace).then(setPatternIDs);
     } else if (type === 'Flows') {
@@ -475,7 +485,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     const [selectedResourceID, setSelectedResourceID] = useState<string>(EMPTY_STR_VALUE);
     const [selectedVersion, setSelectedVersion] = useState<string>(EMPTY_STR_VALUE);
 
-    const [architectureIDs, setArchitectureIDs] = useState<string[]>([]);
+    const [architectureSummaries, setArchitectureSummaries] = useState<ResourceSummary[]>([]);
     const [patternIDs, setPatternIDs] = useState<string[]>([]);
     const [flowIDs, setFlowIDs] = useState<string[]>([]);
     const [adrIDs, setAdrIDs] = useState<string[]>([]);
@@ -518,7 +528,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                 type: mapTypeInUrlToTypeInUI(params.type),
                 namespace: params.namespace,
                 calmService,
-                setArchitectureIDs,
+                setArchitectureSummaries,
                 setPatternIDs,
                 setFlowIDs,
                 adrService,
@@ -617,7 +627,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                     type,
                     namespace: selectedNamespace,
                     calmService,
-                    setArchitectureIDs,
+                    setArchitectureSummaries,
                     setPatternIDs,
                     setFlowIDs,
                     adrService,
@@ -653,7 +663,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     const getResourceIDs = (type: string): string[] => {
         switch (type) {
             case 'Architectures':
-                return architectureIDs;
+                return architectureSummaries.map((s) => s.id.toString());
             case 'Patterns':
                 return patternIDs;
             case 'Flows':
@@ -662,6 +672,17 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                 return adrIDs;
             default:
                 return [];
+        }
+    };
+
+    const getResourceNames = (type: string): Record<string, string> => {
+        switch (type) {
+            case 'Architectures':
+                return Object.fromEntries(
+                    architectureSummaries.map((s) => [s.id.toString(), s.name])
+                );
+            default:
+                return {};
         }
     };
 
@@ -732,6 +753,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                                     selectedResourceID={selectedResourceID}
                                     selectedVersion={selectedVersion}
                                     getResourceIDs={getResourceIDs}
+                                    getResourceNames={getResourceNames}
                                     getVersions={getVersions}
                                     namespaceInterfaces={namespaceInterfaces}
                                     selectedInterfaceId={selectedInterfaceId}

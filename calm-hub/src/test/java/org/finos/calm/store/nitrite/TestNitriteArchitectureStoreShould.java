@@ -6,6 +6,7 @@ import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.architecture.NamespaceArchitectureSummary;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
@@ -81,7 +82,7 @@ public class TestNitriteArchitectureStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<Integer> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
+        List<NamespaceArchitectureSummary> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result.isEmpty(), is(true));
@@ -102,7 +103,7 @@ public class TestNitriteArchitectureStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<Integer> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
+        List<NamespaceArchitectureSummary> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result.isEmpty(), is(true));
@@ -122,7 +123,7 @@ public class TestNitriteArchitectureStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<Integer> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
+        List<NamespaceArchitectureSummary> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result.isEmpty(), is(true));
@@ -130,12 +131,18 @@ public class TestNitriteArchitectureStoreShould {
     }
 
     @Test
-    public void testGetArchitecturesForNamespace_whenArchitecturesExist_returnsArchitectureIds() throws NamespaceNotFoundException {
+    public void testGetArchitecturesForNamespace_whenArchitecturesExist_returnsArchitectureSummaries() throws NamespaceNotFoundException {
         // Arrange
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
-        Document doc1 = Document.createDocument().put("architectureId", 1001);
-        Document doc2 = Document.createDocument().put("architectureId", 1002);
+        Document doc1 = Document.createDocument()
+                .put("architectureId", 1001)
+                .put("name", "Arch One")
+                .put("description", "First architecture");
+        Document doc2 = Document.createDocument()
+                .put("architectureId", 1002)
+                .put("name", "Arch Two")
+                .put("description", "Second architecture");
         List<Document> architectures = Arrays.asList(doc1, doc2);
 
         Document namespaceDoc = Document.createDocument()
@@ -147,12 +154,16 @@ public class TestNitriteArchitectureStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<Integer> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
+        List<NamespaceArchitectureSummary> result = architectureStore.getArchitecturesForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result.size(), is(2));
-        assertThat(result, hasItem(1001));
-        assertThat(result, hasItem(1002));
+        assertThat(result.get(0).getId(), is(1001));
+        assertThat(result.get(0).getName(), is("Arch One"));
+        assertThat(result.get(0).getDescription(), is("First architecture"));
+        assertThat(result.get(1).getId(), is(1002));
+        assertThat(result.get(1).getName(), is("Arch Two"));
+        assertThat(result.get(1).getDescription(), is("Second architecture"));
         verify(mockNamespaceStore, atLeastOnce()).namespaceExists(NAMESPACE);
     }
 
