@@ -42,6 +42,21 @@ public class MongoDecoratorIntegration {
                 "applies-to": ["example-node"],
                 "data": {
                     "start-time": "2026-02-23T10:00:00Z",
+                    "status": "in-progress",
+                    "notes": "Integration test decorator"
+                }
+            }
+            """;
+
+    private static final String UPDATED_DECORATOR = """
+            {
+                "unique-id": "finos-architecture-1-deployment",
+                "type": "deployment",
+                "target": ["/calm/namespaces/finos/architectures/1/versions/1-0-0"],
+                "target-type": ["architecture"],
+                "applies-to": ["example-node"],
+                "data": {
+                    "start-time": "2026-02-23T10:00:00Z",
                     "status": "completed",
                     "notes": "Integration test decorator"
                 }
@@ -123,6 +138,29 @@ public class MongoDecoratorIntegration {
 
     @Test
     @Order(5)
+    void end_to_end_update_decorator_by_id() {
+        given()
+                .when().get("/calm/namespaces/finos/decorators/1")
+                .then()
+                .statusCode(200)
+                .body("data.status", equalTo("in-progress"));
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(UPDATED_DECORATOR)
+                .when().put("/calm/namespaces/finos/decorators/1")
+                .then()
+                .statusCode(200);
+
+        given()
+                .when().get("/calm/namespaces/finos/decorators/1")
+                .then()
+                .statusCode(200)
+                .body("data.status", equalTo("completed"));
+    }
+
+    @Test
+    @Order(6)
     void end_to_end_retrieve_nonexistent_decorator_returns_404() {
         given()
                 .when().get("/calm/namespaces/finos/decorators/999")

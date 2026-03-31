@@ -5,6 +5,7 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
+import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -315,7 +316,7 @@ class TestNitriteDecoratorStoreShould {
     }
 
     @Test
-    void should_return_decorator_by_id() throws NamespaceNotFoundException {
+    void should_return_decorator_by_id() throws NamespaceNotFoundException, DecoratorNotFoundException {
         // Given
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
@@ -350,7 +351,7 @@ class TestNitriteDecoratorStoreShould {
     }
 
     @Test
-    void should_return_empty_optional_when_decorator_id_not_found() throws NamespaceNotFoundException {
+    void should_return_empty_optional_when_decorator_id_not_found() throws NamespaceNotFoundException, DecoratorNotFoundException {
         // Given
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
@@ -371,7 +372,7 @@ class TestNitriteDecoratorStoreShould {
     }
 
     @Test
-    void should_return_empty_optional_from_get_by_id_when_namespace_document_is_null() throws NamespaceNotFoundException {
+    void should_return_empty_optional_from_get_by_id_when_namespace_document_is_null() throws NamespaceNotFoundException, DecoratorNotFoundException {
         // Given
         String namespace = "missing-namespace";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
