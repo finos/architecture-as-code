@@ -40,40 +40,46 @@ const pattern = {}; // pattern doesn't matter since we're mocking the extractOpt
 describe('loadChoicesFromInput', () => {
     beforeEach(() => {
         mocks.extractOptions.mockReturnValue([
-            { optionType: 'oneOf', prompt: 'Choose an option:', choices: [choice1, choice2] },
-            { optionType: 'anyOf', prompt: 'Select any:', choices: [choiceA, choiceB] }
+            { optionType: 'oneOf', optionId: 'option-1', prompt: 'Choose an option:', choices: [choice1, choice2] },
+            { optionType: 'anyOf', optionId: 'option-a', prompt: 'Select any:', choices: [choiceA, choiceB] }
         ]);
     });
 
     it('should resolve choices from inline JSON string', () => {
         mocks.existsSync.mockReturnValue(false);
-        const result = loadChoicesFromInput('["Option 1", "Option A"]', pattern);
+        const result = loadChoicesFromInput('{"option-1": "Option 1", "option-a": "Option A"}', pattern);
         expect(result).toEqual([choice1, choiceA]);
     });
 
     it('should resolve choices from a JSON file', () => {
         mocks.existsSync.mockReturnValue(true);
-        mocks.readFileSync.mockReturnValue('["Option 2"]');
+        mocks.readFileSync.mockReturnValue('{"option-1": "Option 2"}');
         const result = loadChoicesFromInput('choices.json', pattern);
         expect(result).toEqual([choice2]);
     });
 
-    it('should return empty array when given empty array', () => {
+    it('should return empty object when given empty object', () => {
         mocks.existsSync.mockReturnValue(false);
-        const result = loadChoicesFromInput('[]', pattern);
+        const result = loadChoicesFromInput('{}', pattern);
         expect(result).toEqual([]);
     });
 
-    it('should throw when a choice description is not in the pattern', () => {
+    it('should throw when the option id is not in the pattern', () => {
         mocks.existsSync.mockReturnValue(false);
-        expect(() => loadChoicesFromInput('["Invalid Choice"]', pattern))
-            .toThrow('The choice of [Invalid Choice] is not a valid choice in the pattern.');
+        expect(() => loadChoicesFromInput('{"invalid-option": "Option 1"}', pattern))
+            .toThrow('The option id [invalid-option] is not a valid option in the pattern.');
     });
 
-    it('should throw when input is not a JSON array', () => {
+    it('should throw when a choice description is not valid for the option', () => {
         mocks.existsSync.mockReturnValue(false);
-        expect(() => loadChoicesFromInput('{"key": "value"}', pattern))
-            .toThrow('Option choices must be a JSON array of description strings.');
+        expect(() => loadChoicesFromInput('{"option-1": "Invalid Choice"}', pattern))
+            .toThrow('The choice of [Invalid Choice] is not a valid choice for option [option-1].');
+    });
+
+    it('should throw when input is not a JSON object', () => {
+        mocks.existsSync.mockReturnValue(false);
+        expect(() => loadChoicesFromInput('["Option 1"]', pattern))
+            .toThrow('Option choices must be a JSON object mapping option ids to choice descriptions.');
     });
 
     it('should throw when input is invalid JSON', () => {
@@ -88,11 +94,13 @@ describe('promptUserForOptions', () => {
         mocks.extractOptions.mockReturnValue([
             {
                 optionType: 'oneOf',
+                optionId: 'option-1',
                 prompt: 'Choose an option:',
                 choices: [choice1, choice2]
             },
             {
                 optionType: 'anyOf',
+                optionId: 'option-a',
                 prompt: 'Select any of these options:',
                 choices: [choiceA, choiceB]
             }
@@ -107,6 +115,7 @@ describe('promptUserForOptions', () => {
     it('should return empty list when user selects nothing', async () => {
         mocks.extractOptions.mockReturnValue([{
             optionType: 'anyOf',
+            optionId: 'option-a',
             prompt: 'Select any of these options:',
             choices: [choiceA, choiceB]
         }]);
@@ -118,6 +127,7 @@ describe('promptUserForOptions', () => {
     it('should throw an error when user selects an option thats not in the pattern', async () => {
         mocks.extractOptions.mockReturnValue([{
             optionType: 'oneOf',
+            optionId: 'option-1',
             prompt: 'Choose an option:',
             choices: [choice1, choice2]
         }]);
