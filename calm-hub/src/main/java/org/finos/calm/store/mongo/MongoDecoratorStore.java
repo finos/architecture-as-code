@@ -3,6 +3,8 @@ package org.finos.calm.store.mongo;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.Updates;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
@@ -30,11 +32,13 @@ public class MongoDecoratorStore implements DecoratorStore {
     private static final String DECORATOR_ID_FIELD = "decoratorId";
     private final MongoCollection<Document> decoratorCollection;
     private final MongoNamespaceStore namespaceStore;
+    private final MongoCounterStore counterStore;
 
     @Inject
-    public MongoDecoratorStore(MongoDatabase database, MongoNamespaceStore namespaceStore) {
+    public MongoDecoratorStore(MongoDatabase database, MongoNamespaceStore namespaceStore, MongoCounterStore counterStore) {
         this.decoratorCollection = database.getCollection("decorators");
         this.namespaceStore = namespaceStore;
+        this.counterStore = counterStore;
     }
 
     @Override
@@ -101,6 +105,24 @@ public class MongoDecoratorStore implements DecoratorStore {
                 .filter(Objects::nonNull)
                 .map(Decorator::fromDocument)
                 .findFirst();
+    }
+
+    @Override
+    public int createDecorator(String namespace, String decoratorJson) throws NamespaceNotFoundException {
+        validateNamespace(namespace);
+
+        Document parsedDecorator = Document.parse(decoratorJson);
+        int id = counterStore.getNextDecoratorSequenceValue();
+        Document decoratorDocument = new Document("decoratorId", id)
+                .append("decorator", parsedDecorator);
+
+        decoratorCollection.updateOne(
+                Filters.eq("namespace", namespace),
+                Updates.push("decorators", decoratorDocument),
+                new UpdateOptions().upsert(true));
+
+        LOG.debug("Created decorator with ID {} in namespace '{}'", id, namespace);
+        return id;
     }
 
     /**

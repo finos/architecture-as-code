@@ -43,6 +43,10 @@ public class MongoCounterStore {
         return nextValueForCounter("userAccessStoreCounter");
     }
 
+    public int getNextDecoratorSequenceValue() {
+        return nextValueForCounter("decoratorStoreCounter");
+    }
+  
     public int getNextControlSequenceValue() {
         return nextValueForCounter("controlStoreCounter");
     }

@@ -3,6 +3,7 @@ package org.finos.calm.store.nitrite;
 import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
+import org.finos.calm.store.nitrite.NitriteCounterStore;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.finos.calm.domain.Decorator;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -35,10 +36,13 @@ class NitriteDecoratorStoreTest {
     private NitriteCollection decoratorCollection;
 
     @Mock
-    private org.dizitart.no2.collection.DocumentCursor cursor;
+    private DocumentCursor cursor;
 
     @Mock
     private NitriteNamespaceStore namespaceStore;
+
+    @Mock
+    private NitriteCounterStore counterStore;
 
     @InjectMocks
     private NitriteDecoratorStore decoratorStore;
@@ -47,7 +51,7 @@ class NitriteDecoratorStoreTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         when(db.getCollection(anyString())).thenReturn(decoratorCollection);
-        decoratorStore = new NitriteDecoratorStore(db, namespaceStore);
+        decoratorStore = new NitriteDecoratorStore(db, namespaceStore, counterStore);
     }
 
     @Test
