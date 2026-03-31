@@ -16,7 +16,7 @@ vi.mock('react-router-dom', async () => {
 
 let calmServiceInstance: {
     fetchNamespaces: Mock;
-    fetchPatternIDs: Mock;
+    fetchPatternSummaries: Mock;
     fetchFlowIDs: Mock;
     fetchArchitectureSummaries: Mock;
     fetchPatternVersions: Mock;
@@ -31,7 +31,7 @@ vi.mock('../../../service/calm-service.js', () => ({
     CalmService: vi.fn().mockImplementation(() => {
         calmServiceInstance = {
             fetchNamespaces: vi.fn().mockResolvedValue(['test-namespace', 'another-namespace']),
-            fetchPatternIDs: vi.fn().mockResolvedValue([]),
+            fetchPatternSummaries: vi.fn().mockResolvedValue([]),
             fetchFlowIDs: vi.fn().mockResolvedValue([]),
             fetchArchitectureSummaries: vi.fn().mockResolvedValue([]),
             fetchPatternVersions: vi.fn().mockResolvedValue([]),
@@ -139,7 +139,7 @@ describe('TreeNavigation', () => {
 
         await waitFor(() => {
             expect(calmServiceInstance?.fetchNamespaces).toHaveBeenCalled();
-            expect(calmServiceInstance?.fetchPatternIDs).toHaveBeenCalledWith('test-namespace');
+            expect(calmServiceInstance?.fetchPatternSummaries).toHaveBeenCalledWith('test-namespace');
             expect(calmServiceInstance?.fetchPatternVersions).toHaveBeenCalledWith('test-namespace', 'pattern2');
             expect(calmServiceInstance?.fetchPattern).toHaveBeenCalledWith('test-namespace', 'pattern2', 'v2.0');
         });
@@ -257,7 +257,7 @@ describe('buildNamespaceTree', () => {
         vi.mocked(useParams).mockReturnValue({});
         vi.mocked(CalmService).mockImplementationOnce(() => ({
             fetchNamespaces: vi.fn().mockResolvedValue(['org.finos', 'org.finos.calm', 'com.traderx']),
-            fetchPatternIDs: vi.fn().mockResolvedValue([]),
+            fetchPatternSummaries: vi.fn().mockResolvedValue([]),
             fetchFlowIDs: vi.fn().mockResolvedValue([]),
             fetchArchitectureSummaries: vi.fn().mockResolvedValue([]),
             fetchPatternVersions: vi.fn().mockResolvedValue([]),

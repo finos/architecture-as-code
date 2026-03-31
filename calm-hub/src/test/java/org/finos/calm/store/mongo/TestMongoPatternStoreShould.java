@@ -21,6 +21,8 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
+import org.finos.calm.domain.pattern.CreatePatternRequest;
+import org.finos.calm.domain.pattern.NamespacePatternSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -106,15 +108,21 @@ public class TestMongoPatternStoreShould {
         Document documentMock = Mockito.mock(Document.class);
         when(findIterable.first()).thenReturn(documentMock);
 
-        Document doc1 = new Document("patternId", 1001);
-        Document doc2 = new Document("patternId", 1002);
+        Document doc1 = new Document("patternId", 1001).append("name", "Pattern One").append("description", "First pattern");
+        Document doc2 = new Document("patternId", 1002).append("name", "Pattern Two").append("description", "Second pattern");
 
         when(documentMock.getList("patterns", Document.class))
                 .thenReturn(Arrays.asList(doc1, doc2));
 
-        List<Integer> patternIds = mongoPatternStore.getPatternsForNamespace("finos");
+        List<NamespacePatternSummary> patterns = mongoPatternStore.getPatternsForNamespace("finos");
 
-        assertThat(patternIds, is(Arrays.asList(1001, 1002)));
+        assertThat(patterns.size(), is(2));
+        assertThat(patterns.get(0).getName(), is("Pattern One"));
+        assertThat(patterns.get(0).getDescription(), is("First pattern"));
+        assertThat(patterns.get(0).getId(), is(1001));
+        assertThat(patterns.get(1).getName(), is("Pattern Two"));
+        assertThat(patterns.get(1).getDescription(), is("Second pattern"));
+        assertThat(patterns.get(1).getId(), is(1002));
         verify(namespaceStore).namespaceExists("finos");
     }
 
@@ -145,10 +153,10 @@ public class TestMongoPatternStoreShould {
     void return_a_namespace_exception_when_namespace_does_not_exist() {
         when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
         String namespace = "does-not-exist";
-        Pattern pattern = new Pattern.PatternBuilder().setNamespace(namespace).build();
+        CreatePatternRequest request = new CreatePatternRequest("name", "desc", validJson);
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> mongoPatternStore.createPatternForNamespace(pattern));
+                () -> mongoPatternStore.createPatternForNamespace(request, namespace));
 
         verify(namespaceStore).namespaceExists(namespace);
     }
@@ -157,12 +165,10 @@ public class TestMongoPatternStoreShould {
     void return_a_json_parse_exception_when_an_invalid_json_object_is_presented() {
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(counterStore.getNextPatternSequenceValue()).thenReturn(42);
-        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos")
-                .setPattern("Invalid JSON")
-                .build();
+        CreatePatternRequest request = new CreatePatternRequest("name", "desc", "Invalid JSON");
 
         assertThrows(JsonParseException.class,
-                () -> mongoPatternStore.createPatternForNamespace(pattern));
+                () -> mongoPatternStore.createPatternForNamespace(request, "finos"));
     }
 
     @Test
@@ -171,11 +177,9 @@ public class TestMongoPatternStoreShould {
         int sequenceNumber = 42;
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
         when(counterStore.getNextPatternSequenceValue()).thenReturn(sequenceNumber);
-        Pattern patternToCreate = new Pattern.PatternBuilder().setPattern(validJson)
-                .setNamespace(validNamespace)
-                .build();
+        CreatePatternRequest request = new CreatePatternRequest("Test Pattern", "A test", validJson);
 
-        Pattern pattern = mongoPatternStore.createPatternForNamespace(patternToCreate);
+        Pattern pattern = mongoPatternStore.createPatternForNamespace(request, validNamespace);
 
         Pattern expectedPattern = new Pattern.PatternBuilder().setPattern(validJson)
                 .setNamespace(validNamespace)
@@ -184,7 +188,10 @@ public class TestMongoPatternStoreShould {
                 .build();
 
         assertThat(pattern, is(expectedPattern));
-        Document expectedDoc = new Document("patternId", pattern.getId()).append("versions",
+        Document expectedDoc = new Document("patternId", pattern.getId())
+                .append("name", "Test Pattern")
+                .append("description", "A test")
+                .append("versions",
                 new Document("1-0-0", Document.parse(pattern.getPatternJson())));
 
         verify(patternCollection).updateOne(

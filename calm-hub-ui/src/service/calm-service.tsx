@@ -39,13 +39,15 @@ export class CalmService {
             });
     }
 
-    public async fetchPatternIDs(namespace: string): Promise<string[]> {
+    public async fetchPatternSummaries(namespace: string): Promise<ResourceSummary[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${namespace}/patterns`, { headers })
-            .then((res) => res.data.values.map((num: number) => num.toString()))
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/patterns`, { headers })
+            .then((res) => {
+                return Array.isArray(res.data?.values) ? res.data.values : [];
+            })
             .catch((error) => {
-                const errorMessage = `Error fetching pattern IDs for namespace ${namespace}:`;
+                const errorMessage = `Error fetching patterns for namespace ${namespace}:`;
                 // arg1 is %s to prevent format string injection from `namespace`.
                 console.error('%s', errorMessage, error);
                 return Promise.reject(new Error(errorMessage));

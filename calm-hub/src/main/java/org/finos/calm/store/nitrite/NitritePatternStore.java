@@ -14,6 +14,8 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
+import org.finos.calm.domain.pattern.CreatePatternRequest;
+import org.finos.calm.domain.pattern.NamespacePatternSummary;
 import org.finos.calm.store.PatternStore;
 import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
@@ -39,6 +41,8 @@ public class NitritePatternStore implements PatternStore {
     private static final String PATTERN_ID_FIELD = "patternId";
     private static final String PATTERNS_FIELD = "patterns";
     private static final String VERSIONS_FIELD = "versions";
+    private static final String NAME_FIELD = "name";
+    private static final String DESCRIPTION_FIELD = "description";
 
     private final NitriteCollection patternCollection;
     private final NitriteNamespaceStore namespaceStore;
@@ -53,7 +57,7 @@ public class NitritePatternStore implements PatternStore {
     }
 
     @Override
-    public List<Integer> getPatternsForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespacePatternSummary> getPatternsForNamespace(String namespace) throws NamespaceNotFoundException {
         if (!namespaceStore.namespaceExists(namespace)) {
             LOG.warn("Namespace '{}' not found when retrieving patterns", namespace);
             throw new NamespaceNotFoundException();
@@ -68,7 +72,7 @@ public class NitritePatternStore implements PatternStore {
             return List.of();
         }
 
-        List<Integer> patternIds = new ArrayList<>();
+        List<NamespacePatternSummary> patternSummaries = new ArrayList<>();
         // Get patterns list with proper type handling
         List<Object> rawPatterns = new TypeSafeNitriteDocument<>(namespaceDocument, Object.class).getList(PATTERNS_FIELD);
 
@@ -76,27 +80,29 @@ public class NitritePatternStore implements PatternStore {
             for (Object patternObj : rawPatterns) {
                 if (patternObj instanceof Document patternDoc) {
                     Integer patternId = patternDoc.get(PATTERN_ID_FIELD, Integer.class);
+                    String name = patternDoc.get(NAME_FIELD, String.class);
+                    String description = patternDoc.get(DESCRIPTION_FIELD, String.class);
                     if (patternId != null) {
-                        patternIds.add(patternId);
+                        patternSummaries.add(new NamespacePatternSummary(name, description, patternId));
                     }
                 }
             }
         }
 
-        LOG.debug("Retrieved {} patterns for namespace '{}'", patternIds.size(), namespace);
-        return patternIds;
+        LOG.debug("Retrieved {} patterns for namespace '{}'", patternSummaries.size(), namespace);
+        return patternSummaries;
     }
 
     @Override
-    public Pattern createPatternForNamespace(Pattern pattern) throws NamespaceNotFoundException, JsonParseException {
-        if (!namespaceStore.namespaceExists(pattern.getNamespace())) {
-            LOG.warn("Namespace '{}' not found when creating pattern", pattern.getNamespace());
+    public Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace) throws NamespaceNotFoundException, JsonParseException {
+        if (!namespaceStore.namespaceExists(namespace)) {
+            LOG.warn("Namespace '{}' not found when creating pattern", namespace);
             throw new NamespaceNotFoundException();
         }
 
         try {
             // Validate JSON by attempting to parse it
-            org.bson.Document.parse(pattern.getPatternJson());
+            org.bson.Document.parse(patternRequest.getPatternJson());
         } catch (Exception e) {
             LOG.error("Invalid JSON format for pattern: {}", e.getMessage());
             throw new JsonParseException(e.getMessage());
@@ -104,17 +110,19 @@ public class NitritePatternStore implements PatternStore {
 
         int id = counterStore.getNextPatternSequenceValue();
 
-        Filter filter = where(NAMESPACE_FIELD).eq(pattern.getNamespace());
+        Filter filter = where(NAMESPACE_FIELD).eq(namespace);
         Document namespaceDocument = patternCollection.find(filter).firstOrNull();
 
         Document patternDocument = Document.createDocument()
                 .put(PATTERN_ID_FIELD, id)
-                .put(VERSIONS_FIELD, Document.createDocument().put("1-0-0", pattern.getPatternJson()));
+                .put(NAME_FIELD, patternRequest.getName())
+                .put(DESCRIPTION_FIELD, patternRequest.getDescription())
+                .put(VERSIONS_FIELD, Document.createDocument().put("1-0-0", patternRequest.getPatternJson()));
 
         if (namespaceDocument == null) {
             // Create new namespace document with pattern
             Document newNamespaceDoc = Document.createDocument()
-                    .put(NAMESPACE_FIELD, pattern.getNamespace())
+                    .put(NAMESPACE_FIELD, namespace)
                     .put(PATTERNS_FIELD, List.of(patternDocument));
 
             patternCollection.insert(newNamespaceDoc);
@@ -135,12 +143,12 @@ public class NitritePatternStore implements PatternStore {
 
         Pattern persistedPattern = new Pattern.PatternBuilder()
                 .setId(id)
-                .setNamespace(pattern.getNamespace())
-                .setPattern(pattern.getPatternJson())
+                .setNamespace(namespace)
+                .setPattern(patternRequest.getPatternJson())
                 .setVersion("1-0-0")
                 .build();
 
-        LOG.info("Created pattern with ID {} for namespace '{}'", id, pattern.getNamespace());
+        LOG.info("Created pattern with ID {} for namespace '{}'", id, namespace);
         return persistedPattern;
     }
 

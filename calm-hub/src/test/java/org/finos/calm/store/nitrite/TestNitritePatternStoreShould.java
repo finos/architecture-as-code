@@ -10,6 +10,8 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
+import org.finos.calm.domain.pattern.CreatePatternRequest;
+import org.finos.calm.domain.pattern.NamespacePatternSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -78,7 +80,7 @@ public class TestNitritePatternStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
 
         // Act
-        List<Integer> result = patternStore.getPatternsForNamespace(NAMESPACE);
+        List<NamespacePatternSummary> result = patternStore.getPatternsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result, is(notNullValue()));
@@ -86,12 +88,12 @@ public class TestNitritePatternStoreShould {
     }
 
     @Test
-    public void testGetPatternsForNamespace_whenPatternsExist_returnsPatternIds() throws NamespaceNotFoundException {
+    public void testGetPatternsForNamespace_whenPatternsExist_returnsPatternSummaries() throws NamespaceNotFoundException {
         // Arrange
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
 
-        Document patternDoc1 = Document.createDocument("patternId", 1);
-        Document patternDoc2 = Document.createDocument("patternId", 2);
+        Document patternDoc1 = Document.createDocument("patternId", 1).put("name", "Pattern One").put("description", "First");
+        Document patternDoc2 = Document.createDocument("patternId", 2).put("name", "Pattern Two").put("description", "Second");
         List<Document> patterns = Arrays.asList(patternDoc1, patternDoc2);
 
         Document namespaceDoc = Document.createDocument()
@@ -103,36 +105,34 @@ public class TestNitritePatternStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        List<Integer> result = patternStore.getPatternsForNamespace(NAMESPACE);
+        List<NamespacePatternSummary> result = patternStore.getPatternsForNamespace(NAMESPACE);
 
         // Assert
         assertThat(result, is(notNullValue()));
         assertThat(result.size(), is(2));
-        assertThat(result, hasItem(1));
-        assertThat(result, hasItem(2));
+        assertThat(result.get(0).getId(), is(1));
+        assertThat(result.get(0).getName(), is("Pattern One"));
+        assertThat(result.get(0).getDescription(), is("First"));
+        assertThat(result.get(1).getId(), is(2));
+        assertThat(result.get(1).getName(), is("Pattern Two"));
+        assertThat(result.get(1).getDescription(), is("Second"));
     }
 
     @Test
     public void testCreatePatternForNamespace_whenNamespaceDoesNotExist_throwsNamespaceNotFoundException() {
         // Arrange
-        Pattern pattern = new Pattern.PatternBuilder()
-                .setNamespace(NAMESPACE)
-                .setPattern(PATTERN_JSON)
-                .build();
+        CreatePatternRequest request = new CreatePatternRequest("name", "desc", PATTERN_JSON);
 
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 
         // Act & Assert
-        assertThrows(NamespaceNotFoundException.class, () -> patternStore.createPatternForNamespace(pattern));
+        assertThrows(NamespaceNotFoundException.class, () -> patternStore.createPatternForNamespace(request, NAMESPACE));
     }
 
     @Test
     public void testCreatePatternForNamespace_whenNamespaceExists_createsPattern() throws NamespaceNotFoundException {
         // Arrange
-        Pattern pattern = new Pattern.PatternBuilder()
-                .setNamespace(NAMESPACE)
-                .setPattern(PATTERN_JSON)
-                .build();
+        CreatePatternRequest request = new CreatePatternRequest("Test Pattern", "A test", PATTERN_JSON);
 
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
         when(mockCounterStore.getNextPatternSequenceValue()).thenReturn(PATTERN_ID);
@@ -142,7 +142,7 @@ public class TestNitritePatternStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         // Act
-        Pattern result = patternStore.createPatternForNamespace(pattern);
+        Pattern result = patternStore.createPatternForNamespace(request, NAMESPACE);
 
         // Assert
         assertThat(result, is(notNullValue()));

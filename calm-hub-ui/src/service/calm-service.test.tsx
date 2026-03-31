@@ -44,21 +44,24 @@ describe('CalmService', () => {
         });
     });
 
-    describe('fetchPatternIDs', () => {
-        it('should retrieve pattern IDs for a namespace', async () => {
-            const expectedIds = [1, 2, 3];
-            mock.onGet(`/calm/namespaces/${namespace}/patterns`).reply(200, {
-                values: expectedIds,
+    describe('fetchPatternSummaries', () => {
+        it('should retrieve pattern summaries for a namespace', async () => {
+            const expectedSummaries = [
+                { id: 1, name: 'Pattern One', description: 'First' },
+                { id: 2, name: 'Pattern Two', description: 'Second' },
+            ];
+            mock.onGet(`/calm/namespaces/${encodeURIComponent(namespace)}/patterns`).reply(200, {
+                values: expectedSummaries,
             });
-            const actual = await calmService.fetchPatternIDs(namespace);
-            expect(actual).toEqual(['1', '2', '3']);
+            const actual = await calmService.fetchPatternSummaries(namespace);
+            expect(actual).toEqual(expectedSummaries);
         });
 
         it('should throw an error when backend returns error status', async () => {
-            mock.onGet(`/calm/namespaces/${namespace}/patterns`).reply(500, {
+            mock.onGet(`/calm/namespaces/${encodeURIComponent(namespace)}/patterns`).reply(500, {
                 message: 'Error',
             });
-            await expect(calmService.fetchPatternIDs(namespace)).rejects.toThrowError();
+            await expect(calmService.fetchPatternSummaries(namespace)).rejects.toThrowError();
         });
     });
 

@@ -25,7 +25,7 @@ interface LoadResourceIdsOptions {
     namespace: string;
     calmService: CalmService;
     setArchitectureSummaries: (summaries: ResourceSummary[]) => void;
-    setPatternIDs: (ids: string[]) => void;
+    setPatternSummaries: (summaries: ResourceSummary[]) => void;
     setFlowIDs: (ids: string[]) => void;
     adrService: AdrService;
     setAdrIDs: (ids: string[]) => void;
@@ -412,7 +412,7 @@ function loadResourceIds({
     namespace,
     calmService,
     setArchitectureSummaries, 
-    setPatternIDs, 
+    setPatternSummaries, 
     setFlowIDs, 
     adrService, 
     setAdrIDs 
@@ -420,7 +420,7 @@ function loadResourceIds({
     if (type === 'Architectures') {
         calmService.fetchArchitectureSummaries(namespace).then(setArchitectureSummaries);
     } else if (type === 'Patterns') {
-        calmService.fetchPatternIDs(namespace).then(setPatternIDs);
+        calmService.fetchPatternSummaries(namespace).then(setPatternSummaries);
     } else if (type === 'Flows') {
         calmService.fetchFlowIDs(namespace).then(setFlowIDs);
     } else if (type === 'ADRs') {
@@ -486,7 +486,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     const [selectedVersion, setSelectedVersion] = useState<string>(EMPTY_STR_VALUE);
 
     const [architectureSummaries, setArchitectureSummaries] = useState<ResourceSummary[]>([]);
-    const [patternIDs, setPatternIDs] = useState<string[]>([]);
+    const [patternSummaries, setPatternSummaries] = useState<ResourceSummary[]>([]);
     const [flowIDs, setFlowIDs] = useState<string[]>([]);
     const [adrIDs, setAdrIDs] = useState<string[]>([]);
 
@@ -529,7 +529,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                 namespace: params.namespace,
                 calmService,
                 setArchitectureSummaries,
-                setPatternIDs,
+                setPatternSummaries,
                 setFlowIDs,
                 adrService,
                 setAdrIDs,
@@ -628,7 +628,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                     namespace: selectedNamespace,
                     calmService,
                     setArchitectureSummaries,
-                    setPatternIDs,
+                    setPatternSummaries,
                     setFlowIDs,
                     adrService,
                     setAdrIDs,
@@ -665,7 +665,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
             case 'Architectures':
                 return architectureSummaries.map((s) => s.id.toString());
             case 'Patterns':
-                return patternIDs;
+                return patternSummaries.map((s) => s.id.toString());
             case 'Flows':
                 return flowIDs;
             case 'ADRs':
@@ -680,6 +680,10 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
             case 'Architectures':
                 return Object.fromEntries(
                     architectureSummaries.map((s) => [s.id.toString(), s.name])
+                );
+            case 'Patterns':
+                return Object.fromEntries(
+                    patternSummaries.map((s) => [s.id.toString(), s.name])
                 );
             default:
                 return {};
