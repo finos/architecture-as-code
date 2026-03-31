@@ -111,6 +111,16 @@ if (db.counters.countDocuments({ _id: "decoratorStoreCounter" }) === 0) {
     logSkip("decoratorStoreCounter already exists, no initialization needed");
 }
 
+if (db.counters.countDocuments({ _id: "interfaceStoreCounter" }) === 0) {
+    db.counters.insertOne({
+        _id: "interfaceStoreCounter",
+        sequence_value: 2
+    });
+    logSuccess("Initialized interfaceStoreCounter with sequence_value 2");
+} else {
+    logSkip("interfaceStoreCounter already exists, no initialization needed");
+}
+
 logSection("Schemas");
 // Load schemas dynamically from the CALM release and draft directories.
 // Set CALM_SCHEMA_BASE_PATH env var to override the default base path (/calm).
@@ -2344,4 +2354,84 @@ if (db.decorators.countDocuments() === 0) {
 } else {
     logSkip("Decorators already initialized, skipping...");
 }
+
+logSection("Interfaces");
+// Insert a sample Host Port interface for the finos namespace
+if (db.interfaces.countDocuments() === 0) {
+    db.interfaces.insertOne({
+        namespace: "finos",
+        interfaces: [
+            {
+                interfaceId: NumberInt(1),
+                name: "Host Port Interface",
+                description: "A standard host and port interface definition for network-accessible services",
+                versions: {
+                    "1-0-0": {
+                        "$schema": "https://json-schema.org/draft/2020-12/schema",
+                        "$id": "https://calm.finos.org/calm/namespaces/finos/interfaces/1/versions/1.0.0",
+                        "title": "Host Port Interface",
+                        "description": "Defines a host and port interface for network-accessible services",
+                        "type": "object",
+                        "properties": {
+                            "unique-id": {
+                                "type": "string"
+                            },
+                            "host": {
+                                "type": "string",
+                                "description": "The hostname or IP address of the service"
+                            },
+                            "port": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535,
+                                "description": "The port number the service listens on"
+                            }
+                        },
+                        "required": [
+                            "unique-id",
+                            "host",
+                            "port"
+                        ]
+                    },
+                    "2-0-0": {
+                        "$schema": "https://json-schema.org/draft/2020-12/schema",
+                        "$id": "https://calm.finos.org/calm/namespaces/finos/interfaces/1/versions/2.0.0",
+                        "title": "Host Port Interface",
+                        "description": "Defines a host and port interface for network-accessible services, with optional protocol",
+                        "type": "object",
+                        "properties": {
+                            "unique-id": {
+                                "type": "string"
+                            },
+                            "host": {
+                                "type": "string",
+                                "description": "The hostname or IP address of the service"
+                            },
+                            "port": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535,
+                                "description": "The port number the service listens on"
+                            },
+                            "protocol": {
+                                "type": "string",
+                                "enum": ["HTTP", "HTTPS", "TCP", "UDP", "gRPC"],
+                                "description": "The network protocol used by the service"
+                            }
+                        },
+                        "required": [
+                            "unique-id",
+                            "host",
+                            "port"
+                        ]
+                    }
+                }
+            }
+        ]
+    });
+    logSuccess("Initialized interfaces for finos namespace");
+} else {
+    logSkip("Interfaces already initialized, skipping...");
+}
+
 logSection("Initialization complete");

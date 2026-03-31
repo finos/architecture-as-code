@@ -9,11 +9,13 @@ vi.mock('./components/tree-navigation/TreeNavigation', () => ({
         onDataLoad,
         onAdrLoad,
         onControlLoad,
+        onInterfaceLoad,
         onCollapse,
     }: {
         onDataLoad: (data: unknown) => void;
         onAdrLoad: (adr: unknown) => void;
         onControlLoad: (control: unknown) => void;
+        onInterfaceLoad: (iface: unknown) => void;
         onCollapse?: () => void;
     }) => (
         <div data-testid="tree-navigation">
@@ -51,6 +53,18 @@ vi.mock('./components/tree-navigation/TreeNavigation', () => ({
             >
                 Load Test Control
             </button>
+            <button
+                onClick={() =>
+                    onInterfaceLoad({
+                        namespace: 'org.finos',
+                        interfaceId: 1,
+                        interfaceName: 'test-interface',
+                        interfaceDescription: 'A test interface',
+                    })
+                }
+            >
+                Load Test Interface
+            </button>
         </div>
     ),
 }));
@@ -70,6 +84,12 @@ vi.mock('./components/adr-renderer/AdrRenderer', () => ({
 vi.mock('./components/control-detail-section/ControlDetailSection', () => ({
     ControlDetailSection: ({ controlData }: { controlData: { controlName?: string } }) => (
         <div data-testid="control-detail-section">Control: {controlData?.controlName}</div>
+    ),
+}));
+
+vi.mock('./components/interface-detail-section/InterfaceDetailSection', () => ({
+    InterfaceDetailSection: ({ interfaceData }: { interfaceData: { interfaceName?: string } }) => (
+        <div data-testid="interface-detail-section">Interface: {interfaceData?.interfaceName}</div>
     ),
 }));
 
@@ -188,6 +208,37 @@ describe('Hub', () => {
         // Switch back to control
         fireEvent.click(screen.getByText('Load Test Control'));
         expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
+        expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
+    });
+
+    it('renders InterfaceDetailSection when interface data is loaded', () => {
+        renderWithRouter(<Hub />);
+
+        expect(screen.queryByTestId('interface-detail-section')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByText('Load Test Interface'));
+
+        expect(screen.getByTestId('interface-detail-section')).toBeInTheDocument();
+        expect(screen.getByTestId('interface-detail-section')).toHaveTextContent('Interface: test-interface');
+    });
+
+    it('switches between Interface and other views correctly', () => {
+        renderWithRouter(<Hub />);
+
+        // Load interface data
+        fireEvent.click(screen.getByText('Load Test Interface'));
+        expect(screen.getByTestId('interface-detail-section')).toBeInTheDocument();
+        expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('control-detail-section')).not.toBeInTheDocument();
+
+        // Switch to regular data
+        fireEvent.click(screen.getByText('Load Test Data'));
+        expect(screen.queryByTestId('interface-detail-section')).not.toBeInTheDocument();
+        expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
+
+        // Switch back to interface
+        fireEvent.click(screen.getByText('Load Test Interface'));
+        expect(screen.getByTestId('interface-detail-section')).toBeInTheDocument();
         expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
     });
 

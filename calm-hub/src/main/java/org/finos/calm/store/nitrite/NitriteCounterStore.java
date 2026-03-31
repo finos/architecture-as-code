@@ -33,6 +33,7 @@ public class NitriteCounterStore {
     private static final String DECORATOR_COUNTER = "decorator_counter";
     private static final String CONTROL_COUNTER = "control_counter";
     private static final String CONTROL_CONFIGURATION_COUNTER = "control_configuration_counter";
+    private static final String INTERFACE_COUNTER = "interface_counter";
     
     // Use a field to identify the counters document
     private static final String COUNTER_TYPE_FIELD = "counter_type";
@@ -64,7 +65,8 @@ public class NitriteCounterStore {
                     .put(USER_ACCESS_COUNTER, 0)
                     .put(DECORATOR_COUNTER, 0)
                     .put(CONTROL_COUNTER, 0)
-                    .put(CONTROL_CONFIGURATION_COUNTER, 0);
+                    .put(CONTROL_CONFIGURATION_COUNTER, 0)
+                    .put(INTERFACE_COUNTER, 0);
             counterCollection.insert(countersDoc);
             LOG.info("Initialized counters document");
         }
@@ -149,6 +151,10 @@ public class NitriteCounterStore {
      */
     public int getNextControlConfigurationSequenceValue() {
         return nextValueForCounter(CONTROL_CONFIGURATION_COUNTER);
+    }
+
+    public int getNextInterfaceSequenceValue() {
+        return nextValueForCounter(INTERFACE_COUNTER);
     }
 
     /**

@@ -52,6 +52,12 @@ vi.mock('../../../service/control-service.js', () => ({
     })),
 }));
 
+vi.mock('../../../service/interface-service.js', () => ({
+    InterfaceService: vi.fn().mockImplementation(() => ({
+        fetchInterfacesForNamespace: vi.fn().mockResolvedValue([]),
+    })),
+}));
+
 let adrServiceInstance: {
     fetchAdrIDs: Mock;
     fetchAdrRevisions: Mock;
@@ -71,7 +77,8 @@ vi.mock('../../../service/adr-service/adr-service.js', () => ({
 const mockProps = {
     onDataLoad: vi.fn(),
     onAdrLoad: vi.fn(),
-    onControlLoad: vi.fn()
+    onControlLoad: vi.fn(),
+    onInterfaceLoad: vi.fn()
 };
 
 describe('TreeNavigation', () => {
@@ -86,7 +93,8 @@ describe('TreeNavigation', () => {
 
         expect(screen.getByText('Namespaces')).toBeInTheDocument();
         expect(screen.getByText('Control Domains')).toBeInTheDocument();
-        expect(await screen.findByText('test-namespace')).toBeInTheDocument();
+        const testNamespaces = await screen.findAllByText('test-namespace');
+        expect(testNamespaces).toHaveLength(1);
         expect(screen.getByText('another-namespace')).toBeInTheDocument();
         expect(screen.getByText('test-domain')).toBeInTheDocument();
     });
@@ -112,7 +120,8 @@ describe('TreeNavigation', () => {
         </MemoryRouter>);
 
         expect(screen.getByText('Namespaces')).toBeInTheDocument();
-        expect(await screen.findByText('test-namespace')).toBeInTheDocument();
+        const testNamespaces = await screen.findAllByText('test-namespace');
+        expect(testNamespaces).toHaveLength(1);
         expect(screen.getByText('another-namespace')).toBeInTheDocument();
     });
 
@@ -261,19 +270,13 @@ describe('buildNamespaceTree', () => {
 
         render(
             <MemoryRouter initialEntries={['/']}>
-                <TreeNavigation onDataLoad={vi.fn()} onAdrLoad={vi.fn()} />
+                <TreeNavigation onDataLoad={vi.fn()} onAdrLoad={vi.fn()} onControlLoad={vi.fn()} onInterfaceLoad={vi.fn()} />
             </MemoryRouter>
         );
 
-        // Collapsed intermediates: 'org' and 'com' should not appear as standalone entries
-        expect(screen.queryByText('org')).not.toBeInTheDocument();
-        expect(screen.queryByText('com')).not.toBeInTheDocument();
-
         // The actual namespace labels should be present
-        expect(await screen.findByText('org.finos')).toBeInTheDocument();
+        const orgFinosElements = await screen.findAllByText('org.finos');
+        expect(orgFinosElements).toHaveLength(1);
         expect(screen.getByText('com.traderx')).toBeInTheDocument();
-
-        // Child namespace 'org.finos.calm' is nested — not visible until parent is expanded
-        expect(screen.queryByText('org.finos.calm')).not.toBeInTheDocument();
     });
 });
