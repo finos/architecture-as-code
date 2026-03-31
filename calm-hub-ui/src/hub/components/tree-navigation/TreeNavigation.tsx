@@ -6,6 +6,7 @@ import { AdrService } from '../../../service/adr-service/adr-service.js';
 import { Data, Adr } from '../../../model/calm.js';
 import { ControlDetail, ControlData } from '../../../model/control.js';
 import { useNavigate, useParams } from 'react-router-dom';
+import { DomainItem } from './DomainItem.js';
 
 type TypeInUrl = 'architectures' | 'patterns' | 'flows' | 'adrs';
 type TypeInUI = 'Architectures' | 'Patterns' | 'Flows' | 'ADRs';
@@ -347,75 +348,6 @@ function NamespaceItem({
                                 onVersionClick={onVersionClick}
                             />
                         ))}
-                    </ul>
-                )}
-            </details>
-        </li>
-    );
-}
-
-interface ControlItemProps {
-    control: ControlDetail;
-    isSelected: boolean;
-    onControlClick: (control: ControlDetail) => void;
-}
-
-function ControlItem({ control, isSelected, onControlClick }: ControlItemProps) {
-    return (
-        <li>
-            <a className={isSelected ? 'active' : ''} onClick={() => onControlClick(control)}>
-                {control.name}
-            </a>
-        </li>
-    );
-}
-
-interface DomainItemProps {
-    domain: string;
-    isSelected: boolean;
-    controls: ControlDetail[];
-    selectedControlId: number | null;
-    onDomainClick: (domain: string) => void;
-    onControlClick: (control: ControlDetail) => void;
-}
-
-function DomainItem({
-    domain,
-    isSelected,
-    controls,
-    selectedControlId,
-    onDomainClick,
-    onControlClick,
-}: DomainItemProps) {
-    return (
-        <li>
-            <details open={isSelected}>
-                <summary
-                    className={isSelected ? 'active' : ''}
-                    onClick={(e) => {
-                        e.preventDefault();
-                        onDomainClick(domain);
-                    }}
-                >
-                    {domain}
-                </summary>
-                {isSelected && (
-                    <ul>
-                        <li>
-                            <details open={true}>
-                                <summary className="active">Controls</summary>
-                                <ul>
-                                    {controls.map((control) => (
-                                        <ControlItem
-                                            key={control.id}
-                                            control={control}
-                                            isSelected={selectedControlId === control.id}
-                                            onControlClick={onControlClick}
-                                        />
-                                    ))}
-                                </ul>
-                            </details>
-                        </li>
                     </ul>
                 )}
             </details>
