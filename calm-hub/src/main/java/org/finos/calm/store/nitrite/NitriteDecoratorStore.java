@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -114,15 +113,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
                 .filter(decoratorDoc -> Integer.valueOf(id).equals(decoratorDoc.get(DECORATOR_ID_FIELD, Integer.class)))
                 .map(decoratorDoc -> decoratorDoc.get("decorator", Document.class))
                 .filter(Objects::nonNull)
-                .map(doc -> new Decorator.DecoratorBuilder()
-                        .setSchema(doc.get("$schema", String.class))
-                        .setUniqueId(doc.get("unique-id", String.class))
-                        .setType(doc.get("type", String.class))
-                        .setTarget((List<String>) doc.get("target"))
-                        .setTargetType((List<String>) doc.get("target-type"))
-                        .setAppliesTo((List<String>) doc.get("applies-to"))
-                        .setData(doc.get("data"))
-                        .build())
+                .map(this::documentToDecorator)
                 .findFirst();
     }
 
@@ -130,11 +121,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
     public int createDecorator(String namespace, String decoratorJson) throws NamespaceNotFoundException {
         validateNamespace(namespace);
 
-        Document decoratorDoc = Document.createDocument();
-        for (Map.Entry<String, Object> entry : org.bson.Document.parse(decoratorJson).entrySet()) {
-            decoratorDoc.put(entry.getKey(), entry.getValue());
-        }
-
+        Document decoratorDoc = parseJsonToNitriteDocument(decoratorJson);
         int id = counterStore.getNextDecoratorSequenceValue();
         Document decoratorEntry = Document.createDocument(DECORATOR_ID_FIELD, id)
                 .put("decorator", decoratorDoc);
@@ -172,10 +159,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
             throw new DecoratorNotFoundException();
         }
 
-        Document updatedDoc = Document.createDocument();
-        for (Map.Entry<String, Object> entry : org.bson.Document.parse(decoratorJson).entrySet()) {
-            updatedDoc.put(entry.getKey(), entry.getValue());
-        }
+        Document updatedDoc = parseJsonToNitriteDocument(decoratorJson);
 
         decorators.stream()
                 .filter(decoratorEntry -> Integer.valueOf(id).equals(decoratorEntry.get(DECORATOR_ID_FIELD, Integer.class)))
@@ -240,15 +224,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
                 .map(doc -> doc.get("decorator", Document.class))
                 .filter(Objects::nonNull)
                 .filter(decorator -> matchesFilters(decorator, target, type))
-                .map(decorator -> new Decorator.DecoratorBuilder()
-                        .setSchema(decorator.get("$schema", String.class))
-                        .setUniqueId(decorator.get("unique-id", String.class))
-                        .setType(decorator.get("type", String.class))
-                        .setTarget((List<String>) decorator.get("target"))
-                        .setTargetType((List<String>) decorator.get("target-type"))
-                        .setAppliesTo((List<String>) decorator.get("applies-to"))
-                        .setData(decorator.get("data"))
-                        .build())
+                .map(this::documentToDecorator)
                 .collect(Collectors.toList());
     }
 
@@ -269,6 +245,25 @@ public class NitriteDecoratorStore implements DecoratorStore {
         
         String decoratorType = decorator.get("type", String.class);
         return decoratorType != null && decoratorType.equals(type);
+    }
+
+    Document parseJsonToNitriteDocument(String json) {
+        return org.bson.Document.parse(json).entrySet().stream()
+                .reduce(Document.createDocument(),
+                        (doc, entry) -> doc.put(entry.getKey(), entry.getValue()),
+                        (d1, d2) -> d1);
+    }
+
+    Decorator documentToDecorator(Document doc) {
+        return new Decorator.DecoratorBuilder()
+                .setSchema(doc.get("$schema", String.class))
+                .setUniqueId(doc.get("unique-id", String.class))
+                .setType(doc.get("type", String.class))
+                .setTarget((List<String>) doc.get("target"))
+                .setTargetType((List<String>) doc.get("target-type"))
+                .setAppliesTo((List<String>) doc.get("applies-to"))
+                .setData(doc.get("data"))
+                .build();
     }
 
     /**

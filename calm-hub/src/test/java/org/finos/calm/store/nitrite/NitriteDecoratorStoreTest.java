@@ -246,4 +246,57 @@ class NitriteDecoratorStoreTest {
 
         verify(decoratorCollection).update(namespaceDoc);
     }
+
+    @Test
+    void testParseJsonToNitriteDocument_MapsAllFields() {
+        String json = "{\"type\":\"deployment\",\"unique-id\":\"test-id\"}";
+
+        Document result = decoratorStore.parseJsonToNitriteDocument(json);
+
+        assertEquals("deployment", result.get("type", String.class));
+        assertEquals("test-id", result.get("unique-id", String.class));
+    }
+
+    @Test
+    void testParseJsonToNitriteDocument_EmptyJson() {
+        Document result = decoratorStore.parseJsonToNitriteDocument("{}");
+
+        assertNotNull(result);
+    }
+
+    @Test
+    void testDocumentToDecorator_MapsAllFields() {
+        Document doc = Document.createDocument("$schema", "https://calm.finos.org/schemas/decorator.json")
+                .put("unique-id", "test-decorator")
+                .put("type", "deployment")
+                .put("target", List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"))
+                .put("target-type", List.of("architecture"))
+                .put("applies-to", List.of("node-1"))
+                .put("data", Document.createDocument("key", "value"));
+
+        Decorator decorator = decoratorStore.documentToDecorator(doc);
+
+        assertEquals("https://calm.finos.org/schemas/decorator.json", decorator.getSchema());
+        assertEquals("test-decorator", decorator.getUniqueId());
+        assertEquals("deployment", decorator.getType());
+        assertEquals(List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"), decorator.getTarget());
+        assertEquals(List.of("architecture"), decorator.getTargetType());
+        assertEquals(List.of("node-1"), decorator.getAppliesTo());
+        assertNotNull(decorator.getData());
+    }
+
+    @Test
+    void testDocumentToDecorator_NullOptionalFields() {
+        Document doc = Document.createDocument("type", "deployment");
+
+        Decorator decorator = decoratorStore.documentToDecorator(doc);
+
+        assertEquals("deployment", decorator.getType());
+        assertNull(decorator.getSchema());
+        assertNull(decorator.getUniqueId());
+        assertNull(decorator.getTarget());
+        assertNull(decorator.getTargetType());
+        assertNull(decorator.getAppliesTo());
+        assertNull(decorator.getData());
+    }
 }
