@@ -5,6 +5,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Decorator;
+import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.DecoratorStore;
 import org.junit.jupiter.api.Test;
@@ -17,8 +18,11 @@ import java.util.Optional;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -245,7 +249,7 @@ public class TestDecoratorResourceShould {
     }
 
     @Test
-    void return_decorator_by_id_when_exists() throws NamespaceNotFoundException {
+    void return_decorator_by_id_when_exists() throws NamespaceNotFoundException, DecoratorNotFoundException {
         String namespace = "test-namespace";
         int decoratorId = 123;
         Decorator decorator = new Decorator.DecoratorBuilder()
@@ -264,7 +268,7 @@ public class TestDecoratorResourceShould {
     }
 
     @Test
-    void return_404_when_decorator_id_does_not_exist() throws NamespaceNotFoundException {
+    void return_404_when_decorator_id_does_not_exist() throws NamespaceNotFoundException, DecoratorNotFoundException {
         String namespace = "test-namespace";
         int decoratorId = 999;
 
@@ -278,7 +282,7 @@ public class TestDecoratorResourceShould {
     }
 
     @Test
-    void return_404_when_namespace_does_not_exist_for_decorator_by_id() throws NamespaceNotFoundException {
+    void return_404_when_namespace_does_not_exist_for_decorator_by_id() throws NamespaceNotFoundException, DecoratorNotFoundException {
         String namespace = "non-existent-namespace";
         int decoratorId = 123;
 
@@ -289,6 +293,20 @@ public class TestDecoratorResourceShould {
                 .then()
                 .statusCode(404)
                 .body(containsString("Invalid namespace provided: non-existent-namespace"));
+    }
+
+    @Test
+    void return_404_when_decorator_not_found_exception_thrown_from_get_by_id() throws NamespaceNotFoundException, DecoratorNotFoundException {
+        String namespace = "test-namespace";
+        int decoratorId = 123;
+
+        when(decoratorStore.getDecoratorById(namespace, decoratorId)).thenThrow(new DecoratorNotFoundException());
+
+        given()
+                .when().get("/calm/namespaces/{namespace}/decorators/{id}", namespace, decoratorId)
+                .then()
+                .statusCode(404)
+                .body(containsString("Decorator with ID 123 does not exist in namespace: test-namespace"));
     }
 
     @Test
@@ -333,7 +351,7 @@ public class TestDecoratorResourceShould {
     }
 
     @Test
-    void accept_id_at_max_int_boundary() throws NamespaceNotFoundException {
+    void accept_id_at_max_int_boundary() throws NamespaceNotFoundException, DecoratorNotFoundException {
         int maxId = Integer.MAX_VALUE;
         when(decoratorStore.getDecoratorById("test-namespace", maxId)).thenReturn(Optional.empty());
 
@@ -345,7 +363,7 @@ public class TestDecoratorResourceShould {
     }
 
     @Test
-    void accept_id_at_min_boundary() throws NamespaceNotFoundException {
+    void accept_id_at_min_boundary() throws NamespaceNotFoundException, DecoratorNotFoundException {
         when(decoratorStore.getDecoratorById("test-namespace", 1)).thenReturn(Optional.empty());
 
         given()
@@ -561,5 +579,105 @@ public class TestDecoratorResourceShould {
                 .then()
                 .statusCode(400)
                 .body(containsString("namespace must match pattern"));
+    }
+
+    // ---- PUT /calm/namespaces/{namespace}/decorators/{id} ----
+
+    @Test
+    void return_200_when_decorator_updated_successfully() throws Exception {
+        given()
+                .contentType(ContentType.JSON)
+                .body(VALID_DECORATOR_JSON)
+                .when()
+                .put("/calm/namespaces/finos/decorators/1")
+                .then()
+                .statusCode(200);
+
+        verify(decoratorStore, times(1)).updateDecorator(
+                org.mockito.ArgumentMatchers.eq("finos"),
+                org.mockito.ArgumentMatchers.eq(1),
+                argThat(json -> json != null && json.strip().equals(VALID_DECORATOR_JSON.strip()))
+        );
+    }
+
+    @Test
+    void return_404_when_decorator_not_found_for_update() throws Exception {
+        doThrow(new DecoratorNotFoundException())
+                .when(decoratorStore).updateDecorator(anyString(), anyInt(), anyString());
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(VALID_DECORATOR_JSON)
+                .when()
+                .put("/calm/namespaces/finos/decorators/999")
+                .then()
+                .statusCode(404)
+                .body(containsString("Decorator with ID 999 does not exist in namespace: finos"));
+    }
+
+    @Test
+    void return_404_when_namespace_does_not_exist_for_update_decorator() throws Exception {
+        doThrow(new NamespaceNotFoundException())
+                .when(decoratorStore).updateDecorator(anyString(), anyInt(), anyString());
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(VALID_DECORATOR_JSON)
+                .when()
+                .put("/calm/namespaces/invalid-namespace/decorators/1")
+                .then()
+                .statusCode(404)
+                .body(containsString("Invalid namespace provided: invalid-namespace"));
+    }
+
+    @Test
+    void return_400_when_update_decorator_json_is_invalid() throws Exception {
+        doThrow(new JsonParseException("Invalid JSON"))
+                .when(decoratorStore).updateDecorator(anyString(), anyInt(), anyString());
+
+        given()
+                .contentType(ContentType.JSON)
+                .body("not-valid-json")
+                .when()
+                .put("/calm/namespaces/finos/decorators/1")
+                .then()
+                .statusCode(400)
+                .body(containsString("Invalid decorator JSON"));
+    }
+
+    @Test
+    void return_400_when_namespace_has_invalid_characters_for_update_decorator() {
+        given()
+                .contentType(ContentType.JSON)
+                .body(VALID_DECORATOR_JSON)
+                .when()
+                .put("/calm/namespaces/invalid@namespace/decorators/1")
+                .then()
+                .statusCode(400)
+                .body(containsString("namespace must match pattern"));
+    }
+
+    @Test
+    void return_400_when_put_id_is_zero() {
+        given()
+                .contentType(ContentType.JSON)
+                .body(VALID_DECORATOR_JSON)
+                .when()
+                .put("/calm/namespaces/test-namespace/decorators/0")
+                .then()
+                .statusCode(400)
+                .body(containsString("ID must be a positive integer"));
+    }
+
+    @Test
+    void return_400_when_put_id_is_negative() {
+        given()
+                .contentType(ContentType.JSON)
+                .body(VALID_DECORATOR_JSON)
+                .when()
+                .put("/calm/namespaces/test-namespace/decorators/-1")
+                .then()
+                .statusCode(400)
+                .body(containsString("ID must be a positive integer"));
     }
 }

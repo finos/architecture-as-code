@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
@@ -17,6 +18,7 @@ import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.Decorator;
 import org.finos.calm.domain.ValueWrapper;
+import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.security.PermittedScopes;
@@ -128,6 +130,9 @@ public class DecoratorResource {
             return decoratorStore.getDecoratorById(namespace, id)
                     .map(decorator -> Response.ok(decorator).build())
                     .orElse(CalmResourceErrorResponses.decoratorNotFoundResponse(namespace, id));
+        } catch (DecoratorNotFoundException e) {
+            logger.error("Decorator [{}] not found in namespace [{}]", id, namespace, e);
+            return CalmResourceErrorResponses.decoratorNotFoundResponse(namespace, id);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving decorator with id [{}]", namespace, id, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -163,6 +168,43 @@ public class DecoratorResource {
             return CalmResourceErrorResponses.invalidDecoratorJsonResponse(e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating decorator", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        }
+    }
+
+    /**
+     * Update an existing decorator by ID in a given namespace.
+     *
+     * @param namespace     the namespace containing the decorator
+     * @param id            the id of the decorator to update
+     * @param decoratorJson the updated decorator JSON body
+     * @return 200 OK, or an appropriate error response
+     */
+    @PUT
+    @Path("{namespace}/decorators/{id}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Update a decorator by ID in a given namespace",
+            description = "Updates an existing decorator, validating the namespace and ID exist and the JSON is well-formed"
+    )
+    @PermittedScopes({CalmHubScopes.ARCHITECTURES_ALL})
+    public Response updateDecoratorForNamespace(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("id") @Min(value = 1, message = "ID must be a positive integer") int id,
+            String decoratorJson
+    ) {
+        try {
+            decoratorStore.updateDecorator(namespace, id, decoratorJson);
+            return Response.ok().build();
+        } catch (JsonParseException e) {
+            logger.error("Invalid JSON when updating decorator [{}] in namespace [{}]", id, namespace, e);
+            return CalmResourceErrorResponses.invalidDecoratorJsonResponse(e.getMessage());
+        } catch (DecoratorNotFoundException e) {
+            logger.error("Decorator [{}] not found in namespace [{}] when updating", id, namespace, e);
+            return CalmResourceErrorResponses.decoratorNotFoundResponse(namespace, id);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when updating decorator [{}]", namespace, id, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         }
     }

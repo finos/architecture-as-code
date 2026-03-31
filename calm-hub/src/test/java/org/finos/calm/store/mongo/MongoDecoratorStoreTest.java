@@ -6,6 +6,7 @@ import com.mongodb.client.FindIterable;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.Decorator;
+import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,7 +53,7 @@ class MongoDecoratorStoreTest {
     }
 
     @Test
-    void testGetDecoratorById_Success() throws NamespaceNotFoundException {
+    void testGetDecoratorById_Success() throws NamespaceNotFoundException, DecoratorNotFoundException {
         String namespace = "test-namespace";
         int decoratorId = 1;
 
@@ -77,7 +78,7 @@ class MongoDecoratorStoreTest {
     }
 
     @Test
-    void testGetDecoratorById_NotFound() throws NamespaceNotFoundException {
+    void testGetDecoratorById_NotFound() throws NamespaceNotFoundException, DecoratorNotFoundException {
         String namespace = "test-namespace";
         int decoratorId = 99;
 
@@ -108,7 +109,7 @@ class MongoDecoratorStoreTest {
     }
 
     @Test
-    void testGetDecoratorById_EmptyNamespaceDocument() throws NamespaceNotFoundException {
+    void testGetDecoratorById_EmptyNamespaceDocument() throws NamespaceNotFoundException, DecoratorNotFoundException {
         String namespace = "test-namespace";
         int decoratorId = 1;
 
@@ -124,7 +125,7 @@ class MongoDecoratorStoreTest {
     }
 
     @Test
-    void testGetDecoratorById_EmptyDecoratorsList() throws NamespaceNotFoundException {
+    void testGetDecoratorById_EmptyDecoratorsList() throws NamespaceNotFoundException, DecoratorNotFoundException {
         String namespace = "test-namespace";
         int decoratorId = 1;
 
@@ -143,7 +144,7 @@ class MongoDecoratorStoreTest {
     }
 
     @Test
-    void testGetDecoratorById_MapsAllFields() throws NamespaceNotFoundException {
+    void testGetDecoratorById_MapsAllFields() throws NamespaceNotFoundException, DecoratorNotFoundException {
         String namespace = "test-namespace";
         int decoratorId = 1;
 
