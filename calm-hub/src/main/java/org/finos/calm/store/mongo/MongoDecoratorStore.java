@@ -10,6 +10,7 @@ import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.bson.Document;
 import org.finos.calm.domain.Decorator;
+import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.DecoratorStore;
 import org.slf4j.Logger;
@@ -86,7 +87,7 @@ public class MongoDecoratorStore implements DecoratorStore {
     }
 
     @Override
-    public Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException {
+    public Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException, DecoratorNotFoundException {
         validateNamespace(namespace);
 
         Document namespaceDocument = fetchNamespaceDocument(namespace);
@@ -123,6 +124,24 @@ public class MongoDecoratorStore implements DecoratorStore {
 
         LOG.debug("Created decorator with ID {} in namespace '{}'", id, namespace);
         return id;
+    }
+
+    @Override
+    public void updateDecorator(String namespace, int id, String decoratorJson) throws NamespaceNotFoundException, DecoratorNotFoundException {
+        validateNamespace(namespace);
+
+        Document parsedDecorator = Document.parse(decoratorJson);
+
+        long modified = decoratorCollection.updateOne(
+                Filters.and(Filters.eq("namespace", namespace), Filters.eq("decorators.decoratorId", id)),
+                Updates.set("decorators.$.decorator", parsedDecorator)
+        ).getModifiedCount();
+
+        if (modified == 0) {
+            throw new DecoratorNotFoundException();
+        }
+
+        LOG.debug("Updated decorator with ID {} in namespace '{}'", id, namespace);
     }
 
     /**
