@@ -3,6 +3,7 @@ package org.finos.calm.store.mongo;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.result.UpdateResult;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.exception.DecoratorNotFoundException;
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -633,5 +635,62 @@ class TestMongoDecoratorStoreShould {
         assertEquals(1, decoratorIds.size());
         assertEquals(1, decoratorIds.get(0));
         verify(namespaceStore).namespaceExists(namespace);
+    }
+
+    @Test
+    void should_update_decorator_successfully() throws NamespaceNotFoundException, DecoratorNotFoundException {
+        // Given
+        String namespace = "finos";
+        int decoratorId = 1;
+        String decoratorJson = "{\"unique-id\": \"updated-decorator\", \"type\": \"deployment\"}";
+
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        UpdateResult updateResult = mock(UpdateResult.class);
+        when(updateResult.getModifiedCount()).thenReturn(1L);
+        when(decoratorCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(updateResult);
+
+        // When / Then (no exception)
+        decoratorStore.updateDecorator(namespace, decoratorId, decoratorJson);
+
+        verify(namespaceStore).namespaceExists(namespace);
+        verify(decoratorCollection).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void should_throw_decorator_not_found_when_update_matches_nothing() {
+        // Given
+        String namespace = "finos";
+        int decoratorId = 99;
+        String decoratorJson = "{\"unique-id\": \"does-not-exist\", \"type\": \"deployment\"}";
+
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        UpdateResult updateResult = mock(UpdateResult.class);
+        when(updateResult.getModifiedCount()).thenReturn(0L);
+        when(decoratorCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(updateResult);
+
+        // When & Then
+        assertThrows(DecoratorNotFoundException.class,
+                () -> decoratorStore.updateDecorator(namespace, decoratorId, decoratorJson));
+
+        verify(namespaceStore).namespaceExists(namespace);
+        verify(decoratorCollection).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void should_throw_namespace_not_found_when_updating_decorator_in_unknown_namespace() {
+        // Given
+        String namespace = "unknown-namespace";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(false);
+
+        String decoratorJson = "{\"unique-id\": \"test\", \"type\": \"test\"}";
+
+        // When & Then
+        assertThrows(NamespaceNotFoundException.class,
+                () -> decoratorStore.updateDecorator(namespace, 1, decoratorJson));
+
+        verify(namespaceStore).namespaceExists(namespace);
+        verify(decoratorCollection, never()).updateOne(any(Bson.class), any(Bson.class));
     }
 }

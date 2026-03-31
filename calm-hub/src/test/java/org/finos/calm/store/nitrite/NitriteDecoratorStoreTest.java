@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class NitriteDecoratorStoreTest {
@@ -172,5 +173,77 @@ class NitriteDecoratorStoreTest {
         assertEquals(List.of("architecture"), decorator.getTargetType());
         assertEquals(List.of("node-1"), decorator.getAppliesTo());
         assertNotNull(decorator.getData());
+    }
+
+    @Test
+    void testUpdateDecorator_ThrowsNamespaceNotFoundException() {
+        String namespace = "non-existent-namespace";
+
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> decoratorStore.updateDecorator(namespace, 1, "{}"));
+    }
+
+    @Test
+    void testUpdateDecorator_ThrowsDecoratorNotFound_NoNamespaceDocument() {
+        String namespace = "test-namespace";
+
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+        when(decoratorCollection.find(where("namespace").eq(namespace))).thenReturn(cursor);
+        when(cursor.firstOrNull()).thenReturn(null);
+
+        assertThrows(DecoratorNotFoundException.class, () -> decoratorStore.updateDecorator(namespace, 1, "{}"));
+    }
+
+    @Test
+    void testUpdateDecorator_ThrowsDecoratorNotFound_NullDecoratorsList() {
+        String namespace = "test-namespace";
+
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        Document namespaceDoc = Document.createDocument("namespace", namespace);
+
+        when(decoratorCollection.find(where("namespace").eq(namespace))).thenReturn(cursor);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+
+        assertThrows(DecoratorNotFoundException.class, () -> decoratorStore.updateDecorator(namespace, 1, "{}"));
+    }
+
+    @Test
+    void testUpdateDecorator_ThrowsDecoratorNotFound_IdNotInList() {
+        String namespace = "test-namespace";
+
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        Document decoratorDoc = Document.createDocument("decoratorId", 1)
+                .put("decorator", Document.createDocument("type", "deployment"));
+        Document namespaceDoc = Document.createDocument("namespace", namespace)
+                .put("decorators", List.of(decoratorDoc));
+
+        when(decoratorCollection.find(where("namespace").eq(namespace))).thenReturn(cursor);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+
+        assertThrows(DecoratorNotFoundException.class, () -> decoratorStore.updateDecorator(namespace, 99, "{}"));
+    }
+
+    @Test
+    void testUpdateDecorator_Success() throws NamespaceNotFoundException, DecoratorNotFoundException {
+        String namespace = "test-namespace";
+        int decoratorId = 1;
+        String updatedJson = "{\"type\":\"deployment\",\"unique-id\":\"updated-id\"}";
+
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        Document decoratorDoc = Document.createDocument("decoratorId", decoratorId)
+                .put("decorator", Document.createDocument("type", "original"));
+        Document namespaceDoc = Document.createDocument("namespace", namespace)
+                .put("decorators", List.of(decoratorDoc));
+
+        when(decoratorCollection.find(where("namespace").eq(namespace))).thenReturn(cursor);
+        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
+
+        decoratorStore.updateDecorator(namespace, decoratorId, updatedJson);
+
+        verify(decoratorCollection).update(namespaceDoc);
     }
 }

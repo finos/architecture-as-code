@@ -172,22 +172,16 @@ public class NitriteDecoratorStore implements DecoratorStore {
             throw new DecoratorNotFoundException();
         }
 
-        boolean updated = false;
-        for (Document decoratorEntry : decorators) {
-            if (Integer.valueOf(id).equals(decoratorEntry.get(DECORATOR_ID_FIELD, Integer.class))) {
-                Document updatedDoc = Document.createDocument();
-                for (Map.Entry<String, Object> entry : org.bson.Document.parse(decoratorJson).entrySet()) {
-                    updatedDoc.put(entry.getKey(), entry.getValue());
-                }
-                decoratorEntry.put("decorator", updatedDoc);
-                updated = true;
-                break;
-            }
+        Document updatedDoc = Document.createDocument();
+        for (Map.Entry<String, Object> entry : org.bson.Document.parse(decoratorJson).entrySet()) {
+            updatedDoc.put(entry.getKey(), entry.getValue());
         }
 
-        if (!updated) {
-            throw new DecoratorNotFoundException();
-        }
+        decorators.stream()
+                .filter(decoratorEntry -> Integer.valueOf(id).equals(decoratorEntry.get(DECORATOR_ID_FIELD, Integer.class)))
+                .findFirst()
+                .orElseThrow(DecoratorNotFoundException::new)
+                .put("decorator", updatedDoc);
 
         namespaceDoc.put(DECORATORS_FIELD, decorators);
         decoratorCollection.update(namespaceDoc);

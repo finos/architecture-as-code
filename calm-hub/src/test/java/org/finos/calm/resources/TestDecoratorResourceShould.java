@@ -296,6 +296,20 @@ public class TestDecoratorResourceShould {
     }
 
     @Test
+    void return_404_when_decorator_not_found_exception_thrown_from_get_by_id() throws NamespaceNotFoundException, DecoratorNotFoundException {
+        String namespace = "test-namespace";
+        int decoratorId = 123;
+
+        when(decoratorStore.getDecoratorById(namespace, decoratorId)).thenThrow(new DecoratorNotFoundException());
+
+        given()
+                .when().get("/calm/namespaces/{namespace}/decorators/{id}", namespace, decoratorId)
+                .then()
+                .statusCode(404)
+                .body(containsString("Decorator with ID 123 does not exist in namespace: test-namespace"));
+    }
+
+    @Test
     void return_400_when_getting_by_id_with_invalid_namespace() {
         String invalidNamespace = "invalid namespace";
         int decoratorId = 123;
@@ -641,5 +655,29 @@ public class TestDecoratorResourceShould {
                 .then()
                 .statusCode(400)
                 .body(containsString("namespace must match pattern"));
+    }
+
+    @Test
+    void return_400_when_put_id_is_zero() {
+        given()
+                .contentType(ContentType.JSON)
+                .body(VALID_DECORATOR_JSON)
+                .when()
+                .put("/calm/namespaces/test-namespace/decorators/0")
+                .then()
+                .statusCode(400)
+                .body(containsString("ID must be a positive integer"));
+    }
+
+    @Test
+    void return_400_when_put_id_is_negative() {
+        given()
+                .contentType(ContentType.JSON)
+                .body(VALID_DECORATOR_JSON)
+                .when()
+                .put("/calm/namespaces/test-namespace/decorators/-1")
+                .then()
+                .statusCode(400)
+                .body(containsString("ID must be a positive integer"));
     }
 }
