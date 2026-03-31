@@ -9,6 +9,7 @@ import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.domain.Decorator;
+import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.DecoratorStore;
 import org.finos.calm.store.util.TypeSafeNitriteDocument;
@@ -96,7 +97,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
     }
 
     @Override
-    public Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException {
+    public Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException, DecoratorNotFoundException {
         validateNamespace(namespace);
 
         Document namespaceDoc = fetchNamespaceDocument(namespace);
@@ -154,6 +155,43 @@ public class NitriteDecoratorStore implements DecoratorStore {
 
         LOG.debug("Created decorator with ID {} in namespace '{}'", id, namespace);
         return id;
+    }
+
+    @Override
+    public void updateDecorator(String namespace, int id, String decoratorJson) throws NamespaceNotFoundException, DecoratorNotFoundException {
+        validateNamespace(namespace);
+
+        Document namespaceDoc = fetchNamespaceDocument(namespace);
+        if (namespaceDoc == null) {
+            throw new DecoratorNotFoundException();
+        }
+
+        TypeSafeNitriteDocument<Document> typeSafeDoc = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class);
+        List<Document> decorators = typeSafeDoc.getList(DECORATORS_FIELD);
+        if (decorators == null) {
+            throw new DecoratorNotFoundException();
+        }
+
+        boolean updated = false;
+        for (Document decoratorEntry : decorators) {
+            if (Integer.valueOf(id).equals(decoratorEntry.get(DECORATOR_ID_FIELD, Integer.class))) {
+                Document updatedDoc = Document.createDocument();
+                for (Map.Entry<String, Object> entry : org.bson.Document.parse(decoratorJson).entrySet()) {
+                    updatedDoc.put(entry.getKey(), entry.getValue());
+                }
+                decoratorEntry.put("decorator", updatedDoc);
+                updated = true;
+                break;
+            }
+        }
+
+        if (!updated) {
+            throw new DecoratorNotFoundException();
+        }
+
+        namespaceDoc.put(DECORATORS_FIELD, decorators);
+        decoratorCollection.update(namespaceDoc);
+        LOG.debug("Updated decorator with ID {} in namespace '{}'", id, namespace);
     }
 
     /**

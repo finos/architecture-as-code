@@ -1,6 +1,7 @@
 package org.finos.calm.store;
 
 import org.finos.calm.domain.Decorator;
+import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 
 import java.util.List;
@@ -41,7 +42,7 @@ public interface DecoratorStore {
      * @return an optional containing the decorator if found
      * @throws NamespaceNotFoundException if the namespace does not exist
      */
-    Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException;
+    Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException, DecoratorNotFoundException;
 
     /**
      * Create a new decorator in the given namespace.
@@ -52,4 +53,15 @@ public interface DecoratorStore {
      * @throws NamespaceNotFoundException if the namespace does not exist
      */
     int createDecorator(String namespace, String decoratorJson) throws NamespaceNotFoundException;
+
+    /**
+     * Update an existing decorator in the given namespace.
+     *
+     * @param namespace     the namespace containing the decorator
+     * @param id            the ID of the decorator to update
+     * @param decoratorJson the updated decorator as a raw JSON string
+     * @throws NamespaceNotFoundException  if the namespace does not exist
+     * @throws DecoratorNotFoundException  if no decorator with the given ID exists
+     */
+    void updateDecorator(String namespace, int id, String decoratorJson) throws NamespaceNotFoundException, DecoratorNotFoundException;
 }

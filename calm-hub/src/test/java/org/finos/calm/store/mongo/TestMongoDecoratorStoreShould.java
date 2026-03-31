@@ -5,6 +5,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -279,7 +280,7 @@ class TestMongoDecoratorStoreShould {
     }
 
     @Test
-    void should_return_decorator_by_id() throws NamespaceNotFoundException {
+    void should_return_decorator_by_id() throws NamespaceNotFoundException, DecoratorNotFoundException {
         // Given
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
@@ -314,7 +315,7 @@ class TestMongoDecoratorStoreShould {
     }
 
     @Test
-    void should_return_empty_optional_when_decorator_id_not_found() throws NamespaceNotFoundException {
+    void should_return_empty_optional_when_decorator_id_not_found() throws NamespaceNotFoundException, DecoratorNotFoundException {
         // Given
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
@@ -335,7 +336,7 @@ class TestMongoDecoratorStoreShould {
     }
 
     @Test
-    void should_return_empty_optional_from_get_by_id_when_namespace_document_is_null() throws NamespaceNotFoundException {
+    void should_return_empty_optional_from_get_by_id_when_namespace_document_is_null() throws NamespaceNotFoundException, DecoratorNotFoundException {
         // Given
         String namespace = "missing-namespace";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);

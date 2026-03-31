@@ -3,9 +3,9 @@ package org.finos.calm.store.nitrite;
 import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
-import org.finos.calm.store.nitrite.NitriteCounterStore;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.finos.calm.domain.Decorator;
+import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,7 +55,7 @@ class NitriteDecoratorStoreTest {
     }
 
     @Test
-    void testGetDecoratorById_Success() throws NamespaceNotFoundException {
+    void testGetDecoratorById_Success() throws NamespaceNotFoundException, DecoratorNotFoundException {
         String namespace = "test-namespace";
         int decoratorId = 1;
 
@@ -79,7 +79,7 @@ class NitriteDecoratorStoreTest {
     }
 
     @Test
-    void testGetDecoratorById_NotFound() throws NamespaceNotFoundException {
+    void testGetDecoratorById_NotFound() throws NamespaceNotFoundException, DecoratorNotFoundException {
         String namespace = "test-namespace";
         int decoratorId = 99;
 
@@ -109,7 +109,7 @@ class NitriteDecoratorStoreTest {
     }
 
     @Test
-    void testGetDecoratorById_NullNamespaceDocument() throws NamespaceNotFoundException {
+    void testGetDecoratorById_NullNamespaceDocument() throws NamespaceNotFoundException, DecoratorNotFoundException {
         String namespace = "test-namespace";
         int decoratorId = 1;
 
@@ -123,7 +123,7 @@ class NitriteDecoratorStoreTest {
     }
 
     @Test
-    void testGetDecoratorById_EmptyDecoratorsList() throws NamespaceNotFoundException {
+    void testGetDecoratorById_EmptyDecoratorsList() throws NamespaceNotFoundException, DecoratorNotFoundException {
         String namespace = "test-namespace";
         int decoratorId = 1;
 
@@ -141,7 +141,7 @@ class NitriteDecoratorStoreTest {
     }
 
     @Test
-    void testGetDecoratorById_MapsAllFields() throws NamespaceNotFoundException {
+    void testGetDecoratorById_MapsAllFields() throws NamespaceNotFoundException, DecoratorNotFoundException {
         String namespace = "test-namespace";
         int decoratorId = 1;
 
