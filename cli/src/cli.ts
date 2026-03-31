@@ -48,7 +48,7 @@ export function setupCLI(program: Command) {
         .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
-        .option(OPTION_CHOICES_OPTION, 'Pre-defined option choices as a JSON array of description strings, or a path to a JSON file. Skips interactive prompts.')
+        .option(OPTION_CHOICES_OPTION, 'Pre-defined option choices as a JSON object mapping option unique-ids to choice descriptions, or a path to a JSON file. Skips interactive prompts.')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
             const debug = !!options.verbose;

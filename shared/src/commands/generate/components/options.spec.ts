@@ -154,6 +154,7 @@ describe('Pattern Options', () => {
 
             const expectedOptions: CalmOption[] = [{
                 optionType: 'oneOf',
+                optionId: 'option-id',
                 prompt: 'The choice of nodes and relationships in the pattern',
                 choices: [applicationAtoC, applicationBtoC]
             }];
@@ -166,13 +167,14 @@ describe('Pattern Options', () => {
                 [],
                 [buildPatternOptionRelationship(
                     'option-id',
-                    'The choice of nodes and relationships in the pattern', 
+                    'The choice of nodes and relationships in the pattern',
                     buildPatternOption('anyOf', buildPatternChoice(applicationAtoC), buildPatternChoice(applicationBtoC))
                 )]
             );
 
             const expectedOptions: CalmOption[] = [{
                 optionType: 'anyOf',
+                optionId: 'option-id',
                 prompt: 'The choice of nodes and relationships in the pattern',
                 choices: [applicationAtoC, applicationBtoC]
             }];
@@ -212,11 +214,13 @@ describe('Pattern Options', () => {
             const expectedOptions: CalmOption[] = [
                 {
                     optionType: 'oneOf',
+                    optionId: 'option-id',
                     prompt: 'The choice of node A or node B connecting to node C',
                     choices: [applicationAtoC, applicationBtoC]
                 },
                 {
                     optionType: 'anyOf',
+                    optionId: 'option-id-2',
                     prompt: 'The choice of node X or node Y connecting to node Z',
                     choices: [applicationXtoZ, applicationYtoZ]
                 }
@@ -313,6 +317,7 @@ describe('Pattern Options', () => {
 
             const expectedOptions: CalmOption[] = [{
                 optionType: 'oneOf',
+                optionId: 'option-id',
                 prompt: 'Choose connection type',
                 choices: [applicationAtoC, applicationBtoC]
             }];
@@ -353,6 +358,7 @@ describe('Pattern Options', () => {
 
             const expectedOptions: CalmOption[] = [{
                 optionType: 'anyOf',
+                optionId: 'option-id',
                 prompt: 'Choose from base',
                 choices: [applicationXtoZ, applicationYtoZ]
             }];

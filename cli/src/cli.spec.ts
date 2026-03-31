@@ -86,10 +86,10 @@ describe('CLI Commands', () => {
                 'node', 'cli.js', 'generate',
                 '-p', 'pattern.json',
                 '-o', 'output.json',
-                '--option-choices', '["Use HTTP"]',
+                '--option-choices', '{"connection-options": "Use HTTP"}',
             ]);
 
-            expect(optionsModule.loadChoicesFromInput).toHaveBeenCalledWith('["Use HTTP"]', {}, false);
+            expect(optionsModule.loadChoicesFromInput).toHaveBeenCalledWith('{"connection-options": "Use HTTP"}', {}, false);
             expect(optionsModule.promptUserForOptions).not.toHaveBeenCalled();
             expect(calmShared.runGenerate).toHaveBeenCalledWith(
                 {}, 'output.json', false, expect.any(calmShared.SchemaDirectory), preDefinedChoices
