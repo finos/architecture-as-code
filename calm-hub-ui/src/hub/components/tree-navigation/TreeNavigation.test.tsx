@@ -45,6 +45,13 @@ vi.mock('../../../service/calm-service.js', () => ({
     })
 }));
 
+vi.mock('../../../service/control-service.js', () => ({
+    ControlService: vi.fn().mockImplementation(() => ({
+        fetchDomains: vi.fn().mockResolvedValue(['test-domain']),
+        fetchControlsForDomain: vi.fn().mockResolvedValue([]),
+    })),
+}));
+
 let adrServiceInstance: {
     fetchAdrIDs: Mock;
     fetchAdrRevisions: Mock;
@@ -63,7 +70,8 @@ vi.mock('../../../service/adr-service/adr-service.js', () => ({
 
 const mockProps = {
     onDataLoad: vi.fn(),
-    onAdrLoad: vi.fn()
+    onAdrLoad: vi.fn(),
+    onControlLoad: vi.fn()
 };
 
 describe('TreeNavigation', () => {
@@ -77,8 +85,10 @@ describe('TreeNavigation', () => {
         </MemoryRouter>);
 
         expect(screen.getByText('Namespaces')).toBeInTheDocument();
+        expect(screen.getByText('Control Domains')).toBeInTheDocument();
         expect(await screen.findByText('test-namespace')).toBeInTheDocument();
         expect(screen.getByText('another-namespace')).toBeInTheDocument();
+        expect(screen.getByText('test-domain')).toBeInTheDocument();
     });
 
     it('shows resource types only when namespace is selected', async () => {

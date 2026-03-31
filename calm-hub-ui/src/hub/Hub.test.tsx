@@ -8,10 +8,12 @@ vi.mock('./components/tree-navigation/TreeNavigation', () => ({
     TreeNavigation: ({
         onDataLoad,
         onAdrLoad,
+        onControlLoad,
         onCollapse,
     }: {
         onDataLoad: (data: unknown) => void;
         onAdrLoad: (adr: unknown) => void;
+        onControlLoad: (control: unknown) => void;
         onCollapse?: () => void;
     }) => (
         <div data-testid="tree-navigation">
@@ -37,6 +39,18 @@ vi.mock('./components/tree-navigation/TreeNavigation', () => ({
             <button onClick={() => onAdrLoad({ id: 'test-adr', revision: '1.0' })}>
                 Load Test ADR
             </button>
+            <button
+                onClick={() =>
+                    onControlLoad({
+                        domain: 'test-domain',
+                        controlId: 1,
+                        controlName: 'test-control',
+                        controlDescription: 'A test control',
+                    })
+                }
+            >
+                Load Test Control
+            </button>
         </div>
     ),
 }));
@@ -50,6 +64,12 @@ vi.mock('./components/json-renderer/JsonRenderer', () => ({
 vi.mock('./components/adr-renderer/AdrRenderer', () => ({
     AdrRenderer: ({ adrDetails }: { adrDetails: { id?: string } }) => (
         <div data-testid="adr-renderer">ADR: {adrDetails?.id}</div>
+    ),
+}));
+
+vi.mock('./components/control-detail-section/ControlDetailSection', () => ({
+    ControlDetailSection: ({ controlData }: { controlData: { controlName?: string } }) => (
+        <div data-testid="control-detail-section">Control: {controlData?.controlName}</div>
     ),
 }));
 
@@ -136,6 +156,39 @@ describe('Hub', () => {
         fireEvent.click(screen.getByText('Load Test Data'));
         expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
         expect(screen.queryByTestId('adr-renderer')).not.toBeInTheDocument();
+    });
+
+    it('renders ControlDetailSection when control data is loaded', () => {
+        renderWithRouter(<Hub />);
+
+        // Initially, control section should not be visible
+        expect(screen.queryByTestId('control-detail-section')).not.toBeInTheDocument();
+
+        // Click the Load Test Control button to simulate control loading
+        fireEvent.click(screen.getByText('Load Test Control'));
+
+        // Now ControlDetailSection should be visible
+        expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
+        expect(screen.getByTestId('control-detail-section')).toHaveTextContent('Control: test-control');
+    });
+
+    it('switches between Control and other views correctly', () => {
+        renderWithRouter(<Hub />);
+
+        // Load control data
+        fireEvent.click(screen.getByText('Load Test Control'));
+        expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
+        expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
+
+        // Switch to regular data (Pattern type renders DiagramSection)
+        fireEvent.click(screen.getByText('Load Test Data'));
+        expect(screen.queryByTestId('control-detail-section')).not.toBeInTheDocument();
+        expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
+
+        // Switch back to control
+        fireEvent.click(screen.getByText('Load Test Control'));
+        expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
+        expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
     });
 
     describe('sidebar collapse', () => {

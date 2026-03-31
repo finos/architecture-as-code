@@ -1,9 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { IoCompassOutline, IoChevronBackOutline, IoListOutline, IoGitBranchOutline } from 'react-icons/io5';
 import { CalmService } from '../../../service/calm-service.js';
+import { ControlService } from '../../../service/control-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
 import { Data, Adr } from '../../../model/calm.js';
+import { ControlDetail, ControlData } from '../../../model/control.js';
 import { useNavigate, useParams } from 'react-router-dom';
+import { DomainItem } from './DomainItem.js';
 
 type TypeInUrl = 'architectures' | 'patterns' | 'flows' | 'adrs';
 type TypeInUI = 'Architectures' | 'Patterns' | 'Flows' | 'ADRs';
@@ -54,6 +57,7 @@ const EMPTY_STR_VALUE = '';
 interface TreeNavigationProps {
     onDataLoad: (data: Data) => void;
     onAdrLoad: (adr: Adr) => void;
+    onControlLoad: (control: ControlData) => void;
     onCollapse?: () => void;
 }
 
@@ -419,7 +423,7 @@ function loadResource({
     }
 }
 
-export function TreeNavigation({ onDataLoad, onAdrLoad, onCollapse }: TreeNavigationProps) {
+export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onCollapse }: TreeNavigationProps) {
     const navigate = useNavigate();
     const params = useParams<HubParams>();
 
@@ -439,7 +443,14 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onCollapse }: TreeNaviga
     const [flowVersions, setFlowVersions] = useState<string[]>([]);
     const [adrRevisions, setAdrRevisions] = useState<string[]>([]);
 
+    // Domain / Controls state
+    const [domains, setDomains] = useState<string[]>([]);
+    const [selectedDomain, setSelectedDomain] = useState<string>('');
+    const [domainControls, setDomainControls] = useState<ControlDetail[]>([]);
+    const [selectedControlId, setSelectedControlId] = useState<number | null>(null);
+
     const calmService = useMemo(() => new CalmService(), []);
+    const controlService = useMemo(() => new ControlService(), []);
     const adrService = useMemo(() => new AdrService(), []);
     const [viewMode, setViewMode] = useState<'flat' | 'hierarchical'>('hierarchical');
     const namespaceTree = useMemo(() => {
@@ -449,7 +460,8 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onCollapse }: TreeNaviga
 
     useEffect(() => {
         calmService.fetchNamespaces().then(setNamespaces);
-    }, [calmService]);
+        controlService.fetchDomains().then(setDomains);
+    }, [calmService, controlService]);
 
     useEffect(() => {
         if (params.namespace && params.type && params.id && params.version) {
@@ -500,7 +512,35 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onCollapse }: TreeNaviga
         setSelectedType(EMPTY_STR_VALUE);
         setSelectedResourceID(EMPTY_STR_VALUE);
         setSelectedVersion(EMPTY_STR_VALUE);
+        // Clear domain selection when navigating namespaces
+        setSelectedDomain('');
+        setSelectedControlId(null);
     }, [selectedNamespace]);
+
+    const handleDomainClick = (domain: string) => {
+        if (selectedDomain === domain) {
+            setSelectedDomain('');
+        } else {
+            setSelectedDomain(domain);
+            controlService.fetchControlsForDomain(domain).then(setDomainControls);
+        }
+        setSelectedControlId(null);
+        // Clear namespace selection when navigating domains
+        setSelectedNamespace(EMPTY_STR_VALUE);
+        setSelectedType(EMPTY_STR_VALUE);
+        setSelectedResourceID(EMPTY_STR_VALUE);
+        setSelectedVersion(EMPTY_STR_VALUE);
+    };
+
+    const handleControlClick = (control: ControlDetail) => {
+        setSelectedControlId(control.id);
+        onControlLoad({
+            domain: selectedDomain,
+            controlId: control.id,
+            controlName: control.name,
+            controlDescription: control.description,
+        });
+    };
 
     const handleTypeClick = useCallback((type: string) => {
         if (selectedType === type) {
@@ -629,6 +669,22 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onCollapse }: TreeNaviga
                                     onTypeClick={handleTypeClick}
                                     onResourceClick={handleResourceClick}
                                     onVersionClick={handleVersionClick}
+                                />
+                            ))}
+                        </ul>
+                    </li>
+                    <li>
+                        <a>Control Domains</a>
+                        <ul>
+                            {domains.map((domain) => (
+                                <DomainItem
+                                    key={domain}
+                                    domain={domain}
+                                    isSelected={selectedDomain === domain}
+                                    controls={domainControls}
+                                    selectedControlId={selectedControlId}
+                                    onDomainClick={handleDomainClick}
+                                    onControlClick={handleControlClick}
                                 />
                             ))}
                         </ul>

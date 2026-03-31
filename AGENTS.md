@@ -62,9 +62,30 @@ architecture-as-code/
 
 ## Node Version Requirements
 
-**CRITICAL**: This project targets **Node 22** as its CI baseline. All CI workflows run on Node 22, and lockfiles must be compatible with Node 22.
+**CRITICAL — YOU MUST USE NODE 22**: This project targets **Node 22** as its CI baseline. All CI workflows run on Node 22, and lockfiles must be compatible with Node 22. **Do not use Node 25 or any other unsupported version — tests will fail silently or produce false results.**
 
 The `engines` field in `package.json` (`^22.14.0 || >=24.10.0`) also permits Node 24+ for local development, but **Node 22 is the canonical version** used to validate builds and tests.
+
+**Before running any commands**, verify your Node version:
+```bash
+node --version   # MUST show v22.x.x
+```
+
+If you are on the wrong version:
+```bash
+# If using Homebrew:
+brew install node@22
+export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
+
+# If using nvm:
+nvm use   # reads .nvmrc → 22.14.0
+```
+
+### Known Node 25 Bug — localStorage
+
+Node 25 introduces a built-in `localStorage` global that is an **incomplete stub** (no `.clear()`, `.getItem()`, etc.). This shadows jsdom's full `localStorage` implementation during vitest runs, causing **false test failures** in any test that uses `localStorage` (e.g. `node-position-service.test.tsx`). These tests pass on Node 22 and in CI. **If you see `TypeError: localStorage.clear is not a function`, you are on the wrong Node version.**
+
+### Configuration Details
 
 - **`.nvmrc`** pins `22.14.0` — run `nvm use` to switch automatically
 - **`.npmrc`** has `engine-strict=true` — `npm install` will refuse to run on Node versions outside the `engines` range (e.g. Node 18, 20, or 23)
@@ -85,10 +106,11 @@ rm -rf node_modules package-lock.json && npm install
 
 ### Why this matters
 
-Running `npm install` on a different Node major version (e.g. Node 25) causes:
-1. **Native binding failures** — platform-specific packages (`@swc/core`, `@tailwindcss/oxide`) resolve for the wrong Node ABI, breaking CI builds
-2. **`@types/node` version drift** — transitive deps with loose constraints (`>=18`, `*`) allow `@types/node@25` to be hoisted to root, masking usage of APIs unavailable in Node 22
-3. **Noisy lockfile diffs** — Renovate's `npmDedupe` recalculates the dependency tree, producing large spurious changes
+Running `npm install` or tests on a different Node major version (e.g. Node 25) causes:
+1. **Test failures from global API conflicts** — Node 25 exposes incomplete browser API stubs (`localStorage`) that shadow jsdom's implementations, causing tests to fail with cryptic errors that **do not reproduce in CI**
+2. **Native binding failures** — platform-specific packages (`@swc/core`, `@tailwindcss/oxide`) resolve for the wrong Node ABI, breaking CI builds
+3. **`@types/node` version drift** — transitive deps with loose constraints (`>=18`, `*`) allow `@types/node@25` to be hoisted to root, masking usage of APIs unavailable in Node 22
+4. **Noisy lockfile diffs** — Renovate's `npmDedupe` recalculates the dependency tree, producing large spurious changes
 
 ## Quick Navigation
 
@@ -97,6 +119,7 @@ Running `npm install` on a different Node major version (e.g. Node 25) causes:
 For detailed guidance on specific packages, see:
 - **[cli/AGENTS.md](cli/AGENTS.md)** - CLI commands, build pipeline, Commander.js patterns
 - **[calm-hub/AGENTS.md](calm-hub/AGENTS.md)** - Java/Quarkus backend, storage modes, security
+- **[calm-hub-ui/AGENTS.md](calm-hub-ui/AGENTS.md)** - React frontend, service patterns, component conventions
 - **[calm-plugins/vscode/AGENTS.md](calm-plugins/vscode/AGENTS.md)** - VSCode extension, MVVM architecture
 - **[calm-widgets/AGENTS.md](calm-widgets/AGENTS.md)** - Widget system, Handlebars templates, common pitfalls
 - **[advent-of-calm/AGENTS.md](advent-of-calm/AGENTS.md)** - Educational content, day format, testing
