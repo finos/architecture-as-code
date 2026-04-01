@@ -1,4 +1,4 @@
-import { UserManager, Log, User } from 'oidc-client';
+import { UserManager, Log, User } from 'oidc-client-ts';
 import axios from 'axios';
 
 const config = {
@@ -28,8 +28,8 @@ export function isAuthServiceEnabled(): boolean {
 
 if (isAuthServiceEnabled()) {
     userManager = new UserManager(config);
-    Log.logger = console;
-    Log.level = Log.INFO;
+    Log.setLogger(console);
+    Log.setLevel(Log.INFO);
 }
 
 export async function getUser(): Promise<User | null> {
