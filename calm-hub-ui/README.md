@@ -99,7 +99,7 @@ Outputs an optimized production bundle to the `build` folder.
 | Visualization | ReactFlow, Dagre, D3 |
 | Styling | TailwindCSS, DaisyUI |
 | Code Display | Monaco Editor, react-json-view-lite |
-| Auth | OpenID Connect (oidc-client) |
+| Auth | OpenID Connect (oidc-client-ts) |
 | Testing | Vitest, Cypress |
 | Build | Vite |
 
