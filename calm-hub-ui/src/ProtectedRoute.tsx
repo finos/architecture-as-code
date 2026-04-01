@@ -1,5 +1,5 @@
 import React, { ReactNode, useEffect, useState } from 'react';
-import { User } from 'oidc-client';
+import { User } from 'oidc-client-ts';
 import { authService } from './authService.js';
 
 interface ProtectedRouteProps {
