@@ -20,6 +20,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
+import org.finos.calm.domain.adr.NamespaceAdrSummary;
 import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.exception.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -123,15 +124,25 @@ public class TestMongoAdrStoreShould {
         Document documentMock = Mockito.mock(Document.class);
         when(findIterable.first()).thenReturn(documentMock);
 
-        Document doc1 = new Document("adrId", 1001);
-        Document doc2 = new Document("adrId", 1002);
+        Document rev1 = new Document("title", "First ADR").append("status", "draft");
+        Document doc1 = new Document("adrId", 1001)
+                .append("revisions", new Document("1", rev1));
+        Document rev2 = new Document("title", "Second ADR").append("status", "accepted");
+        Document doc2 = new Document("adrId", 1002)
+                .append("revisions", new Document("1", rev2));
 
         when(documentMock.getList("adrs", Document.class))
                 .thenReturn(Arrays.asList(doc1, doc2));
 
-        List<Integer> adrIds = mongoAdrStore.getAdrsForNamespace(NAMESPACE);
+        List<NamespaceAdrSummary> summaries = mongoAdrStore.getAdrsForNamespace(NAMESPACE);
 
-        assertThat(adrIds, is(Arrays.asList(1001, 1002)));
+        assertThat(summaries.size(), is(2));
+        assertThat(summaries.get(0).getTitle(), is("First ADR"));
+        assertThat(summaries.get(0).getStatus(), is("draft"));
+        assertThat(summaries.get(0).getId(), is(1001));
+        assertThat(summaries.get(1).getTitle(), is("Second ADR"));
+        assertThat(summaries.get(1).getStatus(), is("accepted"));
+        assertThat(summaries.get(1).getId(), is(1002));
         verify(namespaceStore).namespaceExists(NAMESPACE);
     }
 

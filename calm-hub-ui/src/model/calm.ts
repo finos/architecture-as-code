@@ -27,32 +27,41 @@ export interface ResourceSummary {
     description: string;
 }
 
+/**
+ * Summary returned from the API for ADR resources (title + status instead of name + description).
+ */
+export interface AdrSummary {
+    id: number;
+    title: string;
+    status: string;
+}
+
 export type Data =
     | {
-          id: string;
-          version: string;
-          name: Namespace;
-          data: Architecture | undefined;
-          calmType: 'Architectures';
-      }
+        id: string;
+        version: string;
+        name: Namespace;
+        data: Architecture | undefined;
+        calmType: 'Architectures';
+    }
     | {
-          id: string;
-          version: string;
-          name: Namespace;
-          data: Pattern | undefined;
-          calmType: 'Patterns';
-      }
+        id: string;
+        version: string;
+        name: Namespace;
+        data: Pattern | undefined;
+        calmType: 'Patterns';
+    }
     | {
-          id: string;
-          version: string;
-          name: Namespace;
-          data: Flow | undefined;
-          calmType: 'Flows';
-      }
+        id: string;
+        version: string;
+        name: Namespace;
+        data: Flow | undefined;
+        calmType: 'Flows';
+    }
     | {
-          id: string;
-          version: string;
-          name: Namespace;
-          data: Adr | undefined;
-          calmType: 'ADRs';
-      };
+        id: string;
+        version: string;
+        name: Namespace;
+        data: Adr | undefined;
+        calmType: 'ADRs';
+    };

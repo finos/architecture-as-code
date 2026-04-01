@@ -65,14 +65,14 @@ vi.mock('../../../service/interface-service.js', () => ({
 }));
 
 let adrServiceInstance: {
-    fetchAdrIDs: Mock;
+    fetchAdrSummaries: Mock;
     fetchAdrRevisions: Mock;
     fetchAdr: Mock;
 } | undefined;
 vi.mock('../../../service/adr-service/adr-service.js', () => ({
     AdrService: vi.fn().mockImplementation(() => {
         adrServiceInstance = {
-            fetchAdrIDs: vi.fn().mockResolvedValue(['201', '202']),
+            fetchAdrSummaries: vi.fn().mockResolvedValue([{ id: 201, title: 'Use CALM', status: 'accepted' }, { id: 202, title: 'Use React', status: 'proposed' }]),
             fetchAdrRevisions: vi.fn().mockResolvedValue(['v1.0', 'v2.0']),
             fetchAdr: vi.fn().mockResolvedValue({})
         };
@@ -204,7 +204,7 @@ describe('TreeNavigation', () => {
         </MemoryRouter>);
 
         await waitFor(() => {
-            expect(adrServiceInstance?.fetchAdrIDs).toHaveBeenCalledWith('test-namespace');
+            expect(adrServiceInstance?.fetchAdrSummaries).toHaveBeenCalledWith('test-namespace');
             expect(adrServiceInstance?.fetchAdrRevisions).toHaveBeenCalledWith('test-namespace', '201');
             expect(adrServiceInstance?.fetchAdr).toHaveBeenCalledWith('test-namespace', '201', 'v2.0');
         });

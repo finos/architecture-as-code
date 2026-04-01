@@ -4,7 +4,7 @@ import { CalmService } from '../../../service/calm-service.js';
 import { ControlService } from '../../../service/control-service.js';
 import { InterfaceService } from '../../../service/interface-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
-import { Data, Adr, ResourceSummary } from '../../../model/calm.js';
+import { Data, Adr, ResourceSummary, AdrSummary } from '../../../model/calm.js';
 import { ControlDetail, ControlData } from '../../../model/control.js';
 import { InterfaceDetail, InterfaceData } from '../../../model/interface.js';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -29,7 +29,7 @@ interface LoadResourceIdsOptions {
     setFlowSummaries: (summaries: ResourceSummary[]) => void;
     setStandardSummaries: (summaries: ResourceSummary[]) => void;
     adrService: AdrService;
-    setAdrIDs: (ids: string[]) => void;
+    setAdrSummaries: (summaries: AdrSummary[]) => void;
 }
 
 interface LoadVersionsOptions {
@@ -422,7 +422,7 @@ function loadResourceIds({
     setFlowSummaries, 
     setStandardSummaries,
     adrService, 
-    setAdrIDs 
+    setAdrSummaries 
 }: LoadResourceIdsOptions) {
     if (type === 'Architectures') {
         calmService.fetchArchitectureSummaries(namespace).then(setArchitectureSummaries);
@@ -433,9 +433,7 @@ function loadResourceIds({
     } else if (type === 'Standards') {
         calmService.fetchStandardSummaries(namespace).then(setStandardSummaries);
     } else if (type === 'ADRs') {
-        adrService
-            .fetchAdrIDs(namespace)
-            .then((ids) => setAdrIDs(ids.map((id) => id.toString())));
+        adrService.fetchAdrSummaries(namespace).then(setAdrSummaries);
     }
 }
 
@@ -503,7 +501,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
     const [patternSummaries, setPatternSummaries] = useState<ResourceSummary[]>([]);
     const [flowSummaries, setFlowSummaries] = useState<ResourceSummary[]>([]);
     const [standardSummaries, setStandardSummaries] = useState<ResourceSummary[]>([]);
-    const [adrIDs, setAdrIDs] = useState<string[]>([]);
+    const [adrSummaries, setAdrSummaries] = useState<AdrSummary[]>([]);
 
     const [architectureVersions, setArchitectureVersions] = useState<string[]>([]);
     const [patternVersions, setPatternVersions] = useState<string[]>([]);
@@ -549,7 +547,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                 setFlowSummaries,
                 setStandardSummaries,
                 adrService,
-                setAdrIDs,
+                setAdrSummaries,
             });
             setSelectedResourceID(params.id);
             loadVersions({
@@ -650,7 +648,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
                     setFlowSummaries,
                     setStandardSummaries,
                     adrService,
-                    setAdrIDs,
+                    setAdrSummaries,
                 });
             }
         }
@@ -691,7 +689,7 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
             case 'Standards':
                 return standardSummaries.map((s) => s.id.toString());
             case 'ADRs':
-                return adrIDs;
+                return adrSummaries.map((s) => s.id.toString());
             default:
                 return [];
         }
@@ -714,6 +712,10 @@ export function TreeNavigation({ onDataLoad, onAdrLoad, onControlLoad, onInterfa
             case 'Standards':
                 return Object.fromEntries(
                     standardSummaries.map((s) => [s.id.toString(), s.name])
+                );
+            case 'ADRs':
+                return Object.fromEntries(
+                    adrSummaries.map((s) => [s.id.toString(), s.title + ' (' + s.status + ')'])
                 );
             default:
                 return {};

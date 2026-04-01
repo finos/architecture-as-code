@@ -16,12 +16,14 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
+import org.finos.calm.domain.adr.NamespaceAdrSummary;
 import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.exception.*;
 import org.finos.calm.store.AdrStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -45,7 +47,7 @@ public class MongoAdrStore implements AdrStore {
     }
 
     @Override
-    public List<Integer> getAdrsForNamespace(String namespace) throws NamespaceNotFoundException {
+    public List<NamespaceAdrSummary> getAdrsForNamespace(String namespace) throws NamespaceNotFoundException {
         if(!namespaceStore.namespaceExists(namespace)) {
             throw new NamespaceNotFoundException();
         }
@@ -58,8 +60,33 @@ public class MongoAdrStore implements AdrStore {
         }
 
         List<Document> adrs = namespaceDocument.getList("adrs", Document.class);
+        List<NamespaceAdrSummary> summaries = new ArrayList<>();
 
-        return adrs.stream().map(adr -> adr.getInteger("adrId")).toList();
+        for (Document adr : adrs) {
+            int adrId = adr.getInteger("adrId");
+            String title = "ADR " + adrId;
+            String status = "unknown";
+
+            Document revisions = (Document) adr.get("revisions");
+            if (revisions != null && !revisions.isEmpty()) {
+                int latestRevision = revisions.keySet().stream()
+                        .map(Integer::parseInt)
+                        .mapToInt(i -> i)
+                        .max()
+                        .getAsInt();
+                Document revisionDoc = (Document) revisions.get(String.valueOf(latestRevision));
+                if (revisionDoc != null) {
+                    String docTitle = revisionDoc.getString("title");
+                    String docStatus = revisionDoc.getString("status");
+                    if (docTitle != null) title = docTitle;
+                    if (docStatus != null) status = docStatus;
+                }
+            }
+
+            summaries.add(new NamespaceAdrSummary(title, status, adrId));
+        }
+
+        return summaries;
     }
 
     @Override

@@ -21,24 +21,24 @@ describe('Adr Service ', () => {
         mock.reset();
     });
 
-    it('should retrieve all the ADRs IDs for a given namespace', async () => {
-        const expectedAdrIds = [1, 2];
+    it('should retrieve all the ADR summaries for a given namespace', async () => {
+        const expectedAdrSummaries = [{ id: 1, title: 'Use CALM', status: 'accepted' }, { id: 2, title: 'Use React', status: 'proposed' }];
         mock.onGet(`/calm/namespaces/${namespace}/adrs`).reply(200, {
-            values: expectedAdrIds,
+            values: expectedAdrSummaries,
         });
-        const actualAdrIDs = await adrService.fetchAdrIDs(namespace);
-        expect(actualAdrIDs).toEqual(expectedAdrIds);
+        const actualAdrSummaries = await adrService.fetchAdrSummaries(namespace);
+        expect(actualAdrSummaries).toEqual(expectedAdrSummaries);
     });
 
     it.each(errorStatusCodes)(
-        'should throw an error when backend service returns an unsuccessful status code while retrieving all the ADR IDs',
+        'should throw an error when backend service returns an unsuccessful status code while retrieving all the ADR summaries',
         async (errorStatusCode) => {
             const errorMessage = `
         {
             "message": "An Error Occurred",
         }`;
             mock.onGet(`/calm/namespaces/${namespace}/adrs`).reply(errorStatusCode, errorMessage);
-            expect(async () => await adrService.fetchAdrIDs(namespace)).rejects.toThrowError();
+            expect(async () => await adrService.fetchAdrSummaries(namespace)).rejects.toThrowError();
         }
     );
 

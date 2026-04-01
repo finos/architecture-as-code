@@ -1,6 +1,7 @@
 package org.finos.calm.store;
 
 import org.finos.calm.domain.adr.AdrMeta;
+import org.finos.calm.domain.adr.NamespaceAdrSummary;
 import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.exception.AdrNotFoundException;
 import org.finos.calm.domain.exception.AdrParseException;
@@ -12,7 +13,7 @@ import java.util.List;
 
 public interface AdrStore {
 
-    List<Integer> getAdrsForNamespace(String namespace) throws NamespaceNotFoundException;
+    List<NamespaceAdrSummary> getAdrsForNamespace(String namespace) throws NamespaceNotFoundException;
     AdrMeta createAdrForNamespace(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrParseException;
     AdrMeta getAdr(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException;
     List<Integer> getAdrRevisions(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException;

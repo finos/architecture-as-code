@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { getAuthHeaders } from '../../authService.js';
 import { CalmAdrMeta } from '@finos/calm-shared/src/view-model/adr.js';
+import { AdrSummary } from '../../model/calm.js';
 
 export class AdrService {
     private readonly ax: AxiosInstance;
@@ -13,18 +14,20 @@ export class AdrService {
         }
     }
     /**
-     * Fetch adr IDs for a given namespace and set them using the provided setter function.
+     * Fetch ADR summaries for a given namespace.
      */
-    async fetchAdrIDs(namespace: string) : Promise<number[]> {
+    async fetchAdrSummaries(namespace: string): Promise<AdrSummary[]> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/calm/namespaces/${encodeURIComponent(namespace)}/adrs`, {
                 headers,
             })
-            .then((res) => res.data.values)
+            .then((res) => {
+                return Array.isArray(res.data?.values) ? res.data.values : [];
+            })
             .catch((error) => {
-                const errorMessage = `Error fetching adr IDs for namespace ${namespace}:`;
-                console.error('Error fetching adr IDs for namespace %s:', namespace, error);
+                const errorMessage = `Error fetching ADR summaries for namespace ${namespace}:`;
+                console.error('Error fetching ADR summaries for namespace %s:', namespace, error);
                 return Promise.reject(new Error(errorMessage));
             });
     }
