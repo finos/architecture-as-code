@@ -193,6 +193,56 @@ export class CalmService {
             });
     }
 
+    public async fetchStandardSummaries(namespace: string): Promise<ResourceSummary[]> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/standards`, { headers })
+            .then((res) => {
+                return Array.isArray(res.data?.values) ? res.data.values : [];
+            })
+            .catch((error) => {
+                const errorMessage = `Error fetching standards for namespace ${namespace}:`;
+                // arg1 is %s to prevent format string injection from `namespace`.
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async fetchStandardVersions(namespace: string, standardID: string): Promise<string[]> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/standards/${standardID}/versions`, { headers })
+            .then((res) => res.data.values)
+            .catch((error) => {
+                const errorMessage = `Error fetching versions for standard ID ${standardID}:`;
+                // arg1 is %s to prevent format string injection from `standardID`.
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async fetchStandard(namespace: string, standardID: string, version: string): Promise<Data> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get(
+                `/calm/namespaces/${encodeURIComponent(namespace)}/standards/${standardID}/versions/${version}`,
+                { headers }
+            )
+            .then((res) => ({
+                id: standardID,
+                version: version,
+                calmType: 'Standards',
+                name: namespace,
+                data: res.data,
+            }))
+            .catch((error) => {
+                const errorMessage = `Error fetching standard for namespace ${namespace}, standard ID ${standardID}, version ${version}:`;
+                // arg1 is %s to prevent format string injection from `namespace`, `standardID`, and `version`.
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
     /**
      * Fetch decorator values for a given namespace with optional target and type filters.
     */

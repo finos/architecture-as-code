@@ -248,6 +248,73 @@ describe('CalmService', () => {
         });
     });
 
+    describe('fetchStandardSummaries', () => {
+        it('should retrieve standard summaries for a namespace', async () => {
+            const expectedSummaries = [
+                { id: 10, name: 'Standard One', description: 'First' },
+                { id: 20, name: 'Standard Two', description: 'Second' },
+            ];
+            mock.onGet(`/calm/namespaces/${encodeURIComponent(namespace)}/standards`).reply(200, {
+                values: expectedSummaries,
+            });
+            const actual = await calmService.fetchStandardSummaries(namespace);
+            expect(actual).toEqual(expectedSummaries);
+        });
+
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(`/calm/namespaces/${encodeURIComponent(namespace)}/standards`).reply(500, {
+                message: 'Error',
+            });
+            await expect(calmService.fetchStandardSummaries(namespace)).rejects.toThrowError();
+        });
+    });
+
+    describe('fetchStandardVersions', () => {
+        it('should retrieve versions for a standard', async () => {
+            const expectedVersions = ['1.0.0', '2.0.0'];
+            mock.onGet(`/calm/namespaces/${encodeURIComponent(namespace)}/standards/${resourceId}/versions`).reply(200, {
+                values: expectedVersions,
+            });
+            const actual = await calmService.fetchStandardVersions(namespace, resourceId);
+            expect(actual).toEqual(expectedVersions);
+        });
+
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(
+                `/calm/namespaces/${encodeURIComponent(namespace)}/standards/${resourceId}/versions`
+            ).reply(500, { message: 'Error' });
+            await expect(
+                calmService.fetchStandardVersions(namespace, resourceId)
+            ).rejects.toThrowError();
+        });
+    });
+
+    describe('fetchStandard', () => {
+        it('should retrieve a specific standard', async () => {
+            const responseData = { nodes: [], relationships: [] };
+            mock.onGet(
+                `/calm/namespaces/${encodeURIComponent(namespace)}/standards/${resourceId}/versions/${version}`
+            ).reply(200, responseData);
+            const actual = await calmService.fetchStandard(namespace, resourceId, version);
+            expect(actual).toEqual({
+                id: resourceId,
+                version: version,
+                calmType: 'Standards',
+                name: namespace,
+                data: responseData,
+            });
+        });
+
+        it('should throw an error when backend returns error status', async () => {
+            mock.onGet(
+                `/calm/namespaces/${encodeURIComponent(namespace)}/standards/${resourceId}/versions/${version}`
+            ).reply(500, { message: 'Error' });
+            await expect(
+                calmService.fetchStandard(namespace, resourceId, version)
+            ).rejects.toThrowError();
+        });
+    });
+
     describe('fetchDecoratorValues', () => {
         it('should retrieve decorator values for a namespace', async () => {
             const decorators = [
