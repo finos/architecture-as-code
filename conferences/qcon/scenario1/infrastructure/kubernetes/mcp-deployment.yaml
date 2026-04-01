@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trades-mcp-server
+  labels:
+    app: trades-mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trades-mcp-server
+  template:
+    metadata:
+      labels:
+        app: trades-mcp-server
+    spec:
+      containers:
+        - name: trades-mcp-server
+          image: jpgough/trades-mcp-server:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          env:
+            - name: QUARKUS_REST_CLIENT__COM_DEMO_TRADESMCP_TRADESAPICLIENT__URL
+              value: "http://trades"
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30

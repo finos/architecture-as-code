@@ -5,12 +5,14 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.FlowVersionExistsException;
 import org.finos.calm.domain.exception.FlowVersionNotFoundException;
+import org.finos.calm.domain.flow.CreateFlowRequest;
+import org.finos.calm.domain.flow.NamespaceFlowSummary;
 
 import java.util.List;
 
 public interface FlowStore {
-    List<Integer> getFlowsForNamespace(String namespace) throws NamespaceNotFoundException;
-    Flow createFlowForNamespace(Flow flow) throws NamespaceNotFoundException;
+    List<NamespaceFlowSummary> getFlowsForNamespace(String namespace) throws NamespaceNotFoundException;
+    Flow createFlowForNamespace(CreateFlowRequest flowRequest, String namespace) throws NamespaceNotFoundException;
     List<String> getFlowVersions(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException;
     String getFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException;
     Flow createFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionExistsException;

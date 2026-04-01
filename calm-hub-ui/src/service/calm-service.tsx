@@ -54,13 +54,15 @@ export class CalmService {
             });
     }
 
-    public async fetchFlowIDs(namespace: string): Promise<string[]> {
+    public async fetchFlowSummaries(namespace: string): Promise<ResourceSummary[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${namespace}/flows`, { headers })
-            .then((res) => res.data.values.map((id: number) => id.toString()))
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/flows`, { headers })
+            .then((res) => {
+                return Array.isArray(res.data?.values) ? res.data.values : [];
+            })
             .catch((error) => {
-                const errorMessage = `Error fetching flow IDs for namespace ${namespace}:`;
+                const errorMessage = `Error fetching flows for namespace ${namespace}:`;
                 // arg1 is %s to prevent format string injection from `namespace`.
                 console.error('%s', errorMessage, error);
                 return Promise.reject(new Error(errorMessage));

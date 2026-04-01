@@ -65,21 +65,24 @@ describe('CalmService', () => {
         });
     });
 
-    describe('fetchFlowIDs', () => {
-        it('should retrieve flow IDs for a namespace', async () => {
-            const expectedIds = [10, 20];
-            mock.onGet(`/calm/namespaces/${namespace}/flows`).reply(200, {
-                values: expectedIds,
+    describe('fetchFlowSummaries', () => {
+        it('should retrieve flow summaries for a namespace', async () => {
+            const expectedSummaries = [
+                { id: 10, name: 'Flow One', description: 'First' },
+                { id: 20, name: 'Flow Two', description: 'Second' },
+            ];
+            mock.onGet(`/calm/namespaces/${encodeURIComponent(namespace)}/flows`).reply(200, {
+                values: expectedSummaries,
             });
-            const actual = await calmService.fetchFlowIDs(namespace);
-            expect(actual).toEqual(['10', '20']);
+            const actual = await calmService.fetchFlowSummaries(namespace);
+            expect(actual).toEqual(expectedSummaries);
         });
 
         it('should throw an error when backend returns error status', async () => {
-            mock.onGet(`/calm/namespaces/${namespace}/flows`).reply(500, {
+            mock.onGet(`/calm/namespaces/${encodeURIComponent(namespace)}/flows`).reply(500, {
                 message: 'Error',
             });
-            await expect(calmService.fetchFlowIDs(namespace)).rejects.toThrowError();
+            await expect(calmService.fetchFlowSummaries(namespace)).rejects.toThrowError();
         });
     });
 

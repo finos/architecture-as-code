@@ -17,7 +17,7 @@ vi.mock('react-router-dom', async () => {
 let calmServiceInstance: {
     fetchNamespaces: Mock;
     fetchPatternSummaries: Mock;
-    fetchFlowIDs: Mock;
+    fetchFlowSummaries: Mock;
     fetchArchitectureSummaries: Mock;
     fetchPatternVersions: Mock;
     fetchFlowVersions: Mock;
@@ -32,7 +32,7 @@ vi.mock('../../../service/calm-service.js', () => ({
         calmServiceInstance = {
             fetchNamespaces: vi.fn().mockResolvedValue(['test-namespace', 'another-namespace']),
             fetchPatternSummaries: vi.fn().mockResolvedValue([]),
-            fetchFlowIDs: vi.fn().mockResolvedValue([]),
+            fetchFlowSummaries: vi.fn().mockResolvedValue([]),
             fetchArchitectureSummaries: vi.fn().mockResolvedValue([]),
             fetchPatternVersions: vi.fn().mockResolvedValue([]),
             fetchFlowVersions: vi.fn().mockResolvedValue([]),
@@ -179,7 +179,7 @@ describe('TreeNavigation', () => {
 
         await waitFor(() => {
             expect(calmServiceInstance?.fetchNamespaces).toHaveBeenCalled();
-            expect(calmServiceInstance?.fetchFlowIDs).toHaveBeenCalledWith('test-namespace');
+            expect(calmServiceInstance?.fetchFlowSummaries).toHaveBeenCalledWith('test-namespace');
             expect(calmServiceInstance?.fetchFlowVersions).toHaveBeenCalledWith('test-namespace', '201');
             expect(calmServiceInstance?.fetchFlow).toHaveBeenCalledWith('test-namespace', '201', 'v2.0');
         });
@@ -258,7 +258,7 @@ describe('buildNamespaceTree', () => {
         vi.mocked(CalmService).mockImplementationOnce(() => ({
             fetchNamespaces: vi.fn().mockResolvedValue(['org.finos', 'org.finos.calm', 'com.traderx']),
             fetchPatternSummaries: vi.fn().mockResolvedValue([]),
-            fetchFlowIDs: vi.fn().mockResolvedValue([]),
+            fetchFlowSummaries: vi.fn().mockResolvedValue([]),
             fetchArchitectureSummaries: vi.fn().mockResolvedValue([]),
             fetchPatternVersions: vi.fn().mockResolvedValue([]),
             fetchFlowVersions: vi.fn().mockResolvedValue([]),

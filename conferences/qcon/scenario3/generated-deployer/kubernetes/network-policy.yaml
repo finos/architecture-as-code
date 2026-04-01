@@ -1,0 +1,45 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-mcp-to-trades
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: trades
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: trades-mcp-server
+    ports:
+    - protocol: TCP
+      port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-mcp-egress-to-trades
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: trades-mcp-server
+  policyTypes:
+    - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: trades
+    ports:
+    - protocol: TCP
+      port: 8080
+  - to:
+    - namespaceSelector: {}
+      podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
