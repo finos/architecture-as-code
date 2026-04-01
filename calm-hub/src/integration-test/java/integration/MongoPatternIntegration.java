@@ -65,8 +65,16 @@ public class MongoPatternIntegration {
     @Test
     @Order(2)
     void end_to_end_create_a_pattern() {
+        String payload = """
+                {
+                     "name": "name",
+                     "description": "description",
+                     "patternJson": "{\\"name\\": \\"demo-pattern\\"}"
+                }
+                """;
+
         given()
-                .body(PATTERN)
+                .body(payload)
                 .header("Content-Type", "application/json")
                 .when().post("/calm/namespaces/finos/patterns")
                 .then()
