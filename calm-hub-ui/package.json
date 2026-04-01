@@ -27,7 +27,7 @@
         "d3-transition": "^3.0.1",
         "d3-zoom": "^3.0.0",
         "lucide-react": "^0.577.0",
-        "oidc-client": "^1.11.5",
+        "oidc-client-ts": "3.5.0",
         "react": "^19.1.0",
         "react-dom": "^19.1.0",
         "react-dropzone": "^14.3.8",
